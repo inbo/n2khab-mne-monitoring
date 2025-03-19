@@ -47,7 +47,7 @@ For more information on the relation with associated repositories, have a look a
 1. When approved, your branch will be merged with the reference branch in the remote repo (at github.com).
 1. Pull the reference branch and clean up your local repo in order to keep up with the remote.
 
-More info on git workflows at INBO: <https://inbo.github.io/tutorials/tags/git/>
+More info on git workflows at INBO: <https://tutorials.inbo.be/tags/git/>
 
 
 ## General information on the MNE
