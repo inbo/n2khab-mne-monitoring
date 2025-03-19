@@ -24,7 +24,9 @@ Explanation of main directory structure:
 - _to be updated as needed_
 - 
 
-Further, note that general binary/large data sources, either raw data sources or data sources produced by code in the
+## Relation with N2KHAB packages and repositories
+
+Note that general binary/large data sources, either raw data sources or data sources produced by code in the
 [n2khab-preprocessing](https://github.com/inbo/n2khab-inputs) repo, should be organised according to data management conventions for N2KHAB projects.
 I.e., these N2KHAB data sources must be stored in a (git-ignored) folder `n2khab_data` (with subfolders `10_raw` and `20_processed`).
 This folder may also sit outside git repositories, in order to serve multiple projects.
