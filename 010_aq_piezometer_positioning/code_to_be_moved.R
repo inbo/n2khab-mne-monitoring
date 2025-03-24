@@ -30,17 +30,23 @@ if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
 # - watersurfaces_hab: version watersurfaces_hab_v6
 # - habitatstreams: version habitatstreams_2023
 # - habitatsprings: version habitatsprings_2020v2
+# - flanders: version "flanders_2018-05-16"
 file.path(
   locate_n2khab_data(),
   c(
     "20_processed/watersurfaces_hab",
     "10_raw/habitatsprings",
-    "10_raw/habitatstreams"
+    "10_raw/habitatstreams",
+    "10_raw/flanders"
   )
 ) %>%
   list.files(full.names = TRUE) %>%
   xxh64sum() %>%
   identical(c(
+    flanders.dbf = "d21a599325723682",
+    flanders.prj = "2f10404ffd869596",
+    flanders.shp = "72fff53084b356be",
+    flanders.shx = "1880e141bbcdc6ca",
     habitatsprings.geojson = "7268c26f52fcefe4",
     habitatstreams.dbf = "dee7a620e3bcae0a",
     habitatstreams.lyr = "a120f92d80c92a3a",
