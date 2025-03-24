@@ -42,6 +42,7 @@ file.path(
 ) %>%
   list.files(full.names = TRUE) %>%
   xxh64sum() %>%
+  .[sort(names(.))] %>%
   identical(c(
     flanders.dbf = "d21a599325723682",
     flanders.prj = "2f10404ffd869596",
