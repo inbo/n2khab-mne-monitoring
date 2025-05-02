@@ -1,0 +1,182 @@
+---
+title: "Data Sources to Categorize Site Accessibility"
+date: "2025-04-25"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: true
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+Prior (by Hans):
+<https://docs.google.com/presentation/d/1mF9Nd3sXwsZmCYLmAE3vsRYNO7sX4p0ojro9-szMmJY/edit#slide=id.g2e7cd3adab0_21_25>
+
+
+
+```{r libraries}
+conflictRules("n2khab", exclude = c("read_schemes", "read_scheme_types"))
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(sf)
+library(n2khab)
+library(n2khabmon)
+library(googledrive)
+
+```
+
+
+# strategy:
+
+
+## procedural:
+
+- (i) get sample locations
+- (ii) get aquatic bodies
+  - surfs, streams, springs
+  - ensure 31370
+  - buffers: r₁ = 20m, r₂ = 40m
+- target distance from surface water edge: r = 30m
+- query dhmv(xᵢ | 1m resolution) ∀ xᵢ < r₂
+  - calculate gradient direction
+  - take wedge of α=π/8
+
+
+## special situation:
+
+- stream into/out of surface water body
+
+
+## cases:
+
+- sample x ⊂ r₁ ⇒ place anywhere around
+- sample r₁ < x < r ⇒ move to target distance r
+
+
+## exploration:
+
+- filter an example area
+
+
+## complication anticipation:
+
+- Flanders is relatively flat
+- water redistributes under the influence of gravity
+
+⇒ elevation gradient below detection limit?
+
+
+# data
+
+## assemble raw sources
+
+### water bodies
+
+```{r datasource-consistency}
+#' data source version persistence
+#'
+#' Manually check data source versions (something to be automated by n2khab
+#' package in the future, based on preset versions)
+#'
+confirm_n2khab_data_consistency <- function() {
+
+  # required for the pipe operator 
+  stopifnot("magrittr" = require("magrittr"))
+
+  # the checksums of working data versions (as of 20250501)
+  # - watersurfaces_hab: version watersurfaces_hab_v6
+  # - habitatstreams: version habitatstreams_2023
+  # - habitatsprings: version habitatsprings_2020v2
+  # - flanders: version "flanders_2018-05-16"
+  reference_checksum <- c(
+    flanders.dbf = "d21a599325723682",
+    flanders.prj = "2f10404ffd869596",
+    flanders.shp = "72fff53084b356be",
+    flanders.shx = "1880e141bbcdc6ca",
+    habitatsprings.geojson = "7268c26f52fcefe4",
+    habitatstreams.dbf = "dee7a620e3bcae0a",
+    habitatstreams.lyr = "a120f92d80c92a3a",
+    habitatstreams.prj = "7e64ff1751a50937",
+    habitatstreams.shp = "5a7d7cddcc52c5df",
+    habitatstreams.shx = "b2087e6affe744f4",
+    habitatstreams.sld = "2f192b84b4df99e9",
+    watersurfaces_hab.gpkg = "e2920c4932008387"
+  )
+    
+  # for comparison: checksums of current files on disk
+  status_checksum <- file.path(
+      n2khab::locate_n2khab_data(),
+      c(
+        "20_processed/watersurfaces_hab",
+        "10_raw/habitatsprings",
+        "10_raw/habitatstreams",
+        "10_raw/flanders"
+      )
+    ) %>%
+    list.files(full.names = TRUE) %>%
+    n2khab::xxh64sum()
+    
+  # per filename, check whether checksums match
+  check_identical_checksum <- function (filename) {
+
+    # the check
+    file_check <- identical(
+        reference_checksum[filename],
+        status_checksum[filename]
+      )
+
+    # more verbose error upon mismatch
+    if (!file_check) {
+      message(paste0(
+        "ERROR: file `",
+        filename,
+        "` changed on disk.",
+        collapse = "") )
+      }
+
+    # stop or return TRUE
+    return(is.null(
+      stopifnot(file_check)
+    ))
+    
+  }
+
+  # check all files
+  check <- all(sapply(names(reference_checksum), FUN = check_identical_checksum))
+
+  # confirm correctness of all n2khab data files
+  if (check) message("All n2khab data files match the recorded state.")
+  
+} # /confirm_n2khab_data_consistency
+
+
+# apply the function
+confirm_n2khab_data_consistency()
+
+```
+
+
+### sample
+
+```{r google-auth}
+#### google authentification
+# Setup for googledrive authentication. Set the appropriate env vars in
+# .Renviron and make sure you ran drive_auth() interactively with these settings
+# for the first run (or to renew an expired Oauth token).
+# See ?gargle::gargle_options for more information.
+if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
+  options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
+}
+if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
+  options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
+}
+
+# tipps for paranoid linux terminal users (non-interactive R):
+# - point your oauth cache to a tomb https://dyne.org/tomb
+# - do not forget to open the tomb prior to starting the R session
+```
