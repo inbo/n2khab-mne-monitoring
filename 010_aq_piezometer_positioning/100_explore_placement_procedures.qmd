@@ -19,15 +19,23 @@ Prior (by Hans):
 
 
 ```{r libraries}
-conflictRules("n2khab", exclude = c("read_schemes", "read_scheme_types"))
-library(dplyr)
-library(tidyr)
-library(stringr)
-library(sf)
-library(n2khab)
-library(n2khabmon)
-library(googledrive)
 
+void <- suppressPackageStartupMessages
+
+conflictRules("n2khab", exclude = c("read_schemes", "read_scheme_types"))
+library("stringr")     |> void() # string ragging
+library("dplyr")       |> void() # our favorite data wrangling toolbox
+library("tidyr")       |> void() # data preparation and rearrangement
+library("googledrive") |> void() # google drive data to/fro
+library("inbospatial") |> void() # convenience functions for wfs and other queries
+library("sf")          |> void() # spatial feature processing
+library("n2khab")      |> void() # n2khab data and common functions
+library("n2khabmon")   |> void() # monitoring schemes for natura2000 habitats
+
+# print sample from sf objects
+kableprint <- function(df, show_rows = 5) {
+  knitr::kable(df[sample(1:nrow(df), show_rows), ])
+}
 ```
 
 
@@ -73,9 +81,9 @@ library(googledrive)
 
 # data
 
-## assemble raw sources
+## Assembling Aquatic Habitat Types
 
-### water bodies
+### data consistence
 
 ```{r datasource-consistency}
 #' data source version persistence
@@ -161,22 +169,228 @@ confirm_n2khab_data_consistency()
 ```
 
 
-### sample
+### watersurfaces present in the n2khab type list
+
+```{r load-watersurface-habitats}
+
+# reading scheme and type of target populations
+n2khab_targetpops <-
+  read_scheme_types() %>%
+  select(scheme, type)
+
+# list of distinct types
+n2khab_types <-
+  n2khab_targetpops %>%
+  distinct(type) %>%
+  arrange(type)
+
+# `wsh` is the watersurface map of Flanders (https://doi.org/10.5281/zenodo.3386857)
+wsh <- read_watersurfaces_hab(interpreted = TRUE)
+
+# we are interested in the types which are part of the n2khab list
+wsh_occ <-
+  wsh$watersurfaces_types %>%
+  # in general we restrict types using an expanded type list tailored to the
+  # type levels present in data sources, but for the aquatic types expansion and
+  # subsequent collapse of types are redundant steps
+  semi_join(n2khab_types, join_by(type))
+
+# of the focus-type watersurface polygons, we extract the polygon id
+wsh_pol <-
+  wsh$watersurfaces_polygons %>%
+  semi_join(wsh_occ, join_by(polygon_id)) %>%
+  select(polygon_id)
+
+kableprint(wsh_pol) # polygon id of the watersurface polygons of interest
+```
+
+
+### Streams
+
+Temporary approach to generate `segm_3260` (i.e. it will miss a part and some may be false positives)
+(unit ID defined by `unit_id`)
+
+```{r load-streams}
+
+# habitat 3260 from
+#     Biologische Waarderingskaart en Natura 2000 Habitatkaart
+#     https://doi.org/10.21436/inbor.96375305
+# ... are the streams
+habstream <- read_habitatstreams()
+
+# for those streams, we use the 100m line segments
+# applying spatial supsetting (intersect!) with sf_x[sf_y, ]
+#   not well documented in https://r-spatial.github.io/sf/reference/sf.html
+#   -> geocomputation with R https://r.geocompx.org/spatial-operations#spatial-subsetting
+#   habstream <- read_habitatstreams()
+#   seg_all <- read_watercourse_100mseg(element = "lines")
+#   seg_reference <- seg_all[habstream, , op = sf::st_intersects]
+#   seg_test <- seg_all[lengths(sf::st_intersects(seg_all, habstream, sparse = TRUE)) > 0, ]
+#   identical(seg_reference, seg_test)
+segm_3260 <-
+  read_watercourse_100mseg(element = "lines")[habstream, ] %>%
+  unite(unit_id, vhag_code, rank) # tidyr::unite string concatenation
+
+kableprint(segm_3260) # unique identifier for line segments
+
+```
+
+
+### Springs
+Generating `habspring_units_aquatic` (unit ID defined by `unit_id`)
+
+```{r load-springs}
+
+# creating a buffered version of Flanders
+flanders_buffer <-
+  read_admin_areas(dsn = "flanders") %>%
+  st_buffer(40) # units: meter
+
+# read in the spring habitat source
+habspring_units_aquatic <-
+  # following function will be adapted to support the latest version of the data
+  # source (just released); for now use version habitatsprings_2020v2
+  read_habitatsprings(units_7220 = TRUE) %>%
+  # filtering for the spatial intersect with Flanders
+  .[flanders_buffer, ] %>%
+  # and excluding "mire" type
+  filter(system_type != "mire")
+
+# all spring locations (note: full data, not just ID)
+kableprint(habspring_units_aquatic)
+```
+
+
+## load the sample
+
+
+### google authentification
+
+Currently, the latest version of the sample is distributed via an `.RData` file on the google drive.
 
 ```{r google-auth}
-#### google authentification
 # Setup for googledrive authentication. Set the appropriate env vars in
 # .Renviron and make sure you ran drive_auth() interactively with these settings
 # for the first run (or to renew an expired Oauth token).
 # See ?gargle::gargle_options for more information.
-if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
-  options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
-}
-if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
-  options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
+google_drive_init <- function() {
+  if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
+    options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
+  }
+  if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
+    options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
+  }
 }
 
 # tipps for paranoid linux terminal users (non-interactive R):
 # - point your oauth cache to a tomb https://dyne.org/tomb
 # - do not forget to open the tomb prior to starting the R session
+
+google_drive_init()
 ```
+
+
+### load/restore sample data
+
+Download the sample data (unless it is already there).
+
+```{r sample-data-download}
+force_reload_sample <- FALSE
+target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+
+if (force_reload_sample || !file.exists(target_sample_filepath)) {
+  googledrive::drive_download(
+    googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
+    path = target_sample_filepath,
+    overwrite = TRUE
+  )
+}
+
+# load the data into a new environment
+env_extradata <- new.env()
+load(target_sample_filepath, envir = env_extradata)
+ls(envir = env_extradata)
+
+```
+
+restore sample data structure
+Below object can be used to filter the foregoing geospatial objects, taking
+into account that: rows with ...
+
+- `sample_support_code == watersurface` relate to the IDs in `wsh_pol`
+- `sample_support_code == watercourse_segment` relate to the IDs in `segm_3260`
+- `sample_support_code == spring` relate to the IDs in `habspring_units_aquatic`
+
+```{r sample-data-join}
+
+stratum_units_grts_aquatic_gw_spsamples_spares <-
+  # units per stratum:
+  get("stratum_units_non_cell_n2khab", envir = env_extradata) %>%
+  # joining GRTS address per unit. A few non-unique GRTS addresses exist, hence
+  # 'many-to-one'. See further.
+  inner_join(
+    get("units_non_cell_n2khab_grts", envir = env_extradata),
+    join_by(sample_support_code, unit_id),
+    relationship = "many-to-one",
+    unmatched = "error"
+  ) %>%
+  filter(
+    # other 'non-cell' types exist so these must be dropped:
+    sample_support_code %in% c(
+      "watersurface",
+      "watercourse_segment",
+      "spring"
+    ),
+    # terrestrial spring units must also be excluded:
+    unit_id %in% habspring_units_aquatic$unit_id |
+      sample_support_code != "spring"
+  ) %>%
+  rename(grts_address_final = grts_address) %>%
+  # join with samples ('sample_status' defines whether location is 'in the
+  # sample' or is a 'spare unit' (spare units = a bunch of 'next' GRTS addresses
+  # in the available GRTS series for a stratum))
+  inner_join(
+    get(
+      "scheme_moco_ps_stratum_sppost_spsamples_spares_sf",
+      envir = env_extradata
+    ) %>%
+      st_drop_geometry() %>%
+      # only use the samples of groundwater schemes
+      filter(str_detect(scheme, "^GW")) %>%
+      rename(grts_address_drawn = grts_address) %>%
+      # collapse module combos and schemes; hereby select the 'prior'
+      # sample_status ("in_sample") across module combos and schemes:
+      summarize(
+        sample_status = sample_status %>% droplevels() %>% levels() %>%  first(),
+        .by = c(
+          stratum,
+          grts_address_drawn,
+          grts_address_final
+        )
+      ) %>%
+      mutate(sample_status = factor(sample_status)),
+    join_by(stratum, grts_address_final),
+    # A few non-unique GRTS addresses exist, hence 'many-to-one'. We will apply
+    # a quick-fix below to meet the requirement of 'one unit sampled per GRTS
+    # address', but at least the selection will need further alignment with the
+    # (likewise) MHQ solution (to be continued).
+    relationship = "many-to-one",
+    unmatched = "drop"
+  ) %>%
+  arrange(sample_support_code, stratum, grts_address_drawn, unit_id) %>%
+  # for now, de-duplicate units with the same GRTS address by selecting the 1st
+  slice(1, .by = c(stratum, sample_support_code, grts_address_final)) %>%
+  select(-grts_address_drawn)
+
+
+# grts address and stratum of all units which are in the target category
+# (i.e. "watersurface", "watercourse_segment", "non-terrestrial spring")
+stratum_units_grts_aquatic_gw_spsamples_spares
+
+```
+
+
+::: {.callout-caution}
+REMINDER:
+we de-duplicate units with the same GRTS address by selecting the 1st.
+:::

@@ -6,3 +6,5 @@
 .quarto
 n2khab-mne-monitoring.Rproj
 
+/010_aq_piezometer_positioning/data/
+*.html
