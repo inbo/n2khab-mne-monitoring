@@ -5,7 +5,7 @@ format:
   html:
     toc: true
     html-math-method: katex
-    code-fold: true
+    code-fold: false
     embed-resources: true
 knitr:
   opts_chunk:
@@ -29,6 +29,7 @@ library("tidyr")       |> void() # data preparation and rearrangement
 library("googledrive") |> void() # google drive data to/fro
 library("inbospatial") |> void() # convenience functions for wfs and other queries
 library("sf")          |> void() # spatial feature processing
+library("mapview")     |> void() # show spatial features on a map
 library("n2khab")      |> void() # n2khab data and common functions
 library("n2khabmon")   |> void() # monitoring schemes for natura2000 habitats
 
@@ -290,6 +291,7 @@ google_drive_init()
 ```
 
 
+
 ### load/restore sample data
 
 Download the sample data (unless it is already there).
@@ -354,7 +356,7 @@ stratum_units_grts_aquatic_gw_spsamples_spares <-
       "scheme_moco_ps_stratum_sppost_spsamples_spares_sf",
       envir = env_extradata
     ) %>%
-      st_drop_geometry() %>%
+      st_drop_geometry() %>% # geom will be used below
       # only use the samples of groundwater schemes
       filter(str_detect(scheme, "^GW")) %>%
       rename(grts_address_drawn = grts_address) %>%
@@ -385,7 +387,7 @@ stratum_units_grts_aquatic_gw_spsamples_spares <-
 
 # grts address and stratum of all units which are in the target category
 # (i.e. "watersurface", "watercourse_segment", "non-terrestrial spring")
-stratum_units_grts_aquatic_gw_spsamples_spares
+kableprint(stratum_units_grts_aquatic_gw_spsamples_spares)
 
 ```
 
@@ -394,3 +396,40 @@ stratum_units_grts_aquatic_gw_spsamples_spares
 REMINDER:
 we de-duplicate units with the same GRTS address by selecting the 1st.
 :::
+
+
+```{r recover-geometry}
+geometry_link <- get(
+      "scheme_moco_ps_stratum_sppost_spsamples_spares_sf",
+      envir = env_extradata
+    ) %>%
+    select(grts_address) %>%
+    distinct
+
+data <- geometry_link %>%
+  right_join(
+    stratum_units_grts_aquatic_gw_spsamples_spares,
+  by = join_by(grts_address == grts_address_final),
+  relationship = "one-to-many",
+  unmatched = "drop"
+  )
+
+mapview(data)
+```
+
+
+### filter test data
+
+generate a small test dataset:
+unit_id ⊂ {`LIMDPB`, `LIMGNK`}
+
+
+```{r filter-test-data}
+test_data <- data %>%
+  filter(stringr::str_detect(unit_id, "^LIMDPB|^LIMGNK"),
+         sample_status == "in_sample")
+
+mapview(test_data)
+```
+
+
