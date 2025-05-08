@@ -52,6 +52,7 @@ kableprint <- function(df, show_rows = 5) {
 - query dhmv(xᵢ | 1m resolution) ∀ xᵢ < r₂
   - calculate gradient direction
   - take wedge of α=π/8
+  - complication: Flanders is flat; optionally query a wider range
 
 
 ## special situation:
@@ -295,6 +296,11 @@ google_drive_init()
 Download the sample data (unless it is already there).
 
 ```{r sample-data-download}
+# latest (20250506):
+#   target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+#   googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
+
+
 force_reload_sample <- FALSE
 target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
 
@@ -306,12 +312,39 @@ if (force_reload_sample || !file.exists(target_sample_filepath)) {
   )
 }
 
+# deprecated: 
+#   target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+#   googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
+#   target_sample_filepath <- file.path("./data", "objects_panflpan5.RData")
+#   googledrive::as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
+
+
 # load the data into a new environment
 env_extradata <- new.env()
 load(target_sample_filepath, envir = env_extradata)
 ls(envir = env_extradata)
 
+for (var in c(
+  "units_non_cell_n2khab_grts",
+  "stratum_units_non_cell_n2khab",
+  "scheme_moco_ps_stratum_sppost_spsamples_spares_sf"
+  )) {
+  tryCatch(
+  {stopifnot(exists(var, envir = env_extradata))},
+  error = function(wrnmsg) {
+    message(paste0(
+      "The variable ", var,
+      " does not exist in environment `env_extradata`.",
+      collapse = "")
+    )
+  }
+  )
+}
+
 ```
+
+(adjusted to read full POC `.RData`, [see here](https://github.com/inbo/n2khab-mne-design/blob/7a08ab9d36669d3a5b64d12b8bc35ff7c7a6a5d1/100_design_common/010_prototyping_sampling_and_revisit_design/helper_scripts/support_dcp_and_fieldwork.R))
+
 
 restore sample data structure
 Below object can be used to filter the foregoing geospatial objects, taking
@@ -468,7 +501,8 @@ xy <- as.data.frame(
   ) %>%
   rename_with(tolower)
 
-margin <- 128 #m
+margin <- 256 # m
+flow_cellsize <- 32 # m
 bbox <- sf::st_bbox(
    c(xmin = min(xy["x"]) - margin,
      xmax = max(xy["x"]) + margin,
@@ -506,9 +540,8 @@ test_location <- test_data %>%
     unit_id == "LIMGNK0010"
     )
 
-# TODO get grids of 32m
 test_buffer <- test_location %>%
-  sf::st_buffer(100) 
+  sf::st_buffer(margin) 
 sub_raster <- raster::crop(test_raster, raster::extent(test_buffer))
 
 plot(sub_raster, col = gray.colors(256))
@@ -591,11 +624,14 @@ plot(flow)
 nice, but maybe too many details.
 
 ```{r resample-coarse}
+n_grid <- as.integer(margin/flow_cellsize)
+
 xtnt <- setNames(
   as.vector(raster::extent(test_buffer)),
   c("xmin", "xmax", "ymin", "ymax"))
+
 coarse_grid <- rast(
-  nrows=32, ncols=32,
+  nrows = n_grid, ncols = n_grid,
   xmin = xtnt[["xmin"]],
   xmax = xtnt[["xmax"]],
   ymin = xtnt[["ymin"]],
@@ -677,13 +713,7 @@ px <- raster::rasterToPoints(raster::raster(flow))[,1]
 py <- raster::rasterToPoints(raster::raster(flow))[,2]
 pz <- raster::rasterToPoints(raster::raster(flow))[,3]
 # pz[1] <- 2^1
-# pz[2] <- 2^2
-# pz[3] <- 2^3
-# pz[4] <- 2^4
-# pz[5] <- 2^5
-# pz[6] <- 2^6
-# pz[7] <- 2^7
-# pz[8] <- 2^8
+# pz[1<n<9] <- 2^n 
 # pz[9] <- 0
 direction <- 2*pi/8 * log2(pz)
 direction[!is.finite(direction)] <- NA 
@@ -711,8 +741,7 @@ pracma::quiver(
 ```{r average-direction}
 nonnan <- function(vec) vec[!is.na(vec)]
 nanmean <- function(vec) mean(nonnan(vec))
-print(nanmean(dx))
-print(nanmean(dy))
+print(paste0(nanmean(dx), ", ", nanmean(dy)))
 
 ```
 
@@ -720,14 +749,14 @@ print(nanmean(dy))
 nonnan <- function(vec) vec[!is.na(vec)]
 nanmean <- function(vec) mean(vec[!is.na(vec)])
 euclid <- function(x, y) sqrt(x^2 + y^2)
-within_radius <- function(x, y, r = 100) {
+within_radius <- function(x, y, r = 128) {
   dist <- euclid(
     nonnan(x) - nanmean(x),
     nonnan(y) - nanmean(y)
   )
   return(dist < r)
 }
-sel <- within_radius(px, py, r = 96) # TODO
+sel <- within_radius(px, py, r = margin-flow_cellsize) # TODO discuss radius
 
 plot(slope)
 pracma::quiver(
@@ -739,9 +768,176 @@ pracma::quiver(
   col = "darkorange"
   )
 
-print(nanmean(dx[sel]))
-print(nanmean(dy[sel]))
+print(paste0(nanmean(dx[sel]), ", ", nanmean(dy[sel])))
 ```
 
 
-TODO idea: slope-weighted average direction
+```{r slope-weighted-average}
+nancumsum <- function (vec, weight, selection) {
+
+  vec <- as.matrix(vec)
+  weight <- as.matrix(weight)
+  selection <- as.matrix(selection)
+
+  nans <- is.na(vec) | is.na(weight) | is.na(selection)
+  vec <- vec[!nans]
+  weight <- weight[!nans]
+  selection <- selection[!nans]
+
+  return(sum(vec[selection] * weight[selection]) / sum(weight[selection]))
+}
+
+print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
+
+```
+
+
+
+- [X] get grids of 32m
+- [X] idea: slope-weighted average direction
+- [X] test other interpol methods (not matter much)
+
+
+# Generalization
+
+- get flow direction
+- based on DHMV
+- within given radius 
+- ... and given grid size
+
+
+```{r flow-gradient-general-function}
+
+calculate_flow_direction <- function(
+    location,
+    margin = 256, flow_cellsize = 32,
+    plot_area = FALSE) {
+
+  xy <- as.data.frame(
+      sf::st_coordinates(location)
+    ) %>%
+    rename_with(tolower)
+  # message(xy)
+  
+  bbox <- sf::st_bbox(
+     c(xmin = min(xy["x"]) - margin,
+       xmax = max(xy["x"]) + margin,
+       ymin = min(xy["y"]) - margin,
+       ymax = max(xy["y"]) + margin
+       ),
+     crs = sf::st_crs(31370)
+  )
+  location_raster <- inbospatial::get_coverage_wcs(
+    wcs = "dhmv",
+    bbox = bbox,
+    layername = "DHMVII_DTM_1m",
+    version = "2.0.1",
+    wcs_crs = "EPSG:31370",
+    resolution = 1
+  )
+  
+  
+  n_grid <- as.integer(margin/flow_cellsize)
+  
+  coarse_grid <- rast(
+    nrows = n_grid, ncols = n_grid,
+    xmin = min(xy["x"]) - margin,
+    xmax = max(xy["x"]) + margin,
+    ymin = min(xy["y"]) - margin,
+    ymax = max(xy["y"]) + margin
+    )
+  crs(coarse_grid) <- "EPSG:31370"
+  coarse_raster <- resample(location_raster, coarse_grid,
+    method = "lanczos" # method = "bilinear"
+  )
+  
+  slope <- terra::terrain(coarse_raster, v = "slope")
+  flow <- terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)
+  
+  px <- raster::rasterToPoints(raster::raster(flow))[,1]
+  py <- raster::rasterToPoints(raster::raster(flow))[,2]
+  pz <- raster::rasterToPoints(raster::raster(flow))[,3]
+  
+  direction <- 2*pi/8 * log2(pz)
+  direction[!is.finite(direction)] <- NA 
+  
+  dx <- +1*cos(direction)
+  dy <- -1*sin(direction)
+  
+  # directions <- as.matrix(flow, wide = TRUE)
+  nonnan <- function(vec) vec[!is.na(vec)]
+  nanmean <- function(vec) mean(vec[!is.na(vec)])
+  euclid <- function(x, y) sqrt(x^2 + y^2)
+  within_radius <- function(x, y, r = 128) {
+    dist <- euclid(
+      nonnan(x) - nanmean(x),
+      nonnan(y) - nanmean(y)
+    )
+    return(dist < r)
+  }
+  sel <- within_radius(px, py, r = margin-flow_cellsize) 
+      
+  nancumsum <- function (vec, weight, selection) {
+  
+    vec <- as.matrix(vec)
+    weight <- as.matrix(weight)
+    selection <- as.matrix(selection)
+  
+    nans <- is.na(vec) | is.na(weight) | is.na(selection)
+    vec <- vec[!nans]
+    weight <- weight[!nans]
+    selection <- selection[!nans]
+  
+    return(sum(vec[selection] * weight[selection]) / sum(weight[selection]))
+  }
+  
+  flow_vector <- c(nancumsum(dx, slope, sel), nancumsum(dy, slope, sel))
+
+  if (plot_area) {
+
+    plot(location_raster)
+
+    pracma::quiver(
+      x = px[sel],
+      y = py[sel],
+      u = dx[sel],
+      v = dy[sel],
+      scale = 10,
+      col = "gray"
+      )
+    pracma::quiver(
+      x = xy[[1]],
+      y = xy[[2]],
+      u = flow_cellsize * flow_vector[[1]],
+      v = flow_cellsize * flow_vector[[2]],
+      scale = 5,
+      col = "darkorange"
+      )
+  }
+    
+  return(flow_vector)
+
+}
+
+
+
+for (location_code in c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")) {
+  test_location <- test_data %>% 
+    filter(unit_id == location_code)
+  
+  print(
+    paste0(
+      location_code, ": ",
+      paste0(
+        calculate_flow_direction(
+          test_location,
+          margin <- 256,
+          flow_cellsize <- 32,
+          plot_area = TRUE),
+        collapse = ", "),
+      collapse = ""))
+}
+
+
+
+```
