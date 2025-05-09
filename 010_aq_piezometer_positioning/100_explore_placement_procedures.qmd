@@ -816,7 +816,8 @@ print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
 #' flow vector will be in meters.
 #' 
 #' @details this is the slope-averaged flow direction between
-#' cells in a coarse raster grid within a given radius around the location.
+#' cells in a coarse raster grid within a given radius around the location
+#' (but excluding the outer rim of cells, where no slope is queried).
 #' It uses `terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)`.
 #'
 #' @param location the point (or polygon) of interest;
@@ -831,6 +832,13 @@ print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
 #'        flow calculation will be saved as "png" image to the given path.
 #' @return c(dx,dy) vector (in meters) of the average flow direction in a
 #'        circular area around the location.
+#'
+#' @examples
+#' \dontrun{
+#'   location <- sf::st_sfc(sf::st_point(c(225598, 182350), dim = "XY"))
+#'   sf::st_crs(location) <- 31370
+#'   calculate_flow_direction(location, buffer_width = 1024, flow_cellsize = 32)
+#' }
 #'
 calculate_flow_direction <- function(
     location,
@@ -941,7 +949,8 @@ calculate_flow_direction <- function(
     return(sum(vec[selection] * weight[selection]) / sum(weight[selection]))
   }
   
-  ### compute average flow of coarse cells
+  ### compute average flow of coarse cells within radius
+  # exclude the outer rows of cells (where no slope is queried)
   sel <- within_radius(fpx, fpy, r = buffer_width - flow_cellsize) 
   flow_vector <- c(average_flow(dx, slope, sel), average_flow(dy, slope, sel))
 
@@ -983,32 +992,33 @@ calculate_flow_direction <- function(
     
   return(flow_vector)
 
-}
+} # /calculate_flow_direction
+```
 
+
+The function is applied as follows:
+
+```{r flow-gradient-application}
 
 # exemplary execution
 for (location_code in c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")) {
   test_location <- test_data %>% 
     filter(unit_id == location_code)
-  
-  print(
-    paste0(
-      location_code, ": ",
-      paste0(
-        calculate_flow_direction(
-          test_location,
-          buffer_width = 256,
-          flow_cellsize = 32,
-          save_plot_filepath = here::here("figures", sprintf("%s.png", location_code))
-        ),
-        collapse = ", "
-      ),
-      collapse = ""
-    )
+
+  # location <- test_location
+  # 
+  flow_vector <- calculate_flow_direction(
+    test_location,
+    buffer_width = 256,
+    flow_cellsize = 32,
+    save_plot_filepath = here::here("figures", sprintf("%s.png", location_code))
   )
+  print(paste0(
+    location_code, ": ",
+    paste0(flow_vector, collapse = ", "),
+    collapse = ""
+  ))
+
 }
-
-
-# location <- test_location
 
 ```
