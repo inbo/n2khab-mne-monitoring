@@ -831,7 +831,7 @@ print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
 #'
 #' @param location the point (or polygon) of interest;
 #'        an `sf` object of which the `sf::st_coordinates` are used.
-#' @param buffer_width the buffer extent (in meters) around the location, 
+#' @param flow_range the buffer extent (in meters) around the location, 
 #'        which is used to query elevation and calculate flow.
 #'        Units are those of the coordinates.
 #' @param flow_cellsize the width of a cell in the resampled raster
@@ -839,6 +839,7 @@ print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
 #'        Units are those of the coordinates.
 #' @param save_plot_filepath if this is not NA, a summary map of the
 #'        flow calculation will be saved as "png" image to the given path.
+#' 
 #' @return c(dx,dy) vector (in meters) of the average flow direction in a
 #'        circular area around the location.
 #'
@@ -846,12 +847,12 @@ print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
 #' \dontrun{
 #'   location <- sf::st_sfc(sf::st_point(c(225598, 182350), dim = "XY"))
 #'   sf::st_crs(location) <- 31370
-#'   calculate_flow_direction(location, buffer_width = 1024, flow_cellsize = 32)
+#'   calculate_flow_direction(location, flow_range = 1024, flow_cellsize = 32)
 #' }
 #'
 calculate_flow_direction <- function(
     location,
-    buffer_width = 256, flow_cellsize = 32,
+    flow_range = 256, flow_cellsize = 32,
     save_plot_filepath = NA) {
 
   # location_raw <- location # currently not necessary to store the data in raw CRS
@@ -869,10 +870,10 @@ calculate_flow_direction <- function(
   # (elevation model of Flanders)
   # within a buffer area
   bbox <- sf::st_bbox(
-     c(xmin = min(xy[1]) - buffer_width,
-       xmax = max(xy[1]) + buffer_width,
-       ymin = min(xy[2]) - buffer_width,
-       ymax = max(xy[2]) + buffer_width
+     c(xmin = min(xy[1]) - flow_range,
+       xmax = max(xy[1]) + flow_range,
+       ymin = min(xy[2]) - flow_range,
+       ymax = max(xy[2]) + flow_range
        ),
      crs = sf::st_crs(31370)
   )
@@ -888,15 +889,15 @@ calculate_flow_direction <- function(
   
   ### Resample
   # to get a coarse grid
-  n_grid <- as.integer(buffer_width/flow_cellsize)
+  n_grid <- as.integer(flow_range/flow_cellsize)
   
   # resample within the buffer range
   coarse_grid <- terra::rast(
     nrows = n_grid, ncols = n_grid,
-    xmin = min(xy[1]) - buffer_width,
-    xmax = max(xy[1]) + buffer_width,
-    ymin = min(xy[2]) - buffer_width,
-    ymax = max(xy[2]) + buffer_width
+    xmin = min(xy[1]) - flow_range,
+    xmax = max(xy[1]) + flow_range,
+    ymin = min(xy[2]) - flow_range,
+    ymax = max(xy[2]) + flow_range
     )
   terra::crs(coarse_grid) <- "EPSG:31370"
   coarse_raster <- terra::resample(location_raster, coarse_grid,
@@ -960,7 +961,7 @@ calculate_flow_direction <- function(
   
   ### compute average flow of coarse cells within radius
   # exclude the outer rows of cells (where no slope is queried)
-  sel <- within_radius(fpx, fpy, r = buffer_width - flow_cellsize) 
+  sel <- within_radius(fpx, fpy, r = flow_range - flow_cellsize) 
   flow_vector <- c(average_flow(dx, slope, sel), average_flow(dy, slope, sel))
 
   ### optionally store a quiver plot on a map for vizualization
@@ -1018,7 +1019,7 @@ for (location_code in c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")) {
   # 
   flow_vector <- calculate_flow_direction(
     test_location,
-    buffer_width = 256,
+    flow_range = 256,
     flow_cellsize = 32,
     save_plot_filepath = here::here("figures", sprintf("%s.png", location_code))
   )
@@ -1086,14 +1087,13 @@ test_coords <- sf::st_coordinates(test_location) %>% as_tibble %>% rename_with(t
 
 pt0 <- t(as.matrix(c(0, 0)))
 upstream <- t(as.matrix(-calculate_flow_direction(test_location, 64, 8)))
-upstream_vec <- wedge_range * upstream / norm(upstream)
-norm(upstream_vec)
+vector_norm <- function(vec) sqrt(sum(vec^2))
+upstream_vec <- wedge_range * upstream / vector_norm(upstream)
+vector_norm(upstream_vec)
 
 rotate_vec <- function(vec, theta) vec %*% matrix(c(
-  cos(theta),
-  sin(theta),
-  -sin(theta),
-  cos(theta)
+   cos(theta), sin(theta),
+  -sin(theta), cos(theta)
   ), ncol =2)
 pt1 <- rotate_vec(upstream_vec, wedge_width/2)
 pt2 <- rotate_vec(upstream_vec, -wedge_width/2)
@@ -1117,27 +1117,75 @@ mapview(target_area,
 
 ```{r general-buffer-upstream-wedge}
   
-
+#' Determine target area for well placement
+#' around aquatic habitat types.
+#'
+#' Provides a polygon area in a buffer band around the
+#' water surface of interest, in the upstream direction
+#' of putative groundwater flow (elevation model).
+#'
+#' @param water_polygon an `sf` polygon-like object capturing
+#'        the water surface.
+#' @param original_location sf point indicating placement target;
+#'        centroid of the water_polygon will be used per default.
+#' @param buffer_range two-element vector c(from, to) which
+#'        determines the distance range around the polygon in
+#'        which the target location should be found.
+#' @param buffer_arc_radians indicates the slice of a circle
+#'        to which the target buffer is restricted.
+#'        range [0, 2*pi]; set to 2*pi of is.na
+#' @inheritParams calculate_flow_direction
+#' 
+#' @return target area, as an sf object with POLYGON geometry
+#'
+#' @examples
+#' \dontrun{
+#'   wspol <- read_watersurfaces_hab(interpreted = TRUE)$watersurfaces_polygons
+#'   test_polygon <- wspol %>%
+#'     filter(polygon_id == "LIMGNK0062") %>% 
+#'     sf::st_cast("POLYGON", warn = FALSE)
+#'   test_target <- determine_target_area(
+#'     test_polygon,
+#'     buffer_range = c(1, 10),
+#'     buffer_arc_radians = 1, # because 1 ≡ pi/3
+#'     flow_range = 64,
+#'     flow_cellsize = 8
+#'   )
+#' }
+#' 
 determine_target_area <- function(
     water_polygon,
+    original_location = NA,
     buffer_range = NA,
-    wedge_width = 1, # because 1 ≡ pi/3
-    save_plot_filepath = NA,
+    buffer_arc_radians = 1, # because 1 ≡ pi/3
     ...
     ) {
 
+  # ensure meaningful buffer range
   if (any(is.na(buffer_range))) {
     buffer_range <- c(5, 20)
+  } else {
+    # buffer_range <- abs(buffer_range)
+    buffer_range <- c(min(buffer_range), max(buffer_range))
   }
 
-  center_location <- st_centroid(water_polygon) %>%
-    suppressWarnings()
-  
+  # ensure correct wedge width
+  buffer_arc_radians <- buffer_arc_radians %% (2*pi)
+  if ((!is.numeric(buffer_arc_radians)) ||
+      (is.na(buffer_arc_radians)) ||
+      (buffer_arc_radians == 0)
+      ){
+    buffer_arc_radians = 2*pi
+  }
+
+  # a buffer belt around the aquatic type  
   water_buffer <- st_difference(
     sf::st_buffer(water_polygon, buffer_range[2]),
     sf::st_buffer(water_polygon, buffer_range[1])
-    )
+    ) %>% suppressWarnings
+  # mapview(water_buffer)
   
+  # ensure the wedge covers the belt
   get_x_extent <- function(box) abs(box[["xmax"]] - box[["xmin"]])
   get_y_extent <- function(box) abs(box[["ymax"]] - box[["ymin"]])
   get_extent <- function(box) sqrt(
@@ -1145,34 +1193,67 @@ determine_target_area <- function(
   ) / 2
 
   wedge_range <- get_extent(st_bbox(water_buffer)) + buffer_range[2]
+
   
-  center_coords <- sf::st_coordinates(center_location) %>%
-    as_tibble %>%
-    rename_with(tolower)
+  # determine the flow direction and project the opposite way
+  if (any(is.na(original_location))) {
+    original_location <- st_centroid(water_polygon) %>%
+      suppressWarnings()
+  }
+
+  # correct coordinate columns
+  original_location <- sf::st_as_sf(
+    cbind(
+      sf::st_drop_geometry(original_location),
+      as_tibble(sf::st_coordinates(original_location)) %>%
+        rename(c("x" = "X", "y" = "Y"))
+    ), coords = c("x", "y"), crs = 31370)
+
+  # get flow direction
+  # upstream <- t(as.matrix(-calculate_flow_direction(original_location)))
+  upstream <- t(as.matrix(-calculate_flow_direction(original_location, ...)))
+
+  # standardized vector length
+  vector_norm <- function(vec) sqrt(sum(vec^2))
+  upstream_vec <- wedge_range * upstream / vector_norm(upstream)
   
-  pt0 <- t(as.matrix(c(0, 0)))
-  upstream <- t(as.matrix(-calculate_flow_direction(center_location, ...)))
-  upstream_vec <- wedge_range * upstream / norm(upstream)
-  # norm(upstream_vec)
-  
+  # aggregate points in an arc around the center to cover all the belt
   rotate_vec <- function(vec, theta) vec %*% matrix(c(
-    cos(theta),
-    sin(theta),
-    -sin(theta),
-    cos(theta)
+     cos(theta), sin(theta),
+    -sin(theta), cos(theta)
     ), ncol =2)
-  pt1 <- rotate_vec(upstream_vec, wedge_width/2)
-  pt2 <- rotate_vec(upstream_vec, -wedge_width/2)
+
+  arc_points <- rbind(t(as.matrix(c(0, 0))))
+  for (rot_rad in seq(
+      -buffer_arc_radians/2,
+      buffer_arc_radians/2,
+      length.out = as.integer(round(buffer_arc_radians*180/pi))
+    )) {
+    pt <- rotate_vec(upstream_vec, rot_rad)
+    arc_points <- rbind(arc_points, pt)
+  }
   
-  triangle <- as.data.frame(rbind(pt0, pt1, pt2)) %>%
+  # offset the arc by the center location
+  center_coords <- sf::st_coordinates(original_location) %>%
+    as_tibble %>% rename_with(tolower)
+  
+  arc <- as.data.frame(arc_points) %>%
     setNames(c("x", "y")) %>% 
     mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
     sf::st_as_sf(coords = c("x", "y"), crs = 31370)
   
-  triangle <- st_combine(triangle) %>% st_cast("POLYGON")
+  arc <- st_combine(arc) %>% st_cast("POLYGON", warn = FALSE)
   
-  target_area <- triangle %>% sf::st_intersection(water_buffer)
+  # the target are is the intersect of the arc and the buffer
+  target_area <- arc %>% sf::st_intersection(water_buffer)
   
+  m1 <- mapview(water_polygon, map.types = "OpenStreetMap", col.regions = "lightblue")
+  m2 <- mapview(water_buffer, map.types = "OpenStreetMap", col.regions = "darkblue")
+  m3 <- mapview(arc, map.types = "OpenStreetMap", col.regions = "orange")
+  # m4 <- mapview(target_area, map.types = "OpenStreetMap", col.regions = "red")
+  m1+m2+m3
+
+    
   return(target_area)
 } # /determine_target_area
 
@@ -1191,26 +1272,25 @@ test_polygon <- wsh$watersurfaces_polygons %>%
 test_target <- determine_target_area(
   test_polygon,
   buffer_range = c(1, 10),
-  wedge_width = 1, # because 1 ≡ pi/3
-  buffer_width = 256,
+  buffer_arc_radians = -1, # because 1 ≡ pi/3
+  flow_range = 256,
   flow_cellsize = 32
-  )
-
+)
 
 center_location <- st_centroid(test_polygon) %>% suppressWarnings()
 center_coords <- sf::st_coordinates(center_location) %>%
   as_tibble %>% rename_with(tolower)
 
-pt0 <- t(as.matrix(c(0, 0)))
 flow_dir <- calculate_flow_direction(
   center_location,
-  buffer_width = 256,
+  flow_range = 256,
   flow_cellsize = 32
 )
 upstream <- t(as.matrix(-flow_dir))
-upstream_vec <- 100 * upstream / norm(upstream)
+vector_norm <- function(vec) sqrt(sum(vec^2))
+upstream_vec <- 100 * upstream / vector_norm(upstream)
 
-inflow <- as.data.frame(rbind(upstream_vec, pt0)) %>%
+inflow <- as.data.frame(rbind(upstream_vec, t(as.matrix(c(0, 0))))) %>%
   setNames(c("x", "y")) %>% 
   mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
   sf::st_as_sf(coords = c("x", "y"), crs = 31370)
@@ -1223,6 +1303,145 @@ m3 <- mapview(test_target, map.types = "OpenStreetMap", col.regions = "red")
 m1 + m2 + m3
 
 ```
+
+## Generalization III: Mapview
+
+```{r generalize-flowdir-buffer-plot}
+
+calculate_aquatic_type_targets <- function(
+    location_code,
+    flow_range = 128,
+    flow_cellsize = 32,
+    buffer_range = NA,
+    buffer_arc_radians = 1, # because 1 ≡ pi/3
+    save_plot_filepath = NA
+    ){
+
+  location <- data %>% 
+    filter(unit_id == location_code)
+  water_polygon <- wsh$watersurfaces_polygons %>%
+    filter(polygon_id == location_code) %>% 
+    sf::st_cast("POLYGON", warn = FALSE) 
+    
+  flow_dir <- calculate_flow_direction(
+    location,
+    flow_range = flow_range,
+    flow_cellsize = flow_cellsize,
+    save_plot_filepath = save_plot_filepath
+  )
+
+  target_area <- determine_target_area(
+    water_polygon,
+    original_location = location,
+    flow_range = flow_range,
+    flow_cellsize = flow_cellsize,
+    buffer_range = buffer_range,
+    buffer_arc_radians = buffer_arc_radians
+  )
+
+
+  upstream <- t(as.matrix(-flow_dir))
+  vector_norm <- function(vec) sqrt(sum(vec^2))
+  upstream_vec <- 100 * upstream / vector_norm(upstream)
+  
+
+  center_coords <- sf::st_coordinates(location) %>%
+    as_tibble %>% rename_with(tolower)
+  inflow <- as.data.frame(rbind(upstream_vec, t(as.matrix(c(0, 0))))) %>%
+    setNames(c("x", "y")) %>% 
+    mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
+    sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+  inflow <- st_combine(inflow) %>% st_cast("LINESTRING")
+    
+  return(
+    list(
+      location_code = location_code,
+      location = location,
+      water_polygon = water_polygon,
+      flow_direction = flow_dir,
+      inflow = inflow,
+      target_area = target_area
+    )
+  )
+
+} # /calculate_aquatic_type_targets
+```
+
+
+batch-visualize
+
+```{r visualize}
+
+assemble_targeting <- function(
+    location_code,
+    show_mapview = FALSE
+  ) {
+
+  # location_code <- "LIMGNK0010"
+
+  spatialist <- calculate_aquatic_type_targets(
+    location_code,
+    flow_range = 128,
+    flow_cellsize = 32,
+    buffer_range = NA,
+    buffer_arc_radians = 1, # because 1 ≡ pi/3
+    save_plot_filepath = NA
+  )
+
+  if (show_mapview) {
+    m1 <- mapview(spatialist$water_polygon,
+      map.types = "OpenStreetMap", col.regions = "lightblue")
+    
+    m2 <- mapview(spatialist$inflow, map.types = "OpenStreetMap", col.regions = "darkblue")
+    m3 <- mapview(spatialist$target_area, map.types = "OpenStreetMap", col.regions = "red")
+    return(m1 + m2 + m3)
+  }
+  return(spatialist)
+  
+}
+
+location_code <- "LIMGNK0062"
+assemble_targeting(location_code, show_mapview = TRUE)
+```
+
+
+We can even show a large set of aquatic locations on the map.
+
+```{r assemble-data}
+# location_code_list <- c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")
+location_code_list <- test_data$unit_id
+
+target_data <- lapply(location_code_list, FUN = assemble_targeting)
+```
+
+
+```{r combine-data}
+all_polygons <- bind_rows(lapply(
+    target_data, FUN = function(td) td$water_polygon
+  ))
+
+all_inflows <- bind_rows(lapply(
+    target_data, FUN = function(td) cbind(td$location_code, sf::st_as_sf(td$inflow))
+  ))
+
+all_targets <- bind_rows(lapply(
+    target_data, FUN = function(td) sf::st_as_sf(td$target_area)
+  ))
+
+
+# and map them out
+map_types <- c("Esri.WorldImagery", "OpenStreetMap")
+
+m1 <- mapview(all_polygons,
+  map.types = map_types, col.regions = "lightblue")
+
+m2 <- mapview(all_inflows, map.types = map_types, col.regions = "darkblue")
+m3 <- mapview(all_targets, map.types = map_types, col.regions = "red")
+
+m1 + m2 + m3
+
+```
+
 
 
 # TODOs
