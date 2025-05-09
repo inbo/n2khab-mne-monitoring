@@ -808,25 +808,58 @@ print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
 
 ```{r flow-gradient-general-function}
 
+#' Calculate flow direction
+#'
+#' Calculate the putative flow direction at a given point
+#' based on the elevation/slope in the buffer area around it.
+#' All calculations will be performed in CRS 31370, hence the output
+#' flow vector will be in meters.
+#' 
+#' @details this is the slope-averaged flow direction between
+#' cells in a coarse raster grid within a given radius around the location.
+#' It uses `terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)`.
+#'
+#' @param location the point (or polygon) of interest;
+#'        an `sf` object of which the `sf::st_coordinates` are used.
+#' @param buffer_width the buffer extent (in meters) around the location, 
+#'        which is used to query elevation and calculate flow.
+#'        Units are those of the coordinates.
+#' @param flow_cellsize the width of a cell in the resampled raster
+#'        across which elevation is averaged to calculate flow.
+#'        Units are those of the coordinates.
+#' @param save_plot_filepath if this is not NA, a summary map of the
+#'        flow calculation will be saved as "png" image to the given path.
+#' @return c(dx,dy) vector (in meters) of the average flow direction in a
+#'        circular area around the location.
+#'
 calculate_flow_direction <- function(
     location,
-    margin = 256, flow_cellsize = 32,
-    plot_area = FALSE) {
+    buffer_width = 256, flow_cellsize = 32,
+    save_plot_filepath = NA) {
 
+  # location_raw <- location # currently not necessary to store the data in raw CRS
+
+  # all calculations will be performed in CRS 31370
+  location <- sf::st_transform(location, 31370)
+
+  # only the coordinates are relevant ("xy", but could be "lon/lat")
   xy <- as.data.frame(
       sf::st_coordinates(location)
     ) %>%
     rename_with(tolower)
-  # message(xy)
   
+  ### Query DHMV
+  # (elevation model of Flanders)
+  # within a buffer area
   bbox <- sf::st_bbox(
-     c(xmin = min(xy["x"]) - margin,
-       xmax = max(xy["x"]) + margin,
-       ymin = min(xy["y"]) - margin,
-       ymax = max(xy["y"]) + margin
+     c(xmin = min(xy[1]) - buffer_width,
+       xmax = max(xy[1]) + buffer_width,
+       ymin = min(xy[2]) - buffer_width,
+       ymax = max(xy[2]) + buffer_width
        ),
      crs = sf::st_crs(31370)
   )
+
   location_raster <- inbospatial::get_coverage_wcs(
     wcs = "dhmv",
     bbox = bbox,
@@ -836,38 +869,52 @@ calculate_flow_direction <- function(
     resolution = 1
   )
   
+  ### Resample
+  # to get a coarse grid
+  n_grid <- as.integer(buffer_width/flow_cellsize)
   
-  n_grid <- as.integer(margin/flow_cellsize)
-  
-  coarse_grid <- rast(
+  # resample within the buffer range
+  coarse_grid <- terra::rast(
     nrows = n_grid, ncols = n_grid,
-    xmin = min(xy["x"]) - margin,
-    xmax = max(xy["x"]) + margin,
-    ymin = min(xy["y"]) - margin,
-    ymax = max(xy["y"]) + margin
+    xmin = min(xy[1]) - buffer_width,
+    xmax = max(xy[1]) + buffer_width,
+    ymin = min(xy[2]) - buffer_width,
+    ymax = max(xy[2]) + buffer_width
     )
-  crs(coarse_grid) <- "EPSG:31370"
-  coarse_raster <- resample(location_raster, coarse_grid,
+  terra::crs(coarse_grid) <- "EPSG:31370"
+  coarse_raster <- terra::resample(location_raster, coarse_grid,
     method = "lanczos" # method = "bilinear"
   )
   
+  ### calculations
+  # slope and flow, using terra::terrain
   slope <- terra::terrain(coarse_raster, v = "slope")
   flow <- terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)
   
-  px <- raster::rasterToPoints(raster::raster(flow))[,1]
-  py <- raster::rasterToPoints(raster::raster(flow))[,2]
-  pz <- raster::rasterToPoints(raster::raster(flow))[,3]
+  # extract flow axes
+  flow_points <- raster::rasterToPoints(raster::raster(flow))
+  fpx <- flow_points[,1]
+  fpy <- flow_points[,2]
+  fpz <- flow_points[,3]
   
-  direction <- 2*pi/8 * log2(pz)
+  # convert direction to angles...
+  direction <- 2*pi/8 * log2(fpz)
   direction[!is.finite(direction)] <- NA 
   
+  # ... convert direction angles to "dx", "dy"
   dx <- +1*cos(direction)
   dy <- -1*sin(direction)
   
-  # directions <- as.matrix(flow, wide = TRUE)
+  # helper functions:
+  # remove nan
   nonnan <- function(vec) vec[!is.na(vec)]
-  nanmean <- function(vec) mean(vec[!is.na(vec)])
+  # mean, excluding NAs
+  nanmean <- function(vec) mean(nonnan(vec))
+
+  # Euclidean length of the vector
   euclid <- function(x, y) sqrt(x^2 + y^2)
+
+  # filter coordinates within radius
   within_radius <- function(x, y, r = 128) {
     dist <- euclid(
       nonnan(x) - nanmean(x),
@@ -875,44 +922,63 @@ calculate_flow_direction <- function(
     )
     return(dist < r)
   }
-  sel <- within_radius(px, py, r = margin-flow_cellsize) 
       
-  nancumsum <- function (vec, weight, selection) {
+  # calculate the average flow, but weighted and filtered
+  average_flow <- function (vec, weight, selection) {
   
+    # simplify input data types
     vec <- as.matrix(vec)
     weight <- as.matrix(weight)
     selection <- as.matrix(selection)
   
+    # disregard NA's
     nans <- is.na(vec) | is.na(weight) | is.na(selection)
     vec <- vec[!nans]
     weight <- weight[!nans]
     selection <- selection[!nans]
   
+    # return the weighted average of the vector
     return(sum(vec[selection] * weight[selection]) / sum(weight[selection]))
   }
   
-  flow_vector <- c(nancumsum(dx, slope, sel), nancumsum(dy, slope, sel))
+  ### compute average flow of coarse cells
+  sel <- within_radius(fpx, fpy, r = buffer_width - flow_cellsize) 
+  flow_vector <- c(average_flow(dx, slope, sel), average_flow(dy, slope, sel))
 
-  if (plot_area) {
+  ### optionally store a quiver plot on a map for vizualization
+  if (!is.na(save_plot_filepath)) {
 
+    png(save_plot_filepath,
+      width = 120,
+      height = 120,
+      units = "mm",
+      res = 300
+    )
+
+    # raster background
     plot(location_raster)
 
+    # flow per cell
     pracma::quiver(
-      x = px[sel],
-      y = py[sel],
+      x = fpx[sel],
+      y = fpy[sel],
       u = dx[sel],
       v = dy[sel],
-      scale = 10,
+      scale = 8,
       col = "gray"
       )
+
+    # average flow
     pracma::quiver(
       x = xy[[1]],
       y = xy[[2]],
       u = flow_cellsize * flow_vector[[1]],
       v = flow_cellsize * flow_vector[[2]],
-      scale = 5,
+      scale = 3,
       col = "darkorange"
-      )
+    )
+
+    dev.off()
   }
     
   return(flow_vector)
@@ -920,7 +986,7 @@ calculate_flow_direction <- function(
 }
 
 
-
+# exemplary execution
 for (location_code in c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")) {
   test_location <- test_data %>% 
     filter(unit_id == location_code)
@@ -931,13 +997,18 @@ for (location_code in c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")) {
       paste0(
         calculate_flow_direction(
           test_location,
-          margin <- 256,
-          flow_cellsize <- 32,
-          plot_area = TRUE),
-        collapse = ", "),
-      collapse = ""))
+          buffer_width = 256,
+          flow_cellsize = 32,
+          save_plot_filepath = here::here("figures", sprintf("%s.png", location_code))
+        ),
+        collapse = ", "
+      ),
+      collapse = ""
+    )
+  )
 }
 
 
+# location <- test_location
 
 ```
