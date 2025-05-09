@@ -35,6 +35,8 @@ library("n2khabmon")   |> void() # monitoring schemes for natura2000 habitats
 kableprint <- function(df, show_rows = 5) {
   knitr::kable(df[sample(1:nrow(df), show_rows), ])
 }
+
+mapviewOptions(fgb = FALSE) # https://stackoverflow.com/a/65485896
 ```
 
 
@@ -68,7 +70,7 @@ kableprint <- function(df, show_rows = 5) {
 
 ## exploration:
 
-- filter an example area
+- filter an example area/location
 
 
 ## complication anticipation:
@@ -549,7 +551,9 @@ plot(sub_raster, col = gray.colors(256))
 
 
 
-## flow direction
+# Flow Direction
+
+## Exploration: flow direction
 
 
 Prior (by Hans / via `qgisprocess`):
@@ -665,6 +669,9 @@ flow <- terra::terrain(
 plot(flow)
 ```
 
+
+*I keep forgetting the sin/cos sign conventions ;)*
+
 ```
       32  64  128
       16   x    1
@@ -692,6 +699,7 @@ pi:  4.0 3/2pi 5.6
 |-------|--------|---------|
 
 ```
+
 
 - <https://search.r-project.org/CRAN/refmans/pracma/help/quiver.html>
 
@@ -792,13 +800,14 @@ print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
 ```
 
 
+(intermediate TODOs)
 
 - [X] get grids of 32m
 - [X] idea: slope-weighted average direction
 - [X] test other interpol methods (not matter much)
 
 
-# Generalization
+## Generalization I: Flow Direction
 
 - get flow direction
 - based on DHMV
@@ -996,7 +1005,7 @@ calculate_flow_direction <- function(
 ```
 
 
-The function is applied as follows:
+The function is batch-applied as follows:
 
 ```{r flow-gradient-application}
 
@@ -1022,3 +1031,211 @@ for (location_code in c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")) {
 }
 
 ```
+
+
+
+# Identify Target Area
+
+## strategy
+
+- get target direction (upflow)
+- get outer buffer of the water body of interest
+- wedge buffer in target direction
+
+
+## exploration: target area
+
+Target will be in a belt around the water surface.
+
+```{r direction-exploration-buffer}
+# stratum_units_grts_aquatic_gw_spsamples_spares %>% 
+#   filter(unit_id == test_location$unit_id)
+
+# wsh_occ # `polygon_id`, but no `geom`
+water <- wsh$watersurfaces_polygons %>%
+  filter(polygon_id %in% test_location$unit_id) %>% 
+  sf::st_cast("POLYGON", warn = FALSE) %>%
+  sf::st_make_valid() 
+
+
+buffer_range <- c(10, 30) # "belt from... to..." distance range
+
+water_buffer <- st_difference(
+  sf::st_buffer(water, buffer_range[2]),
+  sf::st_buffer(water, buffer_range[1])
+  )
+
+water_buffer %>% 
+  mapview(
+    map.types = "OpenStreetMap"
+    )
+```
+
+
+... but we only admit a wedge area in the direction opposite of flow/slope.
+
+```{r direction-exploration-direction}
+wedge_width <- pi/3
+
+get_x_extent <- function(box) abs(box[["xmax"]] - box[["xmin"]])
+get_y_extent <- function(box) abs(box[["ymax"]] - box[["ymin"]])
+get_extent <- function(box) sqrt(get_x_extent(box)^2+get_y_extent(box)^2)/2
+wedge_range <- get_extent(st_bbox(water_buffer)) + buffer_range[2]
+
+test_coords <- sf::st_coordinates(test_location) %>% as_tibble %>% rename_with(tolower)
+
+pt0 <- t(as.matrix(c(0, 0)))
+upstream <- t(as.matrix(-calculate_flow_direction(test_location, 64, 8)))
+upstream_vec <- wedge_range * upstream / norm(upstream)
+norm(upstream_vec)
+
+rotate_vec <- function(vec, theta) vec %*% matrix(c(
+  cos(theta),
+  sin(theta),
+  -sin(theta),
+  cos(theta)
+  ), ncol =2)
+pt1 <- rotate_vec(upstream_vec, wedge_width/2)
+pt2 <- rotate_vec(upstream_vec, -wedge_width/2)
+
+triangle <- as.data.frame(rbind(pt0, pt1, pt2)) %>%
+  setNames(c("x", "y")) %>% 
+  mutate(x = x + test_coords[["x"]], y = y + test_coords[["y"]]) %>% 
+  sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+
+triangle <- st_combine(triangle) %>% st_cast("POLYGON", warn = FALSE)
+
+target_area <- triangle %>% sf::st_intersection(water_buffer)
+
+mapview(target_area,
+    map.types = "OpenStreetMap"
+  )
+
+```
+
+## Generalization II: Buffer Wedge
+
+```{r general-buffer-upstream-wedge}
+  
+
+determine_target_area <- function(
+    water_polygon,
+    buffer_range = NA,
+    wedge_width = 1, # because 1 ≡ pi/3
+    save_plot_filepath = NA,
+    ...
+    ) {
+
+  if (any(is.na(buffer_range))) {
+    buffer_range <- c(5, 20)
+  }
+
+  center_location <- st_centroid(water_polygon) %>%
+    suppressWarnings()
+  
+  water_buffer <- st_difference(
+    sf::st_buffer(water_polygon, buffer_range[2]),
+    sf::st_buffer(water_polygon, buffer_range[1])
+    )
+  
+  get_x_extent <- function(box) abs(box[["xmax"]] - box[["xmin"]])
+  get_y_extent <- function(box) abs(box[["ymax"]] - box[["ymin"]])
+  get_extent <- function(box) sqrt(
+    get_x_extent(box)^2 + get_y_extent(box)^2
+  ) / 2
+
+  wedge_range <- get_extent(st_bbox(water_buffer)) + buffer_range[2]
+  
+  center_coords <- sf::st_coordinates(center_location) %>%
+    as_tibble %>%
+    rename_with(tolower)
+  
+  pt0 <- t(as.matrix(c(0, 0)))
+  upstream <- t(as.matrix(-calculate_flow_direction(center_location, ...)))
+  upstream_vec <- wedge_range * upstream / norm(upstream)
+  # norm(upstream_vec)
+  
+  rotate_vec <- function(vec, theta) vec %*% matrix(c(
+    cos(theta),
+    sin(theta),
+    -sin(theta),
+    cos(theta)
+    ), ncol =2)
+  pt1 <- rotate_vec(upstream_vec, wedge_width/2)
+  pt2 <- rotate_vec(upstream_vec, -wedge_width/2)
+  
+  triangle <- as.data.frame(rbind(pt0, pt1, pt2)) %>%
+    setNames(c("x", "y")) %>% 
+    mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
+    sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+  
+  triangle <- st_combine(triangle) %>% st_cast("POLYGON")
+  
+  target_area <- triangle %>% sf::st_intersection(water_buffer)
+  
+  return(target_area)
+} # /determine_target_area
+
+```
+
+
+Fancy visualization:
+
+```{r test-flowdir-buffer}
+
+test_polygon <- wsh$watersurfaces_polygons %>%
+  filter(polygon_id %in% test_location$unit_id) %>% 
+  sf::st_cast("POLYGON", warn = FALSE) %>%
+  sf::st_make_valid() 
+  
+test_target <- determine_target_area(
+  test_polygon,
+  buffer_range = c(1, 10),
+  wedge_width = 1, # because 1 ≡ pi/3
+  buffer_width = 256,
+  flow_cellsize = 32
+  )
+
+
+center_location <- st_centroid(test_polygon) %>% suppressWarnings()
+center_coords <- sf::st_coordinates(center_location) %>%
+  as_tibble %>% rename_with(tolower)
+
+pt0 <- t(as.matrix(c(0, 0)))
+flow_dir <- calculate_flow_direction(
+  center_location,
+  buffer_width = 256,
+  flow_cellsize = 32
+)
+upstream <- t(as.matrix(-flow_dir))
+upstream_vec <- 100 * upstream / norm(upstream)
+
+inflow <- as.data.frame(rbind(upstream_vec, pt0)) %>%
+  setNames(c("x", "y")) %>% 
+  mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
+  sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+
+inflow <- st_combine(inflow) %>% st_cast("LINESTRING")
+
+m1 <- mapview(test_polygon, map.types = "OpenStreetMap", col.regions = "lightblue")
+m2 <- mapview(inflow, map.types = "OpenStreetMap", col.regions = "darkblue")
+m3 <- mapview(test_target, map.types = "OpenStreetMap", col.regions = "red")
+m1 + m2 + m3
+
+```
+
+
+# TODOs
+
+- [X] flow direction for a point
+- target area | `sample_support_code` 
+  - [X] for water surfaces
+  - [ ] streams
+  - [ ] springs
+- [ ] water everywhere... what if there is more water in the target area?
+- [ ] harden functions (dependencies, weird input)
+- [ ] flow direction: dependence on buffer area and cell grid size
+- [ ] gather functions in package main:
+  - `confirm_n2khab_data_consistency()`
+  - `calculate_flow_direction(...)`
+  - add unit tests for `c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")` locations (but hardcode xy)
