@@ -427,7 +427,7 @@ kableprint(stratum_units_grts_aquatic_gw_spsamples_spares)
 
 ::: {.callout-caution}
 REMINDER:
-we de-duplicate units with the same GRTS address by selecting the 1st.
+we de-duplicated units with the same GRTS address by selecting the 1st.
 :::
 
 
@@ -467,8 +467,6 @@ mapview(test_data)
 ```
 
 :::{.callout-warning}
-TODO: 
-
 - There are some points which appear not to be wet (e.g. `LIMGNK0062`). This might have to do with GRTS raster ["partial volumes"]("https://en.wikipedia.org/wiki/Partial_volume_(imaging)").
 - Others are vast (`LIMGNK0055`); will be challenging to get elevation gradient.
 - `LIMGNK0010` might serve as an example.
@@ -716,6 +714,7 @@ graphics::arrows(x[s], y[s], x[s+1], y[s+1], col = 1:3)
 ```
 
 ```{r flow-to-angle}
+#| eval: true
 # positions <- as(raster::raster(coarse_grid), "SpatialGridDataFrame")
 px <- raster::rasterToPoints(raster::raster(flow))[,1]
 py <- raster::rasterToPoints(raster::raster(flow))[,2]
@@ -885,7 +884,7 @@ calculate_flow_direction <- function(
     version = "2.0.1",
     wcs_crs = "EPSG:31370",
     resolution = 1
-  )
+  ) %>% invisible
   
   ### Resample
   # to get a coarse grid
@@ -1420,8 +1419,16 @@ all_polygons <- bind_rows(lapply(
     target_data, FUN = function(td) td$water_polygon
   ))
 
+vector_norm <- function(vec) sqrt(sum(vec^2))
 all_inflows <- bind_rows(lapply(
-    target_data, FUN = function(td) cbind(td$location_code, sf::st_as_sf(td$inflow))
+    target_data, FUN = function(td) cbind(
+      td$location_code,
+      vector_norm(td$flow_direction),
+      sf::st_as_sf(td$inflow)
+      )
+  )) %>% rename(c(
+    "flow_gradient" = "vector_norm.td.flow_direction.",
+    "location_code" = "td.location_code"
   ))
 
 all_targets <- bind_rows(lapply(
@@ -1430,12 +1437,12 @@ all_targets <- bind_rows(lapply(
 
 
 # and map them out
-map_types <- c("Esri.WorldImagery", "OpenStreetMap")
+map_types <- c("OpenStreetMap", "Esri.WorldImagery")
 
 m1 <- mapview(all_polygons,
   map.types = map_types, col.regions = "lightblue")
 
-m2 <- mapview(all_inflows, map.types = map_types, col.regions = "darkblue")
+m2 <- mapview(all_inflows, map.types = map_types, col.regions = "darkblue", zcol = "flow_gradient")
 m3 <- mapview(all_targets, map.types = map_types, col.regions = "red")
 
 m1 + m2 + m3
@@ -1446,15 +1453,30 @@ m1 + m2 + m3
 
 # TODOs
 
+- where do the spaces come from?
 - [X] flow direction for a point
 - target area | `sample_support_code` 
   - [X] for water surfaces
   - [ ] streams
   - [ ] springs
-- [ ] water everywhere... what if there is more water in the target area?
 - [ ] harden functions (dependencies, weird input)
 - [ ] flow direction: dependence on buffer area and cell grid size
 - [ ] gather functions in package main:
   - `confirm_n2khab_data_consistency()`
   - `calculate_flow_direction(...)`
   - add unit tests for `c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")` locations (but hardcode xy)
+
+
+to be discussed:
+
+- **water everywhere** 
+  - what if there is more water in the target area?
+- **non-aquatic aquatics**
+  - There are some points which appear not to be wet 
+  - e.g. `LIMGNK0062`
+  - might have to do with GRTS raster ["partial volumes"]("https://en.wikipedia.org/wiki/Partial_volume_(imaging)").
+  - or temporal change (vegetation, eutrophication, drying)
+  - also: think of a U-shaped water
+- **does size matter?**
+  - some vast water bodies (`LIMGNK0055`); will be challenging to get elevation gradient.
+  - on the other hand, what is the minimum size? (springs!)
