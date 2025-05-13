@@ -1564,6 +1564,11 @@ mapview(test_stream_points)
 
 ```
 
+Rank: goes in "upstream" direction (water source: highest rank)
+
+- <https://github.com/inbo/n2khab/blob/main/R/read_watercourses.R>
+- <https://github.com/inbo/n2khab-preprocessing/blob/main/src/generate_watercourse_100mseg/10_generate_watercourse_100mseg.Rmd>
+
 
 Maths refresher:
 
@@ -1639,7 +1644,7 @@ get_stream_tangent <- function(
   # first derivative using splines
   # https://stackoverflow.com/a/61287125
   stopifnot("pspline" = require("pspline"))
-  t <- stream_curve$rank
+  t <- -stream_curve$rank # ! inverted: water flow directed downstream
   x <- stream_curve$x
   y <- stream_curve$y
 
@@ -1851,7 +1856,7 @@ knitr::kable(head(test_curve))
 
 ```
 
-```{r}
+```{r plot-stream-direction-flow}
 
 scale <- 64
 x <- test_curve$x
@@ -1977,8 +1982,8 @@ get_stream_target_area <- function(unit_id, offset_m = 8, side_m = 16) {
   # check the strenght of the slope in the area
   flow_vector <- calculate_flow_direction(
     sf::st_as_sf(segment_point, coords = c("x", "y"), crs = 31370),
-    flow_range = 128,
-    flow_cellsize = 8,
+    flow_range = 96,
+    flow_cellsize = 16,
     save_plot_filepath = here::here("figures", sprintf("%s.png", unit_id))
   )
 
@@ -2031,8 +2036,10 @@ create_sf_vector <- function(pt, vec, unit_id) {
 }
 
 # TODO try unit_id <- "9574_218856"
+# TODO crashing unit_id <- "9574_218829", 837, ...
 sample_unit_id <- "9574_218821"
 test_targets <- get_stream_target_area(sample_unit_id, offset_m = 10, side_m = 20)
+
 curvs <- NA
 flows <- NA
 for (i in seq(771, 852, 5)) {
