@@ -37,6 +37,15 @@ kableprint <- function(df, show_rows = 5) {
 }
 
 mapviewOptions(fgb = FALSE) # https://stackoverflow.com/a/65485896
+
+
+# assert crs 31370
+assert_31370 <- function(sf_obj){
+  stopifnot(
+    "crs 31370" = format(sf::st_crs(sf_obj)) == "BD72 / Belgian Lambert 72"
+  )
+  return(sf_obj)
+}
 ```
 
 
@@ -447,7 +456,7 @@ geometry_link <- get(
     "scheme_moco_ps_stratum_sppost_spsamples_spares_sf",
     envir = env_extradata
   ) %>%
-  sf::st_transform(31370) %>% 
+  assert_31370() %>% 
   select(grts_address) %>%
   distinct
 
@@ -871,8 +880,8 @@ graphics::arrows(x[s], y[s], x[s+1], y[s+1], col = 1:3)
 
 ```{r flow-to-angle}
 #| eval: true
-# positions <- as(raster::raster(coarse_grid), "SpatialGridDataFrame")
-# pz <- raster::rasterToPoints(raster::raster(flow))[,3]
+# positions <- as(terra::raster(coarse_grid), "SpatialGridDataFrame")
+# pz <- terra::rasterToPoints(terra::raster(flow))[,3]
 flow_df <- terra::as.data.frame(flow, xy = TRUE)
 px <- flow_df[["x"]]
 py <- flow_df[["y"]]
@@ -893,7 +902,8 @@ dy <- -1*sin(direction)
 
 ```{r quiver-plot}
 # plot(px, py, cex = 1)
-plot(slope)
+plot(x)
+# plot(slope)
 pracma::quiver(
   x = px,
   y = py,
@@ -927,7 +937,7 @@ within_radius <- function(x, y, r = 128) {
 }
 sel <- within_radius(px, py, r = margin-flow_cellsize) # TODO discuss radius
 
-plot(slope)
+plot(x)
 pracma::quiver(
   x = px[sel],
   y = py[sel],
@@ -1020,6 +1030,7 @@ calculate_flow_direction <- function(
 
   # all calculations will be performed in CRS 31370 # TODO assert
   # location <- sf::st_transform(location, 31370)
+  assert_31370(location) 
 
   # only the coordinates are relevant ("xy", but could be "lon/lat")
   xy <- as.data.frame(
@@ -1216,14 +1227,25 @@ Instead of a local grid of fixed size, we require calculation of the flow within
 
 
 ```{r polygon-flow-direction}
-
+close_polygon <- function(pol, radius = 1){
+  return(
+    pol %>%
+      sf::st_buffer(radius) %>%
+      sf::st_buffer(-radius)
+  )
+}
 
 calculate_polygon_flow_direction <- function(
     water_polygon,
     flow_range = 128+32, flow_cellsize = 32,
+    close_island_size = NA,
     save_plot_filepath = NA) {
 
   # plot(sub_raster, col = gray.colors(256))
+  if (!is.na(close_island_size)) {
+    water_polygon <- water_polygon %>% 
+      close_polygon(close_island_size)
+  }
   
   band_buffer <- st_difference(
     sf::st_buffer(water_polygon, flow_range-flow_cellsize),
@@ -1381,6 +1403,7 @@ for (location_code in c(
   flow_vector <- calculate_polygon_flow_direction(
     test_polygon,
     flow_range = 128+32, flow_cellsize = 32,
+    close_island_size = 8,
     save_plot_filepath = here::here("figures", sprintf("%s.png", location_code))
   )
 
@@ -1445,7 +1468,7 @@ wedge_range <- get_extent(st_bbox(water_buffer)) + buffer_range[2]
 test_coords <- sf::st_coordinates(test_location) %>% as_tibble %>% rename_with(tolower)
 
 pt0 <- t(as.matrix(c(0, 0)))
-upstream <- t(as.matrix(-calculate_polygon_flow_direction(water, 64, 8)))
+upstream <- t(as.matrix(-calculate_polygon_flow_direction(water, 64, 8, 8)))
 vector_norm <- function(vec) sqrt(sum(vec^2))
 upstream_vec <- wedge_range * upstream / vector_norm(upstream)
 vector_norm(upstream_vec)
@@ -1644,7 +1667,8 @@ center_coords <- sf::st_coordinates(center_location) %>%
 flow_dir <- calculate_polygon_flow_direction(
   test_polygon,
   flow_range = 128,
-  flow_cellsize = 32
+  flow_cellsize = 32,
+  close_island_size = 8
 )
 upstream <- t(as.matrix(-flow_dir))
 vector_norm <- function(vec) sqrt(sum(vec^2))
@@ -1690,6 +1714,7 @@ calculate_aquatic_type_targets <- function(
     water_polygon,
     flow_range = flow_range,
     flow_cellsize = flow_cellsize,
+    close_island_size = 8,
     save_plot_filepath = save_plot_filepath
   )
 
@@ -1857,9 +1882,11 @@ geometry_link <- get(
     "scheme_moco_ps_stratum_sppost_spsamples_spares_sf",
     envir = env_extradata
   ) %>%
-  sf::st_transform(31370) %>% 
+  # sf::st_transform(31370) %>% 
+  assert_31370() %>% 
   select(grts_address) %>%
   distinct
+
 
 data_obsolete <- geometry_link %>%
   right_join(
