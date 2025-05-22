@@ -48,6 +48,10 @@ assert_31370 <- function(sf_obj){
 }
 ```
 
+# REMINDER
+
+- `unit_id` is not strictly unique; make sure to filter for `sample_support_code`+`unit_id` always!
+
 
 # strategy:
 
@@ -195,10 +199,11 @@ n2khab_types <-
   distinct(type) %>%
   arrange(type)
 
-# `wsh` is the watersurface map of Flanders (https://doi.org/10.5281/zenodo.3386857)
+# `wsh` are the polygons that contain standing water types
+# (cf. https://inbo.github.io/n2khab/reference/read_watersurfaces_hab.html, https://doi.org/10.21436/inbor.114075267)
 wsh <- read_watersurfaces_hab(interpreted = TRUE)
 
-# we are interested in the types which are part of the n2khab list
+# we are interested in the types which are part of the n2khab monitoring list
 wsh_occ <-
   wsh$watersurfaces_types %>%
   # in general we restrict types using an expanded type list tailored to the
@@ -1425,6 +1430,40 @@ for (location_code in c(
 - get outer buffer of the water body of interest
 - wedge buffer in target direction
 
+## technical: casting polygons
+
+```{r casting-polygons}
+#| eval: false
+test_data <- watersurfaces_data %>%
+  filter(
+    stringr::str_detect(unit_id, "^LIMDPB|^LIMGNK"),
+    sample_status == "in_sample"
+  )
+
+# test_location <- test_data %>%
+#   filter(
+#     unit_id == "LIMGNK0010"
+#     )
+
+water_mupo <- wsh$watersurfaces_polygons %>%
+  filter(polygon_id %in% test_data$unit_id)
+
+water_poly <- water_mupo %>%
+  sf::st_cast("POLYGON", warn = FALSE)
+
+water_vali <- water_poly %>%
+  sf::st_make_valid() 
+
+m1 <- mapview(water_mupo, col.regions = "grey")
+m2 <- mapview(water_poly, col.regions = "steelblue")
+m3 <- mapview(water_vali, col.regions = "brown")
+
+m1+m2+m3
+
+```
+
+seems visually good.
+
 
 ## exploration: target area
 
@@ -1986,6 +2025,26 @@ calculate_flow_direction(
 
 In this special case, flow direction might be useful for the stream data point;
 However, it is not clear whether/how this will generalizes. 
+
+
+## TODO stream data preview
+
+- lines or points, and where to get them - that is the question!
+
+```{r lines-or-points}
+#| eval: false
+
+stream_points <- read_watercourse_100mseg(element = "points") %>% 
+  filter(vhag_code == 9574)
+stream_lines <- read_watercourse_100mseg(element = "lines") %>% 
+  filter(vhag_code == 9574)
+
+mapview(stream_points, col.regions = "brown") +
+    mapview(stream_lines, col.regions = "steelblue")
+
+```
+
+Indeed, `read_watercourse_100mseg(element = "lines")` seems to be more accurate.
 
 
 ## stream flow maths
