@@ -2027,27 +2027,27 @@ In this special case, flow direction might be useful for the stream data point;
 However, it is not clear whether/how this will generalizes. 
 
 
-## TODO stream data preview
+## stream data preview
 
 - lines or points, and where to get them - that is the question!
 
 ```{r lines-or-points}
 #| eval: false
 
-stream_points <- read_watercourse_100mseg(element = "points") %>% 
+stream_testpoints <- read_watercourse_100mseg(element = "points") %>% 
   filter(vhag_code == 9574)
-stream_lines <- read_watercourse_100mseg(element = "lines") %>% 
+stream_testlines <- read_watercourse_100mseg(element = "lines") %>% 
   filter(vhag_code == 9574)
 
-mapview(stream_points, col.regions = "brown") +
-    mapview(stream_lines, col.regions = "steelblue")
+mapview(stream_testpoints, col.regions = "brown") +
+    mapview(stream_testlines, col.regions = "steelblue")
 
 ```
 
 Indeed, `read_watercourse_100mseg(element = "lines")` seems to be more accurate.
 
 
-## stream flow maths
+## stream flow maths (I): points
 
 Streams flow from source to sea, 
 and the 100m segments are a severe simplification.
@@ -2057,11 +2057,15 @@ Back to the raw data:
 ```{r stream-raw-data}
 # mapview(habstream)
 stream_points <- read_watercourse_100mseg(element = "points")
+stream_lines <- read_watercourse_100mseg(element = "lines") 
 
 test_stream_points <- stream_points %>%
   filter(vhag_code == 9574)
+test_stream_lines <- stream_lines %>%
+  filter(vhag_code == 9574)
 
-mapview(test_stream_points)
+mapview(test_stream_points, col.regions = "brown") +
+    mapview(test_stream_lines, col.regions = "steelblue")
 
 ```
 
@@ -2090,13 +2094,13 @@ We require:
 
 
 
-```{r stream-curve-calculations}
+```{r stream-curve-retrieval}
 ## for testing:
 # vhag <- 9574
 # segment_rank <- 218821
 
 # extract a single stream from the 100m watercourse segments
-get_stream_curve <- function(vhag, segment_rank) {
+get_stream_pointcurve <- function(vhag, segment_rank) {
 
   # stream_points <- read_watercourse_100mseg(element = "points")
 
@@ -2124,15 +2128,20 @@ plot_stream_curve <- function(stream_curve) {
   stopifnot("ggplot2" = require("ggplot2"))
   stream_curve %>%
     ggplot(ggplot2::aes(x = x, y = y)) +
-      ggplot2::geom_line() +
+      ggplot2::geom_line(stat = 'summary', fun = 'mean') +
       ggplot2::geom_point(aes(color = rank))
 }
 
 
 # test plot
-test_curve <- get_stream_curve(vhag = 9574, segment_rank = 218821)
+test_curve <- get_stream_pointcurve(vhag = 9574, segment_rank = 218821)
 plot_stream_curve(test_curve)
 
+```
+
+
+
+```{r stream-tangents}
 
 # the tangent at each segment point of the watercourse
 get_stream_tangent <- function(
@@ -2185,6 +2194,18 @@ get_stream_tangent <- function(
 }
 
 
+get_stream_tangent(
+  test_curve,
+  normed = FALSE,
+  append = FALSE,
+  second = TRUE
+)
+
+```
+
+
+```{r stream-normal}
+
 # calculate the normals, based on tangents
 # normals are defined as -π/2 rotation (ccw orthogonal) of the tangent
 get_normal <- function(
@@ -2230,6 +2251,18 @@ get_normal <- function(
   return(normals)
 }
 
+
+get_normal(
+  test_curve,
+  normed = FALSE,
+  append = FALSE
+)
+
+
+```
+
+
+```{r stream-curvature}
 
 # get curvature or curvature direction for a line segment
 # optionally smoothed
@@ -2291,6 +2324,15 @@ get_curvature_direction <- function(stream_curve, direction = TRUE, smooth = NA)
     
 }
 
+get_curvature_direction(
+  test_curve,
+  direction = TRUE
+)
+
+```
+
+
+```{r stream-all-curve-measures}
 
 get_all_curve_measures <- function(
     stream_curve,
@@ -2329,20 +2371,6 @@ get_all_curve_measures <- function(
 }
 
 
-
-test_curve <- get_stream_tangent(
-  test_curve,
-  normed = FALSE,
-  append = TRUE,
-  second = TRUE
-)
-
-test_curve <- get_normal(
-  test_curve,
-  normed = FALSE,
-  append = TRUE
-)
-
 test_curve <- get_all_curve_measures(
   test_curve,
   normed = TRUE,
@@ -2357,37 +2385,46 @@ knitr::kable(head(test_curve))
 
 ```
 
+
+
 ```{r plot-stream-direction-flow}
 
-scale <- 64
-x <- test_curve$x
-y <- test_curve$y
-tx <- test_curve$tx * scale
-ty <- test_curve$ty * scale
-tx2 <- test_curve$tx2 * scale
-ty2 <- test_curve$ty2 * scale
-nx <- test_curve$nx * scale
-ny <- test_curve$ny * scale
-curv <- test_curve$curv
-curv_smth <- test_curve$curv_smth
-dirn <- test_curve$dirn
-dirn_smth <- test_curve$dirn_smth
-nx <- nx * dirn_smth
-ny <- ny * dirn_smth
-nz <- !as.logical(as.integer(nx == 0) * as.integer(ny == 0))
-# col <- as.integer(dirn)+1
-color <- as.integer(dirn_smth[nz])+3
+plot_stream_flowdirection <- function(
+    _curve,
+    scale = 64
+  ) {
 
+  x <- _curve$x
+  y <- _curve$y
+  tx <- _curve$tx * scale
+  ty <- _curve$ty * scale
+  tx2 <- _curve$tx2 * scale
+  ty2 <- _curve$ty2 * scale
+  nx <- _curve$nx * scale
+  ny <- _curve$ny * scale
+  curv <- _curve$curv
+  curv_smth <- _curve$curv_smth
+  dirn <- _curve$dirn
+  dirn_smth <- _curve$dirn_smth
+  nx <- nx * dirn_smth
+  ny <- ny * dirn_smth
+  nz <- !as.logical(as.integer(nx == 0) * as.integer(ny == 0))
+  # col <- as.integer(dirn)+1
+  color <- as.integer(dirn_smth[nz])+3
+  
+  
+  plot(x, y)
+  graphics::arrows(x, y, x+tx, y+ty, col = "darkgray", length = 0.1)
+  # graphics::arrows(x, y, x+nx, y+ny, col = "lightblue", length = 0.1)
+  # graphics::arrows(x-tx2, y-ty2, x+tx2, y+ty2, col = "lightblue", length = 0.1)
+  graphics::arrows(
+    x[nz], y[nz],
+    x[nz] + nx[nz], y[nz] + ny[nz],
+    col = color, length = 0.1
+  )
+}
 
-plot(x, y)
-graphics::arrows(x, y, x+tx, y+ty, col = "darkgray", length = 0.1)
-# graphics::arrows(x, y, x+nx, y+ny, col = "lightblue", length = 0.1)
-# graphics::arrows(x-tx2, y-ty2, x+tx2, y+ty2, col = "lightblue", length = 0.1)
-graphics::arrows(
-  x[nz], y[nz],
-  x[nz] + nx[nz], y[nz] + ny[nz],
-  col = color, length = 0.1
-)
+plot_stream_flowdirection(test_curve)
 
 ```
 
@@ -2396,6 +2433,197 @@ Summary: we calculated
 - the tangent (i.e. flow direction)
 - the curvature (optionally smoothed)
 - the direction (i.e. side, optionally smoothed)
+
+
+## stream flow maths (I): lines
+
+The `lines` stream data source has a finer resolution.
+Here I will adapt the functions from above.
+
+
+```{r streamline-curve}
+# vhag <- 9574
+
+# extract a single stream from the 100m watercourse segments
+get_stream_linecurve <- function(vhag, segment_rank = 0) {
+
+  # stream_lines <- read_watercourse_100mseg(element = "lines")
+    
+  # filter the points of interest
+  target_stream_points <- stream_lines %>%
+    filter(vhag_code == as.numeric(vhag))
+
+  rank <- target_stream_points$rank
+  coords <- data.frame(sf::st_coordinates(target_stream_points))
+  coords$sequence <- 1:nrow(coords)
+
+  # join them as a curve
+  stream_curve <- as.data.frame(
+      cbind(rank, 1:length(rank))
+    ) %>%
+    setNames(c("rank", "L1")) %>% 
+    left_join(coords, join_by(L1))
+  names(stream_curve) <- c("rank", "lseq", "x", "y", "sequence")
+
+  # sort by "rank", i.e. point number
+  stream_curve$rank <- stream_curve$rank - segment_rank
+  stream_curve <- stream_curve %>% arrange(rank, sequence)
+
+  return(stream_curve)
+}
+
+
+# test plot
+test_curve <- get_stream_linecurve(vhag = 9574, segment_rank = 218821) %>%
+    filter(rank > 20)
+
+
+test_curve %>%
+  ggplot(aes(x = x, y = y)) +
+    geom_line() +
+    geom_point(aes(color = rank))
+
+head(test_curve)
+
+plot(test_curve$x, test_curve$y) + lines(test_curve$x, test_curve$y)
+
+
+test_curve %>%
+  ggplot(aes(x = x, y = y)) +
+    geom_path() +
+    geom_point(aes(color = rank))
+
+```
+
+Order of points is ~~horribly wrong~~ totally correct.
+
+:::{.callout-warning}
+The problem was in ggplot.
+
+:::
+
+
+
+```{r correct-rank-series}
+
+# curve <- test_curve
+
+correct_curve_arrangement <- function(curve, coordinate_columns = NA) {
+
+  # iterate points (downstream)
+  # cross-distance of downstream points
+  # p = calculate mean diffvector of previous n points
+  # n = normal <- rotate normed(p) by π/2
+  # d = diffvector to next points
+  # l = length projection to normal
+  # minimize Euclid(c(l, d))
+
+  # alternative strategy: rotate xy all the time to direction
+
+  # curve <- data.frame(x = c(0, 1., 2.5, 1.8), y = c(0.0, 1., 2.0, 1.5))
+  # curve <- test_curve
+
+  if (any(is.na(coordinate_columns))) {
+    coordinate_columns <- c("x", "y")
+  }
+
+  # use only coordinates
+  xy <- as.matrix(curve[coordinate_columns])
+  xy <- data.frame(sweep(xy, 2, xy[1,]))
+
+  xy$idx <- NA
+  xy$run <- 1:nrow(xy)
+    
+  Euclid <- function (x, y) sqrt(x^2 + y^2)
+  vectornorm <- function(vec) sqrt(sum(sapply(1:length(vec), FUN = function(v) vec[v]^2)))
+  # vectornorm(c(0, 1, 1, 2))
+  normed_vector <- function(vec) vec / vectornorm(vec)
+  # normed_vector(c(0, 1, 1, 2))
+  # vectornorm(normed_vector(c(0, 1, 1, 2)))
+    
+  cross_difference <- function(vec) outer(X = vec, Y = vec, FUN = function(X, Y) Y - X )
+  cross_distance <- function(x, y) Euclid(cross_difference(x), cross_difference(y)) 
+
+  project_onto <- function(vec1, vec2) vec1 %*% vec2
+
+  rotate_90_ccw <- matrix(c(
+     cos(-pi/2), sin(-pi/2),
+    -sin(-pi/2), cos(-pi/2)
+    ), ncol =2)
+
+
+  # cross distances
+  cdists <- cross_distance(
+    curve[[coordinate_columns[1]]],
+    curve[[coordinate_columns[2]]]
+  )
+    
+  # the first two points are set; they give the direction.
+  xy[1, "idx"] <- 1
+  xy[2, "idx"] <- 2
+
+    
+  for (i in 3:14) {
+  # for (i in 3:(nrow(xy))) {
+    # i <- 3
+    # i <- 4
+    # we sit on point `i-1`, and want to find the best consecutive for `i`
+
+    set_points <- xy[!is.na(xy$idx), ]
+
+    one_back <- set_points[set_points$idx == i-1, coordinate_columns]
+    two_back <- set_points[set_points$idx == i-2, coordinate_columns]
+      
+    next_points <- xy[is.na(xy$idx), ]
+    next_dists <- cdists[xy$run == i-1, is.na(xy$idx)]
+
+    step_vector <- as.matrix(one_back - two_back)
+
+    if (vectornorm(step_vector) != 0){
+      step_normal <- normed_vector(as.matrix(step_vector) %*% rotate_90_ccw)
+      putative_steps <- sweep(
+          as.matrix(next_points[,coordinate_columns]), 2, as.matrix(one_back))
+      projections <- t(abs(as.matrix(putative_steps) %*% t(step_normal)))
+    } else {
+      projections <- rep(0, length(next_dists))
+    }
+
+    # projections <- rep(0, length(next_dists))
+
+    # value <- Euclid(next_dists, 5*projections)
+    value <- next_dists + 1*projections
+
+    candidate <- next_points[which.min(value),"run"]
+    xy[candidate, "idx"] <- i
+      
+  }
+
+  curve$stream_order <- xy[, "idx"]
+    
+  return(curve)
+
+}
+
+test_curve <- get_stream_linecurve(vhag = 9574, segment_rank = 218821) %>%
+    filter(rank > 20, rank < 26)
+head(test_curve, 16)
+
+corrected_curve <- correct_curve_arrangement(test_curve) %>%
+  arrange(stream_order)
+
+# cbind(test_curve$lseq)
+
+test_curve %>%
+  ggplot(aes(x, y)) +
+    geom_point() +
+    geom_path() +
+    geom_path(aes(corrected_curve$x, corrected_curve$y), color = "red")
+
+# plot(corrected_curve$rank)
+
+```
+
+The good news is that my solution mathes the VHAG default in the test case.
 
 
 ## stream batch processing
@@ -2414,7 +2642,7 @@ get_stream_curve_properties <- function(unit_id) {
   segment_rank <- as.numeric(stringr::str_split(unit_id, "_")[[1]][2])
 
   # extract the curve  
-  curve <- get_stream_curve(vhag = vhag, segment_rank = segment_rank)
+  curve <- get_stream_pointcurve(vhag = vhag, segment_rank = segment_rank)
 
   curve <- get_all_curve_measures(
     curve,
@@ -2583,7 +2811,7 @@ for (i in seq(771, 852, 5)) {
 }
 
 test_curve <- sf::st_as_sf(
-  get_stream_curve(vhag = 9574, segment_rank = 218821),
+  get_stream_pointcurve(vhag = 9574, segment_rank = 218821),
   coords = c("x", "y"),
   crs = 31370
   ) %>%
