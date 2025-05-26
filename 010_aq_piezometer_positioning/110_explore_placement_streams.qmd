@@ -1818,8 +1818,7 @@ plot_arrow_from_center <- function(vec, ...){
   graphics::arrows(c(0), c(0), c(vec[1]), c(vec[2]), ...)
 }
 
-# for (uid in seq(781, 852, 5)) {
-for (uid in seq(791, 891, 5)) {
+for (uid in seq(781, 852, 5)) {
   unit_id <- sprintf("9574_218%03.0f", uid)
   save_plot_filepath <- here::here("figures", "direction_vectors", sprintf("%s.png", unit_id))
 
