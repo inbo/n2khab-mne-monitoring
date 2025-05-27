@@ -641,16 +641,21 @@ test_buffer <- test_location %>%
   sf::st_buffer(margin) 
 sub_raster <- terra::crop(test_raster, sf::st_bbox(test_buffer))
 
-plot(sub_raster, col = gray.colors(256))
-points(
-  sf::st_coordinates(test_location)[1,"X"],
-  sf::st_coordinates(test_location)[1,"Y"],
-  pch = 16, col = "yellow")
-
-calculate_flow_direction(
+flowdir <- calculate_flow_direction(
     test_location,
-    flow_range = 256, flow_cellsize = 32,
+    flow_range = 96, flow_cellsize = 16,
     save_plot_filepath = here::here("figures", sprintf("%s.png", location_code)))
+
+x <- sf::st_coordinates(test_location)[1,"X"][[1]]
+y <- sf::st_coordinates(test_location)[1,"Y"][[1]]
+plot(sub_raster, col = gray.colors(256))
+points(x, y, pch = 16, col = "yellow")
+arrows(
+  x, y,
+  x + 100*flowdir[1], y + 100*flowdir[2],
+  col = "darkgray",
+  length = 0.1
+)
 
 ```
 
@@ -1087,9 +1092,15 @@ Summary: we calculated
 - the direction (i.e. side, optionally smoothed)
 
 
+:::{.callout-warning}
+**The above was a calculation for points at 100m intervals.**
+We need a more fine-grained stream sampling.
+:::
+
+
 ## stream flow maths (II): lines
 
-### retrieve lines
+### conceptual
 
 The `lines` stream data source has a finer resolution.
 For reasons, I need to point out the ambiguity of the term **line**:
@@ -1102,18 +1113,136 @@ For reasons, I need to point out the ambiguity of the term **line**:
 
 Here I will adapt the point functions from above for stream lines.
 
+### resampling
+
+```{r test-resampling}
+# stream_lines <- read_watercourse_100mseg(element = "lines")
+  
+stopifnot("pspline" = require("pspline"))
+
+# filter the points of interest
+target_stream_points <- stream_lines %>%
+  filter(vhag_code == as.numeric(9574))
+
+resample_m = 1
+test <- target_stream_points[1, ]
+original <- sf::st_coordinates(test)
+resampled <- sf::st_coordinates(
+  sf::st_line_sample(test, density = 1/resample_m)
+)
+x <- original[,1]
+x0 <- x[1]
+x <- x - x0
+y <- original[,2]
+y0 <- x[1]
+y <- y - y0
+
+adx <- abs(diff(x))
+ady <- abs(diff(y))
+dt <- sqrt(adx^2 + ady^2)
+t <- c(0, cumsum(dt))
+t <- t / max(t)
+s <- seq(0, max(t), length.out = as.integer(round(max(cumsum(dt))))+1)
+
+spline_x <- predict(sm.spline(t, x), s, 0)
+spline_y <- predict(sm.spline(t, y), s, 0)
+plot(s, spline_x, type = "l")
+points(t, x, type = "o", col = "red")
+
+spline_x <- spline_x + x0
+spline_y <- spline_y + y0
+  
+par(pty = "s")
+plot(x+x0, y+y0, type = "o", col = "black", asp = 1)
+lines(spline_x, spline_y, type = "o", col = "blue")
+lines(resampled, type = "o", col = "red")
+
+```
+
+We'll manually resample with splines (blue curve).
+
+
+
+```{r resample-linestream}
+
+resample_linestream <- function(linestream, resample_m = 1) {
+
+  stopifnot("pspline" = require("pspline"))
+
+  # linestream <- test
+  original <- sf::st_coordinates(linestream)
+  if (nrow(original) < 6) {
+    # fallback: resample with `sf`; points on straight lines
+    resampled <- sf::st_cast(
+      sf::st_line_sample(linestream, density = 1/resample_m),
+      "LINESTRING"
+    )
+    resampled <- sf::st_as_sf(cbind(
+      sf::st_drop_geometry(linestream),
+      resampled
+    ))
+    sf::st_crs(resampled) <- 31370
+    return(resampled)
+  }
+    
+  x <- original[,1]
+  y <- original[,2]
+  
+  # the phase along the line
+  adx <- abs(diff(x))
+  ady <- abs(diff(y))
+  dt <- sqrt(adx^2 + ady^2)
+  t <- c(0, cumsum(dt))
+  t <- t / max(t)
+  s <- seq(0, max(t), length.out = 1+round(max(cumsum(dt)))/resample_m)
+  
+  # spline resampling
+  spline_x <- predict(sm.spline(t, x), s, 0)
+  spline_y <- predict(sm.spline(t, y), s, 0)
+
+  # plot(x, y, type = "o", col = "black")
+  # lines(spline_x, spline_y, type = "o", col = "blue")
+  
+  # object type restoration
+  resampled <- sf::st_linestring(cbind(spline_x, spline_y))
+  resampled <- sf::st_as_sf(cbind(
+    sf::st_drop_geometry(linestream),
+    sf::st_sfc(resampled)
+  ))
+  sf::st_crs(resampled) <- 31370
+
+  return(resampled)
+}
+
+```
+
+### retrieve lines
+
 
 ```{r linestream-curve}
 # vhag <- 9574
 
 # extract a single stream from the 100m watercourse segments
-get_linestream_curve <- function(vhag, segment_rank = 0) {
+get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
 
   # stream_lines <- read_watercourse_100mseg(element = "lines")
+  # message(vhag)
+  # message(segment_rank)
     
   # filter the points of interest
   target_stream_points <- stream_lines %>%
     filter(vhag_code == as.numeric(vhag))
+
+  # resample the streams
+  if (!is.na(resample_m)) {
+    target_stream_points <- bind_rows(lapply(
+      1:nrow(target_stream_points),
+      FUN = function(i) {resample_linestream(
+        target_stream_points[i,],
+        resample_m = 1
+        )}
+    ))
+  }
 
   rank <- target_stream_points$rank
   coords <- data.frame(sf::st_coordinates(target_stream_points))
@@ -1163,7 +1292,7 @@ get_linestream_curve <- function(vhag, segment_rank = 0) {
 
 ```{r get-linecurve-testing}
 # test plot
-test_curve <- get_linestream_curve(vhag = 9574, segment_rank = 218821) %>%
+test_curve <- get_linestream_curve(vhag = 9574, segment_rank = 218821, resample_m = 1) %>%
     filter(rank > 20)
 
 # WRONG!
@@ -1646,7 +1775,11 @@ get_all_linestream_measures <- function(
 # head(test_curve)
 
 # linestream_curve <- test_curve
-test_curve <- get_linestream_curve(vhag = 9574, segment_rank = 218821) %>% 
+test_curve <- get_linestream_curve(
+    vhag = 9574,
+    segment_rank = 218821,
+    resample_m = 10
+  ) %>% 
   filter(rank > 20)
 
 if (FALSE) plot(test_curve$x, test_curve$y, asp = 1, type = "o", cex = 0.5)
@@ -1705,7 +1838,11 @@ plot_linestream_flowdirection(test_curve)
 
 ```{r linestream-all-curve-measures}
 
-test_curve <- get_linestream_curve(vhag = 9574, segment_rank = 218821)
+test_curve <- get_linestream_curve(
+  vhag = 9574,
+  segment_rank = 218821,
+  resample_m = 1
+)
 
 curve <- get_all_linestream_measures(
   test_curve,
@@ -1715,7 +1852,7 @@ curve <- get_all_linestream_measures(
 
 segment <- curve %>%
   filter(rank %in% c(-1,0)) %>% 
-  filter(sequence > -10, sequence < 10) #%>%
+  filter(sequence > -20, sequence < 20) #%>%
   # select(-rank) %>% 
   # mutate(unit_id = unit_id)
 knitr::kable(segment)
@@ -1739,7 +1876,7 @@ plot_linestream_flowdirection(segment) +
 # unit_id <- "47203_84627"
 
 
-get_linestream_curve_properties <- function(unit_id, smooth_range = 5) {
+get_linestream_curve_properties <- function(unit_id, smooth_range = 5, resample_m = NA) {
 
   # message(unit_id)
 
@@ -1748,7 +1885,11 @@ get_linestream_curve_properties <- function(unit_id, smooth_range = 5) {
 
   # extract the curve  
   # curve <- get_pointstream_curve(vhag = vhag, segment_rank = segment_rank)
-  linestream_curve <- get_linestream_curve(vhag = vhag, segment_rank = segment_rank) %>%
+  linestream_curve <- get_linestream_curve(
+      vhag = vhag,
+      segment_rank = segment_rank,
+      resample_m = resample_m
+    ) %>%
     filter(rank >= -3, rank <= 2)
   # print(linestream_curve)
 
@@ -1791,9 +1932,21 @@ stream_list <- stratum_units_grts_stream_gw_spsamples_spares %>%
 
 # get_linestream_curve_properties("9512_238546")
 
-stream_data <- bind_rows(lapply(stream_list, FUN = get_linestream_curve_properties))
+stream_data <- bind_rows(lapply(
+  stream_list,
+  FUN = function(uid) get_linestream_curve_properties(uid, 5, 10)
+))
 kableprint(stream_data)
+
+
+# get_linestream_curve_properties("8501_224807")
+# get_linestream_curve_properties("8576_98821")
+# head(get_linestream_curve(8501, segment_rank = 224807))
+# head(get_linestream_curve(8576, segment_rank = 98821))
+# head(get_linestream_curve(vhag = 9574, segment_rank = 218821))
+# 
 ```
+
 
 
 Strategy to continue (TODO):
@@ -1823,7 +1976,7 @@ for (uid in seq(781, 852, 5)) {
   save_plot_filepath <- here::here("figures", "direction_vectors", sprintf("%s.png", unit_id))
 
   # get stream info
-  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 1)
+  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 1, resample_m = 10)
 
   # reference vectors
   segment_point <- point_info[c("x", "y")]
@@ -1912,7 +2065,7 @@ get_linestream_target_area <- function(unit_id, offset_m = 2, side_m = 24) {
   }
 
   # get stream info
-  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 1)
+  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 1, resample_m = 10)
 
   # reference vectors
   segment_point <- point_info[c("x", "y")]
@@ -2002,7 +2155,7 @@ for (i in seq(771, 852, 5)) {
 
   # flow and curvature
   scale <- 64
-  point_info <- get_linestream_curve_properties(unit_id)
+  point_info <- get_linestream_curve_properties(unit_id, resample_m = 10)
   segment_point <- point_info[c("x", "y")]
 
   # normal, in the direction of curvature
