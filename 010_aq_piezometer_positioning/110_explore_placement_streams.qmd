@@ -1976,7 +1976,7 @@ for (uid in seq(781, 852, 5)) {
   save_plot_filepath <- here::here("figures", "direction_vectors", sprintf("%s.png", unit_id))
 
   # get stream info
-  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 1, resample_m = 10)
+  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 5, resample_m = 10)
 
   # reference vectors
   segment_point <- point_info[c("x", "y")]
@@ -2065,7 +2065,7 @@ get_linestream_target_area <- function(unit_id, offset_m = 2, side_m = 24) {
   }
 
   # get stream info
-  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 1, resample_m = 10)
+  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 5, resample_m = 10)
 
   # reference vectors
   segment_point <- point_info[c("x", "y")]
@@ -2155,7 +2155,7 @@ for (i in seq(771, 852, 5)) {
 
   # flow and curvature
   scale <- 64
-  point_info <- get_linestream_curve_properties(unit_id, resample_m = 10)
+  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 5, resample_m = 10)
   segment_point <- point_info[c("x", "y")]
 
   # normal, in the direction of curvature
@@ -2185,7 +2185,7 @@ for (i in seq(771, 852, 5)) {
 }
 
 test_curve <- sf::st_as_sf(
-  get_linestream_curve(vhag = 9574, segment_rank = 218821),
+  get_linestream_curve(vhag = 9574, segment_rank = 218821, resample_m = 25),
   coords = c("x", "y"),
   crs = 31370
   ) %>%

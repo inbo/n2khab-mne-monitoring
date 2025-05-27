@@ -39,14 +39,8 @@ kableprint <- function(df, show_rows = 5) {
 
 mapviewOptions(fgb = FALSE) # https://stackoverflow.com/a/65485896
 
+source(here::here("..", "R", "import_aquatic_positioning.R"))
 
-# assert crs 31370
-assert_31370 <- function(sf_obj){
-  stopifnot(
-    "crs 31370" = format(sf::st_crs(sf_obj)) == "BD72 / Belgian Lambert 72"
-  )
-  return(sf_obj)
-}
 ```
 
 # REMINDER
@@ -102,84 +96,8 @@ assert_31370 <- function(sf_obj){
 ### data consistence
 
 ```{r datasource-consistency}
-#' data source version persistence
-#'
-#' Manually check data source versions (something to be automated by n2khab
-#' package in the future, based on preset versions)
-#'
-confirm_n2khab_data_consistency <- function() {
 
-  # required for the pipe operator 
-  stopifnot("magrittr" = require("magrittr"))
-
-  # the checksums of working data versions (as of 20250501)
-  # - watersurfaces_hab: version watersurfaces_hab_v6
-  # - habitatstreams: version habitatstreams_2023
-  # - habitatsprings: version habitatsprings_2020v2
-  # - flanders: version "flanders_2018-05-16"
-  reference_checksum <- c(
-    flanders.dbf = "d21a599325723682",
-    flanders.prj = "2f10404ffd869596",
-    flanders.shp = "72fff53084b356be",
-    flanders.shx = "1880e141bbcdc6ca",
-    habitatsprings.geojson = "7268c26f52fcefe4",
-    habitatstreams.dbf = "dee7a620e3bcae0a",
-    habitatstreams.lyr = "a120f92d80c92a3a",
-    habitatstreams.prj = "7e64ff1751a50937",
-    habitatstreams.shp = "5a7d7cddcc52c5df",
-    habitatstreams.shx = "b2087e6affe744f4",
-    habitatstreams.sld = "2f192b84b4df99e9",
-    watersurfaces_hab.gpkg = "e2920c4932008387"
-  )
-    
-  # for comparison: checksums of current files on disk
-  status_checksum <- file.path(
-      n2khab::locate_n2khab_data(),
-      c(
-        "20_processed/watersurfaces_hab",
-        "10_raw/habitatsprings",
-        "10_raw/habitatstreams",
-        "10_raw/flanders"
-      )
-    ) %>%
-    list.files(full.names = TRUE) %>%
-    n2khab::xxh64sum()
-    
-  # per filename, check whether checksums match
-  check_identical_checksum <- function (filename) {
-
-    # the check
-    file_check <- identical(
-        reference_checksum[filename],
-        status_checksum[filename]
-      )
-
-    # more verbose error upon mismatch
-    if (!file_check) {
-      message(paste0(
-        "ERROR: file `",
-        filename,
-        "` changed on disk.",
-        collapse = "") )
-      }
-
-    # stop or return TRUE
-    return(is.null(
-      stopifnot(file_check)
-    ))
-    
-  }
-
-  # check all files
-  check <- all(sapply(names(reference_checksum), FUN = check_identical_checksum))
-
-  # confirm correctness of all n2khab data files
-  if (check) message("All n2khab data files match the recorded state.")
-  
-} # /confirm_n2khab_data_consistency
-
-
-# apply the function
+# apply the consistency check
 confirm_n2khab_data_consistency()
 
 ```
@@ -256,23 +174,6 @@ kableprint(habspring_units_aquatic)
 Currently, the latest version of the sample is distributed via an `.RData` file on the google drive.
 
 ```{r google-auth}
-# Setup for googledrive authentication. Set the appropriate env vars in
-# .Renviron and make sure you ran drive_auth() interactively with these settings
-# for the first run (or to renew an expired Oauth token).
-# See ?gargle::gargle_options for more information.
-google_drive_init <- function() {
-  if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
-    options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
-  }
-  if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
-    options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
-  }
-}
-
-# tipps for paranoid linux terminal users (non-interactive R):
-# - point your oauth cache to a tomb https://dyne.org/tomb
-# - do not forget to open the tomb prior to starting the R session
-
 google_drive_init()
 ```
 
@@ -292,11 +193,7 @@ force_reload_sample <- FALSE
 target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
 
 if (force_reload_sample || !file.exists(target_sample_filepath)) {
-  googledrive::drive_download(
-    googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
-    path = target_sample_filepath,
-    overwrite = TRUE
-  )
+  download_poc_rdata_file(target_sample_filepath)
 }
 
 # deprecated: 
@@ -306,27 +203,7 @@ if (force_reload_sample || !file.exists(target_sample_filepath)) {
 #   googledrive::as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
 
 
-# load the data into a new environment
-env_extradata <- new.env()
-load(target_sample_filepath, envir = env_extradata)
-ls(envir = env_extradata)
-
-for (var in c(
-  "units_non_cell_n2khab_grts",
-  "stratum_units_non_cell_n2khab",
-  "scheme_moco_ps_stratum_sppost_spsamples_spares_sf"
-  )) {
-  tryCatch(
-  {stopifnot(exists(var, envir = env_extradata))},
-  error = function(wrnmsg) {
-    message(paste0(
-      "The variable ", var,
-      " does not exist in environment `env_extradata`.",
-      collapse = "")
-    )
-  }
-  )
-}
+env_extradata <- load_rdata_environment()
 
 ```
 
@@ -897,9 +774,9 @@ print(paste0(nanmean(dx), ", ", nanmean(dy)))
 ```{r radius}
 nonnan <- function(vec) vec[!is.na(vec)]
 nanmean <- function(vec) mean(vec[!is.na(vec)])
-euclid <- function(x, y) sqrt(x^2 + y^2)
+Euclid <- function(x, y) sqrt(x^2 + y^2)
 within_radius <- function(x, y, r = 128) {
-  dist <- euclid(
+  dist <- Euclid(
     nonnan(x) - nanmean(x),
     nonnan(y) - nanmean(y)
   )
@@ -957,209 +834,7 @@ print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
 
 
 ```{r flow-gradient-general-function}
-
-#' Calculate flow direction
-#'
-#' Calculate the putative flow direction at a given point
-#' based on the elevation/slope in the buffer area around it.
-#' All calculations will be performed in CRS 31370, hence the output
-#' flow vector will be in meters.
-#' 
-#' @details this is the slope-averaged flow direction between
-#' cells in a coarse raster grid within a given radius around the location
-#' (but excluding the outer rim of cells, where no slope is queried).
-#' It uses `terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)`.
-#'
-#' @param location the point (or polygon) of interest;
-#'        an `sf` object of which the `sf::st_coordinates` are used.
-#' @param flow_range the buffer extent (in meters) around the location, 
-#'        which is used to query elevation and calculate flow.
-#'        Units are those of the coordinates.
-#' @param flow_cellsize the width of a cell in the resampled raster
-#'        across which elevation is averaged to calculate flow.
-#'        Units are those of the coordinates.
-#' @param save_plot_filepath if this is not NA, a summary map of the
-#'        flow calculation will be saved as "png" image to the given path.
-#' 
-#' @return c(dx,dy) vector (in meters) of the average flow direction in a
-#'        circular area around the location.
-#'
-#' @examples
-#' \dontrun{
-#'   location <- sf::st_sfc(sf::st_point(c(225598, 182350), dim = "XY"))
-#'   sf::st_crs(location) <- 31370
-#'   calculate_flow_direction(location, flow_range = 1024, flow_cellsize = 32)
-#' }
-#'
-calculate_flow_direction <- function(
-    location,
-    flow_range = 256, flow_cellsize = 32,
-    save_plot_filepath = NA) {
-
-  # location_raw <- location # currently not necessary to store the data in raw CRS
-
-  # all calculations will be performed in CRS 31370 # TODO assert
-  # location <- sf::st_transform(location, 31370)
-  assert_31370(location) 
-
-  # only the coordinates are relevant ("xy", but could be "lon/lat")
-  xy <- as.data.frame(
-      sf::st_coordinates(location)
-    ) %>%
-    rename_with(tolower)
-  
-  ### Query DHMV
-  # (elevation model of Flanders)
-  # within a buffer area
-  bbox <- sf::st_bbox(
-     c(xmin = min(xy[1]) - flow_range,
-       xmax = max(xy[1]) + flow_range,
-       ymin = min(xy[2]) - flow_range,
-       ymax = max(xy[2]) + flow_range
-       ),
-     crs = sf::st_crs(31370)
-  )
-
-  location_raster <- inbospatial::get_coverage_wcs(
-    wcs = "dhmv",
-    bbox = bbox,
-    layername = "DHMVII_DTM_1m",
-    version = "2.0.1",
-    wcs_crs = "EPSG:31370",
-    resolution = 1
-  ) 
-  
-  ### Resample
-  # to get a coarse grid
-  n_grid <- as.integer(flow_range/flow_cellsize)
-  
-  # resample within the buffer range
-  coarse_grid <- terra::rast(
-    nrows = n_grid, ncols = n_grid,
-    xmin = min(xy[1]) - flow_range,
-    xmax = max(xy[1]) + flow_range,
-    ymin = min(xy[2]) - flow_range,
-    ymax = max(xy[2]) + flow_range
-    )
-  terra::crs(coarse_grid) <- "EPSG:31370"
-  coarse_raster <- terra::resample(location_raster, coarse_grid,
-    method = "lanczos" # method = "bilinear"
-  )
-  
-  ### calculations
-  # slope and flow, using terra::terrain
-  slope <- terra::terrain(coarse_raster, v = "slope")
-  flow <- terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)
-  
-  flow_df <- terra::as.data.frame(flow, xy = TRUE) %>%
-    left_join(
-      terra::as.data.frame(slope, xy = TRUE),
-      join_by(x, y)
-    ) %>%
-    filter(!is.na(slope))
-  
-  flow_sf <- sf::st_as_sf(flow_df, coords = c("x", "y"), crs = 31370)
-  
-  
-  flow_df <- cbind(
-      sf::st_drop_geometry(flow_sf),
-      as_tibble(sf::st_coordinates(flow_sf))
-    ) %>%
-    rename(c("x" = "X", "y" = "Y"))
-  
-  fpx <- flow_df[["x"]]
-  fpy <- flow_df[["y"]]
-  fpz <- flow_df[["flowdir"]]
-  fpv <- flow_df[["slope"]]
-  
-  # convert direction to angles...
-  direction <- 2*pi/8 * log2(fpz)
-  direction[!is.finite(direction)] <- NA 
-  
-  # ... convert direction angles to "dx", "dy"
-  dx <- +1*cos(direction)
-  dy <- -1*sin(direction)
-  
-  # helper functions:
-  # remove nan
-  nonnan <- function(vec) vec[!is.na(vec)]
-  # mean, excluding NAs
-  nanmean <- function(vec) mean(nonnan(vec))
-
-  # Euclidean length of the vector
-  euclid <- function(x, y) sqrt(x^2 + y^2)
-
-  # filter coordinates within radius
-  within_radius <- function(x, y, r = 128) {
-    dist <- euclid(
-      nonnan(x) - nanmean(x),
-      nonnan(y) - nanmean(y)
-    )
-    return(dist < r)
-  }
-      
-  # calculate the average flow, but weighted and filtered
-  average_flow <- function (vec, weight, selection) {
-  
-    # simplify input data types
-    vec <- as.matrix(vec)
-    weight <- as.matrix(weight)
-    selection <- as.matrix(selection)
-  
-    # disregard NA's
-    nans <- is.na(vec) | is.na(weight) | is.na(selection)
-    vec <- vec[!nans]
-    weight <- weight[!nans]
-    selection <- selection[!nans]
-  
-    # return the weighted average of the vector
-    return(sum(vec[selection] * weight[selection]) / sum(weight[selection]))
-  }
-  
-  ### compute average flow of coarse cells within radius
-  # exclude the outer rows of cells (where no slope is queried)
-  sel <- within_radius(fpx, fpy, r = flow_range - flow_cellsize) 
-  flow_vector <- c(average_flow(dx, fpv, sel), average_flow(dy, fpv, sel))
-
-  ### optionally store a quiver plot on a map for vizualization
-  if (!is.na(save_plot_filepath)) {
-
-    png(save_plot_filepath,
-      width = 120,
-      height = 120,
-      units = "mm",
-      res = 300
-    )
-
-    # raster background
-    plot(location_raster)
-
-    # flow per cell
-    pracma::quiver(
-      x = fpx[sel],
-      y = fpy[sel],
-      u = dx[sel],
-      v = dy[sel],
-      scale = 8,
-      col = "gray"
-      )
-
-    # average flow
-    pracma::quiver(
-      x = xy[[1]],
-      y = xy[[2]],
-      u = flow_cellsize * flow_vector[[1]],
-      v = flow_cellsize * flow_vector[[2]],
-      scale = 3,
-      col = "darkorange"
-    )
-
-    dev.off()
-  }
-    
-  return(flow_vector)
-
-} # /calculate_flow_direction
+# loaded from an R script.
 ```
 
 
@@ -1197,168 +872,7 @@ Instead of a local grid of fixed size, we require calculation of the flow within
 
 
 ```{r polygon-flow-direction}
-close_polygon <- function(pol, radius = 1){
-  return(
-    pol %>%
-      sf::st_buffer(radius) %>%
-      sf::st_buffer(-radius)
-  )
-}
-
-calculate_polygon_flow_direction <- function(
-    water_polygon,
-    flow_range = 128+32, flow_cellsize = 32,
-    close_island_size = NA,
-    save_plot_filepath = NA) {
-
-  # plot(sub_raster, col = gray.colors(256))
-  if (!is.na(close_island_size)) {
-    water_polygon <- water_polygon %>% 
-      close_polygon(close_island_size)
-  }
-  
-  band_buffer <- st_difference(
-    sf::st_buffer(water_polygon, flow_range-flow_cellsize),
-    sf::st_buffer(water_polygon, -flow_cellsize)
-    ) %>% suppressWarnings()
-  # mapview(band_buffer) 
-  xtnt <- sf::st_bbox(band_buffer)
-
-  band_raster <- inbospatial::get_coverage_wcs(
-    wcs = "dhmv",
-    bbox = xtnt,
-    layername = "DHMVII_DTM_1m",
-    version = "2.0.1",
-    wcs_crs = "EPSG:31370",
-    resolution = 1
-  )
-  
-  coarse_grid <- terra::rast(
-    nrows = (xtnt[["ymax"]] - xtnt[["ymin"]])/flow_cellsize,
-    ncols = (xtnt[["xmax"]] - xtnt[["xmin"]])/flow_cellsize,
-    xmin = xtnt[["xmin"]],
-    xmax = xtnt[["xmax"]],
-    ymin = xtnt[["ymin"]],
-    ymax = xtnt[["ymax"]],
-    )
-  crs(coarse_grid) <- "EPSG:31370"
-  band_raster_coarse <- resample(
-    band_raster,
-    coarse_grid,
-    method = "lanczos"
-    # method = "bilinear"
-  )
-  # plot(band_raster_coarse)
-  
-  slope <- terra::terrain(band_raster_coarse, v = "slope")
-  flow <- terra::terrain(band_raster_coarse, v = "flowdir", neighbors = 8)
-  
-  flow_df <- terra::as.data.frame(flow, xy = TRUE) %>%
-    left_join(
-      terra::as.data.frame(slope, xy = TRUE),
-      join_by(x, y)
-    ) %>%
-    filter(!is.na(slope))
-  
-  flow_sf <- sf::st_as_sf(flow_df, coords = c("x", "y"), crs = 31370)
-  flow_sf <- flow_sf %>%
-    sf::st_intersection(sf::st_geometry(band_buffer)) %>%
-    suppressWarnings()
-  # mapview(flow_sf, zcol = "slope")
-  # mapview(flow_sf, zcol = "flowdir")
-  
-  
-  flow_df <- cbind(
-      sf::st_drop_geometry(flow_sf),
-      as_tibble(sf::st_coordinates(flow_sf))
-    ) %>%
-    rename(c("x" = "X", "y" = "Y"))
-  
-  fpx <- flow_df[["x"]]
-  fpy <- flow_df[["y"]]
-  fpz <- flow_df[["flowdir"]]
-  fpv <- flow_df[["slope"]]
-  
-  direction <- 2*pi/8 * log2(fpz)
-  direction[!is.finite(direction)] <- NA 
-  
-  dx <- +1*cos(direction)
-  dy <- -1*sin(direction)
-  
-  # plot(slope)
-  # pracma::quiver(
-  #   x = px,
-  #   y = py,
-  #   u = dx,
-  #   v = dy,
-  #   scale = 3,
-  #   col = "darkorange"
-  #   )
-  
-  nancumsum <- function (vec, weight) {
-  
-    vec <- as.matrix(vec)
-    weight <- as.matrix(weight)
-  
-    nans <- is.na(vec) | is.na(weight) 
-    vec <- vec[!nans]
-    weight <- weight[!nans]
-  
-    return(sum(vec * weight) / sum(weight))
-  }
-  
-  # print(paste0(nancumsum(dx, pv), ", ", nancumsum(dy, pv)))
-  #
-  flow_vector <- c(nancumsum(dx, fpv), nancumsum(dy, fpv))  
-
-  ### optionally store a quiver plot on a map for vizualization
-  if (!is.na(save_plot_filepath)) {
-
-    png(save_plot_filepath,
-      width = 120,
-      height = 120,
-      units = "mm",
-      res = 300
-    )
-
-    # raster background
-    plot(band_raster)
-
-    # flow per cell
-    pracma::quiver(
-      x = fpx,
-      y = fpy,
-      u = dx,
-      v = dy,
-      scale = 8,
-      col = "gray"
-    )
-
-    xy <- sf::st_coordinates(
-        water_polygon %>%
-        sf::st_centroid()
-      ) %>%
-      suppressWarnings() %>%
-      data.frame
-    # message(xy)
-
-    # average flow
-    pracma::quiver(
-      x = xy[[1]],
-      y = xy[[2]],
-      u = flow_cellsize * flow_vector[[1]],
-      v = flow_cellsize * flow_vector[[2]],
-      scale = 3,
-      col = "darkorange"
-    )
-
-    dev.off()
-  }
-
-  return(flow_vector)
-}
-
-
+# outsourced to "calculate_polygon_flow_direction.R"
 ```
 
 ```{r test-band-flow}
@@ -1464,23 +978,15 @@ water_buffer %>%
 ```{r direction-exploration-direction}
 wedge_width <- pi/3
 
-get_x_extent <- function(box) abs(box[["xmax"]] - box[["xmin"]])
-get_y_extent <- function(box) abs(box[["ymax"]] - box[["ymin"]])
-get_extent <- function(box) sqrt(get_x_extent(box)^2+get_y_extent(box)^2)/2
 wedge_range <- get_extent(st_bbox(water_buffer)) + buffer_range[2]
 
 test_coords <- sf::st_coordinates(test_location) %>% as_tibble %>% rename_with(tolower)
 
 pt0 <- t(as.matrix(c(0, 0)))
 upstream <- t(as.matrix(-calculate_polygon_flow_direction(water, 64, 8, 8)))
-vector_norm <- function(vec) sqrt(sum(vec^2))
 upstream_vec <- wedge_range * upstream / vector_norm(upstream)
 vector_norm(upstream_vec)
 
-rotate_vec <- function(vec, theta) vec %*% matrix(c(
-   cos(theta), sin(theta),
-  -sin(theta), cos(theta)
-  ), ncol =2)
 pt1 <- rotate_vec(upstream_vec, wedge_width/2)
 pt2 <- rotate_vec(upstream_vec, -wedge_width/2)
 
@@ -1503,147 +1009,7 @@ mapview(target_area,
 ## Generalization II: Buffer Wedge
 
 ```{r general-buffer-upstream-wedge}
-  
-#' Determine target area for well placement
-#' around aquatic habitat types.
-#'
-#' Provides a polygon area in a buffer band around the
-#' water surface of interest, in the upstream direction
-#' of putative groundwater flow (elevation model).
-#'
-#' @param water_polygon an `sf` polygon-like object capturing
-#'        the water surface.
-#' @param original_location sf point indicating placement target;
-#'        centroid of the water_polygon will be used per default.
-#' @param buffer_range two-element vector c(from, to) which
-#'        determines the distance range around the polygon in
-#'        which the target location should be found.
-#' @param buffer_arc_radians indicates the slice of a circle
-#'        to which the target buffer is restricted.
-#'        range [0, 2*pi]; set to 2*pi of is.na
-#' @inheritParams calculate_polygon_flow_direction
-#' 
-#' @return target area, as an sf object with POLYGON geometry
-#'
-#' @examples
-#' \dontrun{
-#'   wspol <- read_watersurfaces_hab(interpreted = TRUE)$watersurfaces_polygons
-#'   test_polygon <- wspol %>%
-#'     filter(polygon_id == "LIMGNK0062") %>% 
-#'     sf::st_cast("POLYGON", warn = FALSE)
-#'   test_target <- determine_target_area(
-#'     test_polygon,
-#'     buffer_range = c(1, 10),
-#'     buffer_arc_radians = 1, # because 1 ≡ pi/3
-#'     flow_range = 64,
-#'     flow_cellsize = 8
-#'   )
-#' }
-#' 
-determine_target_area <- function(
-    water_polygon,
-    original_location = NA,
-    buffer_range = NA,
-    buffer_arc_radians = 1, # because 1 ≡ pi/3
-    ...
-    ) {
-
-  # ensure meaningful buffer range
-  if (any(is.na(buffer_range))) {
-    buffer_range <- c(5, 20)
-  } else {
-    # buffer_range <- abs(buffer_range)
-    buffer_range <- c(min(buffer_range), max(buffer_range))
-  }
-
-  # ensure correct wedge width
-  buffer_arc_radians <- buffer_arc_radians %% (2*pi)
-  if ((!is.numeric(buffer_arc_radians)) ||
-      (is.na(buffer_arc_radians)) ||
-      (buffer_arc_radians == 0)
-      ){
-    buffer_arc_radians = 2*pi
-  }
-
-  # a buffer belt around the aquatic type  
-  water_buffer <- st_difference(
-    sf::st_buffer(water_polygon, buffer_range[2]),
-    sf::st_buffer(water_polygon, buffer_range[1])
-    ) %>% suppressWarnings
-  # mapview(water_buffer)
-  
-  # ensure the wedge covers the belt
-  get_x_extent <- function(box) abs(box[["xmax"]] - box[["xmin"]])
-  get_y_extent <- function(box) abs(box[["ymax"]] - box[["ymin"]])
-  get_extent <- function(box) sqrt(
-    get_x_extent(box)^2 + get_y_extent(box)^2
-  ) / 2
-
-  wedge_range <- get_extent(st_bbox(water_buffer)) + buffer_range[2]
-
-  
-  # determine the flow direction and project the opposite way
-  if (any(is.na(original_location))) {
-    original_location <- st_centroid(water_polygon) %>%
-      suppressWarnings()
-  }
-
-  # correct coordinate columns
-  original_location <- sf::st_as_sf(
-    cbind(
-      sf::st_drop_geometry(original_location),
-      as_tibble(sf::st_coordinates(original_location)) %>%
-        rename(c("x" = "X", "y" = "Y"))
-    ), coords = c("x", "y"), crs = 31370)
-
-  # get flow direction
-  # upstream <- t(as.matrix(-calculate_flow_direction(original_location)))
-  upstream <- t(as.matrix(-calculate_polygon_flow_direction(water_polygon, ...)))
-
-  # standardized vector length
-  vector_norm <- function(vec) sqrt(sum(vec^2))
-  upstream_vec <- wedge_range * upstream / vector_norm(upstream)
-  
-  # aggregate points in an arc around the center to cover all the belt
-  rotate_vec <- function(vec, theta) vec %*% matrix(c(
-     cos(theta), sin(theta),
-    -sin(theta), cos(theta)
-    ), ncol =2)
-
-  arc_points <- rbind(t(as.matrix(c(0, 0))))
-  for (rot_rad in seq(
-      -buffer_arc_radians/2,
-      buffer_arc_radians/2,
-      length.out = as.integer(round(buffer_arc_radians*180/pi))
-    )) {
-    pt <- rotate_vec(upstream_vec, rot_rad)
-    arc_points <- rbind(arc_points, pt)
-  }
-  
-  # offset the arc by the center location
-  center_coords <- sf::st_coordinates(original_location) %>%
-    as_tibble %>% rename_with(tolower)
-  
-  arc <- as.data.frame(arc_points) %>%
-    setNames(c("x", "y")) %>% 
-    mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
-    sf::st_as_sf(coords = c("x", "y"), crs = 31370)
-  
-  arc <- st_combine(arc) %>% st_cast("POLYGON", warn = FALSE)
-  
-  # the target are is the intersect of the arc and the buffer
-  target_area <- arc %>% sf::st_intersection(water_buffer)
-  
-  m1 <- mapview(water_polygon, map.types = "OpenStreetMap", col.regions = "lightblue")
-  m2 <- mapview(water_buffer, map.types = "OpenStreetMap", col.regions = "darkblue")
-  m3 <- mapview(arc, map.types = "OpenStreetMap", col.regions = "orange")
-  # m4 <- mapview(target_area, map.types = "OpenStreetMap", col.regions = "red")
-  m1+m2+m3
-
-    
-  return(target_area)
-} # /determine_target_area
-
+# outsourced.
 ```
 
 
@@ -1656,12 +1022,13 @@ test_polygon <- wsh$watersurfaces_polygons %>%
   sf::st_cast("POLYGON", warn = FALSE) %>%
   sf::st_make_valid() 
   
-test_target <- determine_target_area(
+test_target <- determine_watersurface_target_area(
   test_polygon,
   buffer_range = c(1, 10),
   buffer_arc_radians = -1, # because 1 ≡ pi/3
   flow_range = 256,
-  flow_cellsize = 32
+  flow_cellsize = 32,
+  view_map = TRUE
 )
 
 center_location <- st_centroid(test_polygon) %>% suppressWarnings()
@@ -1675,7 +1042,6 @@ flow_dir <- calculate_polygon_flow_direction(
   close_island_size = 8
 )
 upstream <- t(as.matrix(-flow_dir))
-vector_norm <- function(vec) sqrt(sum(vec^2))
 upstream_vec <- 100 * upstream / vector_norm(upstream)
 
 inflow <- as.data.frame(rbind(upstream_vec, t(as.matrix(c(0, 0))))) %>%
@@ -1683,7 +1049,7 @@ inflow <- as.data.frame(rbind(upstream_vec, t(as.matrix(c(0, 0))))) %>%
   mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
   sf::st_as_sf(coords = c("x", "y"), crs = 31370)
 
-inflow <- st_combine(inflow) %>% st_cast("LINESTRING")
+inflow <- sf::st_combine(inflow) %>% st_cast("LINESTRING")
 
 m1 <- mapview(test_polygon, map.types = "OpenStreetMap", col.regions = "lightblue")
 m2 <- mapview(inflow, map.types = "OpenStreetMap", col.regions = "darkblue")
@@ -1722,7 +1088,7 @@ calculate_aquatic_type_targets <- function(
     save_plot_filepath = save_plot_filepath
   )
 
-  target_area <- determine_target_area(
+  target_area <- determine_watersurface_target_area(
     water_polygon,
     original_location = location,
     flow_range = flow_range,
@@ -1733,7 +1099,6 @@ calculate_aquatic_type_targets <- function(
 
 
   upstream <- t(as.matrix(-flow_dir))
-  vector_norm <- function(vec) sqrt(sum(vec^2))
   upstream_vec <- 100 * upstream / vector_norm(upstream)
   
 
@@ -1834,7 +1199,6 @@ all_polygons <- bind_rows(lapply(
     target_data, FUN = function(td) td$water_polygon
   ))
 
-vector_norm <- function(vec) sqrt(sum(vec^2))
 all_inflows <- bind_rows(lapply(
     target_data, FUN = function(td) cbind(
       td$location_code,
@@ -1879,10 +1243,10 @@ m1 + m2 + m3
 - [ ] streams: is it possible to get the stream *width* at a given segment?
 - [ ] harden functions (dependencies, weird input, curvature unavailable)
 - [ ] flow direction: dependence on buffer area and cell grid size
-- [ ] gather functions in package main:
+- [X] gather functions in package main:
   - `confirm_n2khab_data_consistency()`
   - `calculate_flow_direction(...)`
-  - add unit tests for `c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")` locations (but hardcode xy)
+- [ ] add unit tests for `c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")` locations (but hardcode xy)
 - `rank` in streams seems to be faulty? (see example zig-zag in higher ranks)
 
 
