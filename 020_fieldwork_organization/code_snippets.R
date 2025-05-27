@@ -73,7 +73,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
   distinct(
     scheme,
     module_combo_code,
-    panel_split,
+    panel_set,
     stratum,
     # 'aquatic' column will be improved for 7220 later on (now it simply has a
     # duplication (TRUE + FALSE) of all locations)
@@ -95,23 +95,23 @@ n2khab_types_expanded_properties %>%
   distinct(grts_join_method, sample_support_code, sample_support) %>%
   arrange(grts_join_method, sample_support_code)
 
-# with the currently active modules, module_combo_code and panel_split have a
+# with the currently active modules, module_combo_code and panel_set have a
 # single unique value for each scheme. This is expected to change though in
-# future (module_combo_code and panel_split do 'split' a scheme's spatial
+# future (module_combo_code and panel_set do 'split' a scheme's spatial
 # sample, applying different revisit designs). However we will currently take
 # advantage of their uniqueness to keep things as simple as possible. Checking
 # that foregoing statement is TRUE:
 scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  distinct(scheme, module_combo_code, panel_split) %>%
+  distinct(scheme, module_combo_code, panel_set) %>%
   {nrow(.) == nrow(distinct(., scheme))}
 
-# merging scheme:module_combo_code:panel_split:targetpanel, still distinguishing
+# merging scheme:module_combo_code:panel_set:targetpanel, still distinguishing
 # strata separately (even though they may share their location: this is unreal
 # in the case of multiple cell-centered strata). For now, not distinguishing
-# module_combo and panel_split as explained above.
+# module_combo and panel_set as explained above.
 stratum_schemetargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  select(-module_combo_code, -panel_split) %>%
+  select(-module_combo_code, -panel_set) %>%
   unite(scheme_targetpanel, scheme, targetpanel, sep = ":") %>%
   nest(scheme_targetpanels = scheme_targetpanel) %>%
   mutate(
@@ -213,7 +213,7 @@ stratum_schemetargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
   distinct(grts_address_final) %>%
   nrow() %>%
-  all.equal(global(units_cell_rast, "notNA") %>% as.integer())
+  all.equal(global(units_cell_rast, "notNA")[1, 1])
 
 # representing this limited number of cells as polygons: useful for plotting etc
 units_cell_polygon <-
@@ -260,10 +260,8 @@ schemetargetpanel_spsamples_terr <-
     stratum_scheme_targetpanels =
       str_flatten(stratum_scheme_targetpanels, collapse = " \u2588 ") %>%
       factor(),
-    # n_strata = n(),
     .by = grts_address_final
   ) %>%
-  # filter(n_strata > 1) %>%
   distinct(stratum_scheme_targetpanels, grts_address, grts_address_final) %>%
   inner_join(
     units_cell_polygon,
@@ -288,20 +286,28 @@ schemetargetpanel_spsamples_terr <-
 
 # The units that are eligible for local replacement of a specific cell-based
 # sampling unit are the other cells that belong to the same habitatmap polygon.
-# In case that this polygon is too large, i.e. exceeds 64 cells, OR if it has
-# too 'long' dimensions (evaluated from the bounding box of the polygon's cell
-# centers), then only the replacement cells are kept that belong to the same
-# 'level 3' GRTS address as the considered unit. The level 3 address is the GRTS
-# address of the enclosing large cell (256 * 256 quare meters; i.e. 64 level 0
-# units) of the coarser level3 GRTS raster.
+# In case that this polygon is too large, i.e. exceeds 64 cells, OR if it has at
+# least 32 cells in combination with too 'long' dimensions (evaluated from the
+# bounding box of the polygon's cell centers), then the replacement cells are
+# kept that belong to the same 'level 3' GRTS address as the considered unit (we
+# call this the anchor level 3 cell). The level 3 address is the GRTS address of
+# the enclosing large cell (256 * 256 quare meters; i.e. 64 level 0 units) of
+# the coarser level3 GRTS raster. These replacement cells are still supplemented
+# by those of the 'next' level 3 cell of the polygon if such one exists and if
+# the anchor level 3 cell has at most 16 cells, which is done to end up with a
+# reasonable amount of replacement cells, at the same time applying a decent
+# split of the polygon. With 'next level 3 cell' we mean the next level 3
+# address that is attached to the polygon, or the lowest one if the anchor level
+# 3 cell already had the highest address (since this is how lower level
+# addresses cyclically 'walk through' the higher level addresses).
 
 # Getting the replacement cells based on polygon. Beware that we must rely on
 # grts_address if grts_address_final is different, so we can just use
 # grts_address. In the case of the 'cell' join method, it is possible to get
-# multiple polygons attached to the same considered cell, provided that this
-# polygon has been labelled to contain the specific type. Further, some sampling
-# units concern previously assessed sites with the type, while this information
-# is not present in habitatmap_terr, hence also not in below used
+# multiple polygons attached to the same considered cell, provided that these
+# polygons have been labelled to contain the specific type. Further, some
+# sampling units concern previously assessed sites with the type, while this
+# information is not present in habitatmap_terr, hence also not in below used
 # hmt_pol_stratum_grts_cell_all_n2khab, so that the polygon_id is missing. In
 # these cases, for now, we will take all replacement cells according to the
 # level 3 cell (further down).
@@ -326,6 +332,58 @@ stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells <-
     relationship = "many-to-many",
     unmatched = "drop"
   ) %>%
+  select(-polygon_id) %>%
+  # we also determine the 'next GRTS address' per grts_address x stratum, which
+  # we will need to determine the 'next level 3 cell' per grts_address x
+  # stratum. This acts like 'within polygon', but for cell-joined types several
+  # adjacent polygons can be selected which we combine since we abstracted
+  # polygon_id away.
+  nest(addr_replac = grts_address_replac) %>%
+  mutate(
+    grts_address_next = map2_int(grts_address, addr_replac, function(grts, ar) {
+      if (all(is.na(ar$grts_address_replac))) {
+        return(NA_integer_)
+      }
+      grts_r <- sort(unique(ar$grts_address_replac))
+      grts_next_i <- which(grts_r == grts) + 1
+      # this gives back NA if grts_next_i is out of range, which is what we
+      # want:
+      grts_r[grts_next_i]
+    })
+  ) %>%
+  # GRTS addresses of the considered stratum that are member of the sample,
+  # either drawn or already in use as a replacement, are considered forbidden
+  # area to use as a replacement within the polygon for this stratum, since this
+  # would generate problems in the sample management. This step also drops the
+  # to-be-replaced address that is under consideration, which is no problem.
+  # Note that the following nesting step makes unique rows per stratum x
+  # set of replacement cells (~ mostly a single polygon).
+  nest(addr_sampled = c(
+    scheme_targetpanels,
+    grts_address,
+    grts_address_final,
+    last_type_assessment,
+    last_type_assessment_in_field,
+    last_inaccessible,
+    grts_address_next
+  )) %>%
+  # filter replacement addresses as described above and make them unique
+  mutate(
+    addr_replac = map2(addr_replac, addr_sampled, function(ar, as) {
+      ar %>%
+        filter(
+          !(grts_address_replac %in% as$grts_address),
+          !(grts_address_replac %in% as$grts_address_final)
+        ) %>%
+        distinct()
+    })
+  ) %>%
+  # unnest the list columns sequentially, and don't drop rows if no replacement
+  # cells are available: we want to keep all sampled locations in this data
+  # frame
+  unnest(addr_sampled) %>%
+  relocate(scheme_targetpanels) %>%
+  unnest(addr_replac, keep_empty = TRUE) %>%
   # get cell numbers of the replacement addresses (useful in visualization)
   left_join(
     grts_mh_index %>%
@@ -337,11 +395,17 @@ stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells <-
   # nesting polygon ids, cellnr & replacement addresses; the number of rows is
   # the same as before the first join above
   nest(polygon_replacement_cells = c(
-    polygon_id,
     cellnr_replac,
     grts_address_replac
   )) %>%
   relocate(polygon_replacement_cells, .after = grts_address_final)
+
+# distribution of the number of polygon replacement cells per sampling unit:
+stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells %>%
+  mutate(nrcells = map_int(polygon_replacement_cells, nrow)) %>%
+  pull(nrcells) %>%
+  summary()
+
 
 # reading the level0-resolution SpatRaster layer that holds the level 3
 # addresses, to prepare for potential restriction to level 3 cells
@@ -355,26 +419,53 @@ grts_mh_brick_lev3_index <- tibble(
 
 # In order to restrict to the level 3 cells, we generate the level 3 replacement
 # cells as a separate list column. Beware that we must rely on grts_address if
-# grts_address_final is different, so we can just use grts_address. Further, we
-# calculate a the diagonal length of the bounding box of polygon cell centers,
-# since this is also a criterion to decide about the level 3 restriction.
+# grts_address_final is different, so we can just use grts_address. First, we
+# set the several criteria to decide about the level 3 restriction.
 
-# Maximum allowed bboxdiag: if exceeded, we apply level 3 restriction.
-# Dimensions are based on those of a level 3 cell
-allowed_bboxdiag <- sqrt(2 * 256^2)
+# Maximum allowed bboxdiag: if exceeded and there are at least 32 replacement
+# cells in the polygon, we apply level 3 restriction. Dimensions are based on
+# those of a level 3 cell
+max_allowed_bboxdiag <- sqrt(2 * 256^2)
+min_nrcells_tosplit <- (2^3)^2 / 2
 # Maximum allowed number of cells in polygon; based on number of cells in a
 # level 3 cell. If exceeded, we apply level 3 restriction.
-allowed_nrcells <- (2^3)^2
+max_allowed_nrcells <- (2^3)^2
+# Maximum nr of replacement cells after first level 3 cell restriction, below
+# which it is decided to add the second level 3 cell if available
+max_insufficient_nrcells_level3 <- (2^3)^2 / 4
+
+# Resolving the eligible replacement cells (column replacement_cells) from
+# polygon replacement cells, level 3 replacement cells (from current + next
+# level3-cell) and the application of criteria that determine how to use these.
+# The tibbles in the replacement_cells column have a column 'ranknr' to show the
+# order in which a replacement cell can be elected: the first positive
+# evaluation for the considered stratum determines which cell must be used as
+# replacement.
 
 stratum_schemetargetpanel_spsamples_terr_replacementcells <-
   stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells %>%
   mutate(
+    # calculate diagonal length of bounding box of replacement cell centers
     bboxdiag = map_dbl(polygon_replacement_cells, \(df) {
       coo <- xyFromCell(grts_mh, df$cellnr_replac)
       xdiff <- max(coo[, "x"]) - min(coo[, "x"])
       ydiff <- max(coo[, "y"]) - min(coo[, "y"])
       sqrt(xdiff^2 + ydiff^2)
     }),
+    # calculate level3 address of current and next level0 address
+    level3_address = convert_level0_to_level3(
+      grts_address,
+      spatrast = grts_mh,
+      spatrast_index = grts_mh_index,
+      spatrast_lev3 = grts_mh_brick_lev3
+    ),
+    level3_address_next = convert_level0_to_level3(
+      grts_address_next,
+      spatrast = grts_mh,
+      spatrast_index = grts_mh_index,
+      spatrast_lev3 = grts_mh_brick_lev3
+    ),
+    # get level 3 replacement cells for current GRTS address
     level3_replacement_cells = get_level3replacement_cellnrs(
       grts_address,
       spatrast = grts_mh,
@@ -382,37 +473,81 @@ stratum_schemetargetpanel_spsamples_terr_replacementcells <-
       spatrast_lev3 = grts_mh_brick_lev3,
       spatrast_lev3_index = grts_mh_brick_lev3_index
     ),
+    # get level 3 replacement cells for next GRTS address
+    nextlevel3_replacement_cells = ifelse(
+      is.na(level3_address_next) | level3_address_next == level3_address,
+      list(NULL),
+      get_level3replacement_cellnrs(
+        grts_address_next,
+        spatrast = grts_mh,
+        spatrast_index = grts_mh_index,
+        spatrast_lev3 = grts_mh_brick_lev3,
+        spatrast_lev3_index = grts_mh_brick_lev3_index
+      )
+    ),
+    # determine final replacement cells
     replacement_cells = pmap(
       list(
         polygon_replacement_cells,
         bboxdiag,
-        level3_replacement_cells
+        level3_replacement_cells,
+        nextlevel3_replacement_cells
       ),
-      function(poladr, d, lev3adr) {
+      function(poladr, d, lev3adr, nextlev3adr) {
         poladr_unique <- unique(poladr$grts_address_replac)
-        result <-
-          if (length(poladr_unique) == 1 && is.na(poladr_unique)) {
-            # if polygon missing (but this needs a solution!), just return all
-            # cells from the level3-cell
-            lev3adr
-          } else if (
-            d <= allowed_bboxdiag & length(poladr_unique) <= allowed_nrcells
-          ) {
-            # if polygon not too large, just apply polygon-constrained replacement
-            poladr %>%
-              distinct(cellnr_replac, grts_address_replac)
-          } else {
-            # if polygon too large, apply 'polygon x level3-cell' constrained
-            # replacement
+        if (length(poladr_unique) == 1 && is.na(poladr_unique)) {
+          # if polygon missing (but this needs a solution!), just return all
+          # cells from the level3-cell
+          lev3adr %>%
+            mutate(ranknr = row_number(grts_address_replac))
+        } else if (
+          length(poladr_unique) > max_allowed_nrcells | (
+            d > max_allowed_bboxdiag &
+            length(poladr_unique) >= min_nrcells_tosplit
+          )
+        ) {
+          # if polygon too large, apply 'polygon x level3-cell' constrained
+          # replacement. If the result is quite small, add the next level3-cell
+          # if available, but keep its level0 ranks after the first one, since
+          # the idea is still to 'split' the polygon in the replacement
+          # procedure, only relaxing it if no replacement was possible in the
+          # first level3-cell. If no second level3-cell is available, this means
+          # that all polygon cells belong to the same level3-cell).
+          lev3_constrained <-
             lev3adr %>%
-              filter(grts_address_replac %in% poladr_unique)
+            filter(grts_address_replac %in% poladr_unique) %>%
+            mutate(ranknr = row_number(grts_address_replac))
+          if (
+            !is.null(nextlev3adr) &
+            nrow(lev3_constrained) <= max_insufficient_nrcells_level3
+          ) {
+            bind_rows(
+              lev3_constrained,
+              nextlev3adr %>%
+                filter(grts_address_replac %in% poladr_unique) %>%
+                mutate(
+                  ranknr =
+                    row_number(grts_address_replac) + nrow(lev3_constrained)
+                )
+            )
+          } else {
+            lev3_constrained
           }
-        result %>%
-          mutate(ranknr = row_number(grts_address_replac))
+        } else {
+          # if polygon not too large, just apply polygon-constrained replacement
+          poladr %>%
+            distinct(cellnr_replac, grts_address_replac) %>%
+            mutate(ranknr = row_number(grts_address_replac))
+        }
       }
     )
   ) %>%
-  select(-polygon_replacement_cells, -bboxdiag, -level3_replacement_cells) %>%
+  select(
+    -polygon_replacement_cells,
+    -bboxdiag,
+    -grts_address_next,
+    -contains("level3")
+  ) %>%
   relocate(replacement_cells, .after = grts_address_final)
 
 
@@ -436,11 +571,13 @@ plot_replacement_example <- function(
       max_nr_replacement_cells
     )) %>%
     slice_sample(n = 1) %>%
+    (\(df) {cat(as.character(df$stratum), df$grts_address); df}) %>%
     pluck("replacement_cells", 1) %>%
     pull(cellnr_replac) %>%
     {grts_mh[., drop = FALSE]} %>%
     plot()
 }
+plot_replacement_example(65, 80)
 plot_replacement_example(64, 64)
 plot_replacement_example(40, 45)
 plot_replacement_example(30, 35)
@@ -490,7 +627,52 @@ fag_fa <-
   mod_scheme_field_activity %>%
   semi_join(mod_scheme_yrs_moco_ps, join_by(module, scheme)) %>%
   distinct(field_activity_group, field_activity) %>%
-  arrange(field_activity_group, field_activity)
+  arrange(field_activity_group, field_activity) %>%
+  inner_join(
+    field_activities,
+    join_by(field_activity),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  )
+
+# Field activity sequences define the sequence of activities needed for some
+# objective (determining a variable). An activity sequence may be used by
+# different schemes, and a single scheme may combine more than one, since
+# multiple variables are determined by a single scheme.
+faseqs <-
+  mod_scheme_field_activity %>%
+  semi_join(mod_scheme_yrs_moco_ps, join_by(module, scheme)) %>%
+  distinct(activity_sequence, in_aquatic_subset, scheme) %>%
+  summarize(
+    schemes = str_flatten(scheme, collapse = ", "),
+    .by = c(activity_sequence, in_aquatic_subset)
+  )
+
+# faseqs_fag_fa shows the individual FAs and FAGs for each field activity
+# sequence
+faseqs_fag_fa <-
+  field_activity_sequences %>%
+  semi_join(faseqs, join_by(activity_sequence)) %>%
+  inner_join(
+    field_activities,
+    join_by(field_activity),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  )
+
+# Note that following has a more elaborate set of (partially non-field)
+# activities:
+actseqs_actgroups_acts <-
+  activity_sequences %>%
+  semi_join(faseqs, join_by(activity_sequence)) %>%
+  inner_join(
+    activities %>%
+      select(activity, activity_name),
+    join_by(activity),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  )
+
 
 fag_stratum_grts_calendar
 
@@ -512,7 +694,7 @@ fag_fa_stratum_grts_calendar <-
   select(-c(typelevel_certain:inaccessible))
 
 # Note that both calendar objects have a scheme_moco_ps column that makes clear
-# which scheme x module combo x panel split the FAG is serving. This may be a
+# which scheme x module combo x panel set the FAG is serving. This may be a
 # SUBSET of the same information at the level of the spatial sampling unit
 # without considering FAG occasions, since not all field activities necessarily
 # serve all schemes.
