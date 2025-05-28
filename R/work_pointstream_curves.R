@@ -3,7 +3,31 @@
 source(here::here("..", "R", "geometry_helpers.R"))
 
 
-# for reference: this is how to get a pointstream curve
+#' Example query of a stream curve (from segment points).
+#'
+#' This demonstrates one simple manner of retrieving a "curve"
+#' which represents a water stream by points put on segments
+#' of 100m length.
+#'
+#' @details a pointstream curve is defined as
+#' a data frame of points (`c(x, y)`),
+#' which are associated with a rank (stream direction).
+#' Typically we use the function
+#'   `n2khab::read_watercourse_100mseg(element = "points")`
+#' to query these segments. However, other data sources are possible
+#' if they fulfill these data structure requirements.
+#'
+#' @param vhag the identifier from "Vlaamse Hydrografische Atlas"
+#' @param segment_rank a continuous number do order points on the
+#'        stream (in upstream direction)
+#'
+#' @return a streampoint_curve (data frame with columns x, y, rank)
+#'
+#' @examples
+#' \dontrun{
+#'   stream <- get_pointstream_test_curve(vhag = 9574, segment_rank = 218821)
+#' }
+#'
 get_pointstream_test_curve <- function(vhag, segment_rank) {
 
   stream_points <- n2khab::read_watercourse_100mseg(element = "points")
@@ -13,7 +37,7 @@ get_pointstream_test_curve <- function(vhag, segment_rank) {
 
   # filter the points of interest
   target_stream_points <- stream_points %>%
-    filter(vhag_code == as.numeric(vhag))
+    dplyr::filter(vhag_code == as.numeric(vhag))
 
   # join them as a curve
   stream_curve <- as.data.frame(
@@ -23,28 +47,59 @@ get_pointstream_test_curve <- function(vhag, segment_rank) {
 
   # sort by "rank", i.e. point number
   stream_curve$rank <- stream_curve$rank - segment_rank
-  stream_curve <- stream_curve %>% arrange(rank)
+  stream_curve <- stream_curve %>% dplyr::arrange(rank)
 
   return(stream_curve)
 }
 
 
 
-# quick-plot a curve
+#' Plot a stream curve (from segment points)
+#'
+#' Plotting a stream curve, colored by rank.
+#' No magic at all. Just a tiny convenience function.
+#'
+#' @param stream_curve a stream curve (data frame of points)
+#'        with at least x, y and rank.
+#'
+#' @examples
+#' \dontrun{
+#'   stream <- get_pointstream_test_curve(vhag = 9574, segment_rank = 218821)
+#'   plot_pointstream_curve(stream)
+#' }
+#'
 plot_pointstream_curve <- function(stream_curve) {
 
   stopifnot("ggplot2" = require("ggplot2"))
   stream_curve %>%
-    ggplot(ggplot2::aes(x = x, y = y)) +
+    ggplot2::ggplot(ggplot2::aes(x = x, y = y)) +
       ggplot2::geom_path() +
       ggplot2::geom_point(aes(color = rank)) +
-      coord_fixed(ratio = 1)
+      ggplot2::coord_fixed(ratio = 1)
 }
 
 
 
-
-# the tangent at each segment point of the watercourse
+#' Calculate the tangents on a point stream curve.
+#'
+#' The tangent is here defined as the local first derivative
+#' of a spline fit through the points of the curve.
+#' This uses the `rank` as the "temporal" vector for spline prediction.
+#'
+#' @param stream_curve a stream curve (data frame of points)
+#'        with at least x, y and rank.
+#' @param normed normalize the tangent vectors to unit length
+#' @param append append the stream curve data frame, or return separately
+#' @param second whether to calculate the second derivative (inversion points)
+#'
+#' @return tangent vectors (df[x, y]), optionally appended to the stream curve
+#'
+#' @examples
+#' \dontrun{
+#'   stream <- get_pointstream_test_curve(vhag = 9574, segment_rank = 218821)
+#'   get_pointstream_tangent(stream, normed = TRUE, append = FALSE)
+#' }
+#'
 get_pointstream_tangent <- function(
     stream_curve,
     normed = FALSE,
@@ -55,6 +110,7 @@ get_pointstream_tangent <- function(
   # first derivative using splines
   # https://stackoverflow.com/a/61287125
   stopifnot("pspline" = require("pspline"))
+  stopifnot("terra" = require("terra"))
 
   t <- -stream_curve$rank # ! inverted: water flow directed downstream
   x <- stream_curve$x
@@ -64,14 +120,14 @@ get_pointstream_tangent <- function(
     stream_curve$tx <- c(diff(x), NA)
     stream_curve$ty <- c(diff(y), NA)
   } else {
-    stream_curve$tx <- predict(sm.spline(t, x), t, 1)
-    stream_curve$ty <- predict(sm.spline(t, y), t, 1)
+    stream_curve$tx <- terra::predict(pspline::sm.spline(t, x), t, 1)
+    stream_curve$ty <- terra::predict(pspline::sm.spline(t, y), t, 1)
   }
 
   # optionally append second derivative
   if (second) {
-    stream_curve$tx2 <- predict(sm.spline(t, x), t, 2)
-    stream_curve$ty2 <- predict(sm.spline(t, y), t, 2)
+    stream_curve$tx2 <- terra::predict(pspline::sm.spline(t, x), t, 2)
+    stream_curve$ty2 <- terra::predict(pspline::sm.spline(t, y), t, 2)
   }
 
   # optionally normalize
@@ -96,9 +152,30 @@ get_pointstream_tangent <- function(
 
 
 
-
-# calculate the normals, based on tangents
-# normals are defined as -π/2 rotation (ccw orthogonal) of the tangent
+#' Calculate the curve normals (based on tangents).
+#'
+#' By convention, normals are defined as -π/2 rotation (i.e. ccw orthogonal)
+#' of the tangent vector.
+#' This uses the `rank` as the "temporal" vector for spline prediction
+#' and tangent derivation, then rotating the tangent (counter-clockwise).
+#'
+#' @details If user choses to `append = TRUE`, tangents will also be appended.
+#'          Tangents will be re-calculated, even if they were already present
+#'          in the curve, and putatively overwritten.
+#'
+#' @param stream_curve a stream curve (data frame of points)
+#'        with at least x, y and rank.
+#' @param normed normalize the tangent vectors to unit length
+#' @param append append the stream curve data frame, or return separately
+#'
+#' @return normal vectors (df[x, y]), optionally appended to the stream curve
+#'
+#' @examples
+#' \dontrun{
+#'   stream <- get_pointstream_test_curve(vhag = 9574, segment_rank = 218821)
+#'   get_pointstream_normal(stream, normed = TRUE, append = FALSE)
+#' }
+#'
 get_pointstream_normal <- function(
     stream_curve,
     normed = FALSE,

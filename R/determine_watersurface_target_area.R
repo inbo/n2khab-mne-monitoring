@@ -1,7 +1,6 @@
 
 
-#' Determine target area for well placement
-#' around aquatic habitat types.
+#' Determine target area for well placement around watersurfaces.
 #'
 #' Provides a polygon area in a buffer band around the
 #' water surface of interest, in the upstream direction
@@ -16,7 +15,7 @@
 #'        which the target location should be found.
 #' @param buffer_arc_radians indicates the slice of a circle
 #'        to which the target buffer is restricted.
-#'        range [0, 2*pi]; set to 2*pi of is.na
+#'        range [0, 2*pi]; set to 2*pi if is.na
 #' @inheritParams calculate_polygon_flow_direction
 #'
 #' @return target area, as an sf object with POLYGON geometry

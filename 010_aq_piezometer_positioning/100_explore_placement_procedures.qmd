@@ -137,25 +137,25 @@ Download the sample data (unless it is already there).
 
 ```{r sample-data-download}
 # latest (20250506):
-#   target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+#   sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
 #   googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
 
 
 force_reload_sample <- FALSE
-target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
 
-if (force_reload_sample || !file.exists(target_sample_filepath)) {
-  download_poc_rdata_file(target_sample_filepath)
+if (force_reload_sample || !file.exists(sample_filepath)) {
+  download_poc_rdata_file(sample_filepath, overwrite = TRUE)
 }
 
 # deprecated: 
-#   target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+#   sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
 #   googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
-#   target_sample_filepath <- file.path("./data", "objects_panflpan5.RData")
+#   sample_filepath <- file.path("./data", "objects_panflpan5.RData")
 #   googledrive::as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
 
 
-env_extradata <- load_rdata_environment()
+env_extradata <- load_rdata_environment(sample_filepath)
 
 ```
 
@@ -824,7 +824,7 @@ Instead of a local grid of fixed size, we require calculation of the flow within
 
 
 ```{r polygon-flow-direction}
-# outsourced to "calculate_polygon_flow_direction.R"
+# outsourced to "calculate_watersurface_flow_direction.R"
 ```
 
 ```{r test-band-flow}
@@ -836,7 +836,7 @@ for (location_code in c(
     )) {
   test_polygon <- watersurfaces_polygons %>%
     filter(unit_id == location_code)
-  flow_vector <- calculate_polygon_flow_direction(
+  flow_vector <- calculate_watersurface_flow_direction(
     test_polygon,
     flow_range = 128+32, flow_cellsize = 32,
     close_island_size = 8,
@@ -935,7 +935,7 @@ wedge_range <- get_extent(st_bbox(water_buffer)) + buffer_range[2]
 test_coords <- sf::st_coordinates(test_location) %>% as_tibble %>% rename_with(tolower)
 
 pt0 <- t(as.matrix(c(0, 0)))
-upstream <- t(as.matrix(-calculate_polygon_flow_direction(water, 64, 8, 8)))
+upstream <- t(as.matrix(-calculate_watersurface_flow_direction(water, 64, 8, 8)))
 upstream_vec <- wedge_range * upstream / vector_norm(upstream)
 vector_norm(upstream_vec)
 
@@ -987,7 +987,7 @@ center_location <- st_centroid(test_polygon) %>% suppressWarnings()
 center_coords <- sf::st_coordinates(center_location) %>%
   as_tibble %>% rename_with(tolower)
 
-flow_dir <- calculate_polygon_flow_direction(
+flow_dir <- calculate_watersurface_flow_direction(
   test_polygon,
   flow_range = 128,
   flow_cellsize = 32,
@@ -1032,7 +1032,7 @@ calculate_aquatic_type_targets <- function(
     filter(polygon_id == location_code) %>% 
     sf::st_cast("POLYGON", warn = FALSE) 
     
-  flow_dir <- calculate_polygon_flow_direction(
+  flow_dir <- calculate_watersurface_flow_direction(
     water_polygon,
     flow_range = flow_range,
     flow_cellsize = flow_cellsize,
@@ -1183,7 +1183,6 @@ m1 + m2 + m3
 
 
 
-
 # TODOs
 
 - [X] where do [the spaces](https://github.com/inbo/inbospatial/issues/18) come from? -> from "inbospatial", hence the name
@@ -1191,30 +1190,34 @@ m1 + m2 + m3
 - target area | `sample_support_code` 
   - [X] for water surfaces
   - [X] streams
-  - [ ] springs
+  - [X] springs
 - [ ] streams: is it possible to get the stream *width* at a given segment?
+- [ ] basic function documentation
 - [ ] harden functions (dependencies, weird input, curvature unavailable)
-- [ ] flow direction: dependence on buffer area and cell grid size
+- [ ] flow direction: dependence on buffer area and cell grid size (brief exploration)
+- [ ] `inbospatial::get_coverage_wcs` may cripple or fail on large water surfaces.
 - [X] gather functions in package main:
   - `confirm_n2khab_data_consistency()`
   - `calculate_flow_direction(...)`
 - [ ] add unit tests for `c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")` locations (but hardcode xy)
-- `rank` in streams seems to be faulty? (see example zig-zag in higher ranks)
+- [X] `rank` in streams seems to be faulty? (see example zig-zag in higher ranks) -> *no. was just ggplot.*
 
 
-to be discussed:
+to ~~be discussed~~ keep in mind:
 
 - **water everywhere** 
-  - what if there is more water in the target area?
+  - what if there is more water in the target area? -> *ignored for now*
 - **non-aquatic aquatics**
   - There are some points which appear not to be wet 
   - e.g. `LIMGNK0062`
   - might have to do with GRTS raster ["partial volumes"]("https://en.wikipedia.org/wiki/Partial_volume_(imaging)").
   - or temporal change (vegetation, eutrophication, drying)
   - also: think of a U-shaped water
+  -> *solved with use of `wsh_pol` and pre-/postprocessing.* 
 - **does size matter?**
   - some vast water bodies (`LIMGNK0055`); will be challenging to get elevation gradient.
   - on the other hand, what is the minimum size? (springs!)
+  -> *check individually*
 - **go with the flow**
-  - does `rank` count upstream or downstream?
-  - how far to go away from a stream?
+  - does `rank` count upstream or downstream? -> *upstream*
+  - how far to go away from a stream? -> *flexible (args)*

@@ -1,19 +1,33 @@
 
-# close holes in a polygon
-# by succession of "expand" and "shrink"
-close_polygon <- function(pol, radius = 1){
-  return(
-    pol %>%
-      sf::st_buffer(radius) %>%
-      sf::st_buffer(-radius)
-  )
-}
-
-
-# calculate flow direction within a polygon
-calculate_polygon_flow_direction <- function(
+#' Calculate flow direction for a water surface
+#'
+#' Calculate the putative flow direction for a surface water body
+#' based on the elevation/slope in a given band/strip around it.
+#' All calculations will be performed in CRS 31370, hence the output
+#' flow vector will be in meters.
+#'
+#' @details this is the slope-averaged flow direction between
+#' cells in a coarse raster grid within a given radius around the location.
+#' Uses `terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)`.
+#' calculation will go one stripe of coarse grid cells into the water body,
+#' and up to the `flow_range` around it.
+#'
+#' @param water_polygon Water polygon of interest; an `sf` POLYGON object.
+#' @param flow_range the buffer extent (in meters) around the location,
+#'        which is used to query elevation and calculate flow.
+#'        Units are those of the coordinates.
+#' @param flow_cellsize the width of a cell in the resampled raster
+#'        across which elevation is averaged to calculate flow.
+#'        Units are those of the coordinates.
+#' @param save_plot_filepath if this is not NA, a summary map of the
+#'        flow calculation will be saved as "png" image to the given path.
+#'
+#' @return c(dx,dy) vector (in meters) of the average flow direction in a
+#'        circular area around the location.
+#'
+calculate_watersurface_flow_direction <- function(
     water_polygon,
-    flow_range = 128+32,
+    flow_range = 128,
     flow_cellsize = 32,
     close_island_size = NA,
     save_plot_filepath = NA
@@ -26,20 +40,21 @@ calculate_polygon_flow_direction <- function(
   source(here::here("..", "R", "geometry_helpers.R"))
   source(here::here("..", "R", "spatial_helpers.R"))
 
-
-  # plot(sub_raster, col = gray.colors(256))
+  # optionally close islands in the water polygon
   if (!is.na(close_island_size)) {
     water_polygon <- water_polygon %>%
       close_polygon(close_island_size)
   }
 
+  # calculate the buffer stripe around the target water
   band_buffer <- st_difference(
     sf::st_buffer(water_polygon, flow_range-flow_cellsize),
     sf::st_buffer(water_polygon, -flow_cellsize)
     ) %>% suppressWarnings()
   # mapview(band_buffer)
-  xtnt <- sf::st_bbox(band_buffer)
 
+  # query DHMV elevation for the extent of the buffer
+  xtnt <- sf::st_bbox(band_buffer)
   band_raster <- inbospatial::get_coverage_wcs(
     wcs = "dhmv",
     bbox = xtnt,
@@ -49,6 +64,7 @@ calculate_polygon_flow_direction <- function(
     resolution = 1
   )
 
+  # resample to a coarse grid
   coarse_grid <- terra::rast(
     nrows = (xtnt[["ymax"]] - xtnt[["ymin"]])/flow_cellsize,
     ncols = (xtnt[["xmax"]] - xtnt[["xmin"]])/flow_cellsize,
@@ -67,6 +83,7 @@ calculate_polygon_flow_direction <- function(
   )
   # plot(band_raster_coarse)
 
+  # calculate/convert slope and flow
   slope <- terra::terrain(band_raster_coarse, v = "slope")
   flow <- terra::terrain(band_raster_coarse, v = "flowdir", neighbors = 8)
 
@@ -84,13 +101,13 @@ calculate_polygon_flow_direction <- function(
   # mapview(flow_sf, zcol = "slope")
   # mapview(flow_sf, zcol = "flowdir")
 
-
   flow_df <- cbind(
       sf::st_drop_geometry(flow_sf),
       dplyr::as_tibble(sf::st_coordinates(flow_sf))
     ) %>%
     rename(c("x" = "X", "y" = "Y"))
 
+  # differentials
   fpx <- flow_df[["x"]]
   fpy <- flow_df[["y"]]
   fpz <- flow_df[["flowdir"]]
@@ -113,10 +130,11 @@ calculate_polygon_flow_direction <- function(
   #   )
 
   # print(paste0(nancumsum(dx, pv), ", ", nancumsum(dy, pv)))
-  #
+
+  # the flow vector
   flow_vector <- c(nancumsum(dx, fpv), nancumsum(dy, fpv))
 
-  ### optionally store a quiver plot on a map for vizualization
+  ## optionally store a quiver plot on a map for vizualization
   if (!is.na(save_plot_filepath)) {
 
     png(save_plot_filepath,
@@ -158,7 +176,7 @@ calculate_polygon_flow_direction <- function(
     )
 
     dev.off()
-  }
+  } # /plotting
 
   return(flow_vector)
 }

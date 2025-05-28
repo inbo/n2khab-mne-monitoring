@@ -1,6 +1,37 @@
 
 
-# determine the target area for a spring (7220) location
+#' Determine the target area for a spring (7220) location.
+#'
+#' Provides a polygon area in the vicinity of the
+#' spring (type 7220) habitat location of interest,
+#' in the opposite direction of putative groundwater flow (elevation model).
+#' The function is designed for springs, but should be rather
+#' generic: feel free to exapt.
+#'
+#' @param location an `sf` point-like object capturing the spring location.
+#' @param wedge_width_rad indicates the slice of a circle
+#'        to which the target buffer is restricted.
+#'        range [0, 2*pi]; set to 2*pi if `is.na`
+#' @param wedge_range_m two-element vector c(from, to) which
+#'        determines the distance range around the point in
+#'        which the target location should be found.
+#' @inheritParams calculate_flow_direction
+#'
+#' @return target area, as an sf object with POLYGON geometry
+#'
+#' @examples
+#' \dontrun{
+#'   location <- n2khab::read_habitatsprings(units_7220 = TRUE) %>%
+#'     filter(unit_id == 6)
+#'   target_area <- determine_spring_target_area(
+#'     location,
+#'     wedge_width_rad = pi/3,
+#'     wedge_range_m = c(4, 32),
+#'     flow_range = 64,
+#'     flow_cellsize = 8
+#'   )
+#' }
+#'
 determine_spring_target_area <- function(
     location,
     wedge_width_rad,

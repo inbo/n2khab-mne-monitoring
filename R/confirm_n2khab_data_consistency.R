@@ -1,8 +1,15 @@
 
-#' data source version persistence
+#' Confirm consistency of the n2khab_data versions.
 #'
-#' Manually check data source versions (something to be automated by n2khab
-#' package in the future, based on preset versions)
+#' Confirm that the local n2khab_data is at the state saved for this
+#' project, by matching data file checksums.
+#' Just run it.
+#'
+#' @details The checksums of working data versions (as of 20250501)
+#'    - watersurfaces_hab: version watersurfaces_hab_v6
+#'    - habitatstreams: version habitatstreams_2023
+#'    - habitatsprings: version habitatsprings_2020v2
+#'    - flanders: version "flanders_2018-05-16"
 #'
 confirm_n2khab_data_consistency <- function() {
 
@@ -10,11 +17,7 @@ confirm_n2khab_data_consistency <- function() {
   stopifnot("magrittr" = require("magrittr"))
   stopifnot("n2khab" = require("n2khab"))
 
-  # the checksums of working data versions (as of 20250501)
-  # - watersurfaces_hab: version watersurfaces_hab_v6
-  # - habitatstreams: version habitatstreams_2023
-  # - habitatsprings: version habitatsprings_2020v2
-  # - flanders: version "flanders_2018-05-16"
+  # see details above for data versions
   reference_checksum <- c(
     flanders.dbf = "d21a599325723682",
     flanders.prj = "2f10404ffd869596",
@@ -69,7 +72,10 @@ confirm_n2khab_data_consistency <- function() {
   }
 
   # check all files
-  check <- all(sapply(names(reference_checksum), FUN = check_identical_checksum))
+  check <- all(sapply(
+    names(reference_checksum),
+    FUN = check_identical_checksum
+  ))
 
   # confirm correctness of all n2khab data files
   if (check) message("All n2khab data files match the recorded state.")

@@ -1,4 +1,5 @@
 
+### CRS
 # assert crs 31370
 assert_31370 <- function(sf_obj){
   stopifnot(
@@ -8,12 +9,18 @@ assert_31370 <- function(sf_obj){
 }
 
 
-# bbox and extent
-get_x_extent <- function(box) abs(box[["xmax"]] - box[["xmin"]])
-get_y_extent <- function(box) abs(box[["ymax"]] - box[["ymin"]])
-get_extent <- function(box) sqrt(get_x_extent(box)^2+get_y_extent(box)^2)/2
+### bounding box and spatial extent
 
-# convert a bounding box to a polygon
+# get extent in x direction
+get_x_extent <- function(box) abs(box[["xmax"]] - box[["xmin"]])
+
+# get extent in y direction
+get_y_extent <- function(box) abs(box[["ymax"]] - box[["ymin"]])
+
+# get some extent proxy in both directions ()
+get_extent <- function(box) sqrt(get_x_extent(box)^2 + get_y_extent(box)^2) / 2
+
+# convert a bounding box to an sf::polygon
 bbox_to_polygon <- function(box) {
 
   polybox <- as.data.frame(rbind(
@@ -32,7 +39,7 @@ bbox_to_polygon <- function(box) {
   return(polybox)
 }
 
-
+### sf operations
 # get a point and a vector combined to an sf linestream
 create_sf_vector <- function(pt, vec, unit_id) {
   line <- as.data.frame(rbind(pt, pt + vec)) %>%
@@ -45,7 +52,39 @@ create_sf_vector <- function(pt, vec, unit_id) {
 }
 
 
+# close holes in a polygon
+# by succession of "expand" and "shrink"
+close_polygon <- function(pol, radius = 1){
+  return(
+    pol %>%
+      sf::st_buffer(radius) %>%
+      sf::st_buffer(-radius)
+  )
+}
+
+
+### procedural generalization
+
 # wedge carving
+#' Create a wedge (slice from a circle) based on a direction and range
+#'
+#' @details A wedge is a slice of a circle, defined by
+#' - a direction vector
+#' - and a wedge width (angular range or slice, in radians)
+#' - and a wedge range, i.e. the distance range from center to consider
+#'
+#' @param direction_vector (two-element vector) direction, seen from the center
+#' @param wedge_width_rad (two-element vector) angular range of the wedge,
+#'        range [0, 2*pi]; set to 2*pi if is.na
+#' @param wedge_range_max (decimal) radius of the wedge
+#'
+#' @return wedge point data frame; can be converted to `sf::st_as_sf(...)`
+#'
+#' @examples
+#' \dontrun{
+#'   plot(carve_wedge(c(1., 1.), pi/4, 16), asp = 1, type = "o")
+#' }
+#'
 carve_wedge <- function(direction_vector, wedge_width_rad, wedge_range_max) {
 
   source(here::here("..", "R", "geometry_helpers.R"))
@@ -53,6 +92,17 @@ carve_wedge <- function(direction_vector, wedge_width_rad, wedge_range_max) {
   pt0 <- t(as.matrix(c(0, 0)))
   radius <- t(as.matrix(direction_vector))
   arc_vec <- max(wedge_range_max) * radius / vector_norm(radius)
+
+  # ensure correct wedge width
+  wedge_width_rad <- wedge_width_rad %% (2 * pi)
+  if (
+    (!is.numeric(wedge_width_rad)) ||
+    (is.na(wedge_width_rad)) ||
+    (wedge_width_rad == 0)
+    ) {
+    wedge_width_rad <- 2 * pi
+  }
+
 
   wedge_steps <- seq(
     -wedge_width_rad / 2,

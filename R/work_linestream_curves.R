@@ -3,20 +3,61 @@
 source(here::here("..", "R", "geometry_helpers.R"))
 
 
-# for reference: this is how to get a linestream curve
-# extract a single stream from the 100m watercourse segments
-get_linestream_test_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
+#' Example query of a stream curve (from segment lines).
+#'
+#' This demonstrates one simple manner of retrieving a "curve"
+#' which represents a water stream by a series of line segments
+#' which are grouped in sets of 100m.
+#' resampling is possible (using spline interpolation) to get
+#' evenly spaced points along the stream lines.
+#' The whole stream will be returned, but the reference rank and
+#' sequence number set to zero.
+#'
+#' @details a linestream curve is defined as
+#' a data frame of points (`c(x, y)`),
+#' which are associated with a `$rank` (here: segment identifier)
+#' and a `$sequence` (stream direction).
+#' Typically we use the function
+#'   `n2khab::read_watercourse_100mseg(element = "lines")`
+#' to query these segments. However, other data sources are possible
+#' if they fulfill these data structure requirements.
+#'
+#' @param vhag_code the identifier from "Vlaamse Hydrografische Atlas"
+#' @param reference_rank a continuous number do order points on the
+#'        stream (in upstream direction)
+#' @param streamline_datasource option to provide the data source
+#'        (usually `n2khab::read_watercourse_100mseg(element = "lines")`
+#'        or a subset) to avoid repeated loading.
+#' @param resample_m optional resampling interval to get evenly spaced points.
+#'
+#' @return a streamline_curve (data frame with columns x, y, rank, sequence)
+#'
+#' @examples
+#' \dontrun{
+#'   stream <- get_linestream_curve(vhag_code = 9574, reference_rank = 218821)
+#' }
+#'
+get_linestream_curve <- function(
+    vhag_code,
+    reference_rank = 0,
+    streamline_datasource = NA,
+    resample_m = NA
+  ) {
 
-  stream_lines <- n2khab::read_watercourse_100mseg(element = "lines")
-  # vhag <- 9574
-  # segment_rank <- 218821
+  # vhag_code <- 9574
+  # reference_rank <- 218821
 
-  # message(vhag)
-  # message(segment_rank)
+  # if not provided, load the data source
+  if (all(is.na(streamline_datasource))) {
+    streamline_datasource <- n2khab::read_watercourse_100mseg(element = "lines")
+  }
+
+  # message(vhag_code)
+  # message(reference_rank)
 
   # filter the points of interest
-  target_stream_points <- stream_lines %>%
-    filter(vhag_code == as.numeric(vhag))
+  target_stream_points <- streamline_datasource %>%
+    filter(vhag_code == as.numeric(vhag_code))
 
   # resample the streams
   if (!is.na(resample_m)) {
@@ -56,9 +97,10 @@ get_linestream_test_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
   names(linestream_curve) <- c("rank", "lseq", "x", "y", "sequence")
 
   # sort by "rank", i.e. point number
-  linestream_curve$rank <- linestream_curve$rank - segment_rank
+  linestream_curve$rank <- linestream_curve$rank - reference_rank
   linestream_curve <- linestream_curve %>% dplyr::arrange(rank, sequence)
 
+  # set the reference rank to zero
   ref_rank <- linestream_curve %>%
     filter(rank == 0) %>%
     dplyr::slice(1) %>%
@@ -73,11 +115,32 @@ get_linestream_test_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
 
 
 
-# resample to get points in regular intervals along the line
+#' Resample line stream to get points in regular intervals along the line.
+#'
+#' @keywords internal
+#'
+#' used only in the context of loading a linestream
+#'
+#' @param linestream a stream curve (data frame of points)
+#'        with at least x, y, sequence, and rank.
+#' @param normed normalize the tangent vectors to unit length
+#' @param append append the stream curve data frame, or return separately
+#' @param second whether to calculate the second derivative (inversion points)
+#'
+#' @return tangent vectors (df[x, y]), optionally appended to the stream curve
+#'
+#' @examples
+#' \dontrun{
+#'   linestream <- get_pointstream_test_curve(vhag = 9574, segment_rank = 218821) %>%
+#'     sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+#'   resample_linestream(stream, normed = TRUE, append = FALSE)
+#' }
+#'
 resample_linestream <- function(linestream, resample_m = 1, crs = 31370) {
 
   stopifnot("pspline" = require("pspline"))
   stopifnot("sf" = require("sf"))
+  stopifnot("terra" = require("terra"))
 
   # linestream <- test
   original <- sf::st_coordinates(linestream)
@@ -107,8 +170,8 @@ resample_linestream <- function(linestream, resample_m = 1, crs = 31370) {
   s <- seq(0, max(t), length.out = 1 + round(max(cumsum(dt))) / resample_m)
 
   # spline resampling
-  spline_x <- predict(sm.spline(t, x), s, 0)
-  spline_y <- predict(sm.spline(t, y), s, 0)
+  spline_x <- terra::predict(sm.spline(t, x), s, 0)
+  spline_y <- terra::predict(sm.spline(t, y), s, 0)
 
   # plot(x, y, type = "o", col = "black")
   # lines(spline_x, spline_y, type = "o", col = "blue")
@@ -126,7 +189,26 @@ resample_linestream <- function(linestream, resample_m = 1, crs = 31370) {
 
 
 
-# the tangent at each segment point of the watercourse
+#' Calculate the tangents on a line stream curve.
+#'
+#' The tangent is here defined as the local first derivative
+#' of a spline fit through the lines of the curve.
+#' This uses the `rank` as the "temporal" vector for spline prediction.
+#'
+#' @param linestream_curve a stream curve (data frame of points)
+#'        with at least x, y, sequence, and rank.
+#' @param normed normalize the tangent vectors to unit length
+#' @param append append the stream curve data frame, or return separately
+#' @param second whether to calculate the second derivative (inversion points)
+#'
+#' @return tangent vectors (df[x, y]), optionally appended to the stream curve
+#'
+#' @examples
+#' \dontrun{
+#'   stream <- get_linestream_test_curve(vhag = 9574, segment_rank = 218821)
+#'   get_linestream_tangent(stream, normed = TRUE, append = FALSE)
+#' }
+#'
 get_linestream_tangent <- function(
     linestream_curve,
     normed = FALSE,
@@ -137,6 +219,8 @@ get_linestream_tangent <- function(
   # first derivative using splines
   # https://stackoverflow.com/a/61287125
   stopifnot("pspline" = require("pspline"))
+  stopifnot("terra" = require("terra"))
+
   t <- -linestream_curve$sequence # ! inverted: water flow directed downstream
   x <- linestream_curve$x
   y <- linestream_curve$y
@@ -145,16 +229,16 @@ get_linestream_tangent <- function(
     linestream_curve$tx <- c(diff(x), 0)
     linestream_curve$ty <- c(diff(y), 0)
   } else {
-    linestream_curve$tx <- predict(sm.spline(t, x), t, 1)
-    linestream_curve$ty <- predict(sm.spline(t, y), t, 1)
+    linestream_curve$tx <- terra::predict(sm.spline(t, x), t, 1)
+    linestream_curve$ty <- terra::predict(sm.spline(t, y), t, 1)
   }
   # plot(t, linestream_curve$tx)
   # plot(t, linestream_curve$ty)
 
   # optionally append second derivative
   if ((length(t) > 5) && second_derivative) {
-    linestream_curve$tx2 <- predict(sm.spline(t, x), t, 2)
-    linestream_curve$ty2 <- predict(sm.spline(t, y), t, 2)
+    linestream_curve$tx2 <- terra::predict(sm.spline(t, x), t, 2)
+    linestream_curve$ty2 <- terra::predict(sm.spline(t, y), t, 2)
   }
 
   # optionally normalize
@@ -396,6 +480,7 @@ get_all_linestream_measures <- function(
 
 #' Attempt to get the order/sequence of water stream points correct
 #' unused, since this was already the case in our data set
+#' @keywords internal
 correct_curvepoint_order <- function(curve, coordinate_columns = NA) {
 
   # iterate points (downstream)

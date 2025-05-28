@@ -88,19 +88,19 @@ Download the sample data (unless it is already there).
 
 ```{r sample-data-download}
 # latest (20250506):
-#   target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+#   sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
 #   googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
 
 
 force_reload_sample <- FALSE
-target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
 
-if (force_reload_sample || !file.exists(target_sample_filepath)) {
-  download_poc_rdata_file(target_sample_filepath)
+if (force_reload_sample || !file.exists(sample_filepath)) {
+  download_poc_rdata_file(sample_filepath, overwrite = TRUE)
 }
 
 # load the data into a new environment
-env_extradata <- load_rdata_environment()
+env_extradata <- load_rdata_environment(sample_filepath)
 ```
 
 (adjusted to read full POC `.RData`, [see here](https://github.com/inbo/n2khab-mne-design/blob/7a08ab9d36669d3a5b64d12b8bc35ff7c7a6a5d1/100_design_common/010_prototyping_sampling_and_revisit_design/helper_scripts/support_dcp_and_fieldwork.R))
@@ -681,71 +681,15 @@ We'll manually resample with splines (blue curve).
 
 ### retrieve lines
 
-
 ```{r linestream-curve}
 # vhag <- 9574
-
-# extract a single stream from the 100m watercourse segments
-get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
-
-  # stream_lines <- read_watercourse_100mseg(element = "lines")
-  # message(vhag)
-  # message(segment_rank)
-    
-  # filter the points of interest
-  target_stream_points <- stream_lines %>%
-    filter(vhag_code == as.numeric(vhag))
-
-  # resample the streams
-  if (!is.na(resample_m)) {
-    target_stream_points <- dplyr::bind_rows(lapply(
-      seq_len(nrow(target_stream_points)),
-      FUN = function(i) {resample_linestream(
-        target_stream_points[i,],
-        resample_m = 1
-        )}
-    ))
-  }
-
-  # there are duplicates:
-  # the last point of one segment matches the first point of the consecutive segment
-  rank <- target_stream_points$rank
-  coords <- data.frame(sf::st_coordinates(target_stream_points))
-  coords$exclude <- FALSE
-  # tail(head(coords, 32), 16)
-  for (i in seq_len(nrow(coords)-1)) {
-    this <- coords[i,]
-    conseq <- coords[i+1,]
-    coords[i, "exclude"] <- (this$X == conseq$X) &&
-      (this$Y == conseq$Y) &&
-      ((this$L1+1) == conseq$L1)
-  }
-  coords <- coords[!coords$exclude, c("X", "Y", "L1")]
-
-  coords$sequence <- seq_len(nrow(coords))
-
-  # join them as a curve
-  linestream_curve <- as.data.frame(
-      cbind(rank, seq_along(rank))
-    ) %>%
-    setNames(c("rank", "L1")) %>% 
-    left_join(coords, join_by(L1))
-  names(linestream_curve) <- c("rank", "lseq", "x", "y", "sequence")
-
-  # sort by "rank", i.e. point number
-  linestream_curve$rank <- linestream_curve$rank - segment_rank
-  linestream_curve <- linestream_curve %>% arrange(rank, sequence)
-
-  ref_rank <- linestream_curve %>%
-    filter(rank == 0) %>%
-    slice(1) %>%
-    pull(sequence)
-  if (length(ref_rank) > 0) {
-    linestream_curve$sequence <- linestream_curve$sequence - ref_rank 
-  }
-
-  return(linestream_curve)
-}
+test_curve <- get_linestream_curve(
+    vhag_code = 9574,
+    reference_rank = 218821,
+    streamline_datasource = stream_lines,
+    resample_m = 1
+  ) %>%
+  filter(rank > 20)
 
 ```
 
@@ -754,9 +698,6 @@ get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
 
 ```{r get-linecurve-testing}
 # test plot
-test_curve <- get_linestream_curve(vhag = 9574, segment_rank = 218821, resample_m = 1) %>%
-    filter(rank > 20)
-
 # WRONG!
 test_curve %>%
   ggplot(aes(x = x, y = y)) +
@@ -798,8 +739,14 @@ For the archives: my desperate and futile attempts to get the correct line point
 ```{r test-pointorder-correction}
 #| eval: false
 
-test_curve <- get_linestream_curve(vhag = 9574, segment_rank = 218821) %>%
-    filter(rank > 20, rank < 26)
+test_curve <- get_linestream_curve(
+    vhag_code = 9574,
+    reference_rank = 218821,
+    streamline_datasource = stream_lines,
+    resample_m = 1
+  ) %>%
+  filter(rank > 20, rank < 26)
+
 head(test_curve, 16)
 
 corrected_curve <- correct_curvepoint_order(test_curve) %>%
@@ -827,9 +774,10 @@ The good news is that my solution mathes the VHAG default in the test case.
 
 # linestream_curve <- test_curve
 test_curve <- get_linestream_curve(
-    vhag = 9574,
-    segment_rank = 218821,
-    resample_m = 10
+    vhag_code = 9574,
+    reference_rank = 218821,
+    streamline_datasource = stream_lines,
+    resample_m = 1
   ) %>% 
   filter(rank > 20)
 
@@ -890,9 +838,10 @@ plot_linestream_flowdirection(test_curve)
 ```{r linestream-all-curve-measures}
 
 test_curve <- get_linestream_curve(
-  vhag = 9574,
-  segment_rank = 218821,
-  resample_m = 1
+    vhag_code = 9574,
+    reference_rank = 218821,
+    streamline_datasource = stream_lines,
+    resample_m = 1
 )
 
 curve <- get_all_linestream_measures(
@@ -938,8 +887,9 @@ get_linestream_curve_properties <- function(unit_id, smooth_range = 5, resample_
   # extract the curve  
   # curve <- get_pointstream_curve(vhag = vhag, segment_rank = segment_rank)
   linestream_curve <- get_linestream_curve(
-      vhag = vhag,
-      segment_rank = segment_rank,
+      vhag_code = vhag,
+      reference_rank = segment_rank,
+      streamline_datasource = stream_lines,
       resample_m = resample_m
     ) %>%
     filter(rank >= -3, rank <= 2)
@@ -993,9 +943,9 @@ kableprint(stream_data)
 
 # get_linestream_curve_properties("8501_224807")
 # get_linestream_curve_properties("8576_98821")
-# head(get_linestream_curve(8501, segment_rank = 224807))
-# head(get_linestream_curve(8576, segment_rank = 98821))
-# head(get_linestream_curve(vhag = 9574, segment_rank = 218821))
+# head(get_linestream_curve(8501, reference_rank = 224807, streamline_datasource = stream_lines))
+# head(get_linestream_curve(8576, reference_rank = 98821, streamline_datasource = stream_lines))
+# head(get_linestream_curve(vhag_code = 9574, reference_rank = 218821, streamline_datasource = stream_lines))
 # 
 ```
 
@@ -1099,7 +1049,11 @@ get_linestream_target_area <- function(unit_id, offset_m = 2, side_m = 24) {
   # unit_id <- sprintf("9574_218%03.0f", idx)
 
   # get stream info
-  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 5, resample_m = 10)
+  point_info <- get_linestream_curve_properties(
+    unit_id, 
+    smooth_range = 5, 
+    resample_m = 10
+    )
 
   # reference vectors
   segment_point <- point_info[c("x", "y")]
@@ -1180,7 +1134,11 @@ for (i in seq(771, 852, 5)) {
 
   # flow and curvature
   scale <- 64
-  point_info <- get_linestream_curve_properties(unit_id, smooth_range = 5, resample_m = 10)
+  point_info <- get_linestream_curve_properties(
+    unit_id,
+    smooth_range = 5,
+    resample_m = 10
+    )
   segment_point <- point_info[c("x", "y")]
 
   # normal, in the direction of curvature
@@ -1210,9 +1168,14 @@ for (i in seq(771, 852, 5)) {
 }
 
 test_curve <- sf::st_as_sf(
-  get_linestream_curve(vhag = 9574, segment_rank = 218821, resample_m = 25),
-  coords = c("x", "y"),
-  crs = 31370
+  get_linestream_curve(
+    vhag_code = 9574,
+    reference_rank = 218821,
+    streamline_datasource = stream_lines,
+    resample_m = 25
+    ),
+    coords = c("x", "y"),
+    crs = 31370
   ) %>%
   filter(rank >= -52, rank < 36) %>% 
   mutate(selected = ((rank - 770) %% 5) == 0)

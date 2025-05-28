@@ -36,12 +36,11 @@ source(here::here("..", "R", "geometry_helpers.R"))
 source(here::here("..", "R", "spatial_helpers.R"))
 
 # POC and sampling frames
-source(here::here("..", "R", "download_poc_rdata_file.R"))
-source(here::here("..", "R", "load_rdata_environment.R"))
+source(here::here("..", "R", "manage_poc_rdata_file.R"))
 
 # spatial operations
 source(here::here("..", "R", "calculate_flow_direction.R"))
-source(here::here("..", "R", "calculate_polygon_flow_direction.R"))
+source(here::here("..", "R", "calculate_watersurface_flow_direction.R"))
 
 # watersurfaces
 source(here::here("..", "R", "determine_watersurface_target_area.R"))
