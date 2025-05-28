@@ -45,14 +45,17 @@ determine_watersurface_target_area <- function(
     ...
   ) {
 
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("sf" = require("sf"))
+
   source(here::here("..", "R", "geometry_helpers.R"))
   source(here::here("..", "R", "spatial_helpers.R"))
+  source(here::here("..", "R", "calculate_polygon_flow_direction.R"))
 
   # ensure meaningful buffer range
   if (any(is.na(buffer_range))) {
     buffer_range <- c(5, 20)
   } else {
-    # buffer_range <- abs(buffer_range)
     buffer_range <- c(min(buffer_range), max(buffer_range))
   }
 
@@ -88,11 +91,16 @@ determine_watersurface_target_area <- function(
       sf::st_drop_geometry(original_location),
       dplyr::as_tibble(sf::st_coordinates(original_location)) %>%
         dplyr::rename(c("x" = "X", "y" = "Y"))
-    ), coords = c("x", "y"), crs = 31370)
+    ),
+    coords = c("x", "y"),
+    crs = 31370
+  )
 
   # get flow direction
   # upstream <- t(as.matrix(-calculate_flow_direction(original_location)))
-  upstream <- t(as.matrix(-calculate_polygon_flow_direction(water_polygon, ...)))
+  upstream <- t(as.matrix(
+    -calculate_polygon_flow_direction(water_polygon, ...)
+  ))
 
   # standardized vector length
   upstream_vec <- wedge_range * upstream / vector_norm(upstream)
@@ -101,9 +109,9 @@ determine_watersurface_target_area <- function(
   for (rot_rad in seq(
       -buffer_arc_radians/2,
       buffer_arc_radians/2,
-      length.out = as.integer(round(buffer_arc_radians*180/pi))
+      length.out = as.integer(round(rad2deg(buffer_arc_radians)))
     )) {
-    pt <- rotate_vec(upstream_vec, rot_rad)
+    pt <- rotate_vec_2d(upstream_vec, rot_rad)
     arc_points <- rbind(arc_points, pt)
   }
 
@@ -121,7 +129,9 @@ determine_watersurface_target_area <- function(
   # the target are is the intersect of the arc and the buffer
   target_area <- arc %>% sf::st_intersection(water_buffer)
 
+  # optional visualization
   if (view_map) {
+    stopifnot("mapview" = require("mapview"))
     m1 <- mapview::mapview(water_polygon, map.types = "OpenStreetMap", col.regions = "lightblue")
     m2 <- mapview::mapview(water_buffer, map.types = "OpenStreetMap", col.regions = "darkblue")
     m3 <- mapview::mapview(arc, map.types = "OpenStreetMap", col.regions = "orange")

@@ -34,21 +34,27 @@
 #'
 calculate_flow_direction <- function(
     location,
-    flow_range = 256, flow_cellsize = 32,
-
+    flow_range = 256,
+    flow_cellsize = 32,
     save_plot_filepath = NA) {
 
   # location_raw <- location # currently not necessary to store the data in raw CRS
 
-  # all calculations will be performed in CRS 31370 # TODO assert
-  # location <- sf::st_transform(location, 31370)
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("magrittr" = require("magrittr"))
+  stopifnot("inbospatial" = require("inbospatial"))
+  stopifnot("terra" = require("terra"))
+
+  source(here::here("..", "R", "geometry_helpers.R"))
+  source(here::here("..", "R", "spatial_helpers.R"))
+  # all calculations will be performed in CRS 31370
   assert_31370(location)
 
   # only the coordinates are relevant ("xy", but could be "lon/lat")
   xy <- as.data.frame(
       sf::st_coordinates(location)
     ) %>%
-    rename_with(tolower)
+    dplyr::rename_with(tolower)
 
   ### Query DHMV
   # (elevation model of Flanders)
@@ -73,7 +79,7 @@ calculate_flow_direction <- function(
 
   ### Resample
   # to get a coarse grid
-  n_grid <- as.integer(flow_range/flow_cellsize)
+  n_grid <- as.integer(flow_range / flow_cellsize)
 
   # resample within the buffer range
   coarse_grid <- terra::rast(
@@ -82,9 +88,10 @@ calculate_flow_direction <- function(
     xmax = max(xy[1]) + flow_range,
     ymin = min(xy[2]) - flow_range,
     ymax = max(xy[2]) + flow_range
-    )
+  )
   terra::crs(coarse_grid) <- "EPSG:31370"
-  coarse_raster <- terra::resample(location_raster, coarse_grid,
+  coarse_raster <- terra::resample(
+    location_raster, coarse_grid,
     method = "lanczos" # method = "bilinear"
   )
 
@@ -94,18 +101,18 @@ calculate_flow_direction <- function(
   flow <- terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)
 
   flow_df <- terra::as.data.frame(flow, xy = TRUE) %>%
-    left_join(
+    dplyr::left_join(
       terra::as.data.frame(slope, xy = TRUE),
-      join_by(x, y)
+      dplyr::join_by(x, y)
     ) %>%
-    filter(!is.na(slope))
+    dplyr::filter(!is.na(slope))
 
   flow_sf <- sf::st_as_sf(flow_df, coords = c("x", "y"), crs = 31370)
 
 
   flow_df <- cbind(
       sf::st_drop_geometry(flow_sf),
-      as_tibble(sf::st_coordinates(flow_sf))
+      dplyr::as_tibble(sf::st_coordinates(flow_sf))
     ) %>%
     rename(c("x" = "X", "y" = "Y"))
 

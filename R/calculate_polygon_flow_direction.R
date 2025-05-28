@@ -1,4 +1,6 @@
 
+# close holes in a polygon
+# by succession of "expand" and "shrink"
 close_polygon <- function(pol, radius = 1){
   return(
     pol %>%
@@ -7,13 +9,23 @@ close_polygon <- function(pol, radius = 1){
   )
 }
 
+
+# calculate flow direction within a polygon
 calculate_polygon_flow_direction <- function(
     water_polygon,
-    flow_range = 128+32, flow_cellsize = 32,
+    flow_range = 128+32,
+    flow_cellsize = 32,
     close_island_size = NA,
-    save_plot_filepath = NA) {
+    save_plot_filepath = NA
+  ) {
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("sf" = require("sf"))
+  stopifnot("inbospatial" = require("inbospatial"))
 
   source(here::here("..", "R", "geometry_helpers.R"))
+  source(here::here("..", "R", "spatial_helpers.R"))
+
 
   # plot(sub_raster, col = gray.colors(256))
   if (!is.na(close_island_size)) {
@@ -45,8 +57,9 @@ calculate_polygon_flow_direction <- function(
     ymin = xtnt[["ymin"]],
     ymax = xtnt[["ymax"]],
     )
-  crs(coarse_grid) <- "EPSG:31370"
-  band_raster_coarse <- resample(
+
+  terra::crs(coarse_grid) <- "EPSG:31370"
+  band_raster_coarse <- terra::resample(
     band_raster,
     coarse_grid,
     method = "lanczos"
@@ -74,7 +87,7 @@ calculate_polygon_flow_direction <- function(
 
   flow_df <- cbind(
       sf::st_drop_geometry(flow_sf),
-      as_tibble(sf::st_coordinates(flow_sf))
+      dplyr::as_tibble(sf::st_coordinates(flow_sf))
     ) %>%
     rename(c("x" = "X", "y" = "Y"))
 

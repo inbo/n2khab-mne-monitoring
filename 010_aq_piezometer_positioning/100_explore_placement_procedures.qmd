@@ -141,33 +141,7 @@ kableprint(wsh_pol) # polygon id of the watersurface polygons of interest
 
 
 
-### Springs
-Generating `habspring_units_aquatic` (unit ID defined by `unit_id`)
-
-```{r load-springs}
-
-# creating a buffered version of Flanders
-flanders_buffer <-
-  read_admin_areas(dsn = "flanders") %>%
-  st_buffer(40) # units: meter
-
-# read in the spring habitat source
-habspring_units_aquatic <-
-  # following function will be adapted to support the latest version of the data
-  # source (just released); for now use version habitatsprings_2020v2
-  read_habitatsprings(units_7220 = TRUE) %>%
-  # filtering for the spatial intersect with Flanders
-  .[flanders_buffer, ] %>%
-  # and excluding "mire" type
-  filter(system_type != "mire")
-
-# all spring locations (note: full data, not just ID)
-kableprint(habspring_units_aquatic)
-```
-
-
 ## load the sample
-
 
 ### google authentification
 
@@ -987,8 +961,8 @@ upstream <- t(as.matrix(-calculate_polygon_flow_direction(water, 64, 8, 8)))
 upstream_vec <- wedge_range * upstream / vector_norm(upstream)
 vector_norm(upstream_vec)
 
-pt1 <- rotate_vec(upstream_vec, wedge_width/2)
-pt2 <- rotate_vec(upstream_vec, -wedge_width/2)
+pt1 <- rotate_vec_2d(upstream_vec, wedge_width/2)
+pt2 <- rotate_vec_2d(upstream_vec, -wedge_width/2)
 
 triangle <- as.data.frame(rbind(pt0, pt1, pt2)) %>%
   setNames(c("x", "y")) %>% 
@@ -1234,7 +1208,7 @@ m1 + m2 + m3
 
 # TODOs
 
-- [X] where do the spaces come from? -> from "inbospatial", hence the name
+- [X] where do [the spaces](https://github.com/inbo/inbospatial/issues/18) come from? -> from "inbospatial", hence the name
 - [X] flow direction for a point
 - target area | `sample_support_code` 
   - [X] for water surfaces

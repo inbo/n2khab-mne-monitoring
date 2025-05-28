@@ -31,13 +31,18 @@ vector_norm <- function(vec) sqrt(sum(vectorize(vec)^2))
 # normalize a vector
 normalize_vector <- function(vec) vectorize(vec) / vector_norm(vectorize(vec))
 
+# good old scalar product for vectors
+dotproduct <- function (vec1, vec2) sum(vectorize(vec1) * vectorize(vec2))
+# project_onto <- function(vec1, vec2) vec1 %*% vec2
+
+
 # aggregate points in an arc around the center to cover all the belt
 rotate_vec_2d <- function(vec, theta) vectorize(vec) %*% matrix(c(
    cos(theta), sin(theta),
   -sin(theta), cos(theta)
   ), ncol =2)
 rotate_2d_90ccw <- function(vec) rotate_vec_2d(vec, -pi/2)
-# rotate_vec(c(0.1, 0.9), 3*pi/4)
+# rotate_vec_2d(c(0.1, 0.9), 3*pi/4)
 #
 # # archive:
 # rotate_90_ccw <- matrix(c(
@@ -46,8 +51,8 @@ rotate_2d_90ccw <- function(vec) rotate_vec_2d(vec, -pi/2)
 #   ), ncol =2)
 # FUN = function(t) as.data.frame(tangents[[t]] %*% rotate_90_ccw)
 
-dotproduct <- function (vec1, vec2) sum(vectorize(vec1) * vectorize(vec2))
-# project_onto <- function(vec1, vec2) vec1 %*% vec2
+# triv.
+rad2deg <- function(angle_rad) angle_rad * 180 / pi
 
 # cross-calculation
 cross_difference <- function(vec) outer(X = vec, Y = vec, FUN = function(X, Y) Y - X )
