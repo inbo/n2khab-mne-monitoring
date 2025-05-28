@@ -198,7 +198,11 @@ grts_mh_index <- tibble(
 units_cell_cellcenter <-
   stratum_schemetargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
-  add_point_coords_grts(spatrast = grts_mh, spatrast_index = grts_mh_index)
+  add_point_coords_grts(
+    grts_var = "grts_address_final",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
 
 # sampling units as raster cells:
 units_cell_rast <-
