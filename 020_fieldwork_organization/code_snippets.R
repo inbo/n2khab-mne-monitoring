@@ -233,7 +233,7 @@ units_cell_polygon <-
 # adding the sampling unit attributes to these polygons, arranged as in
 # stratum_targetpanel_spsamples. Note that this duplicates cells with multiple
 # strata!
-units_cell_polygon_attribs <-
+units_cell_polygon_stratum_attribs <-
   units_cell_polygon %>%
   inner_join(
     stratum_schemetargetpanel_spsamples %>%
@@ -266,10 +266,12 @@ schemetargetpanel_spsamples_terr <-
       factor(),
     .by = grts_address_final
   ) %>%
-  distinct(stratum_scheme_targetpanels, grts_address, grts_address_final) %>%
+  distinct(stratum_scheme_targetpanels, grts_address, grts_address_final)
+
+units_cell_polygon_attrib <-
+  units_cell_polygon %>%
   inner_join(
-    units_cell_polygon,
-    .,
+    schemetargetpanel_spsamples_terr,
     join_by(grts_address_final),
     relationship = "one-to-many",
     unmatched = "error"
