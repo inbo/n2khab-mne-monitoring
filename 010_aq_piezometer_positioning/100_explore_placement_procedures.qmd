@@ -1192,7 +1192,8 @@ m1 + m2 + m3
   - [X] streams
   - [X] springs
 - [ ] streams: is it possible to get the stream *width* at a given segment?
-- [ ] basic function documentation
+- [ ] extensive function documentation
+  - continue: `work_linestream...` extra functions
 - [ ] harden functions (dependencies, weird input, curvature unavailable)
 - [ ] flow direction: dependence on buffer area and cell grid size (brief exploration)
 - [ ] `inbospatial::get_coverage_wcs` may cripple or fail on large water surfaces.

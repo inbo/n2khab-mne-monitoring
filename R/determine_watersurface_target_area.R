@@ -16,7 +16,7 @@
 #' @param buffer_arc_radians indicates the slice of a circle
 #'        to which the target buffer is restricted.
 #'        range [0, 2*pi]; set to 2*pi if is.na
-#' @inheritParams calculate_polygon_flow_direction
+#' @inheritParams calculate_watersurface_flow_direction
 #'
 #' @return target area, as an sf object with POLYGON geometry
 #'
@@ -49,7 +49,7 @@ determine_watersurface_target_area <- function(
 
   source(here::here("..", "R", "geometry_helpers.R"))
   source(here::here("..", "R", "spatial_helpers.R"))
-  source(here::here("..", "R", "calculate_polygon_flow_direction.R"))
+  source(here::here("..", "R", "calculate_watersurface_flow_direction.R"))
 
   # ensure meaningful buffer range
   if (any(is.na(buffer_range))) {
@@ -98,7 +98,7 @@ determine_watersurface_target_area <- function(
   # get flow direction
   # upstream <- t(as.matrix(-calculate_flow_direction(original_location)))
   upstream <- t(as.matrix(
-    -calculate_polygon_flow_direction(water_polygon, ...)
+    -calculate_watersurface_flow_direction(water_polygon, ...)
   ))
 
   # standardized vector length
