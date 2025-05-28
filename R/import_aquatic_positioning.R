@@ -19,3 +19,7 @@ source(here::here("..", "R", "load_rdata_environment.R"))
 source(here::here("..", "R", "calculate_flow_direction.R"))
 source(here::here("..", "R", "calculate_polygon_flow_direction.R"))
 source(here::here("..", "R", "determine_watersurface_target_area.R"))
+
+# streams
+source(here::here("..", "R", "work_pointstream_curves.R"))
+source(here::here("..", "R", "work_linestream_curves.R"))

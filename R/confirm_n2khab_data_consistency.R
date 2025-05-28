@@ -8,6 +8,7 @@ confirm_n2khab_data_consistency <- function() {
 
   # required for the pipe operator
   stopifnot("magrittr" = require("magrittr"))
+  stopifnot("n2khab" = require("n2khab"))
 
   # the checksums of working data versions (as of 20250501)
   # - watersurfaces_hab: version watersurfaces_hab_v6

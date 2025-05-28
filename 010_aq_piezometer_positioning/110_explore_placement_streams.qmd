@@ -34,19 +34,13 @@ library("n2khabmon")   |> void() # monitoring schemes for natura2000 habitats
 
 # print sample from sf objects
 kableprint <- function(df, show_rows = 5) {
-  knitr::kable(df[sample(1:nrow(df), show_rows), ])
+  knitr::kable(df[sample(seq_len(nrow(df)), show_rows), ])
 }
 
 mapviewOptions(fgb = FALSE) # https://stackoverflow.com/a/65485896
 
+source(here::here("..", "R", "import_aquatic_positioning.R"))
 
-# assert crs 31370
-assert_31370 <- function(sf_obj){
-  stopifnot(
-    "crs 31370" = format(sf::st_crs(sf_obj)) == "BD72 / Belgian Lambert 72"
-  )
-  return(sf_obj)
-}
 ```
 
 
@@ -57,86 +51,7 @@ assert_31370 <- function(sf_obj){
 ### data consistence
 
 ```{r datasource-consistency}
-#' data source version persistence
-#'
-#' Manually check data source versions (something to be automated by n2khab
-#' package in the future, based on preset versions)
-#'
-confirm_n2khab_data_consistency <- function() {
-
-  # required for the pipe operator 
-  stopifnot("magrittr" = require("magrittr"))
-
-  # the checksums of working data versions (as of 20250501)
-  # - watersurfaces_hab: version watersurfaces_hab_v6
-  # - habitatstreams: version habitatstreams_2023
-  # - habitatsprings: version habitatsprings_2020v2
-  # - flanders: version "flanders_2018-05-16"
-  reference_checksum <- c(
-    flanders.dbf = "d21a599325723682",
-    flanders.prj = "2f10404ffd869596",
-    flanders.shp = "72fff53084b356be",
-    flanders.shx = "1880e141bbcdc6ca",
-    habitatsprings.geojson = "7268c26f52fcefe4",
-    habitatstreams.dbf = "dee7a620e3bcae0a",
-    habitatstreams.lyr = "a120f92d80c92a3a",
-    habitatstreams.prj = "7e64ff1751a50937",
-    habitatstreams.shp = "5a7d7cddcc52c5df",
-    habitatstreams.shx = "b2087e6affe744f4",
-    habitatstreams.sld = "2f192b84b4df99e9",
-    watersurfaces_hab.gpkg = "e2920c4932008387"
-  )
-    
-  # for comparison: checksums of current files on disk
-  status_checksum <- file.path(
-      n2khab::locate_n2khab_data(),
-      c(
-        "20_processed/watersurfaces_hab",
-        "10_raw/habitatsprings",
-        "10_raw/habitatstreams",
-        "10_raw/flanders"
-      )
-    ) %>%
-    list.files(full.names = TRUE) %>%
-    n2khab::xxh64sum()
-    
-  # per filename, check whether checksums match
-  check_identical_checksum <- function (filename) {
-
-    # the check
-    file_check <- identical(
-        reference_checksum[filename],
-        status_checksum[filename]
-      )
-
-    # more verbose error upon mismatch
-    if (!file_check) {
-      message(paste0(
-        "ERROR: file `",
-        filename,
-        "` changed on disk.",
-        collapse = "") )
-      }
-
-    # stop or return TRUE
-    return(is.null(
-      stopifnot(file_check)
-    ))
-    
-  }
-
-  # check all files
-  check <- all(sapply(names(reference_checksum), FUN = check_identical_checksum))
-
-  # confirm correctness of all n2khab data files
-  if (check) message("All n2khab data files match the recorded state.")
-  
-} # /confirm_n2khab_data_consistency
-
-
-# apply the function
 confirm_n2khab_data_consistency()
-
 ```
 
 
@@ -184,23 +99,6 @@ kableprint(segm_3260) # unique identifier for line segments
 Currently, the latest version of the sample is distributed via an `.RData` file on the google drive.
 
 ```{r google-auth}
-# Setup for googledrive authentication. Set the appropriate env vars in
-# .Renviron and make sure you ran drive_auth() interactively with these settings
-# for the first run (or to renew an expired Oauth token).
-# See ?gargle::gargle_options for more information.
-google_drive_init <- function() {
-  if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
-    options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
-  }
-  if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
-    options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
-  }
-}
-
-# tipps for paranoid linux terminal users (non-interactive R):
-# - point your oauth cache to a tomb https://dyne.org/tomb
-# - do not forget to open the tomb prior to starting the R session
-
 google_drive_init()
 ```
 
@@ -220,42 +118,11 @@ force_reload_sample <- FALSE
 target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
 
 if (force_reload_sample || !file.exists(target_sample_filepath)) {
-  googledrive::drive_download(
-    googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
-    path = target_sample_filepath,
-    overwrite = TRUE
-  )
+  download_poc_rdata_file(target_sample_filepath)
 }
-
-# deprecated: 
-#   target_sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
-#   googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
-#   target_sample_filepath <- file.path("./data", "objects_panflpan5.RData")
-#   googledrive::as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
-
 
 # load the data into a new environment
-env_extradata <- new.env()
-load(target_sample_filepath, envir = env_extradata)
-ls(envir = env_extradata)
-
-for (var in c(
-  "units_non_cell_n2khab_grts",
-  "stratum_units_non_cell_n2khab",
-  "scheme_moco_ps_stratum_sppost_spsamples_spares_sf"
-  )) {
-  tryCatch(
-  {stopifnot(exists(var, envir = env_extradata))},
-  error = function(wrnmsg) {
-    message(paste0(
-      "The variable ", var,
-      " does not exist in environment `env_extradata`.",
-      collapse = "")
-    )
-  }
-  )
-}
-
+env_extradata <- load_rdata_environment()
 ```
 
 (adjusted to read full POC `.RData`, [see here](https://github.com/inbo/n2khab-mne-design/blob/7a08ab9d36669d3a5b64d12b8bc35ff7c7a6a5d1/100_design_common/010_prototyping_sampling_and_revisit_design/helper_scripts/support_dcp_and_fieldwork.R))
@@ -339,225 +206,7 @@ we de-duplicated units with the same GRTS address by selecting the 1st.
 :::
 
 
-# Generalization I: Flow Direction
-
-- get flow direction
-- based on DHMV
-- within given radius 
-- ... and given grid size
-
-
-```{r flow-gradient-general-function}
-# TODO this function is maintained in anothe notebook
-
-#' Calculate flow direction
-#'
-#' Calculate the putative flow direction at a given point
-#' based on the elevation/slope in the buffer area around it.
-#' All calculations will be performed in CRS 31370, hence the output
-#' flow vector will be in meters.
-#' 
-#' @details this is the slope-averaged flow direction between
-#' cells in a coarse raster grid within a given radius around the location
-#' (but excluding the outer rim of cells, where no slope is queried).
-#' It uses `terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)`.
-#'
-#' @param location the point (or polygon) of interest;
-#'        an `sf` object of which the `sf::st_coordinates` are used.
-#' @param flow_range the buffer extent (in meters) around the location, 
-#'        which is used to query elevation and calculate flow.
-#'        Units are those of the coordinates.
-#' @param flow_cellsize the width of a cell in the resampled raster
-#'        across which elevation is averaged to calculate flow.
-#'        Units are those of the coordinates.
-#' @param save_plot_filepath if this is not NA, a summary map of the
-#'        flow calculation will be saved as "png" image to the given path.
-#' 
-#' @return c(dx,dy) vector (in meters) of the average flow direction in a
-#'        circular area around the location.
-#'
-#' @examples
-#' \dontrun{
-#'   location <- sf::st_sfc(sf::st_point(c(225598, 182350), dim = "XY"))
-#'   sf::st_crs(location) <- 31370
-#'   calculate_flow_direction(location, flow_range = 1024, flow_cellsize = 32)
-#' }
-#'
-calculate_flow_direction <- function(
-    location,
-    flow_range = 256, flow_cellsize = 32,
-    save_plot_filepath = NA) {
-
-  # location_raw <- location # currently not necessary to store the data in raw CRS
-
-  # all calculations will be performed in CRS 31370 # TODO assert
-  # location <- sf::st_transform(location, 31370)
-  assert_31370(location) 
-
-  # only the coordinates are relevant ("xy", but could be "lon/lat")
-  xy <- as.data.frame(
-      sf::st_coordinates(location)
-    ) %>%
-    rename_with(tolower)
-  
-  ### Query DHMV
-  # (elevation model of Flanders)
-  # within a buffer area
-  bbox <- sf::st_bbox(
-     c(xmin = min(xy[1]) - flow_range,
-       xmax = max(xy[1]) + flow_range,
-       ymin = min(xy[2]) - flow_range,
-       ymax = max(xy[2]) + flow_range
-       ),
-     crs = sf::st_crs(31370)
-  )
-
-  location_raster <- inbospatial::get_coverage_wcs(
-    wcs = "dhmv",
-    bbox = bbox,
-    layername = "DHMVII_DTM_1m",
-    version = "2.0.1",
-    wcs_crs = "EPSG:31370",
-    resolution = 1
-  ) 
-  
-  ### Resample
-  # to get a coarse grid
-  n_grid <- as.integer(flow_range/flow_cellsize)
-  
-  # resample within the buffer range
-  coarse_grid <- terra::rast(
-    nrows = n_grid, ncols = n_grid,
-    xmin = min(xy[1]) - flow_range,
-    xmax = max(xy[1]) + flow_range,
-    ymin = min(xy[2]) - flow_range,
-    ymax = max(xy[2]) + flow_range
-    )
-  terra::crs(coarse_grid) <- "EPSG:31370"
-  coarse_raster <- terra::resample(location_raster, coarse_grid,
-    method = "lanczos" # method = "bilinear"
-  )
-  
-  ### calculations
-  # slope and flow, using terra::terrain
-  slope <- terra::terrain(coarse_raster, v = "slope")
-  flow <- terra::terrain(coarse_raster, v = "flowdir", neighbors = 8)
-  
-  flow_df <- terra::as.data.frame(flow, xy = TRUE) %>%
-    left_join(
-      terra::as.data.frame(slope, xy = TRUE),
-      join_by(x, y)
-    ) %>%
-    filter(!is.na(slope))
-  
-  flow_sf <- sf::st_as_sf(flow_df, coords = c("x", "y"), crs = 31370)
-  
-  
-  flow_df <- cbind(
-      sf::st_drop_geometry(flow_sf),
-      as_tibble(sf::st_coordinates(flow_sf))
-    ) %>%
-    rename(c("x" = "X", "y" = "Y"))
-  
-  fpx <- flow_df[["x"]]
-  fpy <- flow_df[["y"]]
-  fpz <- flow_df[["flowdir"]]
-  fpv <- flow_df[["slope"]]
-  
-  # convert direction to angles...
-  direction <- 2*pi/8 * log2(fpz)
-  direction[!is.finite(direction)] <- NA 
-  
-  # ... convert direction angles to "dx", "dy"
-  dx <- +1*cos(direction)
-  dy <- -1*sin(direction)
-  
-  # helper functions:
-  # remove nan
-  nonnan <- function(vec) vec[!is.na(vec)]
-  # mean, excluding NAs
-  nanmean <- function(vec) mean(nonnan(vec))
-
-  # Euclidean length of the vector
-  euclid <- function(x, y) sqrt(x^2 + y^2)
-
-  # filter coordinates within radius
-  within_radius <- function(x, y, r = 128) {
-    dist <- euclid(
-      nonnan(x) - nanmean(x),
-      nonnan(y) - nanmean(y)
-    )
-    return(dist < r)
-  }
-      
-  # calculate the average flow, but weighted and filtered
-  average_flow <- function (vec, weight, selection) {
-  
-    # simplify input data types
-    vec <- as.matrix(vec)
-    weight <- as.matrix(weight)
-    selection <- as.matrix(selection)
-  
-    # disregard NA's
-    nans <- is.na(vec) | is.na(weight) | is.na(selection)
-    vec <- vec[!nans]
-    weight <- weight[!nans]
-    selection <- selection[!nans]
-  
-    # return the weighted average of the vector
-    return(sum(vec[selection] * weight[selection]) / sum(weight[selection]))
-  }
-  
-  ### compute average flow of coarse cells within radius
-  # exclude the outer rows of cells (where no slope is queried)
-  sel <- within_radius(fpx, fpy, r = flow_range - flow_cellsize) 
-  flow_vector <- c(average_flow(dx, fpv, sel), average_flow(dy, fpv, sel))
-
-  ### optionally store a quiver plot on a map for vizualization
-  if (!is.na(save_plot_filepath)) {
-
-    png(save_plot_filepath,
-      width = 120,
-      height = 120,
-      units = "mm",
-      res = 300
-    )
-
-    # raster background
-    plot(location_raster)
-
-    # flow per cell
-    pracma::quiver(
-      x = fpx[sel],
-      y = fpy[sel],
-      u = dx[sel],
-      v = dy[sel],
-      scale = 8,
-      col = "gray"
-      )
-
-    # average flow
-    pracma::quiver(
-      x = xy[[1]],
-      y = xy[[2]],
-      u = flow_cellsize * flow_vector[[1]],
-      v = flow_cellsize * flow_vector[[2]],
-      scale = 3,
-      col = "darkorange"
-    )
-
-    dev.off()
-  }
-    
-  return(flow_vector)
-
-} # /calculate_flow_direction
-```
-
-
-
-
-# Application to Streams and Springs
+# Positioning Locations on Streams
 
 We have other types of water bodies.
 
@@ -741,7 +390,7 @@ get_pointstream_curve <- function(vhag, segment_rank) {
 
   # stream_points <- read_watercourse_100mseg(element = "points")
 
-    
+
   # filter the points of interest
   target_stream_points <- stream_points %>%
     filter(vhag_code == as.numeric(vhag))
@@ -749,7 +398,7 @@ get_pointstream_curve <- function(vhag, segment_rank) {
   # join them as a curve
   stream_curve <- as.data.frame(
     cbind(target_stream_points$rank, sf::st_coordinates(target_stream_points))
-  )  
+  )
   names(stream_curve) <- c("rank", "x", "y")
 
   # sort by "rank", i.e. point number
@@ -759,21 +408,9 @@ get_pointstream_curve <- function(vhag, segment_rank) {
   return(stream_curve)
 }
 
-# quick-plot a curve
-plot_stream_curve <- function(stream_curve) {
-
-  stopifnot("ggplot2" = require("ggplot2"))
-  stream_curve %>%
-    ggplot(ggplot2::aes(x = x, y = y)) +
-      ggplot2::geom_path() +
-      ggplot2::geom_point(aes(color = rank)) +
-      coord_fixed(ratio = 1)
-}
-
-
 # test plot
 test_curve <- get_pointstream_curve(vhag = 9574, segment_rank = 218821)
-plot_stream_curve(test_curve)
+plot_pointstream_curve(test_curve)
 
 ```
 
@@ -781,119 +418,25 @@ plot_stream_curve(test_curve)
 
 ```{r stream-tangents}
 
-# the tangent at each segment point of the watercourse
-get_stream_tangent <- function(
-    stream_curve,
-    normed = FALSE,
-    append = FALSE,
-    second = FALSE
-    ) {
-  
-  # first derivative using splines
-  # https://stackoverflow.com/a/61287125
-  stopifnot("pspline" = require("pspline"))
-  t <- -stream_curve$rank # ! inverted: water flow directed downstream
-  x <- stream_curve$x
-  y <- stream_curve$y
-
-  if (length(t) < 3) {
-    stream_curve$tx <- c(diff(x), NA)
-    stream_curve$ty <- c(diff(y), NA)
-  } else {
-    stream_curve$tx <- predict(sm.spline(t, x), t, 1)
-    stream_curve$ty <- predict(sm.spline(t, y), t, 1)
-  }
-
-  # optionally append second derivative
-  if (second) {
-    stream_curve$tx2 <- predict(sm.spline(t, x), t, 2)
-    stream_curve$ty2 <- predict(sm.spline(t, y), t, 2)
-  }
-
-  # optionally normalize 
-  tangent_norm <- function(x, y) sqrt((x**2) + (y**2))
-  stream_curve$nt <- tangent_norm(stream_curve$tx, stream_curve$ty)
-
-  if (normed) {
-    stream_curve$tx <- stream_curve$tx / stream_curve$nt
-    stream_curve$ty <- stream_curve$ty / stream_curve$nt
-
-    if (second) {
-      n2 <- tangent_norm(stream_curve$tx2, stream_curve$ty2)
-      stream_curve$tx2 <- stream_curve$tx2 / n2
-      stream_curve$ty2 <- stream_curve$ty2 / n2
-    }
-  }
-    
-  # return appended or directly ("inplace = False")
-  if (append) return(stream_curve)
-  if (second) return(stream_curve[, c("rank", "tx2", "ty2")])
-  return(stream_curve[, c("rank", "tx", "ty")])
-}
-
-
-get_stream_tangent(
+second_derivative <- get_pointstream_tangent(
   test_curve,
   normed = FALSE,
   append = FALSE,
   second = TRUE
 )
 
+kableprint(second_derivative)
+
 ```
 
 
 ```{r stream-normal}
-
-# calculate the normals, based on tangents
-# normals are defined as -π/2 rotation (ccw orthogonal) of the tangent
-get_normal <- function(
-    stream_curve,
+kableprint(
+  get_pointstream_normal(
+    test_curve,
     normed = FALSE,
     append = FALSE
-    ) {
-
-  # ensure that the tangent is calculated
-  stream_curve <- get_stream_tangent(
-    stream_curve,
-    normed = normed,
-    append = TRUE,
-    second = FALSE
   )
-    
-  # ... and extract the tangent
-  tx <- stream_curve$tx
-  ty <- stream_curve$ty
-
-  # list of vectors for lapply
-  tangents <- lapply(1:length(tx), FUN = function(t) c(tx[t], ty[t]))  
-
-  # conventional rotation -> normal
-  rotate_90_ccw <- matrix(c(
-     cos(-pi/2), sin(-pi/2),
-    -sin(-pi/2), cos(-pi/2)
-    ), ncol =2)
-  normals <- bind_rows(lapply(
-    1:length(tx),
-    FUN = function(t) as.data.frame(tangents[[t]] %*% rotate_90_ccw)
-  ))
-  names(normals) <- c("nx", "ny")
-
-  # head(cbind(stream_curve, normals)) # cbind creates duplicate cols
-  if (append) {
-    # stream_curve <- stream_curve %>% select(-nx, -ny)
-    stream_curve$nx <- normals$nx
-    stream_curve$ny <- normals$ny
-    return(stream_curve)
-  }
-
-  return(normals)
-}
-
-
-get_normal(
-  test_curve,
-  normed = FALSE,
-  append = FALSE
 )
 
 
@@ -911,7 +454,7 @@ get_curvature_direction <- function(stream_curve, direction = TRUE, smooth_range
   stopifnot("geometry" = require("geometry"))
 
   # certainly calculate tangents
-  stream_curve <- get_normal(
+  stream_curve <- get_pointstream_normal(
     stream_curve,
     normed = TRUE,
     append = TRUE
@@ -922,8 +465,7 @@ get_curvature_direction <- function(stream_curve, direction = TRUE, smooth_range
   dy <- diff(stream_curve$y)
 
   # normalize differentials
-  d2_norm <- function(x, y) sqrt((x**2) + (y**2))
-  l <- d2_norm(dx, dy)
+  l <- Euclid(dx, dy)
   dx <- dx / l
   dy <- dy / l
 
@@ -932,23 +474,18 @@ get_curvature_direction <- function(stream_curve, direction = TRUE, smooth_range
   dy[is.na(dy)] <- 0
 
   # tangents and normals
-  tx <- stream_curve$tx[1:length(dx)]
-  ty <- stream_curve$ty[1:length(dy)]
-  nx <- stream_curve$nx[1:length(dx)]
-  ny <- stream_curve$ny[1:length(dy)]
+  tx <- stream_curve$tx[seq_along(dx)]
+  ty <- stream_curve$ty[seq_along(dy)]
+  nx <- stream_curve$nx[seq_along(dx)]
+  ny <- stream_curve$ny[seq_along(dy)]
 
   # connection vector between tangent and difference vector
   ux <- dx - tx
   uy <- dy - ty
 
   # scalar of the connection vector onto the normal
-  vectorize <- function(vec) sapply(1:length(vec), FUN = function(i) vec[[i]])
-  vectornorm <- function(vec) sqrt(sum(sapply(1:length(vec), FUN = function(v) vec[v]^2)))
-  # vectornorm(c(0, 1, 1, 2))
-  normed_vector <- function(vec) vectorize(vec) / vectornorm(vectorize(vec))
-  dotproduct <- function (vec1, vec2) return(sum(vectorize(vec1) * vectorize(vec2)))
   curvatures <- c(sapply(
-    1:length(l),
+    seq_along(l),
     FUN = function(t) dotproduct(c(ux[t], uy[t]), c(nx[t], ny[t]))
   ), NA)
   curvatures[is.na(curvatures)] <- 0
@@ -1002,7 +539,7 @@ get_all_curve_measures <- function(
   stream_curve$dy[is.na(stream_curve$dy)] <- 0
 
   # tangent
-  stream_curve <- get_stream_tangent(
+  stream_curve <- get_pointstream_tangent(
     stream_curve,
     normed = normed,
     append = TRUE,
@@ -1010,7 +547,7 @@ get_all_curve_measures <- function(
   )
   
   # normal
-  stream_curve <- get_normal(
+  stream_curve <- get_pointstream_normal(
     stream_curve,
     normed = normed,
     append = TRUE
@@ -1046,7 +583,7 @@ knitr::kable(head(test_curve))
 
 ```{r plot-stream-direction-flow}
 
-plot_stream_flowdirection <- function(
+plot_pointstream_flowdirection <- function(
     stream_curve,
     scale = 64
   ) {
@@ -1081,7 +618,7 @@ plot_stream_flowdirection <- function(
   )
 }
 
-plot_stream_flowdirection(test_curve)
+plot_pointstream_flowdirection(test_curve)
 
 ```
 
@@ -1159,62 +696,10 @@ lines(resampled, type = "o", col = "red")
 
 ```
 
+
 We'll manually resample with splines (blue curve).
+(As implemented in auxiliary R files.)
 
-
-
-```{r resample-linestream}
-
-resample_linestream <- function(linestream, resample_m = 1) {
-
-  stopifnot("pspline" = require("pspline"))
-
-  # linestream <- test
-  original <- sf::st_coordinates(linestream)
-  if (nrow(original) < 6) {
-    # fallback: resample with `sf`; points on straight lines
-    resampled <- sf::st_cast(
-      sf::st_line_sample(linestream, density = 1/resample_m),
-      "LINESTRING"
-    )
-    resampled <- sf::st_as_sf(cbind(
-      sf::st_drop_geometry(linestream),
-      resampled
-    ))
-    sf::st_crs(resampled) <- 31370
-    return(resampled)
-  }
-    
-  x <- original[,1]
-  y <- original[,2]
-  
-  # the phase along the line
-  adx <- abs(diff(x))
-  ady <- abs(diff(y))
-  dt <- sqrt(adx^2 + ady^2)
-  t <- c(0, cumsum(dt))
-  t <- t / max(t)
-  s <- seq(0, max(t), length.out = 1+round(max(cumsum(dt)))/resample_m)
-  
-  # spline resampling
-  spline_x <- predict(sm.spline(t, x), s, 0)
-  spline_y <- predict(sm.spline(t, y), s, 0)
-
-  # plot(x, y, type = "o", col = "black")
-  # lines(spline_x, spline_y, type = "o", col = "blue")
-  
-  # object type restoration
-  resampled <- sf::st_linestring(cbind(spline_x, spline_y))
-  resampled <- sf::st_as_sf(cbind(
-    sf::st_drop_geometry(linestream),
-    sf::st_sfc(resampled)
-  ))
-  sf::st_crs(resampled) <- 31370
-
-  return(resampled)
-}
-
-```
 
 ### retrieve lines
 
@@ -1235,8 +720,8 @@ get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
 
   # resample the streams
   if (!is.na(resample_m)) {
-    target_stream_points <- bind_rows(lapply(
-      1:nrow(target_stream_points),
+    target_stream_points <- dplyr::bind_rows(lapply(
+      seq_len(nrow(target_stream_points)),
       FUN = function(i) {resample_linestream(
         target_stream_points[i,],
         resample_m = 1
@@ -1244,11 +729,13 @@ get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
     ))
   }
 
+  # there are duplicates:
+  # the last point of one segment matches the first point of the consecutive segment
   rank <- target_stream_points$rank
   coords <- data.frame(sf::st_coordinates(target_stream_points))
   coords$exclude <- FALSE
   # tail(head(coords, 32), 16)
-  for (i in 1:(nrow(coords)-1)) {
+  for (i in seq_len(nrow(coords)-1)) {
     this <- coords[i,]
     conseq <- coords[i+1,]
     coords[i, "exclude"] <- (this$X == conseq$X) &&
@@ -1257,19 +744,15 @@ get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
   }
   coords <- coords[!coords$exclude, c("X", "Y", "L1")]
 
-  coords$sequence <- 1:nrow(coords)
+  coords$sequence <- seq_len(nrow(coords))
 
   # join them as a curve
   linestream_curve <- as.data.frame(
-      cbind(rank, 1:length(rank))
+      cbind(rank, seq_along(rank))
     ) %>%
     setNames(c("rank", "L1")) %>% 
     left_join(coords, join_by(L1))
   names(linestream_curve) <- c("rank", "lseq", "x", "y", "sequence")
-
-  # there are duplicates:
-  # the last point of one segment matches the first point of the consecutive segment
-  
 
   # sort by "rank", i.e. point number
   linestream_curve$rank <- linestream_curve$rank - segment_rank
@@ -1289,6 +772,7 @@ get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
 ```
 
 
+### Plotting Issues
 
 ```{r get-linecurve-testing}
 # test plot
@@ -1332,130 +816,10 @@ The problem was in ggplot (use `geom_path()` instead of `geom_line()`).
 
 For the archives: my desperate and futile attempts to get the correct line point order on gg-plotting.
 
-```{r correct-rank-series}
-
-# curve <- test_curve
-
-#' Get the order/sequence of water stream points correct
-#' unused, since this was already the case in our data set
-correct_curvepoint_order <- function(curve, coordinate_columns = NA) {
-
-  # iterate points (downstream)
-  # cross-distance of downstream points
-  # p = calculate mean diffvector of previous n points
-  # n = normal <- rotate normed(p) by π/2
-  # d = diffvector to next points
-  # l = length projection to normal
-  # minimize Euclid(c(l, d))
-
-  # (alternative strategy: rotate xy all the time to direction)
-
-  # curve <- data.frame(x = c(0, 1., 2.5, 1.8), y = c(0.0, 1., 2.0, 1.5))
-  # curve <- test_curve
-
-  if (any(is.na(coordinate_columns))) {
-    coordinate_columns <- c("x", "y")
-  }
-
-  # use only coordinates
-  xy <- as.matrix(curve[coordinate_columns])
-  xy <- data.frame(sweep(xy, 2, xy[1,]))
-
-  # predefine new and old running index 
-  xy$idx <- NA
-  xy$run <- 1:nrow(xy)
-    
-  # helper functions
-  Euclid <- function (x, y) sqrt(x^2 + y^2)
-  vectornorm <- function(vec) sqrt(sum(sapply(1:length(vec), FUN = function(v) vec[v]^2)))
-  # vectornorm(c(0, 1, 1, 2))
-  normed_vector <- function(vec) vec / vectornorm(vec)
-  # normed_vector(c(0, 1, 1, 2))
-  # vectornorm(normed_vector(c(0, 1, 1, 2)))
-    
-  cross_difference <- function(vec) outer(X = vec, Y = vec, FUN = function(X, Y) Y - X )
-  cross_distance <- function(x, y) Euclid(cross_difference(x), cross_difference(y)) 
-
-  project_onto <- function(vec1, vec2) vec1 %*% vec2
-
-  rotate_90_ccw <- matrix(c(
-     cos(-pi/2), sin(-pi/2),
-    -sin(-pi/2), cos(-pi/2)
-    ), ncol =2)
-
-
-  # cross distances (preallocated)
-  cdists <- cross_distance(
-    curve[[coordinate_columns[1]]],
-    curve[[coordinate_columns[2]]]
-  )
-    
-  # the first two points are set; they give the direction.
-  xy[1, "idx"] <- 1
-  xy[2, "idx"] <- 2
-
-  # iteratively get the order of points,
-  # based on previous direction vector and distance.
-  for (i in 3:(nrow(xy))) {
-    # i <- 3
-    # i <- 4
-    # we sit on point `i-1`, and want to find the best consecutive for `i`
-
-    # these are the points determined previously
-    set_points <- xy[!is.na(xy$idx), ]
-
-    one_back <- set_points[set_points$idx == i-1, coordinate_columns]
-    two_back <- set_points[set_points$idx == i-2, coordinate_columns]
-
-    # their difference gives us a direction
-    step_vector <- as.matrix(one_back - two_back)
-
-      
-    # these are the remaining points to be determined,
-    # and their distances to current position
-    next_points <- xy[is.na(xy$idx), ]
-    next_dists <- cdists[xy$run == i-1, is.na(xy$idx)]
-
-
-    if (vectornorm(step_vector) == 0){
-      # sometimes, there are point duplicates, so we get no direction.
-      projections <- rep(0, length(next_dists))
-    } else {
-      # the normal is orthogonal to the diff direction
-      step_normal <- normed_vector(as.matrix(step_vector) %*% rotate_90_ccw)
-
-      # we project all putative steps to the normal;
-      # the longer the projection, the more we would turn
-      putative_steps <- sweep(
-          as.matrix(next_points[,coordinate_columns]), 2, as.matrix(one_back))
-      projections <- t(abs(as.matrix(putative_steps) %*% t(step_normal)))
-    }
-
-    # projections <- rep(0, length(next_dists))
-
-    # this is our OPTIMIZATION measure (to be minimized):
-    # the Euclidean norm of the distance and projection
-    projection_weight <- 1.0 # we could disfavor turns even more
-    value <- Euclid(next_dists, projection_weight*projections)
-    # value <- next_dists + 1*projections
-
-    # find the best candidate
-    candidate <- next_points[which.min(value),"run"]
-    xy[candidate, "idx"] <- i
-      
-  }
-
-  curve$streampoint_order <- xy[, "idx"]
-    
-  return(curve)
-
-} # /correct_curvepoint_order
-
-
-```
-
 
 ```{r test-pointorder-correction}
+#| eval: false
+
 test_curve <- get_linestream_curve(vhag = 9574, segment_rank = 218821) %>%
     filter(rank > 20, rank < 26)
 head(test_curve, 16)
@@ -1477,297 +841,6 @@ test_curve %>%
 
 The good news is that my solution mathes the VHAG default in the test case.
 
-
-### linestream functions
-
-```{r linestream-tangent}
-# the tangent at each segment point of the watercourse
-get_linestream_tangent <- function(
-    linestream_curve,
-    normed = FALSE,
-    append = FALSE,
-    second_derivative = FALSE
-    ) {
-  
-  # first derivative using splines
-  # https://stackoverflow.com/a/61287125
-  stopifnot("pspline" = require("pspline"))
-  t <- -linestream_curve$sequence # ! inverted: water flow directed downstream
-  x <- linestream_curve$x
-  y <- linestream_curve$y
-
-  if (length(t) <= 5) {
-    linestream_curve$tx <- c(diff(x), 0)
-    linestream_curve$ty <- c(diff(y), 0)
-  } else {
-    linestream_curve$tx <- predict(sm.spline(t, x), t, 1)
-    linestream_curve$ty <- predict(sm.spline(t, y), t, 1)
-  }
-  # plot(t, linestream_curve$tx)
-  # plot(t, linestream_curve$ty)
-
-  # optionally append second derivative
-  if ((length(t) > 5) && second_derivative) {
-    linestream_curve$tx2 <- predict(sm.spline(t, x), t, 2)
-    linestream_curve$ty2 <- predict(sm.spline(t, y), t, 2)
-  }
-
-  # optionally normalize 
-  tangent_norm <- function(x, y) sqrt((x**2) + (y**2))
-  linestream_curve$nt <- tangent_norm(linestream_curve$tx, linestream_curve$ty)
-
-  if (normed) {
-    linestream_curve$tx <- linestream_curve$tx / linestream_curve$nt
-    linestream_curve$ty <- linestream_curve$ty / linestream_curve$nt
-
-    if (second_derivative) {
-      n2 <- tangent_norm(linestream_curve$tx2, linestream_curve$ty2)
-      linestream_curve$tx2 <- linestream_curve$tx2 / n2
-      linestream_curve$ty2 <- linestream_curve$ty2 / n2
-    }
-  }
-    
-  # return appended or directly ("inplace = False")
-  if (append) return(linestream_curve)
-  if (second_derivative) return(linestream_curve[, c("rank", "tx2", "ty2")])
-  return(linestream_curve[, c("rank", "tx", "ty")])
-}
-
-```
-
-
-```{r linestream-normal}
-
-# calculate the normals, based on tangents
-# normals are defined as -π/2 rotation (ccw orthogonal) of the tangent
-get_linestream_normal <- function(
-    linestream_curve,
-    normed = FALSE,
-    append = FALSE
-    ) {
-
-  # ensure that the tangent is calculated
-  linestream_curve <- get_linestream_tangent(
-    linestream_curve,
-    normed = normed,
-    append = TRUE,
-    second = FALSE
-  )
-    
-  # ... and extract the tangent
-  tx <- linestream_curve$tx
-  ty <- linestream_curve$ty
-
-  # list of vectors for lapply
-  tangents <- lapply(1:length(tx), FUN = function(t) c(tx[t], ty[t]))  
-
-  # conventional rotation -> normal
-  rotate_90_ccw <- matrix(c(
-     cos(-pi/2), sin(-pi/2),
-    -sin(-pi/2), cos(-pi/2)
-    ), ncol =2)
-  normals <- bind_rows(lapply(
-    1:length(tx),
-    FUN = function(t) as.data.frame(tangents[[t]] %*% rotate_90_ccw)
-  ))
-  names(normals) <- c("nx", "ny")
-
-  # head(cbind(linestream_curve, normals)) # cbind creates duplicate cols
-  if (append) {
-    # linestream_curve <- linestream_curve %>% select(-nx, -ny)
-    linestream_curve$nx <- normals$nx
-    linestream_curve$ny <- normals$ny
-    return(linestream_curve)
-  }
-
-  return(normals)
-}
-
-
-
-```
-
-
-```{r linestream-curvature}
-
-# get curvature or curvature direction for a line segment
-# optionally smoothed
-# direction is coded as curvature sign (-1: left turn, +1: right turn) but with 0: NA
-get_linestream_curvature_direction <- function(
-    linestream_curve,
-    direction = TRUE,
-    smooth_range = NA
-  ) {
-
-  # for the dot product
-  stopifnot("geometry" = require("geometry"))
-
-  # certainly calculate tangents
-  linestream_curve <- get_linestream_tangent(
-    linestream_curve,
-    normed = TRUE,
-    append = TRUE
-  )
-
-  linestream_curve <- get_linestream_normal(
-    linestream_curve,
-    normed = TRUE,
-    append = TRUE
-  )
-
-  # numeric difference vector
-  dx <- diff(linestream_curve$x)
-  dy <- diff(linestream_curve$y)
-
-  # t <- linestream_curve$sequence[1:length(dx)]
-  # plot(t, dx)
-    
-  # normalize differentials
-  d2_norm <- function(x, y) sqrt((x**2) + (y**2))
-  l <- d2_norm(dx, dy)
-  dx <- dx / l
-  dy <- dy / l
-
-  # there are zero-length segments
-  dx[is.na(dx)] <- 0
-  dy[is.na(dy)] <- 0
-
-  # tangents and normals
-  tx <- linestream_curve$tx[1:length(dx)]
-  ty <- linestream_curve$ty[1:length(dy)]
-  nx <- linestream_curve$nx[1:length(dx)]
-  ny <- linestream_curve$ny[1:length(dy)]
-
-  # connection vector between tangent and difference vector
-  ux <- dx - tx
-  uy <- dy - ty
-
-  # scalar of the connection vector onto the normal
-  curvatures <- c(sapply(
-    1:length(l),
-    FUN = function(t) unlist(geometry::dot(c(ux[t], uy[t]), c(nx[t], ny[t])))
-  ), 0)
-
-  # t <- linestream_curve$sequence[1:length(curvatures)]
-  # plot(t, curvatures, type = 'l')
-
-  # optional: smoothing by Gaussian-weighted average
-  if ((length(curvatures) > 8) && (!is.na(smooth_range))) {
-    unsmoothed_curvatures <- curvatures
-
-    # curvatures <- smoother::smth.gaussian(curvatures, alpha = smooth_range, tails = TRUE)
-    curvatures <- smoother::smth(curvatures, method = "sma", window = smooth_range)
-
-    # TODO: this is the simple moving average, applied to series of curvatres
-    # but it should rather be calculated based on point distance
-
-    # keep unsmoothed values for smoothing-na's
-    curvatures[is.na(curvatures)] <- unsmoothed_curvatures[is.na(curvatures)]
-    
-    # t <- linestream_curve$sequence[1:length(curvatures)]
-    # plot(t, curvatures, type = 'l')
-  }
-  
-  # either return the direction...
-  if (direction) {
-    # (-1: left turn, 0: NA, +1: right turn)
-    dirn <- (2*as.numeric(curvatures < 0)) - 1
-    dirn[is.na(dirn)] <- 0
-    return(dirn)
-  }
-
-  # ... or the curvature
-  return(curvatures)
-    
-}
-```
-
-
-```{r plot-linestream-direction-flow}
-
-plot_linestream_flowdirection <- function(
-    linestream_curve,
-    scale = 16
-  ) {
-
-  x <- linestream_curve$x
-  y <- linestream_curve$y
-  tx <- linestream_curve$tx * scale
-  ty <- linestream_curve$ty * scale
-  nx <- linestream_curve$nx * scale
-  ny <- linestream_curve$ny * scale
-  curv <- linestream_curve$curv
-  #  <- linestream_curve$curv_smth
-  dirn <- linestream_curve$dirn
-  # dirn_smth <- linestream_curve$dirn_smth
-  nx <- nx * dirn
-  ny <- ny * dirn # _smth
-  nz <- !as.logical(as.integer(nx == 0) * as.integer(ny == 0))
-  # col <- as.integer(dirn)+1
-  color <- as.integer(dirn[nz])+3
-  
-  
-  plot(x, y, asp = 1)
-  graphics::arrows(x, y, x+tx, y+ty, col = "darkgray", length = 0.1)
-  # graphics::arrows(x, y, x+nx, y+ny, col = "lightblue", length = 0.1)
-  # graphics::arrows(x-tx2, y-ty2, x+tx2, y+ty2, col = "lightblue", length = 0.1)
-  graphics::arrows(
-    x[nz], y[nz],
-    x[nz] +  nx[nz],
-    y[nz] +  ny[nz], # dirn[nz] *
-    col = color, length = 0.05
-  )
-}
-
-```
-
-
-Finally, streamline the linestream calculation process.
-
-```{r all-linestream-measures}
-
-get_all_linestream_measures <- function(
-    linestream_curve,
-    normed = TRUE,
-    smooth_range = NA
-    ) {
-
-  # numeric difference
-  linestream_curve$dx <- c(diff(linestream_curve$x), 0)
-  linestream_curve$dy <- c(diff(linestream_curve$y), 0)
-
-  linestream_curve$dx[is.na(linestream_curve$dx)] <- 0
-  linestream_curve$dy[is.na(linestream_curve$dy)] <- 0
-
-  # tangent
-  linestream_curve <- get_linestream_tangent(
-    linestream_curve,
-    normed = normed,
-    append = TRUE,
-    second = FALSE
-  )
-  
-  # normal
-  linestream_curve <- get_linestream_normal(
-    linestream_curve,
-    normed = normed,
-    append = TRUE
-  )
-
-  # curvature and curvature direction
-  linestream_curve$curv <- get_linestream_curvature_direction(linestream_curve, direction = FALSE, smooth_range = NA)
-  linestream_curve$dirn <- get_linestream_curvature_direction(linestream_curve, direction = TRUE, smooth_range = NA)
-  if (!is.na(smooth_range)) {
-    linestream_curve$curv_smth <- get_linestream_curvature_direction(linestream_curve, direction = FALSE, smooth_range = smooth_range)
-    linestream_curve$dirn_smth <- get_linestream_curvature_direction(linestream_curve, direction = TRUE, smooth_range = smooth_range)
-  }
-
-  # head(linestream_curve)
-  return(linestream_curve)
-
-}
-
-```
 
 ### linestream calculation testing
 
@@ -1855,7 +928,8 @@ segment <- curve %>%
   filter(sequence > -20, sequence < 20) #%>%
   # select(-rank) %>% 
   # mutate(unit_id = unit_id)
-knitr::kable(segment)
+knitr::kable(head(segment))
+
 unit_point <- segment %>%
   filter(sequence == 0)
 
@@ -1962,15 +1036,6 @@ With the info aggregated by `get_stream_curve_properties`, we can decide on an a
 
 ```{r test-target-vectors}
 
-vectorize <- function(vec) sapply(1:length(vec), FUN = function(i) vec[[i]])
-vectornorm <- function(vec) sqrt(sum(sapply(1:length(vec), FUN = function(v) vec[v]^2)))
-# vectornorm(c(0, 1, 1, 2))
-normed_vector <- function(vec) vectorize(vec) / vectornorm(vectorize(vec))
-dotproduct <- function (vec1, vec2) return(sum(vectorize(vec1) * vectorize(vec2)))
-plot_arrow_from_center <- function(vec, ...){
-  graphics::arrows(c(0), c(0), c(vec[1]), c(vec[2]), ...)
-}
-
 for (uid in seq(781, 852, 5)) {
   unit_id <- sprintf("9574_218%03.0f", uid)
   save_plot_filepath <- here::here("figures", "direction_vectors", sprintf("%s.png", unit_id))
@@ -1982,11 +1047,11 @@ for (uid in seq(781, 852, 5)) {
   segment_point <- point_info[c("x", "y")]
 
   # normal, to the right in the direction of flow
-  normal_unit_vector <- normed_vector(point_info[c("nx", "ny")])
+  normal_unit_vector <- normalize_vector(point_info[c("nx", "ny")])
 
   # tangent and difference vectors
-  diff_unit_vector <- normed_vector(point_info[c("dx", "dy")])
-  tangent_unit_vector <- normed_vector(point_info[c("tx", "ty")])
+  diff_unit_vector <- normalize_vector(point_info[c("dx", "dy")])
+  tangent_unit_vector <- normalize_vector(point_info[c("tx", "ty")])
 
     
   # compare curvature and elevation-slope flow
@@ -2055,15 +1120,6 @@ get_linestream_target_area <- function(unit_id, offset_m = 2, side_m = 24) {
   # unit_id <- "9574_218786" # straight downhill
   # unit_id <- sprintf("9574_218%03.0f", idx)
 
-  vectorize <- function(vec) sapply(1:length(vec), FUN = function(i) vec[[i]])
-  vectornorm <- function(vec) sqrt(sum(sapply(1:length(vec), FUN = function(v) vec[v]^2)))
-  # vectornorm(c(0, 1, 1, 2))
-  normed_vector <- function(vec) vectorize(vec) / vectornorm(vectorize(vec))
-  dotproduct <- function (vec1, vec2) return(sum(vectorize(vec1) * vectorize(vec2)))
-  plot_arrow_from_center <- function(vec, ...){
-    graphics::arrows(c(0), c(0), c(vec[1]), c(vec[2]), ...)
-  }
-
   # get stream info
   point_info <- get_linestream_curve_properties(unit_id, smooth_range = 5, resample_m = 10)
 
@@ -2071,11 +1127,11 @@ get_linestream_target_area <- function(unit_id, offset_m = 2, side_m = 24) {
   segment_point <- point_info[c("x", "y")]
 
   # normal, to the right in the direction of flow
-  normal_unit_vector <- normed_vector(point_info[c("nx", "ny")])
+  normal_unit_vector <- normalize_vector(point_info[c("nx", "ny")])
 
   # tangent and difference vectors
-  diff_unit_vector <- normed_vector(point_info[c("dx", "dy")])
-  tangent_unit_vector <- normed_vector(point_info[c("tx", "ty")])
+  diff_unit_vector <- normalize_vector(point_info[c("dx", "dy")])
+  tangent_unit_vector <- normalize_vector(point_info[c("tx", "ty")])
 
     
   # compare curvature and elevation-slope flow
@@ -2128,15 +1184,6 @@ get_linestream_target_area <- function(unit_id, offset_m = 2, side_m = 24) {
 
 
 ```{r stream-test-curvature-vs-flow}
-
-create_sf_vector <- function(pt, vec, unit_id) {
-  line <- as.data.frame(rbind(pt, pt + vec)) %>%
-    setNames(c("x", "y")) %>% 
-    sf::st_as_sf(coords = c("x", "y"), crs = 31370)
-  
-  line <- sf::st_sf(st_combine(line) %>% st_cast("LINESTRING"))
-  return(sf::st_sf(data.frame(unit_id = unit_id, geom=line)))
-}
 
 # TODO try unit_id <- "9574_218856"
 # TODO crashing unit_id <- "9574_218829", 837, ...
