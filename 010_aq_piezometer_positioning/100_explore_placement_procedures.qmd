@@ -1082,7 +1082,7 @@ calculate_aquatic_type_targets <- function(
     setNames(c("x", "y")) %>% 
     mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
     sf::st_as_sf(coords = c("x", "y"), crs = 31370)
-  inflow <- st_combine(inflow) %>% st_cast("LINESTRING")
+  inflow <- sf::st_combine(inflow) %>% sf::st_cast("LINESTRING")
     
   return(
     list(

@@ -105,6 +105,7 @@ determine_watersurface_target_area <- function(
   # standardized vector length
   upstream_vec <- wedge_range * upstream / vector_norm(upstream)
 
+  # TODO: this was generalized in `spatial_helpers.R`.
   arc_points <- rbind(t(as.matrix(c(0, 0))))
   for (rot_rad in seq(
       -buffer_arc_radians/2,
