@@ -5,7 +5,7 @@ source(here::here("..", "R", "geometry_helpers.R"))
 
 # for reference: this is how to get a linestream curve
 # extract a single stream from the 100m watercourse segments
-get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
+get_linestream_test_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
 
   stream_lines <- n2khab::read_watercourse_100mseg(element = "lines")
   # vhag <- 9574
@@ -54,9 +54,6 @@ get_linestream_curve <- function(vhag, segment_rank = 0, resample_m = NA) {
     setNames(c("rank", "L1")) %>%
     dplyr::left_join(coords, dplyr::join_by(L1))
   names(linestream_curve) <- c("rank", "lseq", "x", "y", "sequence")
-
-  # there are duplicates:
-  # the last point of one segment matches the first point of the consecutive segment
 
   # sort by "rank", i.e. point number
   linestream_curve$rank <- linestream_curve$rank - segment_rank
