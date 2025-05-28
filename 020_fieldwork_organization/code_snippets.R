@@ -754,3 +754,179 @@ scheme_moco_fa_fieldvar <-
   # lab, so not relevant for the fieldwork (but the sampling protocol is)
   filter(!str_detect(field_activity, "SAMP"))
 
+
+
+
+
+
+
+
+## Processing the FAG calendar wrt prioritizing fieldwork in 2025 ----
+
+# Derive the FAG calendar for 2025 at the stratum x location x FAG x
+# date-interval level, and include some of the location attributes.
+fag_stratum_grts_calendar_2025_attribs <-
+  fag_stratum_grts_calendar %>%
+  select(
+    scheme_moco_ps,
+    stratum,
+    grts_address,
+    starts_with("date"),
+    field_activity_group,
+    rank
+  ) %>%
+  filter(year(date_start) < 2026) %>%
+  # count(date_start, date_end, date_interval) %>%
+  # move the fieldwork that was kept for 2024, to 2025, since that is indeed
+  # its meaning
+  mutate(
+    across(c(date_start, date_end), \(x) {
+      if_else(year(x) == 2024, x + years(1), x)
+    }),
+    date_interval = interval(
+      force_tz(date_start, "Europe/Brussels"),
+      force_tz(date_end, "Europe/Brussels")
+    )
+  ) %>%
+  unnest(scheme_moco_ps) %>%
+  # adding location attributes
+  inner_join(
+    scheme_moco_ps_stratum_targetpanel_spsamples %>%
+      select(
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        grts_join_method,
+        grts_address,
+        grts_address_final,
+        targetpanel
+      ),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-many",
+    unmatched = c("error", "drop")
+  ) %>%
+  relocate(grts_address_final, .after = grts_address) %>%
+  select(-module_combo_code, -panel_set) %>%
+  # flatten scheme x targetpanel to unique strings per stratum x location x FAG
+  # occasion. Note that the scheme_targetpanels attribute is a shrinked version
+  # of the one at the level of the whole sample (see sampling unit attributes in
+  # the beginning), since we limited the activities to those planned before
+  # 2026, and then generate stratum_scheme_targetpanels as a location attribute.
+  # So it says specifically which schemes & targetpanels are served by the
+  # specific fieldwork at a specific date interval.
+  unite(scheme_targetpanel, scheme, targetpanel, sep = ":") %>%
+  nest(scheme_targetpanels = scheme_targetpanel) %>%
+  mutate(
+    scheme_targetpanels = map_chr(scheme_targetpanels, \(df) {
+      str_flatten(
+        unique(df$scheme_targetpanel),
+        collapse = " | "
+      )
+    }) %>%
+      factor()
+  ) %>%
+  relocate(scheme_targetpanels)
+
+# Derive an object where stratum x scheme_targetpanels is flattened per location
+# x FAG occasion. Beware that more locations will emerge due to local
+# replacement, so this is misleading for counting & planning (but useful in
+# spatial visualization)
+fag_grts_calendar_2025_attribs <-
+  fag_stratum_grts_calendar_2025_attribs %>%
+  mutate(
+    stratum_scheme_targetpanels = str_c(
+      stratum,
+      " (",
+      grts_join_method,
+      ") ",
+      " [",
+      scheme_targetpanels,
+      "]"
+    ),
+    .keep = "unused"
+  ) %>%
+  summarize(
+    stratum_scheme_targetpanels =
+      str_flatten(
+        unique(stratum_scheme_targetpanels),
+        collapse = " \u2588 "
+      ) %>%
+      factor(),
+    .by = !stratum_scheme_targetpanels
+  ) %>%
+  relocate(stratum_scheme_targetpanels)
+
+# A simple derived spatial object (as points; see earlier for the actual unit
+# geometries). Points are still repeated because of different date_interval &
+# FAG values at the same location.
+fag_grts_calendar_2025_attribs_sf <-
+  fag_grts_calendar_2025_attribs %>%
+  add_point_coords_grts(
+    grts_var = "grts_address_final",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+# prioritization of fieldwork 2025:
+fieldwork_2025_prioritization <-
+  fag_stratum_grts_calendar_2025_attribs %>%
+  mutate(
+    priority = case_when(
+      str_detect(
+        scheme_targetpanels,
+        "GW_03\\.3:PANEL0[5678]|SURF_03\\.4_[a-z]+:PANEL03"
+      ) ~ 1L,
+      str_detect(scheme_targetpanels, "GW_03\\.3:PANEL04") ~ 2L,
+      str_detect(scheme_targetpanels, "GW_03\\.3:PANEL03") ~ 3L,
+      .default = 4L
+    ),
+    wait_surfacewater = str_detect(stratum, "^31|^2190_a$"),
+    wait_3260 = stratum == "3260"
+  )
+
+# overview fieldwork prioritization 2025 according to schemes & panels:
+fieldwork_2025_targetpanels_prioritization_count <-
+  fieldwork_2025_prioritization %>%
+  count(
+    scheme_targetpanels,
+    priority,
+    wait_surfacewater,
+    wait_3260,
+    field_activity_group
+  ) %>%
+  arrange(priority, wait_surfacewater, wait_3260) %>%
+  pivot_wider(names_from = field_activity_group, values_from = n)
+
+
+gs_id <- "1RXhqlK8nu_BdIiYEbjhjoNnu82wnn6zGfQSdzyi-afI"
+
+# WRITE PIVOT TABLE TO GSHEET:
+fieldwork_2025_targetpanels_prioritization_count %>%
+  write_sheet(
+    ss = gs_id,
+    sheet = "fieldwork_2025_targetpanels_prioritization_count"
+  )
+
+# overview fieldwork prioritization 2025 according to date intervals:
+fieldwork_2025_dates_prioritization_count <-
+  fieldwork_2025_prioritization %>%
+  count(
+    date_interval,
+    date_end,
+    priority,
+    wait_surfacewater,
+    wait_3260,
+    field_activity_group
+  ) %>%
+  arrange(date_end, priority, wait_surfacewater, wait_3260) %>%
+  select(-date_end) %>%
+  pivot_wider(names_from = field_activity_group, values_from = n)
+
+# WRITE PIVOT TABLE TO GSHEET:
+fieldwork_2025_dates_prioritization_count %>%
+  mutate(date_interval = as.character(date_interval)) %>%
+  write_sheet(
+    ss = gs_id,
+    sheet = "fieldwork_2025_dates_prioritization_count"
+  )
