@@ -6,7 +6,9 @@
 # used elsewhere in generating tools & files needed by people that plan or
 # execute fieldwork.
 
-
+# The final section can always be run, regardless of which code in this file has
+# been run. It checks that the resulting objects are identical to the ones
+# obtained by Floris.
 
 
 ## Setup -----------------------------
@@ -20,6 +22,7 @@ library(sf)
 library(terra)
 library(n2khab)
 library(googledrive)
+library(readr)
 library(rprojroot)
 
 # Set project root; works everywhere as the RStudio project file is in the repo
@@ -938,4 +941,36 @@ if (FALSE) {
       ss = gs_id,
       sheet = "fieldwork_2025_dates_prioritization_count"
     )
+}
+
+
+
+
+
+
+
+
+
+
+
+## Comparing object hashes with reference to verify reproducibility ----------
+
+hashfile <- file.path(projroot, "fieldworg_hashes.csv")
+ref_hashes <- read_csv(hashfile, col_types = "cc")
+available_obj <- ls()
+different_hashes <-
+  ref_hashes %>%
+  rename(xxh64sum_ref = xxh64sum) %>%
+  filter(name %in% available_obj) %>%
+  mutate(
+    xxh64sum_current = map_chr(name, \(x) {
+      digest::digest(eval(as.name(x)), algo = "xxhash64")
+    })
+  ) %>%
+  filter(xxh64sum_current != xxh64sum_ref)
+if (nrow(different_hashes) > 0) {
+  warning(
+    "Different hashes detected than expected.",
+    "\nPlease inspect the object `different_hashes`."
+  )
 }
