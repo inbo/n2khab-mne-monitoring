@@ -1,5 +1,6 @@
 # Code snippets that support data creation to organize fieldwork: sampling
-# units, local replacement cells, field variables, FAG occasions
+# units, local replacement cells, field variables, FAG occasions, fieldwork
+# prioritization
 
 # Below code can be run from top to bottom, but it is meant to be studied and
 # used elsewhere in generating tools & files needed by people that plan or
