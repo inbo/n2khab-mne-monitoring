@@ -763,8 +763,11 @@ scheme_moco_fa_fieldvar <-
 
 ## Processing the FAG calendar wrt prioritizing fieldwork in 2025 ----
 
-# Derive the FAG calendar for 2025 at the stratum x location x FAG x
-# date-interval level, and include some of the location attributes.
+# This section is primarily intended as support for fieldwork planning by the
+# compartment scheme responsible, who will use these R objects directly.
+
+# Derive the FAG calendar for 2025 at the stratum x location x FAG occasion, and
+# include some of the location attributes.
 fag_stratum_grts_calendar_2025_attribs <-
   fag_stratum_grts_calendar %>%
   select(
@@ -781,7 +784,7 @@ fag_stratum_grts_calendar_2025_attribs <-
   # its meaning
   mutate(
     across(c(date_start, date_end), \(x) {
-      if_else(year(x) == 2024, x + years(1), x)
+      if_else(year(date_start) == 2024, x + years(1), x)
     }),
     date_interval = interval(
       force_tz(date_start, "Europe/Brussels"),
@@ -881,7 +884,7 @@ fieldwork_2025_prioritization <-
       str_detect(scheme_targetpanels, "GW_03\\.3:PANEL03") ~ 3L,
       .default = 4L
     ),
-    wait_surfacewater = str_detect(stratum, "^31|^2190_a$"),
+    wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
     wait_3260 = stratum == "3260"
   )
 
@@ -891,11 +894,11 @@ fieldwork_2025_targetpanels_prioritization_count <-
   count(
     scheme_targetpanels,
     priority,
-    wait_surfacewater,
+    wait_watersurface,
     wait_3260,
     field_activity_group
   ) %>%
-  arrange(priority, wait_surfacewater, wait_3260) %>%
+  arrange(priority, wait_watersurface, wait_3260) %>%
   pivot_wider(names_from = field_activity_group, values_from = n)
 
 
@@ -915,11 +918,11 @@ fieldwork_2025_dates_prioritization_count <-
     date_interval,
     date_end,
     priority,
-    wait_surfacewater,
+    wait_watersurface,
     wait_3260,
     field_activity_group
   ) %>%
-  arrange(date_end, priority, wait_surfacewater, wait_3260) %>%
+  arrange(date_end, priority, wait_watersurface, wait_3260) %>%
   select(-date_end) %>%
   pivot_wider(names_from = field_activity_group, values_from = n)
 
