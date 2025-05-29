@@ -143,3 +143,33 @@ get_level3replacement_cellnrs <- function(
     ), ]$replacement_cells
   }
 }
+
+
+
+#' Convert a vector of GRTS addresses to the corresponding level 3 addresses
+#'
+#' @inheritParams filter_grts_mh_by_address
+#' @inheritParams get_level3replacement_cellnrs
+convert_level0_to_level3 <- function(
+    addresses,
+    spatrast = grts_mh_n2khab,
+    spatrast_index = grts_mh_n2khab_index,
+    spatrast_lev3
+) {
+  result <- tibble(
+    addr = addresses,
+    id0 = spatrast_index[match(addresses, spatrast_index$grts_address), ]$id
+  )
+  id0_nona <- result$id0[!is.na(result$id0)] %>% unique()
+  result %>%
+    left_join(
+      tibble(
+        id0 = id0_nona,
+        lev3addr = spatrast_lev3[id0_nona]$level3
+      ),
+      join_by(id0),
+      relationship = "many-to-one",
+      unmatched = "error"
+    ) %>%
+    pull(lev3addr)
+}
