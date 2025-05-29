@@ -906,11 +906,13 @@ fieldwork_2025_targetpanels_prioritization_count <-
 gs_id <- "1RXhqlK8nu_BdIiYEbjhjoNnu82wnn6zGfQSdzyi-afI"
 
 # WRITE PIVOT TABLE TO GSHEET:
-fieldwork_2025_targetpanels_prioritization_count %>%
-  write_sheet(
-    ss = gs_id,
-    sheet = "fieldwork_2025_targetpanels_prioritization_count"
-  )
+if (FALSE) {
+  fieldwork_2025_targetpanels_prioritization_count %>%
+    write_sheet(
+      ss = gs_id,
+      sheet = "fieldwork_2025_targetpanels_prioritization_count"
+    )
+}
 
 # overview fieldwork prioritization 2025 according to date intervals:
 fieldwork_2025_dates_prioritization_count <-
@@ -928,9 +930,11 @@ fieldwork_2025_dates_prioritization_count <-
   pivot_wider(names_from = field_activity_group, values_from = n)
 
 # WRITE PIVOT TABLE TO GSHEET:
-fieldwork_2025_dates_prioritization_count %>%
-  mutate(date_interval = as.character(date_interval)) %>%
-  write_sheet(
-    ss = gs_id,
-    sheet = "fieldwork_2025_dates_prioritization_count"
-  )
+if (FALSE) {
+  fieldwork_2025_dates_prioritization_count %>%
+    mutate(date_interval = as.character(date_interval)) %>%
+    write_sheet(
+      ss = gs_id,
+      sheet = "fieldwork_2025_dates_prioritization_count"
+    )
+}
