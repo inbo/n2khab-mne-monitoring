@@ -964,7 +964,12 @@ different_hashes <-
   filter(name %in% available_obj) %>%
   mutate(
     xxh64sum_current = map_chr(name, \(x) {
-      digest::digest(eval(as.name(x)), algo = "xxhash64")
+      # terra objects need special handling;
+      # https://github.com/rspatial/terra/issues/1844
+      if (inherits(eval(str2lang(x)), c("SpatRaster", "SpatVector"))) {
+        x <- paste0("terra::wrap(", x, ")")
+      }
+      digest::digest(eval(str2lang(x)), algo = "xxhash64")
     })
   ) %>%
   filter(xxh64sum_current != xxh64sum_ref)
