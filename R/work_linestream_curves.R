@@ -9,14 +9,14 @@ source(here::here("..", "R", "geometry_helpers.R"))
 #' which represents a water stream by a series of line segments
 #' which are grouped in sets of 100m.
 #' resampling is possible (using spline interpolation) to get
-#' evenly spaced points along the stream lines.
-#' The whole stream will be returned, but the reference rank and
-#' sequence number set to zero.
+#' evenly spaced points close to the stream lines.
+#' The whole stream will be returned, with the rank and
+#' sequence number set to zero at the reference node.
 #'
 #' @details a linestream curve is defined as
 #' a data frame of points (`c(x, y)`),
 #' which are associated with a `$rank` (here: segment identifier)
-#' and a `$sequence` (stream direction).
+#' and a `$sequence` (stream direction, upstream).
 #' Typically we use the function
 #'   `n2khab::read_watercourse_100mseg(element = "lines")`
 #' to query these segments. However, other data sources are possible
@@ -70,8 +70,10 @@ get_linestream_curve <- function(
     ))
   }
 
-  # some points are duplicate
+  # some points are duplicates
   # (endpoint of one segment == startpoint of next)
+  # which would complicate tangent calculation.
+  # this removes the duplicates, while preserving the other attributes.
   rank <- target_stream_points$rank
   coords <- data.frame(sf::st_coordinates(target_stream_points))
   coords$exclude <- FALSE
@@ -83,6 +85,7 @@ get_linestream_curve <- function(
       (this$Y == conseq$Y) &&
       ((this$L1+1) == conseq$L1)
   }
+
   coords <- coords[!coords$exclude, c("X", "Y", "L1")]
 
   # store a sequence of occurrence
@@ -110,7 +113,7 @@ get_linestream_curve <- function(
   }
 
   return(linestream_curve)
-}
+} # /get_linestream_curve
 
 
 
@@ -120,14 +123,16 @@ get_linestream_curve <- function(
 #' @keywords internal
 #'
 #' used only in the context of loading a linestream
+#' this applies spline interpolations, so outcome points
+#' might be positioned slightly off the original linear segments
+#' (especially around sharp bends).
 #'
 #' @param linestream a stream curve (data frame of points)
 #'        with at least x, y, sequence, and rank.
-#' @param normed normalize the tangent vectors to unit length
-#' @param append append the stream curve data frame, or return separately
-#' @param second whether to calculate the second derivative (inversion points)
+#' @param resample_m regular interval (meters) of resampled points.
+#' @param crs the coordinate reference system given to the outcome
 #'
-#' @return tangent vectors (df[x, y]), optionally appended to the stream curve
+#' @return the resampled linestream curve.
 #'
 #' @examples
 #' \dontrun{
@@ -170,8 +175,8 @@ resample_linestream <- function(linestream, resample_m = 1, crs = 31370) {
   s <- seq(0, max(t), length.out = 1 + round(max(cumsum(dt))) / resample_m)
 
   # spline resampling
-  spline_x <- terra::predict(sm.spline(t, x), s, 0)
-  spline_y <- terra::predict(sm.spline(t, y), s, 0)
+  spline_x <- terra::predict(pspline::sm.spline(t, x), s, 0)
+  spline_y <- terra::predict(pspline::sm.spline(t, y), s, 0)
 
   # plot(x, y, type = "o", col = "black")
   # lines(spline_x, spline_y, type = "o", col = "blue")
@@ -229,16 +234,16 @@ get_linestream_tangent <- function(
     linestream_curve$tx <- c(diff(x), 0)
     linestream_curve$ty <- c(diff(y), 0)
   } else {
-    linestream_curve$tx <- terra::predict(sm.spline(t, x), t, 1)
-    linestream_curve$ty <- terra::predict(sm.spline(t, y), t, 1)
+    linestream_curve$tx <- terra::predict(pspline::sm.spline(t, x), t, 1)
+    linestream_curve$ty <- terra::predict(pspline::sm.spline(t, y), t, 1)
   }
   # plot(t, linestream_curve$tx)
   # plot(t, linestream_curve$ty)
 
   # optionally append second derivative
   if ((length(t) > 5) && second_derivative) {
-    linestream_curve$tx2 <- terra::predict(sm.spline(t, x), t, 2)
-    linestream_curve$ty2 <- terra::predict(sm.spline(t, y), t, 2)
+    linestream_curve$tx2 <- terra::predict(pspline::sm.spline(t, x), t, 2)
+    linestream_curve$ty2 <- terra::predict(pspline::sm.spline(t, y), t, 2)
   }
 
   # optionally normalize
@@ -263,8 +268,31 @@ get_linestream_tangent <- function(
 }
 
 
-# calculate the normals, based on tangents
-# normals are defined as -π/2 rotation (ccw orthogonal) of the tangent
+#' Calculate the linestream curve normals (based on tangents).
+#'
+#' By convention, normals are defined as -π/2 rotation (i.e. ccw orthogonal)
+#' of the tangent vector.
+#' This uses the `rank` as the "temporal" vector for spline prediction
+#' and tangent derivation, then rotating the tangent (counter-clockwise).
+#'
+#' @details If user choses to `append = TRUE`, tangents will also be appended.
+#'          Tangents will be re-calculated, even if they were already present
+#'          in the curve, and putatively overwritten.
+#'
+#' @param linestream_curve a stream curve (data frame of points)
+#'        with at least x, y and rank.
+#' @param normed normalize the normal vectors to unit length
+#' @param append append the stream curve data frame, or return separately
+#'
+#' @return normal vectors (df[x, y]),
+#'         optionally appended to the linestream curve
+#'
+#' @examples
+#' \dontrun{
+#'   stream <- get_linestream_test_curve(vhag = 9574, segment_rank = 218821)
+#'   get_linestream_normal(stream, normed = TRUE, append = FALSE)
+#' }
+#'
 get_linestream_normal <- function(
     linestream_curve,
     normed = FALSE,
@@ -272,6 +300,7 @@ get_linestream_normal <- function(
     ) {
 
   # ensure that the tangent is calculated
+  # and, in fact, *overwrite* it.
   linestream_curve <- get_linestream_tangent(
     linestream_curve,
     normed = normed,
@@ -305,9 +334,23 @@ get_linestream_normal <- function(
 }
 
 
-# get curvature or curvature direction for a line segment
-# optionally smoothed
-# direction is coded as curvature sign (-1: left turn, +1: right turn) but with 0: NA
+#' Calculate curvature or curvature direction for a linestream segment.
+#'
+#' The stream is optionally smoothed (using `smoother::smth` with `sma`)
+#' direction is coded as curvature sign (-1: left turn, +1: right turn)
+#' but with 0: NA (usually occurring with identical consecutive stream points).
+#' Curvature is defined as the (scalar) projection of the
+#' connection vector between tangent and difference vector
+#' onto the curve Normal.
+#' Obviously, *curvature* depends on stream direction and the order of points.
+#' It is zero on straight lines, and positive on rightward turns.
+#'
+#' @param linestream_curve a stream curve (data frame of points)
+#'        with at least x, y and rank.
+#' @param direction (bool) the option to only return the sign of curvature.
+#' @param smooth_range passed to `window` keyword of `smoother::smth` with
+#'        the `sma` method. If this is `NA`, no smoothing applies.
+#'
 get_linestream_curvature_direction <- function(
     linestream_curve,
     direction = TRUE,
@@ -316,6 +359,7 @@ get_linestream_curvature_direction <- function(
 
   # for the dot product
   stopifnot("geometry" = require("geometry"))
+  stopifnot("smoother" = require("smoother"))
 
   # certainly calculate tangents
   linestream_curve <- get_linestream_tangent(
@@ -324,6 +368,7 @@ get_linestream_curvature_direction <- function(
     append = TRUE
   )
 
+  # ... and also normals
   linestream_curve <- get_linestream_normal(
     linestream_curve,
     normed = TRUE,
@@ -396,6 +441,9 @@ get_linestream_curvature_direction <- function(
 }
 
 
+#' A convenience wrapper for some detailed plot
+#' of the flow direction, tangents/normals, and curvature direction.
+#' @keywords internal
 plot_linestream_flowdirection <- function(
     linestream_curve,
     scale = 16
@@ -431,7 +479,8 @@ plot_linestream_flowdirection <- function(
 }
 
 
-# Finally, streamline the linestream calculation process.
+#' Example procedure for streamline the linestream calculations.
+#' @keywords internal
 get_all_linestream_measures <- function(
     linestream_curve,
     normed = TRUE,

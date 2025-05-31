@@ -165,7 +165,7 @@ get_pointstream_tangent <- function(
 #'
 #' @param stream_curve a stream curve (data frame of points)
 #'        with at least x, y and rank.
-#' @param normed normalize the tangent vectors to unit length
+#' @param normed normalize the normal vectors to unit length
 #' @param append append the stream curve data frame, or return separately
 #'
 #' @return normal vectors (df[x, y]), optionally appended to the stream curve
