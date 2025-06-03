@@ -5,8 +5,8 @@
 #' @param spatrast SpatRaster object with level 0 GRTS addresses.
 #' @param spatrast_index Data frame with columns 'id' and 'grts_address',
 #'   holding the cell numbers (cell IDs) for each GRTS address in `spatrast`.
-#' @param convert_to_sf_object Logical. Should the returned object 
-#'   be a sf points object? If `FALSE`, 
+#' @param convert_to_sf_object Logical. Should the returned object
+#'   be a sf points object? If `FALSE`,
 #`   a data frame is returned with x and y coordinates as columns.
 #'
 #' @returns An sf points object or a tibble with coordinates, depending on the
