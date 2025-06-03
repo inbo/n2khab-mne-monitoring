@@ -214,7 +214,7 @@ units_cell_rast <-
   stratum_schemetargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
   pull(grts_address_final) %>%
-  filter_grts_mh_by_address(spatrast = grts_mh, spatrast_index = grts_mh_index)
+  filter_grtsraster_by_address(spatrast = grts_mh, spatrast_index = grts_mh_index)
 set.names(units_cell_rast, "grts_address_final")
 
 # the number of non-NA cells matches the number of unique GRTS addresses
@@ -615,7 +615,7 @@ tibble(
 
 # SpatRaster of all replacement cells; note the use of the cells argument:
 units_cell_replacement_rast <-
-  filter_grts_mh_by_address(
+  filter_grtsraster_by_address(
     spatrast = grts_mh,
     spatrast_index = grts_mh_index,
     cells = cellnrs_replacement
