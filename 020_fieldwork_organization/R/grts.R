@@ -57,7 +57,7 @@ add_point_coords_grts <- function(
 #'   numbers as an integer vector?
 #'
 #' @returns SpatRaster, or an integer vector if `output_cell_nrs` is `TRUE`.
-filter_grts_mh_by_address <- function(
+filter_grtsraster_by_address <- function(
     addresses = NULL,
     spatrast = grts_mh_n2khab,
     spatrast_index = grts_mh_n2khab_index,
@@ -87,7 +87,7 @@ filter_grts_mh_by_address <- function(
 #' this result must still be limited to the cells of a specific polygon if this
 #' is used for the polygon-constrained local replacement method.
 #'
-#' @inheritParams filter_grts_mh_by_address
+#' @inheritParams filter_grtsraster_by_address
 #' @param spatrast_lev3 SpatRaster object with level 3 GRTS addresses, at the
 #'   resolution of `spatrast`.
 #' @param spatrast_lev3_index Data frame with columns 'id' and 'grts_address',
@@ -149,7 +149,7 @@ get_level3replacement_cellnrs <- function(
 
 #' Convert a vector of GRTS addresses to the corresponding level 3 addresses
 #'
-#' @inheritParams filter_grts_mh_by_address
+#' @inheritParams filter_grtsraster_by_address
 #' @inheritParams get_level3replacement_cellnrs
 convert_level0_to_level3 <- function(
     addresses,
