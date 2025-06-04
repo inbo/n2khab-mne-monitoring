@@ -32,18 +32,13 @@ in preparation of a stakeholder brainstorming session.
 |------------------+------------------------------------------------------------|
 
 
-* data capture (inbound)
-** users
-*** (A) location evaluation ("biotieker")
-*** (B) groundwater scheme
-
-** procedure BIO
+* procedure BIO
 fieldmap vervangen/supplementeren
 -> biodiv?
 
 prio: outbound
 
-*** *outbound*
+** *outbound*
 + locatie
   - **data layers:** sample locations - todo's, done, replacement reserves; +perimeter
   - (eigenaar) -> later
@@ -66,7 +61,7 @@ prio: outbound
   + rastercellen + center + volgnummer
 
 
-*** *inbound*
+** *inbound*
 - GRTS address as identifier key (link with `inboveg`)
 + toegankelijkheid + anticipated duration
 + habitattype (check targettype? -> anders freetext; percentage?)
@@ -87,8 +82,8 @@ prio: outbound
 + aanwijzigingen parkeren/logistiek/etc.
 
 
-** procedure gw
-*** (I) metadata
+* procedure gw
+** (I) metadata
 
 verbinding WATINA via pb_code
 FA
@@ -97,7 +92,7 @@ verbinding labo via recipientencode
     -> WATINA recipientencode? (/Mathias)
 + opmerkingen!
 
-*** (II) protocollen
+** (II) protocollen
 te noteren informatie
 + boorverslag; foto's
 + opmerkingen!
@@ -109,12 +104,17 @@ bv. datatypes: numeric, freetext, dropdown, checkboxes/radiobuttons
 + vandalisme
 + herstel nodig (check + freeform)
 
-*** (III) veld-mvars
+** (III) veld-mvars
 https://docs.google.com/spreadsheets/d/1gJb2nY-Cs-SCNMpz0sGFslb0j69mzNx5BJu9tQXpHfc/edit?gid=1855614358#gid=1855614358
 "standardpakket veld *"
 "meetnet == GW_03.3"
 + opmerkingen!
 
+
+* data capture (inbound)
+** users
+*** (A) location evaluation ("biotieker")
+*** (B) groundwater scheme
 
 ** responsvariabelen (cf vars_per_scheme tabblad)
 
