@@ -37,7 +37,87 @@ in preparation of a stakeholder brainstorming session.
 *** (A) location evaluation ("biotieker")
 *** (B) groundwater scheme
 
+** procedure BIO
+fieldmap vervangen/supplementeren
+-> biodiv?
+
+prio: outbound
+
+*** *outbound*
++ locatie
+  - **data layers:** sample locations - todo's, done, replacement reserves; +perimeter
+  - (eigenaar) -> later
+  - microlocation priors?
++ habitattypes (POC)
+  + voor welk type ben ik hier?
+  + [case] -> rastermidden, rastercel, plas, stroom
+  + rastermidden/rastercel (← Karen) = "centroïdegebaseerd" vs. "celgebaseerd" / MBAG rapport
+    + centroïdegebaseerd: ht moet op centroïd voorkomen
+    + celgebaseerde koppeling gebeurt voor habitattypes 1320, 2150, 6210_sk, 6430_bz en 7150
++ target geometries
+  + aquatische / plas
+    + type moet ergens in de plas aanwezig zijn
+  + aquatische / stroom
+    + type +op eindpunt+ ergens in het segment
++ voorlopige(!) habitatkaart (bron?)
++ +protocols (e.g. "paaltje geplaatst") if desired+
++ vervanglocaties, filter by "vervangen locatie"
+  + polygon
+  + rastercellen + center + volgnummer
+
+
+*** *inbound*
+- GRTS address as identifier key (link with `inboveg`)
++ toegankelijkheid + anticipated duration
++ habitattype (check targettype? -> anders freetext; percentage?)
+  + reason (mapping error? perturbation?)
+  + permanence / anticipation of recovery
+
++ (↗outbound) gekozen vervanglocatie
+  + gebruikte methode vervanging
+  + +aanpassingen polygoon (bv. list correct hab raster cells)+
+
++ microlocation details/sketch? scheme? distances? obstacles?
++ celkartering: (✓ht aanwezig | vervanging gevonden)
+  + draw points
+    + (rtkgps? sketch?)
+  + draw polygons
+    + (rtkgps? sketch?)
+
++ aanwijzigingen parkeren/logistiek/etc.
+
+
+** procedure gw
+*** (I) metadata
+
+verbinding WATINA via pb_code
+FA
+verbinding protocollen via FA / datum / medewerker
+verbinding labo via recipientencode
+    -> WATINA recipientencode? (/Mathias)
++ opmerkingen!
+
+*** (II) protocollen
+te noteren informatie
++ boorverslag; foto's
++ opmerkingen!
+
+++ extra gegevens <- Karen
+bv. datatypes: numeric, freetext, dropdown, checkboxes/radiobuttons
++ (ingeschatte) afstand vegetatieovergang (randeffect) < 100m
++ verstoring melden
++ vandalisme
++ herstel nodig (check + freeform)
+
+*** (III) veld-mvars
+https://docs.google.com/spreadsheets/d/1gJb2nY-Cs-SCNMpz0sGFslb0j69mzNx5BJu9tQXpHfc/edit?gid=1855614358#gid=1855614358
+"standardpakket veld *"
+"meetnet == GW_03.3"
++ opmerkingen!
+
+
 ** responsvariabelen (cf vars_per_scheme tabblad)
+
      + milieuvariabelen
          + zo mogelijk via invoer Watina, INBOveg e.a.
          + waar niet (secchi ea), in app voorzien
