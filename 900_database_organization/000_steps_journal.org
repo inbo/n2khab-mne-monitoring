@@ -77,6 +77,24 @@ SCHEDULED: <2025-06-02 Mon>-<2025-06-05 Thu>
 A python script is available here:
 + =n2khab-mne-monitoring/900_database_organization/GenerateDatabase.py=
 
+This ideally uses a virtual environment, set up as follows:
+#+begin_src sh :eval no
+cd <project_folder>
+python -m venv .dbinit
+source .dbinit/bin/activate
+pip install --upgrade pip
+pip install --upgrade -r python_requirements.txt
+# pip freeze > python_requirements.txt # to feed back updated requirements
+#+end_src
+
+
+Then to run it, with a database connection config file (as described in the script) in place:
+#+begin_src sh :eval no
+source .dbinit/bin/activate
+python GenerateDatabase.py
+#+end_src
+
+
 The script works on "=csv="s which have a fixed structure to define shema's, tables, columns.
 
 An example google file can be found [[https://docs.google.com/spreadsheets/d/1BTtG-A2ASjbF7IhYYb8FDcQLBZtSQbLbElUUYeofHNM/edit?usp=drive_link][here]],
@@ -102,3 +120,5 @@ SCHEDULED: <2025-06-05 Thu>
 *goal:*
 + get a table with point geometry of sample target locations to the database
 + options to filter by date, potentially FAs, ...
+
+Gradual refinement in [[file:100_sample_location_tests.qmd][100_sample_location_tests.qmd]]
