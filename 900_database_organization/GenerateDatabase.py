@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import atexit as EXIT
+import pathlib as PL
 import getpass as PWD
 import sqlalchemy as SQL
 import pandas as PD
@@ -251,7 +252,7 @@ class dbTable(dict):
     # a class to store all required attributes and functionality
     # to handle a table in the database.
 
-    def __init__(self, tabledef: dict):
+    def __init__(self, tabledef: dict, base_folder: PL.Path = PL.Path("./")):
         # self.schema
         # self.table
         # self.owner
@@ -260,10 +261,12 @@ class dbTable(dict):
         # self.geometry
         # self.comment
 
+        self.folder = base_folder
+
         for k, v in tabledef.items():
             setattr(self, k, v)
 
-        self.definition_file = f"./db_structure/{self.table}.csv"
+        self.definition_file = self.folder/f"{self.table}.csv"
 
         table_definitions = PD.read_csv(self.definition_file)
         for _, datafield in table_definitions.iterrows():
@@ -367,20 +370,34 @@ def CreateTable(db_connection, table_meta: dbTable, verbose = True, dry = False)
 
 
 class Database(dict):
-    def __init__(self, definition_csv: str):
-        definitions = PD.read_csv(definition_csv)
+    def __init__(self,
+                 base_folder = "./",
+                 definition_csv: str = "TABLES.csv",
+                 lazy_creation: bool = True,
+                 db_connection: SQL.Connection = None
+                 ):
+
+        if definition_csv is None:
+            raise IOError("please provide a filename with TABLES definitions.")
+
+        self.base_folder = PL.Path(base_folder)
+        definitions = PD.read_csv(self.base_folder/definition_csv)
         # print(definitions)
 
         for _, tabledef in definitions.iterrows():
             nm = tabledef["table"]
-            self[nm] = dbTable(tabledef.to_dict())
+            self[nm] = dbTable(tabledef.to_dict(), self.base_folder)
+
+        if (db_connection is not None) and (not lazy_creation):
+            self.CreateSchema(db_connection)
+            self.CreateTables(db_connection)
 
 
     def GetSchemas(self) -> set:
         return set([tbl.schema for tbl in self.values()])
 
     def CreateSchema(self, db_connection: SQL.Connection) -> None:
-        CreateSchema(db_connection, "./db_structure/SCHEMA.csv", selection = self.GetSchemas())
+        CreateSchema(db_connection, self.base_folder/"SCHEMA.csv", selection = self.GetSchemas())
 
 
     def CreateTables(self, db_connection: SQL.Connection, verbose = True):
@@ -396,7 +413,11 @@ if __name__ == "__main__":
     # connstr = ConfigToConnectionString(srv)
     # print(connstr)
 
-    db = Database("./db_structure/TABLES.csv")
+    db = Database( \
+        base_folder = "./db_structure", \
+        definition_csv = "TABLES.csv", \
+        lazy_creation = True \
+    )
     # for k, v in db.items():
     #     print('#'*16, k, '#'*16)
     #     print(v)
