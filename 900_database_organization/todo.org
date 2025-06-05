@@ -1,7 +1,12 @@
 #+title: TODO
 
+* mainline
 + [X] credentials to config
 + [ ] migration and real test
++ [ ] postgis login from qfield
 + [ ] backup procedures
 + [ ] forms refinement
 + [ ] images and how to bring them home
+
+* optional
++ save/restore a whole =db_structure= in pandas tables
