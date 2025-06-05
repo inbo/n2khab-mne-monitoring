@@ -1,0 +1,7 @@
+#+title: TODO
+
++ [X] credentials to config
++ [ ] migration and real test
++ [ ] backup procedures
++ [ ] forms refinement
++ [ ] images and how to bring them home
