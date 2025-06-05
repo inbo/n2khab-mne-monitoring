@@ -28,7 +28,7 @@ in preparation of a stakeholder brainstorming session.
 |------------------+------------------------------------------------------------|
 | change frequency | minimal (captured as-is; could be "append only")           |
 | modularity       | partially given by INBO-context interactions (e.g. WATINA) |
-| recovery         | "all in" (daily diffs, weekly dumps)           |
+| recovery         | "all in" (daily diffs, weekly dumps)                       |
 |------------------+------------------------------------------------------------|
 
 
@@ -81,6 +81,13 @@ prio: outbound
 
 + aanwijzigingen parkeren/logistiek/etc.
 
+
+* extra
+
+#+begin_quote
+Dag Falk, ik was je nog de link naar de protocol verschuldigd: https://inbo.github.io/protocols/standard-field-protocols-sfp.html
+De protocollen die relevant zijn voor de grondwatermonitoring zijn sfp-104-nl, sfp-105-nl en sfp-106-nl.
+#+end_quote
 
 * procedure gw
 ** (I) metadata
