@@ -1,0 +1,6 @@
+schema,table,owner,read_access,write_access,geometry,comment
+loceval_outbound,Protocols,yoda,"ward,monkey",,,protocols (preliminary version)
+loceval_outbound,Activities,yoda,"ward,monkey",,,"activities (all, incl. field), content of the `activities` POC object"
+loceval_outbound,ActivityGroups,yoda,"ward,monkey",,,"activity groups (shortlist), required because the groups are not unique in `ActivitySequences`"
+loceval_outbound,ActivitySequences,yoda,"ward,monkey",,,"activity sequences and groups (all, incl. field), content of the `activity_sequences` POC object"
+loceval_outbound,LocationCalendar,yoda,"ward,monkey",,POINT,content of the `fag_grts_calendar_2025_attribs_sf` POC object
