@@ -448,3 +448,10 @@ Using `by = character()` to perform a cross join was deprecated in dplyr 1.1.0.
     + [X] "activity" visible in form
     + [X] test attribute table sorting
     + [X] add habitatmap (raw; wfs?) as background layer
+
+
++ [X] credentials to config
++ [ ] migration and real test
++ [ ] backup procedures
++ [ ] forms refinement
++ [ ] images and how to bring them home
