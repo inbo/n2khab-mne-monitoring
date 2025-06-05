@@ -1,0 +1,18 @@
+---
+title: "Sample Location Targeting"
+date: "2025-06-05"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+# purpose
+
+<https://github.com/inbo/n2khab-mne-monitoring/pull/5>
