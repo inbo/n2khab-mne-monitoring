@@ -94,7 +94,11 @@ Then to run it, with a database connection config file (as described in the scri
 #+begin_src sh :eval no
 source .dbinit/bin/activate
 # python GenerateDatabase.py
+<<<<<<< HEAD
 python 110_init_loceval.py
+=======
+python 020_create_databases.py
+>>>>>>> 4b8e3f7 (dbinit: uploading POC data to database (!!))
 #+end_src
 
 
@@ -108,13 +112,18 @@ Those comma separated text files are stored in the =db_structure= subfolder.
 
 Because tables and roles are organized in schema's,
 it might be necessary to
+<<<<<<< HEAD
 #+begin_src sql :eval no
+=======
+#+begin_src sql
+>>>>>>> 4b8e3f7 (dbinit: uploading POC data to database (!!))
 SET search_path TO public,<schema>;
 SHOW search_path;
 -- \dt+
 #+end_src
 
 
+<<<<<<< HEAD
 ** database authentification
 
 *** proper use of keyring
@@ -214,13 +223,21 @@ In fact, the extensions did not change hands; let's see how this plays out.
 
 
 * loceval
+=======
+
+* Biotieker, outbound
+>>>>>>> 4b8e3f7 (dbinit: uploading POC data to database (!!))
 
 ** setup database
 SCHEDULED: <2025-06-05 Thu>
 
 | database name | loceval          |
 | schema        | loceval_outbound |
+<<<<<<< HEAD
 | peer user     | ward             |
+=======
+| peer user     | Ward             |
+>>>>>>> 4b8e3f7 (dbinit: uploading POC data to database (!!))
 
 #+begin_src sh :eval no
 psql -h <host> -p <port> -U <user> -d <database> -W
@@ -238,6 +255,7 @@ Gradual refinement in [[file:100_sample_location_tests.qmd][100_sample_location_
 
 TODO:
 + [X] =n2khab_data/10_raw/grtsmaster_habitats= issue: =n2khab::read_GRTSmh()= requires capitals -> was my fault
+<<<<<<< HEAD
 + [X] =loceval_outbound=: =Calendar= links to =ActivityGroups=, but not to =ActivitySequences=?
   -> the sequence is in the dates.
 
@@ -2083,3 +2101,6 @@ LEFT JOIN "outbound"."SampleLocations" AS SLOC
 
 SELECT DISTINCT eval_source, count(*) FROM "outbound"."LocationEvaluations" GROUP BY eval_source;
 #+end_src
+=======
++ [ ] =loceval_outbound=: =Calendar= links to =ActivityGroups=, but not to =ActivitySequences=?
+>>>>>>> 4b8e3f7 (dbinit: uploading POC data to database (!!))
