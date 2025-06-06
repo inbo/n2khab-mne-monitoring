@@ -34,6 +34,21 @@ def WriteExampleConfig(config_filename = "postgis_server.conf", server_label = "
       config.write(configfile)
 
 
+def ODStoCSVs(infile, outfolder):
+    # convert all sheets of an `.ods` LibreOffice spreadsheet
+    # to `.csv` files in a target directory
+
+    data = PD.read_excel(infile, sheet_name = None,
+                         na_values=[], keep_default_na=False)
+
+    for sheetname, table in data.items():
+
+        for bool_column in ["not_null", "primary_key", "sequence"]:
+            if bool_column in table.columns:
+                table[bool_column] = table[bool_column].astype(bool)
+        table.to_csv(outfolder/f"{sheetname}.csv", index = False)
+
+
 def ReadSQLServerConfig(config_filename = "postgis_server.conf", server_label = None):
     # will read sql configuration from a text file.
 
@@ -137,6 +152,9 @@ def CreateSchema(db_connection, definition_csv: str, selection: set = None, drop
         SET search_path TO {all_schemas};
     """
 
+    # better format
+    create_string = create_string.replace("    ", "")
+
     # Finally, run the SQL
     if not dry:
         ExecuteSQL(db_connection, create_string, verbose = verbose)
@@ -186,8 +204,22 @@ def ColumnString(schema, table, fieldname, params, no_pk = False):
         attributes += [f"""DEFAULT {str(params["default"])}"""]
 
     # pk
-    if (params["primary_key"] is True) and (not no_pk):
+
+    # print (schema, table, "pk", not no_pk, params["primary_key"],
+    #        params["constraint"], ("UNIQUE" not in str(params["constraint"]).upper()))
+    if (not no_pk) and (params["primary_key"] is True):
         attributes += [f"""PRIMARY KEY"""]
+
+    # constraints
+    if not PD.isna(params["constraint"]):
+        attributes += [params["constraint"]]
+    if (no_pk) and (params["primary_key"] is True):
+        attributes += ["UNIQUE"]
+
+
+    # free sql to add
+    if not PD.isna(params["freesql"]):
+        attributes += [params["freesql"]]
 
     # print(attributes)
 
@@ -253,13 +285,9 @@ class dbTable(dict):
     # to handle a table in the database.
 
     def __init__(self, tabledef: dict, base_folder: PL.Path = PL.Path("./")):
-        # self.schema
-        # self.table
-        # self.owner
-        # self.read_access
-        # self.write_access
-        # self.geometry
-        # self.comment
+        # | self.schema       | self.table        | self.owner       |
+        # | self.read_access  | self.write_access | self.geometry    |
+        # | self.constraint   | self.freesql      | self.comment     |
 
         self.folder = base_folder
 
@@ -315,6 +343,12 @@ class dbTable(dict):
                 continue
 
             create_string += ColumnString(self.schema, self.table, col, params, no_pk = has_geometry)
+
+        # extra constraints and notes
+        if not PD.isna(self.constraint):
+            create_string += self.constraint + "\n"
+        if not PD.isna(self.freesql):
+            create_string += self.freesql + "\n"
 
         # finally, commit what you did `BEGIN;` above.
         create_string += f"""
@@ -409,9 +443,14 @@ class Database(dict):
 
 if __name__ == "__main__":
     # WriteExampleConfig(config_filename = "postgis_server.conf")
+
     # srv = ReadSQLServerConfig(config_filename = "inbopostgis_server.conf")
     # connstr = ConfigToConnectionString(srv)
     # print(connstr)
+
+    base_folder = PL.Path("./")
+    ODStoCSVs(base_folder/"sandbox_staanbeeldentuin.ods", base_folder/"db_structure")
+
 
     db = Database( \
         base_folder = "./db_structure", \
