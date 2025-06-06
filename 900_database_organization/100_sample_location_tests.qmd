@@ -400,12 +400,16 @@ lookup_join <- function(.data, lookup_tbl, join_column){
     left_join(
       lookup_tbl,
       by = join_by(!!enquo(join_column))
+      # relationship = "many-to-one",
+      # unmatched = "drop"
     ) %>%
   select(-!!enquo(join_column))
 
   return(joined_tbl)
 
 }
+
+# TODO there are unmatched activities
 
 ```
 
@@ -548,9 +552,85 @@ sf::dbWriteTable(
 
 
 # SELECT * FROM "LocationCalendar";
+
+loccal_lookup <- dplyr::tbl(
+    db_connection,
+    DBI::Id(schema = "loceval_outbound", table = "LocationCalendar")
+  ) %>%
+  select(
+    stratum_scheme_targetpanels,
+    activity_group_id,
+    grts_address_final,
+    date_start,
+    locationcalendar_id
+  ) %>% 
+  collect
+
+
+location_calendar <- location_calendar %>%
+    left_join(
+      loccal_lookup,
+      by = join_by(
+        stratum_scheme_targetpanels,
+        activity_group_id,
+        grts_address_final,
+        date_start
+      ),
+      relationship = "one-to-one",
+      unmatched = "error"
+    ) 
+
 ```
 
 
+# After Data Collection
+
+All the above code is useful to reset a database with fresh data.
+This is the purpose of OUTBOUND: we, the "back office", can freely manipulate and update the data,
+whereas field workers cannot.
+
+
+Now comes the part of handling tables which might already include data.
+
+
+## Visits
+
+The locations to visit will be stored in a separate table: `loceval_inbound.Visits`.
+
+
+```{r upcoming-visits}
+# TODO we must first save the visits to our internal database
+
+visit_preparation <- location_calendar %>%
+  filter(
+    date_start < today(),
+    date_end > today()
+  ) %>%
+  select(
+    locationcalendar_id,
+    date_start,
+    date_end,
+    activity_group_id,
+    rank,
+    wkb_geometry
+  )
+
+
+sf::dbWriteTable(
+  db_connection,
+  DBI::Id(schema = "loceval_inbound", table = "Visits"),
+  visit_preparation,
+  row.names = FALSE,
+  overwrite = FALSE,
+  append = TRUE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+  )
+
+# TODO join "activity"
+
+```
+
 # NEXT STEPS
 
-check with `qgis`
+

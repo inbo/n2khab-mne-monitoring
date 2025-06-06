@@ -3,6 +3,7 @@ locationcalendar_id,int,True,,True,True,,,,calendar index (technical)
 stratum_scheme_targetpanels,varchar,True,,False,False,,,,a long concatenated label of POC parameters which is currently hard for me to read
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,GRTS address
 grts_address_final,int,True,,False,False,,CHECK (grts_address_final > 0),,GRTS address after corrections
+user_assigned,varchar,False,NULL,False,False,,,,filter for an assignee
 date_start,date,True,,False,False,,,,start of the panel activity sequence
 date_end,date,True,,False,False,,,,end date for the panel activity sequence
 date_interval,varchar,False,NULL,False,False,,,,experimenting with date intervals (yolo)

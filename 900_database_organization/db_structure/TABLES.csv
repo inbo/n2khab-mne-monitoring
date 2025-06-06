@@ -5,3 +5,4 @@ loceval_outbound,ActivityGroups,yoda,"ward,monkey",,,,,"activity groups (shortli
 loceval_outbound,ActivitySequences,yoda,"ward,monkey",,,,,"activity sequences and groups (all, incl. field), content of the `activity_sequences` POC object"
 loceval_outbound,LocationCalendar,yoda,"ward,monkey",ward,POINT,,,content of the `fag_grts_calendar_2025_attribs_sf` POC object
 loceval_inbound,Visits,yoda,"ward,monkey",ward,POINT,,,retrieving information about location visits
+loceval_inbound,Notes,yoda,"ward,monkey",ward,POINT,,,free notes to be placed on a point on the map
