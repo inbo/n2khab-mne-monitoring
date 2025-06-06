@@ -1,0 +1,10 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+note_id,int,True,,True,True,,,,note index
+hide,boolean,True,0,False,False,,,,used to hide completed notes
+username,varchar,True,,False,False,,,,link to the user who performed the visit
+note,text,False,NULL,False,False,,,,description of the issue
+date_visit,date,False,NULL,False,False,,,,date of the field activity
+location,varchar,False,NULL,False,False,,,,reference to the location
+activity,varchar,False,NULL,False,False,loceval_outbound.Activities.activity,,,what activity was performed
+photo,bytea,False,NULL,False,False,,,,an optional photo of the site
+geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

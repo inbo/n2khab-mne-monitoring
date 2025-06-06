@@ -5,25 +5,45 @@
 + [X] =UNIQUE= tag? -> constraints added
 + [-] migration and real test
   + [X] activity calendar
-  + [ ] activities executed -> "visits"
-  + [ ] stratum to LoCal
-  + [ ] fill "visit_due" by date upon upload
+  + [X] activities executed -> "Visits"
+  + [ ] stratum to LocCal
+  + [ ] a unique identifier for =fag_grts_calendar_2025_attribs_sf= (fag+grts? database?)
+  + [ ] there are unmatched *activities* (join) -> define meaningful set of activities with human-readable description
+  + [ ] handle *users* (meta data table? better column name); e.g. for planning =Visits=
 + [X] test import to =pgmodeler= for visualization
-+ [ ] visits: outsource a table with "locations due", linking to LocationCalendar
-  + subset which is due for a visit
-  + different schema -> it might be necessary to lookup schema in the python generator procedure
-  + regularly updated with stored procedure or python script
-  + column "done" is fed back to LocationCalendar
-+ play with "read/write" permissions of user role =ward= via qgis/qfield
++ [-] Visits: outsource a table with "locations due", linking to LocationCalendar
+  + [X] subset which is due for a visit
+  + [X] different schema -> it might be necessary to lookup schema in the python generator procedure
+  + [ ] date scheduled; user assigned
+  + [ ] regularly updated with stored procedure or python script
+  + [ ] column "done" is fed back to LocationCalendar
++ [X] play with "read/write" permissions of user role =ward= via qgis/qfield
+  + [X] sequence references seem to be an issue (ROLE->SEQUENCE?)
++ [ ] =inbound= user:
+  + [ ] =user= / =user_id= / =user_assigned= columns
+  + [ ] fill automatically upon edit
+  + [ ] or dropdown for form edit (=Users= table ⊂ =metadata= schema?)
++ [ ] second db with third schema: =collected=
+  + [ ] mirror/assembly of previously collected data
+  + [ ] can live on a completely different connection
+  + [ ] replace binaries for links
 + [ ] generalize R functions, to package files
   + =append_tabledata=
   + =upload_and_lookup=
-+ [ ] postgis login from qfield
++ qfield integration
+  + [ ] postgis login from qfield; auth with master password? set ID!
+  + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
+  + [ ] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
 + [ ] backup procedures
 + [ ] forms refinement
-+ [ ] images and how to bring them home
++ [-] images and how to bring them home
+  + [X] BLOB (binary large objects) work as =bytea= data type [[https://www.postgresql.org/docs/current/datatype-binary.html][(see here)]]
+  + [ ] test qfield camera usage
+  + [ ] test downloading and compression/update workflow
 + [ ] offline caching in qfield?
 + [ ] bring to tablet
++ [ ] fix qgis installation
++ [ ] database mirrors: one for me to play, one for the real work
 
 * optional
 + save/restore a whole =db_structure= in pandas tables

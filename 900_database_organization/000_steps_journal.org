@@ -178,3 +178,32 @@ It crashed earlier on syncing the "Plantentuin" pilot project,
 but it worked fine now for importing the database and visualizing relations.
 
 Will be re-used ad hoc later.
+
+** sequence issues
+SCHEDULED: <2025-06-06 Fri>
+
+Due to a misconfiguration, qgis attempts to create a new location id upon attribute save.
+
+Added an "=EXPOST=" sheet to run after succesful creation.
+#+begin_src sql
+GRANT USAGE ON SEQUENCE "loceval_outbound"."seq_locationcalendar_id" TO ward;
+#+end_src
+
+/update:/ Because this was such a common issue, the GRANT USAGE is now integrated for all sequences.
+
+(sequences can be listed with =\ls+=)
+
+** binaries, images, BLOB
+SCHEDULED: <2025-06-06 Fri>
+
+Managed to upload a binary with qgis.
+Will require download/restoration tests and good disk space management.
+
+** Visits
+a derived table showing a subset of the calendar
+
+** TODO CONCEPT
+SCHEDULED: <2025-06-10 Tue>
+
++ will require additional schema's (=metadata=) and databases (=collected= / =mnm_datacollection=)
++ database mirrors (dev/prod)

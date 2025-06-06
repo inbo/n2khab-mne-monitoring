@@ -344,6 +344,12 @@ class dbTable(dict):
         if has_geometry:
             create_string += GetGeometryString(self.schema, self.table, self.geometry)
 
+            # read users require sequence USAGE to be able to update.
+            for user in [self.owner] + self.read_access.split(","):
+                create_string += f"""
+                    GRANT USAGE ON SEQUENCE "{self.schema}"."{self.table}_ogc_fid_seq" TO {user};
+                """
+
         # each column gets its own creation lines
         for col, params in self.items():
             if PD.isna(params["datatype"]):
@@ -370,6 +376,13 @@ class dbTable(dict):
 
             # append sequence string
             create_string += SequenceString(self.schema, self.table, col, self.owner)
+
+
+            # read users require sequence USAGE to be able to update.
+            for user in self.read_access.split(","):
+                create_string += f"""
+                       GRANT USAGE ON SEQUENCE "{self.schema}"."seq_{col}" TO {user};
+                   """
 
 
         # foreign keys link to other tables
@@ -421,23 +434,29 @@ class Database(dict):
         if definition_csv is None:
             raise IOError("please provide a filename with TABLES definitions.")
 
+        # read in the table definitions
         self.base_folder = PL.Path(base_folder)
         definitions = PD.read_csv(self.base_folder/definition_csv)
         # print(definitions)
 
+        # generate all tables (first only in Python)
         for _, tabledef in definitions.iterrows():
             nm = tabledef["table"]
             self[nm] = dbTable(tabledef.to_dict(), self.base_folder)
 
         if (db_connection is not None) and (not lazy_creation):
+            # perform all the action at once
             self.CreateSchema(db_connection)
             self.CreateTables(db_connection)
+            self.ExPostTasks(db_connection)
 
 
     def GetSchemas(self) -> set:
+        # retrieve a list of schemas, even before \dn+ is possible
         return set([tbl.schema for tbl in self.values()])
 
     def CreateSchema(self, db_connection: SQL.Connection) -> None:
+        # create all schema's from the SCHEMA definition file
         CreateSchema(db_connection, self.base_folder/"SCHEMA.csv", selection = self.GetSchemas())
 
 
@@ -446,6 +465,11 @@ class Database(dict):
             create_string = table.GetCreateString()
             ExecuteSQL(db_connection, create_string, verbose = verbose)
 
+    def ExPostTasks(self, db_connection: SQL.Connection, verbose = True):
+        expost = self.base_folder/"EXPOST.csv"
+        commands = PD.read_csv(expost)["sql"].values
+        for expost_command in commands:
+            ExecuteSQL(db_connection, expost_command, verbose = verbose)
 
 
 if __name__ == "__main__":
@@ -471,6 +495,7 @@ if __name__ == "__main__":
     db_connection = ConnectDatabase("inbopostgis_server.conf")
     db.CreateSchema(db_connection)
     db.CreateTables(db_connection)
+    db.ExPostTasks(db_connection)
 
 
 
