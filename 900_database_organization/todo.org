@@ -5,15 +5,16 @@
 + [X] =UNIQUE= tag? -> constraints added
 + [-] migration and real test
   + [X] activity calendar
-  + [ ] activities executed
+  + [ ] activities executed -> "visits"
   + [ ] stratum to LoCal
   + [ ] fill "visit_due" by date upon upload
-+ test import to =pgmodeler= for visualization
-+ locations: outsource a table with "locations due", linking to LocationCalendar
++ [X] test import to =pgmodeler= for visualization
++ [ ] visits: outsource a table with "locations due", linking to LocationCalendar
   + subset which is due for a visit
   + different schema -> it might be necessary to lookup schema in the python generator procedure
   + regularly updated with stored procedure or python script
   + column "done" is fed back to LocationCalendar
++ play with "read/write" permissions of user role =ward= via qgis/qfield
 + [ ] generalize R functions, to package files
   + =append_tabledata=
   + =upload_and_lookup=
@@ -21,6 +22,8 @@
 + [ ] backup procedures
 + [ ] forms refinement
 + [ ] images and how to bring them home
++ [ ] offline caching in qfield?
++ [ ] bring to tablet
 
 * optional
 + save/restore a whole =db_structure= in pandas tables

@@ -15,5 +15,4 @@ db = GDB.Database( \
     db_connection = db_connection \
 )
 
-# SET search_path TO public,"loceval_outbound";
-
+# SET search_path TO public,"loceval_outbound","loceval_inbound";
