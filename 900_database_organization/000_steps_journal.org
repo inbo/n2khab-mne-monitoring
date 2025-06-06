@@ -158,3 +158,23 @@ More info here: [[https://www.postgresql.org/docs/current/ddl-constraints.html]]
 Most useful are
 + =UNIQUE= (e.g. for columns which are pk, but blocked by geometry fid)
 + value ranges, e.g. =CHECK (year > 0)=.
+
+
+** multiple schemas
+SCHEDULED: <2025-06-06 Fri>
+
+In- and outbound schemas can be defined within the same file.
+foreign keys across schema's are possible.
+
+
+** pgmodeler import
+SCHEDULED: <2025-06-06 Fri>
+
+[[https://pgmodeler.io]]
+
+A great tool to visualize relational databases.
+
+It crashed earlier on syncing the "Plantentuin" pilot project,
+but it worked fine now for importing the database and visualizing relations.
+
+Will be re-used ad hoc later.
