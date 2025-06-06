@@ -1,3 +1,3 @@
-column,datatype,not_null,default,primary_key,sequence,foreign_key,comment
-activity_group_id,smallint,TRUE,,TRUE,TRUE,,activity group index (technical)
-activity_group,varchar,TRUE,,FALSE,,,activity group string shorthand
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+activity_group_id,smallint,True,,True,True,,,,activity group index (technical)
+activity_group,varchar,True,,False,False,,,,activity group string shorthand

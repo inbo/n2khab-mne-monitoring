@@ -201,7 +201,10 @@ def ColumnString(schema, table, fieldname, params, no_pk = False):
     if params["default"] == "NULL":
         attributes += ["DEFAULT NULL"]
     elif not PD.isna(params["default"]):
-        attributes += [f"""DEFAULT {str(params["default"])}"""]
+        value = params["default"]
+        if params["datatype"] == "boolean":
+            value = bool(value)
+        attributes += [f"""DEFAULT {str(value)}"""]
 
     # pk
 

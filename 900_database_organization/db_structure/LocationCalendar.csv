@@ -1,12 +1,12 @@
-column,datatype,not_null,default,primary_key,sequence,foreign_key,comment
-locationcalendar_id,smallint,TRUE,,TRUE,TRUE,,calendar index (technical)
-stratum_scheme_targetpanels,varchar,TRUE,,FALSE,FALSE,,a long concatenated label of POC parameters which is currently hard for me to read
-grts_address,int,TRUE,,FALSE,FALSE,,GRTS address
-grts_address_final,int,TRUE,,FALSE,FALSE,,GRTS address after corrections
-date_start,date,TRUE,,FALSE,FALSE,,start of the panel activity sequence
-date_end,date,TRUE,,FALSE,FALSE,,end date for the panel activity sequence
-date_interval,interval,FALSE,NULL,FALSE,FALSE,,experimenting with date intervals (yolo)
-activity_group_id,smallint,TRUE,,FALSE,FALSE,ActivityGroups.activity_group_id,"a link to the activity sequences, includes only field activities"
-rank,smallint,TRUE,,FALSE,FALSE,,execution order of the field activities
-notes,text,FALSE,NULL,FALSE,FALSE,,Free text notes.
-geometry,,,,,,,Point geometry (31370 / Lambert 72): target location
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+locationcalendar_id,smallint,True,,True,True,,,,calendar index (technical)
+stratum_scheme_targetpanels,varchar,True,,False,False,,,,a long concatenated label of POC parameters which is currently hard for me to read
+grts_address,int,True,,False,False,,,,GRTS address
+grts_address_final,int,True,,False,False,,,,GRTS address after corrections
+date_start,date,True,,False,False,,,,start of the panel activity sequence
+date_end,date,True,,False,False,,,,end date for the panel activity sequence
+date_interval,interval,False,NULL,False,False,,,,experimenting with date intervals (yolo)
+activity_group_id,smallint,True,,False,False,ActivityGroups.activity_group_id,,,"a link to the activity sequences, includes only field activities"
+rank,smallint,True,,False,False,,,,execution order of the field activities
+notes,text,False,NULL,False,False,,,,Free text notes.
+geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
