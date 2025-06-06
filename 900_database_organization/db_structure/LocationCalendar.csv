@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-locationcalendar_id,smallint,True,,True,True,,,,calendar index (technical)
+locationcalendar_id,int,True,,True,True,,,,calendar index (technical)
 stratum_scheme_targetpanels,varchar,True,,False,False,,,,a long concatenated label of POC parameters which is currently hard for me to read
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,GRTS address
 grts_address_final,int,True,,False,False,,CHECK (grts_address_final > 0),,GRTS address after corrections

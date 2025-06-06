@@ -6,8 +6,12 @@
 + [-] migration and real test
   + [X] activity calendar
   + [ ] activities executed
+  + [ ] stratum to LoCal
+  + [ ] fill "visit_due" by date upon upload
++ test import to =pgmodeler= for visualization
 + locations: outsource a table with "locations due", linking to LocationCalendar
   + subset which is due for a visit
+  + different schema -> it might be necessary to lookup schema in the python generator procedure
   + regularly updated with stored procedure or python script
   + column "done" is fed back to LocationCalendar
 + [ ] generalize R functions, to package files

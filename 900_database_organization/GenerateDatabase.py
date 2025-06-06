@@ -263,12 +263,16 @@ def ForeignKeyString(schema, table, col, refcol):
     # parametrized SQL string to link a foreign key
 
     fk = refcol.split(".")
-    label = f"fk_{fk[0]}_{table}"
+    label = f"fk_{fk[-2]}_{table}"
+    if len(fk) > 2:
+        target_schema = fk[0]
+    else:
+        target_schema = schema
     fokey_string = f"""
         -- foreign key {col}
         ALTER TABLE "{schema}"."{table}" DROP CONSTRAINT IF EXISTS {label} CASCADE;
         ALTER TABLE "{schema}"."{table}" ADD CONSTRAINT {label} FOREIGN KEY ({col})
-            REFERENCES "{schema}"."{fk[0]}" ({fk[1]}) MATCH SIMPLE
+            REFERENCES "{target_schema}"."{fk[-2]}" ({fk[-1]}) MATCH SIMPLE
             ON DELETE SET NULL ON UPDATE CASCADE;
     """
     # note the last line: we can delete, and cascade updates
