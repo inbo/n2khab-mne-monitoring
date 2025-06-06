@@ -1,0 +1,10 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+visit_id,int,True,,True,True,,,,visit index
+locationcalendar_id,int,True,,False,False,loceval_outbound.LocationCalendar.locationcalendar_id,,,link to LocationCalendar
+stratum_scheme_targetpanels,varchar,True,,False,False,,,,a long concatenated label of POC parameters which is currently hard for me to read
+date_visit,date,True,,False,False,,,,date of the field activity
+activity,varchar,False,,False,False,loceval_outbound.Activities.activity,,,what activity was performed
+visit_due,boolean,True,0,False,False,,,,filter column to find locations which are due to visit
+visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
+notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
+geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

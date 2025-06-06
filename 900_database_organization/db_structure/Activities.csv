@@ -1,6 +1,6 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 activity_id,smallint,True,,True,True,,,,activity index (technical)
-activity,varchar,True,,False,False,,,,activity string shorthand
+activity,varchar,True,,False,False,,UNIQUE,,activity string shorthand
 activity_name,varchar,True,,False,False,,,,description of the activity
 is_datacollection_method,boolean,False,NULL,False,False,,,,
 is_field_activity,boolean,False,NULL,False,False,,,,
