@@ -264,7 +264,7 @@ Contains a `POINT` geometry and columns:
 | grts_address_final          | <int>       |
 | date_start                  | <date>      |
 | date_end                    | <date>      |
-| date_interval               | <Interval>  |
+| date_interval               | <varchar>   |
 | field_activity_group        | <fct>       |
 | rank                        | <int>       |
 | geometry                    | <POINT [m]> |
@@ -276,8 +276,7 @@ Contains a `POINT` geometry and columns:
 Working out a way to load the config.
 Config has the following structure:
 
-```{toml}
-#| eval: false
+```
     [test]
     server = localhost
     port = 5439
@@ -515,13 +514,14 @@ activity_sequence_lookup <- upload_and_lookup(
 ```{r upload-calendar}
 location_calendar <- fag_grts_calendar_2025_attribs_sf %>% 
     mutate(
-      stratum_scheme_targetpanels = as.character(stratum_scheme_targetpanels)
+      stratum_scheme_targetpanels = as.character(stratum_scheme_targetpanels),
+      date_interval = as.character(date_interval)
     ) %>% 
     left_join(
       activity_group_lookup,
       by = join_by(field_activity_group == activity_group)
     ) %>%
-  select(-field_activity_group, -date_interval)
+  select(-field_activity_group) # , -date_interval
 
 sf::st_geometry(location_calendar) = "wkb_geometry"
 glimpse(location_calendar)

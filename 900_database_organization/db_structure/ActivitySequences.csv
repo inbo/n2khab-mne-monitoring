@@ -1,7 +1,7 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 activity_sequence_id,smallint,True,,True,True,,,,activity sequence index (technical)
 activity_sequence,varchar,True,,False,False,,,,activity sequence label shorthand
-rank,varchar,True,,False,False,,,,order of the activities
+rank,smallint,True,,False,False,,CHECK (rank > 0),,order of the activities
 max_rank,smallint,False,NULL,False,False,,,,constraint on activity order (do not do later than this)
 activity_id,smallint,True,,False,False,Activities.activity_id,,,ling to the activities
 choose_one,boolean,False,0,False,False,,,,in life one constantly has to choose what to do
