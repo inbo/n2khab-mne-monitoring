@@ -2,6 +2,7 @@ certifi==2025.4.26
 charset-normalizer==3.4.2
 contourpy==1.3.2
 cycler==0.12.1
+defusedxml==0.7.1
 fonttools==4.58.1
 GDAL==3.11.0
 greenlet==3.2.2
@@ -10,10 +11,10 @@ kiwisolver==1.4.8
 lxml==5.4.0
 matplotlib==3.10.3
 numpy==2.2.6
+odfpy==1.4.1
 OWSLib==0.34.0
 packaging==25.0
 pandas==2.2.3
-pathlib==1.0.1
 pillow==11.2.1
 psycopg2==2.9.10
 pyparsing==3.2.3
