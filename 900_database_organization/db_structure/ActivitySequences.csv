@@ -1,8 +1,8 @@
-column,datatype,not_null,default,primary_key,sequence,foreign_key,comment
-activity_sequence_id,smallint,TRUE,,TRUE,TRUE,,activity sequence index (technical)
-activity_sequence,varchar,TRUE,,FALSE,,,activity sequence label shorthand
-rank,varchar,TRUE,,,,,order of the activities
-max_rank,smallint,FALSE,NULL,,,,constraint on activity order (do not do later than this)
-activity_id,smallint,TRUE,,,,Activities.activity_id,ling to the activities
-choose_one,boolean,FALSE,FALSE,,,,in life one constantly has to choose what to do
-activity_group_id,smallint,FALSE,NULL,,,ActivityGroups.activity_group_id,"link to activity groups, to group activities"
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+activity_sequence_id,smallint,True,,True,True,,,,activity sequence index (technical)
+activity_sequence,varchar,True,,False,False,,,,activity sequence label shorthand
+rank,varchar,True,,False,False,,,,order of the activities
+max_rank,smallint,False,NULL,False,False,,,,constraint on activity order (do not do later than this)
+activity_id,smallint,True,,False,False,Activities.activity_id,,,ling to the activities
+choose_one,boolean,False,0,False,False,,,,in life one constantly has to choose what to do
+activity_group_id,smallint,False,NULL,False,False,ActivityGroups.activity_group_id,,,"link to activity groups, to group activities"
