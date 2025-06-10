@@ -1,0 +1,6 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+teammember_id,smallint,True,,True,True,,,,team member index (technical)
+username,varchar,True,,False,False,,UNIQUE,,team member shortname
+family_name,varchar,False,NULL,False,False,,,,family name of the team member
+given_name,varchar,False,NULL,False,False,,,,first name of the team member
+notes,text,False,NULL,False,False,,,,relevant notes on this team member (e.g. function)

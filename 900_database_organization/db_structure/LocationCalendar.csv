@@ -7,13 +7,14 @@ stratum,varchar,True,,False,False,,,,stratum (code)
 targetpanel,varchar,True,,False,False,,,,target panel
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,GRTS address
 grts_address_final,int,True,,False,False,,CHECK (grts_address_final > 0),,GRTS address after corrections
-user_assigned,varchar,False,NULL,False,False,,,,filter for an assignee
+teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee
+stratum_to_expect,varchar,False,NULL,False,False,,,,"referring to ""N2kHabTypes"".""type"""
 date_start,date,True,,False,False,,,,start of the panel activity sequence
 date_end,date,True,,False,False,,,,end date for the panel activity sequence
 date_interval,varchar,False,NULL,False,False,,,,experimenting with date intervals (yolo)
-activity_group_id,smallint,True,,False,False,ActivityGroups.activity_group_id,,,"a link to the activity sequences, includes only field activities"
+activity_group_id,smallint,True,,False,False,metadata.ActivityGroups.activity_group_id,,,"a link to the activity sequences, includes only field activities"
 rank,smallint,True,,False,False,,CHECK (rank > 0),,execution order of the field activities
+visit_planned,date,False,NULL,False,False,,,,planned date of visit
 visit_due,boolean,True,0,False,False,,,,filter column to find locations which are due to visit
-visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
