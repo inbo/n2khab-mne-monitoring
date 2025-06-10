@@ -1,3 +1,4 @@
 schema,owner,usage
-loceval_outbound,yoda,"ward,monkey"
-loceval_inbound,yoda,"ward,monkey"
+outbound,yoda,"ward,monkey"
+inbound,yoda,"ward,monkey"
+metadata,yoda,"ward,monkey"

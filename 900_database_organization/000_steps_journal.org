@@ -224,8 +224,43 @@ SCHEDULED: <2025-06-10 Tue>
 #+end_src
 
 
-** TODO CONCEPT
+** Schema Re-Organisation
 SCHEDULED: <2025-06-10 Tue>
 
-+ will require additional schema's (=metadata=, e.g. for =username=, =activity_groups=, or sequences) and outbound/inbound databases (=collected= / =mnm_datacollection=)
-+ database mirrors (dev/prod)
+We now use simple names:
++ metadata
++ outbound
++ inbound
+
+separation is based on user rights and purpose
+
+
+** TeamMembers
+SCHEDULED: <2025-06-10 Tue>
+
+to refer to users who upload stuff
+
+
+** N2kHabTypes
+SCHEDULED: <2025-06-10 Tue>
+
+reference to habitat types and strata
++ adding =stratum_to_expect= to LocCal
++ adding =stratum_assigned= to =Visits=
+
+
+** TODO CONCEPT
+SCHEDULED: <2025-06-11 Wed>
+
++ [X] will require additional schema's (=metadata=, e.g. for =username=, =activity_groups=, or sequences) and =outbound=/=inbound= database schemes
++ [ ] database mirrors (=loceval_dev= / =loceval=)
+
+
+** TODO Data Captation
+SCHEDULED: <2025-06-13 Fri>
+
+*The database =loceval= is transient.*
+Data prepared at home or generated in the field must be captured and moved to a completely different database: =mnmdb=.
++ =LocationCalendar= is augmented and changed dynamically -> append diffs to =mnmdb=
++ =Visits= have a field to indicate they are done, but should be moved/pruned regularly
++ =FieldNotes= must be stored irrespective of the =hide= tag; images linked and moved to storage

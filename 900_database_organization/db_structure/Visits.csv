@@ -1,13 +1,12 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 visit_id,int,True,,True,True,,,,visit index
-locationcalendar_id,int,True,,False,False,loceval_outbound.LocationCalendar.locationcalendar_id,,,link to LocationCalendar
-username,varchar,False,NULL,False,False,,,,link to the user who performed the visit
-date_start,date,True,,False,False,,,,start panel interval
-date_end,date,True,,False,False,,,,end panel interval
+locationcalendar_id,int,True,,False,False,outbound.LocationCalendar.locationcalendar_id,,,link to LocationCalendar
+teammember_id,varchar,False,NULL,False,False,,,,link to the user who performed the visit
 date_visit,date,False,NULL,False,False,,,,date of the field activity
-activity_group_id,smallint,False,,False,False,loceval_outbound.ActivityGroups.activity_group_id,,,"a link to the activity sequences, includes only field activities"
+activity_group_id,smallint,False,,False,False,metadata.ActivityGroups.activity_group_id,,,"a link to the activity sequences, includes only field activities"
 rank,smallint,False,,False,False,,CHECK (rank > 0),,execution order of the field activities
-visit_due,boolean,True,0,False,False,,,,filter column to find locations which are due to visit
 visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
+,,False,,False,False,,,,
+stratum_assigned,varchar,False,CAST('unassigned' AS VARCHAR),False,False,,,,"referring to ""N2kHabTypes"".""type"""
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

@@ -470,13 +470,31 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 
 ```
 
+### TeamMembers
+
+A list of team members who may collect data
+related to database usernames.
+
+```{r upload-teammembers}
+members <- read_csv(here::here("db_structure", "data_TeamMembers.csv"))
+
+member_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "TeamMembers"),
+  members,
+  ref_col = "username",
+  index_col = "teammember_id"
+)
+
+
+```
 
 ### Protocols
 
 ```{r upload-protocols}
 
 # conn <- db_connection
-# db_table <- DBI::Id(schema = "loceval_outbound", table = "Protocols")
+# db_table <- DBI::Id(schema = "outbound", table = "Protocols")
 # data_to_append <- protocols
 # reference_column <- "protocol"
 
@@ -493,7 +511,7 @@ protocols <- activities %>%
 
 protocol_lookup <- upload_and_lookup(
   db_connection,
-  DBI::Id(schema = "loceval_outbound", table = "Protocols"),
+  DBI::Id(schema = "metadata", table = "Protocols"),
   protocols,
   ref_col = "protocol",
   index_col = "protocol_id"
@@ -518,7 +536,7 @@ activity_groups <- activity_sequences %>%
 
 activity_group_lookup <- upload_and_lookup(
   db_connection,
-  DBI::Id(schema = "loceval_outbound", table = "ActivityGroups"),
+  DBI::Id(schema = "metadata", table = "ActivityGroups"),
   activity_groups,
   ref_col = "activity_group",
   index_col = "activity_group_id"
@@ -542,7 +560,7 @@ activities_to_upload <- activities %>%
 
 activity_lookup <- upload_and_lookup(
   db_connection,
-  DBI::Id(schema = "loceval_outbound", table = "Activities"),
+  DBI::Id(schema = "metadata", table = "Activities"),
   activities_to_upload,
   ref_col = "activity",
   index_col = "activity_id"
@@ -561,13 +579,29 @@ activity_sequences_to_upload <- activity_sequences %>%
 
 activity_sequence_lookup <- upload_and_lookup(
   db_connection,
-  DBI::Id(schema = "loceval_outbound", table = "ActivitySequences"),
+  DBI::Id(schema = "metadata", table = "ActivitySequences"),
   activity_sequences_to_upload,
   ref_col = "activity_sequence",
   index_col = "activity_sequence_id"
 )
 ```
 
+
+### Habitat Types
+`n2khab_types_expanded_properties` -> `N2kHabTypes`
+
+```{r upload-n2khabtype}
+
+n2khabtype_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "N2kHabTypes"),
+  n2khab_types_expanded_properties,
+  ref_col = "type",
+  index_col = "n2khabtype_id"
+)
+
+# SELECT DISTINCT type FROM "metadata"."N2kHabTypes" ORDER BY type;
+```
 
 ## `sf` table
 
@@ -605,14 +639,14 @@ glimpse(location_calendar)
 # delete all previously uploaded table content
 rs <- DBI::dbSendStatement(
   db_connection,
-  'DELETE FROM "loceval_outbound"."LocationCalendar";'
+  'DELETE FROM "outbound"."LocationCalendar";'
   )
 DBI::dbClearResult(rs)
 
 # re-upload
 sf::dbWriteTable(
   db_connection,
-  DBI::Id(schema = "loceval_outbound", table = "LocationCalendar"),
+  DBI::Id(schema = "outbound", table = "LocationCalendar"),
   location_calendar,
   row.names = FALSE,
   overwrite = FALSE,
@@ -663,7 +697,7 @@ knitr::kable(head(
 
 loccal_lookup <- dplyr::tbl(
     db_connection,
-    DBI::Id(schema = "loceval_outbound", table = "LocationCalendar")
+    DBI::Id(schema = "outbound", table = "LocationCalendar")
   ) %>%
   select(
     scheme,
@@ -711,7 +745,7 @@ Now comes the part of handling tables which might already include data.
 
 ## Visits
 
-The locations to visit will be stored in a separate table: `loceval_inbound.Visits`.
+The locations to visit will be stored in a separate table: `inbound.Visits`.
 
 
 ```{r upcoming-visits}
@@ -724,8 +758,6 @@ visit_preparation <- location_calendar %>%
   ) %>%
   select(
     locationcalendar_id,
-    date_start,
-    date_end,
     activity_group_id,
     rank,
     wkb_geometry
@@ -734,7 +766,7 @@ visit_preparation <- location_calendar %>%
 
 sf::dbWriteTable(
   db_connection,
-  DBI::Id(schema = "loceval_inbound", table = "Visits"),
+  DBI::Id(schema = "inbound", table = "Visits"),
   visit_preparation,
   row.names = FALSE,
   overwrite = FALSE,
@@ -743,10 +775,15 @@ sf::dbWriteTable(
   binary = TRUE
   )
 
-# TODO join "activity"
 
 ```
 
+
+<!-- TODO join "activity"? --> 
+
 # NEXT STEPS
 
-
+- [X] metadata table for habitat/stratum:
+  - `n2khab_types_expanded_properties` -> `N2kHabTypes`
+  - `CHECK ((stratum_to_expect IS NULL) OR (stratum_to_expect IN (SELECT DISTINCT type FROM "metadata"."N2kHabType"))`
+- [ ] find meaningful summary table of "activities"

@@ -1,8 +1,10 @@
 schema,table,owner,read_access,write_access,geometry,constraint,freesql,comment
-loceval_outbound,Protocols,yoda,"ward,monkey",,,,,protocols (preliminary version)
-loceval_outbound,Activities,yoda,"ward,monkey",,,,,"activities (all, incl. field), content of the `activities` POC object"
-loceval_outbound,ActivityGroups,yoda,"ward,monkey",,,,,"activity groups (shortlist), required because the groups are not unique in `ActivitySequences`"
-loceval_outbound,ActivitySequences,yoda,"ward,monkey",,,,,"activity sequences and groups (all, incl. field), content of the `activity_sequences` POC object"
-loceval_outbound,LocationCalendar,yoda,"ward,monkey",ward,POINT,,,content of the `fag_grts_calendar_2025_attribs_sf` POC object
-loceval_inbound,Visits,yoda,"ward,monkey",ward,POINT,,,retrieving information about location visits
-loceval_inbound,Notes,yoda,"ward,monkey",ward,POINT,,,free notes to be placed on a point on the map
+metadata,Protocols,yoda,"ward,monkey",,,,,protocols (preliminary version)
+metadata,Activities,yoda,"ward,monkey",,,,,"activities (all, incl. field), content of the `activities` POC object"
+metadata,ActivityGroups,yoda,"ward,monkey",,,,,"activity groups (shortlist), required because the groups are not unique in `ActivitySequences`"
+metadata,ActivitySequences,yoda,"ward,monkey",,,,,"activity sequences and groups (all, incl. field), content of the `activity_sequences` POC object"
+metadata,TeamMembers,yoda,"ward,monkey",,,,,list of team members
+metadata,N2kHabTypes,yoda,"ward,monkey",,,,,"habitat type, stratum, etc."
+outbound,LocationCalendar,yoda,"ward,monkey",ward,POINT,,,content of the `fag_grts_calendar_2025_attribs_sf` POC object
+inbound,Visits,yoda,"ward,monkey",ward,POINT,,,retrieving information about location visits
+inbound,FieldNotes,yoda,"ward,monkey",ward,POINT,,,free notes to be placed on a point on the map

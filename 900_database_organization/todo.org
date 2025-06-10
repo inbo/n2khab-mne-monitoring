@@ -7,23 +7,24 @@
   + [X] activity calendar
   + [X] activities executed -> "Visits"
   + [X] stratum to LocCal
-  + [ ] a unique identifier for =fag_grts_calendar_2025_attribs_sf= (fag+grts? database?)
+  + [ ] a unique identifier for =fag_stratum_grts_calendar_2025_attribs_sf= (fag+grts? database?)
   + [ ] there are unmatched *activities* (join) -> define meaningful set of activities with human-readable description
-  + [ ] handle *users* (meta data table? better column name); e.g. for planning =Visits=
+  + [ ] there are non-unique LocationCalendar entries, smushed before upload
+  + [X] handle *teammembers* (meta data table); e.g. for planning =Visits=
 + [X] test import to =pgmodeler= for visualization
 + [-] Visits: outsource a table with "locations due", linking to LocationCalendar
   + [X] subset which is due for a visit
   + [X] different schema -> it might be necessary to lookup schema in the python generator procedure
-  + [ ] date scheduled; user assigned
+  + [ ] date scheduled; user assigned -> via desktop work (google sheet -> R Script)
   + [ ] regularly updated with stored procedure or python script
   + [ ] column "done" is fed back to LocationCalendar
 + [X] play with "read/write" permissions of user role =ward= via qgis/qfield
   + [X] sequence references seem to be an issue (ROLE->SEQUENCE?)
-+ [ ] =inbound= user:
-  + [ ] =user= / =user_id= / =user_assigned= columns
++ [ ] =inbound= -> =teammember_id=:
+  + [X] =teammember_id= columns
   + [ ] fill automatically upon edit
-  + [ ] or dropdown for form edit (=Users= table ⊂ =metadata= schema?)
-+ [ ] second db with third schema: =collected=
+  + [ ] or dropdown for form edit (=Teammembers= table ⊂ =metadata= schema?)
++ [ ] second db with third schema: =mnmdb=
   + [ ] mirror/assembly of previously collected data
   + [ ] can live on a completely different connection
   + [ ] replace image blobs with file links
