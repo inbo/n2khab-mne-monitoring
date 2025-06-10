@@ -43,6 +43,9 @@ library("configr")
 library("DBI")
 library("RPostgres")
 
+library("mapview")
+# mapviewOptions(platform = "mapdeck")
+
 projroot <- find_root(is_rstudio_project)
 
 # Load some custom GRTS functions
@@ -80,14 +83,13 @@ load(path)
 
 In [this useful file](https://github.com/inbo/n2khab-mne-monitoring/blob/fieldworkdata_supportbyfloris/020_fieldwork_organization/code_snippets.R), I found the following interesting object stack:
 
-- `fag_grts_calendar_2025_attribs_sf`
-  - `fag_grts_calendar_2025_attribs`
-    - `fag_stratum_grts_calendar_2025_attribs`
-      - `fag_stratum_grts_calendar` (raw)
-      - `scheme_moco_ps_stratum_targetpanel_spsamples`
-        - `scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar` (raw)
-        - `n2khab_strata` (raw)
-        - `n2khab_types_expanded_properties` (raw)
+- `fag_stratum_grts_calendar_2025_attribs_sf`
+  - `fag_stratum_grts_calendar_2025_attribs`
+    - `fag_stratum_grts_calendar` (raw)
+    - `scheme_moco_ps_stratum_targetpanel_spsamples`
+      - `scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar` (raw)
+      - `n2khab_strata` (raw)
+      - `n2khab_types_expanded_properties` (raw)
   - `grts_mh` (n2khab)
   - `grts_mh_index`
     - (`grts_mh`)
@@ -104,7 +106,6 @@ grts_mh_index <- tibble(
   grts_address = values(grts_mh)[, 1]
 ) %>%
   filter(!is.na(grts_address))
-
 
 
 scheme_moco_ps_stratum_targetpanel_spsamples <-
@@ -187,79 +188,86 @@ fag_stratum_grts_calendar_2025_attribs <-
     relationship = "many-to-many",
     unmatched = c("error", "drop")
   ) %>%
-  relocate(grts_address_final, .after = grts_address) %>%
-  select(-module_combo_code, -panel_set) %>%
-  # flatten scheme x targetpanel to unique strings per stratum x location x FAG
-  # occasion. Note that the scheme_targetpanels attribute is a shrinked version
-  # of the one at the level of the whole sample (see sampling unit attributes in
-  # the beginning), since we limited the activities to those planned before
-  # 2026, and then generate stratum_scheme_targetpanels as a location attribute.
-  # So it says specifically which schemes & targetpanels are served by the
-  # specific fieldwork at a specific date interval.
-  unite(scheme_targetpanel, scheme, targetpanel, sep = ":") %>%
-  nest(scheme_targetpanels = scheme_targetpanel) %>%
-  mutate(
-    scheme_targetpanels = map_chr(scheme_targetpanels, \(df) {
-      str_flatten(
-        unique(df$scheme_targetpanel),
-        collapse = " | "
-      )
-    }) %>%
-      factor()
-  ) %>%
-  relocate(scheme_targetpanels)
+  relocate(grts_address_final, .after = grts_address)
+  # %>%
+  # select(-module_combo_code, -panel_set) %>%
+  # # flatten scheme x targetpanel to unique strings per stratum x location x FAG
+  # # occasion. Note that the scheme_targetpanels attribute is a shrinked version
+  # # of the one at the level of the whole sample (see sampling unit attributes in
+  # # the beginning), since we limited the activities to those planned before
+  # # 2026, and then generate stratum_scheme_targetpanels as a location attribute.
+  # # So it says specifically which schemes & targetpanels are served by the
+  # # specific fieldwork at a specific date interval.
+  # unite(scheme_targetpanel, scheme, targetpanel, sep = ":") %>%
+  # nest(scheme_targetpanels = scheme_targetpanel) %>%
+  # mutate(
+  #   scheme_targetpanels = map_chr(scheme_targetpanels, \(df) {
+  #     str_flatten(
+  #       unique(df$scheme_targetpanel),
+  #       collapse = " | "
+  #     )
+  #   }) %>%
+  #     factor()
+  # ) %>%
+  # relocate(scheme_targetpanels)
 
-
-# Derive an object where stratum x scheme_targetpanels is flattened per location
-# x FAG occasion. Beware that more locations will emerge due to local
-# replacement, so this is misleading for counting & planning (but useful in
-# spatial visualization)
-fag_grts_calendar_2025_attribs <-
-  fag_stratum_grts_calendar_2025_attribs %>%
-  mutate(
-    stratum_scheme_targetpanels = str_c(
-      stratum,
-      " (",
-      grts_join_method,
-      ") ",
-      " [",
-      scheme_targetpanels,
-      "]"
-    ),
-    .keep = "unused"
-  ) %>%
-  summarize(
-    stratum_scheme_targetpanels =
-      str_flatten(
-        unique(stratum_scheme_targetpanels),
-        collapse = " \u2588 "
-      ) %>%
-      factor(),
-    .by = !stratum_scheme_targetpanels
-  ) %>%
-  relocate(stratum_scheme_targetpanels)
-
-# A simple derived spatial object (as points; see earlier for the actual unit
-# geometries). Points are still repeated because of different date_interval &
-# FAG values at the same location.
-fag_grts_calendar_2025_attribs_sf <-
-  fag_grts_calendar_2025_attribs %>%
-  add_point_coords_grts(
-    grts_var = "grts_address_final",
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  )
+# # Derive an object where stratum x scheme_targetpanels is flattened per location
+# # x FAG occasion. Beware that more locations will emerge due to local
+# # replacement, so this is misleading for counting & planning (but useful in
+# # spatial visualization)
+# fag_grts_calendar_2025_attribs <-
+#   fag_stratum_grts_calendar_2025_attribs %>%
+#   mutate(
+#     stratum_scheme_targetpanels = str_c(
+#       stratum,
+#       " (",
+#       grts_join_method,
+#       ") ",
+#       " [",
+#       scheme_targetpanels,
+#       "]"
+#     ),
+#     .keep = "unused"
+#   ) %>%
+#   summarize(
+#     stratum_scheme_targetpanels =
+#       str_flatten(
+#         unique(stratum_scheme_targetpanels),
+#         collapse = " \u2588 "
+#       ) %>%
+#       factor(),
+#     .by = !stratum_scheme_targetpanels
+#   ) %>%
+#   relocate(stratum_scheme_targetpanels)
+# 
+# # A simple derived spatial object (as points; see earlier for the actual unit
+# # geometries). Points are still repeated because of different date_interval &
+# # FAG values at the same location.
+# fag_grts_calendar_2025_attribs_sf <-
+#   fag_grts_calendar_2025_attribs %>%
+#   add_point_coords_grts(
+#     grts_var = "grts_address_final",
+#     spatrast = grts_mh,
+#     spatrast_index = grts_mh_index
+#   )
 
 # glimpse(fag_grts_calendar_2025_attribs_sf)
+#
+# fag_grts_calendar_2025_attribs_sf %>%
+#     mapview::mapview(zcol = "rank")
+#     # sf::st_geometry() %>% 
+#     # plot()
 
-knitr::kable(head(
-  sf::st_drop_geometry(fag_grts_calendar_2025_attribs_sf)
-))
+# knitr::kable(head(
+#   sf::st_drop_geometry(fag_grts_calendar_2025_attribs_sf)
+# ))
 ```
 
 Contains a `POINT` geometry and columns:
 
-| stratum_scheme_targetpanels | <fct>       |
+| stratum                     | <fct>       |
+| scheme                      | <fct>       |
+| targetpanel                 | <fct>       |
 | grts_address                | <int>       |
 | grts_address_final          | <int>       |
 | date_start                  | <date>      |
@@ -268,6 +276,55 @@ Contains a `POINT` geometry and columns:
 | field_activity_group        | <fct>       |
 | rank                        | <int>       |
 | geometry                    | <POINT [m]> |
+
+
+:::{.callout-warning title="Mind the note by Floris:"}
+Beware that more locations will emerge due to local replacement, so this is
+misleading for counting & planning (but useful in spatial visualization)
+:::
+
+
+## stratum
+
+We need to get at least the stratum for the target field activity.
+
+- always `join_by(sample_support_code, unit_id)`
+- `stratum_scheme_targetpanels := stratum (grts_join_method) [scheme_targetpanels]` -> replaced (went to upstream table)
+
+| `fag_stratum_grts_calendar_2025_attribs` | the object from which the calendar was derived, |
+|                                          | with `stratum` still in there                   |
+| `n2khab_types_expanded_properties`       | links type and typelevel to sample support code |
+| `stratum_schemetargetpanel_spsamples`    | has scheme, grts, and ssc                       |
+
+```{r join-stratum}
+# scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar
+# scheme_moco_ps_stratum_targetpanel_spsamples
+# stratum_schemetargetpanel_spsamples
+# stratum_units_non_cell_n2khab
+
+
+fag_stratum_grts_calendar_2025_attribs_sf <-
+  fag_stratum_grts_calendar_2025_attribs %>%
+  add_point_coords_grts(
+    grts_var = "grts_address_final",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+fag_stratum_grts_calendar_2025_attribs_sf %>%
+  head(32) %>% 
+  sf::st_geometry() %>%
+  plot()
+
+# mapview::mapview(
+#   fag_stratum_grts_calendar_2025_attribs_sf %>%
+#     head(100) %>% 
+#     sf::st_geometry()
+#   # , col.regions = "steelblue"
+#   # , platform = "mapdeck"
+#   # , zcol = "stratum"
+#   )
+```
 
 
 
@@ -326,7 +383,7 @@ connect_database_configfile <- function(config_filepath) {
     .GlobalEnv,
     function(e){
       DBI::dbDisconnect(database_connection)
-      message(sprintf("database %s disconnected.", db_label))
+      message(sprintf("Database %s gracefully disconnected.", db_label))
     },
     onexit = TRUE
   )
@@ -346,7 +403,7 @@ db_connection <- connect_database_configfile(config_filepath)
 #| eval: false
 glimpse(activities)
 glimpse(activity_sequences)
-glimpse(fag_grts_calendar_2025_attribs_sf)
+glimpse(fag_stratum_grts_calendar_2025_attribs_sf)
 ```
 
 ## MetaData
@@ -412,6 +469,7 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 # TODO there are unmatched activities
 
 ```
+
 
 ### Protocols
 
@@ -515,17 +573,30 @@ activity_sequence_lookup <- upload_and_lookup(
 
 ### LocationCalendar
 
+:::{.callout-note}
+`fag_stratum_grts_calendar` defines the needed visits of the spatial sampling
+units and is organized at the FAG level. The rank is an indication of the needed
+order of different FAGs at one location, in the same cycle. In some cases
+repetitions do happen for certain FAGs in a scheme, not all FAGs, as prescribed
+by the date interval.
+:::
+
+
 ```{r upload-calendar}
-location_calendar <- fag_grts_calendar_2025_attribs_sf %>% 
+location_calendar <- fag_stratum_grts_calendar_2025_attribs_sf %>% 
     mutate(
-      stratum_scheme_targetpanels = as.character(stratum_scheme_targetpanels),
+      scheme = as.character(scheme),
+      module_combo_code = as.character(module_combo_code),
+      stratum = as.character(stratum),
+      targetpanel = as.character(targetpanel),
       date_interval = as.character(date_interval)
     ) %>% 
     left_join(
       activity_group_lookup,
       by = join_by(field_activity_group == activity_group)
     ) %>%
-  select(-field_activity_group) # , -date_interval
+  select(-field_activity_group, -grts_join_method) %>% # , -date_interval
+  distinct()
 
 sf::st_geometry(location_calendar) = "wkb_geometry"
 glimpse(location_calendar)
@@ -549,16 +620,57 @@ sf::dbWriteTable(
   factorsAsCharacter = TRUE,
   binary = TRUE
   )
+```
 
 
+The rows in the calendar were not unique!
+Here is how to find duplicates:
+
+```{r unique-loccal}
 # SELECT * FROM "LocationCalendar";
+
+# TODO: why are these non-unique?
+
+location_calendar_unique_count <- location_calendar %>%
+  select(
+    scheme,
+    module_combo_code,
+    panel_set,
+    stratum,
+    targetpanel,
+    activity_group_id,
+    grts_address_final,
+    date_start
+  ) %>%
+  count(
+    scheme,
+    module_combo_code,
+    panel_set,
+    stratum,
+    targetpanel,
+    activity_group_id,
+    grts_address_final,
+    date_start
+  ) %>%
+  arrange(desc(n))
+knitr::kable(head(
+  location_calendar_unique_count
+  ))
+```
+
+
+```{r re-upload-loccal}
 
 loccal_lookup <- dplyr::tbl(
     db_connection,
     DBI::Id(schema = "loceval_outbound", table = "LocationCalendar")
   ) %>%
   select(
-    stratum_scheme_targetpanels,
+    scheme,
+    module_combo_code,
+    panel_set,
+    stratum,
+    targetpanel,
     activity_group_id,
     grts_address_final,
     date_start,
@@ -568,17 +680,21 @@ loccal_lookup <- dplyr::tbl(
 
 
 location_calendar <- location_calendar %>%
-    left_join(
-      loccal_lookup,
-      by = join_by(
-        stratum_scheme_targetpanels,
-        activity_group_id,
-        grts_address_final,
-        date_start
-      ),
-      relationship = "one-to-one",
-      unmatched = "error"
-    ) 
+  left_join(
+    loccal_lookup,
+    by = join_by(
+      scheme,
+      module_combo_code,
+      panel_set,
+      stratum,
+      targetpanel,
+      activity_group_id,
+      grts_address_final,
+      date_start
+    ),
+    relationship = "one-to-one",
+    unmatched = "error"
+  ) 
 
 ```
 
