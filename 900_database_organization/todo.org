@@ -6,7 +6,7 @@
 + [-] migration and real test
   + [X] activity calendar
   + [X] activities executed -> "Visits"
-  + [ ] stratum to LocCal
+  + [X] stratum to LocCal
   + [ ] a unique identifier for =fag_grts_calendar_2025_attribs_sf= (fag+grts? database?)
   + [ ] there are unmatched *activities* (join) -> define meaningful set of activities with human-readable description
   + [ ] handle *users* (meta data table? better column name); e.g. for planning =Visits=
@@ -26,7 +26,7 @@
 + [ ] second db with third schema: =collected=
   + [ ] mirror/assembly of previously collected data
   + [ ] can live on a completely different connection
-  + [ ] replace binaries for links
+  + [ ] replace image blobs with file links
 + [ ] generalize R functions, to package files
   + =append_tabledata=
   + =upload_and_lookup=

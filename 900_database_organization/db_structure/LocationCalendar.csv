@@ -1,6 +1,10 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 locationcalendar_id,int,True,,True,True,,,,calendar index (technical)
-stratum_scheme_targetpanels,varchar,True,,False,False,,,,a long concatenated label of POC parameters which is currently hard for me to read
+scheme,varchar,True,,False,False,,,,scheme
+module_combo_code,varchar,True,,False,False,,,,moco code
+panel_set,smallint,True,,False,False,,,,panel set
+stratum,varchar,True,,False,False,,,,stratum (code)
+targetpanel,varchar,True,,False,False,,,,target panel
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,GRTS address
 grts_address_final,int,True,,False,False,,CHECK (grts_address_final > 0),,GRTS address after corrections
 user_assigned,varchar,False,NULL,False,False,,,,filter for an assignee

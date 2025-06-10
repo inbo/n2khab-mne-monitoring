@@ -200,10 +200,32 @@ Managed to upload a binary with qgis.
 Will require download/restoration tests and good disk space management.
 
 ** Visits
+SCHEDULED: <2025-06-06 Fri>
 a derived table showing a subset of the calendar
+
+** stratum et al. to Location Calendar
+SCHEDULED: <2025-06-10 Tue>
+
++ used an upstream object of =fag_grts_calendar_...= to have scheme/stratum/module/panel for calendar
++ TODO: some locations were not unique
+
+#+begin_src R
+  fag_stratum_grts_calendar_2025_attribs_sf %>%
+    select(
+      scheme,
+      module_combo_code,
+      panel_set,
+      stratum,
+      targetpanel,
+      field_activity_group,
+      grts_address_final,
+      date_start
+    )
+#+end_src
+
 
 ** TODO CONCEPT
 SCHEDULED: <2025-06-10 Tue>
 
-+ will require additional schema's (=metadata=) and databases (=collected= / =mnm_datacollection=)
++ will require additional schema's (=metadata=, e.g. for =username=, =activity_groups=, or sequences) and outbound/inbound databases (=collected= / =mnm_datacollection=)
 + database mirrors (dev/prod)
