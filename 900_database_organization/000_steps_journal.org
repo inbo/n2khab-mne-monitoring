@@ -373,6 +373,16 @@ FROM "outbound"."LocationCalendar";
 Views are now part of the database definition.
 I tested that notes can be stored back to the database. HOORAY!
 
+** first qgis tests
+SCHEDULED: <2025-06-11 Wed>
+
++ seems nice
++ live update with the server
++ forms design
++ conditional formatting
+
+missing qfield export.
+
 
 ** TODO Data Captation
 SCHEDULED: <2025-06-16 Mon>

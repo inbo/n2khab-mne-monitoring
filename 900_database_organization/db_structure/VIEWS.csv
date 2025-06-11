@@ -1,2 +1,2 @@
 schema,view,query,SELECT,UPDATE
-outbound,FieldPreparation,"SELECT    ogc_fid,    wkb_geometry,    stratum,    stratum_to_expect,    teammember_assigned,    date_start,    date_end,    visit_date_planned,    notesFROM ""outbound"".""LocationCalendar"";","ward,monkey","ward,monkey"
+outbound,FieldPreparation,"SELECT    ogc_fid,    wkb_geometry,    stratum,    stratum_to_expect,    teammember_assigned,    date_start,    date_end,    visit_date_planned,    notes,    done_planningFROM ""outbound"".""LocationCalendar""","ward,monkey","ward,monkey"
