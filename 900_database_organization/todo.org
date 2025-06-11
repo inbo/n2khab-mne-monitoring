@@ -31,7 +31,8 @@
 + [ ] generalize R functions, to package files
   + =append_tabledata=
   + =upload_and_lookup=
-+ qfield integration
++ [ ] qfield integration
+  + [ ] where is the qgis qfield export gone? *[!]*
   + [ ] postgis login from qfield; auth with master password? set ID!
   + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
   + [ ] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]

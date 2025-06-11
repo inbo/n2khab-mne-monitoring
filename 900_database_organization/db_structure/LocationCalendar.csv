@@ -18,4 +18,5 @@ visit_date_planned,date,False,NULL,False,False,,,,planned date of visit
 visit_due,boolean,True,0,False,False,,,,filter column to find locations which are due to visit
 visit_overdue,boolean,True,0,False,False,,,,filter column to find locations which are overdue
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
+done_planning,boolean,True,0,False,False,,,,flag to indicate preparation status
 geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
