@@ -36,6 +36,9 @@
   + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
   + [ ] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
   + [ ] select/join from multiple tables; alternatively auto-generate data+metadata views
++ [ ] Activity Roles
+  + add =role= to =TeamMembers=
+  + link =GroupedActivities= to roles
 + [ ] backup procedures
 + [ ] forms refinement
   + [ ] aliases? (via postgres or qfield)

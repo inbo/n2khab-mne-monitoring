@@ -14,7 +14,7 @@ date_end,date,True,,False,False,,,,end date for the panel activity sequence
 date_interval,varchar,False,NULL,False,False,,,,experimenting with date intervals (yolo)
 grouped_activity_id,smallint,True,,False,False,metadata.GroupedActivities.grouped_activity_id,,,a link to the activity metadata
 activity_sequence,smallint,True,,False,False,,CHECK (activity_sequence > 0),,execution order of the field activities
-visit_planned,date,False,NULL,False,False,,,,planned date of visit
+visit_date_planned,date,False,NULL,False,False,,,,planned date of visit
 visit_due,boolean,True,0,False,False,,,,filter column to find locations which are due to visit
 visit_overdue,boolean,True,0,False,False,,,,filter column to find locations which are overdue
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
