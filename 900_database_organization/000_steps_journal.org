@@ -337,6 +337,43 @@ Goed, merci!
 
 
 
+** qgis refresher
+SCHEDULED: <2025-06-11 Wed>
+
+qgis startup recently began to throw some python errors
+
+#+begin_src python
+from osgeo import gdal, ogr, osr
+#+end_src
+
+
+** postgres VIEWs
+SCHEDULED: <2025-06-11 Wed>
+
+working on the database from qgis would cause confusion with all the unused, technical fields.
+Views are a great way out.
+
+#+begin_src sql
+DROP VIEW IF EXISTS "outbound"."TestView";
+CREATE VIEW "outbound"."TestView" AS
+SELECT
+    ogc_fid,
+    wkb_geometry,
+    locationcalendar_id,
+    stratum,
+    teammember_assigned,
+    stratum_to_expect,
+    date_start,
+    date_end,
+    visit_planned,
+    notes
+FROM "outbound"."LocationCalendar";
+#+end_src
+
+Views are now part of the database definition.
+I tested that notes can be stored back to the database. HOORAY!
+
+
 ** TODO Data Captation
 SCHEDULED: <2025-06-16 Mon>
 

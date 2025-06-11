@@ -278,12 +278,22 @@ def ForeignKeyString(schema, table, col, refcol):
     # note the last line: we can delete, and cascade updates
     return(fokey_string)
 
+
 def GrantPermissionString(schema, table, user, role):
     # parametrized sql string to grant some permission (role) to a user.
     return(f"""
         GRANT {role} ON "{schema}"."{table}" TO {user};
     """)
 
+
+def EnsureNestedQuerySpacing(query: str) -> str:
+    # make sure that SQL keywords stand separated
+    # (solve problem arising from cell linebreaks)
+
+    for keyword in ["SELECT", "FROM", "WHERE"]:
+        query = query.replace(keyword, f"\n\t{keyword} ")
+
+    return query.replace("    ", "")
 
 
 
@@ -448,6 +458,7 @@ class Database(dict):
             # perform all the action at once
             self.CreateSchema(db_connection)
             self.CreateTables(db_connection)
+            self.CreateViews(db_connection)
             self.ExPostTasks(db_connection)
 
 
@@ -461,9 +472,27 @@ class Database(dict):
 
 
     def CreateTables(self, db_connection: SQL.Connection, verbose = True):
+        # create all tables defined int this database
+
         for table in self.values():
             create_string = table.GetCreateString()
             ExecuteSQL(db_connection, create_string, verbose = verbose)
+
+    def CreateViews(self, db_connection: SQL.Connection, verbose = True):
+        # create views
+
+        views = PD.read_csv(self.base_folder/"VIEWS.csv")
+        for view_id, view in views.iterrows():
+            view_label = f""" "{view["schema"]}"."{view["view"]}" """
+            # print(view["query"])
+            view_command = f"""
+                DROP VIEW IF EXISTS {view_label};
+                CREATE VIEW {view_label} AS
+                {EnsureNestedQuerySpacing(view["query"])};
+            """
+
+        ExecuteSQL(db_connection, view_command, verbose = verbose)
+
 
     def ExPostTasks(self, db_connection: SQL.Connection, verbose = True):
         expost = self.base_folder/"EXPOST.csv"
@@ -492,9 +521,11 @@ if __name__ == "__main__":
     #     print('#'*16, k, '#'*16)
     #     print(v)
 
+    db_connection = None
     db_connection = ConnectDatabase("inbopostgis_server.conf")
     db.CreateSchema(db_connection)
     db.CreateTables(db_connection)
+    db.CreateViews(db_connection)
     db.ExPostTasks(db_connection)
 
 

@@ -1,0 +1,2 @@
+schema,view,query
+outbound,FieldPreparation,"SELECT    ogc_fid,    wkb_geometry,    locationcalendar_id,    stratum,    teammember_assigned,    stratum_to_expect,    date_start,    date_end,    visit_planned,    notesFROM ""outbound"".""LocationCalendar"";"
