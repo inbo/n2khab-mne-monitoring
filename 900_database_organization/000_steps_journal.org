@@ -249,18 +249,106 @@ reference to habitat types and strata
 + adding =stratum_assigned= to =Visits=
 
 
-** TODO CONCEPT
+** Activities - overhaul
 SCHEDULED: <2025-06-11 Wed>
 
-+ [X] will require additional schema's (=metadata=, e.g. for =username=, =activity_groups=, or sequences) and =outbound=/=inbound= database schemes
-+ [ ] database mirrors (=loceval_dev= / =loceval=)
+Some changes and discussions with Floris about the "Activities" logic.
+
++ removed =ActivityGroups= and =ActivitySequences=
+  + sequences are already included in the calendar data via =rank=
++ ... for the sake of =GroupedActivities=
+  + contains activities in different groups
++ link to calendar via =grouped_activity_id=
+  + and sequence determined by =activity_sequence=
+  + =LocationCalendar= and =Visits= will have multiple lines now (all scheduled activities per visit)
+  + will have to see how this plays out in qgis.
+
+
+*** chat protocol
+You, 9:50 AM
+#+begin_quote
+FYI er zijn activities die niet in een activity sequence terecht komen:
+
+    activities %>%
+      anti_join(
+      activity_sequences,
+      join_by(activity)
+    )
+
+->
+    activity         activity_name        is_datacollection_me…¹ is_field_activity
+    <fct>            <fct>                <lgl>                  <lgl>
+    1 GWSURFINSTALLMAT installatiemateriaa… FALSE                  FALSE
+    2 GWMAT            staalnamemateriaal … FALSE                  FALSE
+    3 SOILMAT          staalnamemateriaal … FALSE                  FALSE
+    4 SURFMAT          staalnamemateriaal … FALSE                  FALSE
+    5 SECDATACOLL      data uit bestaande … TRUE                   FALSE
+    # ℹ abbreviated name: ¹ is_datacollection_method
+    # ℹ 3 more variables: is_prep_activity <lgl>, is_lab_activity <lgl>,
+    #   protocol <fct>
+
+... maar het zijn maar vijf; geen "field" activities; ik veronderstel dat ze niet in de calender terecht komen.
+Ik ga ze toch meenemen naar de databank, voor de app oplossen door een "fake sequence" met naam van de activity toe te kennen, maar later kijken of ze er in qgis verschijnen of niet.
+#+end_quote
+
+Floris Vanderhaeghe, 9:51 AM
+#+begin_quote
+Klopt. Je hebt die zaken niet nodig, enkel de locatie-attributen en de veldwerkkalender. Ik had ze niet toegevoegd als element van de data, maar ivm tonen van inhoudelijke samenhang tussen field activities. Als je gewoon activity_sequences gaat joinen aan activities, verwacht ik dat je er te veel gaat krijgen. Cf semi-joins hieronder, die ze filteren, en conditioneel stellen aan module en scheme. Puur achtergrond!
+
+    faseqs <- [...]
+    faseqs_fag_fa <- [...]
+#+end_quote
+
+You, 9:54 AM
+#+begin_quote
+Ja, precies bij die semi-joins was ik begonnen :)
+Het "te veel krijgen" is voor activities niet het gevaar, maar een activity of groep missen die later niet in de metadata-tabel staat kan de databank-logica crashen ivm. "NOT NULL"-constraints.
+En ook voorbereidend desktop-werk zou in de app als een "Notitie"-laag meegevoerd kunnen worden, met een link naar een "activity".
+Daarom wil ik ze er liever allemaal mee hebben.
+#+end_quote
+
+Floris Vanderhaeghe, 10:03 AM, Edited
+#+begin_quote
+Snap ik wel vanuit databankopzicht, maar volgens mij hebben de activity sequences geen toegevoegde meerwaarde voor de uitvoerder op terrein, tov de kalender + rank. Achterwege laten is dus volgens mij even goed. Niet alles uit de POC hoeft in een databank lijkt me. Niet dat het niet mag natuurlijk.
+
+Wat wel relevant is, is om 'overdue' taken te markeren en te prioriteren, als die op dezelfde locatie en voor hetzelfde stratum al hadden moeten gebeuren tov de daar geplande taken in een huidig datuminterval taak te kunnen uitvoeren. Met andere woorden, omgaan met veldwerkvertraging op een locatie (grts_address) x stratum, op basis van datuminterval en rank. We laten niets 'achter', vertraagde zaken zijn prioritairder en blijven op de planning staan.
+
+Let er ook op dat field acts in eenzelfde FAG uitgevoerd moeten worden tijdens eenzelfde bezoek. Dat is de reden waarom FAG de eenheid is van de veldwerkkalender.
+
+Wellicht vertel ik hier niets nieuws 🙂
+#+end_quote
+
+You, 10:13 AM
+#+begin_quote
+> hebben de activity sequences geen toegevoegde meerwaarde
+klopt, maar activity_sequences is de enige variabele waarin ik group en activity samen vindt. Mijn bericht boven was maar een "check", want ik begin uiteraard bij de activities tabel.
+
+> Wat wel relevant is, is om 'overdue' taken te markeren en te prioriteren
+Inderdaad, dit komt er in.
+
+> field acts in eenzelfde FAG uitgevoerd moeten worden tijdens eenzelfde bezoek
+Ja, zo ga ik het ook implementeren. Ward krijgt een takenlijst, met takengroepen en onderstappen.
+#+end_quote
+
+Floris Vanderhaeghe, 10:17 AM
+#+begin_quote
+Goed, merci!
+#+end_quote
+
 
 
 ** TODO Data Captation
-SCHEDULED: <2025-06-13 Fri>
+SCHEDULED: <2025-06-16 Mon>
 
 *The database =loceval= is transient.*
 Data prepared at home or generated in the field must be captured and moved to a completely different database: =mnmdb=.
 + =LocationCalendar= is augmented and changed dynamically -> append diffs to =mnmdb=
 + =Visits= have a field to indicate they are done, but should be moved/pruned regularly
 + =FieldNotes= must be stored irrespective of the =hide= tag; images linked and moved to storage
+
+
+** TODO CONCEPT
+SCHEDULED: <2025-06-16 Mon>
+
++ [X] will require additional schema's (=metadata=, e.g. for =username=, =activity_groups=, or sequences) and =outbound=/=inbound= database schemes
++ [ ] database mirrors (=loceval_dev= / =loceval=)

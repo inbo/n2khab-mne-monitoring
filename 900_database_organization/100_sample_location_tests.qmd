@@ -189,6 +189,7 @@ fag_stratum_grts_calendar_2025_attribs <-
     unmatched = c("error", "drop")
   ) %>%
   relocate(grts_address_final, .after = grts_address)
+
   # %>%
   # select(-module_combo_code, -panel_set) %>%
   # # flatten scheme x targetpanel to unique strings per stratum x location x FAG
@@ -283,6 +284,137 @@ Beware that more locations will emerge due to local replacement, so this is
 misleading for counting & planning (but useful in spatial visualization)
 :::
 
+
+## Field Activities, Activity Groups (and Sequences)
+
+```{r view-activity-groups-and-sequences}
+#| eval: false
+
+# activity groups, sequences, ...:
+actseqs_actgroups_acts <-
+  activity_sequences %>%
+  semi_join(faseqs, join_by(activity_sequence)) %>%
+  inner_join(
+    activities,
+    join_by(activity),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  arrange(
+    activity_group,
+    activity_sequence,
+    rank,
+    activity
+  ) %>% 
+  group_by(activity_sequence) %>%
+  mutate(activity_sequence_id = cur_group_id()) %>%
+  ungroup %>%
+  group_by(activity_group) %>%
+  mutate(activity_group_id = cur_group_id()) %>%
+  ungroup %>%
+  group_by(
+    activity_group,
+    activity_sequence,
+    activity
+  ) %>%
+  mutate(activity_id = cur_group_id()) %>%
+  ungroup %>%
+  relocate(
+    activity_id,
+    activity_group_id,
+    activity_sequence_id,
+    activity,
+    rank,
+    .before = 1
+  )
+
+View(
+  faseqs_fag_fa %>%
+  distinct(field_activity, field_activity_group, activity_sequence) %>%
+  arrange(field_activity_group) %>% 
+  filter(
+    TRUE |
+    field_activity_group == "GWINSTPIEZWELL"
+  )
+)
+```
+
+:::{.callout-tip title="Feedback Floris:"}
+Activity **sequence** is included in the calendar via the `rank` and that rank already comes delivered in the **calendar**. 
+For all practical purposes, everything else of the `ActivitySequences` can be ignored downstream.
+
+For database organization, I rename the `rank` to `activity_sequence`
+:::
+
+```{r prepare-activities}
+# # TODO there are some activities with different ranks within a sequence.
+# activity_groupcount <- activity_sequences %>%
+#   distinct(activity, activity_group, rank) %>%
+#   count(activity, activity_group) %>%
+#   arrange(desc(n))
+
+activity_group_lookup <-
+  activity_sequences %>%
+    distinct(activity_group, activity)
+
+grouped_activities <-
+  activities %>% 
+  left_join(
+    activity_group_lookup,
+    join_by(activity),
+    relationship = "one-to-many"
+  )
+
+# knitr::kable(grouped_activities %>% distinct(activity_group, activity))
+
+# replace group non-sequenced activities with activity name
+grouped_activities <- grouped_activities %>%
+  mutate_at(
+    vars(activity_group, activity, activity_name, protocol),
+    as.character
+  ) %>% 
+  mutate(
+    activity_group = ifelse(is.na(activity_group), activity, activity_group)
+  )
+# %>% select(activity, activity_group) %>% tail(10) %>% knitr::kable()
+
+
+grouped_activities <- grouped_activities %>%
+  arrange(activity) %>% 
+  group_by(activity) %>%
+  mutate(activity_id = cur_group_id()) %>%
+  ungroup %>%
+  arrange(activity_group) %>% 
+  group_by(activity_group) %>%
+  mutate(activity_group_id = cur_group_id()) %>%
+  ungroup %>%
+  arrange(activity_group, activity) %>% 
+  group_by(
+    activity_group,
+    activity
+  ) %>%
+  mutate(grouped_activity_id = cur_group_id()) %>%
+  ungroup %>%
+  relocate(
+    grouped_activity_id,
+    activity_group_id,
+    activity_group,
+    activity_id,
+    activity,
+    .before = 1
+  )
+
+# knitr::kable(grouped_activities %>% distinct(activity_group, activity, activity_name))
+
+# activities %>% 
+#   anti_join(
+#     activity_sequences,
+#     join_by(activity)
+#   )
+# # non-field activities; of no relevance for the calendar
+# 
+glimpse(grouped_activities)
+```
 
 ## stratum
 
@@ -427,6 +559,8 @@ append_tabledata <- function(conn, db_table, data_to_append, reference_column = 
   )
 
   rs <- DBI::dbWriteTable(conn, db_table, to_upload, overwrite = FALSE, append = TRUE)
+  # res <- DBI::dbFetch(rs)
+  # DBI::dbClearResult(rs)
 
   message(sprintf(
     "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
@@ -523,68 +657,100 @@ protocol_lookup <- upload_and_lookup(
 ### Activity Groups
 
 ```{r upload-activity-groups}
-activity_groups <- activity_sequences %>%
-  select(activity_group) %>%
-  distinct() %>%
-  arrange(activity_group) %>%
-  filter(!is.na(activity_group)) %>%
-  mutate(
-    activity_group_id = 1:n(),
-    activity_group = as.character(activity_group)
-  )
+#| eval: false
 
+# activity_groups <- activity_sequences %>%
+#   select(activity_group) %>%
+#   distinct() %>%
+#   arrange(activity_group) %>%
+#   filter(!is.na(activity_group)) %>%
+#   mutate(
+#     activity_group_id = 1:n(),
+#     activity_group = as.character(activity_group)
+#   )
 
-activity_group_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "ActivityGroups"),
-  activity_groups,
-  ref_col = "activity_group",
-  index_col = "activity_group_id"
-)
+# activity_group_lookup <- upload_and_lookup(
+#   db_connection,
+#   DBI::Id(schema = "metadata", table = "ActivityGroups"),
+#   activity_groups,
+#   ref_col = "activity_group",
+#   index_col = "activity_group_id"
+# )
 ```
 
+
+- Activity Sequences
+
+```{r upload-activity-sequences}
+#| eval: false
+
+# activity_sequences_to_upload <- activity_sequences %>%
+#   lookup_join(activity_lookup, "activity") %>% 
+#   lookup_join(activity_group_lookup, "activity_group")
+# 
+# activity_sequence_lookup <- upload_and_lookup(
+#   db_connection,
+#   DBI::Id(schema = "metadata", table = "ActivitySequences"),
+#   activity_sequences_to_upload,
+#   ref_col = "activity_sequence",
+#   index_col = "activity_sequence_id"
+# )
+```
+
+This can be simplified: `group` and `sequence` are attributes of activities anyways.
+-> upload into a single table
 
 
 ## POC data
 
-### Activities
+### (Grouped) Activities
 
-```{r upload-activities}
 
-activities_to_upload <- activities %>%
-  mutate(
-    protocol = as.character(protocol)
-  ) %>% 
+```{r upload-grouped-activities}
+ 
+grouped_activities_upload <- grouped_activities %>% 
   lookup_join(protocol_lookup, "protocol")
 
+# append_tabledata(
+#   db_connection,
+#   DBI::Id(schema = "metadata", table = "GroupedActivities"),
+#   grouped_activities_upload,
+#   reference_column = "grouped_activity_id"
+# )
 
-activity_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "Activities"),
-  activities_to_upload,
-  ref_col = "activity",
-  index_col = "activity_id"
+# done manually to get multiple columns as unique lookup
+
+db_table <- DBI::Id(schema = "metadata", table = "GroupedActivities")
+ga_content <- DBI::dbReadTable(db_connection, db_table)
+
+existing <- ga_content %>%
+  select(activity_group, activity, activity_group_id, activity_id)
+to_upload <- grouped_activities_upload %>%
+  anti_join(
+    existing,
+    join_by(activity_group, activity, activity_group_id, activity_id)
 )
+
+if (nrow(to_upload) > 0){
+  rs <- DBI::dbWriteTable(
+    db_connection,
+    db_table,
+    to_upload,
+    overwrite = FALSE,
+    append = TRUE
+  )
+  # DBI::dbClearResult(rs)
+}
+
+grouped_activity_lookup <-
+  dplyr::tbl(db_connection, db_table) %>%
+  select(activity_group, activity, grouped_activity_id, activity_group_id, activity_id) %>% 
+  collect
+
 ```
 
 
 
-### Activity Sequences
-
-```{r upload-activity-sequences}
-
-activity_sequences_to_upload <- activity_sequences %>%
-  lookup_join(activity_lookup, "activity") %>% 
-  lookup_join(activity_group_lookup, "activity_group")
-
-activity_sequence_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "ActivitySequences"),
-  activity_sequences_to_upload,
-  ref_col = "activity_sequence",
-  index_col = "activity_sequence_id"
-)
-```
 
 
 ### Habitat Types
@@ -616,23 +782,30 @@ by the date interval.
 :::
 
 
+:::{.callout-warning}
+Note that `rank` is renamed to `activity_sequence`.
+:::
+
+
 ```{r upload-calendar}
 location_calendar <- fag_stratum_grts_calendar_2025_attribs_sf %>% 
-    mutate(
-      scheme = as.character(scheme),
-      module_combo_code = as.character(module_combo_code),
-      stratum = as.character(stratum),
-      targetpanel = as.character(targetpanel),
-      date_interval = as.character(date_interval)
-    ) %>% 
-    left_join(
-      activity_group_lookup,
-      by = join_by(field_activity_group == activity_group)
-    ) %>%
+  mutate(
+    scheme = as.character(scheme),
+    module_combo_code = as.character(module_combo_code),
+    stratum = as.character(stratum),
+    targetpanel = as.character(targetpanel),
+    date_interval = as.character(date_interval)
+  ) %>% 
+  left_join(
+    grouped_activity_lookup %>% distinct(activity_group, grouped_activity_id),
+    by = join_by(field_activity_group == activity_group),
+    relationship = "many-to-many"
+  ) %>%
   select(-field_activity_group, -grts_join_method) %>% # , -date_interval
+  rename(activity_sequence = rank) %>% 
   distinct()
 
-sf::st_geometry(location_calendar) = "wkb_geometry"
+sf::st_geometry(location_calendar) <- "wkb_geometry"
 glimpse(location_calendar)
 
 
@@ -672,7 +845,7 @@ location_calendar_unique_count <- location_calendar %>%
     panel_set,
     stratum,
     targetpanel,
-    activity_group_id,
+    grouped_activity_id,
     grts_address_final,
     date_start
   ) %>%
@@ -682,7 +855,7 @@ location_calendar_unique_count <- location_calendar %>%
     panel_set,
     stratum,
     targetpanel,
-    activity_group_id,
+    grouped_activity_id,
     grts_address_final,
     date_start
   ) %>%
@@ -705,7 +878,7 @@ loccal_lookup <- dplyr::tbl(
     panel_set,
     stratum,
     targetpanel,
-    activity_group_id,
+    grouped_activity_id,
     grts_address_final,
     date_start,
     locationcalendar_id
@@ -722,7 +895,7 @@ location_calendar <- location_calendar %>%
       panel_set,
       stratum,
       targetpanel,
-      activity_group_id,
+      grouped_activity_id,
       grts_address_final,
       date_start
     ),
@@ -747,9 +920,8 @@ Now comes the part of handling tables which might already include data.
 
 The locations to visit will be stored in a separate table: `inbound.Visits`.
 
-
 ```{r upcoming-visits}
-# TODO we must first save the visits to our internal database
+# we must first save the visits to our internal database
 
 visit_preparation <- location_calendar %>%
   filter(
@@ -758,8 +930,8 @@ visit_preparation <- location_calendar %>%
   ) %>%
   select(
     locationcalendar_id,
-    activity_group_id,
-    rank,
+    grouped_activity_id,
+    activity_sequence,
     wkb_geometry
   )
 

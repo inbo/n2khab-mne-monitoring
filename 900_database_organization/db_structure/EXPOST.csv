@@ -1,1 +1,2 @@
 sql
+"ALTER TABLE ""metadata"".""GroupedActivities"" ADD CONSTRAINT uq_activities UNIQUE (activity_group, activity);"
