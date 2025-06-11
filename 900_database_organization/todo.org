@@ -8,7 +8,7 @@
   + [X] activities executed -> "Visits"
   + [X] stratum to LocCal
   + [ ] a unique identifier for =fag_stratum_grts_calendar_2025_attribs_sf= (fag+grts? database?)
-  + [ ] there are unmatched *activities* (join) -> define meaningful set of activities with human-readable description
+  + [X] there are unmatched *activities* (join) -> define meaningful set of activities with human-readable description
   + [ ] there are non-unique LocationCalendar entries, smushed before upload
   + [X] handle *teammembers* (meta data table); e.g. for planning =Visits=
 + [X] test import to =pgmodeler= for visualization
@@ -20,7 +20,7 @@
   + [ ] column "done" is fed back to LocationCalendar
 + [X] play with "read/write" permissions of user role =ward= via qgis/qfield
   + [X] sequence references seem to be an issue (ROLE->SEQUENCE?)
-+ [ ] =inbound= -> =teammember_id=:
++ [-] =inbound= -> =teammember_id=:
   + [X] =teammember_id= columns
   + [ ] fill automatically upon edit
   + [ ] or dropdown for form edit (=Teammembers= table ⊂ =metadata= schema?)
@@ -35,8 +35,10 @@
   + [ ] postgis login from qfield; auth with master password? set ID!
   + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
   + [ ] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
+  + [ ] select/join from multiple tables; alternatively auto-generate data+metadata views
 + [ ] backup procedures
 + [ ] forms refinement
+  + [ ] aliases? (via postgres or qfield)
 + [-] images and how to bring them home
   + [X] BLOB (binary large objects) work as =bytea= data type [[https://www.postgresql.org/docs/current/datatype-binary.html][(see here)]]
   + [ ] test qfield camera usage
@@ -44,7 +46,9 @@
 + [ ] offline caching in qfield?
 + [ ] bring to tablet
 + [ ] fix qgis installation
-+ [ ] database mirrors: one for me to play, one for the real work
++ [ ] database mirrors: one for me to play (=loceval_dev=), one for the real work (=loceval=)
+  + [ ] safe checks for updating a production database
+
 
 * optional
 + save/restore a whole =db_structure= in pandas tables
