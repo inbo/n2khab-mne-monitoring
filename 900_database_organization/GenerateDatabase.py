@@ -491,6 +491,12 @@ class Database(dict):
                 {EnsureNestedQuerySpacing(view["query"])};
             """
 
+            for col in ["SELECT", "UPDATE"]:
+                for user in view[col].split(","):
+                    view_command += f"""
+                        GRANT {col} ON {view_label} TO {user};
+                    """
+
         ExecuteSQL(db_connection, view_command, verbose = verbose)
 
 
