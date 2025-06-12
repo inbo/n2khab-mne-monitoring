@@ -24,9 +24,10 @@ def WriteExampleConfig(config_filename = "postgis_server.conf", server_label = "
     config[server_label] = {
         'server': 'localhost',
         'port': '5439',
-        'user': 'test',
-        'database': 'playground'
+        'user': 'test'
+        # 'database': 'playground'
     }
+    # we usually give the database via ConnectDatabase(), but you could as well store it.
 
     config[server_label]['password'] = PWD.getpass("password: ")
 
@@ -49,16 +50,29 @@ def ODStoCSVs(infile, outfolder):
         table.to_csv(outfolder/f"{sheetname}.csv", index = False)
 
 
-def ReadSQLServerConfig(config_filename = "postgis_server.conf", server_label = None):
+def ReadSQLServerConfig(config_filename = "postgis_server.conf", label = None, **kwargs):
     # will read sql configuration from a text file.
 
+    # parse the config with the config parser
     config = CONF.ConfigParser()
     config.read(config_filename)
 
-    if server_label is None:
+    # per default, take first section
+    if label is None:
         server_label = config.sections()[0]
 
-    return(dict(config[server_label]))
+    # convert to dictionary
+    db_configuration = dict(config[label])
+
+    # extra arguments
+    for kw, val in kwargs.items():
+        db_configuration[kw] = val
+
+    # prompt password
+    if 'password' not in db_configuration.keys():
+        config[server_label]['password'] = PWD.getpass("password: ")
+
+    return(db_configuration)
 
 
 def ConfigToConnectionString(config: dict) -> str:
@@ -80,11 +94,11 @@ def ConfigToConnectionString(config: dict) -> str:
     return(conn_str)
 
 
-def ConnectDatabase(config_filepath):
+def ConnectDatabase(config_filepath, database, connection_config = None):
     # https://stackoverflow.com/a/42772654
     # user = input("user: ")
 
-    config = ReadSQLServerConfig(config_filepath)
+    config = ReadSQLServerConfig(config_filepath, label = connection_config, database = database)
     engine = SQL.create_engine(ConfigToConnectionString(config))
     connection = engine.connect()
 

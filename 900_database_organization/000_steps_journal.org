@@ -539,6 +539,13 @@ reboot
 
 Everything seems still intact.
 
+** two databases: dev|production
+SCHEDULED: <2025-06-12 Thu>
+
++ =loceval= is now controlled by a different superuser than =loceval_dev=.
++ adjusted config and scripts for being able to upload to both databases
++ ... also from R
+
 
 ** TODO Data Captation
 SCHEDULED: <2025-06-16 Mon>
