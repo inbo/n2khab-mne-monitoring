@@ -32,10 +32,11 @@ su - postgres
 createuser -p <port> --interactive
 
 psql -p <port>
-# ALTER USER <user> WITH ENCRYPTED PASSWORD '<password>';
+ALTER USER <user> WITH ENCRYPTED PASSWORD '<password>';
 #+end_src
 
-new username needs to be added to =pg_hba.conf=!
++ new username needs to be added to =pg_hba.conf=!
++ consider updating =TeamMembers= table.
 
 
 ** database setup
@@ -535,6 +536,8 @@ pacman -Syu
 reboot
 # crossing fingers!
 #+end_src
+
+Everything seems still intact.
 
 
 ** TODO Data Captation
