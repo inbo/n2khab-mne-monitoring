@@ -9,21 +9,28 @@
   + [X] stratum to LocCal
   + [ ] a unique identifier for =fag_stratum_grts_calendar_2025_attribs_sf= (fag+grts? database?)
   + [X] there are unmatched *activities* (join) -> define meaningful set of activities with human-readable description
-  + [ ] there are non-unique LocationCalendar entries, smushed before upload
+  + [X] there are non-unique LocationCalendar entries, smushed before upload
   + [X] handle *teammembers* (meta data table); e.g. for planning =Visits=
 + [X] test import to =pgmodeler= for visualization
-+ [-] Visits: outsource a table with "locations due", linking to LocationCalendar
++ [X] Visits: outsource a table with "locations due", linking to LocationCalendar
   + [X] subset which is due for a visit
   + [X] different schema -> it might be necessary to lookup schema in the python generator procedure
-  + [ ] date scheduled; user assigned -> via desktop work (google sheet -> R Script)
-  + [ ] regularly updated with stored procedure or python script
-  + [ ] column "done" is fed back to LocationCalendar
+  + [X] date scheduled; user assigned -> via desktop work (qgis project)
+  + [X] +regularly updated with stored procedure or python script+ auto-pushed
+  + [X] column "done" is fed back to LocationCalendar
 + [X] play with "read/write" permissions of user role =ward= via qgis/qfield
   + [X] sequence references seem to be an issue (ROLE->SEQUENCE?)
-+ [-] =inbound= -> =teammember_id=:
++ [X] =teammember_id=:
   + [X] =teammember_id= columns
-  + [ ] fill automatically upon edit
-  + [ ] or dropdown for form edit (=Teammembers= table ⊂ =metadata= schema?)
+  + [X] or dropdown for form edit (=Teammembers= table ⊂ =metadata= schema?)
++ [ ] inbound forms
+  + [ ] =Visits= -> structured input
+  + [ ] =FieldNotes= -> free input
++ [ ] forms refinement
+  + [ ] aliases? (via postgres or qfield)
++ [ ] qgis/database convenience
+  + [ ] fill username automatically upon edit
+  + [ ] store edit dates -> "append-only" + views?
 + [ ] second db with third schema: =mnmdb=
   + [ ] mirror/assembly of previously collected data
   + [ ] can live on a completely different connection
@@ -31,18 +38,16 @@
 + [ ] generalize R functions, to package files
   + =append_tabledata=
   + =upload_and_lookup=
-+ [ ] qfield integration
-  + [ ] where is the qgis qfield export gone? *[!]*
-  + [ ] postgis login from qfield; auth with master password? set ID!
++ [-] qfield integration
+  + [X] where is the qgis qfield export gone? *[!]* -> gdal error solved
+  + [X] postgis login from qfield; auth with master password? set ID!
   + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
   + [ ] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
-  + [ ] select/join from multiple tables; alternatively auto-generate data+metadata views
+  + [X] select/join from multiple tables; alternatively auto-generate data+metadata -> postgres views views
 + [ ] Activity Roles
-  + add =role= to =TeamMembers=
-  + link =GroupedActivities= to roles
+  + [ ] add =role= to =TeamMembers=
+  + [ ] link =GroupedActivities= to roles
 + [ ] backup procedures
-+ [ ] forms refinement
-  + [ ] aliases? (via postgres or qfield)
 + [-] images and how to bring them home
   + [X] BLOB (binary large objects) work as =bytea= data type [[https://www.postgresql.org/docs/current/datatype-binary.html][(see here)]]
   + [ ] test qfield camera usage
