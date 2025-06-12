@@ -107,7 +107,7 @@ Those comma separated text files are stored in the =db_structure= subfolder.
 
 Because tables and roles are organized in schema's,
 it might be necessary to
-#+begin_src sql
+#+begin_src sql :eval no
 SET search_path TO public,<schema>;
 SHOW search_path;
 -- \dt+
@@ -185,7 +185,7 @@ SCHEDULED: <2025-06-06 Fri>
 Due to a misconfiguration, qgis attempts to create a new location id upon attribute save.
 
 Added an "=EXPOST=" sheet to run after succesful creation.
-#+begin_src sql
+#+begin_src sql :eval no
 GRANT USAGE ON SEQUENCE "loceval_outbound"."seq_locationcalendar_id" TO ward;
 #+end_src
 
@@ -209,7 +209,7 @@ SCHEDULED: <2025-06-10 Tue>
 + used an upstream object of =fag_grts_calendar_...= to have scheme/stratum/module/panel for calendar
 + TODO: some locations were not unique
 
-#+begin_src R
+#+begin_src r :eval no
   fag_stratum_grts_calendar_2025_attribs_sf %>%
     select(
       scheme,
@@ -342,7 +342,7 @@ SCHEDULED: <2025-06-11 Wed>
 
 qgis startup recently began to throw some python errors
 
-#+begin_src python
+#+begin_src python :eval no
 from osgeo import gdal, ogr, osr
 #+end_src
 
@@ -353,7 +353,7 @@ SCHEDULED: <2025-06-11 Wed>
 working on the database from qgis would cause confusion with all the unused, technical fields.
 Views are a great way out.
 
-#+begin_src sql
+#+begin_src sql :eval no
 DROP VIEW IF EXISTS "outbound"."TestView";
 CREATE VIEW "outbound"."TestView" AS
 SELECT
@@ -382,6 +382,109 @@ SCHEDULED: <2025-06-11 Wed>
 + conditional formatting
 
 missing qfield export.
+
+
+** gdal error (qgis / qfieldsync plugin)
+SCHEDULED: <2025-06-12 Thu>
+
+solved by
+#+begin_src sh :eval no
+pip install --no-cache --force-reinstall gdal[numpy]=="$(gdal-config --version).*" --break-system-packages
+#+end_src
+
+Then re-install =sf= and =terra= in R:
+#+begin_src r :eval no
+install.packages(c("sf", "terra", "lwgeom"))
+#+end_src
+
+** qfield cloud issues
+SCHEDULED: <2025-06-12 Thu>
+
+-> go with distributing zip files for now.
+see below for procedure.
+
+*** (a) copy file directly
++ pg login prompted upon opening
++ but: no error messages (☇ =pg_hba.conf= must allow user)
+
+*** (b) via qfieldcloud
++ /seems/ to work fine, BUT:
++ postgis layers only supported with subscription (12EUR/month)
+
+** filter activities for Ward
+SCHEDULED: <2025-06-12 Thu>
+
+There are many activities.
+Only some are relevant for Ward.
+I intuitively selected src_r[:eval no]{c("LOCEVALAQ", "LOCEVALAQ", "LOCEVALAQ", "LOCEVALTERR", "LSVIAQ", "LSVITERR")}
+
+|------+-----------------------+--------------------------------------------------------------------------------------+-------------------|
+| team | activity              | activity_name                                                                        | is_field_activity |
+|------+-----------------------+--------------------------------------------------------------------------------------+-------------------|
+|      | ADHOCDIVERREPLACE     | ad-hoc een diver in grondwater of oppervlaktewater vervangen                         | true              |
+|      | ADHOCPIPEREPLACE      | ad-hoc een buis in grondwater of oppervlaktewater vervangen of herstellen            | true              |
+|      | GWINSTPIEZDIVER       | ondiepe piëzometer met divers installeren, repareren of vervangen                    | true              |
+|      | GWINSTPIEZNODIVER     | ondiepe piëzometer zonder divers installeren, repareren of vervangen                 | true              |
+|      | GWINSTWELLDIVER       | ondiepe peilbuis met divers installeren, repareren of vervangen                      | true              |
+|      | GWINSTWELLDIVERDEEP   | diepe peilbuis met diver installeren, repareren of vervangen                         | true              |
+|      | GWINSTWELLNODIVER     | ondiepe peilbuis zonder divers installeren, repareren of vervangen                   | true              |
+|      | GWLEVREADDIVER        | diverlogger uitlezen in piëzometer of peilbuis                                       | true              |
+|      | GWLEVREADDIVER        | diverlogger uitlezen in piëzometer of peilbuis                                       | true              |
+|      | GWLEVREADDIVER        | diverlogger uitlezen in piëzometer of peilbuis                                       | true              |
+|      | GWLEVREADDIVERDEEP    | diverlogger uitlezen in diepe piëzometer of peilbuis                                 | true              |
+|      | GWLEVREADMAN          | manueel bepalen van waterpeil in piëzometer of peilbuis                              | true              |
+|      | GWLEVREADMAN          | manueel bepalen van waterpeil in piëzometer of peilbuis                              | true              |
+|      | GWLEVREADMAN          | manueel bepalen van waterpeil in piëzometer of peilbuis                              | true              |
+|      | GWLEVREADMAN          | manueel bepalen van waterpeil in piëzometer of peilbuis                              | true              |
+|      | GWMAT                 | staalnamemateriaal voor grondwater laden, lossen, kuisen en opruimen                 | false             |
+|      | GWSHALLCLEAN          | ondiepe piëzometer leegpompen                                                        | true              |
+|      | GWSHALLSAMP           | ondiepe piëzometer bemonsteren                                                       | true              |
+|      | GWSHALLSAMP           | ondiepe piëzometer bemonsteren                                                       | true              |
+|      | GWSHALLSAMP           | ondiepe piëzometer bemonsteren                                                       | true              |
+|      | GWSURFINSTALLMAT      | installatiemateriaal voor grondwater of oppervlaktewater laden, lossen, opkuisen en) | false             |
+| ward | LOCEVALAQ             | locatie in aquatisch habitat evalueren en eventueel vervangen                        | true              |
+| ward | LOCEVALAQ             | locatie in aquatisch habitat evalueren en eventueel vervangen                        | true              |
+| ward | LOCEVALAQ             | locatie in aquatisch habitat evalueren en eventueel vervangen                        | true              |
+| ward | LOCEVALTERR           | locatie in terrestrisch habitat evalueren en eventueel vervangen                     | true              |
+| ward | LSVIAQ                | LSVI bepalen in aquatisch habitat                                                    | true              |
+| ward | LSVITERR              | LSVI bepalen in terrestrisch habitat                                                 | true              |
+|      | SECDATACOLL           | data uit bestaande databronnen verwerven (secundaire dataverwerving)                 | false             |
+|      | SOILDELIVER           | bodemstalen afleveren, inschrijven en in oven plaatsen                               | false             |
+|      | SOILMAT               | staalnamemateriaal voor bodem laden, lossen, kuisen en opruimen                      | false             |
+|      | SOILOUTOVEN           | bodemstalen uit oven halen (één keer per week inplannen)                             | false             |
+|      | SOILPREPROCES         | droge bodemstalen zeven, breken en malen                                             | false             |
+|      | SOILUPPERSAMP         | bodem bemonsteren via oppervlaktemonsters                                            | true              |
+|      | SPATPOSITGAUGE        | peillat ruimtelijk inmeten                                                           | true              |
+|      | SPATPOSITPIPE         | peilbuis of piëzometer ruimtelijk inmeten                                            | true              |
+|      | SURFADHOCGAUGEREPLACE | ad-hoc een peillat vervangen of herstellen                                           | true              |
+|      | SURFINSTGAUGE         | peillat installeren in oppervlaktewater                                              | true              |
+|      | SURFINSTWELLDIVER     | buis met divers in oppervlaktewater installeren, repareren of vervangen              | true              |
+|      | SURFLENTFIELD         | veldmetingen uitvoeren in stilstaande wateren                                        | true              |
+|      | SURFLENTSAMP          | waterkolom bemonsteren in stilstaande wateren                                        | true              |
+|      | SURFLENTSAMPLPOINT    | vast staalnamepunt selecteren in stilstaande wateren indien er nog geen bestond      | true              |
+|      | SURFLENTSECC          | Secchi-diepte bepalen in stilstaande wateren                                         | true              |
+|      | SURFLEVREADDIVER      | diverlogger in oppervlaktewater uitlezen                                             | true              |
+|      | SURFLEVREADGAUGE      | waterstand op peillat aflezen                                                        | true              |
+|      | SURFLEVREADGAUGE      | waterstand op peillat aflezen                                                        | true              |
+|      | SURFLEVREADGAUGE      | waterstand op peillat aflezen                                                        | true              |
+|      | SURFLEVREADGAUGE      | waterstand op peillat aflezen                                                        | true              |
+|      | SURFLOTFIELD          | veldmetingen uitvoeren in stromende wateren                                          | true              |
+|      | SURFLOTSAMP           | waterkolom bemonsteren in stromende wateren                                          | true              |
+|      | SURFLOTSAMPLPOINT     | vast staalnamepunt selecteren in stromende wateren indien er nog geen bestond        | true              |
+|      | SURFLOTSECC           | Secchi-diepte bepalen in stromende wateren                                           | true              |
+|      | SURFMAT               | staalnamemateriaal voor oppervlaktewater laden, lossen, kuisen en opruimen           | false             |
+|      | WATERDELIVER          | waterstalen afleveren en inschrijven                                                 | false             |
+|------+-----------------------+--------------------------------------------------------------------------------------+-------------------|
+
+** prune location calendar and smush duplicate locations
+SCHEDULED: <2025-06-12 Thu>
+
+were due to multiple strata and multiple target panels
+
++ scheme filtered (only "GW03.3" for now)
++ activities filtered: only =LOCEVAL*=
++ multi-strata pasted as =stratum1+stratum2+...=
+
 
 
 ** TODO Data Captation

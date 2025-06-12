@@ -61,3 +61,5 @@
     Een beetje experimentering met database-geometrieën vind je in deze code <https://github.com/inbo/n2khab-preprocessing/blob/1bf89599398b1b1be121fe84dcedec5623a8a576/src/miscellaneous/watersurfaces.Rmd#L76-L120>.
     Inspiratie kwam van https://hydroecology.net/reading-spatial-data-from-sql-server-without-sf/
     #+end_quote
+
++ array data types (e.g. =panel_set=) -> upload with dplyr tricky (str -> int[])
