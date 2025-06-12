@@ -28,13 +28,21 @@
   + [ ] =FieldNotes= -> free input
 + [ ] forms refinement
   + [ ] aliases? (via postgres or qfield)
+  + [ ] accessibility layer
++ [ ] database mirrors: one for me to play (=loceval_dev=), one for the real work (=loceval=)
+  + [ ] safe checks for updating a production database
 + [ ] qgis/database convenience
   + [ ] fill username automatically upon edit
   + [ ] store edit dates -> "append-only" + views?
 + [ ] second db with third schema: =mnmdb=
   + [ ] mirror/assembly of previously collected data
   + [ ] can live on a completely different connection
-  + [ ] replace image blobs with file links
+  + [ ] replace image blobs with file links upon import
++ [-] images and how to bring them home
+  + [X] BLOB (binary large objects) work as =bytea= data type [[https://www.postgresql.org/docs/current/datatype-binary.html][(see here)]]
+  + [ ] test qfield camera usage
+  + [ ] test downloading and compression/update workflow
++ [ ] backup procedures
 + [ ] generalize R functions, to package files
   + =append_tabledata=
   + =upload_and_lookup=
@@ -46,17 +54,10 @@
   + [X] select/join from multiple tables; alternatively auto-generate data+metadata -> postgres views views
 + [ ] Activity Roles
   + [ ] add =role= to =TeamMembers=
-  + [ ] link =GroupedActivities= to roles
-+ [ ] backup procedures
-+ [-] images and how to bring them home
-  + [X] BLOB (binary large objects) work as =bytea= data type [[https://www.postgresql.org/docs/current/datatype-binary.html][(see here)]]
-  + [ ] test qfield camera usage
-  + [ ] test downloading and compression/update workflow
-+ [ ] offline caching in qfield?
+  + [ ] link =GroupedActivities= to roles -> who does what? filter?
++ [X] offline caching in qfield? -> works well
 + [ ] bring to tablet
-+ [ ] fix qgis installation
-+ [ ] database mirrors: one for me to play (=loceval_dev=), one for the real work (=loceval=)
-  + [ ] safe checks for updating a production database
++ [X] fix qgis installation
 
 
 * optional
