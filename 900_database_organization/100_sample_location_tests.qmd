@@ -1025,8 +1025,12 @@ sf::dbWriteTable(
 ```
 
 
-<!-- TODO join "activity"? --> 
+# Onwards, to QGIS!
 
-# NEXT STEPS
-
-- qgis design of inbound project
+- [ ] outbound project: FieldPreparation
+  - testing phase
+- [ ] qgis design of inbound project
+  - views
+  - project
+  - extra layers
+  - microlocation (drawing template etc.)
