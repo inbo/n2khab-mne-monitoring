@@ -600,7 +600,7 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 
 }
 
-# TODO there are unmatched activities
+# DONE there were unmatched activities, not any more.
 
 ```
 
@@ -910,7 +910,7 @@ Here is how to find duplicates:
 ```{r unique-loccal}
 # SELECT * FROM "LocationCalendar";
 
-# TODO: why are these non-unique?
+# DONE: why are these non-unique? -> stratum, targetpanel
 
 location_calendar_unique_count <- location_calendar %>%
   select(
@@ -1029,3 +1029,4 @@ sf::dbWriteTable(
 
 # NEXT STEPS
 
+- qgis design of inbound project

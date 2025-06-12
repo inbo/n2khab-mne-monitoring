@@ -1,8 +1,8 @@
 schema,table,owner,read_access,write_access,geometry,constraint,freesql,comment
-metadata,Protocols,yoda,"ward,karen,monkey",,,,,protocols (preliminary version)
-metadata,GroupedActivities,yoda,"ward,karen,monkey",,,,,"activities (all, incl. field activities), by activity group"
-metadata,TeamMembers,yoda,"ward,karen,monkey",,,,,list of team members
-metadata,N2kHabTypes,yoda,"ward,karen,monkey",,,,,"habitat type, stratum, etc."
-outbound,LocationCalendar,yoda,"ward,karen,monkey","ward,karen",POINT,,,content of the `fag_grts_calendar_2025_attribs_sf` POC object
-inbound,Visits,yoda,"ward,karen,monkey","ward,karen",POINT,,,retrieving information about location visits
-inbound,FieldNotes,yoda,"ward,karen,monkey","ward,karen",POINT,,,free notes to be placed on a point on the map
+metadata,Protocols,yoda,"ward,karen,floris,monkey",,,,,protocols (preliminary version)
+metadata,GroupedActivities,yoda,"ward,karen,floris,monkey",,,,,"activities (all, incl. field activities), by activity group"
+metadata,TeamMembers,yoda,"ward,karen,floris,monkey",,,,,list of team members
+metadata,N2kHabTypes,yoda,"ward,karen,floris,monkey",,,,,"habitat type, stratum, etc."
+outbound,LocationCalendar,yoda,"ward,karen,floris,monkey","ward,karen",POINT,,,content of the `fag_grts_calendar_2025_attribs_sf` POC object
+inbound,Visits,yoda,"ward,karen,floris,monkey","ward,karen",POINT,,,retrieving information about location visits
+inbound,FieldNotes,yoda,"ward,karen,floris,monkey","ward,karen",POINT,,,free notes to be placed on a point on the map
