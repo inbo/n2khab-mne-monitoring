@@ -808,8 +808,82 @@ location_calendar <- fag_stratum_grts_calendar_2025_attribs_sf %>%
 sf::st_geometry(location_calendar) <- "wkb_geometry"
 glimpse(location_calendar)
 
+```
+
+
+
+:::{.callout-note title="calendar filtering."}
+Not everything has to be visible.
+
+- only certain activities per user
+- only "GW_03.3" for a start.
+- sample can be assigned to multiple strata -> union column
+
+:::
+
+```{r filter-loccal}
+relevant_activities <- grouped_activity_lookup %>%
+  filter(
+    activity %in% c(
+      "LOCEVALAQ",
+      "LOCEVALAQ",
+      "LOCEVALAQ",
+      "LOCEVALTERR",
+      "LSVIAQ",
+      "LSVITERR"
+    )
+  ) %>%
+  distinct(grouped_activity_id) %>%
+  pull(grouped_activity_id)
+    
+location_calendar <- location_calendar %>%
+  filter(
+    grouped_activity_id %in% relevant_activities,
+    scheme %in% c("GW_03.3")
+  )
+
+if (FALSE){
+  location_calendar %>%
+    count(grts_address_final) %>%
+    filter(n>1)
+}
+
+# location_calendar <-
+# group_by(across(c(-stratum, -targetpanel))) %>%
+location_calendar <- location_calendar %>%
+  summarize(
+    stratum = paste(stratum, collapse = "+"),
+    targetpanel = paste(targetpanel, collapse = "+"),
+    .by = c(
+      scheme,
+      module_combo_code,
+      panel_set,
+      grouped_activity_id,
+      grts_address, grts_address_final,
+      date_start, date_end,
+      activity_sequence,
+      wkb_geometry
+    )
+  )
+#   count(grts_address_final) %>%
+#   arrange(desc(n))
+# %>% filter(grts_address_final == 452914) # multiple schemes -> filtered
+# %>% filter(grts_address_final == 31225) # multiple strata -> retained
+glimpse(location_calendar)
+```
+
+
+Upload:
+
+```{r re-upload-loccal}
 
 # delete all previously uploaded table content
+rs <- DBI::dbSendStatement(
+  db_connection,
+  'DELETE FROM "inbound"."Visits";'
+  )
+DBI::dbClearResult(rs)
+
 rs <- DBI::dbSendStatement(
   db_connection,
   'DELETE FROM "outbound"."LocationCalendar";'
@@ -866,7 +940,7 @@ knitr::kable(head(
 ```
 
 
-```{r re-upload-loccal}
+```{r join-lookup-loccal}
 
 loccal_lookup <- dplyr::tbl(
     db_connection,
@@ -955,7 +1029,3 @@ sf::dbWriteTable(
 
 # NEXT STEPS
 
-- [X] metadata table for habitat/stratum:
-  - `n2khab_types_expanded_properties` -> `N2kHabTypes`
-  - `CHECK ((stratum_to_expect IS NULL) OR (stratum_to_expect IN (SELECT DISTINCT type FROM "metadata"."N2kHabType"))`
-- [ ] find meaningful summary table of "activities"
