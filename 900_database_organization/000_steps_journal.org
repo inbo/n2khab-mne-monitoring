@@ -401,7 +401,7 @@ install.packages(c("sf", "terra", "lwgeom"))
 SCHEDULED: <2025-06-12 Thu>
 
 -> go with distributing zip files for now.
-see below for procedure.
+[[testing/documenting qgis export][see below]] for procedure.
 
 *** (a) copy file directly
 + pg login prompted upon opening
@@ -485,6 +485,56 @@ were due to multiple strata and multiple target panels
 + activities filtered: only =LOCEVAL*=
 + multi-strata pasted as =stratum1+stratum2+...=
 
+
+** testing/documenting qgis export
+SCHEDULED: <2025-06-12 Thu>
+
+(at least temporarily) stored here:
+https://drive.google.com/drive/folders/1VgjQ5YZ6AxYo5fz6iAkXQiOGd4Q7uZlV?usp=drive_link
+
+*** on server:
+remember to configure =pg_hba.conf=
+
+*** on providing computer:
+requires qgis with working "QFieldSync" plugin (beware of [[gdal error (qgis / qfieldsync plugin)][gdal errors]]).
+
+1. prepare a qgis project with connected postgis layers
+2. double-check qfield layer settings: =directly access data source=
+3. on qfieldsync panel: =package for qfield= -> store project in a location
+4. zip the export folder
+5. distribute to target device
+
+*** on target device:
+requires qgis (desktop work) or qfield (fieldwork)
+
+1. import data set
+   a. qfield: "open local file", "(+)" on lower right, "import from zip"
+   b. qgis: unzip, then open folder
+
+
+** layer filtering by targetpanel
+SCHEDULED: <2025-06-12 Thu>
+
+syntax:
+#+begin_src SQL
+'targetpanel' LIKE '%03%'
+#+end_src
+
+there are helpful "show sample"/"show all" views on (optionally unfiltered) data
+
+
+** postgres minor version upgrade
+SCHEDULED: <2025-06-12 Thu>
+
+> /moment of hesitation/
+Well...
+... as I have nothing better on the list.
+
+#+begin_src sh :eval no
+pacman -Syu
+reboot
+# crossing fingers!
+#+end_src
 
 
 ** TODO Data Captation
