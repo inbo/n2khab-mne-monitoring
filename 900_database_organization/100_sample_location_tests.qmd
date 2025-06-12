@@ -38,6 +38,7 @@ library("n2khab")
 library("googledrive")
 library("readr")
 library("rprojroot")
+library("keyring")
 
 library("configr")
 library("DBI")
@@ -47,6 +48,10 @@ library("mapview")
 # mapviewOptions(platform = "mapdeck")
 
 projroot <- find_root(is_rstudio_project)
+working_dbname <- "loceval_dev" 
+# TODO password query does not work in a quarto render. -> use manually
+# keyring::key_set("DBPassword", "loceval_dbadmin")
+
 
 # Load some custom GRTS functions
 # source(file.path(projroot, "R/grts.R"))
@@ -486,24 +491,28 @@ We can use `configr` (<https://cran.r-project.org/web/packages/configr/readme/RE
 
 ```{r load-config}
 
-connect_database_configfile <- function(config_filepath) {
+connect_database_configfile <- function(config_filepath, database, config_choice = 1, password = NULL) {
 
   # read connection info from a config file
-  config <- configr::read.config(file = config_filepath)[[1]] # only connects with first config block
+  config <- configr::read.config(file = config_filepath)[[config_choice]] # selects config block
+
+  if (is.null(password)) {
+    password <- config$password
+  }
 
   # connect to database
   database_connection <- DBI::dbConnect(
     RPostgres::Postgres(),
-    dbname = config$database,
+    dbname = database,
     host = config$server,
     port = config$port,
     user = config$user,
-    password = config$password
+    password = password
   )
 
 
   # store a label for verbose disconnection at exit
-  db_label <- sprintf("%s@%s/%s", config$user, config$server, config$database)
+  db_label <- sprintf("%s@%s/%s", config$user, config$server, database)
 
   # remove the config: we do not want to expose credentials further
   # down in this notebook
@@ -523,8 +532,25 @@ connect_database_configfile <- function(config_filepath) {
   return(invisible(database_connection))
 }
 
-config_filepath <- file.path("./inbopostgis_server.conf")
-db_connection <- connect_database_configfile(config_filepath)
+if (working_dbname == "loceval") {
+
+  config_filepath <- file.path("./inbopostgis_server.conf")
+  db_connection <- connect_database_configfile(
+    config_filepath,
+    database = working_dbname,
+    config_choice = 2,
+    password = keyring::key_get("DBPassword", "loceval_dbadmin")
+  )
+    
+} else {
+  config_filepath <- file.path("./inbopostgis_server.conf")
+  db_connection <- connect_database_configfile(
+    config_filepath,
+    database = working_dbname,
+    config_choice = 1
+  )
+
+}
 
 ```
 
@@ -830,7 +856,9 @@ relevant_activities <- grouped_activity_lookup %>%
       "LOCEVALAQ",
       "LOCEVALTERR",
       "LSVIAQ",
-      "LSVITERR"
+      "LSVITERR",
+      "SURFLENTSAMPLPOINT",
+      "SURFLOTSAMPLPOINT"
     )
   ) %>%
   distinct(grouped_activity_id) %>%
