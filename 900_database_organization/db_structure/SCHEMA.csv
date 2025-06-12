@@ -1,4 +1,4 @@
 schema,owner,usage
-outbound,yoda,"ward,monkey"
-inbound,yoda,"ward,monkey"
-metadata,yoda,"ward,monkey"
+outbound,yoda,"ward,karen,monkey"
+inbound,yoda,"ward,karen,monkey"
+metadata,yoda,"ward,karen,monkey"
