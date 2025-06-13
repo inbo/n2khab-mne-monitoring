@@ -23,7 +23,7 @@ db = DTB.Database( \
 # SET search_path TO public,"metadata","outbound","inbound";
 
 
-if True:
+if False:
     #### TODO prompt accidental overwrite
 
     # https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
@@ -34,7 +34,7 @@ if True:
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
         connection_config = "inbopostgis",
-        database = "loceval_dev"
+        database = "loceval"
     )
     db = DTB.Database( \
         base_folder = "./db_structure", \
