@@ -532,6 +532,7 @@ SCHEDULED: <2025-06-13 Fri>
 
 + boolean defaults wrong due to dbWriteTable
 + indentation fault in CreateViews loop
++ worked on the wrong qgis project :/
 
 
 ** inbound view: Visits
@@ -545,6 +546,8 @@ SCHEDULED: <2025-06-13 Fri>
 + There is now code to recurrently update =Visits=, without deleting prior data.
 + only retaining =grts_address_final=
 + rudimentary preparation of sample replacements
++ Views: =PriorVisits= and =FreeFieldNotes= to field preparation project
++ qgis layer styles are now stored on the github repo
 
 
 ** TODO Replacement Unit logic
