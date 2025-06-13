@@ -305,14 +305,22 @@ def EnsureNestedQuerySpacing(query: str) -> str:
     # make sure that SQL keywords stand separated
     # (solve problem arising from cell linebreaks)
 
+    # some sql keywords get crunched by gsheet cell walls
     for keyword in [ \
               "SELECT", "FROM", "WHERE" \
             , "AS " # note that "AS" without space is in "CASE"\
+            , "UPDATE", "ON UPDATE", "INSTEAD" \
             , "LEFT JOIN" \
             , "DISTINCT", "GROUP BY" \
             , "CASE WHEN", "THEN", "ELSE", "END" \
         ]:
         query = query.replace(keyword, f"\n\t{keyword} ")
+
+    # there also was a stupid rare mistake in update rules
+    for typo, replacement in {
+        "ASON": "AS ON"
+        }.items():
+        query = query.replace(typo, replacement)
 
     # print(query.replace("    ", ""))
     return query.replace("    ", "")
@@ -533,8 +541,19 @@ class Database(dict):
                         GRANT {col} ON {view_label} TO {user};
                     """
 
-            # execute sql
+            # execute view creation
             ExecuteSQL(db_connection, view_command, verbose = verbose)
+
+            if PD.isna(view["rules"]):
+                continue # skip if no rules to apply
+
+            # ececute rules
+            print(view["rules"])
+            ExecuteSQL(
+                db_connection,
+                EnsureNestedQuerySpacing(view["rules"]),
+                verbose = verbose
+            )
 
 
     def ExPostTasks(self, db_connection: SQL.Connection, verbose = True):

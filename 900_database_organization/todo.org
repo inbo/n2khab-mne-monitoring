@@ -77,6 +77,12 @@
   + [ ] keep current node for =*_dev=
 
 
+* issue anticipation
+** connectivity
++ offline sattelite image layer?
++ transient replacement procedure requires connection to server
+  + can we get joins in layers? -> filter a view-like layer
+  + provide alternative tool for local use on laptop/tablet?
 
 * optional
 + save/restore a whole =db_structure= in pandas tables
