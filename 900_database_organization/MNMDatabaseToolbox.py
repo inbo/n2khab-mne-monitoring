@@ -60,6 +60,8 @@ def ReadSQLServerConfig(config_filename = "postgis_server.conf", label = None, *
     # per default, take first section
     if label is None:
         server_label = config.sections()[0]
+    else:
+        server_label = label
 
     # convert to dictionary
     db_configuration = dict(config[label])

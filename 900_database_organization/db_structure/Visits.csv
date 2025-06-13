@@ -1,11 +1,12 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 visit_id,int,True,,True,True,,,,visit index
 locationcalendar_id,int,True,,False,False,outbound.LocationCalendar.locationcalendar_id,,,link to LocationCalendar
-teammember_id,varchar,False,NULL,False,False,,,,link to the user who performed the visit
-date_visit,date,False,NULL,False,False,,,,date of the field activity
-grouped_activity_id,smallint,True,,False,False,metadata.GroupedActivities.grouped_activity_id,,,"a link to the activity metadata, brought here via LocationCalendar for convenience"
 activity_sequence,smallint,False,,False,False,,CHECK (activity_sequence > 0),,execution order of the field activities
-activity_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
-stratum_assigned,varchar,False,CAST('unassigned' AS VARCHAR),False,False,,,,"referring to ""N2kHabTypes"".""type"""
+grouped_activity_id,smallint,True,,False,False,metadata.GroupedActivities.grouped_activity_id,,,"a link to the activity metadata, brought here via LocationCalendar for convenience"
+visit_due,boolean,True,0,False,False,,,,filter column to find locations which are due to visit
+visit_overdue,boolean,True,0,False,False,,,,filter column to find locations which are overdue
+teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
+date_visit,date,False,NULL,False,False,,,,date of the field activity
+stratum_corrected,varchar,False,CAST('onveranderd' AS VARCHAR),False,False,,,,"referring to ""N2kHabTypes"".""type""; any corrections from previous evaluation"
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
-geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
+visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
