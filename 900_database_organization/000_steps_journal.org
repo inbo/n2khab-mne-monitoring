@@ -549,6 +549,16 @@ SCHEDULED: <2025-06-13 Fri>
 + Views: =PriorVisits= and =FreeFieldNotes= to field preparation project
 + qgis layer styles are now stored on the github repo
 
+... and then this happens:
+#+begin_quote
+Layer veldbezoeksnotities:
+PostGIS error while changing attributes: ERROR: cannot update view "VisitNotes"
+DETAIL: Views that do not select from a single table or view are not automatically updatable.
+HINT: To enable updating the view, provide
+    an INSTEAD OF UPDATE trigger
+    or an unconditional ON UPDATE DO INSTEAD rule.
+#+end_quote
+
 
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>
