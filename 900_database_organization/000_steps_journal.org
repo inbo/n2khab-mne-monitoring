@@ -264,6 +264,22 @@ Some changes and discussions with Floris about the "Activities" logic.
   + =LocationCalendar= and =Visits= will have multiple lines now (all scheduled activities per visit)
   + will have to see how this plays out in qgis.
 
+*** REMINDER: Activities/Groups DO NOT SPLIT
+SCHEDULED: <2025-06-13 Fri>
+
+It seems tempting to split out the table =ActivityGroups=.
+However,
+=GroupedActivities= contains duplicates of some activities,
+because there are also =ActivitySequences= involved.
+
+For the future:
+a. stick with the simplified =GroupedActivites=
+   + advantage: single table simplicity
+   + disadvantage: queries for activities or groups get complicated (DISTINCT/GROUP BY/UNIQUE)
+b. split out =Activities= + =ActivityGroups= + =ActivitySequences=
+   + less workable for practical purposes
+   + duplication of sequence info (also comes with the calendar)
+   + but: easier reference to =ActivityGroups=, which are work units for fieldwork
 
 *** chat protocol
 You, 9:50 AM
@@ -418,63 +434,21 @@ SCHEDULED: <2025-06-12 Thu>
 There are many activities.
 Only some are relevant for Ward.
 I intuitively selected src_r[:eval no]{c("LOCEVALAQ", "LOCEVALAQ", "LOCEVALAQ", "LOCEVALTERR", "LSVIAQ", "LSVITERR")}
+and @KW, @FV added src_r[:eval no]{c("SURFLENTSAMPLPOINT", "SURFLOTSAMPLPOINT")}
+
+https://docs.google.com/spreadsheets/d/1VPloImiATO6jjxfMmd-LVKnBUjpVEc7sAtb4yL08sIk/edit?usp=drive_link
 
 |------+-----------------------+--------------------------------------------------------------------------------------+-------------------|
 | team | activity              | activity_name                                                                        | is_field_activity |
 |------+-----------------------+--------------------------------------------------------------------------------------+-------------------|
-|      | ADHOCDIVERREPLACE     | ad-hoc een diver in grondwater of oppervlaktewater vervangen                         | true              |
-|      | ADHOCPIPEREPLACE      | ad-hoc een buis in grondwater of oppervlaktewater vervangen of herstellen            | true              |
-|      | GWINSTPIEZDIVER       | ondiepe piëzometer met divers installeren, repareren of vervangen                    | true              |
-|      | GWINSTPIEZNODIVER     | ondiepe piëzometer zonder divers installeren, repareren of vervangen                 | true              |
-|      | GWINSTWELLDIVER       | ondiepe peilbuis met divers installeren, repareren of vervangen                      | true              |
-|      | GWINSTWELLDIVERDEEP   | diepe peilbuis met diver installeren, repareren of vervangen                         | true              |
-|      | GWINSTWELLNODIVER     | ondiepe peilbuis zonder divers installeren, repareren of vervangen                   | true              |
-|      | GWLEVREADDIVER        | diverlogger uitlezen in piëzometer of peilbuis                                       | true              |
-|      | GWLEVREADDIVER        | diverlogger uitlezen in piëzometer of peilbuis                                       | true              |
-|      | GWLEVREADDIVER        | diverlogger uitlezen in piëzometer of peilbuis                                       | true              |
-|      | GWLEVREADDIVERDEEP    | diverlogger uitlezen in diepe piëzometer of peilbuis                                 | true              |
-|      | GWLEVREADMAN          | manueel bepalen van waterpeil in piëzometer of peilbuis                              | true              |
-|      | GWLEVREADMAN          | manueel bepalen van waterpeil in piëzometer of peilbuis                              | true              |
-|      | GWLEVREADMAN          | manueel bepalen van waterpeil in piëzometer of peilbuis                              | true              |
-|      | GWLEVREADMAN          | manueel bepalen van waterpeil in piëzometer of peilbuis                              | true              |
-|      | GWMAT                 | staalnamemateriaal voor grondwater laden, lossen, kuisen en opruimen                 | false             |
-|      | GWSHALLCLEAN          | ondiepe piëzometer leegpompen                                                        | true              |
-|      | GWSHALLSAMP           | ondiepe piëzometer bemonsteren                                                       | true              |
-|      | GWSHALLSAMP           | ondiepe piëzometer bemonsteren                                                       | true              |
-|      | GWSHALLSAMP           | ondiepe piëzometer bemonsteren                                                       | true              |
-|      | GWSURFINSTALLMAT      | installatiemateriaal voor grondwater of oppervlaktewater laden, lossen, opkuisen en) | false             |
 | ward | LOCEVALAQ             | locatie in aquatisch habitat evalueren en eventueel vervangen                        | true              |
 | ward | LOCEVALAQ             | locatie in aquatisch habitat evalueren en eventueel vervangen                        | true              |
 | ward | LOCEVALAQ             | locatie in aquatisch habitat evalueren en eventueel vervangen                        | true              |
 | ward | LOCEVALTERR           | locatie in terrestrisch habitat evalueren en eventueel vervangen                     | true              |
 | ward | LSVIAQ                | LSVI bepalen in aquatisch habitat                                                    | true              |
 | ward | LSVITERR              | LSVI bepalen in terrestrisch habitat                                                 | true              |
-|      | SECDATACOLL           | data uit bestaande databronnen verwerven (secundaire dataverwerving)                 | false             |
-|      | SOILDELIVER           | bodemstalen afleveren, inschrijven en in oven plaatsen                               | false             |
-|      | SOILMAT               | staalnamemateriaal voor bodem laden, lossen, kuisen en opruimen                      | false             |
-|      | SOILOUTOVEN           | bodemstalen uit oven halen (één keer per week inplannen)                             | false             |
-|      | SOILPREPROCES         | droge bodemstalen zeven, breken en malen                                             | false             |
-|      | SOILUPPERSAMP         | bodem bemonsteren via oppervlaktemonsters                                            | true              |
-|      | SPATPOSITGAUGE        | peillat ruimtelijk inmeten                                                           | true              |
-|      | SPATPOSITPIPE         | peilbuis of piëzometer ruimtelijk inmeten                                            | true              |
-|      | SURFADHOCGAUGEREPLACE | ad-hoc een peillat vervangen of herstellen                                           | true              |
-|      | SURFINSTGAUGE         | peillat installeren in oppervlaktewater                                              | true              |
-|      | SURFINSTWELLDIVER     | buis met divers in oppervlaktewater installeren, repareren of vervangen              | true              |
-|      | SURFLENTFIELD         | veldmetingen uitvoeren in stilstaande wateren                                        | true              |
-|      | SURFLENTSAMP          | waterkolom bemonsteren in stilstaande wateren                                        | true              |
-|      | SURFLENTSAMPLPOINT    | vast staalnamepunt selecteren in stilstaande wateren indien er nog geen bestond      | true              |
-|      | SURFLENTSECC          | Secchi-diepte bepalen in stilstaande wateren                                         | true              |
-|      | SURFLEVREADDIVER      | diverlogger in oppervlaktewater uitlezen                                             | true              |
-|      | SURFLEVREADGAUGE      | waterstand op peillat aflezen                                                        | true              |
-|      | SURFLEVREADGAUGE      | waterstand op peillat aflezen                                                        | true              |
-|      | SURFLEVREADGAUGE      | waterstand op peillat aflezen                                                        | true              |
-|      | SURFLEVREADGAUGE      | waterstand op peillat aflezen                                                        | true              |
-|      | SURFLOTFIELD          | veldmetingen uitvoeren in stromende wateren                                          | true              |
-|      | SURFLOTSAMP           | waterkolom bemonsteren in stromende wateren                                          | true              |
-|      | SURFLOTSAMPLPOINT     | vast staalnamepunt selecteren in stromende wateren indien er nog geen bestond        | true              |
-|      | SURFLOTSECC           | Secchi-diepte bepalen in stromende wateren                                           | true              |
-|      | SURFMAT               | staalnamemateriaal voor oppervlaktewater laden, lossen, kuisen en opruimen           | false             |
-|      | WATERDELIVER          | waterstalen afleveren en inschrijven                                                 | false             |
+| ward | SURFLENTSAMPLPOINT    | vast staalnamepunt selecteren in stilstaande wateren indien er nog geen bestond      | true              |
+| ward | SURFLOTSAMPLPOINT     | vast staalnamepunt selecteren in stromende wateren indien er nog geen bestond        | true              |
 |------+-----------------------+--------------------------------------------------------------------------------------+-------------------|
 
 ** prune location calendar and smush duplicate locations
@@ -547,6 +521,37 @@ SCHEDULED: <2025-06-12 Thu>
 + ... also from R
 
 
+** database schema's and mirrors
+SCHEDULED: <2025-06-13 Fri>
+
++ [X] will require additional schema's (=metadata=, e.g. for =username=, =activity_groups=, or sequences) and =outbound= / =inbound= database schemes
++ [X] database mirrors (=loceval_dev= / =loceval=)
+
+
+** inbound view: Visits
+SCHEDULED: <2025-06-13 Fri>
+
++ new view: =VisitNotes=
++ renamed table: =FreeFieldNotes=
++ LocationCalendar / FieldPreparation are now aggregated by =activity_group=, which must be DISTINCTed from the =GroupedActivities=
++ =Visits= table is linked to =LocationCalendar=, therefore does not need another geometry
++ =Visits= have each activity split up! (as opposed to =activity_group= in =LocationCalendar=)
++ There is now code to recurrently update =Visits=, without deleting prior data.
++ only retaining =grts_address_final=
++ rudimentary preparation of sample replacements
+
+
+** TODO Replacement Unit logic
+SCHEDULED: <2025-06-16 Mon>
+
+/brainstorm:/
++ LocationCalendar -> must be linked
++ geometry -> must be updated
++ Visits -> must be adjusted, e.g. by linking in =inbound.Replacements=
++ join =Replacements= to =Visits= if they have an entry
+
+
+
 ** TODO Data Captation
 SCHEDULED: <2025-06-16 Mon>
 
@@ -557,8 +562,3 @@ Data prepared at home or generated in the field must be captured and moved to a 
 + =FieldNotes= must be stored irrespective of the =hide= tag; images linked and moved to storage
 
 
-** TODO CONCEPT
-SCHEDULED: <2025-06-16 Mon>
-
-+ [X] will require additional schema's (=metadata=, e.g. for =username=, =activity_groups=, or sequences) and =outbound=/=inbound= database schemes
-+ [ ] database mirrors (=loceval_dev= / =loceval=)
