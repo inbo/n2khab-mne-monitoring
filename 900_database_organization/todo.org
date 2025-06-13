@@ -86,3 +86,5 @@
     #+end_quote
 
 + array data types (e.g. =panel_set=) -> upload with dplyr tricky (str -> int[])
+
++ bug report: =sf::dbWriteTable()= seems to overwrite boolean defaults

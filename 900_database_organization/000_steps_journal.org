@@ -527,6 +527,12 @@ SCHEDULED: <2025-06-13 Fri>
 + [X] will require additional schema's (=metadata=, e.g. for =username=, =activity_groups=, or sequences) and =outbound= / =inbound= database schemes
 + [X] database mirrors (=loceval_dev= / =loceval=)
 
+** minor fixes
+SCHEDULED: <2025-06-13 Fri>
+
++ boolean defaults wrong due to dbWriteTable
++ indentation fault in CreateViews loop
+
 
 ** inbound view: Visits
 SCHEDULED: <2025-06-13 Fri>

@@ -1,6 +1,5 @@
 SELECT
-    oCAL.ogc_fid,
-    oCAL.wkb_geometry,
+    ivis.visit_id,
     iVIS.locationcalendar_id,
     mTEAM.username AS team_assigned,
     iVIS.teammember_id,
@@ -18,7 +17,8 @@ SELECT
     mACT.activity_group,
     mACT.activity_name,
     iVIS.notes AS field_notes,
-    iVIS.visit_done
+    iVIS.visit_done,
+    oCAL.wkb_geometry
 FROM "inbound"."Visits" AS iVIS
 LEFT JOIN "outbound"."LocationCalendar" AS oCAL
  ON iVIS.locationcalendar_id = oCAL.locationcalendar_id
@@ -27,3 +27,5 @@ LEFT JOIN "metadata"."TeamMembers" AS mTEAM
 LEFT JOIN "metadata"."GroupedActivities" AS mACT
  ON mACT.grouped_activity_id = iVIS.grouped_activity_id
 ;
+
+-- oCAL.ogc_fid,
