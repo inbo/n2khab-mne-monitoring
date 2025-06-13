@@ -535,7 +535,7 @@ SCHEDULED: <2025-06-13 Fri>
 + worked on the wrong qgis project :/
 
 
-** inbound view: Visits
+** inbound tables and views: FreeFieldNotes, VisitNotes, PriorVisits
 SCHEDULED: <2025-06-13 Fri>
 
 + new view: =VisitNotes=
@@ -558,6 +558,10 @@ HINT: To enable updating the view, provide
     an INSTEAD OF UPDATE trigger
     or an unconditional ON UPDATE DO INSTEAD rule.
 #+end_quote
++ added functionality to use postgres RULES
++ added to "fieldwork preparation" = outbound qgis project
++ created qgis project for inbound work (draft): happy field-working!
+
 
 
 ** TODO Replacement Unit logic
