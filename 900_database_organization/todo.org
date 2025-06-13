@@ -37,6 +37,7 @@
 + [ ] qgis/database convenience
   + [ ] fill username automatically upon edit
   + [ ] store edit dates -> "append-only" + views?
+  + [ ] inbound project: view to join activities and protocols
 + [ ] second db with third schema: =mnmdb=
   + [ ] mirror/assembly of previously collected data
   + [ ] can live on a completely different connection
