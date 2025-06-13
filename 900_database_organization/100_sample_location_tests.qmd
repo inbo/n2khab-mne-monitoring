@@ -903,7 +903,12 @@ location_calendar <- location_calendar %>%
       # activity_sequence,
       wkb_geometry
     )
-  )
+  ) %>%
+  mutate(done_planning = FALSE)
+
+# TODO prior data
+#  %>% mutate(done_planning = tidyr::replace_na(done_planning, FALSE))
+
 #   count(grts_address) %>%
 #   arrange(desc(n))
 # %>% filter(grts_address == 452914) # multiple schemes -> filtered
@@ -1057,7 +1062,7 @@ loccal_lookup <- dplyr::tbl(
     activity_group_id,
     grts_address,
     date_start,
-    locationcalendar_id
+    locationcalendar_id,
     # teammember_assigned,
     # visit_date_planned,
     # stratum_to_expect,
@@ -1105,6 +1110,12 @@ visits <- visit_preparation %>%
 glimpse(visits)
 
 # TODO join prior data
+visits <- visits %>%
+  mutate(
+    visit_due = FALSE,
+    visit_overdue = FALSE,
+    visit_done = FALSE
+  )
 
 sf::dbWriteTable(
   db_connection,

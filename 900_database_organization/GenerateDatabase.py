@@ -216,8 +216,9 @@ def ColumnString(schema, table, fieldname, params, no_pk = False):
         attributes += ["DEFAULT NULL"]
     elif not PD.isna(params["default"]):
         value = params["default"]
+        print(value)
         if params["datatype"] == "boolean":
-            value = bool(value)
+            value = str(bool(value)).upper()
         attributes += [f"""DEFAULT {str(value)}"""]
 
     # pk
@@ -304,10 +305,16 @@ def EnsureNestedQuerySpacing(query: str) -> str:
     # make sure that SQL keywords stand separated
     # (solve problem arising from cell linebreaks)
 
-    for keyword in ["SELECT", "FROM", "WHERE", "AS ", "LEFT JOIN", "GROUP BY", "DISTINCT"]:
+    for keyword in [ \
+              "SELECT", "FROM", "WHERE" \
+            , "AS " # note that "AS" without space is in "CASE"\
+            , "LEFT JOIN" \
+            , "DISTINCT", "GROUP BY" \
+            , "CASE WHEN", "THEN", "ELSE", "END" \
+        ]:
         query = query.replace(keyword, f"\n\t{keyword} ")
 
-    print(query.replace("    ", ""))
+    # print(query.replace("    ", ""))
     return query.replace("    ", "")
 
 
@@ -496,26 +503,43 @@ class Database(dict):
     def CreateViews(self, db_connection: SQL.Connection, verbose = True):
         # create views
 
+        # views are designed in the `VIEWS` table
         views = PD.read_csv(self.base_folder/"VIEWS.csv")
+
+        # loop views
         for view_id, view in views.iterrows():
+            if PD.isna(view["query"]):
+                continue # skip empty (when in prep)
+
+            view_command = f""" """ # reset command
+
             view_label = f""" "{view["schema"]}"."{view["view"]}" """
-            # print(view["query"])
-            view_command = f"""
+
+
+            # create view
+            view_command += f"""
                 DROP VIEW IF EXISTS {view_label};
                 CREATE VIEW {view_label} AS
                 {EnsureNestedQuerySpacing(view["query"])};
             """
 
             for col in ["SELECT", "UPDATE"]:
+                if PD.isna(view[col]):
+                    continue # skip if empty
+
+                # assign user roles
                 for user in view[col].split(","):
                     view_command += f"""
                         GRANT {col} ON {view_label} TO {user};
                     """
 
-        ExecuteSQL(db_connection, view_command, verbose = verbose)
+            # execute sql
+            ExecuteSQL(db_connection, view_command, verbose = verbose)
 
 
     def ExPostTasks(self, db_connection: SQL.Connection, verbose = True):
+        # apply extra SQL queries after database creation.
+
         expost = self.base_folder/"EXPOST.csv"
         commands = PD.read_csv(expost)["sql"].values
         for expost_command in commands:
