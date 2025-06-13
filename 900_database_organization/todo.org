@@ -23,9 +23,10 @@
 + [X] =teammember_id=:
   + [X] =teammember_id= columns
   + [X] or dropdown for form edit (=Teammembers= table ⊂ =metadata= schema?)
-+ [ ] inbound forms
-  + [ ] =Visits= -> structured input
-  + [ ] =FieldNotes= -> free input
++ [X] inbound forms
+  + [X] =Visits= -> structured input
+  + [X] =FieldNotes= -> free input
++ [ ] something wrong with python =getpasswd=
 + recurrent tasks
   + [ ] backup procedures via cron
   + [ ] =Visits=: due/overdue update

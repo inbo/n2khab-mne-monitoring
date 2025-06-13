@@ -1,0 +1,10 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+fieldnote_id,int,True,,True,True,,,,note index
+hide,boolean,True,0,False,False,,,,used to hide completed notes
+teammember_id,smallint,True,,False,False,metadata.TeamMembers.teammember_id,,,link to the user who performed the visit
+field_note,text,False,NULL,False,False,,,,description of the issue
+note_date,date,True,,False,False,,,,date of the field activity
+location,varchar,False,NULL,False,False,,,,free reference to the location (database id or grts address)
+activity,varchar,False,NULL,False,False,,,,what activity was performed (reference to GroupedActivities)
+photo,bytea,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
+geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

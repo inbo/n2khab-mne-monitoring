@@ -1,0 +1,7 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+replacement_id,int,True,,True,True,,,,replacement index (technical)
+locationcalendar_id,int,True,,False,False,LocationCalendar.locationcalendar_id,,,reference to primary location calendar index
+replacement_sequence,smallint,True,,False,False,,CHECK (replacement_sequence > 0),,replacement preference order
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after corrections)"
+is_selected,boolean,False,0,False,False,,,,indicating whether this location was selected as replacement unit
+geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

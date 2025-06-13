@@ -1,2 +1,3 @@
-sql
-"ALTER TABLE ""metadata"".""GroupedActivities"" ADD CONSTRAINT uq_activities UNIQUE (activity_group, activity);"
+sql,deactivated
+"ALTER TABLE ""metadata"".""GroupedActivities"" ADD CONSTRAINT uq_activities UNIQUE (activity_group, activity);",
+BEGIN;COMMIT;,"-- ALTER TABLE ""outbound"".""LocationCalendar"" ADD CONSTRAINT check_loccal_activity_groups CHECK ( activity_group_id IN (SELECT DISTINCT activity_group_id FROM ""metadata"".""GroupedActivities"" GROUP BY activity_group_id )); -- not possible :("
