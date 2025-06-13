@@ -76,11 +76,11 @@ if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
 ```{r load-sample-rdata}
 # Download and load R objects from the POC into global environment
 reload <- FALSE
-path <- file.path("./data", "objects_panflpan5.RData")
-if (reload || !file.exists(path)){
-  drive_download(as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"), path = path)
+poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
+if (reload || !file.exists(poc_rdata_path)){
+  drive_download(as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"), path = poc_rdata_path)
 }
-load(path)
+load(poc_rdata_path)
 ```
 
 
@@ -809,21 +809,31 @@ by the date interval.
 
 
 :::{.callout-warning}
-Note that `rank` is renamed to `activity_sequence`.
+Note:
+
+- `rank` is renamed to `activity_sequence`.
+- `grts_address`: only "final" vaule retained
+
 :::
 
 
 ```{r upload-calendar}
-location_calendar <- fag_stratum_grts_calendar_2025_attribs_sf %>% 
+location_calendar_raw <- fag_stratum_grts_calendar_2025_attribs_sf %>% 
+  select(-grts_address) %>%
+  rename(grts_address = grts_address_final) %>% 
   mutate(
-    scheme = as.character(scheme),
-    module_combo_code = as.character(module_combo_code),
-    stratum = as.character(stratum),
-    targetpanel = as.character(targetpanel),
-    date_interval = as.character(date_interval)
+    across(c(
+        scheme,
+        module_combo_code,
+        stratum,
+        targetpanel,
+        date_interval
+      ),
+      as.character
+    )
   ) %>% 
   left_join(
-    grouped_activity_lookup %>% distinct(activity_group, grouped_activity_id),
+    grouped_activity_lookup %>% distinct(activity_group, activity_group_id),
     by = join_by(field_activity_group == activity_group),
     relationship = "many-to-many"
   ) %>%
@@ -831,8 +841,8 @@ location_calendar <- fag_stratum_grts_calendar_2025_attribs_sf %>%
   rename(activity_sequence = rank) %>% 
   distinct()
 
-sf::st_geometry(location_calendar) <- "wkb_geometry"
-glimpse(location_calendar)
+sf::st_geometry(location_calendar_raw) <- "wkb_geometry"
+glimpse(location_calendar_raw)
 
 ```
 
@@ -861,14 +871,17 @@ relevant_activities <- grouped_activity_lookup %>%
       "SURFLOTSAMPLPOINT"
     )
   ) %>%
-  distinct(grouped_activity_id) %>%
-  pull(grouped_activity_id)
-    
-location_calendar <- location_calendar %>%
+  distinct(activity_group_id) %>%
+  pull(activity_group_id)
+
+# remove sequence for fieldwork preparation
+location_calendar <- location_calendar_raw %>%
+  select(-activity_sequence) %>%
   filter(
-    grouped_activity_id %in% relevant_activities,
+    activity_group_id %in% relevant_activities,
     scheme %in% c("GW_03.3")
-  )
+  ) %>% 
+  distinct()
 
 if (FALSE){
   location_calendar %>%
@@ -876,8 +889,6 @@ if (FALSE){
     filter(n>1)
 }
 
-# location_calendar <-
-# group_by(across(c(-stratum, -targetpanel))) %>%
 location_calendar <- location_calendar %>%
   summarize(
     stratum = paste(stratum, collapse = "+"),
@@ -886,17 +897,17 @@ location_calendar <- location_calendar %>%
       scheme,
       module_combo_code,
       panel_set,
-      grouped_activity_id,
-      grts_address, grts_address_final,
+      activity_group_id,
+      grts_address,
       date_start, date_end,
-      activity_sequence,
+      # activity_sequence,
       wkb_geometry
     )
   )
-#   count(grts_address_final) %>%
+#   count(grts_address) %>%
 #   arrange(desc(n))
-# %>% filter(grts_address_final == 452914) # multiple schemes -> filtered
-# %>% filter(grts_address_final == 31225) # multiple strata -> retained
+# %>% filter(grts_address == 452914) # multiple schemes -> filtered
+# %>% filter(grts_address == 31225) # multiple strata -> retained
 glimpse(location_calendar)
 ```
 
@@ -947,8 +958,8 @@ location_calendar_unique_count <- location_calendar %>%
     panel_set,
     stratum,
     targetpanel,
-    grouped_activity_id,
-    grts_address_final,
+    activity_group_id,
+    grts_address,
     date_start
   ) %>%
   count(
@@ -957,8 +968,8 @@ location_calendar_unique_count <- location_calendar %>%
     panel_set,
     stratum,
     targetpanel,
-    grouped_activity_id,
-    grts_address_final,
+    activity_group_id,
+    grts_address,
     date_start
   ) %>%
   arrange(desc(n))
@@ -980,8 +991,8 @@ loccal_lookup <- dplyr::tbl(
     panel_set,
     stratum,
     targetpanel,
-    grouped_activity_id,
-    grts_address_final,
+    activity_group_id,
+    grts_address,
     date_start,
     locationcalendar_id
   ) %>% 
@@ -997,8 +1008,8 @@ location_calendar <- location_calendar %>%
       panel_set,
       stratum,
       targetpanel,
-      grouped_activity_id,
-      grts_address_final,
+      activity_group_id,
+      grts_address,
       date_start
     ),
     relationship = "one-to-one",
@@ -1017,31 +1028,88 @@ whereas field workers cannot.
 
 Now comes the part of handling tables which might already include data.
 
+:::{.callout-warning}
+The tasks below are recurrent tasks which have to be executed
+
+- on regular intervals
+- whenever desktop field planning is done (on-demand)
+:::
 
 ## Visits
 
 The locations to visit will be stored in a separate table: `inbound.Visits`.
 
+
+
 ```{r upcoming-visits}
 # we must first save the visits to our internal database
 
-visit_preparation <- location_calendar %>%
-  filter(
-    date_start < today(),
-    date_end > today()
+loccal_lookup <- dplyr::tbl(
+    db_connection,
+    DBI::Id(schema = "outbound", table = "LocationCalendar")
   ) %>%
   select(
-    locationcalendar_id,
-    grouped_activity_id,
-    activity_sequence,
-    wkb_geometry
+    scheme,
+    module_combo_code,
+    panel_set,
+    stratum,
+    targetpanel,
+    activity_group_id,
+    grts_address,
+    date_start,
+    locationcalendar_id
+    # teammember_assigned,
+    # visit_date_planned,
+    # stratum_to_expect,
+    # done_planning
+  ) %>% 
+  collect
+
+
+visit_preparation <- location_calendar_raw %>%
+  sf::st_drop_geometry() %>% 
+  inner_join(
+    loccal_lookup,
+    by = join_by(
+      scheme,
+      module_combo_code,
+      panel_set,
+      stratum,
+      targetpanel,
+      activity_group_id,
+      grts_address,
+      date_start
+    ),
+    relationship = "many-to-one",
+    unmatched = "drop"
   )
 
+
+# here, I will split activity groups to activities
+visit_preparation <- visit_preparation %>%
+  left_join(
+    grouped_activity_lookup %>%
+      select(activity_group_id, grouped_activity_id),
+    by = join_by(activity_group_id),
+    relationship = "many-to-many"
+  ) %>%
+  select(-activity_group_id)
+
+visits <- visit_preparation %>%
+  select(
+    locationcalendar_id,
+    activity_sequence,
+    grouped_activity_id
+  )
+
+glimpse(visits)
+
+# TODO join prior data
 
 sf::dbWriteTable(
   db_connection,
   DBI::Id(schema = "inbound", table = "Visits"),
-  visit_preparation,
+  visits,
   row.names = FALSE,
   overwrite = FALSE,
   append = TRUE,
@@ -1055,8 +1123,16 @@ sf::dbWriteTable(
 
 # Onwards, to QGIS!
 
+- rename `GenerateDatabase` to `MNMDatabaseToolbox`
+- via a mandatory, explicit data dump prior to re-upload in `MNMDatabaseToolbox`:
+  - TODO retain existing `LocationCalendar` data
+  - TODO retain existing `Visits`
+  - TODO retain existing `FieldNotes`
+
 - [ ] outbound project: FieldPreparation
-  - testing phase
+  - [ ] update _dev
+  - [ ] push to production
+  - testing phase ongoing
 - [ ] qgis design of inbound project
   - views
   - project

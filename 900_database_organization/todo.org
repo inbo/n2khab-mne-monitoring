@@ -26,6 +26,9 @@
 + [ ] inbound forms
   + [ ] =Visits= -> structured input
   + [ ] =FieldNotes= -> free input
++ recurrent tasks
+  + [ ] backup procedures via cron
+  + [ ] =Visits=: due/overdue update
 + [ ] forms refinement
   + [ ] aliases? (via postgres or qfield)
   + [ ] accessibility layer
@@ -52,12 +55,26 @@
   + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
   + [ ] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
   + [X] select/join from multiple tables; alternatively auto-generate data+metadata -> postgres views views
++ [ ] generic database ROLEs (extra layer btw db user and permission; simplifies adding new database users to certain tasks)
+  + [ ] roles defined
+  + [ ] adjust upload scripts
 + [ ] Activity Roles
+  + [ ] for now: solved by group members in =TeamMembers=
   + [ ] add =role= to =TeamMembers=
   + [ ] link =GroupedActivities= to roles -> who does what? filter?
 + [X] offline caching in qfield? -> works well
 + [ ] bring to tablet
++ [ ] manual, ex post python check to constrain =LocationCalendar.activity_group_id= to valid values
 + [X] fix qgis installation
++ [ ] migrate to AWS: database + ec2 + s3
+  + [ ] backups to s3
+  + [ ] create postgis docker for db
+    + user handling?
+    + updates?
+  + [ ] organize with ICT/Jens (timing!)
+  + [ ] backup and maintenance procedures to ec2
+  + [ ] keep current node for =*_dev=
+
 
 
 * optional

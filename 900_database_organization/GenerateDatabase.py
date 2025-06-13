@@ -304,9 +304,10 @@ def EnsureNestedQuerySpacing(query: str) -> str:
     # make sure that SQL keywords stand separated
     # (solve problem arising from cell linebreaks)
 
-    for keyword in ["SELECT", "FROM", "WHERE"]:
+    for keyword in ["SELECT", "FROM", "WHERE", "AS ", "LEFT JOIN", "GROUP BY", "DISTINCT"]:
         query = query.replace(keyword, f"\n\t{keyword} ")
 
+    print(query.replace("    ", ""))
     return query.replace("    ", "")
 
 
