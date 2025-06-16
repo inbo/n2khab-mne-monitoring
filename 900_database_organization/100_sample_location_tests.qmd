@@ -49,8 +49,9 @@ library("mapview")
 
 projroot <- find_root(is_rstudio_project)
 working_dbname <- "loceval_dev" 
-# TODO password query does not work in a quarto render. -> use manually
-# keyring::key_set("DBPassword", "loceval_dbadmin")
+
+# you might want to run the following prior to sourcing or rendering this script:
+# keyring::key_set("DBPassword", "inbopostgis_user_password")
 
 
 # Load some custom GRTS functions
@@ -496,23 +497,46 @@ connect_database_configfile <- function(config_filepath, database, config_choice
   # read connection info from a config file
   config <- configr::read.config(file = config_filepath)[[config_choice]] # selects config block
 
+  # store a label for verbose disconnection at exit
+  db_label <- sprintf("%s@%s/%s", config$user, config$server, database)
+
+
+  # get password.
+  # (1) direct function input
+  # (2) from config file
+  # (3) user input
   if (is.null(password)) {
-    password <- config$password
+    if (is.null(attr(config, "password"))){
+      if (keyring::key_get("DBPassword", "inbopostgis_user_password") == "") {
+        keyring::key_set("DBPassword", "inbopostgis_user_password")
+      }
+      password <- keyring::key_get("DBPassword", "inbopostgis_user_password")
+    } else {
+      password <- config$password
+    }
   }
 
   # connect to database
-  database_connection <- DBI::dbConnect(
-    RPostgres::Postgres(),
-    dbname = database,
-    host = config$server,
-    port = config$port,
-    user = config$user,
-    password = password
+  # 
+  tryCatch({
+    database_connection <- DBI::dbConnect(
+      RPostgres::Postgres(),
+      dbname = database,
+      host = config$server,
+      port = config$port,
+      user = config$user,
+      password = password
+    )
+    },
+    error = function(wrnmsg) {
+      message(
+        sprintf(
+          'no password provided for connection %s. \n Try `keyring::key_set("DBPassword", "inbopostgis_user_password")`.',
+          db_label)
+      )
+    }
   )
 
-
-  # store a label for verbose disconnection at exit
-  db_label <- sprintf("%s@%s/%s", config$user, config$server, database)
 
   # remove the config: we do not want to expose credentials further
   # down in this notebook
@@ -538,8 +562,7 @@ if (working_dbname == "loceval") {
   db_connection <- connect_database_configfile(
     config_filepath,
     database = working_dbname,
-    config_choice = 2,
-    password = keyring::key_get("DBPassword", "loceval_dbadmin")
+    config_choice = 2
   )
     
 } else {

@@ -70,9 +70,10 @@ def ReadSQLServerConfig(config_filename = "postgis_server.conf", label = None, *
     for kw, val in kwargs.items():
         db_configuration[kw] = val
 
+
     # prompt password
     if 'password' not in db_configuration.keys():
-        config[server_label]['password'] = PWD.getpass("password: ")
+        db_configuration['password'] = PWD.getpass("password: ")
 
     return(db_configuration)
 
@@ -101,6 +102,7 @@ def ConnectDatabase(config_filepath, database, connection_config = None):
     # user = input("user: ")
 
     config = ReadSQLServerConfig(config_filepath, label = connection_config, database = database)
+
     engine = SQL.create_engine(ConfigToConnectionString(config))
     connection = engine.connect()
 
@@ -575,11 +577,11 @@ if __name__ == "__main__":
     # print(connstr)
 
     base_folder = PL.Path("./")
-    ODStoCSVs(base_folder/"sandbox_staanbeeldentuin.ods", base_folder/"db_structure")
+    ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", base_folder/"devdb_structure")
 
 
     db = Database( \
-        base_folder = "./db_structure", \
+        base_folder = "./devdb_structure", \
         definition_csv = "TABLES.csv", \
         lazy_creation = True \
     )
@@ -588,7 +590,11 @@ if __name__ == "__main__":
     #     print(v)
 
     db_connection = None
-    db_connection = ConnectDatabase("inbopostgis_server.conf")
+    db_connection = ConnectDatabase(
+        "inbopostgis_server.conf",
+        connection_config = "inbopostgis-dev",
+        database = "loceval_dev"
+    )
     db.CreateSchema(db_connection)
     db.CreateTables(db_connection)
     db.CreateViews(db_connection)
