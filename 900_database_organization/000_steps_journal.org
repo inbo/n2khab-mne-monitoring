@@ -563,6 +563,61 @@ HINT: To enable updating the view, provide
 + created qgis project for inbound work (draft): happy field-working!
 
 
+** database change tracking
+SCHEDULED: <2025-06-16 Mon>
+
+there are new database fields:
++ =log_creator= and =log_creation= to track creation of =FieldNotes=
++ =log_user= and =log_update= to track last change of =LocationCalendar=, =Visits=, =FieldNotes=
+implemented by trigger (see =expost=)
+
+
+** photo attachments
+SCHEDULED: <2025-06-16 Mon>
+
++ blob/bytea upload in qfield did not work
++ instead, separate folder (default: DCIM) and manual storage sync
++ tested and working, though not ideal
+
+
+** meaningful attribute labels
+SCHEDULED: <2025-06-16 Mon>
+
+qfield seems to use the first field as identifier
++ is there a qgis setting to override?
++ otherwise re-arrange database columns
+
+-> on Layer properties >> Labels, work with "expressions", e.g.
+
+#+begin_src sql
+"note_date" || '  (' || represent_value("teammember_id") || ')'
+#+end_src
+
+#+begin_src sql
+ CASE WHEN "visit_date_planned" IS NULL THEN '' ELSE  "visit_date_planned" || ' '  END
+|| "stratum"
+|| ' ' || "activity_group"
+|| ' (' || CASE WHEN "teammember_id" IS NULL THEN 'unassigned' ELSE represent_value("teammember_id") END || ')'
+#+end_src
+
+
+** backups
+SCHEDULED: <2025-06-16 Mon>
+
+... started.
+
+#+begin_src sh :eval no
+
+# first: dump the diff to a patch file
+pg_dump -U <user> -h <host> -p <port> -d loceval_dev -N tiger -N public -W \
+    | diff latest_dump.sql - \
+    > $(date +"%Y%m%d")_loceval_diff.patch
+
+# then: patch the changes into `latest`
+patch latest_dump.sql -i $(date +"%Y%m%d")_loceval_diff.patch
+
+#+end_src
+
 
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>

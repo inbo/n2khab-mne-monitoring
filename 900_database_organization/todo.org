@@ -27,6 +27,7 @@
   + [X] =Visits= -> structured input
   + [X] =FieldNotes= -> free input
 + [X] something wrong with python =getpasswd=
++ [ ] backup procedures
 + recurrent tasks
   + [ ] backup procedures via cron
   + [ ] =Visits=: due/overdue update
@@ -35,19 +36,19 @@
   + [ ] accessibility layer
 + [ ] database mirrors: one for me to play (=loceval_dev=), one for the real work (=loceval=)
   + [ ] safe checks for updating a production database
-+ [ ] qgis/database convenience
-  + [ ] fill username automatically upon edit
-  + [ ] store edit dates -> "append-only" + views?
++ [-] qgis/database convenience
+  + [X] fill username automatically upon edit
+  + [X] store edit dates -> "append-only" + views?
   + [ ] inbound project: view to join activities and protocols
 + [ ] second db with third schema: =mnmdb=
   + [ ] mirror/assembly of previously collected data
   + [ ] can live on a completely different connection
   + [ ] replace image blobs with file links upon import
-+ [-] images and how to bring them home
++ [X] images and how to bring them home
   + [X] BLOB (binary large objects) work as =bytea= data type [[https://www.postgresql.org/docs/current/datatype-binary.html][(see here)]]
-  + [ ] test qfield camera usage
-  + [ ] test downloading and compression/update workflow
-+ [ ] backup procedures
+  + [X] test qfield camera usage
+  + [X] test downloading and compression/update workflow
+  + [X] solved [[https://docs.qfield.org/how-to/pictures/][via qfield attachments]]; folder export/sync necessary
 + [ ] generalize R functions, to package files
   + =append_tabledata=
   + =upload_and_lookup=
@@ -55,8 +56,11 @@
   + [X] where is the qgis qfield export gone? *[!]* -> gdal error solved
   + [X] postgis login from qfield; auth with master password? set ID!
   + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
-  + [ ] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
+  + [X] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
   + [X] select/join from multiple tables; alternatively auto-generate data+metadata -> postgres views views
++ [ ] try qfield folder on shared gdrive
+  + [ ] try gdrive access with different roles
+  + [ ] provide offline alternatives
 + [ ] generic database ROLEs (extra layer btw db user and permission; simplifies adding new database users to certain tasks)
   + [ ] roles defined
   + [ ] adjust upload scripts
@@ -65,7 +69,7 @@
   + [ ] add =role= to =TeamMembers=
   + [ ] link =GroupedActivities= to roles -> who does what? filter?
 + [X] offline caching in qfield? -> works well
-+ [ ] bring to tablet
++ [X] bring to tablet
 + [ ] manual, ex post python check to constrain =LocationCalendar.activity_group_id= to valid values
 + [X] fix qgis installation
 + [ ] migrate to AWS: database + ec2 + s3
@@ -76,6 +80,8 @@
   + [ ] organize with ICT/Jens (timing!)
   + [ ] backup and maintenance procedures to ec2
   + [ ] keep current node for =*_dev=
++ [ ] fieldwork roles [[https://docs.google.com/spreadsheets/d/1wFbevEcaNbQ1RBIwEdkoloRYmarQ59E2gctbcxVyH_M/edit?gid=0#gid=0][gsheet]]
++ [ ] email services on the server to send backup logs & errors
 
 
 * issue anticipation
