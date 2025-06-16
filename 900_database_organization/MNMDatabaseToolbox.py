@@ -317,6 +317,8 @@ def EnsureNestedQuerySpacing(query: str) -> str:
             , "LEFT JOIN" \
             , "DISTINCT", "GROUP BY" \
             , "CASE WHEN", "THEN", "ELSE", "END" \
+            , "BEFORE", "BEGIN", "END" \
+            , "CREATE", "DROP", "FOR EACH", "EXECUTE" \
         ]:
         query = query.replace(keyword, f"\n\t{keyword} ")
 
@@ -566,7 +568,11 @@ class Database(dict):
         expost = self.base_folder/"EXPOST.csv"
         commands = PD.read_csv(expost)["sql"].values
         for expost_command in commands:
-            ExecuteSQL(db_connection, expost_command, verbose = verbose)
+            ExecuteSQL(
+                db_connection,
+                EnsureNestedQuerySpacing(expost_command),
+                verbose = verbose
+            )
 
 
 if __name__ == "__main__":

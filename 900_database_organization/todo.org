@@ -26,7 +26,7 @@
 + [X] inbound forms
   + [X] =Visits= -> structured input
   + [X] =FieldNotes= -> free input
-+ [ ] something wrong with python =getpasswd=
++ [X] something wrong with python =getpasswd=
 + recurrent tasks
   + [ ] backup procedures via cron
   + [ ] =Visits=: due/overdue update
