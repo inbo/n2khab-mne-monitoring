@@ -396,6 +396,10 @@ class dbTable(dict):
                     GRANT USAGE ON SEQUENCE "{self.schema}"."{self.table}_ogc_fid_seq" TO {user};
                 """
 
+            create_string += f"""
+                GRANT SELECT ON SEQUENCE "{self.schema}"."{self.table}_ogc_fid_seq" TO monkey;
+            """
+
         # each column gets its own creation lines
         for col, params in self.items():
             if PD.isna(params["datatype"]):
@@ -427,9 +431,12 @@ class dbTable(dict):
             # read users require sequence USAGE to be able to update.
             for user in self.read_access.split(","):
                 create_string += f"""
-                       GRANT USAGE ON SEQUENCE "{self.schema}"."seq_{col}" TO {user};
-                   """
+                    GRANT USAGE ON SEQUENCE "{self.schema}"."seq_{col}" TO {user};
+                """
 
+            create_string += f"""
+                GRANT SELECT ON SEQUENCE "{self.schema}"."seq_{col}" TO monkey;
+            """
 
         # foreign keys link to other tables
         for col, params in self.items():

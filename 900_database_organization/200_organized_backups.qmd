@@ -1,0 +1,209 @@
+---
+title: "Organized Backups and Data Persistence"
+date: "2025-06-16"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+Data persistence will tackle two aspects.
+
+1. long-term backups
+  - using `pg_dump`
+  - automated with `cronjob` and/or diffs
+  - tested restoration
+  - ... but hopefully never required
+2. ad-hoc re-uploads
+  - use case: changes in database structure
+  - want to be able to drop/create without loss of data
+  - crucial: identifier cascades
+  - via R scripts
+
+
+:::{.callout-note}
+We might use a [`.pgpass` file](https://stackoverflow.com/a/2893979) for credential handling.
+:::
+
+
+# Long-Term Backups
+
+## continuous
+
+:::{.callout-tip title="Strategy"}
+- Store the latest sql
+- also store diffs from previous dumps (so that we could go back in time)
+:::
+
+
+```{sh}
+#| eval: false
+
+# if not file.exists latest_dump.sql then touch latest_dump.sql
+
+# first: dump the diff to a patch file
+pg_dump -U <user> -h <host> -p <port> -d loceval_dev -N tiger -N public -W \
+    | diff latest_dump.sql - \
+    > $(date +"%Y%m%d")_loceval_diff.patch
+
+# then: patch the changes into `latest`
+patch latest_dump.sql -i $(date +"%Y%m%d")_loceval_diff.patch
+
+# # to reverse, apply in reversed order:
+# patch -R latest_dump.sql -i $(date +"%Y%m%d")_loceval_diff.patch
+
+```
+
+## monthly
+
+```{sh}
+#| eval: false
+
+# first: dump the diff to a patch file
+pg_dump -U <user> -h <host> -p <port> -d loceval_dev -N tiger -N public -W \
+    > $(date +"%Y%m")_loceval.sql
+
+```
+
+
+# Ad-Hoc Backup/Restore
+
+
+```{r libraries-and-paths}
+library("dplyr")
+library("rprojroot")
+library("keyring")
+library("configr")
+library("DBI")
+library("RPostgres")
+
+projroot <- find_root(is_rstudio_project)
+working_dbname <- "loceval_dev" 
+connection_profile <- "inbopostgis-dev" 
+
+```
+
+```{r database-connection}
+
+connect_database_configfile <- function(config_filepath, database, profile, password = NULL) {
+
+  # read connection info from a config file
+  config <- configr::read.config(file = config_filepath)[[profile]]
+  
+  # store a label for verbose disconnection at exit
+  db_label <- sprintf("%s@%s/%s", config$user, config$server, database)
+
+
+  # get password.
+  # (1) direct function input
+  # (2) from config file
+  # (3) user input
+  if (is.null(password)) {
+    if (is.null(attr(config, "password"))){
+      if (keyring::key_get("DBPassword", "inbopostgis_user_password") == "") {
+        keyring::key_set("DBPassword", "inbopostgis_user_password")
+      }
+      password <- keyring::key_get("DBPassword", "inbopostgis_user_password")
+    } else {
+      password <- config$password
+    }
+  }
+
+  # connect to database
+  # 
+  tryCatch({
+    database_connection <- DBI::dbConnect(
+      RPostgres::Postgres(),
+      dbname = database,
+      host = config$server,
+      port = config$port,
+      user = config$user,
+      password = password
+    )
+    },
+    error = function(wrnmsg) {
+      message(
+        sprintf(
+          'no password provided for connection %s. \n Try `keyring::key_set("DBPassword", "inbopostgis_user_password")`.',
+          db_label)
+      )
+    }
+  )
+
+
+  # remove the config: we do not want to expose credentials further
+  # down in this notebook
+  rm(config)
+
+  # register disconnect for finalization
+  # https://stackoverflow.com/a/41179916
+  reg.finalizer(
+    .GlobalEnv,
+    function(e){
+      DBI::dbDisconnect(database_connection)
+      message(sprintf("Database %s gracefully disconnected.", db_label))
+    },
+    onexit = TRUE
+  )
+  
+  return(invisible(database_connection))
+}
+```
+
+```{r connect-database}
+
+config_filepath <- file.path("./inbopostgis_server.conf")
+db_connection <- connect_database_configfile(
+  config_filepath,
+  database = working_dbname,
+  profile = connection_profile
+)
+```
+
+
+# TODO
+
+*(persistent)*
+
+- handle user permission exceptions 
+  - sterr `2>` to separate file
+  - check with cronjob or send an e-mail
+
+
+*(ad-hoc)*
+
+- make sure this works with `sf` and geometries
+
+# ARCHIVE
+
+## notes
+
+- `pg_dumpall ...` -> apply pg_dump to all databases on a server
+
+
+## database connection
+
+Working out a way to load the config.
+Config has the following structure:
+
+```
+    [test]
+    server = localhost
+    port = 5439
+    user = test
+    database = playground
+    password = <optional: the password IN PLAIN TEXT>
+```
+
+:::{.callout-warning}
+That `.conf`/`.ini` file can contain password in plain text!
+
+- Do not print its content in this notebook.
+- Make sure to `.gitignore` it!
+:::
