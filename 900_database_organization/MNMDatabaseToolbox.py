@@ -13,7 +13,7 @@ def WriteExampleConfig(config_filename = "postgis_server.conf", server_label = "
     # WARNING: passwords are stored in plain text.
     """
     [test]
-    server = localhost
+    host = localhost
     port = 5439
     user = test
     database = playground
@@ -22,7 +22,7 @@ def WriteExampleConfig(config_filename = "postgis_server.conf", server_label = "
 
     config = CONF.ConfigParser()
     config[server_label] = {
-        'server': 'localhost',
+        'host': 'localhost',
         'port': '5439',
         'user': 'test'
         # 'database': 'playground'
@@ -82,15 +82,15 @@ def ConfigToConnectionString(config: dict) -> str:
     # concatenate the connection string from a config dict
     # TODO: prompt user to enter missing connection info; store in config
 
-    defaults = {"port": 5439, "server": "localhost"}
+    defaults = {"port": 5439, "host": "localhost"}
     config_relevant = {k: config.get(k, defaults.get(k, None))
-                       for k in ["server", "port", "user", "database", "password"]}
+                       for k in ["host", "port", "user", "database", "password"]}
 
     if type(config_relevant["port"]) is not str:
         # ensure port numeric to string
         config_relevant["port"] = f"{config_relevant["port"]:%.0f}"
 
-    conn_str = """postgresql://{user}:{password}@{server}:{port}/{database}""".format(
+    conn_str = """postgresql://{user}:{password}@{host}:{port}/{database}""".format(
         **config_relevant
     )
 
