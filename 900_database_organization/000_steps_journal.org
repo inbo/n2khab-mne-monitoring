@@ -601,7 +601,7 @@ qfield seems to use the first field as identifier
 #+end_src
 
 
-** backups
+** TODO backups
 SCHEDULED: <2025-06-16 Mon>
 
 ... started.
@@ -617,6 +617,41 @@ pg_dump -U <user> -h <host> -p <port> -d loceval_dev -N tiger -N public -W \
 patch latest_dump.sql -i $(date +"%Y%m%d")_loceval_diff.patch
 
 #+end_src
+
+(continued next day)
+
+Add the above to a cronjob:
+https://wiki.archlinux.org/title/Cron
++ install cronie/patch/vi with =pacman -Sy cronie patch vi=
++ create a =.pgpass= file ([[=.pgpass= for backups][see here]]) and enter credentials; chmod it to 600.
++ =crontab -e=
+  + according to https://wiki.archlinux.org/title/Cron#Crontab_format
+  + to add a new line: =0 4 * * * sh ~/backups/backup_loceval.sh 2>&1 |tee -a ~/backups/backup_loceval.log=
+  + (for daily 4 o'clock backup)
+
+here is the backup shell script:
+(for the fish shell)
+#+begin_src sh :eval no
+# go to the backup folder
+set backup_folder "~/backups/loceval/"
+
+# dump database content
+pg_dump -U <user> -h <host> -p <port> -d loceval -N tiger -N public \
+    | diff "${backup_folder}loceval_latest.sql" - \
+    > "${backup_folder}loceval_diff_$(date +"%Y%m%d").patch"
+
+# store incrementally
+patch "${backup_folder}loceval_latest.sql" -i "${backup_folder}loceval_diff_$(date +"%Y%m%d").patch"
+#+end_src
+
+-> test is ongoing.
+
+
+** =.pgpass= for backups
+
+We use a [`.pgpass` file](https://stackoverflow.com/a/2893979) for credential handling.
++ create the file
++ chmod it to 600.
 
 
 ** TODO Replacement Unit logic
