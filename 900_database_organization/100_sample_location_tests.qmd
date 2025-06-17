@@ -51,7 +51,7 @@ projroot <- find_root(is_rstudio_project)
 working_dbname <- "loceval_dev" 
 
 # you might want to run the following prior to sourcing or rendering this script:
-# keyring::key_set("DBPassword", "inbopostgis_user_password")
+# keyring::key_set("DBPassword", "db_user_password")
 
 
 # Load some custom GRTS functions
@@ -507,10 +507,10 @@ connect_database_configfile <- function(config_filepath, database, config_choice
   # (3) user input
   if (is.null(password)) {
     if (is.null(attr(config, "password"))){
-      if (keyring::key_get("DBPassword", "inbopostgis_user_password") == "") {
-        keyring::key_set("DBPassword", "inbopostgis_user_password")
+      if (keyring::key_get("DBPassword", "db_user_password") == "") {
+        keyring::key_set("DBPassword", "db_user_password")
       }
-      password <- keyring::key_get("DBPassword", "inbopostgis_user_password")
+      password <- keyring::key_get("DBPassword", "db_user_password")
     } else {
       password <- config$password
     }
@@ -531,7 +531,7 @@ connect_database_configfile <- function(config_filepath, database, config_choice
     error = function(wrnmsg) {
       message(
         sprintf(
-          'no password provided for connection %s. \n Try `keyring::key_set("DBPassword", "inbopostgis_user_password")`.',
+          'no password provided for connection %s. \n Try `keyring::key_set("DBPassword", "db_user_password")`.',
           db_label)
       )
     }
