@@ -100,32 +100,32 @@ n2khab_types_expanded_properties %>%
   distinct(grts_join_method, sample_support_code, sample_support) %>%
   arrange(grts_join_method, sample_support_code)
 
-# with the currently active modules, module_combo_code and panel_set have a
-# single unique value for each scheme. This is expected to change though in
-# future (module_combo_code and panel_set do 'split' a scheme's spatial
-# sample, applying different revisit designs). However we will currently take
-# advantage of their uniqueness to keep things as simple as possible. Checking
-# that foregoing statement is TRUE:
+# with the currently active modules, module_combo_code has a single unique value
+# for each scheme. We take advantage of this uniqueness to keep things as simple
+# as possible. Checking that foregoing statement is TRUE:
 scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  distinct(scheme, module_combo_code, panel_set) %>%
+  distinct(scheme, module_combo_code) %>%
   {nrow(.) == nrow(distinct(., scheme))}
 
 # merging scheme:module_combo_code:panel_set:targetpanel, still distinguishing
 # strata separately (even though they may share their location: this is unreal
 # in the case of multiple cell-centered strata). For now, not distinguishing
-# module_combo and panel_set as explained above.
-stratum_schemetargetpanel_spsamples <-
+# module_combo as explained above.
+stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  select(-module_combo_code, -panel_set) %>%
-  unite(scheme_targetpanel, scheme, targetpanel, sep = ":") %>%
-  nest(scheme_targetpanels = scheme_targetpanel) %>%
+  select(-module_combo_code) %>%
+  mutate(scheme_ps_targetpanel = str_glue(
+    "{ scheme }:PS{ panel_set }{ targetpanel }"
+  )) %>%
+  select(-scheme, -panel_set, -targetpanel) %>%
+  nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
   mutate(
-    scheme_targetpanels = map_chr(scheme_targetpanels, \(df) {
-      str_flatten(df$scheme_targetpanel, collapse = " | ")
+    scheme_ps_targetpanels = map_chr(scheme_ps_targetpanels, \(df) {
+      str_flatten(df$scheme_ps_targetpanel, collapse = " | ")
     }) %>%
       factor()
   ) %>%
-  relocate(scheme_targetpanels) %>%
+  relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
 
 # Note: if grts_address_final differs from grts_address, then this means a local
@@ -201,7 +201,7 @@ grts_mh_index <- tibble(
 
 # cell centers of the terrestrial sampling units (excluding 7220):
 units_cell_cellcenter <-
-  stratum_schemetargetpanel_spsamples %>%
+  stratum_schemepstargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
   add_point_coords_grts(
     grts_var = "grts_address_final",
@@ -211,14 +211,14 @@ units_cell_cellcenter <-
 
 # sampling units as raster cells:
 units_cell_rast <-
-  stratum_schemetargetpanel_spsamples %>%
+  stratum_schemepstargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
   pull(grts_address_final) %>%
   filter_grtsraster_by_address(spatrast = grts_mh, spatrast_index = grts_mh_index)
 set.names(units_cell_rast, "grts_address_final")
 
 # the number of non-NA cells matches the number of unique GRTS addresses
-stratum_schemetargetpanel_spsamples %>%
+stratum_schemepstargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
   distinct(grts_address_final) %>%
   nrow() %>%
@@ -236,12 +236,12 @@ units_cell_polygon <-
   st_as_sf(crs = "EPSG:31370")
 
 # adding the sampling unit attributes to these polygons, arranged as in
-# stratum_targetpanel_spsamples. Note that this duplicates cells with multiple
-# strata!
+# stratum_schemepstargetpanel_spsamples. Note that this duplicates cells with
+# multiple strata!
 units_cell_polygon_stratum_attribs <-
   units_cell_polygon %>%
   inner_join(
-    stratum_schemetargetpanel_spsamples %>%
+    stratum_schemepstargetpanel_spsamples %>%
       filter(str_detect(sample_support_code, "cell")),
     join_by(grts_address_final),
     relationship = "one-to-many",
@@ -253,37 +253,37 @@ units_cell_polygon_stratum_attribs <-
 
 # merging strata as well for visualization (where we want each row to represent
 # another location):
-schemetargetpanel_spsamples_terr <-
-  stratum_schemetargetpanel_spsamples %>%
+schemepstargetpanel_spsamples_terr <-
+  stratum_schemepstargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
-  mutate(stratum_scheme_targetpanels = str_c(
+  mutate(stratum_scheme_ps_targetpanels = str_c(
     stratum,
     " (",
     grts_join_method,
     ") ",
     " [",
-    scheme_targetpanels,
+    scheme_ps_targetpanels,
     "]"
   )) %>%
   mutate(
-    stratum_scheme_targetpanels =
-      str_flatten(stratum_scheme_targetpanels, collapse = " \u2588 ") %>%
+    stratum_scheme_ps_targetpanels =
+      str_flatten(stratum_scheme_ps_targetpanels, collapse = " \u2588 ") %>%
       factor(),
     .by = grts_address_final
   ) %>%
-  distinct(stratum_scheme_targetpanels, grts_address, grts_address_final)
+  distinct(stratum_scheme_ps_targetpanels, grts_address, grts_address_final)
 
 units_cell_polygon_attrib <-
   units_cell_polygon %>%
   inner_join(
-    schemetargetpanel_spsamples_terr,
+    schemepstargetpanel_spsamples_terr,
     join_by(grts_address_final),
     relationship = "one-to-many",
     unmatched = "error"
   ) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
-  arrange(stratum_scheme_targetpanels, grts_address)
+  arrange(stratum_scheme_ps_targetpanels, grts_address)
 
 
 
@@ -323,8 +323,8 @@ units_cell_polygon_attrib <-
 # these cases, for now, we will take all replacement cells according to the
 # level 3 cell (further down).
 
-stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells <-
-  stratum_schemetargetpanel_spsamples %>%
+stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
+  stratum_schemepstargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
   # adding polygon_id attribute (sometimes missing, sometimes more than one, as
   # explained above)
@@ -370,7 +370,7 @@ stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells <-
   # Note that the following nesting step makes unique rows per stratum x
   # set of replacement cells (~ mostly a single polygon).
   nest(addr_sampled = c(
-    scheme_targetpanels,
+    scheme_ps_targetpanels,
     grts_address,
     grts_address_final,
     last_type_assessment,
@@ -393,7 +393,7 @@ stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells <-
   # cells are available: we want to keep all sampled locations in this data
   # frame
   unnest(addr_sampled) %>%
-  relocate(scheme_targetpanels) %>%
+  relocate(scheme_ps_targetpanels) %>%
   unnest(addr_replac, keep_empty = TRUE) %>%
   # get cell numbers of the replacement addresses (useful in visualization)
   left_join(
@@ -412,7 +412,7 @@ stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells <-
   relocate(polygon_replacement_cells, .after = grts_address_final)
 
 # distribution of the number of polygon replacement cells per sampling unit:
-stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells %>%
+stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells %>%
   mutate(nrcells = map_int(polygon_replacement_cells, nrow)) %>%
   pull(nrcells) %>%
   summary()
@@ -453,8 +453,8 @@ max_insufficient_nrcells_level3 <- (2^3)^2 / 4
 # evaluation for the considered stratum determines which cell must be used as
 # replacement.
 
-stratum_schemetargetpanel_spsamples_terr_replacementcells <-
-  stratum_schemetargetpanel_spsamples_terr_polygonreplacementcells %>%
+stratum_schemepstargetpanel_spsamples_terr_replacementcells <-
+  stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells %>%
   mutate(
     # calculate diagonal length of bounding box of replacement cell centers
     bboxdiag = map_dbl(polygon_replacement_cells, \(df) {
@@ -564,7 +564,7 @@ stratum_schemetargetpanel_spsamples_terr_replacementcells <-
 
 
 # distribution of the number of replacement cells per sampling unit:
-stratum_schemetargetpanel_spsamples_terr_replacementcells %>%
+stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   mutate(nrcells = map_int(replacement_cells, nrow)) %>%
   pull(nrcells) %>%
   summary()
@@ -574,7 +574,7 @@ plot_replacement_example <- function(
     min_nr_replacement_cells,
     max_nr_replacement_cells
 ) {
-  stratum_schemetargetpanel_spsamples_terr_replacementcells %>%
+  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
     mutate(nrcells = map_int(replacement_cells, nrow)) %>%
     filter(between(
       nrcells,
@@ -597,7 +597,7 @@ plot_replacement_example(5, 8)
 
 # we may like to have a single vector of all replacement cell numbers
 cellnrs_replacement <-
-  stratum_schemetargetpanel_spsamples_terr_replacementcells %>%
+  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   select(replacement_cells) %>%
   unnest(replacement_cells) %>%
   distinct(cellnr_replac) %>%
@@ -815,59 +815,63 @@ fag_stratum_grts_calendar_2025_attribs <-
       # deduplicating 7220:
       distinct(),
     join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
-    relationship = "many-to-many",
+    relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
   relocate(grts_address_final, .after = grts_address) %>%
-  select(-module_combo_code, -panel_set) %>%
-  # flatten scheme x targetpanel to unique strings per stratum x location x FAG
-  # occasion. Note that the scheme_targetpanels attribute is a shrinked version
-  # of the one at the level of the whole sample (see sampling unit attributes in
-  # the beginning), since we limited the activities to those planned before
-  # 2026, and then generate stratum_scheme_targetpanels as a location attribute.
-  # So it says specifically which schemes & targetpanels are served by the
-  # specific fieldwork at a specific date interval.
-  unite(scheme_targetpanel, scheme, targetpanel, sep = ":") %>%
-  nest(scheme_targetpanels = scheme_targetpanel) %>%
+  select(-module_combo_code) %>%
+  # flatten scheme x panel set x targetpanel to unique strings per stratum x
+  # location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
+  # shrinked version of the one at the level of the whole sample (see sampling
+  # unit attributes in the beginning), since we limited the activities to those
+  # planned before 2026, and then generate stratum_scheme_ps_targetpanels as a
+  # location attribute. So it says specifically which schemes x panel sets x
+  # targetpanels are served by the specific fieldwork at a specific date
+  # interval.
+  mutate(scheme_ps_targetpanel = str_glue(
+    "{ scheme }:PS{ panel_set }{ targetpanel }"
+  )) %>%
+  select(-scheme, -panel_set, -targetpanel) %>%
+  nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
   mutate(
-    scheme_targetpanels = map_chr(scheme_targetpanels, \(df) {
+    scheme_ps_targetpanels = map_chr(scheme_ps_targetpanels, \(df) {
       str_flatten(
-        unique(df$scheme_targetpanel),
+        unique(df$scheme_ps_targetpanel),
         collapse = " | "
       )
     }) %>%
       factor()
   ) %>%
-  relocate(scheme_targetpanels)
+  relocate(scheme_ps_targetpanels)
 
-# Derive an object where stratum x scheme_targetpanels is flattened per location
-# x FAG occasion. Beware that more locations will emerge due to local
-# replacement, so this is misleading for counting & planning (but useful in
-# spatial visualization)
+# Derive an object where stratum x scheme_ps_targetpanels is flattened per
+# location x FAG occasion. Beware that in reality, more locations will emerge
+# due to local replacement, so this is misleading for counting & planning (but
+# useful in spatial visualization)
 fag_grts_calendar_2025_attribs <-
   fag_stratum_grts_calendar_2025_attribs %>%
   mutate(
-    stratum_scheme_targetpanels = str_c(
+    stratum_scheme_ps_targetpanels = str_c(
       stratum,
       " (",
       grts_join_method,
       ") ",
       " [",
-      scheme_targetpanels,
+      scheme_ps_targetpanels,
       "]"
     ),
     .keep = "unused"
   ) %>%
   summarize(
-    stratum_scheme_targetpanels =
+    stratum_scheme_ps_targetpanels =
       str_flatten(
-        unique(stratum_scheme_targetpanels),
+        unique(stratum_scheme_ps_targetpanels),
         collapse = " \u2588 "
       ) %>%
       factor(),
-    .by = !stratum_scheme_targetpanels
+    .by = !stratum_scheme_ps_targetpanels
   ) %>%
-  relocate(stratum_scheme_targetpanels)
+  relocate(stratum_scheme_ps_targetpanels)
 
 # A simple derived spatial object (as points; see earlier for the actual unit
 # geometries). Points are still repeated because of different date_interval &
@@ -886,12 +890,13 @@ fieldwork_2025_prioritization <-
   mutate(
     priority = case_when(
       str_detect(
-        scheme_targetpanels,
-        "GW_03\\.3:PANEL0[5678]|SURF_03\\.4_[a-z]+:PANEL03"
+        scheme_ps_targetpanels,
+        "GW_03\\.3:(PS1PANEL(09|10|11|12)|PS2PANEL0[56])|SURF_03\\.4_[a-z]+:PS\\dPANEL03"
       ) ~ 1L,
-      str_detect(scheme_targetpanels, "GW_03\\.3:PANEL04") ~ 2L,
-      str_detect(scheme_targetpanels, "GW_03\\.3:PANEL03") ~ 3L,
-      .default = 4L
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 2L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 4L,
+      .default = 5L
     ),
     wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
     wait_3260 = stratum == "3260"
@@ -901,7 +906,7 @@ fieldwork_2025_prioritization <-
 fieldwork_2025_targetpanels_prioritization_count <-
   fieldwork_2025_prioritization %>%
   count(
-    scheme_targetpanels,
+    scheme_ps_targetpanels,
     priority,
     wait_watersurface,
     wait_3260,
