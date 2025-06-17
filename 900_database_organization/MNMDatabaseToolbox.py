@@ -8,11 +8,11 @@ import pandas as PD
 import configparser as CONF
 
 
-def WriteExampleConfig(config_filename = "postgis_server.conf", server_label = "test"):
+def WriteExampleConfig(config_filename = "postgis_server.conf", server_label = "default"):
     # this will create an example config file; with the following content.
     # WARNING: passwords are stored in plain text.
     """
-    [test]
+    [profile-name]
     host = localhost
     port = 5439
     user = test
