@@ -809,7 +809,9 @@ fag_stratum_grts_calendar_2025_attribs <-
         grts_address,
         grts_address_final,
         targetpanel
-      ),
+      ) %>%
+      # deduplicating 7220:
+      distinct(),
     join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
     relationship = "many-to-many",
     unmatched = c("error", "drop")
