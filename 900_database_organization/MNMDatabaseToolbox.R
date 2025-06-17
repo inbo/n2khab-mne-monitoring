@@ -87,7 +87,7 @@ connect_database_configfile <- function(
   # (2) from config file
   # (3) user input
   if (is.null(password)) {
-    if (is.null(attr(config, "password"))){
+    if (is.null(config[["password"]])){
       if (keyring::key_get("DBPassword", "db_user_password") == "") {
         keyring::key_set("DBPassword", "db_user_password")
       }
