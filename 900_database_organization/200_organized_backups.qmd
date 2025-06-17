@@ -79,9 +79,11 @@ I should attempt to dump/restore the playground data.
 
 # Ad-Hoc Backup/Restore
 
+## connection
 
 ```{r libraries-and-paths}
 library("dplyr")
+library("dbplyr")
 library("rprojroot")
 library("keyring")
 library("configr")
@@ -92,14 +94,19 @@ projroot <- find_root(is_rstudio_project)
 working_dbname <- "loceval_dev" 
 connection_profile <- "inbopostgis-dev" 
 
+# unless the password is stored in the config,
+# you might want to run the following prior to sourcing or rendering this script:
+# keyring::key_set("DBPassword", "db_user_password")
+
+source("MNMDatabaseToolbox.R")
+
 ```
 
-```{r database-connection}
-```
 
 For safe testing, I will query data from "production", and store it to "dev".
 
 ```{r connect-database}
+#| eval: false
 
 config_filepath <- file.path("./inbopostgis_server.conf")
 db_source <- connect_database_configfile(
@@ -113,6 +120,61 @@ db_target <- connect_database_configfile(
   profile = connection_profile
 )
 ```
+
+
+## data re-loading challenge
+
+start simple, with the `Protocols` table.
+No foreign keys, static data.
+
+```{r test-table}
+#| eval: false
+
+db_table <- DBI::Id(schema = "metadata", table = "Protocols")
+protocols_backup <- dplyr::tbl(db_source, db_table) %>%
+  collect
+glimpse(protocols_backup)
+
+```
+
+Problem is: we need to keep the `protocol_id` persistent.
+
+If we change the protocols, and upload it, the indices will change because they are serials.
+
+```{r}
+#| eval: false
+
+rs <- DBI::dbWriteTable(
+  db_target,
+  db_table,
+  protocols_backup,
+  row.names = FALSE,
+  overwrite = TRUE,
+  append = FALSE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+)
+
+```
+
+- we cannot append, because that changes the indices
+  > Error: COPY returned error : ERROR:  duplicate key value violates unique constraint "Protocols_pkey"
+  > DETAIL:  Key (protocol_id)=(1) already exists.
+  > CONTEXT:  COPY Protocols, line 1
+
+- we cannot overwrite, because there are dependent tables prohibiting the drop
+  > Error: Failed to fetch row : ERROR:  cannot drop table metadata."Protocols" because other objects depend on it
+  > DETAIL:  constraint fk_protocols_groupedactivities on table metadata."GroupedActivities" depends on table metadata."Protocols"
+  > HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+
+
+## Solution
+
+:::{.callout-tip title="Strategy"}
+We need a framework to dump the whole data and lookup/re-establish connections.
+:::
+
+... which is too intricate to be solved in R.
 
 
 # TODO

@@ -53,6 +53,7 @@ working_dbname <- "loceval_dev"
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
 
+source("MNMDatabaseToolbox.R")
 
 # Load some custom GRTS functions
 # source(file.path(projroot, "R/grts.R"))
@@ -449,10 +450,12 @@ fag_stratum_grts_calendar_2025_attribs_sf <-
     spatrast_index = grts_mh_index
   )
 
-fag_stratum_grts_calendar_2025_attribs_sf %>%
-  head(32) %>% 
-  sf::st_geometry() %>%
-  plot()
+if (FALSE){
+  fag_stratum_grts_calendar_2025_attribs_sf %>%
+    head(32) %>% 
+    sf::st_geometry() %>%
+    plot()
+}
 
 # mapview::mapview(
 #   fag_stratum_grts_calendar_2025_attribs_sf %>%
@@ -492,85 +495,20 @@ We can use `configr` (<https://cran.r-project.org/web/packages/configr/readme/RE
 
 ```{r load-config}
 
-connect_database_configfile <- function(config_filepath, database, config_choice = 1, password = NULL) {
-
-  # read connection info from a config file
-  config <- configr::read.config(file = config_filepath)[[config_choice]] # selects config block
-
-  # store a label for verbose disconnection at exit
-  db_label <- sprintf("%s@%s/%s", config$user, config$server, database)
-
-
-  # get password.
-  # (1) direct function input
-  # (2) from config file
-  # (3) user input
-  if (is.null(password)) {
-    if (is.null(attr(config, "password"))){
-      if (keyring::key_get("DBPassword", "db_user_password") == "") {
-        keyring::key_set("DBPassword", "db_user_password")
-      }
-      password <- keyring::key_get("DBPassword", "db_user_password")
-    } else {
-      password <- config$password
-    }
-  }
-
-  # connect to database
-  # 
-  tryCatch({
-    database_connection <- DBI::dbConnect(
-      RPostgres::Postgres(),
-      dbname = database,
-      host = config$server,
-      port = config$port,
-      user = config$user,
-      password = password
-    )
-    },
-    error = function(wrnmsg) {
-      message(
-        sprintf(
-          'no password provided for connection %s. \n Try `keyring::key_set("DBPassword", "db_user_password")`.',
-          db_label)
-      )
-    }
-  )
-
-
-  # remove the config: we do not want to expose credentials further
-  # down in this notebook
-  rm(config)
-
-  # register disconnect for finalization
-  # https://stackoverflow.com/a/41179916
-  reg.finalizer(
-    .GlobalEnv,
-    function(e){
-      DBI::dbDisconnect(database_connection)
-      message(sprintf("Database %s gracefully disconnected.", db_label))
-    },
-    onexit = TRUE
-  )
-  
-  return(invisible(database_connection))
-}
+config_filepath <- file.path("./inbopostgis_server.conf")
 
 if (working_dbname == "loceval") {
-
-  config_filepath <- file.path("./inbopostgis_server.conf")
   db_connection <- connect_database_configfile(
     config_filepath,
-    database = working_dbname,
-    config_choice = 2
+    database = "loceval",
+    profile = "inbopostgis"
   )
     
 } else {
-  config_filepath <- file.path("./inbopostgis_server.conf")
   db_connection <- connect_database_configfile(
     config_filepath,
     database = working_dbname,
-    config_choice = 1
+    profile = "inbopostgis-dev"
   )
 
 }
