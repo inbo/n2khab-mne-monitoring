@@ -690,6 +690,13 @@ We use a [`.pgpass` file](https://stackoverflow.com/a/2893979) for credential ha
 + chmod it to 600.
 
 
+** backups (2): table surgery
+SCHEDULED: <2025-06-18 Wed>
+
+The more complex problem are table-wise backups and restores.
+Complex because of constraints (e.g. foreign keys).
+
+
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>
 
