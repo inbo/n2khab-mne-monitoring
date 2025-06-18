@@ -4,6 +4,7 @@ import sys as SYS
 import os as OS
 import time as TI
 import atexit as EXIT
+import warnings as WRN
 import pathlib as PL
 import getpass as PWD
 import sqlalchemy as SQL
@@ -636,7 +637,7 @@ class Database(dict):
         CreateSchema(db_connection, self.base_folder/"SCHEMA.csv", selection = self.GetSchemas())
 
 
-    def CreateTables(self, db_connection: DatabaseConnection, verbose = True):
+    def CreateTables(self, db_connection: DatabaseConnection, verbose: bool = True) -> None:
         # create all tables defined int this database
 
         for table in self.values():
@@ -644,7 +645,7 @@ class Database(dict):
             ExecuteSQL(db_connection, create_string, verbose = verbose)
 
 
-    def CreateViews(self, db_connection: DatabaseConnection, verbose = True):
+    def CreateViews(self, db_connection: DatabaseConnection, verbose: bool = True) -> None:
         # create views
 
         # views are designed in the `VIEWS` table
@@ -773,17 +774,28 @@ class Database(dict):
 
         # (4) upload data
         characteristic_columns = self[table_key].ListDataFields()
-        pk = self[table_key].GetPrimaryKey()
+        pk = list(self[table_key].GetPrimaryKey())
         old_data = self[table_key].data.loc[:, characteristic_columns + pk]
         # old_data.rename(columns = {p: f"{p}_old" for p in pk}, inplace = True)
 
         # TODO: case geopandas data
+
+        # a safety table
+        restore_data = PD.read_sql_table( \
+            table_key, \
+            schema = self[table_key].schema, \
+            con = db_connection.connection \
+        ).set_index(pk, inplace = False)
+
+        # UPLOAD/replace the data
+        # (necessary to get the correct keys)
         # new_data.to_sql( \
         #     table_key, \
         #     schema = self[table_key].schema, \
-        #     con = db_connection, \
-        #     if_exists = "replace" \
-        # )
+        #     con = db_connection.connection, \
+        #     if_exists = "replace", \
+        #     method = "multi" \
+        # ) # TODO this is stuck
 
         self[table_key].QueryData(db_connection)
         new_data = self[table_key].data.loc[:, characteristic_columns + pk]
@@ -807,7 +819,16 @@ class Database(dict):
         #             inplace = False
         #         ))
 
-        # TODO warn about NA pk_new
+        # warn about NA pk_new
+
+        not_found = pk_lookup.loc[PD.isna(pk_lookup).any(axis = 1), :]
+        lost_rows = restore_data.loc[not_found.index.values, :]
+
+        if lost_rows.shape[0] > 0:
+            WRN.warn("some previous data rows were not found back.", RuntimeWarning)
+            print(lost_rows)
+            lost_rows.to_csv(f"dumps/lostrows_{table_key}_{now}.csv")
+
 
         for deptab, lookup in lookups.items():
             dependent_key, reference_key = self.table_connections[deptab][table_key]
@@ -820,19 +841,35 @@ class Database(dict):
                 lsuffix = "_old", rsuffix = "",
                 on = dependent_key
             )
-            look.loc[:, pk] = look.loc[:, pk].astype("Int64")
+            look[pk] = look[pk].astype("Int64")
             # print(look) # so far, so good!
 
-            dep_pk = self[deptab].GetPrimaryKey()
+            dep_pk = list(self[deptab].GetPrimaryKey())
 
-            # TODO store look
+            # store look
 
-            print(look.loc[:, dep_pk + pk])
+            key_replacement = look.loc[:, dep_pk + pk]
+            key_replacement.to_csv(f"dumps/lookup_{table_key}_{deptab}_{now}.csv")
 
-            # TODO UPDATE table by pk
-            #
+            key_replacement = key_replacement.sample(5) # TODO remove line
+            print(key_replacement) # TODO see TODO above
 
+            # UPDATE table by pk
+            # TODO wrap BEGIN;COMMIT;
+            for rowkey, replace_fk in key_replacement.iterrows():
 
+                if PD.isna(replace_fk[dependent_key]):
+                    val = "NULL"
+                else:
+                    val = f"{replace_fk[dependent_key]}"
+
+                print(f"""
+                    UPDATE {self[deptab].NameString()}
+                      SET {dependent_key} = {val}
+                      WHERE {dep_pk[0]} = {replace_fk[dep_pk].values[0]};
+                """)
+
+    # TODO another function to retain table content upon re-upload based on characteristic columns?
 
 if __name__ == "__main__":
     # WriteExampleConfig(config_filename = "postgis_server.conf")
