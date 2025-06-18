@@ -696,6 +696,13 @@ SCHEDULED: <2025-06-18 Wed>
 The more complex problem are table-wise backups and restores.
 Complex because of constraints (e.g. foreign keys).
 
+** selectively update table data
+SCHEDULED: <2025-06-18 Wed>
+
+i.e. change table content
++ without losing connections to other tables
++ without losing prior data and ist connection
+
 
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>
