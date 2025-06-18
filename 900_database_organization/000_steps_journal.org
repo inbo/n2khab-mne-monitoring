@@ -601,10 +601,10 @@ qfield seems to use the first field as identifier
 #+end_src
 
 
-** TODO backups
-SCHEDULED: <2025-06-16 Mon>
+** backups (1): dumps
+SCHEDULED: <2025-06-16 Mon>-<2025-06-18 Wed>
 
-... started.
+*** database daily diffs
 
 #+begin_src sh :eval no
 
@@ -618,36 +618,72 @@ patch latest_dump.sql -i $(date +"%Y%m%d")_loceval_diff.patch
 
 #+end_src
 
-(continued next day)
-
 Add the above to a cronjob:
 https://wiki.archlinux.org/title/Cron
 + install cronie/patch/vi with =pacman -Sy cronie patch vi=
++ start&enable system process: =systemctl start cronie.service && systemctl enable cronie.service=
 + create a =.pgpass= file ([[=.pgpass= for backups][see here]]) and enter credentials; chmod it to 600.
 + =crontab -e=
   + according to https://wiki.archlinux.org/title/Cron#Crontab_format
-  + to add a new line: =0 4 * * * sh ~/backups/backup_loceval.sh 2>&1 |tee -a ~/backups/backup_loceval.log=
-  + (for daily 4 o'clock backup)
+  + to add a new line: =22 0 * * * sh ~/backups/backup_loceval.sh 2>&1 |tee -a ~/backups/backup_loceval.log=
+  + (for daily 2:22 o'clock backup; note that the server is 2h behind)
 
 here is the backup shell script:
 (for the fish shell)
 #+begin_src sh :eval no
 # go to the backup folder
-set backup_folder "~/backups/loceval/"
+backup_folder="~/backups/loceval/"
+
+echo ""
+echo "________________________________________________________________________________"
+echo "running backup $(date +"%Y%m%d%H%M") -> ${backup_folder}"
 
 # dump database content
 pg_dump -U <user> -h <host> -p <port> -d loceval -N tiger -N public \
     | diff "${backup_folder}loceval_latest.sql" - \
-    > "${backup_folder}loceval_diff_$(date +"%Y%m%d").patch"
+    > "${backup_folder}loceval_diff_$(date +"%Y%m%d%H%M").patch"
 
 # store incrementally
-patch "${backup_folder}loceval_latest.sql" -i "${backup_folder}loceval_diff_$(date +"%Y%m%d").patch"
+patch "${backup_folder}loceval_latest.sql" -i "${backup_folder}loceval_diff_$(date +"%Y%m%d%H%M").patch"
 #+end_src
 
--> test is ongoing.
+-> test was good.
+
+
+*** monthly dumpall madness
+
+There also is a script to dump all databases once monthly.
+We will se how that turns out.
+
+#+begin_src sh :eval no
+# go to the backup folder
+backup_folder="/home/mnm/backups/dumps"
+
+echo ""
+echo "________________________________________________________________________________"
+echo "monthly full dumps $(date +"%Y%m%d") -> ${backup_folder}"
+
+# dump loceval
+pg_dump -U <user> -h <host> -p <port> -d loceval -N tiger -N public \
+    > "${backup_folder}/loceval_dump_$(date +"%Y%m%d").sql"
+#+end_src
+
+
+*** bring 'em home
+
+just scp it to a local folder.
+
+#+begin_src sh :eval no
+scp -r -P 2406 "<ssh_user>@<host>:~/backups/*" "/data/mnm_db_backups/"
+
+cd /data/ && tar -cvzf mnm_db_backup.tar.gz mnm_db_backups/*
+#+end_src
+
+(optionally copy to aws s3)
 
 
 ** =.pgpass= for backups
+SCHEDULED: <2025-06-17 Tue>
 
 We use a [`.pgpass` file](https://stackoverflow.com/a/2893979) for credential handling.
 + create the file
