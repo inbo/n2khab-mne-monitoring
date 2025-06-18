@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
+import sys as SYS
+import os as OS
+import time as TI
 import atexit as EXIT
 import pathlib as PL
 import getpass as PWD
 import sqlalchemy as SQL
 import pandas as PD
+import geopandas as GPD
 import configparser as CONF
 
 
@@ -73,7 +77,7 @@ def ReadSQLServerConfig(config_filename = "postgis_server.conf", label = None, *
 
     # prompt password
     if 'password' not in db_configuration.keys():
-        db_configuration['password'] = PWD.getpass("password: ")
+        db_configuration['password'] = PWD.getpass(f"password {db_configuration['user']}: ")
 
     return(db_configuration)
 
@@ -97,16 +101,61 @@ def ConfigToConnectionString(config: dict) -> str:
     return(conn_str)
 
 
+class DatabaseConnection(object):
+    # a database connection;
+    # basically an SQLAlchemy connection pass-through, but with some extra spice.
+
+    def __init__(self, config):
+
+        self.config = config
+        self.engine = SQL.create_engine(ConfigToConnectionString(config))
+        self.connection = self.engine.connect()
+
+        EXIT.register(self.connection.close)
+
+        # register some pass-through functions
+        self.execute = self.connection.execute
+        self.commit = self.connection.commit
+        self.close = self.connection.close
+        self.info = self.connection.info
+        # print(dir(self.connection))
+
+
+    def DumpAll( \
+            self, \
+            target_filepath: PL.Path, \
+            exclude_schema: list = ["tiger", "public"], \
+            **kwargs \
+        ) -> None:
+        # pg_dump a given database
+        # make sure that the user is in the `~/.pgpass` file
+        # config is used, but kwargs can overwrite connection parameters
+
+        if exclude_schema is None:
+            exclude_schema = ""
+        else:
+            exclude_schema = " ".join([f"-N {schema}" for schema in exclude_schema])
+
+        dumplings = {} # dump connection parameters
+        for param in ["user", "host", "database", "port"]:
+            dumplings[param] = kwargs.get(param, self.config[param])
+
+        # create the dump command
+        dump_command = f"""
+            pg_dump -U {dumplings["user"]} -h {dumplings["host"]} -p {dumplings["port"]} -d {dumplings["database"]} {exclude_schema} --no-password > {target_filepath}
+        """
+
+        # perform the dump
+        OS.system(dump_command)
+
+
 def ConnectDatabase(config_filepath, database, connection_config = None):
     # https://stackoverflow.com/a/42772654
     # user = input("user: ")
 
     config = ReadSQLServerConfig(config_filepath, label = connection_config, database = database)
 
-    engine = SQL.create_engine(ConfigToConnectionString(config))
-    connection = engine.connect()
-
-    EXIT.register(connection.close)
+    connection = DatabaseConnection(config)
 
     return(connection)
 
@@ -354,6 +403,41 @@ class dbTable(dict):
             nm = datafield["column"]
             self[nm] = datafield.to_dict()
 
+    def NameString(self):
+        return(f""" "{self.schema}"."{self.table}" """.strip())
+
+    def GetPrimaryKey(self):
+        # retrieve primary key column
+
+        pk_fields = [field for field, definition in self.items() \
+            if definition["primary_key"]]
+
+        return(pk_fields)
+
+
+    def ListDependencies(self):
+        # find other tables on which this one depends
+
+        fk_fields = [(field, definition["foreign_key"]) \
+            for field, definition in self.items() \
+            if (not PD.isna(definition["foreign_key"])) \
+            ]
+
+        return(fk_fields)
+
+
+    def ListDataFields(self):
+        # retrieve all columns which make an entry unique.
+
+        logging_columns = ["log_user", "log_update", "geometry", "wkb_geometry"] # excluded from checks
+
+        data_fields = [field for field, definition in self.items() \
+            if (not definition["primary_key"]) \
+                and (field not in logging_columns) \
+            ]
+
+        return(data_fields)
+
 
     def GetCreateString(self, drop = True):
         # prepare the string to create this table
@@ -369,18 +453,18 @@ class dbTable(dict):
         # permanent destruction
         if drop:
             create_string += f"""
-                DROP TABLE IF EXISTS "{self.schema}"."{self.table}" CASCADE;
+                DROP TABLE IF EXISTS {self.NameString()} CASCADE;
             """
 
         # the basic create string, wrapped with others in a BEGIN;COMMIT; block.
         create_string += f"""
             BEGIN;
-            CREATE TABLE "{self.schema}"."{self.table}"();
+            CREATE TABLE {self.NameString()}();
         """
 
         # table comment
         create_string += f"""
-            COMMENT ON TABLE "{self.schema}"."{self.table}" IS E'{self.comment}';
+            COMMENT ON TABLE {self.NameString()} IS E'{self.comment}';
         """
 
         # the table geometry is special:
@@ -402,10 +486,13 @@ class dbTable(dict):
 
         # each column gets its own creation lines
         for col, params in self.items():
+
+            # TODO: currently, geometry column comment is skipped
             if PD.isna(params["datatype"]):
                 continue
 
             create_string += ColumnString(self.schema, self.table, col, params, no_pk = has_geometry)
+
 
         # extra constraints and notes
         if not PD.isna(self.constraint):
@@ -465,6 +552,33 @@ class dbTable(dict):
         return(create_string.replace("    ", ""))
 
 
+    def QueryData(self, db_connection: DatabaseConnection) -> None:
+        # query the current content of this table from the database
+
+        # print(self.schema, self.table)
+        # print(PD.isna(self.geometry))
+        if PD.isna(self.geometry):
+            self.data = PD.read_sql_table( \
+                self.table, \
+                schema = self.schema, \
+                con = db_connection.connection \
+            )
+        else:
+            query = f"""
+                SELECT *
+                FROM {self.NameString()};
+            """
+
+            self.data = GPD.read_postgis( \
+                query, \
+                con = db_connection.connection, \
+                geom_col = "wkb_geometry" \
+                )
+
+        # print(self.data)
+
+
+
 def CreateTable(db_connection, table_meta: dbTable, verbose = True, dry = False):
     # creates a table, based on the table object
 
@@ -481,7 +595,8 @@ class Database(dict):
                  base_folder = "./",
                  definition_csv: str = "TABLES.csv",
                  lazy_creation: bool = True,
-                 db_connection: SQL.Connection = None
+                 lazy_dataloading: bool = True,
+                 db_connection: DatabaseConnection = None
                  ):
 
         if definition_csv is None:
@@ -504,24 +619,32 @@ class Database(dict):
             self.CreateViews(db_connection)
             self.ExPostTasks(db_connection)
 
+        if (db_connection is not None) and (not lazy_dataloading):
+            self.QueryAllExistingData(db_connection)
+
+        # store how tables are linked to each other
+        self.GetInterDependencies()
+
 
     def GetSchemas(self) -> set:
         # retrieve a list of schemas, even before \dn+ is possible
         return set([tbl.schema for tbl in self.values()])
 
-    def CreateSchema(self, db_connection: SQL.Connection) -> None:
+
+    def CreateSchema(self, db_connection: DatabaseConnection) -> None:
         # create all schema's from the SCHEMA definition file
         CreateSchema(db_connection, self.base_folder/"SCHEMA.csv", selection = self.GetSchemas())
 
 
-    def CreateTables(self, db_connection: SQL.Connection, verbose = True):
+    def CreateTables(self, db_connection: DatabaseConnection, verbose = True):
         # create all tables defined int this database
 
         for table in self.values():
             create_string = table.GetCreateString()
             ExecuteSQL(db_connection, create_string, verbose = verbose)
 
-    def CreateViews(self, db_connection: SQL.Connection, verbose = True):
+
+    def CreateViews(self, db_connection: DatabaseConnection, verbose = True):
         # create views
 
         # views are designed in the `VIEWS` table
@@ -569,7 +692,7 @@ class Database(dict):
             )
 
 
-    def ExPostTasks(self, db_connection: SQL.Connection, verbose = True):
+    def ExPostTasks(self, db_connection: DatabaseConnection, verbose = True):
         # apply extra SQL queries after database creation.
 
         expost = self.base_folder/"EXPOST.csv"
@@ -580,6 +703,135 @@ class Database(dict):
                 EnsureNestedQuerySpacing(expost_command),
                 verbose = verbose
             )
+
+
+    def GetInterDependencies(self):
+        # find tables which link to each other
+        # format {'dependent_table': {'reference': ['dependent_table::fk', 'reference::pk']}}
+
+        self.table_connections = {}
+        for table_name in self.keys():
+            # primary_key = self[table_name].GetPrimaryKey()
+
+            links = {}
+            for field, dependency in self[table_name].ListDependencies():
+                link = dependency.split(".")
+                links[link[-2]] = (field, link[-1])
+                # format {'table': {'reference': ['table::fk', 'reference::pk']}}
+
+            self.table_connections[table_name] = links
+
+
+    def QueryAllExistingData(self, db_connection, filter_tables = None):
+        # load current data of all tables from the database
+
+        for table_name, table in self.items():
+            if (filter_tables is not None):
+                if (table_name not in filter_tables):
+                    continue
+
+            table.QueryData(db_connection)
+
+
+    def UpdateTableData(self, db_connection, table_key, new_data):
+
+
+        # (1) dump all data, for safety
+        now = TI.strftime('%Y%m%d%H%M', TI.localtime())
+        # db_connection.DumpAll(target_filepath = f"dumps/safedump_{now}.sql", user = "monkey")
+
+        # (2) load current data
+        dependent_tables = [ \
+            dtab \
+            for dtab, deps in self.table_connections.items() \
+            if table_key in deps.keys() \
+        ]
+
+        self.QueryAllExistingData( \
+            db_connection, \
+            filter_tables = [table_key] + dependent_tables \
+        )
+
+        # (3) store key lookup of dependent table
+        lookups = {}
+        for deptab in dependent_tables:
+            dependent_key, reference_key = self.table_connections[deptab][table_key]
+            # print (deptab, dependent_key, "->", table_key, reference_key)
+
+            link_query = f"""
+                SELECT
+                    {self[deptab].GetPrimaryKey()[0]}, {dependent_key}
+                FROM {self[deptab].NameString()};
+            """
+
+            lookups[deptab] = PD.read_sql( \
+                link_query, \
+                con = db_connection.connection \
+            ).astype("Int64")
+
+            # print(lookups[deptab])
+
+        # (4) upload data
+        characteristic_columns = self[table_key].ListDataFields()
+        pk = self[table_key].GetPrimaryKey()
+        old_data = self[table_key].data.loc[:, characteristic_columns + pk]
+        # old_data.rename(columns = {p: f"{p}_old" for p in pk}, inplace = True)
+
+        # TODO: case geopandas data
+        # new_data.to_sql( \
+        #     table_key, \
+        #     schema = self[table_key].schema, \
+        #     con = db_connection, \
+        #     if_exists = "replace" \
+        # )
+
+        self[table_key].QueryData(db_connection)
+        new_data = self[table_key].data.loc[:, characteristic_columns + pk]
+
+        old_data.set_index(characteristic_columns, inplace = True)
+        new_data.set_index(characteristic_columns, inplace = True)
+
+        print(old_data)
+        print(new_data)
+        pk_lookup = old_data.join(
+            new_data,
+            how = "left",
+            lsuffix = "_old",
+            rsuffix = ""
+        )
+
+        # print(pk_lookup)
+        pk_lookup.set_index([f"{p}_old" for p in pk], inplace = True)
+        # print(pk_lookup.rename(
+        #             columns = {reference_key: dependent_key},
+        #             inplace = False
+        #         ))
+
+        # TODO warn about NA pk_new
+
+        for deptab, lookup in lookups.items():
+            dependent_key, reference_key = self.table_connections[deptab][table_key]
+            look = lookup.join(
+                pk_lookup.rename(
+                    columns = {reference_key: dependent_key},
+                    inplace = False
+                ),
+                how = "left",
+                lsuffix = "_old", rsuffix = "",
+                on = dependent_key
+            )
+            look.loc[:, pk] = look.loc[:, pk].astype("Int64")
+            # print(look) # so far, so good!
+
+            dep_pk = self[deptab].GetPrimaryKey()
+
+            # TODO store look
+
+            print(look.loc[:, dep_pk + pk])
+
+            # TODO UPDATE table by pk
+            #
+
 
 
 if __name__ == "__main__":
@@ -596,22 +848,46 @@ if __name__ == "__main__":
     db = Database( \
         base_folder = "./devdb_structure", \
         definition_csv = "TABLES.csv", \
-        lazy_creation = True \
+        lazy_creation = True, \
+        lazy_dataloading = True \
     )
     # for k, v in db.items():
     #     print('#'*16, k, '#'*16)
     #     print(v)
+    #
+    # db["LocationCalendar"].GetDependencies()
+    # db.GetInterDependencies()
 
-    db_connection = None
-    db_connection = ConnectDatabase(
-        "inbopostgis_server.conf",
-        connection_config = "inbopostgis-dev",
-        database = "loceval_dev"
-    )
-    db.CreateSchema(db_connection)
-    db.CreateTables(db_connection)
-    db.CreateViews(db_connection)
-    db.ExPostTasks(db_connection)
+    if True:
+        db_connection = None
+        db_connection = ConnectDatabase( \
+            "inbopostgis_server.conf", \
+            connection_config = "inbopostgis-dev", \
+            database = "loceval_dev" \
+           )
+
+        # PD.read_sql_table("Protocols", schema = "metadata", con = db_connection.connection).to_csv("dumps/Protocols.csv", index = False)
+        # PD.read_sql_table("TeamMembers", schema = "metadata", con = db_connection.connection).to_csv("dumps/TeamMembers.csv", index = False)
+
+        db.UpdateTableData( \
+            db_connection, \
+            "Protocols", \
+            new_data = PD.read_csv("dumps/Protocols_new.csv") \
+        )
+        # db.UpdateTableData( \
+        #     db_connection, \
+        #     "TeamMembers", \
+        #     new_data = PD.read_csv("dumps/TeamMembers_new.csv") \
+        # )
+
+
+
+    if False:
+        pass
+        # db.CreateSchema(db_connection)
+        # db.CreateTables(db_connection)
+        # db.CreateViews(db_connection)
+        # db.ExPostTasks(db_connection)
 
 
 
