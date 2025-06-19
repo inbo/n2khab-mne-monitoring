@@ -141,7 +141,7 @@ Problem is: we need to keep the `protocol_id` persistent.
 
 If we change the protocols, and upload it, the indices will change because they are serials.
 
-```{r}
+```{r write-table-example}
 #| eval: false
 
 rs <- DBI::dbWriteTable(
@@ -168,6 +168,15 @@ rs <- DBI::dbWriteTable(
   > HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 
 
+:::{.callout-warning}
+We actually have `ON DELETE SET NULL [...]` in place for foreign keys, 
+so this *should* work.
+
+However, the problem is that `DBI::dbWriteTable` seems to drop/create the table with `overwrite = TRUE`; dropping is prohibited.
+
+:::
+
+
 ## Solution
 
 :::{.callout-tip title="Strategy"}
@@ -175,7 +184,55 @@ We need a framework to dump the whole data and lookup/re-establish connections.
 :::
 
 ... which is too intricate to be solved in R.
+But, with a little help of the Python part... (see `MNMDatabaseToolbox.py::Database.GetDatabaseRelations()`)
 
+### (0) test case
+
+Here a test case for adjusting data in the database table.
+```{r testcase-parameters}
+db_connection <- connect_database_configfile(
+  config_filepath,
+  database = working_dbname,
+  profile = "inbopostgis-dev"
+)
+
+table_key <- "Protocols"
+
+new_data <- read.csv(here::here("dumps/Protocols_new.csv"))
+
+```
+
+
+### (1) dump all data, for safety
+
+```{r step1-safety-dump}
+source("MNMDatabaseToolbox.R")
+now <- format(Sys.time(), "%Y%m%d%H%M")
+dump_all(
+    here::here(glue::glue("dumps/safedump_{now}.sql")),
+    config_filepath = config_filepath,
+    database = working_dbname,
+    profile = "dumpall",
+    user = "monkey",
+    exclude_schema = c("tiger", "public")
+    )
+```
+
+### (2) load current data
+
+```{r load-table-relations}
+table_relations <- read_table_relations_config(
+  storage_filepath = file.path("./devdb_structure/table_relations.conf")
+  ) %>%
+  filter(relation_table == tolower(table_key))
+
+dependent_tables <- table_relations %>% pull(dependent_table)
+
+table_data_list <- query_all_existing_data(
+    db_connection,
+    filter_tables = c(table_key, dependent_tables) 
+)
+```
 
 # TODO
 

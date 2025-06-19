@@ -55,7 +55,7 @@ connect_database_configfile <- function(
 
   # profile (section within the config file)
   if (is.null(profile)) {
-    profile = 1 # use the first profile by default
+    profile <- 1 # use the first profile by default
   }
 
   # read connection info from a config file
@@ -135,10 +135,98 @@ connect_database_configfile <- function(
   )
 
   return(invisible(database_connection))
-}
+} # /connect_database_configfile
 
 
+#' dump the database with a system call to `pg_dump` (linux)
+#'
+#' @details To apply this from scripts, password is not used. Make sure
+#' to configure your `~/.pgpass` file.
+#'
+#' @param target_filepath the path to store the dump
+#' @param config_filepath the path to the config file
+#' @param database the database to backup
+#' @param profile config section header (configs
+#'        with multiple connection settings; best define a `dumpall`)
+#' @param host the database server (usually an IP address)
+#' @param port the port on which the host serves postgreSQL, default 5439
+#' @param user the database username
+#'
+#' @examples
+#' \dontrun{
+#'   now <- format(Sys.time(), "%Y%m%d%H%M")
+#'   dump_all(
+#'     here::here(glue::glue("dumps/safedump_{now}.sql")),
+#'     config_filepath = config_filepath,
+#'     database = working_dbname,
+#'     profile = "dumpall",
+#'     user = "readonly_user",
+#'     exclude_schema = c("tiger", "public")
+#'   )
+#' }
+#'
+dump_all <- function(
+    target_filepath,
+    config_filepath,
+    database,
+    profile = NULL,
+    user = NULL,
+    host = NULL,
+    port = NULL,
+    exclude_schema = NULL
+    ) {
 
+  stopifnot(
+    "configr" = require("configr"),
+    "glue" = require("glue"),
+    "here" = require("here")
+  )
+
+  # profile (section within the config file)
+  if (is.null(profile)) {
+    profile <- 1 # use the first profile by default
+  }
+
+  # read connection info from a config file,
+  # unless user provided different credentials
+  config <- configr::read.config(file = config_filepath)[[profile]]
+
+  if (is.null(host)) {
+    stopifnot("host" %in% attributes(config)$names)
+    host <- config$host
+  }
+
+  if (is.null(port)) {
+    if ("port" %in% attributes(config)$names) {
+      port <- config$port
+    } else {
+      port <- 5439
+    }
+  }
+
+  if (is.null(user)) {
+    stopifnot("user" %in% attributes(config)$names)
+    user <- config$user
+  }
+
+  # exclude some schemas
+  if (!is.null(exclude_schema)) {
+
+    exschem_string <- c()
+    for (exschem in exclude_schema){
+      exschem_string <- c(exschem_string, glue::glue("-N {exschem}"))
+    }
+    exschem_string <- paste(exschem_string, collapse = " ")
+  }
+
+  # dump the database!
+  dump_string <- glue::glue('
+    pg_dump -U {user} -h {host} -p {port} -d {database} {exschem_string} --no-password > "{target_filepath}"
+    ')
+
+  system(dump_string)
+
+} # /dump_all
 
 
 #' Read a table relation config file and convert it to data frame.
