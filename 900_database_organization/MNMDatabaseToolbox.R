@@ -145,6 +145,10 @@ connect_database_configfile <- function(
 #'
 #' @param storage_filepath the path to the config file
 #'
+#' @return data frame with the column relations from a dependent to a relation
+#'     table. Note that relation table names are lowercase due to some
+#'     ConfigParser limitation.
+#'
 #' @examples
 #' \dontrun{
 #'    read_table_relations_config(storage_filepath = file.path("./devdb_structure/table_relations.conf"))

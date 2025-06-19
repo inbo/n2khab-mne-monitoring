@@ -682,6 +682,24 @@ cd /data/ && tar -cvzf mnm_db_backup.tar.gz mnm_db_backups/*
 (optionally copy to aws s3)
 
 
+*** test restore
+SCHEDULED: <2025-06-19 Thu>
+
+#+begin_src sh :eval no
+[postgres@host ~]$ dropdb loceval_dev -p 2407
+[postgres@host ~]$ createdb loceval_dev -O <admin> -p 2407
+[postgres@host ~]$ psql -p 2407 -d loceval_dev
+loceval_dev=# CREATE EXTENSION postgis;
+loceval_dev=# CREATE EXTENSION postgis_topology;
+loceval_dev=# CREATE EXTENSION fuzzystrmatch;
+loceval_dev=# CREATE EXTENSION postgis_tiger_geocoder;
+loceval_dev=# \q
+[user@host backup_folder]$ psql -U <admin> -h <host> -p <port> -d loceval_dev < loceval_latest.sql
+#+end_src
+
+everything seems to be in order!
+
+
 ** =.pgpass= for backups
 SCHEDULED: <2025-06-17 Tue>
 
@@ -699,9 +717,26 @@ Complex because of constraints (e.g. foreign keys).
 ** selectively update table data
 SCHEDULED: <2025-06-18 Wed>
 
+*** concept
 i.e. change table content
 + without losing connections to other tables
 + without losing prior data and ist connection
+
+*** DONE for Python
+CLOSED: [2025-06-19 Thu 12:13] SCHEDULED: <2025-06-18 Wed>
+
+*** TODO for R
+
+
+** store table relation structure
+SCHEDULED: <2025-06-19 Thu>
+
+I figured that we will need the [[selectively update table data]] in R as well,
+but would have trouble getting the table relation structure.
+
+Solution:
+The structure is exported from python upon database creation and can now be read to R as well.
+/(Once more, I feel clumsy in R, but it does the job.)/
 
 
 ** TODO Replacement Unit logic
