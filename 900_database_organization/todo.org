@@ -28,12 +28,25 @@
   + [X] =FieldNotes= -> free input
 + [X] something wrong with python =getpasswd=
 + [ ] backup procedures
++ [ ] suggestions @FV <2025-06-18 Wed>
+  + [ ] subset habitat_types (wait input)
+  + [ ] +activity_sequence+ -> =activity_rank=
+  + [ ] idem =replacement_rank=
+  + [ ] remove =targetpanel=; replace by =fieldwork_2025_priorities= + =stratum_scheme_ps_targetpanel= (for Tom)
+  + [ ] replacements: base on non-=_final= =grts_address=
+  + [ ] +stratum+ -> =type= (convert via =n2khab_strata=)
+  + [ ] =stratum_to_expect= -> =type_adjusted=
+  + [ ] corner points or polygons for sample units (also depends on type)
+  + [ ] two replacement procedures: =local replacement= vs. drop-out ( ↖sampling)
++ [ ] request Tom: also get Watina datalayers
++ [ ] test gps data collection via qfield
+  + [ ] elevation measurements
 + recurrent tasks
-  + [ ] backup procedures via cron
+  + [X] backup procedures via cron
   + [ ] =Visits=: due/overdue update
 + [ ] forms refinement
   + [ ] aliases? (via postgres or qfield)
-  + [ ] accessibility layer
++ [ ] accessibility/land ownership layer
 + [ ] database mirrors: one for me to play (=loceval_dev=), one for the real work (=loceval=)
   + [ ] safe checks for updating a production database
 + [-] qgis/database convenience
