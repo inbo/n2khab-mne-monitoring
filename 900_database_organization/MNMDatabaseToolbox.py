@@ -270,7 +270,7 @@ def ColumnString(schema, table, fieldname, params, no_pk = False):
         attributes += ["DEFAULT NULL"]
     elif not PD.isna(params["default"]):
         value = params["default"]
-        print(value)
+        # print(value)
         if params["datatype"] == "boolean":
             value = str(bool(value)).upper()
         attributes += [f"""DEFAULT {str(value)}"""]
@@ -686,7 +686,7 @@ class Database(dict):
                 continue # skip if no rules to apply
 
             # ececute rules
-            print(view["rules"])
+            # print(view["rules"])
             ExecuteSQL(
                 db_connection,
                 EnsureNestedQuerySpacing(view["rules"]),
@@ -747,14 +747,16 @@ class Database(dict):
             table.QueryData(db_connection)
 
 
-    def UpdateTableData(self, db_connection, table_key, new_data):
+    def UpdateTableData(self, db_connection, table_key, new_data, verbose = True):
 
+        # TODO: (shortcut) if there is no data in the table,
+        #       upload directly (test: protocols right after 020)
 
-        # (1) dump all data, for safety
+        ### (1) dump all data, for safety
         now = TI.strftime('%Y%m%d%H%M', TI.localtime())
-        # db_connection.DumpAll(target_filepath = f"dumps/safedump_{now}.sql", user = "monkey")
+        db_connection.DumpAll(target_filepath = f"dumps/safedump_{now}.sql", user = "monkey")
 
-        # (2) load current data
+        ### (2) load current data
         dependent_tables = [ \
             dtab \
             for dtab, deps in self.table_relations.items() \
@@ -766,7 +768,7 @@ class Database(dict):
             filter_tables = [table_key] + dependent_tables \
         )
 
-        # (3) store key lookup of dependent table
+        ### (3) store key lookup of dependent table
         lookups = {}
         for deptab in dependent_tables:
             dependent_key, reference_key = self.table_relations[deptab][table_key]
@@ -785,30 +787,71 @@ class Database(dict):
 
             # print(lookups[deptab])
 
-        # (4) upload data
+        ### (4) store old data
         characteristic_columns = self[table_key].ListDataFields()
         pk = list(self[table_key].GetPrimaryKey())
+
         old_data = self[table_key].data.loc[:, characteristic_columns + pk]
         # old_data.rename(columns = {p: f"{p}_old" for p in pk}, inplace = True)
 
-        # TODO: case geopandas data
+        # case geopandas data
+        if PD.isna(self[table_key].geometry):
+            # a safety table
+            restore_data = PD.read_sql_table( \
+                table_key, \
+                schema = self[table_key].schema, \
+                con = db_connection.connection \
+            ).set_index(pk, inplace = False)
 
-        # a safety table
-        restore_data = PD.read_sql_table( \
-            table_key, \
-            schema = self[table_key].schema, \
-            con = db_connection.connection \
-        ).set_index(pk, inplace = False)
+        else:
+            query = f"""
+                SELECT *
+                FROM {self[table_key].NameString()};
+            """
 
-        # UPLOAD/replace the data
+            restore_data = GPD.read_postgis( \
+                query, \
+                con = db_connection.connection, \
+                geom_col = "wkb_geometry" \
+            ).set_index(pk, inplace = False)
+
+        # print(restore_data)
+
+        ### (5) UPLOAD/replace the data
         # (necessary to get the correct keys)
-        # new_data.to_sql( \
-        #     table_key, \
-        #     schema = self[table_key].schema, \
-        #     con = db_connection.connection, \
-        #     if_exists = "replace", \
-        #     method = "multi" \
-        # ) # TODO this is stuck
+        # actually, SQLAlchemy cannot drop the table,
+        # so we manually delete the content
+
+        testing = False
+        if not testing:
+            ExecuteSQL(
+                db_connection,
+                f"""
+                DELETE FROM {self[table_key].NameString()}
+                """,
+                verbose = verbose
+            )
+
+            if PD.isna(self.geometry):
+                new_data.to_sql( \
+                    table_key, \
+                    schema = self[table_key].schema, \
+                    con = db_connection.connection, \
+                    index = False, \
+                    if_exists = "append", \
+                    method = "multi" \
+                )
+            else:
+                # TODO: (test) case geopandas data
+                # https://stackoverflow.com/a/43375829 <- for future reference
+                # https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.to_postgis.html#geopandas.GeoDataFrame.to_postgis
+                new_data.to_postgis( \
+                    table_key, \
+                    schema = self[table_key].schema, \
+                    con = db_connection.connection, \
+                    index = False, \
+                    if_exists = "append" \
+                )
 
         self[table_key].QueryData(db_connection)
         new_data = self[table_key].data.loc[:, characteristic_columns + pk]
@@ -816,8 +859,8 @@ class Database(dict):
         old_data.set_index(characteristic_columns, inplace = True)
         new_data.set_index(characteristic_columns, inplace = True)
 
-        print(old_data)
-        print(new_data)
+        # print(old_data)
+        # print(new_data)
         pk_lookup = old_data.join(
             new_data,
             how = "left",
@@ -833,7 +876,6 @@ class Database(dict):
         #         ))
 
         # warn about NA pk_new
-
         not_found = pk_lookup.loc[PD.isna(pk_lookup).any(axis = 1), :]
         lost_rows = restore_data.loc[not_found.index.values, :]
 
@@ -843,46 +885,69 @@ class Database(dict):
             lost_rows.to_csv(f"dumps/lostrows_{table_key}_{now}.csv")
 
 
+        ### UPDATE dependent tables
         for deptab, lookup in lookups.items():
             dependent_key, reference_key = self.table_relations[deptab][table_key]
+            # print(dependent_key, reference_key)
             look = lookup.join(
                 pk_lookup.rename(
-                    columns = {reference_key: dependent_key},
+                    # columns = {reference_key: dependent_key},
+                    columns = {dependent_key: reference_key},
                     inplace = False
                 ),
                 how = "left",
                 lsuffix = "_old", rsuffix = "",
                 on = dependent_key
             )
+
+            # print(look)
             look[pk] = look[pk].astype("Int64")
             # print(look) # so far, so good!
 
             dep_pk = list(self[deptab].GetPrimaryKey())
 
-            # store look
-
+            # dump-store look
             key_replacement = look.loc[:, dep_pk + pk]
             key_replacement.to_csv(f"dumps/lookup_{table_key}_{deptab}_{now}.csv")
 
-            key_replacement = key_replacement.sample(5) # TODO remove line
-            print(key_replacement) # TODO see TODO above
+            # key_replacement = key_replacement.sample(5) # testing
+            # print(key_replacement) #
 
             # UPDATE table by pk
-            # TODO wrap BEGIN;COMMIT;
+            update_string = f""" BEGIN; """
+            # print ("dep_pk", dep_pk)
+            # print ("dependent_key", dependent_key)
+            if len(dep_pk) > 1:
+                raise(IOError("There is more than one key column; functionality not implemented yet!"))
+
+            row_update_values = []
             for rowkey, replace_fk in key_replacement.iterrows():
 
-                if PD.isna(replace_fk[dependent_key]):
+                if PD.isna(replace_fk[reference_key]):
                     val = "NULL"
                 else:
-                    val = f"{replace_fk[dependent_key]}"
+                    val = f"{replace_fk[reference_key]}"
 
-                print(f"""
+                update_string += f"""
                     UPDATE {self[deptab].NameString()}
                       SET {dependent_key} = {val}
-                      WHERE {dep_pk[0]} = {replace_fk[dep_pk].values[0]};
-                """)
+                      WHERE {dep_pk[0]} = {replace_fk[dep_pk].values[0]}
+                    ;
+                """
 
-    # TODO another function to retain table content upon re-upload based on characteristic columns?
+            update_string += f""" COMMIT; """
+
+            # print(update_string)
+            ExecuteSQL(
+                db_connection,
+                update_string,
+                verbose = verbose
+            )
+
+    # TODO: (bonus) another function
+    #       to retain table content upon re-upload based on characteristic columns?
+    #       (UPDATE instead of INSERT; diff-like)
+
 
 if __name__ == "__main__":
     # WriteExampleConfig(config_filename = "postgis_server.conf")
@@ -908,7 +973,7 @@ if __name__ == "__main__":
     # db["LocationCalendar"].GetDependencies()
     # db.GetDatabaseRelations()
 
-    if False:
+    if True:
         db_connection = None
         db_connection = ConnectDatabase( \
             "inbopostgis_server.conf", \
@@ -919,11 +984,12 @@ if __name__ == "__main__":
         # PD.read_sql_table("Protocols", schema = "metadata", con = db_connection.connection).to_csv("dumps/Protocols.csv", index = False)
         # PD.read_sql_table("TeamMembers", schema = "metadata", con = db_connection.connection).to_csv("dumps/TeamMembers.csv", index = False)
 
-        db.UpdateTableData( \
-            db_connection, \
-            "Protocols", \
-            new_data = PD.read_csv("dumps/Protocols_new.csv") \
-        )
+        # db.UpdateTableData( \
+        #     db_connection, \
+        #     "Protocols", \
+        #     # new_data = PD.read_csv("dumps/Protocols_new.csv") \
+        #     new_data = PD.read_csv("dumps/Protocols_old.csv") \
+        # )
         # db.UpdateTableData( \
         #     db_connection, \
         #     "TeamMembers", \
