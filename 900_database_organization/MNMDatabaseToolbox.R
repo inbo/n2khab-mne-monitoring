@@ -1,5 +1,32 @@
 
 
+
+load_table_info <- function(subfolder, tablelabel){
+  table_info <- read.csv(
+    here::here(subfolder, glue::glue("{tablelabel}.csv"))
+  )
+  return(table_info)
+}
+
+query_columns <- function(db_connection, table_id, columns){
+  dplyr::tbl(db_connection, table_id) %>%
+    dplyr::select(!!!rlang::syms(columns)) %>%
+    dplyr::collect()
+}
+
+
+# query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
+query_all_existing_data <- function (db_connection, database, tables) {
+  data <- lapply(
+    tables,
+    FUN = function(tablelabel) {
+        dplyr::collect(dplyr::tbl(db_connection, tablelabel))
+      }
+  )
+  return(data)
+}
+
+
 #' Connect to a postgreSQL database, using settings from a config file
 #'
 #' Connect to a postgreSQL database (other dialects trivial).

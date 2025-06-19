@@ -776,7 +776,7 @@ class Database(dict):
 
             link_query = f"""
                 SELECT
-                    {self[deptab].GetPrimaryKey()[0]}, {dependent_key}
+                    {",".join(self[deptab].GetPrimaryKey())}, {dependent_key}
                 FROM {self[deptab].NameString()};
             """
 
@@ -787,7 +787,7 @@ class Database(dict):
 
             # print(lookups[deptab])
 
-        ### (4) store old data
+        ### (4) retrieve old data
         characteristic_columns = self[table_key].ListDataFields()
         pk = list(self[table_key].GetPrimaryKey())
 
@@ -832,7 +832,7 @@ class Database(dict):
                 verbose = verbose
             )
 
-            if PD.isna(self.geometry):
+            if PD.isna(self[table_key].geometry):
                 new_data.to_sql( \
                     table_key, \
                     schema = self[table_key].schema, \
@@ -984,12 +984,18 @@ if __name__ == "__main__":
         # PD.read_sql_table("Protocols", schema = "metadata", con = db_connection.connection).to_csv("dumps/Protocols.csv", index = False)
         # PD.read_sql_table("TeamMembers", schema = "metadata", con = db_connection.connection).to_csv("dumps/TeamMembers.csv", index = False)
 
-        # db.UpdateTableData( \
-        #     db_connection, \
-        #     "Protocols", \
-        #     # new_data = PD.read_csv("dumps/Protocols_new.csv") \
-        #     new_data = PD.read_csv("dumps/Protocols_old.csv") \
-        # )
+        db.UpdateTableData( \
+            db_connection, \
+            "Protocols", \
+            new_data = PD.read_csv("dumps/Protocols_new.csv") \
+            # new_data = PD.read_csv("dumps/Protocols_old.csv") \
+        )
+        db.UpdateTableData( \
+            db_connection, \
+            "Protocols", \
+            # new_data = PD.read_csv("dumps/Protocols_new.csv") \
+            new_data = PD.read_csv("dumps/Protocols_old.csv") \
+        )
         # db.UpdateTableData( \
         #     db_connection, \
         #     "TeamMembers", \

@@ -38,6 +38,7 @@
   + [ ] =stratum_to_expect= -> =type_adjusted=
   + [ ] corner points or polygons for sample units (also depends on type)
   + [ ] two replacement procedures: =local replacement= vs. drop-out ( ↖sampling)
+  + [ ] there was a table (replacements?) with inconsistent pk name
 + [ ] request Tom: also get Watina datalayers
 + [ ] test gps data collection via qfield
   + [ ] elevation measurements
