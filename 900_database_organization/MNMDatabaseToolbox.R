@@ -136,3 +136,52 @@ connect_database_configfile <- function(
 
   return(invisible(database_connection))
 }
+
+
+
+
+
+#' Read a table relation config file and convert it to data frame.
+#'
+#' @param storage_filepath the path to the config file
+#'
+#' @examples
+#' \dontrun{
+#'    read_table_relations_config(storage_filepath = file.path("./devdb_structure/table_relations.conf"))
+#' }
+#'
+read_table_relations_config <- function(storage_filepath) {
+
+  stopifnot("configr" = require("configr"))
+
+  # read the raw file
+  table_relations <- configr::read.config(file = storage_filepath)
+
+  # Initialize empty. What a humble procedure.
+  relation_lookup <- data.frame(
+    relation_table = character(),
+    dependent_table = character(),
+    dependent_column = character(),
+    relation_column = character()
+  )
+
+  # oh, how I miss my dictionaries!
+  for (deptab in attributes(table_relations)[[1]]) {
+    for (reltab in attributes(table_relations[[deptab]])$names){
+      if(is.null(table_relations[[deptab]][reltab])) next
+      new_row <- c(
+        reltab,
+        deptab,
+        eval(parse(text = sprintf("c%s", table_relations[[deptab]][[reltab]])))
+      )
+      relation_lookup <- dplyr::bind_rows(
+        relation_lookup,
+        setNames(new_row, names(relation_lookup))
+      )
+    }
+  }
+
+  # knitr::kable(relation_lookup)
+  return(relation_lookup)
+
+}

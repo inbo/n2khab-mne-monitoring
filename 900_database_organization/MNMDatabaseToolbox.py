@@ -613,8 +613,9 @@ class Database(dict):
             nm = tabledef["table"]
             self[nm] = dbTable(tabledef.to_dict(), self.base_folder)
 
+
         if (db_connection is not None) and (not lazy_creation):
-            # perform all the action at once
+            # perform all the database creation action at once
             self.CreateSchema(db_connection)
             self.CreateTables(db_connection)
             self.CreateViews(db_connection)
@@ -624,7 +625,7 @@ class Database(dict):
             self.QueryAllExistingData(db_connection)
 
         # store how tables are linked to each other
-        self.GetInterDependencies()
+        self.GetDatabaseRelations(storage_path = self.base_folder/"table_relations.conf")
 
 
     def GetSchemas(self) -> set:
@@ -706,11 +707,13 @@ class Database(dict):
             )
 
 
-    def GetInterDependencies(self):
+    def GetDatabaseRelations(self, storage_path = None):
         # find tables which link to each other
         # format {'dependent_table': {'reference': ['dependent_table::fk', 'reference::pk']}}
+        # optional storage in config file
 
-        self.table_connections = {}
+        # variable to store the relations of tables
+        self.table_relations = {}
         for table_name in self.keys():
             # primary_key = self[table_name].GetPrimaryKey()
 
@@ -720,7 +723,17 @@ class Database(dict):
                 links[link[-2]] = (field, link[-1])
                 # format {'table': {'reference': ['table::fk', 'reference::pk']}}
 
-            self.table_connections[table_name] = links
+            self.table_relations[table_name] = links
+
+        # optionally store the relations, e.g. for use in R
+        if storage_path is not None:
+
+            relation_store = CONF.ConfigParser()
+            for table_name, table_relation in self.table_relations.items():
+                relation_store[table_name] = table_relation
+
+            with open(storage_path, 'w') as storage_file:
+              relation_store.write(storage_file)
 
 
     def QueryAllExistingData(self, db_connection, filter_tables = None):
@@ -744,7 +757,7 @@ class Database(dict):
         # (2) load current data
         dependent_tables = [ \
             dtab \
-            for dtab, deps in self.table_connections.items() \
+            for dtab, deps in self.table_relations.items() \
             if table_key in deps.keys() \
         ]
 
@@ -756,7 +769,7 @@ class Database(dict):
         # (3) store key lookup of dependent table
         lookups = {}
         for deptab in dependent_tables:
-            dependent_key, reference_key = self.table_connections[deptab][table_key]
+            dependent_key, reference_key = self.table_relations[deptab][table_key]
             # print (deptab, dependent_key, "->", table_key, reference_key)
 
             link_query = f"""
@@ -831,7 +844,7 @@ class Database(dict):
 
 
         for deptab, lookup in lookups.items():
-            dependent_key, reference_key = self.table_connections[deptab][table_key]
+            dependent_key, reference_key = self.table_relations[deptab][table_key]
             look = lookup.join(
                 pk_lookup.rename(
                     columns = {reference_key: dependent_key},
@@ -893,9 +906,9 @@ if __name__ == "__main__":
     #     print(v)
     #
     # db["LocationCalendar"].GetDependencies()
-    # db.GetInterDependencies()
+    # db.GetDatabaseRelations()
 
-    if True:
+    if False:
         db_connection = None
         db_connection = ConnectDatabase( \
             "inbopostgis_server.conf", \
