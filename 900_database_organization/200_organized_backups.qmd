@@ -92,6 +92,7 @@ library("RPostgres")
 
 projroot <- find_root(is_rstudio_project)
 working_dbname <- "loceval_dev" 
+dbstructure_folder <- "devdb_structure"
 connection_profile <- "inbopostgis-dev" 
 
 # unless the password is stored in the config,
@@ -197,8 +198,24 @@ db_connection <- connect_database_configfile(
 )
 
 table_key <- "Protocols"
+schemas <- read.csv(here::here("devdb_structure", "TABLES.csv")) %>%
+  select(table, schema, geometry)
 
-new_data <- read.csv(here::here("dumps/Protocols_new.csv"))
+# These are clumsy, temporary, provisional helpers.
+# But, hey, there will be time later.
+get_schema <- function(tablelabel) {
+  return(schemas %>%
+    filter(table == tablelabel) %>%
+    pull(schema)
+  )
+}
+get_namestring <- function(tablelabel) glue::glue('"{get_schema(tablelabel)}"."{tablelabel}"')
+get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), table = tablelabel)
+
+print(get_namestring(table_key))
+
+# test data
+new_data <- read.csv(here::here("dumps", "Protocols_new.csv"))
 
 ```
 
@@ -206,10 +223,9 @@ new_data <- read.csv(here::here("dumps/Protocols_new.csv"))
 ### (1) dump all data, for safety
 
 ```{r step1-safety-dump}
-source("MNMDatabaseToolbox.R")
 now <- format(Sys.time(), "%Y%m%d%H%M")
 dump_all(
-    here::here(glue::glue("dumps/safedump_{now}.sql")),
+    here::here(glue::glue("dumps", "safedump_{now}.sql")),
     config_filepath = config_filepath,
     database = working_dbname,
     profile = "dumpall",
@@ -220,7 +236,8 @@ dump_all(
 
 ### (2) load current data
 
-```{r load-table-relations}
+```{r step2-load-table-relations}
+
 table_relations <- read_table_relations_config(
   storage_filepath = file.path("./devdb_structure/table_relations.conf")
   ) %>%
@@ -230,9 +247,100 @@ dependent_tables <- table_relations %>% pull(dependent_table)
 
 table_data_list <- query_all_existing_data(
     db_connection,
-    filter_tables = c(table_key, dependent_tables) 
+    database = "loceval_dev",
+    tables = lapply(c(table_key, dependent_tables), FUN = get_tableid)
 )
 ```
+
+### (3) store key lookup of dependent table
+
+```{r step3-store-lookups}
+source("MNMDatabaseToolbox.R")
+
+get_primary_key <- function(tablelabel){
+  pk <- load_table_info(dbstructure_folder, tablelabel) %>%
+    filter(primary_key == "True") %>%
+    pull(column)
+  return(pk)
+}
+
+get_characteristic_columns <- function(tablelabel){
+
+  # excluded from checks
+  logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
+
+  full_table_info <- load_table_info(dbstructure_folder, tablelabel)
+
+  pk <- full_table_info %>%
+    filter(primary_key == "True") %>%
+    pull(column)
+
+  characteristic_columns <- full_table_info %>%
+    filter(
+      !(column %in% logging_columns),
+      !(column %in% pk),
+    ) %>%
+    pull(column)
+    
+  return(characteristic_columns)
+}
+
+
+# query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
+# deptab_key <- "GroupedActivities"
+query_dependent_columns <- function(table_key, deptab_key) {
+
+  # with a little help from my Python
+  deptab_pk <- get_primary_key(deptab_key)
+
+  # get the foreign key columns
+  dependent_key <- table_relations %>%
+    filter(
+      relation_table == tolower(table_key),
+      dependent_table == deptab_key
+    ) %>%
+    pull(dependent_column)
+
+  # lookup the key columns
+  key_lookup <- query_columns(
+    db_connection,
+    get_tableid(deptab_key),
+    c(deptab_pk, dependent_key)
+  )
+
+  return(key_lookup)
+}
+
+lookups <- lapply(
+  dependent_tables,
+  FUN = function(deptab_key) query_dependent_columns(table_key, deptab_key)
+) %>% setNames(dependent_tables)
+
+```
+
+### (4) retrieve old data
+
+```{r step4-old-data}
+pk <- get_primary_key(table_key)
+characteristic_columns <- get_characteristic_columns("Protocols")
+
+old_data <- query_columns(
+  db_connection,
+  get_tableid(table_key),
+  c(characteristic_columns, pk)
+)
+
+restore_data <- dplyr::tbl(db_connection, get_tableid(table_key)) %>% collect()
+# TODO: what about `sf` data?
+
+```
+
+### (5) UPLOAD/replace the data
+
+```{r step5-delete-existing}
+# TODO continue
+```
+
 
 # TODO
 

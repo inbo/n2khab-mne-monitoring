@@ -726,7 +726,8 @@ i.e. change table content
 CLOSED: [2025-06-19 Thu 12:13] SCHEDULED: <2025-06-18 Wed>
 
 *** TODO for R
-
+SCHEDULED: <2025-06-20 Fri>
+(work in progress)
 
 ** store table relation structure
 SCHEDULED: <2025-06-19 Thu>
