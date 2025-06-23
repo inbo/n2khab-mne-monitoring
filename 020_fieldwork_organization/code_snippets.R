@@ -1005,6 +1005,16 @@ orthophoto_2025_stratum_grts <-
   # only keep cell-based types (aquatic & 7220 will be more reliable or simply
   # not possible to evaluate on orthophoto)
   filter(str_detect(grts_join_method, "cell")) %>%
+  # also join the spatial poststratum, since we need this in setting
+  # GRTS-address based priorities
+  inner_join(
+    scheme_moco_ps_stratum_sppost_spsamples %>%
+      unnest(sp_poststr_samples) %>%
+      select(-sample_status),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(grts_join_method, .after = stratum) %>%
   select(-module_combo_code) %>%
@@ -1032,7 +1042,7 @@ orthophoto_2025_stratum_grts <-
     }) %>%
       factor()
   ) %>%
-  relocate(scheme_ps_targetpanels, .after = grts_address_final) %>%
+  relocate(scheme_ps_targetpanels, .after = sp_poststratum) %>%
   # set priorities based on loceval_year; for 2026 differentiate according to
   # GRTS address (because lower GRTS addresses have more chance to end up as
   # replacement)
@@ -1042,9 +1052,15 @@ orthophoto_2025_stratum_grts <-
       grts_address <= median(grts_address) ~ 2L,
       .default = 3L
     ),
-    .by = c(stratum, loceval_year)
+    .by = c(stratum, loceval_year, sp_poststratum)
   ) %>%
-  arrange(loceval_year, priority_orthophoto, stratum, grts_address)
+  arrange(
+    loceval_year,
+    priority_orthophoto,
+    stratum,
+    sp_poststratum,
+    grts_address
+  )
 
 # unit geometries (cells):
 orthophoto_2025_cells <-
@@ -1057,7 +1073,13 @@ orthophoto_2025_cells <-
   ) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
-  arrange(loceval_year, priority_orthophoto, stratum, grts_address)
+  arrange(
+    loceval_year,
+    priority_orthophoto,
+    stratum,
+    sp_poststratum,
+    grts_address
+  )
 
 # cell centers:
 orthophoto_2025_cell_centers <-
