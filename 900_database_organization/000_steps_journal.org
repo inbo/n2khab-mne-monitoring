@@ -725,9 +725,24 @@ i.e. change table content
 *** DONE for Python
 CLOSED: [2025-06-19 Thu 12:13] SCHEDULED: <2025-06-18 Wed>
 
-*** TODO for R
-SCHEDULED: <2025-06-20 Fri>
-(work in progress)
+*** DONE for R
+CLOSED: [2025-06-23 Mon 16:33] SCHEDULED: <2025-06-20 Fri>
+
++ can change table with content from `.csv`
++ can change table with content from other database
++ characteristic columns can be chosen
+
+** data update on *production*
+SCHEDULED: <2025-06-24 Tue>
+
+... to get the latest columns
++ [ ] change suggestions @FV
++ [ ] apply changes
+
+
+** database changes with data persistence
+SCHEDULED: <2025-06-24 Tue>
+as above, but in one script
 
 ** store table relation structure
 SCHEDULED: <2025-06-19 Thu>

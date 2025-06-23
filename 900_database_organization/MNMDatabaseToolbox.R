@@ -196,12 +196,15 @@ update_datatable_and_dependent_keys <- function(
 
   lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
 
-  # TODO: what about `sf` data?
+  # what about `sf` data?
+  # - R function overloading: no matter if sf or not
+  # - because geometry columns are skipped for `characteristic_columns`
+  #       -> seems to work the same
 
 
   ### (5) UPLOAD/replace the data
   # TODO there must be more column match checks
-  # priore to deletion
+  # prior to deletion
   # in connection with `characteristic_columns`
 
   # TODO write function
@@ -213,8 +216,6 @@ update_datatable_and_dependent_keys <- function(
     glue::glue("DELETE  FROM {get_namestring(table_key)};"),
     verbose = verbose
   )
-
-  # TODO sf data example
 
   # INSERT new data, appending the empty table
   #    (to make use of the "ON DELETE SET NULL" rule)
@@ -264,7 +265,8 @@ update_datatable_and_dependent_keys <- function(
     knitr::kable(lost_rows)
     write.csv(
       lost_rows,
-      glue::glue("dumps/lostrows_{table_key}_{now}.csv")
+      glue::glue("dumps/lostrows_{table_key}_{now}.csv"),
+      row.names = FALSE
     )
   }
 
@@ -286,7 +288,7 @@ update_datatable_and_dependent_keys <- function(
     # copied in case multiple deptabs have same key diff name
     pk_link <- pk_lookup
     # ensure `_old` suffix for joining below
-    dependent_col_old <- glue::glue("{dependent_key}_old")
+    # dependent_col_old <- glue::glue("{dependent_key}_old")
     reference_col_old <- glue::glue("{reference_key}_old")
     if (!(reference_col_old %in% names(pk_lookup))) {
       names(pk_link)[names(pk_link) == reference_key] <- reference_col_old
@@ -317,11 +319,13 @@ update_datatable_and_dependent_keys <- function(
     # dump-store look
     write.csv(
       key_replacement,
-      glue::glue("dumps/lookup_{now}_{table_key}_{deptab}.csv")
+      glue::glue("dumps/lookup_{now}_{table_key}_{deptab}.csv"),
+      row.names = FALSE
     )
 
 
-    # FILTER for changed values
+    # restrict this to modified data, ignore empty rows
+    # by FILTER for changed values
     key_replacement <- key_replacement[
       !mapply(identical,
         key_replacement[[reference_col_old]],
