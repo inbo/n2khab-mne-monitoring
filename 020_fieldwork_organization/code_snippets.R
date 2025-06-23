@@ -1103,4 +1103,6 @@ if (nrow(different_hashes) > 0) {
     "Different hashes detected than expected.",
     "\nPlease inspect the object `different_hashes`."
   )
+} else {
+  message("All loaded objects are identical to their reference :-)")
 }
