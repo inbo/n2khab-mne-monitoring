@@ -16,7 +16,7 @@ query_columns <- function(db_connection, table_id, columns){
 
 
 # query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
-query_all_existing_data <- function (db_connection, database, tables) {
+query_tables_data <- function (db_connection, database, tables) {
   data <- lapply(
     tables,
     FUN = function(tablelabel) {
@@ -24,6 +24,28 @@ query_all_existing_data <- function (db_connection, database, tables) {
       }
   )
   return(data)
+}
+
+
+
+execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
+  # a rather trivial wrapper for dbExecute
+  # which doesn't even work for multi-commands :/
+
+  if (verbose) {
+    message(sql_command)
+  }
+
+  stopifnot("DBI" = require("DBI"))
+
+  rs <- DBI::dbExecute(db_connection, sql_command)
+
+  if (verbose) {
+    message("done.")
+  }
+
+  return(invisible(rs))
+
 }
 
 

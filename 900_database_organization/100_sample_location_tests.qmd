@@ -883,17 +883,15 @@ Upload:
 ```{r re-upload-loccal}
 
 # delete all previously uploaded table content
-rs <- DBI::dbSendStatement(
+rs <- DBI::dbExecute(
   db_connection,
   'DELETE FROM "inbound"."Visits";'
   )
-DBI::dbClearResult(rs)
 
-rs <- DBI::dbSendStatement(
+rs <- DBI::dbExecute(
   db_connection,
   'DELETE FROM "outbound"."LocationCalendar";'
   )
-DBI::dbClearResult(rs)
 
 # re-upload
 sf::dbWriteTable(
