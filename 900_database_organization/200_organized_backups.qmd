@@ -89,6 +89,7 @@ library("keyring")
 library("configr")
 library("DBI")
 library("RPostgres")
+library("glue")
 
 projroot <- find_root(is_rstudio_project)
 working_dbname <- "loceval_dev" 
@@ -210,8 +211,10 @@ get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), tab
 
 print(get_namestring(table_key))
 
-# test data
-new_data <- read.csv(here::here("dumps", "Protocols_new.csv"))
+# new_data <- read.csv(here::here("dumps", "Protocols_new.csv"))
+
+# test data: just replace the data with itself (to ensure future compatibility)
+new_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
 
 ```
 
@@ -221,7 +224,7 @@ new_data <- read.csv(here::here("dumps", "Protocols_new.csv"))
 ```{r step1-safety-dump}
 now <- format(Sys.time(), "%Y%m%d%H%M")
 dump_all(
-    here::here(glue::glue("dumps", "safedump_{now}.sql")),
+    here::here("dumps", glue::glue("safedump_{now}.sql")),
     config_filepath = config_filepath,
     database = working_dbname,
     profile = "dumpall",
@@ -235,7 +238,7 @@ dump_all(
 ```{r step2-load-table-relations}
 
 table_relations <- read_table_relations_config(
-  storage_filepath = file.path("./devdb_structure/table_relations.conf")
+  storage_filepath = here::here("devdb_structure", "table_relations.conf")
   ) %>%
   filter(relation_table == tolower(table_key))
 
@@ -336,7 +339,6 @@ lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
 
 ```{r step5-delete-existing}
 
-source("MNMDatabaseToolbox.R")
 
 # DELETE existing data
 execute_sql(
@@ -490,6 +492,69 @@ for (deptab in dependent_tables) {
 
 ```
 
+
+# Testing
+
+## generalization
+
+The series of procedures outlined above was moved to the `MNMDatabaseToolbox.R` script collection.
+
+## load reference data
+
+```{r load-reference-data}
+
+schemas <- read.csv(here::here("devdb_structure", "TABLES.csv")) %>%
+  select(table, schema, geometry)
+
+# These are clumsy, temporary, provisional helpers.
+# But, hey, there will be time later.
+get_schema <- function(tablelabel) {
+  return(schemas %>%
+    filter(table == tablelabel) %>%
+    pull(schema)
+  )
+}
+get_namestring <- function(tablelabel) glue::glue('"{get_schema(tablelabel)}"."{tablelabel}"')
+get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), table = tablelabel)
+           
+
+
+# R reads NULLs from csv as "", unless `na.strings` is set.
+
+test_table <- "LocationCalendar"
+new_data <- dplyr::tbl(db_source, get_tableid(test_table)) %>% collect()
+# TODO dropped NOT-NULL constraint in Visits
+
+test_table <- "Protocols"
+new_data <- read.csv(here::here("dumps", "Protocols_new.csv"))
+# TODO restrict this to modified data, ignore empty rows
+
+test_table <- "TeamMembers"
+new_data <- read.csv(here::here("dumps", "TeamMembers_new.csv"), na.strings = "")
+```
+
+
+```{r test-function}
+source("MNMDatabaseToolbox.R")
+working_dbname <- "loceval_dev" 
+dbstructure_folder <- "devdb_structure"
+connection_profile <- "inbopostgis-dev" 
+config_filepath <- file.path("./inbopostgis_server.conf")
+table_key = test_table
+characteristic_columns = NULL
+# keyring::key_set("DBPassword", "db_user_password") # read-only user
+
+update_datatable_and_dependent_keys(
+  config_filepath = config_filepath,
+  working_dbname = working_dbname,
+  table_key = test_table,
+  new_data = new_data,
+  profile = connection_profile,
+  dbstructure_folder = dbstructure_folder,
+  characteristic_columns = NULL,
+  verbose = FALSE
+) 
+```
 
 # TODO
 

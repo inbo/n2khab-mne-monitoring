@@ -49,6 +49,329 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
 }
 
 
+
+update_datatable_and_dependent_keys <- function(
+    config_filepath,
+    working_dbname,
+    table_key,
+    new_data,
+    profile = NULL,
+    dbstructure_folder = NULL,
+    characteristic_columns = NULL, # TODO
+    verbose = TRUE
+    ) {
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+  stopifnot("RPostgres" = require("RPostgres"))
+  stopifnot("glue" = require("glue"))
+
+  # establish a database connection
+  db_target <- connect_database_configfile(
+    config_filepath,
+    database = working_dbname,
+    profile = profile
+  )
+
+  if (is.null(dbstructure_folder)) {
+    dbstructure_folder <- "db_structure"
+  }
+
+  schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+    select(table, schema, geometry)
+
+  # These are clumsy, temporary, provisional helpers.
+  # But, hey, there will be time later.
+  get_schema <- function(tablelabel) {
+    return(schemas %>%
+      filter(table == tablelabel) %>%
+      pull(schema)
+    )
+  }
+  get_namestring <- function(tablelabel) glue::glue('"{get_schema(tablelabel)}"."{tablelabel}"')
+  get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), table = tablelabel)
+
+
+  ### (1) dump all data, for safety
+  now <- format(Sys.time(), "%Y%m%d%H%M")
+  dump_all(
+    here::here("dumps", glue::glue("safedump_{now}.sql")),
+    config_filepath = config_filepath,
+    database = working_dbname,
+    profile = "dumpall",
+    user = "monkey",
+    exclude_schema = c("tiger", "public")
+  )
+
+
+  ### (2) load current data
+
+  table_relations <- read_table_relations_config(
+    storage_filepath = here::here("devdb_structure", "table_relations.conf")
+    ) %>%
+    filter(relation_table == tolower(table_key))
+
+  dependent_tables <- table_relations %>% pull(dependent_table)
+
+  table_existing_data_list <- query_tables_data(
+      db_target,
+      database = "loceval_dev",
+      tables = lapply(c(table_key, dependent_tables), FUN = get_tableid)
+  )
+
+
+  ### (3) store key lookup of dependent table
+  get_primary_key <- function(tablelabel){
+    pk <- load_table_info(dbstructure_folder, tablelabel) %>%
+      filter(primary_key == "True") %>%
+      pull(column)
+    return(pk)
+  }
+
+  get_characteristic_columns <- function(tablelabel){
+
+    # excluded from checks
+    logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
+
+    full_table_info <- load_table_info(dbstructure_folder, tablelabel)
+
+    pk <- full_table_info %>%
+      filter(primary_key == "True") %>%
+      pull(column)
+
+    characteristic_columns <- full_table_info %>%
+      filter(
+        !(column %in% logging_columns),
+        !(column %in% pk),
+      ) %>%
+      pull(column)
+
+    return(characteristic_columns)
+  }
+
+
+  # query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
+  # deptab_key <- "GroupedActivities"
+  query_dependent_columns <- function(table_key, deptab_key) {
+
+    # with a little help from my Python
+    deptab_pk <- get_primary_key(deptab_key)
+
+    # get the foreign key columns
+    dependent_key <- table_relations %>%
+      filter(
+        relation_table == tolower(table_key),
+        dependent_table == deptab_key
+      ) %>%
+      pull(dependent_column)
+
+    # lookup the key columns
+    key_lookup <- query_columns(
+      db_target,
+      get_tableid(deptab_key),
+      c(deptab_pk, dependent_key)
+    )
+
+    return(key_lookup)
+  }
+
+  lookups <- lapply(
+    dependent_tables,
+    FUN = function(deptab_key) query_dependent_columns(table_key, deptab_key)
+  ) %>% setNames(dependent_tables)
+
+  ### (4) retrieve old data
+  pk <- get_primary_key(table_key)
+
+  if (is.null(characteristic_columns)) {
+    characteristic_columns <- get_characteristic_columns(table_key)
+  }
+
+  old_data <- query_columns(
+    db_target,
+    get_tableid(table_key),
+    columns = c(characteristic_columns, pk)
+  )
+
+
+  lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
+
+  # TODO: what about `sf` data?
+
+
+  ### (5) UPLOAD/replace the data
+  # TODO there must be more column match checks
+  # priore to deletion
+  # in connection with `characteristic_columns`
+
+  # TODO write function
+  # to restore key lookup table
+
+  # DELETE existing data
+  execute_sql(
+    db_target,
+    glue::glue("DELETE  FROM {get_namestring(table_key)};"),
+    verbose = verbose
+  )
+
+  # TODO sf data example
+
+  # INSERT new data, appending the empty table
+  #    (to make use of the "ON DELETE SET NULL" rule)
+  rs <- DBI::dbWriteTable(
+    db_target,
+    get_tableid(table_key),
+    new_data,
+    row.names = FALSE,
+    overwrite = FALSE,
+    append = TRUE,
+    factorsAsCharacter = TRUE,
+    binary = TRUE
+  )
+
+  new_redownload <- query_columns(
+    db_target,
+    get_tableid(table_key),
+    columns = c(characteristic_columns, pk)
+  )
+
+  # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
+  # entries which were not present prior to update are not in this lookup
+  pk_lookup <- old_data %>%
+    left_join(
+      new_redownload,
+      by = characteristic_columns,
+      relationship = "one-to-one",
+      suffix = c("_old", ""),
+      unmatched = "drop"
+    )
+
+
+  ## save non-recovered rows
+  not_found <- pk_lookup %>%
+    select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>%
+    filter(if_any(everything(), ~ is.na(.x)))
+
+  lost_rows <- lostrow_data %>%
+    semi_join(
+      not_found,
+      by = pk
+    )
+
+  # mourn the loss of rows
+  if (nrow(lost_rows) > 0) {
+    warning("some previous data rows were not found back.")
+    knitr::kable(lost_rows)
+    write.csv(
+      lost_rows,
+      glue::glue("dumps/lostrows_{table_key}_{now}.csv")
+    )
+  }
+
+
+  ## update dependent tables
+  for (deptab in dependent_tables) {
+
+    # extract the associating columns
+    keycolumn_linkpair <- table_relations %>%
+      filter(
+        relation_table == tolower(table_key),
+        dependent_table == deptab
+      ) %>%
+      select(dependent_column, relation_column)
+    dependent_key <- keycolumn_linkpair[["dependent_column"]]
+    reference_key <- keycolumn_linkpair[["relation_column"]]
+
+    # the focus table, linking old and new pk values
+    # copied in case multiple deptabs have same key diff name
+    pk_link <- pk_lookup
+    # ensure `_old` suffix for joining below
+    dependent_col_old <- glue::glue("{dependent_key}_old")
+    reference_col_old <- glue::glue("{reference_key}_old")
+    if (!(reference_col_old %in% names(pk_lookup))) {
+      names(pk_link)[names(pk_link) == reference_key] <- reference_col_old
+    }
+
+    # reduced to just the "old -> new" keys
+    pk_link <- pk_link %>%
+      select(!!!rlang::syms(c(reference_col_old, pk)))
+
+    # names(pk_link)[names(pk_link) == dependent_key] <- reference_key
+
+
+    # finally, combine the lookup table
+    lookup <- lookups[[deptab]]
+
+    # swap the table-specific names
+    names(lookup)[names(lookup) == dependent_key] <- reference_col_old
+    names(pk_link)[names(pk_link) == reference_key] <- dependent_key
+
+    key_replacement <- lookup %>%
+      left_join(
+        pk_link,
+        by = reference_col_old,
+        relationship = "many-to-one",
+        suffix = c("_old", "")
+      )
+
+    # dump-store look
+    write.csv(
+      key_replacement,
+      glue::glue("dumps/lookup_{now}_{table_key}_{deptab}.csv")
+    )
+
+
+    # FILTER for changed values
+    key_replacement <- key_replacement[
+      !mapply(identical,
+        key_replacement[[reference_col_old]],
+        key_replacement[[dependent_key]]
+      )
+    , ]
+
+    if (nrow(key_replacement) == 0) next # nothing to update
+
+    ### UPDATE the dependent table
+    # ... by looking up the dependent table pk
+    dep_pk <- get_primary_key(deptab)
+
+    # repl_rownr <- 1
+    get_update_row_string <- function(repl_rownr){
+      dep_pk_val <- key_replacement[repl_rownr, dep_pk]
+      val <- key_replacement[repl_rownr, dependent_key]
+      if (is.na(val)) {
+        val <- "NULL"
+      }
+
+      update_string <- glue::glue("
+        UPDATE {get_namestring(deptab)}
+          SET {dependent_key} = {val}
+        WHERE {dep_pk} = {dep_pk_val}
+        ;
+      ")
+
+      return(update_string)
+    }
+
+    update_command <- lapply(
+      1:nrow(key_replacement),
+      FUN = get_update_row_string
+    )
+
+    # execute the update commands.
+    for (cmd in update_command) {
+      execute_sql(db_target, cmd, verbose = verbose)
+    }
+
+  } # /loop dependent tables
+
+
+} #/update_datatable_recursively
+
+
+
+
+
 #' Connect to a postgreSQL database, using settings from a config file
 #'
 #' Connect to a postgreSQL database (other dialects trivial).
