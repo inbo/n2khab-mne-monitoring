@@ -1026,33 +1026,45 @@ orthophoto_2025_stratum_grts <-
     loceval_year = ifelse(year(date_start) < 2025, 2025, year(date_start)) %>%
       as.integer()
   ) %>%
-  select(-scheme, -panel_set, -targetpanel, -date_start) %>%
+  select(-scheme, -targetpanel, -date_start) %>%
+  relocate(panel_set, .after = grts_join_method) %>%
+  # temporarily nest scheme_ps_targetpanel in order to properly calculate median
+  # addresses
   nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
-  mutate(
-    # Note that the scheme_ps_targetpanels attribute is a shrinked version of
-    # the one at the level of the whole sample (see sampling unit attributes in
-    # the beginning), since we limited the activities to LOCEVAL activities
-    # planned before 2027, and then generate stratum_scheme_ps_targetpanels as a
-    # location attribute.
-    scheme_ps_targetpanels = map_chr(scheme_ps_targetpanels, \(df) {
-      str_flatten(
-        unique(df$scheme_ps_targetpanel),
-        collapse = " | "
-      )
-    }) %>%
-      factor()
-  ) %>%
-  relocate(scheme_ps_targetpanels, .after = sp_poststratum) %>%
   # set priorities based on loceval_year; for 2026 differentiate according to
   # GRTS address (because lower GRTS addresses have more chance to end up as
-  # replacement)
+  # replacement). The latter is done within spatial poststratum & panel set
   mutate(
     priority_orthophoto = case_when(
       loceval_year == 2025 ~ 1L,
       grts_address <= median(grts_address) ~ 2L,
       .default = 3L
     ),
-    .by = c(stratum, loceval_year, sp_poststratum)
+    .by = c(stratum, loceval_year, panel_set, sp_poststratum)
+  ) %>%
+  unnest(scheme_ps_targetpanels) %>%
+  # collapse panel_set since this may sometimes have different values for the
+  # same location
+  summarize(
+    # Note that the scheme_ps_targetpanels attribute is a shrinked version of
+    # the one at the level of the whole sample (see sampling unit attributes in
+    # the beginning), since we limited the activities to LOCEVAL activities
+    # planned before 2027, and then generate stratum_scheme_ps_targetpanels as a
+    # location attribute.
+    scheme_ps_targetpanels = str_flatten(
+      sort(unique(scheme_ps_targetpanel)),
+      collapse = " | "
+    ) %>%
+      factor(),
+    loceval_year = min(loceval_year),
+    priority_orthophoto = min(priority_orthophoto),
+    .by = c(
+      stratum,
+      grts_join_method,
+      grts_address,
+      grts_address_final,
+      sp_poststratum
+    )
   ) %>%
   arrange(
     loceval_year,
