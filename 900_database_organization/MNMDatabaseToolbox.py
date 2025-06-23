@@ -797,7 +797,7 @@ class Database(dict):
         # case geopandas data
         if PD.isna(self[table_key].geometry):
             # a safety table
-            restore_data = PD.read_sql_table( \
+            lostrow_data = PD.read_sql_table( \
                 table_key, \
                 schema = self[table_key].schema, \
                 con = db_connection.connection \
@@ -809,13 +809,13 @@ class Database(dict):
                 FROM {self[table_key].NameString()};
             """
 
-            restore_data = GPD.read_postgis( \
+            lostrow_data = GPD.read_postgis( \
                 query, \
                 con = db_connection.connection, \
                 geom_col = "wkb_geometry" \
             ).set_index(pk, inplace = False)
 
-        # print(restore_data)
+        # print(lostrow_data)
 
         ### (5) UPLOAD/replace the data
         # (necessary to get the correct keys)
@@ -824,6 +824,7 @@ class Database(dict):
 
         testing = False
         if not testing:
+            # DELETE existing data
             ExecuteSQL(
                 db_connection,
                 f"""
@@ -832,6 +833,9 @@ class Database(dict):
                 verbose = verbose
             )
 
+
+            # INSERT new data, appending the empty table
+            #    (to make use of the "ON DELETE SET NULL" rule)
             if PD.isna(self[table_key].geometry):
                 new_data.to_sql( \
                     table_key, \
@@ -854,15 +858,15 @@ class Database(dict):
                 )
 
         self[table_key].QueryData(db_connection)
-        new_data = self[table_key].data.loc[:, characteristic_columns + pk]
+        new_redownload = self[table_key].data.loc[:, characteristic_columns + pk]
 
         old_data.set_index(characteristic_columns, inplace = True)
-        new_data.set_index(characteristic_columns, inplace = True)
+        new_redownload.set_index(characteristic_columns, inplace = True)
 
         # print(old_data)
-        # print(new_data)
+        # print(new_redownload)
         pk_lookup = old_data.join(
-            new_data,
+            new_redownload,
             how = "left",
             lsuffix = "_old",
             rsuffix = ""
@@ -877,7 +881,7 @@ class Database(dict):
 
         # warn about NA pk_new
         not_found = pk_lookup.loc[PD.isna(pk_lookup).any(axis = 1), :]
-        lost_rows = restore_data.loc[not_found.index.values, :]
+        lost_rows = lostrow_data.loc[not_found.index.values, :]
 
         if lost_rows.shape[0] > 0:
             WRN.warn("some previous data rows were not found back.", RuntimeWarning)
@@ -908,16 +912,17 @@ class Database(dict):
 
             # dump-store look
             key_replacement = look.loc[:, dep_pk + pk]
-            key_replacement.to_csv(f"dumps/lookup_{table_key}_{deptab}_{now}.csv")
+            key_replacement.to_csv(f"dumps/lookup_{now}_{table_key}_{deptab}.csv")
 
             # key_replacement = key_replacement.sample(5) # testing
             # print(key_replacement) #
 
             # UPDATE table by pk
-            update_string = f""" BEGIN; """
+            update_command = f""" BEGIN; """
             # print ("dep_pk", dep_pk)
             # print ("dependent_key", dependent_key)
             if len(dep_pk) > 1:
+                # I think this should never happen: postgres forces 1 pk
                 raise(IOError("There is more than one key column; functionality not implemented yet!"))
 
             row_update_values = []
@@ -928,19 +933,19 @@ class Database(dict):
                 else:
                     val = f"{replace_fk[reference_key]}"
 
-                update_string += f"""
+                update_command += f"""
                     UPDATE {self[deptab].NameString()}
                       SET {dependent_key} = {val}
                       WHERE {dep_pk[0]} = {replace_fk[dep_pk].values[0]}
                     ;
                 """
 
-            update_string += f""" COMMIT; """
+            update_command += f""" COMMIT; """
 
-            # print(update_string)
+            # print(update_command)
             ExecuteSQL(
                 db_connection,
-                update_string,
+                update_command,
                 verbose = verbose
             )
 

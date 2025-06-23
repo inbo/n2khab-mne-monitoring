@@ -97,7 +97,8 @@ connection_profile <- "inbopostgis-dev"
 
 # unless the password is stored in the config,
 # you might want to run the following prior to sourcing or rendering this script:
-# keyring::key_set("DBPassword", "db_user_password")
+# keyring::key_set("DBPassword", "db_user_password") # read-only user
+config_filepath <- file.path("./inbopostgis_server.conf")
 
 source("MNMDatabaseToolbox.R")
 
@@ -107,14 +108,14 @@ source("MNMDatabaseToolbox.R")
 For safe testing, I will query data from "production", and store it to "dev".
 
 ```{r connect-database}
-#| eval: false
+#| eval: true
 
-config_filepath <- file.path("./inbopostgis_server.conf")
 db_source <- connect_database_configfile(
   config_filepath,
   database = "loceval",
   profile = connection_profile
 )
+
 db_target <- connect_database_configfile(
   config_filepath,
   database = working_dbname,
@@ -191,11 +192,6 @@ But, with a little help of the Python part... (see `MNMDatabaseToolbox.py::Datab
 
 Here a test case for adjusting data in the database table.
 ```{r testcase-parameters}
-db_connection <- connect_database_configfile(
-  config_filepath,
-  database = working_dbname,
-  profile = "inbopostgis-dev"
-)
 
 table_key <- "Protocols"
 schemas <- read.csv(here::here("devdb_structure", "TABLES.csv")) %>%
@@ -245,8 +241,8 @@ table_relations <- read_table_relations_config(
 
 dependent_tables <- table_relations %>% pull(dependent_table)
 
-table_data_list <- query_all_existing_data(
-    db_connection,
+table_existing_data_list <- query_tables_data(
+    db_target,
     database = "loceval_dev",
     tables = lapply(c(table_key, dependent_tables), FUN = get_tableid)
 )
@@ -255,7 +251,7 @@ table_data_list <- query_all_existing_data(
 ### (3) store key lookup of dependent table
 
 ```{r step3-store-lookups}
-source("MNMDatabaseToolbox.R")
+# source("MNMDatabaseToolbox.R")
 
 get_primary_key <- function(tablelabel){
   pk <- load_table_info(dbstructure_folder, tablelabel) %>%
@@ -303,7 +299,7 @@ query_dependent_columns <- function(table_key, deptab_key) {
 
   # lookup the key columns
   key_lookup <- query_columns(
-    db_connection,
+    db_target,
     get_tableid(deptab_key),
     c(deptab_pk, dependent_key)
   )
@@ -325,12 +321,13 @@ pk <- get_primary_key(table_key)
 characteristic_columns <- get_characteristic_columns("Protocols")
 
 old_data <- query_columns(
-  db_connection,
+  db_target,
   get_tableid(table_key),
-  c(characteristic_columns, pk)
+  columns = c(characteristic_columns, pk)
 )
 
-restore_data <- dplyr::tbl(db_connection, get_tableid(table_key)) %>% collect()
+
+lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
 # TODO: what about `sf` data?
 
 ```
@@ -338,7 +335,159 @@ restore_data <- dplyr::tbl(db_connection, get_tableid(table_key)) %>% collect()
 ### (5) UPLOAD/replace the data
 
 ```{r step5-delete-existing}
-# TODO continue
+
+source("MNMDatabaseToolbox.R")
+
+# DELETE existing data
+execute_sql(
+  db_target,
+  glue::glue("DELETE  FROM {get_namestring(table_key)};")
+)
+
+# TODO sf data example
+
+# INSERT new data, appending the empty table
+#    (to make use of the "ON DELETE SET NULL" rule)
+rs <- DBI::dbWriteTable(
+  db_target,
+  get_tableid(table_key),
+  new_data,
+  row.names = FALSE,
+  overwrite = FALSE,
+  append = TRUE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+)
+
+new_redownload <- query_columns(
+  db_target,
+  get_tableid(table_key),
+  columns = c(characteristic_columns, pk)
+)
+
+pk_lookup <- old_data %>%
+  left_join(
+    new_redownload,
+    by = characteristic_columns,
+    relationship = "one-to-one",
+    suffix = c("_old", ""),
+    unmatched = "drop"
+  )
+
+```
+
+
+```{r save-non-recovered-rows}
+
+not_found <- pk_lookup %>%
+  select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>% 
+  filter(if_any(everything(), ~ is.na(.x)))
+
+lost_rows <- lostrow_data %>%
+  semi_join(
+    not_found,
+    by = pk
+  )
+
+
+if (nrow(lost_rows) > 0) {
+  warning("some previous data rows were not found back.")
+  knitr::kable(lost_rows)
+  write.csv(
+    lost_rows,
+    glue::glue("dumps/lostrows_{table_key}_{now}.csv")
+  )
+}
+
+
+```
+
+
+
+```{r update-dependent-tables}
+
+
+for (deptab in dependent_tables) {
+
+  # extract the associating columns
+  keycolumn_linkpair <- table_relations %>%
+    filter(
+      relation_table == tolower(table_key),
+      dependent_table == deptab
+    ) %>%
+    select(dependent_column, relation_column)
+  dependent_key <- keycolumn_linkpair[["dependent_column"]]
+  reference_key <- keycolumn_linkpair[["relation_column"]]
+
+  # the focus table, linking old and new pk values
+  # copied in case multiple deptabs have same key diff name
+  pk_link <- pk_lookup
+  # ensure `_old` suffix for joining below
+  suffix_col <- glue::glue("{dependent_key}_old")
+  if (!(suffix_col %in% names(pk_lookup))) {
+    names(pk_link)[names(pk_link) == dependent_key] <- suffix_col
+  }
+
+  # reduced to just the "old -> new" keys
+  pk_link <- pk_link %>% 
+    select(!!!rlang::syms(c(suffix_col, pk))) 
+
+  # names(pk_link)[names(pk_link) == dependent_key] <- reference_key
+
+
+  # finally, combine the lookup table
+  lookup <- lookups[[deptab]]
+  names(lookup)[names(lookup) == dependent_key] <- suffix_col
+
+  key_replacement <- lookup %>%
+    left_join(
+      pk_link,
+      by = suffix_col,
+      relationship = "many-to-one",
+      suffix = c("_old", "")
+    )
+
+  # dump-store look
+  write.csv(
+    key_replacement,
+    glue::glue("dumps/lookup_{now}_{table_key}_{deptab}.csv")
+  )
+
+
+  ### UPDATE the dependent table
+  # ... by looking up the dependent table pk 
+  dep_pk <- get_primary_key(deptab)
+
+  # repl_rownr <- 1
+  get_update_row_string <- function(repl_rownr){
+    dep_pk_val <- key_replacement[repl_rownr, dep_pk]
+    val <- key_replacement[repl_rownr, dependent_key]
+    if (is.na(val)) {
+      val <- "NULL"
+    }
+
+    update_string <- glue::glue("
+      UPDATE {get_namestring(deptab)}
+        SET {dependent_key} = {val}
+      WHERE {dep_pk} = {dep_pk_val}
+      ;
+    ")
+
+    return(update_string)
+  }
+
+  update_command <- lapply(
+    1:nrow(key_replacement),
+    FUN = get_update_row_string
+  )
+
+  # execute the update commands.
+  for (cmd in update_command) {
+    execute_sql(db_target, cmd)
+  }
+    
+}
+
 ```
 
 
@@ -354,6 +503,8 @@ restore_data <- dplyr::tbl(db_connection, get_tableid(table_key)) %>% collect()
 *(ad-hoc)*
 
 - make sure this works with `sf` and geometries
+- `characteristic_columns` must be the intersect of possible columns in the case of slight db structure changes,
+  or a link of renamend columns (`join_by`?)
 
 # ARCHIVE
 
