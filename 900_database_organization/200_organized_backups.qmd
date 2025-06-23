@@ -397,7 +397,8 @@ if (nrow(lost_rows) > 0) {
   knitr::kable(lost_rows)
   write.csv(
     lost_rows,
-    glue::glue("dumps/lostrows_{table_key}_{now}.csv")
+    glue::glue("dumps/lostrows_{table_key}_{now}.csv"),
+    row.names = FALSE
   )
 }
 
@@ -452,7 +453,8 @@ for (deptab in dependent_tables) {
   # dump-store look
   write.csv(
     key_replacement,
-    glue::glue("dumps/lookup_{now}_{table_key}_{deptab}.csv")
+    glue::glue("dumps/lookup_{now}_{table_key}_{deptab}.csv"),
+    row.names = FALSE
   )
 
 
@@ -499,77 +501,100 @@ for (deptab in dependent_tables) {
 
 The series of procedures outlined above was moved to the `MNMDatabaseToolbox.R` script collection.
 
-## load reference data
+## test: reference data from *production* to `_dev`
 
-```{r load-reference-data}
+```{r re-upload-function}
 
-schemas <- read.csv(here::here("devdb_structure", "TABLES.csv")) %>%
-  select(table, schema, geometry)
-
-# These are clumsy, temporary, provisional helpers.
-# But, hey, there will be time later.
-get_schema <- function(tablelabel) {
-  return(schemas %>%
-    filter(table == tablelabel) %>%
-    pull(schema)
-  )
+re_upload_tabledata <- function(
+    test_table,
+    new_data,
+    characteristic_columns
+  ) {
+  source("MNMDatabaseToolbox.R")
+  working_dbname <- "loceval_dev" 
+  dbstructure_folder <- "devdb_structure"
+  connection_profile <- "inbopostgis-dev" 
+  config_filepath <- file.path("./inbopostgis_server.conf")
+  table_key = test_table
+  # keyring::key_set("DBPassword", "db_user_password") # read-only user
+  
+  update_datatable_and_dependent_keys(
+    config_filepath = config_filepath,
+    working_dbname = working_dbname,
+    table_key = test_table,
+    new_data = new_data,
+    profile = connection_profile,
+    dbstructure_folder = dbstructure_folder,
+    characteristic_columns = NULL,
+    verbose = FALSE
+  ) 
 }
-get_namestring <- function(tablelabel) glue::glue('"{get_schema(tablelabel)}"."{tablelabel}"')
-get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), table = tablelabel)
-           
+```
 
+
+```{r table-data-update-cascade}
 
 # R reads NULLs from csv as "", unless `na.strings` is set.
+test_table = "Protocols"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = read.csv(here::here("dumps", "Protocols_new.csv")),
+  characteristic_columns = NULL
+)
 
-test_table <- "LocationCalendar"
-new_data <- dplyr::tbl(db_source, get_tableid(test_table)) %>% collect()
+test_table = "TeamMembers"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = read.csv(here::here("dumps", "TeamMembers_new.csv"), na.strings = ""),
+  characteristic_columns = NULL
+)
+
+test_table = "LocationCalendar"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = dplyr::tbl(db_source, DBI::Id(schema = "outbound", table = test_table)) %>% collect(),
+  characteristic_columns = c("scheme", "module_combo_code", "panel_set", "stratum", "grts_address")
+)
 # TODO dropped NOT-NULL constraint in Visits
 
-test_table <- "Protocols"
-new_data <- read.csv(here::here("dumps", "Protocols_new.csv"))
-# TODO restrict this to modified data, ignore empty rows
+test_table = "Visits"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = dplyr::tbl(db_source, DBI::Id(schema = "inbound", table = test_table)) %>% collect(),
+  characteristic_columns = c("locationcalendar_id", "activity_sequence", "grouped_activity_id")
+)
 
-test_table <- "TeamMembers"
-new_data <- read.csv(here::here("dumps", "TeamMembers_new.csv"), na.strings = "")
+test_table = "FreeFieldNotes"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = dplyr::tbl(db_source, DBI::Id(schema = "inbound", table = test_table)) %>% collect(),
+  characteristic_columns = c("teammember_id", "note_date", "location", "activity")
+)
 ```
 
 
-```{r test-function}
-source("MNMDatabaseToolbox.R")
-working_dbname <- "loceval_dev" 
-dbstructure_folder <- "devdb_structure"
-connection_profile <- "inbopostgis-dev" 
-config_filepath <- file.path("./inbopostgis_server.conf")
-table_key = test_table
-characteristic_columns = NULL
-# keyring::key_set("DBPassword", "db_user_password") # read-only user
-
-update_datatable_and_dependent_keys(
-  config_filepath = config_filepath,
-  working_dbname = working_dbname,
-  table_key = test_table,
-  new_data = new_data,
-  profile = connection_profile,
-  dbstructure_folder = dbstructure_folder,
-  characteristic_columns = NULL,
-  verbose = FALSE
-) 
-```
 
 # TODO
 
-*(persistent)*
+*(persistent backups = dumps)*
 
 - handle user permission exceptions 
   - sterr `2>` to separate file
   - check with cronjob or send an e-mail
 
 
-*(ad-hoc)*
+*(ad-hoc backups)*
 
-- make sure this works with `sf` and geometries
-- `characteristic_columns` must be the intersect of possible columns in the case of slight db structure changes,
-  or a link of renamend columns (`join_by`?)
+- [X] make sure this works with `sf` and geometries -> seems fine, but test
+- [X] `characteristic_columns` must be the intersect of possible columns in the case of slight db structure changes,
+  or a link of renamend columns (`join_by`?) -> can be passed as an argument
+  
+- [ ] complete db backup procedure: 
+  - store content to csv / sqlite
+  - re-create the database
+  - restore data
+  - (bonus) check `log_creation` persistence
+
 
 # ARCHIVE
 
