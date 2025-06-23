@@ -961,6 +961,119 @@ if (FALSE) {
 
 
 
+## Making selections for orthophoto assessments in 2025 ----------------------
+
+# Making a list of terrestrial locations to be assessed using orthophotos in
+# 2025. The procedure evaluates somewhat larger areas in which the unit is
+# situated, so we rather have a polygon evaluation which says: can this be the
+# targeted stratum or not? Because of expected negative results and hence the
+# need for replacements at polygon level (dropping the unit without a local
+# field replacement), the locations that are scheduled for field evaluation in
+# both 2025 and 2026 are provided for orthophoto evaluation.
+orthophoto_2025_stratum_grts <-
+  fag_stratum_grts_calendar %>%
+  filter(
+    str_detect(field_activity_group, "LOCEVAL"),
+    year(date_start) < 2027
+  ) %>%
+  distinct(
+    scheme_moco_ps,
+    stratum,
+    grts_address,
+    date_start
+  ) %>%
+  unnest(scheme_moco_ps) %>%
+  # adding location attributes
+  inner_join(
+    scheme_moco_ps_stratum_targetpanel_spsamples %>%
+      select(
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        grts_join_method,
+        grts_address,
+        grts_address_final,
+        targetpanel
+      ) %>%
+      # deduplicating 7220:
+      distinct(),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  # only keep cell-based types (aquatic & 7220 will be more reliable or simply
+  # not possible to evaluate on orthophoto)
+  filter(str_detect(grts_join_method, "cell")) %>%
+  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(grts_join_method, .after = stratum) %>%
+  select(-module_combo_code) %>%
+  distinct() %>%
+  mutate(
+    scheme_ps_targetpanel = str_glue(
+      "{ scheme }:PS{ panel_set }{ targetpanel }"
+    ),
+    loceval_year = ifelse(year(date_start) < 2025, 2025, year(date_start)) %>%
+      as.integer()
+  ) %>%
+  select(-scheme, -panel_set, -targetpanel, -date_start) %>%
+  nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
+  mutate(
+    # Note that the scheme_ps_targetpanels attribute is a shrinked version of
+    # the one at the level of the whole sample (see sampling unit attributes in
+    # the beginning), since we limited the activities to LOCEVAL activities
+    # planned before 2027, and then generate stratum_scheme_ps_targetpanels as a
+    # location attribute.
+    scheme_ps_targetpanels = map_chr(scheme_ps_targetpanels, \(df) {
+      str_flatten(
+        unique(df$scheme_ps_targetpanel),
+        collapse = " | "
+      )
+    }) %>%
+      factor()
+  ) %>%
+  relocate(scheme_ps_targetpanels, .after = grts_address_final) %>%
+  # set priorities based on loceval_year; for 2026 differentiate according to
+  # GRTS address (because lower GRTS addresses have more chance to end up as
+  # replacement)
+  mutate(
+    priority_orthophoto = case_when(
+      loceval_year == 2025 ~ 1L,
+      grts_address <= median(grts_address) ~ 2L,
+      .default = 3L
+    ),
+    .by = c(stratum, loceval_year)
+  ) %>%
+  arrange(loceval_year, priority_orthophoto, stratum, grts_address)
+
+# unit geometries (cells):
+orthophoto_2025_cells <-
+  units_cell_polygon %>%
+  inner_join(
+    orthophoto_2025_stratum_grts,
+    join_by(grts_address_final),
+    relationship = "one-to-many",
+    unmatched = c("drop", "error")
+  ) %>%
+  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(geometry, .after = last_col()) %>%
+  arrange(loceval_year, priority_orthophoto, stratum, grts_address)
+
+# cell centers:
+orthophoto_2025_cell_centers <-
+  orthophoto_2025_stratum_grts %>%
+  add_point_coords_grts(
+    grts_var = "grts_address_final",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+
+
+
+
+
+
 
 
 
