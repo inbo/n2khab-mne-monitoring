@@ -1002,9 +1002,13 @@ orthophoto_2025_stratum_grts <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
-  # only keep cell-based types (aquatic & 7220 will be more reliable or simply
-  # not possible to evaluate on orthophoto)
-  filter(str_detect(grts_join_method, "cell")) %>%
+  filter(
+    # only consider schemes scheduled in 2025:
+    str_detect(scheme, "^(GW|HQ)"),
+    # only keep cell-based types (aquatic & 7220 will be more reliable or simply
+    # not possible to evaluate on orthophoto)
+    str_detect(grts_join_method, "cell")
+  ) %>%
   # also join the spatial poststratum, since we need this in setting
   # GRTS-address based priorities
   inner_join(
