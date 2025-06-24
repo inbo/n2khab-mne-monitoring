@@ -970,7 +970,7 @@ if (FALSE) {
 # need for replacements at polygon level (dropping the unit without a local
 # field replacement), the locations that are scheduled for field evaluation in
 # both 2025 and 2026 are provided for orthophoto evaluation.
-orthophoto_2025_stratum_grts <-
+orthophoto_2025_type_grts <-
   fag_stratum_grts_calendar %>%
   filter(
     str_detect(field_activity_group, "LOCEVAL"),
@@ -1019,8 +1019,17 @@ orthophoto_2025_stratum_grts <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
+  # converting stratum to type (in the usual way, although for the cell-based
+  # units the values - but not the factor levels - are identical)
+  inner_join(
+    n2khab_strata,
+    join_by(stratum),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  select(-stratum) %>%
   relocate(grts_address_final, .after = grts_address) %>%
-  relocate(grts_join_method, .after = stratum) %>%
+  relocate(type, grts_join_method, .after = panel_set) %>%
   select(-module_combo_code) %>%
   distinct() %>%
   mutate(
@@ -1041,7 +1050,7 @@ orthophoto_2025_stratum_grts <-
       grts_address <= median(grts_address) ~ 2L,
       .default = 3L
     ),
-    .by = c(stratum, loceval_year, panel_set, sp_poststratum)
+    .by = c(type, loceval_year, scheme, panel_set, sp_poststratum)
   ) %>%
   # collapse scheme & panel_set since these can have different values for the
   # same location
@@ -1059,7 +1068,7 @@ orthophoto_2025_stratum_grts <-
     loceval_year = min(loceval_year),
     priority_orthophoto = min(priority_orthophoto),
     .by = c(
-      stratum,
+      type,
       grts_join_method,
       grts_address,
       grts_address_final,
@@ -1069,7 +1078,7 @@ orthophoto_2025_stratum_grts <-
   arrange(
     loceval_year,
     priority_orthophoto,
-    stratum,
+    type,
     sp_poststratum,
     grts_address
   )
@@ -1078,7 +1087,7 @@ orthophoto_2025_stratum_grts <-
 orthophoto_2025_cells <-
   units_cell_polygon %>%
   inner_join(
-    orthophoto_2025_stratum_grts,
+    orthophoto_2025_type_grts,
     join_by(grts_address_final),
     relationship = "one-to-many",
     unmatched = c("drop", "error")
@@ -1088,14 +1097,14 @@ orthophoto_2025_cells <-
   arrange(
     loceval_year,
     priority_orthophoto,
-    stratum,
+    type,
     sp_poststratum,
     grts_address
   )
 
 # cell centers:
 orthophoto_2025_cell_centers <-
-  orthophoto_2025_stratum_grts %>%
+  orthophoto_2025_type_grts %>%
   add_point_coords_grts(
     grts_var = "grts_address_final",
     spatrast = grts_mh,
