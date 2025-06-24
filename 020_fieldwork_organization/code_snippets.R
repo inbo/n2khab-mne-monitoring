@@ -1054,6 +1054,9 @@ orthophoto_2025_type_grts <-
   # replacement). The latter is done within spatial poststratum & panel set
   mutate(
     priority_orthophoto = case_when(
+      # priority 10: in 2025 there may not be time left to do these LOCEVALs in
+      # the field (and secondly, this is currently not yet ready XXXXXXXXXXX)
+      str_detect(scheme, "^HQ") ~ 10L,
       loceval_year == 2025 ~ 1L,
       grts_address <= median(grts_address) ~ 2L,
       .default = 3L
