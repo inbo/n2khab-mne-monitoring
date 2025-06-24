@@ -515,7 +515,6 @@ re_upload_tabledata <- function(
   dbstructure_folder <- "devdb_structure"
   connection_profile <- "inbopostgis-dev" 
   config_filepath <- file.path("./inbopostgis_server.conf")
-  table_key = test_table
   # keyring::key_set("DBPassword", "db_user_password") # read-only user
   
   update_datatable_and_dependent_keys(
