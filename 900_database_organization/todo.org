@@ -28,14 +28,15 @@
   + [X] =FieldNotes= -> free input
 + [X] something wrong with python =getpasswd=
 + [ ] backup procedures
-+ [ ] suggestions @FV <2025-06-18 Wed>
++ [-] suggestions @FV <2025-06-18 Wed>
   + [ ] subset habitat_types (wait input)
-  + [ ] +activity_sequence+ -> =activity_rank=
-  + [ ] idem =replacement_rank=
+  + [X] +activity_sequence+ -> =activity_rank=
+  + [X] idem =replacement_rank=
   + [ ] remove =targetpanel=; replace by =fieldwork_2025_priorities= + =stratum_scheme_ps_targetpanel= (for Tom)
   + [ ] replacements: base on non-=_final= =grts_address=
-  + [ ] +stratum+ -> =type= (convert via =n2khab_strata=)
-  + [ ] =stratum_to_expect= -> =type_adjusted=
+  + [X] +stratum+ -> =type= (convert via =n2khab_strata=)
+  + [X] =stratum_to_expect= -> =type_adjusted=
+  + [X] =stratum_corrected= -> =type_assessed=
   + [ ] corner points or polygons for sample units (also depends on type)
   + [ ] two replacement procedures: =local replacement= vs. drop-out ( ↖sampling)
   + [ ] there was a table (replacements?) with inconsistent pk name

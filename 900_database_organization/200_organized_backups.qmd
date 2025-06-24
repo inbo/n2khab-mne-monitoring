@@ -553,8 +553,12 @@ re_upload_tabledata(
 test_table = "LocationCalendar"
 re_upload_tabledata(
   test_table = test_table,
-  new_data = dplyr::tbl(db_source, DBI::Id(schema = "outbound", table = test_table)) %>% collect(),
-  characteristic_columns = c("scheme", "module_combo_code", "panel_set", "stratum", "grts_address")
+  new_data =
+    dplyr::tbl(db_source, DBI::Id(schema = "outbound", table = test_table)) %>%
+      select(-targetpanel) %>% 
+      collect(),
+  characteristic_columns = c("scheme", "module_combo_code", "panel_set", "stratum", "grts_address"),
+  rename_characteristics = c("type" = "stratum", "type_adjusted" = "stratum_to_expect")
 )
 # TODO dropped NOT-NULL constraint in Visits
 
@@ -563,7 +567,7 @@ re_upload_tabledata(
   test_table = test_table,
   new_data = dplyr::tbl(db_source, DBI::Id(schema = "inbound", table = test_table)) %>% collect(),
   characteristic_columns = c("locationcalendar_id", "activity_rank", "grouped_activity_id"),
-  rename_characteristics = c("activity_rank" = "activity_sequence")
+  rename_characteristics = c("activity_rank" = "activity_sequence", "type_assessed" = "stratum_corrected")
 )
 
 test_table = "FreeFieldNotes"
