@@ -787,7 +787,6 @@ location_calendar_raw <- fag_stratum_grts_calendar_2025_attribs_sf %>%
         scheme,
         module_combo_code,
         stratum,
-        targetpanel,
         date_interval
       ),
       as.character
@@ -799,7 +798,7 @@ location_calendar_raw <- fag_stratum_grts_calendar_2025_attribs_sf %>%
     relationship = "many-to-many"
   ) %>%
   select(-field_activity_group, -grts_join_method) %>% # , -date_interval
-  rename(activity_rank = rank) %>% 
+  rename(activity_rank = rank, type = stratum) %>% 
   distinct()
 
 sf::st_geometry(location_calendar_raw) <- "wkb_geometry"
@@ -852,8 +851,7 @@ if (FALSE){
 
 location_calendar <- location_calendar %>%
   summarize(
-    stratum = paste(stratum, collapse = "+"),
-    targetpanel = paste(targetpanel, collapse = "+"),
+    type = paste(type, collapse = "+"),
     .by = c(
       scheme,
       module_combo_code,
@@ -920,8 +918,7 @@ location_calendar_unique_count <- location_calendar %>%
     scheme,
     module_combo_code,
     panel_set,
-    stratum,
-    targetpanel,
+    type,
     activity_group_id,
     grts_address,
     date_start
@@ -930,8 +927,7 @@ location_calendar_unique_count <- location_calendar %>%
     scheme,
     module_combo_code,
     panel_set,
-    stratum,
-    targetpanel,
+    type,
     activity_group_id,
     grts_address,
     date_start
@@ -953,8 +949,7 @@ loccal_lookup <- dplyr::tbl(
     scheme,
     module_combo_code,
     panel_set,
-    stratum,
-    targetpanel,
+    type,
     activity_group_id,
     grts_address,
     date_start,
@@ -970,8 +965,7 @@ location_calendar <- location_calendar %>%
       scheme,
       module_combo_code,
       panel_set,
-      stratum,
-      targetpanel,
+      type,
       activity_group_id,
       grts_address,
       date_start
@@ -1016,15 +1010,14 @@ loccal_lookup <- dplyr::tbl(
     scheme,
     module_combo_code,
     panel_set,
-    stratum,
-    targetpanel,
+    type,
     activity_group_id,
     grts_address,
     date_start,
     locationcalendar_id,
     # teammember_assigned,
     # visit_date_planned,
-    # stratum_to_expect,
+    # type_adjusted,
     # done_planning
   ) %>% 
   collect
@@ -1038,8 +1031,7 @@ visit_preparation <- location_calendar_raw %>%
       scheme,
       module_combo_code,
       panel_set,
-      stratum,
-      targetpanel,
+      type,
       activity_group_id,
       grts_address,
       date_start
