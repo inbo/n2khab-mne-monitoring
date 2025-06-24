@@ -49,7 +49,57 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
 }
 
 
-
+#' Update table content and cascade all key changes to dependent tables
+#'
+#' Updates the content of a data table in a relatively safe manner
+#' by recursing the database structure and updating foreign keys in other
+#' tables which link to the changed data.
+#' Cascading changes is based on characteristic columns that serve as
+#' keys for joining old and new data.
+#' "Safe manner" means that dumps and backups are written to text files
+#' along the way.
+#' The original intention of this function was to provide tooling for
+#' reloading backed up content of a previous data version, or for copying
+#' data from one connection to the other.
+#'        hint: use keyring::key_set("DBPassword", "db_user_password") to
+#'        store a connection password
+#'
+#' @param config_filepath the path to the config file
+#' @param working_dbname the target database name
+#' @param table_key the table to be changed
+#' @param new_data a data frame or tibble with the new data
+#' @param profile config section header (configs with multiple connection settings)
+#' @param dbstructure_folder the folder in which to find the database structire csv collection
+#' @param characteristic_columns a subset of columns of the data table
+#'        by which old and new data can be uniquely identified and joined; refers to the new data
+#' @param rename_characteristics TODO link columns with different names by renaming them in new_data
+#' @param verbose provides extra prose on the way, in case you need it
+#'
+#' @examples
+#' \dontrun{
+#'    working_dbname <- "monkey_business"
+#'    dbstructure_folder <- "db_structure"
+#'    connection_profile <- "monkey-connections"
+#'    config_filepath <- file.path("./monkey_server.conf")
+#'    # keyring::key_set("DBPassword", "db_user_password")
+#'
+#'    test_table <- "LocationCalendar"
+#'    new_data <- dplyr::tbl(source_connection, DBI::Id(schema = "outbound", table = test_table)) %>% collect(),
+#'    characteristic_columns = c("scheme", "stratum", "grts_address", "column_newname")
+#'
+#'    update_datatable_and_dependent_keys(
+#'      config_filepath = config_filepath,
+#'      working_dbname = working_dbname,
+#'      table_key = test_table,
+#'      new_data = new_data,
+#'      profile = connection_profile,
+#'      dbstructure_folder = dbstructure_folder,
+#'      characteristic_columns = characteristic_columns,
+#'      rename_characteristics = c(column_oldname = "column_newname")
+#'      verbose = TRUE
+#'    )
+#' }
+#'
 update_datatable_and_dependent_keys <- function(
     config_filepath,
     working_dbname,
@@ -58,6 +108,7 @@ update_datatable_and_dependent_keys <- function(
     profile = NULL,
     dbstructure_folder = NULL,
     characteristic_columns = NULL, # TODO
+    rename_characteristics = NULL,
     verbose = TRUE
     ) {
 
@@ -203,6 +254,9 @@ update_datatable_and_dependent_keys <- function(
 
 
   ### (5) UPLOAD/replace the data
+  # TODO use rename_characteristics
+  # to rename cols in the new_data
+
   # TODO there must be more column match checks
   # prior to deletion
   # in connection with `characteristic_columns`
