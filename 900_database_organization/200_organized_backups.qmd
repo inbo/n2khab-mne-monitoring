@@ -508,7 +508,8 @@ The series of procedures outlined above was moved to the `MNMDatabaseToolbox.R` 
 re_upload_tabledata <- function(
     test_table,
     new_data,
-    characteristic_columns
+    characteristic_columns,
+    rename_characteristics = NULL
   ) {
   source("MNMDatabaseToolbox.R")
   working_dbname <- "loceval_dev" 
@@ -525,6 +526,7 @@ re_upload_tabledata <- function(
     profile = connection_profile,
     dbstructure_folder = dbstructure_folder,
     characteristic_columns = NULL,
+    rename_characteristics = rename_characteristics,
     verbose = FALSE
   ) 
 }
@@ -560,7 +562,8 @@ test_table = "Visits"
 re_upload_tabledata(
   test_table = test_table,
   new_data = dplyr::tbl(db_source, DBI::Id(schema = "inbound", table = test_table)) %>% collect(),
-  characteristic_columns = c("locationcalendar_id", "activity_sequence", "grouped_activity_id")
+  characteristic_columns = c("locationcalendar_id", "activity_rank", "grouped_activity_id"),
+  rename_characteristics = c("activity_rank" = "activity_sequence")
 )
 
 test_table = "FreeFieldNotes"
