@@ -80,7 +80,11 @@ if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
 reload <- FALSE
 poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
 if (reload || !file.exists(poc_rdata_path)){
-  drive_download(as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"), path = poc_rdata_path)
+  drive_download(
+    as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
+    path = poc_rdata_path,
+    overwrite = reload
+  )
 }
 load(poc_rdata_path)
 ```
