@@ -56,6 +56,7 @@
     + [ ] "activity" visible in form
     + [ ] test attribute table sorting
 
++ exclude admin from =log_= rules
 + [-] suggestions @FV <2025-06-18 Wed>
   + [ ] subset habitat_types (wait input)
   + [X] +activity_sequence+ -> =activity_rank=
