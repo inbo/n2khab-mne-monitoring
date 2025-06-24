@@ -300,7 +300,7 @@ misleading for counting & planning (but useful in spatial visualization)
 # activity groups, sequences, ...:
 actseqs_actgroups_acts <-
   activity_sequences %>%
-  semi_join(faseqs, join_by(activity_sequence)) %>%
+  semi_join(faseqs, join_by(activity_rank)) %>%
   inner_join(
     activities,
     join_by(activity),
@@ -309,19 +309,19 @@ actseqs_actgroups_acts <-
   ) %>%
   arrange(
     activity_group,
-    activity_sequence,
+    activity_rank,
     rank,
     activity
   ) %>% 
-  group_by(activity_sequence) %>%
-  mutate(activity_sequence_id = cur_group_id()) %>%
+  group_by(activity_rank) %>%
+  mutate(activity_rank_id = cur_group_id()) %>%
   ungroup %>%
   group_by(activity_group) %>%
   mutate(activity_group_id = cur_group_id()) %>%
   ungroup %>%
   group_by(
     activity_group,
-    activity_sequence,
+    activity_rank,
     activity
   ) %>%
   mutate(activity_id = cur_group_id()) %>%
@@ -329,7 +329,7 @@ actseqs_actgroups_acts <-
   relocate(
     activity_id,
     activity_group_id,
-    activity_sequence_id,
+    activity_rank_id,
     activity,
     rank,
     .before = 1
@@ -337,7 +337,7 @@ actseqs_actgroups_acts <-
 
 View(
   faseqs_fag_fa %>%
-  distinct(field_activity, field_activity_group, activity_sequence) %>%
+  distinct(field_activity, field_activity_group, activity_rank) %>%
   arrange(field_activity_group) %>% 
   filter(
     TRUE |
@@ -350,7 +350,7 @@ View(
 Activity **sequence** is included in the calendar via the `rank` and that rank already comes delivered in the **calendar**. 
 For all practical purposes, everything else of the `ActivitySequences` can be ignored downstream.
 
-For database organization, I rename the `rank` to `activity_sequence`
+For database organization, I rename the `rank` to `activity_rank`
 :::
 
 ```{r prepare-activities}
@@ -675,12 +675,12 @@ protocol_lookup <- upload_and_lookup(
 #   lookup_join(activity_lookup, "activity") %>% 
 #   lookup_join(activity_group_lookup, "activity_group")
 # 
-# activity_sequence_lookup <- upload_and_lookup(
+# activity_rank_lookup <- upload_and_lookup(
 #   db_connection,
 #   DBI::Id(schema = "metadata", table = "ActivitySequences"),
 #   activity_sequences_to_upload,
-#   ref_col = "activity_sequence",
-#   index_col = "activity_sequence_id"
+#   ref_col = "activity_rank",
+#   index_col = "activity_rank_id"
 # )
 ```
 
@@ -772,7 +772,7 @@ by the date interval.
 :::{.callout-warning}
 Note:
 
-- `rank` is renamed to `activity_sequence`.
+- `rank` is renamed to `activity_rank`.
 - `grts_address`: only "final" vaule retained
 
 :::
@@ -799,7 +799,7 @@ location_calendar_raw <- fag_stratum_grts_calendar_2025_attribs_sf %>%
     relationship = "many-to-many"
   ) %>%
   select(-field_activity_group, -grts_join_method) %>% # , -date_interval
-  rename(activity_sequence = rank) %>% 
+  rename(activity_rank = rank) %>% 
   distinct()
 
 sf::st_geometry(location_calendar_raw) <- "wkb_geometry"
@@ -837,7 +837,7 @@ relevant_activities <- grouped_activity_lookup %>%
 
 # remove sequence for fieldwork preparation
 location_calendar <- location_calendar_raw %>%
-  select(-activity_sequence) %>%
+  select(-activity_rank) %>%
   filter(
     activity_group_id %in% relevant_activities,
     scheme %in% c("GW_03.3")
@@ -861,7 +861,7 @@ location_calendar <- location_calendar %>%
       activity_group_id,
       grts_address,
       date_start, date_end,
-      # activity_sequence,
+      # activity_rank,
       wkb_geometry
     )
   ) %>%
@@ -1062,7 +1062,7 @@ visit_preparation <- visit_preparation %>%
 visits <- visit_preparation %>%
   select(
     locationcalendar_id,
-    activity_sequence,
+    activity_rank,
     grouped_activity_id
   )
 

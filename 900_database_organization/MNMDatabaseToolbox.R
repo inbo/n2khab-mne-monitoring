@@ -244,7 +244,7 @@ update_datatable_and_dependent_keys <- function(
     columns = c(characteristic_columns, pk)
   )
 
-
+  # this data is not lost yet, but will be checked against the `new_data` to upload.
   lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
 
   # what about `sf` data?
@@ -254,8 +254,16 @@ update_datatable_and_dependent_keys <- function(
 
 
   ### (5) UPLOAD/replace the data
-  # TODO use rename_characteristics
-  # to rename cols in the new_data
+
+  # use `rename_characteristics`
+  # to rename cols in the new_data to the server data logic
+  new_data
+  rename_characteristics
+  for (rnc in 1:length(rename_characteristics)) {
+    new_colname <- rename_characteristics[[rnc]]
+    server_colname <- names(rename_characteristics)[rnc]
+    names(new_data)[names(new_data) == new_colname] <- server_colname
+  }
 
   # TODO there must be more column match checks
   # prior to deletion
