@@ -2,7 +2,7 @@ schema,table,owner,read_access,write_access,geometry,constraint,freesql,comment
 metadata,Protocols,falk,"ward,karen,floris,monkey",,,,,protocols (preliminary version)
 metadata,GroupedActivities,falk,"ward,karen,floris,monkey",,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
 metadata,TeamMembers,falk,"ward,karen,floris,monkey",,,,,list of team members
-metadata,N2kHabTypes,falk,"ward,karen,floris,monkey",,,,,"habitat type, stratum, etc."
+metadata,N2kHabTypes,falk,"ward,karen,floris,monkey",,,,,habitat type
 outbound,LocationCalendar,falk,"ward,karen,floris,monkey","ward,karen,floris",POINT,,,"main table for fieldwork preparation, content of the `fag_grts_calendar_2025_attribs_sf` POC object"
 outbound,ReplacementLocations,falk,"ward,karen,floris,monkey",,POINT,,,putative replacements for inaccessible sites
 inbound,Visits,falk,"ward,karen,floris,monkey","ward,karen,floris",,,,"retrieving information about location visits, linked to LocationCalendar"

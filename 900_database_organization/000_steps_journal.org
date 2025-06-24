@@ -731,13 +731,17 @@ CLOSED: [2025-06-23 Mon 16:33] SCHEDULED: <2025-06-20 Fri>
 + can change table with content from `.csv`
 + can change table with content from other database
 + characteristic columns can be chosen
++ can rename characteristic columns
++ function documentation
 
 ** data update on *production*
 SCHEDULED: <2025-06-24 Tue>
 
 ... to get the latest columns
-+ [ ] change suggestions @FV
-+ [ ] apply changes
++ [X] some change suggestions @FV
+  + stratum -> type
+  + +targetpanel+
++ [X] apply changes
 
 
 ** database changes with data persistence

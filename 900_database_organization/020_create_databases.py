@@ -3,24 +3,25 @@
 import MNMDatabaseToolbox as DTB
 
 
-# https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
-# database: loceval
-base_folder = DTB.PL.Path(".")
-DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", base_folder/"devdb_structure")
+if True:
+    # https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
+    # database: loceval
+    base_folder = DTB.PL.Path(".")
+    DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", base_folder/"devdb_structure")
 
-db_connection = DTB.ConnectDatabase(
-    "inbopostgis_server.conf",
-    connection_config = "inbopostgis-dev",
-    database = "loceval_dev"
-)
-db = DTB.Database( \
-    base_folder = "./devdb_structure", \
-    definition_csv = "TABLES.csv", \
-    lazy_creation = False, \
-    db_connection = db_connection \
-)
+    db_connection = DTB.ConnectDatabase(
+        "inbopostgis_server.conf",
+        connection_config = "inbopostgis-dev",
+        database = "loceval_dev"
+       )
+    db = DTB.Database( \
+        base_folder = "./devdb_structure", \
+        definition_csv = "TABLES.csv", \
+        lazy_creation = False, \
+        db_connection = db_connection \
+                         )
 
-# SET search_path TO public,"metadata","outbound","inbound";
+    # SET search_path TO public,"metadata","outbound","inbound";
 
 
 if False:
