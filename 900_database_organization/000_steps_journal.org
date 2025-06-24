@@ -746,7 +746,19 @@ SCHEDULED: <2025-06-24 Tue>
 
 ** database changes with data persistence
 SCHEDULED: <2025-06-24 Tue>
-as above, but in one script
+
+i.e. we can replace tables and keep the data
+as outlined above, but in one script
+
+
+** adjustments Orthophoto workpackage
+SCHEDULED: <2025-06-24 Tue>
+
+=LocationCalendar= -> =PriorEvaluations=
+
+TODO: exclude/hold columns -> Py
+TODO: Views store in file and adjust
+
 
 ** store table relation structure
 SCHEDULED: <2025-06-19 Thu>
