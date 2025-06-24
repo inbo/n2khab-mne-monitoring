@@ -1019,6 +1019,14 @@ orthophoto_2025_type_grts <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
+  # add MHQ assessment metadata
+  inner_join(
+    stratum_grts_n2khab_phabcorrected_no_replacements %>%
+      select(stratum, grts_address, assessed_in_field, assessment_date),
+    join_by(stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
   # converting stratum to type (in the usual way, although for the cell-based
   # units the values - but not the factor levels - are identical)
   inner_join(
@@ -1072,6 +1080,7 @@ orthophoto_2025_type_grts <-
       grts_join_method,
       grts_address,
       grts_address_final,
+      starts_with("assess"),
       sp_poststratum
     )
   ) %>%
