@@ -13,13 +13,14 @@ if True:
         "inbopostgis_server.conf",
         connection_config = "inbopostgis-dev",
         database = "loceval_dev"
-       )
+        )
     db = DTB.Database( \
         base_folder = "./devdb_structure", \
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
-        db_connection = db_connection \
-                         )
+        db_connection = db_connection, \
+        tabula_rasa = False
+        )
 
     # SET search_path TO public,"metadata","outbound","inbound";
 

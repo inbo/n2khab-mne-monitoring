@@ -55,6 +55,7 @@
     + [ ] types -> qgis map label
     + [ ] "activity" visible in form
     + [ ] test attribute table sorting
+    + [ ] add habitatmap (raw; wfs?) as bachground layer
 
 + exclude admin from =log_= rules
 + [-] suggestions @FV <2025-06-18 Wed>

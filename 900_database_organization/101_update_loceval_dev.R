@@ -1,32 +1,4 @@
----
-title: "Data Re-Upload"
-date: "2025-06-05"
-format:
-  html:
-    toc: true
-    html-math-method: katex
-    code-fold: false
-    embed-resources: true
-knitr:
-  opts_chunk:
-    echo: true
----
-
-
-
-:::{.callout-note title="Purpose"}
-Let's bring the sample to the field!
-:::
-
-<https://github.com/inbo/n2khab-mne-monitoring/pull/5>
-
-<https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link>
-
-# preparation
-
-## info stream from POC
-
-```{r libraries}
+## ----libraries----------------------------------------------------------------
 library("dplyr")
 library("tidyr")
 library("stringr")
@@ -48,7 +20,7 @@ library("mapview")
 # mapviewOptions(platform = "mapdeck")
 
 projroot <- find_root(is_rstudio_project)
-working_dbname <- "loceval_dev" 
+working_dbname <- "loceval_dev"
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
@@ -72,10 +44,9 @@ if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
   options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
 }
 
-```
 
 
-```{r load-sample-rdata}
+## ----load-sample-rdata--------------------------------------------------------
 # Download and load R objects from the POC into global environment
 reload <- FALSE
 poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
@@ -87,28 +58,9 @@ if (reload || !file.exists(poc_rdata_path)){
   )
 }
 load(poc_rdata_path)
-```
 
 
-## Test Case: FAG Calendar
-
-In [this useful file](https://github.com/inbo/n2khab-mne-monitoring/blob/fieldworkdata_supportbyfloris/020_fieldwork_organization/code_snippets.R), I found the following interesting object stack:
-
-- `fag_stratum_grts_calendar_2025_attribs_sf`
-  - `fag_stratum_grts_calendar_2025_attribs`
-    - `fag_stratum_grts_calendar` (raw)
-    - `scheme_moco_ps_stratum_targetpanel_spsamples`
-      - `scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar` (raw)
-      - `n2khab_strata` (raw)
-      - `n2khab_types_expanded_properties` (raw)
-  - `grts_mh` (n2khab)
-  - `grts_mh_index`
-    - (`grts_mh`)
-    
-(would be cool to have a dependence graph.)
-
-
-```{r load-fag-grts-calender-2025-attribs-sf}
+## ----load-fag-grts-calender-2025-attribs-sf-----------------------------------
 
 grts_mh <- read_GRTSmh()
 # create a spatial index of the GRTS addresses
@@ -310,95 +262,9 @@ fag_stratum_grts_calendar_2025_attribs <-
   ) %>%
   relocate(scheme_ps_targetpanels)
 
-```
 
-Contains a `POINT` geometry and columns:
-
-| stratum                     | <fct>       |
-| scheme                      | <fct>       |
-| targetpanel                 | <fct>       |
-| grts_address                | <int>       |
-| grts_address_final          | <int>       |
-| date_start                  | <date>      |
-| date_end                    | <date>      |
-| date_interval               | <varchar>   |
-| field_activity_group        | <fct>       |
-| rank                        | <int>       |
-| geometry                    | <POINT [m]> |
-
-
-:::{.callout-warning title="Mind the note by Floris:"}
-Beware that more locations will emerge due to local replacement, so this is
-misleading for counting & planning (but useful in spatial visualization)
-:::
-
-
-## Field Activities, Activity Groups (and Sequences)
-
-```{r view-activity-groups-and-sequences}
-#| eval: false
-
-# ... requires more `code_snippets.R` which are not run here
-
-# activity groups, sequences, ...:
-actseqs_actgroups_acts <-
-  activity_sequences %>%
-  semi_join(faseqs, join_by(activity_rank)) %>%
-  inner_join(
-    activities,
-    join_by(activity),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  ) %>%
-  arrange(
-    activity_group,
-    activity_rank,
-    rank,
-    activity
-  ) %>% 
-  group_by(activity_rank) %>%
-  mutate(activity_rank_id = cur_group_id()) %>%
-  ungroup %>%
-  group_by(activity_group) %>%
-  mutate(activity_group_id = cur_group_id()) %>%
-  ungroup %>%
-  group_by(
-    activity_group,
-    activity_rank,
-    activity
-  ) %>%
-  mutate(activity_id = cur_group_id()) %>%
-  ungroup %>%
-  relocate(
-    activity_id,
-    activity_group_id,
-    activity_rank_id,
-    activity,
-    rank,
-    .before = 1
-  )
-
-View(
-  faseqs_fag_fa %>%
-  distinct(field_activity, field_activity_group, activity_rank) %>%
-  arrange(field_activity_group) %>% 
-  filter(
-    TRUE |
-    field_activity_group == "GWINSTPIEZWELL"
-  )
-)
-
-```
-
-:::{.callout-tip title="Feedback Floris:"}
-Activity **sequence** is included in the calendar via the `rank` and that rank already comes delivered in the **calendar**. 
-For all practical purposes, everything else of the `ActivitySequences` can be ignored downstream.
-
-For database organization, I rename the `rank` to `activity_rank`
-:::
-
-```{r prepare-activities}
-# # TODO there are some activities with different ranks within a sequence.
+## ----prepare-activities-------------------------------------------------------
+# # there are some activities with different ranks within a sequence.
 # activity_groupcount <- activity_sequences %>%
 #   distinct(activity, activity_group, rank) %>%
 #   count(activity, activity_group) %>%
@@ -409,7 +275,7 @@ activity_group_lookup <-
     distinct(activity_group, activity)
 
 grouped_activities <-
-  activities %>% 
+  activities %>%
   left_join(
     activity_group_lookup,
     join_by(activity),
@@ -423,7 +289,7 @@ grouped_activities <- grouped_activities %>%
   mutate_at(
     vars(activity_group, activity, activity_name, protocol),
     as.character
-  ) %>% 
+  ) %>%
   mutate(
     activity_group = ifelse(is.na(activity_group), activity, activity_group)
   )
@@ -431,15 +297,15 @@ grouped_activities <- grouped_activities %>%
 
 
 grouped_activities <- grouped_activities %>%
-  arrange(activity) %>% 
+  arrange(activity) %>%
   group_by(activity) %>%
   mutate(activity_id = cur_group_id()) %>%
   ungroup %>%
-  arrange(activity_group) %>% 
+  arrange(activity_group) %>%
   group_by(activity_group) %>%
   mutate(activity_group_id = cur_group_id()) %>%
   ungroup %>%
-  arrange(activity_group, activity) %>% 
+  arrange(activity_group, activity) %>%
   group_by(
     activity_group,
     activity
@@ -457,29 +323,17 @@ grouped_activities <- grouped_activities %>%
 
 # knitr::kable(grouped_activities %>% distinct(activity_group, activity, activity_name))
 
-# activities %>% 
+# activities %>%
 #   anti_join(
 #     activity_sequences,
 #     join_by(activity)
 #   )
 # # non-field activities; of no relevance for the calendar
-# 
+#
 glimpse(grouped_activities)
-```
 
-## stratum
 
-We need to get at least the stratum for the target field activity.
-
-- always `join_by(sample_support_code, unit_id)`
-- `stratum_scheme_targetpanels := stratum (grts_join_method) [scheme_targetpanels]` -> replaced (went to upstream table)
-
-| `fag_stratum_grts_calendar_2025_attribs` | the object from which the calendar was derived, |
-|                                          | with `stratum` still in there                   |
-| `n2khab_types_expanded_properties`       | links type and typelevel to sample support code |
-| `stratum_schemetargetpanel_spsamples`    | has scheme, grts, and ssc                       |
-
-```{r join-stratum}
+## ----join-stratum-------------------------------------------------------------
 # scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar
 # scheme_moco_ps_stratum_targetpanel_spsamples
 # stratum_schemetargetpanel_spsamples
@@ -496,49 +350,13 @@ fag_stratum_grts_calendar_2025_attribs_sf <-
 
 if (FALSE){
   fag_stratum_grts_calendar_2025_attribs_sf %>%
-    head(32) %>% 
+    head(32) %>%
     sf::st_geometry() %>%
     plot()
 }
 
-# mapview::mapview(
-#   fag_stratum_grts_calendar_2025_attribs_sf %>%
-#     head(100) %>% 
-#     sf::st_geometry()
-#   # , col.regions = "steelblue"
-#   # , platform = "mapdeck"
-#   # , zcol = "stratum"
-#   )
-```
 
-
-
-## database connection
-
-Working out a way to load the config.
-Config has the following structure:
-
-```
-    [test]
-    server = localhost
-    port = 5439
-    user = test
-    database = playground
-    password = <the password you entered IN PLAIN TEXT>
-```
-
-:::{.callout-warning}
-That `.conf`/`.ini` file contains password in plain text!
-
-- Do not print its content in this notebook.
-- Make sure to `.gitignore` it!
-:::
-
-
-We can use `configr` (<https://cran.r-project.org/web/packages/configr/readme/README.html>)
-
-```{r load-config}
-
+## ----load-config--------------------------------------------------------------
 config_filepath <- file.path("./inbopostgis_server.conf")
 
 if (working_dbname == "loceval") {
@@ -547,7 +365,7 @@ if (working_dbname == "loceval") {
     database = "loceval",
     profile = "inbopostgis"
   )
-    
+
 } else {
   db_connection <- connect_database_configfile(
     config_filepath,
@@ -557,26 +375,9 @@ if (working_dbname == "loceval") {
 
 }
 
-```
 
-
-# Upload Data
-
-```{r preview-work-to-do}
-#| eval: false
-glimpse(activities)
-glimpse(activity_sequences)
-glimpse(fag_stratum_grts_calendar_2025_attribs_sf)
-```
-
-## MetaData
-### over-head
-
-A general function to append metadata tables (i.e. upload rows which are missing):
-
-```{r append-tabledata}
+## ----append-tabledata---------------------------------------------------------
 # TODO: option to drop; but mind cascading
-
 
 append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
   content <- DBI::dbReadTable(conn, db_table)
@@ -609,12 +410,13 @@ append_tabledata <- function(conn, db_table, data_to_append, reference_columns =
 }
 
 
+
 upload_and_lookup <- function(conn, db_table, data, ref_cols, index_col) {
 
   append_tabledata(conn, db_table, data, reference_columns = ref_cols)
-  
+
   lookup <- dplyr::tbl(conn, db_table) %>%
-    select(!!!c(ref_cols, index_col)) %>% 
+    select(!!!c(ref_cols, index_col)) %>%
     collect
 
   return(lookup)
@@ -634,16 +436,10 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 
 }
 
-# DONE there were unmatched activities, not any more.
+# DONE there were unmatched activities -> not any more.
 
-```
 
-### TeamMembers
-
-A list of team members who may collect data
-related to database usernames.
-
-```{r upload-teammembers}
+## ----upload-teammembers-------------------------------------------------------
 members <- read_csv(here::here("db_structure", "data_TeamMembers.csv"))
 
 member_lookup <- upload_and_lookup(
@@ -655,11 +451,7 @@ member_lookup <- upload_and_lookup(
 )
 
 
-```
-
-### Protocols
-
-```{r upload-protocols}
+## ----upload-protocols---------------------------------------------------------
 
 protocols <- activities %>%
   select(protocol) %>%
@@ -680,22 +472,17 @@ protocol_lookup <- upload_and_lookup(
   index_col = "protocol_id"
 )
 
-```
 
+## ----upload-grouped-activities------------------------------------------------
 
-### (Grouped) Activities
-
-
-```{r upload-grouped-activities}
- 
-grouped_activities_upload <- grouped_activities %>% 
+grouped_activities_upload <- grouped_activities %>%
   lookup_join(protocol_lookup, "protocol")
 
 # append_tabledata(
 #   db_connection,
 #   DBI::Id(schema = "metadata", table = "GroupedActivities"),
 #   grouped_activities_upload,
-#   reference_columns = "grouped_activity_id"
+#   reference_column = "grouped_activity_id"
 # )
 
 # done manually to get multiple columns as unique lookup
@@ -724,16 +511,12 @@ if (nrow(to_upload) > 0){
 
 grouped_activity_lookup <-
   dplyr::tbl(db_connection, db_table) %>%
-  select(activity_group, activity, grouped_activity_id, activity_group_id, activity_id) %>% 
+  select(activity_group, activity, grouped_activity_id, activity_group_id, activity_id) %>%
   collect
 
-```
 
+## ----upload-n2khabtype--------------------------------------------------------
 
-### Habitat Types
-`n2khab_types_expanded_properties` -> `N2kHabTypes`
-
-```{r upload-n2khabtype}
 n2khabtype_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "metadata", table = "N2kHabTypes"),
@@ -743,25 +526,15 @@ n2khabtype_lookup <- upload_and_lookup(
 )
 
 # SELECT DISTINCT type FROM "metadata"."N2kHabTypes" ORDER BY type;
-```
+
+## ----TODO restore-assessments-------------------------------------------------
 
 
-## working data
-### TODO LocationAssessments
-
-- [!] TODO we need a list with previous field assessments, uploaded before sample_locations.
 
 
-### SampleLocations
 
-Table which stores mission control information, filled *in praetorio*.
+## ----upload-sample-locations--------------------------------------------------
 
-
-Just like the "pilot" `LocationCalendar`, this starts from the field activity calendar with GRTS info. 
-Floris has kindly prepared and pruned the list of locations, under the topic of "orthophoto assessment".
-
-
-```{r prepare-orthophoto-assessment-table}
 # NOTE: renamed for some persistence
 # orthophoto_2025_type_grts <-
 
@@ -898,25 +671,16 @@ orthophoto_type_grts <-
     grts_address
   )
 
-glimpse(orthophoto_type_grts)
-```
+# glimpse(orthophoto_type_grts)
 
 
-- convert factors to string
-- rename `grts_address_final` -> `grts_address`
-- rename `assessment_in_field` -> `previous_assessment`
-- rename `assessment_date` -> `previous_assessment_date`
-- geometry -> `wkb_geometry`
-
-
-```{r orhtophoto-to-db-sample-locations-conversion}
-sample_locations <- orthophoto_type_grts %>% 
+sample_locations <- orthophoto_type_grts %>%
   select(-grts_address) %>%
   rename(
     grts_address = grts_address_final,
     previous_assessment = assessed_in_field,
     previous_assessment_date = assessment_date
-  ) %>% 
+  ) %>%
   mutate(
     across(c(
         type,
@@ -926,18 +690,15 @@ sample_locations <- orthophoto_type_grts %>%
       ),
       as.character
     )
-  ) 
+  )
 
-glimpse(sample_locations)
-```
+# glimpse(sample_locations)
 
 
-**Upload Spatial Locations:**
-
-```{r extract-and-upload-locations-from-sample}
+# **Upload Spatial Locations:**
 
 locations <- sample_locations %>%
-  distinct(grts_address) %>% 
+  distinct(grts_address) %>%
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -951,18 +712,13 @@ locations_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "metadata", table = "Locations"),
   locations,
-  ref_cols = "grts_address", # uniqueness-issue
+  ref_cols = "grts_address",
   index_col = "location_id"
 )
 
 
-```
+# **Upload Location Polygons:**
 
-
-**Upload Location Polygons:**
-
-```{r location-cells}
-#| eval: true
 units_cell_polygon[["grts_address_final"]] <-
   as.integer(units_cell_polygon[["grts_address_final"]])
 
@@ -975,7 +731,7 @@ location_cells <-
     relationship = "one-to-many",
     unmatched = "drop"
   ) %>%
-  select(-grts_address_final) %>% 
+  select(-grts_address_final) %>%
   relocate(geometry, .after = last_col())
 
 sf::st_geometry(location_cells) <- "wkb_geometry"
@@ -988,16 +744,14 @@ append_tabledata(
   location_cells,
   reference_columns = "location_id"
 )
-```
 
 
-**Upload Location Polygons:**
+# **Upload Location Polygons:**
 
-```{r upload-sample-locations}
 if ("location_id" %in% names(sample_locations)) {
   # should not be the case in a continuous script;
   # this is extra safety for debugging and de-serial execution
-  sample_locations <- sample_locations %>% 
+  sample_locations <- sample_locations %>%
     select(-location_id)
 }
 sample_locations <- sample_locations %>%
@@ -1015,20 +769,16 @@ append_tabledata(
   reference_columns =
     c("type", "grts_address", "scheme_ps_targetpanels", "loceval_year")
 )
-```
 
-**Append Location Assessments:**
 
-```{r append-location-assessments}
 
-# TODO check from above which are uploaded
+# **Append Location Assessments:**
+
 new_location_assessments <- sample_locations %>%
   select(
     location_id,
     grts_address,
     type
-  ) %>%
-  mutate(
   )
 
 # append the LocationAssessments with empty lines for new sample units
@@ -1039,371 +789,3 @@ append_tabledata(
   reference_columns =
     c("location_id", "type", "grts_address")
 )
-
-```
-
-```{r check-polygons-on-map}
-#| eval: false
-
-opa_check <- sf::st_read(db_connection,
-  DBI::Id(schema = "outbound", table = "OrthophotoAssessment"),
-  ) %>%
-  collect()
-opa_check %>%
-  mapview(zcol = "type")
-```
-
-
-# ARCHIVE
-
-## `sf` table
-
-### OBSOLETE LocationCalendar
-
-:::{.callout-note}
-`fag_stratum_grts_calendar` defines the needed visits of the spatial sampling
-units and is organized at the FAG level. The rank is an indication of the needed
-order of different FAGs at one location, in the same cycle. In some cases
-repetitions do happen for certain FAGs in a scheme, not all FAGs, as prescribed
-by the date interval.
-:::
-
-
-:::{.callout-warning}
-Note:
-
-- `rank` is renamed to `activity_rank`.
-- `grts_address`: only "final" vaule retained
-
-:::
-
-
-```{r upload-calendar}
-#| eval: false
-
-location_calendar_raw <- fag_stratum_grts_calendar_2025_attribs_sf %>% 
-  select(-grts_address) %>%
-  rename(grts_address = grts_address_final) %>% 
-  mutate(
-    across(c(
-        scheme,
-        module_combo_code,
-        stratum,
-        date_interval
-      ),
-      as.character
-    )
-  ) %>% 
-  left_join(
-    grouped_activity_lookup %>% distinct(activity_group, activity_group_id),
-    by = join_by(field_activity_group == activity_group),
-    relationship = "many-to-many"
-  ) %>%
-  select(-field_activity_group, -grts_join_method) %>% # , -date_interval
-  rename(activity_rank = rank, type = stratum) %>% 
-  distinct()
-
-sf::st_geometry(location_calendar_raw) <- "wkb_geometry"
-glimpse(location_calendar_raw)
-
-```
-
-
-
-:::{.callout-note title="calendar filtering."}
-Not everything has to be visible.
-
-- only certain activities per user
-- only "GW_03.3" for a start.
-- sample can be assigned to multiple strata -> union column
-
-:::
-
-```{r filter-loccal}
-#| eval: false
-relevant_activities <- grouped_activity_lookup %>%
-  filter(
-    activity %in% c(
-      "LOCEVALAQ",
-      "LOCEVALAQ",
-      "LOCEVALAQ",
-      "LOCEVALTERR",
-      "LSVIAQ",
-      "LSVITERR",
-      "SURFLENTSAMPLPOINT",
-      "SURFLOTSAMPLPOINT"
-    )
-  ) %>%
-  distinct(activity_group_id) %>%
-  pull(activity_group_id)
-
-# remove sequence for fieldwork preparation
-location_calendar <- location_calendar_raw %>%
-  select(-activity_rank) %>%
-  filter(
-    activity_group_id %in% relevant_activities,
-    scheme %in% c("GW_03.3")
-  ) %>% 
-  distinct()
-
-if (FALSE){
-  location_calendar %>%
-    count(grts_address_final) %>%
-    filter(n>1)
-}
-
-location_calendar <- location_calendar %>%
-  summarize(
-    type = paste(type, collapse = "+"),
-    .by = c(
-      scheme,
-      module_combo_code,
-      panel_set,
-      activity_group_id,
-      grts_address,
-      date_start, date_end,
-      # activity_rank,
-      wkb_geometry
-    )
-  ) %>%
-  mutate(done_planning = FALSE)
-
-# TODO prior data
-#  %>% mutate(done_planning = tidyr::replace_na(done_planning, FALSE))
-
-#   count(grts_address) %>%
-#   arrange(desc(n))
-# %>% filter(grts_address == 452914) # multiple schemes -> filtered
-# %>% filter(grts_address == 31225) # multiple strata -> retained
-glimpse(location_calendar)
-```
-
-
-Upload:
-
-```{r re-upload-loccal}
-#| eval: false
-
-# delete all previously uploaded table content
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "inbound"."Visits";'
-  )
-
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "outbound"."LocationCalendar";'
-  )
-
-# re-upload
-sf::dbWriteTable(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationCalendar"),
-  location_calendar,
-  row.names = FALSE,
-  overwrite = FALSE,
-  append = TRUE,
-  factorsAsCharacter = TRUE,
-  binary = TRUE
-  )
-```
-
-
-The rows in the calendar were not unique!
-Here is how to find duplicates:
-
-```{r unique-loccal}
-#| eval: false
-# SELECT * FROM "LocationCalendar";
-
-# DONE: why are these non-unique? -> stratum, targetpanel
-
-location_calendar_unique_count <- location_calendar %>%
-  select(
-    scheme,
-    module_combo_code,
-    panel_set,
-    type,
-    activity_group_id,
-    grts_address,
-    date_start
-  ) %>%
-  count(
-    scheme,
-    module_combo_code,
-    panel_set,
-    type,
-    activity_group_id,
-    grts_address,
-    date_start
-  ) %>%
-  arrange(desc(n))
-knitr::kable(head(
-  location_calendar_unique_count
-  ))
-```
-
-
-```{r join-lookup-loccal}
-#| eval: false
-
-loccal_lookup <- dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "outbound", table = "LocationCalendar")
-  ) %>%
-  select(
-    scheme,
-    module_combo_code,
-    panel_set,
-    type,
-    activity_group_id,
-    grts_address,
-    date_start,
-    locationcalendar_id
-  ) %>% 
-  collect
-
-
-location_calendar <- location_calendar %>%
-  left_join(
-    loccal_lookup,
-    by = join_by(
-      scheme,
-      module_combo_code,
-      panel_set,
-      type,
-      activity_group_id,
-      grts_address,
-      date_start
-    ),
-    relationship = "one-to-one",
-    unmatched = "error"
-  ) 
-
-```
-
-
-# After Data Collection
-
-All the above code is useful to reset a database with fresh data.
-This is the purpose of OUTBOUND: we, the "back office", can freely manipulate and update the data,
-whereas field workers cannot.
-
-
-Now comes the part of handling tables which might already include data.
-
-:::{.callout-warning}
-The tasks below are recurrent tasks which have to be executed
-
-- on regular intervals
-- whenever desktop field planning is done (on-demand)
-:::
-
-## Visits
-
-The locations to visit will be stored in a separate table: `inbound.Visits`.
-
-
-
-```{r upcoming-visits}
-#| eval: false
-# we must first save the visits to our internal database
-
-loccal_lookup <- dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "outbound", table = "LocationCalendar")
-  ) %>%
-  select(
-    scheme,
-    module_combo_code,
-    panel_set,
-    type,
-    activity_group_id,
-    grts_address,
-    date_start,
-    locationcalendar_id,
-    # teammember_assigned,
-    # visit_date_planned,
-    # type_adjusted,
-    # done_planning
-  ) %>% 
-  collect
-
-
-visit_preparation <- location_calendar_raw %>%
-  sf::st_drop_geometry() %>% 
-  inner_join(
-    loccal_lookup,
-    by = join_by(
-      scheme,
-      module_combo_code,
-      panel_set,
-      type,
-      activity_group_id,
-      grts_address,
-      date_start
-    ),
-    relationship = "many-to-one",
-    unmatched = "drop"
-  )
-
-
-# here, I will split activity groups to activities
-visit_preparation <- visit_preparation %>%
-  left_join(
-    grouped_activity_lookup %>%
-      select(activity_group_id, grouped_activity_id),
-    by = join_by(activity_group_id),
-    relationship = "many-to-many"
-  ) %>%
-  select(-activity_group_id)
-
-visits <- visit_preparation %>%
-  select(
-    locationcalendar_id,
-    activity_rank,
-    grouped_activity_id
-  )
-
-glimpse(visits)
-
-# TODO join prior data
-visits <- visits %>%
-  mutate(
-    visit_due = FALSE,
-    visit_overdue = FALSE,
-    visit_done = FALSE
-  )
-
-sf::dbWriteTable(
-  db_connection,
-  DBI::Id(schema = "inbound", table = "Visits"),
-  visits,
-  row.names = FALSE,
-  overwrite = FALSE,
-  append = TRUE,
-  factorsAsCharacter = TRUE,
-  binary = TRUE
-  )
-
-
-```
-
-
-# Onwards, to QGIS!
-
-- rename `GenerateDatabase` to `MNMDatabaseToolbox`
-- via a mandatory, explicit data dump prior to re-upload in `MNMDatabaseToolbox`:
-  - TODO retain existing `LocationCalendar` data
-  - TODO retain existing `Visits`
-  - TODO retain existing `FieldNotes`
-
-- [ ] outbound project: FieldPreparation
-  - [ ] update _dev
-  - [ ] push to production
-  - testing phase ongoing
-- [ ] qgis design of inbound project
-  - views
-  - project
-  - extra layers
-  - microlocation (drawing template etc.)

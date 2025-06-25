@@ -121,6 +121,9 @@ class DatabaseConnection(object):
         self.info = self.connection.info
         # print(dir(self.connection))
 
+    def HasTable(self, table, schema = 'public'):
+        # check if a table is present in the data
+        return(SQL.inspect(self.engine).has_table(table, schema = schema))
 
     def DumpAll( \
             self, \
@@ -270,9 +273,11 @@ def ColumnString(schema, table, fieldname, params, no_pk = False):
         attributes += ["DEFAULT NULL"]
     elif not PD.isna(params["default"]):
         value = params["default"]
-        # print(value)
-        if params["datatype"] == "boolean":
-            value = str(bool(value)).upper()
+        # print(fieldname, value, str(bool(value)).upper())
+        if (params["datatype"].lower() == "boolean") \
+         or (params["datatype"].lower() == "bool"):
+            value = str(bool(int(value))).upper()
+
         attributes += [f"""DEFAULT {str(value)}"""]
 
     # pk
@@ -390,7 +395,8 @@ class dbTable(dict):
     def __init__(self, tabledef: dict, base_folder: PL.Path = PL.Path("./")):
         # | self.schema       | self.table        | self.owner       |
         # | self.read_access  | self.write_access | self.geometry    |
-        # | self.constraint   | self.freesql      | self.comment     |
+        # | self.constraint   | self.freesql      | self.persistent  |
+        # | self.comment      | self.excluded     |                  |
 
         self.folder = base_folder
 
@@ -403,6 +409,9 @@ class dbTable(dict):
         for _, datafield in table_definitions.iterrows():
             nm = datafield["column"]
             self[nm] = datafield.to_dict()
+
+        # initialize empty
+        self.data = None
 
     def NameString(self):
         return(f""" "{self.schema}"."{self.table}" """.strip())
@@ -556,6 +565,10 @@ class dbTable(dict):
     def QueryData(self, db_connection: DatabaseConnection) -> None:
         # query the current content of this table from the database
 
+        if not db_connection.HasTable(self.table, schema = self.schema):
+            WRN.warn(f"Table {self.schema}.{self.table} not found on the server.", RuntimeWarning)
+            self.data = None
+            return
         # print(self.schema, self.table)
         # print(PD.isna(self.geometry))
         if PD.isna(self.geometry):
@@ -597,7 +610,8 @@ class Database(dict):
                  definition_csv: str = "TABLES.csv",
                  lazy_creation: bool = True,
                  lazy_dataloading: bool = True,
-                 db_connection: DatabaseConnection = None
+                 db_connection: DatabaseConnection = None,
+                 tabula_rasa: bool = False
                  ):
 
         if definition_csv is None:
@@ -606,32 +620,107 @@ class Database(dict):
         # read in the table definitions
         self.base_folder = PL.Path(base_folder)
         definitions = PD.read_csv(self.base_folder/definition_csv)
-        # print(definitions)
+        self.tabula_rasa = tabula_rasa
 
         # generate all tables (first only in Python)
         for _, tabledef in definitions.iterrows():
             nm = tabledef["table"]
             self[nm] = dbTable(tabledef.to_dict(), self.base_folder)
 
+        # store how tables are linked to each other
+        self.GetDatabaseRelations(storage_path = self.base_folder/"table_relations.conf")
 
         if (db_connection is not None) and (not lazy_creation):
             # perform all the database creation action at once
+            self.StoreData(db_connection)
             self.CreateSchema(db_connection)
             self.CreateTables(db_connection)
             self.CreateViews(db_connection)
             self.ExPostTasks(db_connection)
+            self.RestoreData(db_connection)
 
         if (db_connection is not None) and (not lazy_dataloading):
             self.QueryAllExistingData(db_connection)
 
-        # store how tables are linked to each other
-        self.GetDatabaseRelations(storage_path = self.base_folder/"table_relations.conf")
 
 
     def GetSchemas(self) -> set:
         # retrieve a list of schemas, even before \dn+ is possible
         return set([tbl.schema for tbl in self.values()])
 
+
+    def GetTables(self, include_excluded = False) -> list:
+        # generate a list of non-excluded tables
+        for table in self.values():
+           if (float(table.excluded) == 1.0) \
+                and (not include_excluded):
+               continue
+           yield(table)
+
+
+    def StoreData(self, db_connection: DatabaseConnection) -> None:
+
+        ### dump all data, for safety
+        now = TI.strftime('%Y%m%d%H%M', TI.localtime())
+        db_connection.DumpAll(target_filepath = f"dumps/db_recreation_{now}.sql", user = "monkey")
+
+        if self.tabula_rasa:
+            if input("\n".join([
+                    "WARNING:",
+                    "Recreating BLANK, i.e. without data recovery.",
+                    "Type 'Yes!' to confirm: "
+                ])) == "Yes!":
+                return
+
+        # store data of persistent tables
+        for table in self.GetTables():
+            # print(table.persistent, (float(table.persistent) == 1.0))
+            if (float(table.persistent) == 1.0):
+                table.QueryData(db_connection)
+
+
+
+    def RestoreData(self, db_connection: DatabaseConnection) -> None:
+        # store data of persistent tables
+        for table in self.GetTables():
+
+            # table backup may not be required
+            if not (float(table.persistent) == 1.0):
+                continue
+
+            # ... or table data was not queried
+            if table.data is None:
+                continue
+
+            # ... or table was empty
+            if table.data.shape[0] == 0:
+                continue
+
+            # # table.data = table.data.sample(5)
+            # print(f"restoring {table.schema}.{table.table} with {table.geometry} - {table.data.shape}")
+            # print(table.data)
+
+            if PD.isna(table.geometry):
+                table.data.to_sql( \
+                    table.table, \
+                    schema = table.schema, \
+                    con = db_connection.connection, \
+                    index = False, \
+                    if_exists = "append", \
+                    method = "multi" \
+                )
+
+            else:
+                # TODO: (test) case geopandas data
+                # https://stackoverflow.com/a/43375829 <- for future reference
+                # https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.to_postgis.html#geopandas.GeoDataFrame.to_postgis
+                table.data.to_postgis( \
+                    table.table, \
+                    schema = table.schema, \
+                    con = db_connection.connection, \
+                    index = False, \
+                    if_exists = "append" \
+                )
 
     def CreateSchema(self, db_connection: DatabaseConnection) -> None:
         # create all schema's from the SCHEMA definition file
@@ -641,7 +730,8 @@ class Database(dict):
     def CreateTables(self, db_connection: DatabaseConnection, verbose: bool = True) -> None:
         # create all tables defined int this database
 
-        for table in self.values():
+        for table in self.GetTables():
+            # execution order matters! (luckily, dicts have become order persistent)
             create_string = table.GetCreateString()
             ExecuteSQL(db_connection, create_string, verbose = verbose)
 
@@ -651,10 +741,12 @@ class Database(dict):
 
         # views are designed in the `VIEWS` table
         views = PD.read_csv(self.base_folder/"VIEWS.csv")
+        views["excluded"] = views["excluded"].astype(bool)
 
         # loop views
         for view_id, view in views.iterrows():
-            if PD.isna(view["query"]):
+            # print(view["excluded"], bool(view["excluded"]))
+            if PD.isna(view["query"]) or view["excluded"]:
                 continue # skip empty (when in prep)
 
             view_command = f""" """ # reset command
@@ -748,6 +840,7 @@ class Database(dict):
 
 
     def UpdateTableData(self, db_connection, table_key, new_data, verbose = True):
+        # if `new_data` not passed, previously queried existing data is used
 
         # TODO: (shortcut) if there is no data in the table,
         #       upload directly (test: protocols right after 020)
@@ -952,6 +1045,8 @@ class Database(dict):
     # TODO: (bonus) another function
     #       to retain table content upon re-upload based on characteristic columns?
     #       (UPDATE instead of INSERT; diff-like)
+    #
+    # TODO: analogous to R: characteristic_columns.
 
 
 if __name__ == "__main__":
@@ -969,7 +1064,8 @@ if __name__ == "__main__":
         base_folder = "./devdb_structure", \
         definition_csv = "TABLES.csv", \
         lazy_creation = True, \
-        lazy_dataloading = True \
+        lazy_dataloading = True, \
+        tabula_rasa = True
     )
     # for k, v in db.items():
     #     print('#'*16, k, '#'*16)
@@ -989,18 +1085,18 @@ if __name__ == "__main__":
         # PD.read_sql_table("Protocols", schema = "metadata", con = db_connection.connection).to_csv("dumps/Protocols.csv", index = False)
         # PD.read_sql_table("TeamMembers", schema = "metadata", con = db_connection.connection).to_csv("dumps/TeamMembers.csv", index = False)
 
-        db.UpdateTableData( \
-            db_connection, \
-            "Protocols", \
-            new_data = PD.read_csv("dumps/Protocols_new.csv") \
-            # new_data = PD.read_csv("dumps/Protocols_old.csv") \
-        )
-        db.UpdateTableData( \
-            db_connection, \
-            "Protocols", \
-            # new_data = PD.read_csv("dumps/Protocols_new.csv") \
-            new_data = PD.read_csv("dumps/Protocols_old.csv") \
-        )
+        # db.UpdateTableData( \
+        #     db_connection, \
+        #     "Protocols", \
+        #     new_data = PD.read_csv("dumps/Protocols_new.csv") \
+        #     # new_data = PD.read_csv("dumps/Protocols_old.csv") \
+        # )
+        # db.UpdateTableData( \
+        #     db_connection, \
+        #     "Protocols", \
+        #     # new_data = PD.read_csv("dumps/Protocols_new.csv") \
+        #     new_data = PD.read_csv("dumps/Protocols_old.csv") \
+        # )
         # db.UpdateTableData( \
         #     db_connection, \
         #     "TeamMembers", \
@@ -1009,12 +1105,14 @@ if __name__ == "__main__":
 
 
 
-    if False:
+    if True:
         pass
-        # db.CreateSchema(db_connection)
-        # db.CreateTables(db_connection)
-        # db.CreateViews(db_connection)
-        # db.ExPostTasks(db_connection)
+        db.StoreData(db_connection)
+        db.CreateSchema(db_connection)
+        db.CreateTables(db_connection)
+        db.CreateViews(db_connection)
+        db.ExPostTasks(db_connection)
+        db.RestoreData(db_connection)
 
 
 
