@@ -1,24 +1,22 @@
 -- https://stackoverflow.com/a/8745713
 
 
+
 DROP FUNCTION IF EXISTS sync_mod CASCADE;
 CREATE FUNCTION sync_mod() RETURNS trigger AS $sync_mod$
 BEGIN
-    NEW.log_update := current_timestamp;
-    NEW.log_user := current_user;
+  NEW.log_update := current_timestamp;
+  NEW.log_user := current_user;
+  -- NEW.log_user := CASE WHEN current_user = 'yoda' THEN OLD.log_user ELSE current_user END;
 
-    RETURN NEW;
+  RETURN NEW
+  ;
 END;
 $sync_mod$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS log_locationcalendar ON "outbound"."LocationCalendar";
-CREATE TRIGGER log_locationcalendar
-BEFORE UPDATE ON "outbound"."LocationCalendar"
-FOR EACH ROW EXECUTE PROCEDURE sync_mod();
-
-DROP TRIGGER IF EXISTS log_visits ON "inbound"."Visits";
-CREATE TRIGGER log_visits
-BEFORE UPDATE ON "inbound"."Visits"
+DROP TRIGGER IF EXISTS log_assessments ON "outbound"."LocationAssessments";
+CREATE TRIGGER log_assessments
+BEFORE UPDATE ON "outbound"."LocationAssessments"
 FOR EACH ROW EXECUTE PROCEDURE sync_mod();
 
 DROP TRIGGER IF EXISTS log_freefieldnotes ON "inbound"."FreeFieldNotes";
