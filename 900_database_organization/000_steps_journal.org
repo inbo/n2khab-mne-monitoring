@@ -770,6 +770,12 @@ Solution:
 The structure is exported from python upon database creation and can now be read to R as well.
 /(Once more, I feel clumsy in R, but it does the job.)/
 
+** orthophotos
+https://geo.api.vlaanderen.be/okz/wcs
+okz: orthofoto kleinschaal zomer
+omz: orthofoto midschaal zomer
+omw: orthofoto midschaal winter
+
 
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>

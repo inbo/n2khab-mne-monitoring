@@ -1027,9 +1027,8 @@ new_location_assessments <- sample_locations %>%
     location_id,
     grts_address,
     type
-  ) %>%
-  mutate(
   )
+  # %>% mutate()
 
 # append the LocationAssessments with empty lines for new sample units
 append_tabledata(

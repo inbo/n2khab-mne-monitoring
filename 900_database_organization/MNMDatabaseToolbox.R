@@ -236,7 +236,7 @@ update_datatable_and_dependent_keys <- function(
 
   if (is.null(characteristic_columns)) {
     characteristic_columns <- get_characteristic_columns(table_key)
-  }
+  } # TODO else: check that col really is a field in the table
 
   old_data <- query_columns(
     db_target,
@@ -257,8 +257,8 @@ update_datatable_and_dependent_keys <- function(
 
   # use `rename_characteristics`
   # to rename cols in the new_data to the server data logic
-  new_data
-  rename_characteristics
+  # new_data
+  # rename_characteristics
   for (rnc in 1:length(rename_characteristics)) {
     new_colname <- rename_characteristics[[rnc]]
     server_colname <- names(rename_characteristics)[rnc]

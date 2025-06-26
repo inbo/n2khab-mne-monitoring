@@ -561,6 +561,8 @@ class dbTable(dict):
         # return the whole shabang
         return(create_string.replace("    ", ""))
 
+    # /GetCreateString
+
 
     def QueryData(self, db_connection: DatabaseConnection) -> None:
         # query the current content of this table from the database
@@ -591,6 +593,7 @@ class dbTable(dict):
 
         # print(self.data)
 
+# /class dbTable
 
 
 def CreateTable(db_connection, table_meta: dbTable, verbose = True, dry = False):
@@ -711,7 +714,7 @@ class Database(dict):
                 )
 
             else:
-                # TODO: (test) case geopandas data
+                # different upload for geopandas data
                 # https://stackoverflow.com/a/43375829 <- for future reference
                 # https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.to_postgis.html#geopandas.GeoDataFrame.to_postgis
                 table.data.to_postgis( \
@@ -839,7 +842,15 @@ class Database(dict):
             table.QueryData(db_connection)
 
 
-    def UpdateTableData(self, db_connection, table_key, new_data, verbose = True):
+    def UpdateTableData(
+            self,
+            db_connection: DatabaseConnection,
+            table_key: str,
+            new_data: {PD.DataFrame, GPD.GeoDataFrame},
+            characteristic_columns: list = None,
+            rename_characteristics: dict = None,
+            verbose: bool = True
+        ) -> None:
         # if `new_data` not passed, previously queried existing data is used
 
         # TODO: (shortcut) if there is no data in the table,
@@ -881,7 +892,17 @@ class Database(dict):
             # print(lookups[deptab])
 
         ### (4) retrieve old data
-        characteristic_columns = self[table_key].ListDataFields()
+        if characteristic_columns is None:
+            characteristic_columns = self[table_key].ListDataFields()
+        else:
+            # only those which are real columns of the data frame
+            characteristic_columns = [
+                col for col in self[table_key].keys()
+                if col in characteristic_columns
+                ]
+
+
+
         pk = list(self[table_key].GetPrimaryKey())
 
         old_data = self[table_key].data.loc[:, characteristic_columns + pk]
@@ -914,6 +935,12 @@ class Database(dict):
         # (necessary to get the correct keys)
         # actually, SQLAlchemy cannot drop the table,
         # so we manually delete the content
+
+        if rename_characteristics is not None:
+            # adjust some names in the "new data"
+            # to match the server logic.
+            # TODO (not tested!)
+            new_data.rename(columns = rename_characteristics, inplace = True)
 
         testing = False
         if not testing:
@@ -1047,6 +1074,9 @@ class Database(dict):
     #       (UPDATE instead of INSERT; diff-like)
     #
     # TODO: analogous to R: characteristic_columns.
+
+    # /UpdateTableData
+# /class Database
 
 
 if __name__ == "__main__":
