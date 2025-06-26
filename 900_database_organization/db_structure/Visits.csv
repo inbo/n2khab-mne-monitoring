@@ -2,9 +2,9 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 visit_id,int,True,,True,True,,,,visit index
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
-locationcalendar_id,int,False,,False,False,outbound.LocationCalendar.locationcalendar_id,,,link to LocationCalendar
+fieldactivitycalendar_id,int,False,,False,False,outbound.fieldactivitycalendar.fieldactivitycalendar_id,,,link to fieldactivitycalendar
 activity_rank,smallint,False,,False,False,,CHECK (activity_rank > 0),,execution order of the field activities
-grouped_activity_id,smallint,True,,False,False,metadata.GroupedActivities.grouped_activity_id,,,"a link to the activity metadata, brought here via LocationCalendar for convenience"
+grouped_activity_id,smallint,True,,False,False,metadata.GroupedActivities.grouped_activity_id,,,"a link to the activity metadata, brought here via fieldactivitycalendar for convenience"
 visit_due,boolean,True,0,False,False,,,,filter column to find locations which are due to visit
 visit_overdue,boolean,True,0,False,False,,,,filter column to find locations which are overdue
 teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
