@@ -1133,13 +1133,13 @@ orthophoto_2025_cell_centers <-
 
 
 
-## Comparing object hashes with reference to verify reproducibility ----------
+## Comparing object checksums with reference to verify reproducibility --------
 
-hashfile <- file.path(projroot, "fieldworg_hashes.csv")
-ref_hashes <- read_csv(hashfile, col_types = "cc")
+checksumfile <- file.path(projroot, "fieldworg_checksums.csv")
+ref_checksums <- read_csv(checksumfile, col_types = "cc")
 available_obj <- ls()
-different_hashes <-
-  ref_hashes %>%
+different_checksums <-
+  ref_checksums %>%
   rename(xxh64sum_ref = xxh64sum) %>%
   filter(name %in% available_obj) %>%
   mutate(
@@ -1153,10 +1153,10 @@ different_hashes <-
     })
   ) %>%
   filter(xxh64sum_current != xxh64sum_ref)
-if (nrow(different_hashes) > 0) {
+if (nrow(different_checksums) > 0) {
   warning(
-    "Different hashes detected than expected.",
-    "\nPlease inspect the object `different_hashes`."
+    "Different checksums detected than expected.",
+    "\nPlease inspect the object `different_checksums`."
   )
 } else {
   message("All loaded objects are identical to their reference :-)")
