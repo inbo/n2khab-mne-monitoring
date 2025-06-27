@@ -1,3 +1,6 @@
+# DO NOT MODIFY
+# this file is "tangled" automatically from `210_copy_database.org`.
+
 import MNMDatabaseToolbox as DTB
 
 # database:

@@ -128,6 +128,7 @@
 + [ ] fieldwork roles [[https://docs.google.com/spreadsheets/d/1wFbevEcaNbQ1RBIwEdkoloRYmarQ59E2gctbcxVyH_M/edit?gid=0#gid=0][gsheet]]
 + [ ] email services on the server to send backup logs & errors
 + [ ] consider function-related schema's (e.g. "orthophoto")
++ [ ] meta table storing (current and previous) POC verisons
 
 
 * issue anticipation

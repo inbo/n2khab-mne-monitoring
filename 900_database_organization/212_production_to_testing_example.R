@@ -1,3 +1,6 @@
+# DO NOT MODIFY
+# this file is "tangled" automatically from `210_copy_database.org`.
+
 library("dplyr")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
