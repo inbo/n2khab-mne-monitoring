@@ -24,7 +24,7 @@ Let's bring the sample to the field!
 
 # preparation
 
-## info stream from POC
+## libraries and variables
 
 ```{r libraries}
 library("dplyr")
@@ -60,6 +60,13 @@ source("MNMDatabaseToolbox.R")
 # TODO: rebase once PR#5 gets merged
 source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
 
+```
+
+
+## info stream from POC
+
+```{r load-sample-rdata}
+
 
 # Setup for googledrive authentication. Set the appropriate env vars in
 # .Renviron and make sure you ran drive_auth() interactively with these settings
@@ -72,10 +79,6 @@ if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
   options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
 }
 
-```
-
-
-```{r load-sample-rdata}
 # Download and load R objects from the POC into global environment
 reload <- FALSE
 poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")

@@ -85,6 +85,9 @@ For now, that procedure remains documented in =000_steps_journal.org= >>> "=data
 Trivially, you can just create the new database as you created the original one.
 
 #+begin_src python :eval no :tangle 211_create_empty_testing.py
+# DO NOT MODIFY
+# this file is "tangled" automatically from `210_copy_database.org`.
+
 import MNMDatabaseToolbox as DTB
 
 # database:
@@ -166,6 +169,9 @@ Getting the data is as simple as establishing a connection and querying the tabl
 
 
 #+begin_src R :eval no :tangle 212_production_to_testing_example.R
+# DO NOT MODIFY
+# this file is "tangled" automatically from `210_copy_database.org`.
+
 library("dplyr")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
@@ -243,6 +249,9 @@ Simple enough to be script-used heavily.
 This requires minimal preparations, modification catalogue, and a loop.
 
 #+begin_src R :eval no :tangle 213_populate_testing_db.R
+# DO NOT MODIFY
+# this file is "tangled" automatically from `210_copy_database.org`.
+
 library("dplyr")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
@@ -384,6 +393,9 @@ constraints_mod <- function(do = c("DROP", "SET")){
   }
 }
 
+
+#_______________________________________________________________________________
+# Finally, COPY ALL DATA
 
 constraints_mod("DROP")
 
