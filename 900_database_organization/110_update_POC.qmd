@@ -23,6 +23,14 @@ Let's bring the sample to the field - again!
 
 In all brevity, I collect steps here to get a new POC to the database.
 
+Here are all the choices you have.
+
+```{r upload-parameters}
+working_dbname <- "loceval_testing"
+config_filepath <- file.path("./inbopostgis_server.conf")
+connection_profile <- "testing"
+dbstructure_folder <- "./db_structure"
+```
 
 
 # preparation
@@ -51,7 +59,6 @@ library("mapview")
 # mapviewOptions(platform = "mapdeck")
 
 projroot <- find_root(is_rstudio_project)
-working_dbname <- "loceval_testing"
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
@@ -113,125 +120,48 @@ source("109_snippet_selection.R")
 
 ```{r load-config}
 
-config_filepath <- file.path("./inbopostgis_server.conf")
 
-if (working_dbname == "loceval") {
-  db_connection <- connect_database_configfile(
-    config_filepath,
-    database = "loceval",
-    profile = "inbopostgis"
-  )
-    
-} else {
-  db_connection <- connect_database_configfile(
-    config_filepath,
-    database = working_dbname,
-    profile = "inbopostgis-dev"
-  )
-
-}
-
-```
-
-
-# Upload Data
-
-```{r preview-work-to-do}
-#| eval: false
-glimpse(activities)
-glimpse(activity_sequences)
-glimpse(fag_stratum_grts_calendar_2025_attribs_sf)
-```
-
-## MetaData
-### over-head
-
-A general function to append metadata tables (i.e. upload rows which are missing):
-
-```{r append-tabledata}
-# TODO: option to drop; but mind cascading
-
-
-append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
-  content <- DBI::dbReadTable(conn, db_table)
-
-  if (any(is.na(reference_columns))) {
-    # ... or just take all columns
-    reference_columns <- names(data_to_append)
-  }
-
-  # refcol <- enquo(reference_columns)
-  existing <- content %>% select(!!!reference_columns)
-  to_upload <- data_to_append %>%
-    anti_join( existing, join_by(!!!reference_columns)
-  )
-
-  rs <- DBI::dbWriteTable(conn, db_table, to_upload, overwrite = FALSE, append = TRUE)
-  # res <- DBI::dbFetch(rs)
-  # DBI::dbClearResult(rs)
-
-  message(sprintf(
-    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
-    toString(db_table),
-    nrow(to_upload),
-    nrow(existing),
-    nrow(data_to_append),
-    paste0(reference_columns, collapse = ", ")
-  ))
-  return(invisible(rs))
-
-}
-
-
-upload_and_lookup <- function(conn, db_table, data, ref_cols, index_col) {
-
-  append_tabledata(conn, db_table, data, reference_columns = ref_cols)
-  
-  lookup <- dplyr::tbl(conn, db_table) %>%
-    select(!!!c(ref_cols, index_col)) %>% 
-    collect
-
-  return(lookup)
-}
-
-lookup_join <- function(.data, lookup_tbl, join_column){
-  joined_tbl <- .data %>%
-    left_join(
-      lookup_tbl,
-      by = join_by(!!enquo(join_column))
-      # relationship = "many-to-one",
-      # unmatched = "drop"
-    ) %>%
-  select(-!!enquo(join_column))
-
-  return(joined_tbl)
-
-}
-
-# DONE there were unmatched activities, not any more.
-
-```
-
-### TeamMembers
-
-A list of team members who may collect data
-related to database usernames.
-
-```{r upload-teammembers}
-members <- read_csv(here::here("db_structure", "data_TeamMembers.csv"))
-
-member_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "TeamMembers"),
-  members,
-  ref_cols = "username",
-  index_col = "teammember_id"
+db_connection <- connect_database_configfile(
+  config_filepath,
+  database = working_dbname,
+  profile = connection_profile
 )
 
 
+schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+  select(table, schema, geometry)
+
+# These are clumsy, temporary, provisional helpers.
+# But, hey, there will be time later.
+get_schema <- function(tablelabel) {
+  return(schemas %>%
+    filter(table == tablelabel) %>%
+    pull(schema)
+  )
+}
+get_namestring <- function(tablelabel) glue::glue('"{get_schema(tablelabel)}"."{tablelabel}"')
+get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), table = tablelabel)
+
+
 ```
 
-# Upload
+# dump all data, for safety
+
+```{r step1-safety-dump}
+now <- format(Sys.time(), "%Y%m%d%H%M")
+dump_all(
+    here::here("dumps", glue::glue("safedump_{working_dbname}_{now}.sql")),
+    config_filepath = config_filepath,
+    database = working_dbname,
+    profile = "dumpall",
+    user = "monkey",
+    exclude_schema = c("tiger", "public")
+    )
+```
+
+# Gather and Upload
+
+## Locations
 
 ```{r orhtophoto-to-db-sample-locations-conversion}
 sample_locations <- orthophoto_type_grts %>% 
@@ -252,14 +182,9 @@ sample_locations <- orthophoto_type_grts %>%
     )
   ) 
 
-glimpse(sample_locations)
 ```
 
-
-**Upload Spatial Locations:**
-
-```{r extract-and-upload-locations-from-sample}
-
+```{r distinct-locations}
 locations <- sample_locations %>%
   distinct(grts_address) %>% 
   add_point_coords_grts(
@@ -269,26 +194,84 @@ locations <- sample_locations %>%
   )
 
 sf::st_geometry(locations) <- "wkb_geometry"
+```
 
 
+**Upload Spatial Locations:**
+
+
+```{r reference-locations}
 online_locations <- dplyr::tbl(
     db_connection,
     DBI::Id(schema = "metadata", table = "Locations"),
-  ) %>% collect()
+  ) %>% collect() %>%
+  select(location_id, grts_address)
 
-# TODO to be continued
+
+online_samplelocations <- dplyr::tbl(
+    db_connection,
+    DBI::Id(schema = get_schema("SampleLocations"), table = "SampleLocations"),
+  ) %>% collect() 
+
+
+# TODO SampleLocations can be deleted; will be re-uploaded below.
+if (FALSE){
+  execute_sql(
+    db_connection,
+    glue::glue("DELETE FROM {get_namestring('SampleLocations')};"),
+    verbose = FALSE
+  )
+}
+```
+
+
+```{r new-locations}
+
+# new locations
+new_locations <- locations %>%
+  anti_join(
+    online_locations,
+    by = join_by(grts_address)
+  )
+
+new_locations %>%
+  filter(grts_address == 230930)
+```
+
+
+# TODO stuck here:
+
+:::{.callout-warning title="quick diagnosis:"}
+This seems to be a dbplyr/sf issue.
+Try wrapping the upload into hand-made INSERT commands.
+:::
+
+```{r extract-and-upload-locations-from-sample}
+
+update_datatable_and_dependent_keys(
+  config_filepath,
+  working_dbname,
+  table_key = "Locations",
+  locations,
+  characteristic_columns = c("grts_address"), 
+  db_connection = db_connection,
+  verbose = TRUE
+)
+
 
 locations_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "metadata", table = "Locations"),
-  locations,
-  ref_cols = "grts_address", # uniqueness-issue
+  new_locations,
+  ref_cols = c("grts_address"), # uniqueness-issue
   index_col = "location_id"
 )
 
 
 ```
 
+
+# CONTINUE
 
 **Upload Location Polygons:**
 
