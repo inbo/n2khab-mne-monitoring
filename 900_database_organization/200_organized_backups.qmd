@@ -71,10 +71,17 @@ pg_dump -U <user> -h <host> -p <port> -d loceval_dev -N tiger -N public -W \
 
 ```
 
-## **TODO** test-restore
+## test-restore
 
-After latest structural changes are pushed to production, 
-I should attempt to dump/restore the playground data.
+> After latest structural changes are pushed to production, 
+> I should attempt to dump/restore the playground data.
+
+That was easy!
+
+```{sh}
+psql -U <user2> -h <host2> -p <port2> -d <source> -W \
+    < $(date +"%Y%m%d")_loceval.sql
+```
 
 
 # Ad-Hoc Backup/Restore
