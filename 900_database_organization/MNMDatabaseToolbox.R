@@ -49,6 +49,68 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
 }
 
 
+# TODO: option to drop; but mind cascading
+
+append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
+  content <- DBI::dbReadTable(conn, db_table)
+
+  if (any(is.na(reference_columns))) {
+    # ... or just take all columns
+    reference_columns <- names(data_to_append)
+  }
+
+  # refcol <- enquo(reference_columns)
+  existing <- content %>% select(!!!reference_columns)
+  to_upload <- data_to_append %>%
+    anti_join( existing, join_by(!!!reference_columns)
+  )
+
+  rs <- DBI::dbWriteTable(conn, db_table, to_upload, overwrite = FALSE, append = TRUE)
+  # res <- DBI::dbFetch(rs)
+  # DBI::dbClearResult(rs)
+
+  message(sprintf(
+    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
+    toString(db_table),
+    nrow(to_upload),
+    nrow(existing),
+    nrow(data_to_append),
+    paste0(reference_columns, collapse = ", ")
+  ))
+  return(invisible(rs))
+
+}
+
+
+upload_and_lookup <- function(conn, db_table, data, ref_cols, index_col) {
+
+  append_tabledata(conn, db_table, data, reference_columns = ref_cols)
+
+  lookup <- dplyr::tbl(conn, db_table) %>%
+    select(!!!c(ref_cols, index_col)) %>%
+    collect
+
+  return(lookup)
+}
+
+
+lookup_join <- function(.data, lookup_tbl, join_column){
+  joined_tbl <- .data %>%
+    left_join(
+      lookup_tbl,
+      by = join_by(!!enquo(join_column))
+      # relationship = "many-to-one",
+      # unmatched = "drop"
+    ) %>%
+  select(-!!enquo(join_column))
+
+  return(joined_tbl)
+
+}
+
+
+
+
 #' Update table content and cascade all key changes to dependent tables
 #'
 #' Updates the content of a data table in a relatively safe manner
@@ -117,7 +179,7 @@ update_datatable_and_dependent_keys <- function(
     new_data,
     profile = NULL,
     dbstructure_folder = NULL,
-    characteristic_columns = NULL, # TODO
+    characteristic_columns = NULL,
     rename_characteristics = NULL,
     db_connection = NULL,
     verbose = TRUE
