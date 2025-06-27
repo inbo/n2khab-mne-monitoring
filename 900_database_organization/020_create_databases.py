@@ -7,7 +7,8 @@ if True:
     # https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
     # database: loceval
     base_folder = DTB.PL.Path(".")
-    DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", base_folder/"devdb_structure")
+    structure_folder = base_folder/"devdb_structure"
+    DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
@@ -15,7 +16,7 @@ if True:
         database = "loceval_dev"
         )
     db = DTB.Database( \
-        base_folder = "./devdb_structure", \
+        structure_folder = structure_folder, \
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
         db_connection = db_connection, \
@@ -31,7 +32,8 @@ if False:
     # https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
     # database: loceval
     base_folder = DTB.PL.Path(".")
-    DTB.ODStoCSVs(base_folder/"loceval_dbstructure.ods", base_folder/"db_structure")
+    structure_folder = base_folder/"db_structure"
+    DTB.ODStoCSVs(base_folder/"loceval_dbstructure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
@@ -39,7 +41,7 @@ if False:
         database = "loceval"
     )
     db = DTB.Database( \
-        base_folder = "./db_structure", \
+        structure_folder = structure_folder, \
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
         db_connection = db_connection \

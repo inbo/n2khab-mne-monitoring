@@ -791,6 +791,10 @@ from here: https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/45cde
 
 non-fluent (many features x wfs)
 
+** copying a database
+
+
+
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>
 
@@ -802,10 +806,10 @@ SCHEDULED: <2025-06-16 Mon>
 
 
 
-** TODO Data Captation
+** TODO Permanent Data Captation
 SCHEDULED: <2025-06-16 Mon>
 
-*The database =loceval= is transient.*
+*The database =loceval= is kind of transient (read: active, dynamic, beautiful).*
 Data prepared at home or generated in the field must be captured and moved to a completely different database: =mnmdb=.
 + =LocationCalendar= is augmented and changed dynamically -> append diffs to =mnmdb=
 + =Visits= have a field to indicate they are done, but should be moved/pruned regularly

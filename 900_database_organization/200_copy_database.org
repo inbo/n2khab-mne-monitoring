@@ -1,0 +1,142 @@
+#+title: Copy Database
+#+author: Falk Mielke
+
+
+* Purpose
+
+Databases are astonishingly dynamic and volatile.
+We would like to be able to move ours, in design and content, from one place to the other.
+
+Here I document the required steps.
+
+
+Terminology is quite straight-forward:
++ *source* is the database from which we migrate the data
++ *target*, on the otherhand, will mirror the source after this procedure
+
+
+* Target Database
+
+** create
+First of all, unless you have one already, it makes sense to create a new database.
+
+The following steps are to be taken on the postgis server of choice.
+Assuming you =ssh= into the server and switch to the =postgres= user.
+
+
+#+begin_src sh :eval no :tangle no
+# switch to database maintainence
+su - postgres
+
+# drop-create
+# dropdb <database> -p <port>
+createdb <database> -O <owner> -p <port>
+#+end_src
+
+
+** extend
+Next, we require the *postgis extension*:
+
+#+begin_src sh :eval no :tangle no
+# switch to database maintainence
+su - postgres
+
+# either log in as maintainer:
+psql -p <port> -d <target database>
+
+# or use the database owner, via the whole connection specs:
+# psql -U <owner> -h <host-ip> -p <port> -d <target database> -W
+#+end_src
+
+#+begin_src sql :eval no :tangle no
+CREATE EXTENSION postgis;
+CREATE EXTENSION postgis_topology;
+CREATE EXTENSION fuzzystrmatch;
+CREATE EXTENSION postgis_tiger_geocoder;
+
+#+end_src
+
+
+** automate
+Some procedures, such as database backups, might need to be instantiated for the novel /target/.
+
+
+For that purpose, occasional convenience is provided by [[https://www.postgresql.org/docs/current/libpq-pgpass.html][a =.pgpass= file]].
+
+It can be appended by editing the =~/.pgpass=, appending a line for /target/:
+
+#+begin_src sql :eval no :tangle no
+<target-host>:<port>:<target-database>:<read-only-user>:<password>
+#+end_src
+
+
+If the /target/ is of permanent relevance, consider setting up a backup cronjob.
+For now, that procedure remains documented in =000_steps_journal.org= >>> "=database daily diffs"=.
+
+
+* Use Case 0: /tabula rasa/
+
+** re-create empty
+
+Trivially, you can just create the new database as you created the original one.
+
+#+begin_src python :eval no :tangle 210_create_empty_testing.py
+import MNMDatabaseToolbox as DTB
+
+# database:
+base_folder = DTB.PL.Path(".")
+DTB.ODStoCSVs(base_folder/"loceval_dbstructure.ods", base_folder/"db_structure")
+
+db_target = DTB.ConnectDatabase(
+    "inbopostgis_server.conf",
+    connection_config = "inbopostgis-dev",
+    database = "loceval_testing"
+    )
+db = DTB.Database( \
+    structure_folder = "./devdb_structure", \
+    definition_csv = "TABLES.csv", \
+    lazy_creation = False, \
+    db_connection = db_target, \
+    tabula_rasa = False
+    )
+#+end_src
+
+** limitation
+
+Obviously, this misses the point:
+no database content is copied here, only the skeleton of the database is mirrored.
+
+
+I can imagine certain situations in which you would like to restart empty.
+And this might be a preliminary step for [[Use Case 2: /tabula semi-replenta/][the second use case, below]].
+
+
+* Use Case 1: /tabula plena/
+
+** dump-reload
+
+Now, it turns out that you can achieve the result we attempt below by a simple *dump-reload*.
+
+#+begin_src sh :eval no :tangle no
+pg_dump -U <user1> -h <host1> -p <port1> -d <source> -W \
+    > $(date +"%Y%m%d")_migration_dump.patch
+
+psql -U <user2> -h <host2> -p <port2> -d <source> -W \
+    < $(date +"%Y%m%d")_migration_dump.patch
+#+end_src
+
+
+** limitation
+
+The dump-reload strategy might be a bit too drastic in certain situations, e.g.:
++ if there is already a structure and data on /target/
++ if you would like to slightly alter the /target/ structure
+
+
+* Use Case 2: /tabula semi-replenta/
+
+** purpose
+
+This is the most surgical of the procedures.
+Situation is that you have a /target/ structure, possibly with valuable data,
+but you would like to copy or append from a /source/.

@@ -148,3 +148,5 @@
 + array data types (e.g. =panel_set=) -> upload with dplyr tricky (str -> int[])
 
 + bug report: =sf::dbWriteTable()= seems to overwrite boolean defaults
+
++ logseq project in the folder -> document database processes
