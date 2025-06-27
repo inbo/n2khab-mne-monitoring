@@ -5,6 +5,7 @@ cycler==0.12.1
 defusedxml==0.7.1
 fonttools==4.58.1
 GDAL==3.11.0
+GeoAlchemy2==0.17.1
 geopandas==1.1.0
 greenlet==3.2.2
 idna==3.10
