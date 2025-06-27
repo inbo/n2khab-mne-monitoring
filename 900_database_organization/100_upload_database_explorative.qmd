@@ -766,7 +766,6 @@ Floris has kindly prepared and pruned the list of locations, under the topic of 
 
 ```{r prepare-orthophoto-assessment-table}
 # NOTE: renamed for some persistence
-# orthophoto_2025_type_grts <-
 
 # Making a list of terrestrial locations to be assessed using orthophotos in
 # 2025. The procedure evaluates somewhat larger areas in which the unit is

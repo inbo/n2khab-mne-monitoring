@@ -1,0 +1,373 @@
+---
+title: "POC Data Re-Upload"
+date: "2025-06-27"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+
+:::{.callout-note title="Purpose"}
+Let's bring the sample to the field - again!
+
+(... and again, and again, and again...)
+:::
+
+
+In all brevity, I collect steps here to get a new POC to the database.
+
+
+
+# preparation
+
+## libraries and variables
+
+```{r libraries}
+library("dplyr")
+library("tidyr")
+library("stringr")
+library("purrr")
+library("lubridate")
+library("sf")
+library("terra")
+library("n2khab")
+library("googledrive")
+library("readr")
+library("rprojroot")
+library("keyring")
+
+library("configr")
+library("DBI")
+library("RPostgres")
+
+library("mapview")
+# mapviewOptions(platform = "mapdeck")
+
+projroot <- find_root(is_rstudio_project)
+working_dbname <- "loceval_testing"
+
+# you might want to run the following prior to sourcing or rendering this script:
+# keyring::key_set("DBPassword", "db_user_password")
+
+source("MNMDatabaseToolbox.R")
+
+# Load some custom GRTS functions
+# source(file.path(projroot, "R/grts.R"))
+# TODO: rebase once PR#5 gets merged
+source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
+
+```
+
+
+## info stream from POC
+
+```{r load-sample-rdata}
+
+
+# Setup for googledrive authentication. Set the appropriate env vars in
+# .Renviron and make sure you ran drive_auth() interactively with these settings
+# for the first run (or to renew an expired Oauth token).
+# See ?gargle::gargle_options for more information.
+if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
+  options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
+}
+if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
+  options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
+}
+
+# Download and load R objects from the POC into global environment
+reload <- FALSE # in this one, we normally reload.
+poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
+if (reload || !file.exists(poc_rdata_path)){
+  drive_download(
+    as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
+    path = poc_rdata_path,
+    overwrite = reload
+  )
+}
+load(poc_rdata_path)
+
+```
+
+
+## snippets!
+
+Some code snippets, possibly modified on the way, were provided by Floris.
+
+```{r source-code-snippets}
+# TODO: check for changes on every update.
+
+source("109_snippet_selection.R")
+```
+
+
+## database connection
+
+
+```{r load-config}
+
+config_filepath <- file.path("./inbopostgis_server.conf")
+
+if (working_dbname == "loceval") {
+  db_connection <- connect_database_configfile(
+    config_filepath,
+    database = "loceval",
+    profile = "inbopostgis"
+  )
+    
+} else {
+  db_connection <- connect_database_configfile(
+    config_filepath,
+    database = working_dbname,
+    profile = "inbopostgis-dev"
+  )
+
+}
+
+```
+
+
+# Upload Data
+
+```{r preview-work-to-do}
+#| eval: false
+glimpse(activities)
+glimpse(activity_sequences)
+glimpse(fag_stratum_grts_calendar_2025_attribs_sf)
+```
+
+## MetaData
+### over-head
+
+A general function to append metadata tables (i.e. upload rows which are missing):
+
+```{r append-tabledata}
+# TODO: option to drop; but mind cascading
+
+
+append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
+  content <- DBI::dbReadTable(conn, db_table)
+
+  if (any(is.na(reference_columns))) {
+    # ... or just take all columns
+    reference_columns <- names(data_to_append)
+  }
+
+  # refcol <- enquo(reference_columns)
+  existing <- content %>% select(!!!reference_columns)
+  to_upload <- data_to_append %>%
+    anti_join( existing, join_by(!!!reference_columns)
+  )
+
+  rs <- DBI::dbWriteTable(conn, db_table, to_upload, overwrite = FALSE, append = TRUE)
+  # res <- DBI::dbFetch(rs)
+  # DBI::dbClearResult(rs)
+
+  message(sprintf(
+    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
+    toString(db_table),
+    nrow(to_upload),
+    nrow(existing),
+    nrow(data_to_append),
+    paste0(reference_columns, collapse = ", ")
+  ))
+  return(invisible(rs))
+
+}
+
+
+upload_and_lookup <- function(conn, db_table, data, ref_cols, index_col) {
+
+  append_tabledata(conn, db_table, data, reference_columns = ref_cols)
+  
+  lookup <- dplyr::tbl(conn, db_table) %>%
+    select(!!!c(ref_cols, index_col)) %>% 
+    collect
+
+  return(lookup)
+}
+
+lookup_join <- function(.data, lookup_tbl, join_column){
+  joined_tbl <- .data %>%
+    left_join(
+      lookup_tbl,
+      by = join_by(!!enquo(join_column))
+      # relationship = "many-to-one",
+      # unmatched = "drop"
+    ) %>%
+  select(-!!enquo(join_column))
+
+  return(joined_tbl)
+
+}
+
+# DONE there were unmatched activities, not any more.
+
+```
+
+### TeamMembers
+
+A list of team members who may collect data
+related to database usernames.
+
+```{r upload-teammembers}
+members <- read_csv(here::here("db_structure", "data_TeamMembers.csv"))
+
+member_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "TeamMembers"),
+  members,
+  ref_cols = "username",
+  index_col = "teammember_id"
+)
+
+
+```
+
+# Upload
+
+```{r orhtophoto-to-db-sample-locations-conversion}
+sample_locations <- orthophoto_type_grts %>% 
+  select(-grts_address) %>%
+  rename(
+    grts_address = grts_address_final,
+    previous_assessment = assessed_in_field,
+    previous_assessment_date = assessment_date
+  ) %>% 
+  mutate(
+    across(c(
+        type,
+        grts_join_method,
+        sp_poststratum,
+        scheme_ps_targetpanels
+      ),
+      as.character
+    )
+  ) 
+
+glimpse(sample_locations)
+```
+
+
+**Upload Spatial Locations:**
+
+```{r extract-and-upload-locations-from-sample}
+
+locations <- sample_locations %>%
+  distinct(grts_address) %>% 
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(locations) <- "wkb_geometry"
+
+
+online_locations <- dplyr::tbl(
+    db_connection,
+    DBI::Id(schema = "metadata", table = "Locations"),
+  ) %>% collect()
+
+# TODO to be continued
+
+locations_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "Locations"),
+  locations,
+  ref_cols = "grts_address", # uniqueness-issue
+  index_col = "location_id"
+)
+
+
+```
+
+
+**Upload Location Polygons:**
+
+```{r location-cells}
+#| eval: true
+units_cell_polygon[["grts_address_final"]] <-
+  as.integer(units_cell_polygon[["grts_address_final"]])
+
+# unit geometries (cells):
+location_cells <-
+  units_cell_polygon %>%
+  inner_join(
+    locations_lookup,
+    by = join_by(grts_address_final == grts_address),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(-grts_address_final) %>% 
+  relocate(geometry, .after = last_col())
+
+sf::st_geometry(location_cells) <- "wkb_geometry"
+
+# glimpse(location_cells)
+
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "LocationCells"),
+  location_cells,
+  reference_columns = "location_id"
+)
+```
+
+
+**Upload Location Polygons:**
+
+```{r upload-sample-locations}
+if ("location_id" %in% names(sample_locations)) {
+  # should not be the case in a continuous script;
+  # this is extra safety for debugging and de-serial execution
+  sample_locations <- sample_locations %>% 
+    select(-location_id)
+}
+sample_locations <- sample_locations %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+    relationship = "many-to-one",
+    unmatched = "error"
+  )
+
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "SampleLocations"),
+  sample_locations,
+  reference_columns =
+    c("type", "grts_address", "scheme_ps_targetpanels", "loceval_year")
+)
+```
+
+**Append Location Assessments:**
+
+```{r append-location-assessments}
+
+# TODO check from above which are uploaded
+new_location_assessments <- sample_locations %>%
+  select(
+    location_id,
+    grts_address,
+    type
+  )
+  # %>% mutate()
+
+# append the LocationAssessments with empty lines for new sample units
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  new_location_assessments,
+  reference_columns =
+    c("location_id", "type", "grts_address")
+)
+
+```
