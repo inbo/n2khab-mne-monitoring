@@ -756,8 +756,8 @@ SCHEDULED: <2025-06-24 Tue>
 
 =LocationCalendar= -> =PriorEvaluations=
 
-TODO: exclude/hold columns -> Py
-TODO: Views store in file and adjust
+DONE: exclude/hold columns -> Py
+DONE: Views store in file and adjust
 
 
 ** store table relation structure
@@ -770,12 +770,26 @@ Solution:
 The structure is exported from python upon database creation and can now be read to R as well.
 /(Once more, I feel clumsy in R, but it does the job.)/
 
-** orthophotos
+** extra layers qgis orthophoto assessment
+SCHEDULED: <2025-06-26 Thu>
+
+*** orthophotos
 https://geo.api.vlaanderen.be/okz/wcs
 okz: orthofoto kleinschaal zomer
 omz: orthofoto midschaal zomer
 omw: orthofoto midschaal winter
 
+*** beheer ANB
+https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/2d9fe2d9-c204-4f02-b228-45658e7ff7fb
+(as wfs)
+
+*** preliminary habitat map
+(via Floris)
+
+*** public habitat map
+from here: https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/45cde39a-5421-85ec-d52c-4b46-3891-e876-549ea870
+
+non-fluent (many features x wfs)
 
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>

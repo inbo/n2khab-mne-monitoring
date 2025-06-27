@@ -30,17 +30,17 @@
 + [ ] backup procedures
 
 + [ ] input meeding @WT @KW @FV @FM <2025-06-24 Tue>
-  + [ ] decoupling LocCal - Visits!!
-  + [ ] =ortophoto_2025_cells= and =ortophoto_2025_cellcenters=
-  + [ ] orthophotos:
+  + [X] decoupling LocCal - Visits!!
+  + [X] =ortophoto_2025_cells= and =ortophoto_2025_cellcenters=
+  + [X] orthophotos:
     + via "datavindplaats" -> wcs/wfs
     + winter && summer
-  + [ ] use =grts_address_final=
-  + [ ] =ortophoto_2025_type_grts=
+  + [X] use =grts_address_final=
+  + [X] =ortophoto_2025_type_grts=
     + assessment
     + sp_poststratum
     + scheme_ps_targetpanels
-  + [ ] ++ fields
+  + [X] ++ fields
     + cel afgekeurd
     + natuur/niet
     + tijdelijk verloren
@@ -52,10 +52,10 @@
   + [ ] habmap: use 2023 fixed version; later: preliminary update by @FV
   + [ ] protocol-like criteria by @WT
   + [ ] qgis design
-    + [ ] types -> qgis map label
-    + [ ] "activity" visible in form
+    + [X] types -> qgis map label
+    + [X] "activity" visible in form
     + [ ] test attribute table sorting
-    + [ ] add habitatmap (raw; wfs?) as bachground layer
+    + [ ] add habitatmap (raw; wfs?) as background layer
 
 + exclude admin from =log_= rules
 + [-] suggestions @FV <2025-06-18 Wed>
@@ -127,6 +127,7 @@
   + [ ] keep current node for =*_dev=
 + [ ] fieldwork roles [[https://docs.google.com/spreadsheets/d/1wFbevEcaNbQ1RBIwEdkoloRYmarQ59E2gctbcxVyH_M/edit?gid=0#gid=0][gsheet]]
 + [ ] email services on the server to send backup logs & errors
++ [ ] consider function-related schema's (e.g. "orthophoto")
 
 
 * issue anticipation
