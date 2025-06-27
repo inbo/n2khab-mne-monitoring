@@ -142,6 +142,7 @@ class DatabaseConnection(object):
 
         dumplings = {} # dump connection parameters
         for param in ["user", "host", "database", "port"]:
+            # if provided, use function kwargs; otherwise default to config
             dumplings[param] = kwargs.get(param, self.config[param])
 
         # create the dump command
@@ -392,18 +393,18 @@ class dbTable(dict):
     # a class to store all required attributes and functionality
     # to handle a table in the database.
 
-    def __init__(self, tabledef: dict, base_folder: PL.Path = PL.Path("./")):
+    def __init__(self, tabledef: dict, structure_folder: PL.Path = PL.Path("./db_structure")):
         # | self.schema       | self.table        | self.owner       |
         # | self.read_access  | self.write_access | self.geometry    |
         # | self.constraint   | self.freesql      | self.persistent  |
         # | self.comment      | self.excluded     |                  |
 
-        self.folder = base_folder
+        self.structure_folder = structure_folder
 
         for k, v in tabledef.items():
             setattr(self, k, v)
 
-        self.definition_file = self.folder/f"{self.table}.csv"
+        self.definition_file = self.structure_folder/f"{self.table}.csv"
 
         table_definitions = PD.read_csv(self.definition_file)
         for _, datafield in table_definitions.iterrows():
@@ -609,7 +610,7 @@ def CreateTable(db_connection, table_meta: dbTable, verbose = True, dry = False)
 
 class Database(dict):
     def __init__(self,
-                 base_folder = "./",
+                 structure_folder = "./db_structure",
                  definition_csv: str = "TABLES.csv",
                  lazy_creation: bool = True,
                  lazy_dataloading: bool = True,
@@ -621,17 +622,17 @@ class Database(dict):
             raise IOError("please provide a filename with TABLES definitions.")
 
         # read in the table definitions
-        self.base_folder = PL.Path(base_folder)
-        definitions = PD.read_csv(self.base_folder/definition_csv)
+        self.structure_folder = PL.Path(structure_folder)
+        definitions = PD.read_csv(self.structure_folder/definition_csv)
         self.tabula_rasa = tabula_rasa
 
         # generate all tables (first only in Python)
         for _, tabledef in definitions.iterrows():
             nm = tabledef["table"]
-            self[nm] = dbTable(tabledef.to_dict(), self.base_folder)
+            self[nm] = dbTable(tabledef.to_dict(), self.structure_folder)
 
         # store how tables are linked to each other
-        self.GetDatabaseRelations(storage_path = self.base_folder/"table_relations.conf")
+        self.GetDatabaseRelations(storage_path = self.structure_folder/"table_relations.conf")
 
         if (db_connection is not None) and (not lazy_creation):
             # perform all the database creation action at once
@@ -665,7 +666,7 @@ class Database(dict):
 
         ### dump all data, for safety
         now = TI.strftime('%Y%m%d%H%M', TI.localtime())
-        db_connection.DumpAll(target_filepath = f"dumps/db_recreation_{now}.sql", user = "monkey")
+        db_connection.DumpAll(target_filepath = f"dumps/db_recreation_{db_connection['database']}_{now}.sql", user = "monkey")
 
         if self.tabula_rasa:
             if input("\n".join([
@@ -727,7 +728,7 @@ class Database(dict):
 
     def CreateSchema(self, db_connection: DatabaseConnection) -> None:
         # create all schema's from the SCHEMA definition file
-        CreateSchema(db_connection, self.base_folder/"SCHEMA.csv", selection = self.GetSchemas())
+        CreateSchema(db_connection, self.structure_folder/"SCHEMA.csv", selection = self.GetSchemas())
 
 
     def CreateTables(self, db_connection: DatabaseConnection, verbose: bool = True) -> None:
@@ -743,7 +744,7 @@ class Database(dict):
         # create views
 
         # views are designed in the `VIEWS` table
-        views = PD.read_csv(self.base_folder/"VIEWS.csv")
+        views = PD.read_csv(self.structure_folder/"VIEWS.csv")
         views["excluded"] = views["excluded"].astype(bool)
 
         # loop views
@@ -792,7 +793,7 @@ class Database(dict):
     def ExPostTasks(self, db_connection: DatabaseConnection, verbose = True):
         # apply extra SQL queries after database creation.
 
-        expost = self.base_folder/"EXPOST.csv"
+        expost = self.structure_folder/"EXPOST.csv"
         commands = PD.read_csv(expost)["sql"].values
         for expost_command in commands:
             ExecuteSQL(
@@ -858,7 +859,7 @@ class Database(dict):
 
         ### (1) dump all data, for safety
         now = TI.strftime('%Y%m%d%H%M', TI.localtime())
-        db_connection.DumpAll(target_filepath = f"dumps/safedump_{now}.sql", user = "monkey")
+        db_connection.DumpAll(target_filepath = f"dumps/safedump_{db_connection['database']}_{now}.sql", user = "monkey")
 
         ### (2) load current data
         dependent_tables = [ \
@@ -1091,7 +1092,7 @@ if __name__ == "__main__":
 
 
     db = Database( \
-        base_folder = "./devdb_structure", \
+        structure_folder = "./devdb_structure", \
         definition_csv = "TABLES.csv", \
         lazy_creation = True, \
         lazy_dataloading = True, \
