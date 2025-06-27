@@ -137,6 +137,14 @@
   + can we get joins in layers? -> filter a view-like layer
   + provide alternative tool for local use on laptop/tablet?
 
+** TODO dplyr
+copy all -> processing inbound.FreeFieldNotes
+#+begin_quote
+Warning message:
+Using `by = character()` to perform a cross join was deprecated in dplyr 1.1.0.
+ℹ Please use `cross_join()` instead.
+#+end_quote
+
 * optional
 + save/restore a whole =db_structure= in pandas tables
 + check =wk::as_wkb()=

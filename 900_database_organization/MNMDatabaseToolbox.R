@@ -68,11 +68,17 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
 #' @param working_dbname the target database name
 #' @param table_key the table to be changed
 #' @param new_data a data frame or tibble with the new data
-#' @param profile config section header (configs with multiple connection settings)
-#' @param dbstructure_folder the folder in which to find the database structire csv collection
+#' @param profile config section header (configs with multiple connection
+#'        settings)
+#' @param dbstructure_folder the folder in which to find the
+#'        database structure csv collection
 #' @param characteristic_columns a subset of columns of the data table
-#'        by which old and new data can be uniquely identified and joined; refers to the new data
-#' @param rename_characteristics TODO link columns with different names by renaming them in new_data
+#'        by which old and new data can be uniquely identified and joined;
+#'        refers to the new data
+#' @param rename_characteristics link columns with different names by
+#'        renaming them in new_data
+#' @param db_connection an existing database connection, optionally passed
+#'        to prevent repeated connection in scripts
 #' @param verbose provides extra prose on the way, in case you need it
 #'
 #' @examples
@@ -84,8 +90,12 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
 #'    # keyring::key_set("DBPassword", "db_user_password")
 #'
 #'    test_table <- "LocationCalendar"
-#'    new_data <- dplyr::tbl(source_connection, DBI::Id(schema = "outbound", table = test_table)) %>% collect(),
-#'    characteristic_columns = c("scheme", "stratum", "grts_address", "column_newname")
+#'    new_data <- dplyr::tbl(
+#'        source_connection,
+#'        DBI::Id(schema = "outbound", table = test_table)
+#'      ) %>% collect(),
+#'    characteristic_columns = \
+#'      c("scheme", "stratum", "grts_address", "column_newname")
 #'
 #'    update_datatable_and_dependent_keys(
 #'      config_filepath = config_filepath,
@@ -109,6 +119,7 @@ update_datatable_and_dependent_keys <- function(
     dbstructure_folder = NULL,
     characteristic_columns = NULL, # TODO
     rename_characteristics = NULL,
+    db_connection = NULL,
     verbose = TRUE
     ) {
 
@@ -118,18 +129,23 @@ update_datatable_and_dependent_keys <- function(
   stopifnot("glue" = require("glue"))
 
   # establish a database connection
-  db_target <- connect_database_configfile(
-    config_filepath,
-    database = working_dbname,
-    profile = profile
-  )
+  if (is.null(db_connection)) {
+    db_target <- connect_database_configfile(
+      config_filepath,
+      database = working_dbname,
+      profile = profile
+    )
+  } else {
+    # ... unless it is given for repeated use
+    db_target <- db_connection
+  }
 
   if (is.null(dbstructure_folder)) {
     dbstructure_folder <- "db_structure"
   }
 
   schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-    select(table, schema, geometry)
+    select(table, schema, geometry, excluded)
 
   # These are clumsy, temporary, provisional helpers.
   # But, hey, there will be time later.
@@ -146,7 +162,7 @@ update_datatable_and_dependent_keys <- function(
   ### (1) dump all data, for safety
   now <- format(Sys.time(), "%Y%m%d%H%M")
   dump_all(
-    here::here("dumps", glue::glue("safedump_{now}.sql")),
+    here::here("dumps", glue::glue("safedump_{working_dbname}_{now}.sql")),
     config_filepath = config_filepath,
     database = working_dbname,
     profile = "dumpall",
@@ -156,17 +172,23 @@ update_datatable_and_dependent_keys <- function(
 
 
   ### (2) load current data
+  excluded_tables <- schemas %>%
+    filter(!is.na(excluded)) %>%
+    filter(excluded == 1) %>%
+    pull(table)
 
   table_relations <- read_table_relations_config(
-    storage_filepath = here::here("devdb_structure", "table_relations.conf")
+    storage_filepath = here::here(dbstructure_folder, "table_relations.conf")
     ) %>%
-    filter(relation_table == tolower(table_key))
+    filter(relation_table == tolower(table_key),
+      !(dependent_table %in% excluded_tables)
+    )
 
   dependent_tables <- table_relations %>% pull(dependent_table)
 
   table_existing_data_list <- query_tables_data(
       db_target,
-      database = "loceval_dev",
+      database = working_dbname,
       tables = lapply(c(table_key, dependent_tables), FUN = get_tableid)
   )
 
@@ -272,7 +294,7 @@ update_datatable_and_dependent_keys <- function(
   # TODO write function
   # to restore key lookup table
 
-  # DELETE existing data
+  # DELETE existing data -> DANGEROUS territory!
   execute_sql(
     db_target,
     glue::glue("DELETE  FROM {get_namestring(table_key)};"),
