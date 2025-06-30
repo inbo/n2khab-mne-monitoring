@@ -20,7 +20,7 @@ library("mapview")
 # mapviewOptions(platform = "mapdeck")
 
 projroot <- find_root(is_rstudio_project)
-working_dbname <- "loceval_dev"
+working_dbname <- "loceval"
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
@@ -143,9 +143,9 @@ stratum_schemepstargetpanel_spsamples <-
 # place using grts_address as the anchor, provided that the type still occurs in
 # the polygon. If not, the absence must be noted and sampling frame + sample are
 # to be updated.
-scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  filter(grts_address != grts_address_final) %>%
-  glimpse
+# scheme_moco_ps_stratum_targetpanel_spsamples %>%
+#   filter(grts_address != grts_address_final) %>%
+#   glimpse
 
 
 # cell centers of the terrestrial sampling units (excluding 7220):
@@ -330,7 +330,7 @@ grouped_activities <- grouped_activities %>%
 #   )
 # # non-field activities; of no relevance for the calendar
 #
-glimpse(grouped_activities)
+# glimpse(grouped_activities)
 
 
 ## ----join-stratum-------------------------------------------------------------
@@ -375,68 +375,6 @@ if (working_dbname == "loceval") {
 
 }
 
-
-## ----append-tabledata---------------------------------------------------------
-# TODO: option to drop; but mind cascading
-
-append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
-  content <- DBI::dbReadTable(conn, db_table)
-
-  if (any(is.na(reference_columns))) {
-    # ... or just take all columns
-    reference_columns <- names(data_to_append)
-  }
-
-  # refcol <- enquo(reference_columns)
-  existing <- content %>% select(!!!reference_columns)
-  to_upload <- data_to_append %>%
-    anti_join( existing, join_by(!!!reference_columns)
-  )
-
-  rs <- DBI::dbWriteTable(conn, db_table, to_upload, overwrite = FALSE, append = TRUE)
-  # res <- DBI::dbFetch(rs)
-  # DBI::dbClearResult(rs)
-
-  message(sprintf(
-    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
-    toString(db_table),
-    nrow(to_upload),
-    nrow(existing),
-    nrow(data_to_append),
-    paste0(reference_columns, collapse = ", ")
-  ))
-  return(invisible(rs))
-
-}
-
-
-
-upload_and_lookup <- function(conn, db_table, data, ref_cols, index_col) {
-
-  append_tabledata(conn, db_table, data, reference_columns = ref_cols)
-
-  lookup <- dplyr::tbl(conn, db_table) %>%
-    select(!!!c(ref_cols, index_col)) %>%
-    collect
-
-  return(lookup)
-}
-
-lookup_join <- function(.data, lookup_tbl, join_column){
-  joined_tbl <- .data %>%
-    left_join(
-      lookup_tbl,
-      by = join_by(!!enquo(join_column))
-      # relationship = "many-to-one",
-      # unmatched = "drop"
-    ) %>%
-  select(-!!enquo(join_column))
-
-  return(joined_tbl)
-
-}
-
-# DONE there were unmatched activities -> not any more.
 
 
 ## ----upload-teammembers-------------------------------------------------------
@@ -695,10 +633,50 @@ sample_locations <- orthophoto_type_grts %>%
 # glimpse(sample_locations)
 
 
-# **Upload Spatial Locations:**
 
-locations <- sample_locations %>%
-  distinct(grts_address) %>%
+# clean up LocationAssessments
+verb <- "DELETE "
+sql_command <- glue::glue(
+  '{verb} FROM "outbound"."LocationAssessments"
+    WHERE ((log_user = \'yoda\') OR (log_user = \'falk\') OR (log_user = \'update\'))
+      AND (NOT cell_disapproved)
+      AND (revisit_disapproval IS NULL)
+      AND (disapproval_explanation IS NULL)
+      AND (type_suggested IS NULL)
+      AND (implications_habitatmap IS NULL)
+      AND (feedback_habitatmap IS NULL)
+      AND (notes IS NULL)
+      AND (NOT assessment_done)
+    ;')
+# print(sql_command)
+rs <- DBI::dbExecute(
+  db_connection,
+  sql_command
+  )
+# print(rs)
+
+# DBI::dbReadTable(
+#   db_connection,
+#   DBI::Id(schema = "outbound", table = "LocationAssessments"),
+#   ) %>% collect() %>%
+#     head() %>% knitr::kable()
+
+# add location for previous LocationAssessment
+
+previous_locations <- DBI::dbReadTable(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  ) %>% collect() %>%
+  pull("grts_address") %>%
+  as.integer()
+
+# **Upload Spatial Locations:**
+locations <- c(
+    sample_locations %>% pull(grts_address) %>% as.integer(),
+    previous_locations
+  ) %>%
+  tibble(grts_address = .) %>%
+  distinct() %>%
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -707,6 +685,13 @@ locations <- sample_locations %>%
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
+
+# TODO first, delete locations to prevent the `ogc_fid` duplicate error
+
+rs <- DBI::dbExecute(
+  db_connection,
+  'DELETE FROM "metadata"."Locations";'
+  )
 
 locations_lookup <- upload_and_lookup(
   db_connection,
@@ -746,7 +731,7 @@ append_tabledata(
 )
 
 
-# **Upload Location Polygons:**
+# **Upload Sample Locations:**
 
 if ("location_id" %in% names(sample_locations)) {
   # should not be the case in a continuous script;
@@ -758,8 +743,7 @@ sample_locations <- sample_locations %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
-    relationship = "many-to-one",
-    unmatched = "error"
+    relationship = "many-to-one"
   )
 
 append_tabledata(
@@ -779,13 +763,59 @@ new_location_assessments <- sample_locations %>%
     location_id,
     grts_address,
     type
+  ) %>%
+  mutate(
+    log_user = "update",
+    log_update = as.POSIXct(Sys.time()),
+    cell_disapproved = FALSE,
+    assessment_done = FALSE
   )
 
-# append the LocationAssessments with empty lines for new sample units
-append_tabledata(
+previous_location_assessments <- DBI::dbReadTable(
   db_connection,
   DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  new_location_assessments,
-  reference_columns =
-    c("location_id", "type", "grts_address")
-)
+  ) %>% collect()
+# nrow(previous_location_assessments)
+
+new_location_assessments <- new_location_assessments %>%
+  anti_join(
+    previous_location_assessments,
+    by = join_by(type, grts_address)
+  )
+
+location_assessments <- bind_rows(
+  previous_location_assessments,
+  new_location_assessments
+  ) %>% select(-locationassessment_id)
+# nrow(location_assessments)
+
+
+# # append the LocationAssessments with empty lines for new sample units
+# append_tabledata(
+#   db_connection,
+#   DBI::Id(schema = "outbound", table = "LocationAssessments"),
+#   location_assessments,
+#   reference_columns =
+#     c("type", "grts_address")
+# )
+
+rs <- DBI::dbExecute(
+  db_connection,
+  'DELETE FROM "outbound"."LocationAssessments";'
+  )
+
+# re-upload
+sf::dbWriteTable(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  location_assessments,
+  row.names = FALSE,
+  overwrite = FALSE,
+  append = TRUE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+  )
+
+# conn <- db_connection
+# db_table <- DBI::Id(schema = "outbound", table = "LocationAssessments")
+# data_to_append <- new_location_assessments

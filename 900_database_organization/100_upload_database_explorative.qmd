@@ -938,8 +938,39 @@ glimpse(sample_locations)
 
 ```{r extract-and-upload-locations-from-sample}
 
+# clean up LocationAssessments
+verb <- "DELETE "
+sql_command <- glue::glue(
+  '{verb} FROM "outbound"."LocationAssessments"
+    WHERE ((log_user = \'yoda\') OR (log_user = \'falk\') OR (log_user = \'update\'))
+      AND (NOT cell_disapproved)
+      AND (revisit_disapproval IS NULL)
+      AND (disapproval_explanation IS NULL)
+      AND (type_suggested IS NULL)
+      AND (implications_habitatmap IS NULL)
+      AND (feedback_habitatmap IS NULL)
+      AND (notes IS NULL)
+      AND (NOT assessment_done)
+    ;')
+# print(sql_command)
+rs <- DBI::dbExecute(
+  db_connection,
+  sql_command
+  )
+
+
+previous_locations <- DBI::dbReadTable(
+    db_connection,
+    DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  ) %>%
+  pull("grts_address")
+
+
 locations <- sample_locations %>%
-  distinct(grts_address) %>% 
+  pull(grts_address) %>%
+  c(previous_locations) %>%
+  tibble(grts_address = .) %>%
+  distinct() %>% 
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -948,6 +979,10 @@ locations <- sample_locations %>%
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
+rs <- DBI::dbExecute(
+  db_connection,
+  'DELETE FROM "metadata"."Locations";'
+  )
 
 locations_lookup <- upload_and_lookup(
   db_connection,
@@ -965,6 +1000,7 @@ locations_lookup <- upload_and_lookup(
 
 ```{r location-cells}
 #| eval: true
+
 units_cell_polygon[["grts_address_final"]] <-
   as.integer(units_cell_polygon[["grts_address_final"]])
 
@@ -977,25 +1013,34 @@ location_cells <-
     relationship = "one-to-many",
     unmatched = "drop"
   ) %>%
-  select(-grts_address_final) %>% 
+  select(-grts_address_final) %>%
   relocate(geometry, .after = last_col())
 
-sf::st_geometry(location_cells) <- "wkb_geometry"
+sf::st_geometry(locations) <- "wkb_geometry"
 
-# glimpse(location_cells)
 
-append_tabledata(
+# TODO first, delete locations to prevent the `ogc_fid` duplicate error
+
+rs <- DBI::dbExecute(
   db_connection,
-  DBI::Id(schema = "metadata", table = "LocationCells"),
-  location_cells,
-  reference_columns = "location_id"
+  'DELETE FROM "metadata"."Locations";'
+  )
+
+locations_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "Locations"),
+  locations,
+  ref_cols = "grts_address",
+  index_col = "location_id"
 )
 ```
 
 
 **Upload Location Polygons:**
 
-```{r upload-sample-locations}
+```{r upload-sample-location-polygons}
+
+
 if ("location_id" %in% names(sample_locations)) {
   # should not be the case in a continuous script;
   # this is extra safety for debugging and de-serial execution
@@ -1029,17 +1074,61 @@ new_location_assessments <- sample_locations %>%
     location_id,
     grts_address,
     type
+  ) %>%
+  mutate(
+    log_user = "update",
+    log_update = as.POSIXct(Sys.time()),
+    cell_disapproved = FALSE,
+    assessment_done = FALSE
   )
-  # %>% mutate()
 
-# append the LocationAssessments with empty lines for new sample units
-append_tabledata(
+previous_location_assessments <- DBI::dbReadTable(
   db_connection,
   DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  new_location_assessments,
-  reference_columns =
-    c("location_id", "type", "grts_address")
-)
+  ) %>% collect()
+# nrow(previous_location_assessments)
+
+new_location_assessments <- new_location_assessments %>%
+  anti_join(
+    previous_location_assessments,
+    by = join_by(type, grts_address)
+  )
+
+location_assessments <- bind_rows(
+  previous_location_assessments,
+  new_location_assessments
+  ) %>%
+  select(-locationassessment_id) %>%
+  distinct()
+    
+# nrow(location_assessments)
+
+
+# # append the LocationAssessments with empty lines for new sample units
+# append_tabledata(
+#   db_connection,
+#   DBI::Id(schema = "outbound", table = "LocationAssessments"),
+#   location_assessments,
+#   reference_columns =
+#     c("type", "grts_address")
+# )
+
+rs <- DBI::dbExecute(
+  db_connection,
+  'DELETE FROM "outbound"."LocationAssessments";'
+  )
+
+# re-upload
+sf::dbWriteTable(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  location_assessments,
+  row.names = FALSE,
+  overwrite = FALSE,
+  append = TRUE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+  )
 
 ```
 
