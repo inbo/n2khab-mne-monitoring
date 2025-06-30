@@ -3,17 +3,18 @@
 
 library("dplyr")
 source("MNMDatabaseToolbox.R")
-# keyring::key_set("DBPassword", "db_user_password")
+# keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
 # credentials are stored for easy access
-config_filepath = file.path("./inbopostgis_server.conf")
-dbstructure_folder = "devdb_structure"
+config_filepath <- file.path("./inbopostgis_server.conf")
+dbstructure_folder <- "devdb_structure"
 
 # from source...
 source_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
-  profile = "inbopostgis-dev",
-  database = "loceval_dev"
+  profile = "inbopostgis",
+  user = "monkey",
+  database = "loceval"
 )
 
 # ... to target

@@ -679,6 +679,7 @@ previous_locations <- DBI::dbReadTable(
   pull("grts_address") %>%
   as.integer()
 
+
 # **Upload Spatial Locations:**
 locations <- c(
     sample_locations %>% pull(grts_address) %>% as.integer(),
@@ -755,6 +756,13 @@ sample_locations <- sample_locations %>%
     relationship = "many-to-one"
   )
 
+
+# might otherwise be duplicated due to missing fk and null constraint
+rs <- DBI::dbExecute(
+  db_connection,
+  'DELETE FROM "outbound"."SampleLocations";'
+  )
+
 append_tabledata(
   db_connection,
   DBI::Id(schema = "outbound", table = "SampleLocations"),
@@ -795,7 +803,7 @@ new_location_assessments <- new_location_assessments %>%
 location_assessments <- bind_rows(
   previous_location_assessments,
   new_location_assessments
-  ) %>% 
+  ) %>%
   select(-locationassessment_id)
 # nrow(location_assessments)
 

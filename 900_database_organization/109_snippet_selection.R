@@ -4,15 +4,6 @@
 # These specific snippets are used for updating the POC in the database.
 
 
-grts_mh <- read_GRTSmh()
-# create a spatial index of the GRTS addresses
-grts_mh_index <- tibble(
-  id = seq_len(ncell(grts_mh)),
-  grts_address = values(grts_mh)[, 1]
-) %>%
-  filter(!is.na(grts_address))
-
-
 # attributes of spatial sampling units (~grts_address_final), useful in maps,
 # selections and decisions. Note that we *identify* sampling units as stratum x
 # grts_address; a unit_id is not needed provided that units don't share the same
@@ -90,6 +81,50 @@ stratum_schemepstargetpanel_spsamples <-
 #   glimpse
 
 
+# geometries of 7220 units are represented by points, labelled with their GRTS
+# address
+# ////////////////////////////////////////////////////////////////////////////
+
+flanders_buffer <-
+  read_admin_areas(dsn = "flanders") %>%
+  st_buffer(40)
+# following function will be adapted to support the latest version of the data
+# source; for now use version habitatsprings_2020v2
+units_7220 <-
+  read_habitatsprings(units_7220 = TRUE) %>%
+  .[flanders_buffer, ] %>%
+  mutate(unit_id = as.character(unit_id)) %>%
+  # replacing unit_id by the grts_address
+  inner_join(
+    units_non_cell_n2khab_grts %>%
+      filter(sample_support_code == "spring") %>%
+      select(-sample_support_code),
+    join_by(unit_id),
+    relationship = "one-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  # to be solved later; a hack which looses one unit for now:
+  filter(!is.na(grts_address)) %>%
+  select(
+    -unit_id,
+    grts_address_final = grts_address
+  ) %>%
+  relocate(grts_address_final)
+
+
+
+# geometries of terrestrial types, excluding 7220: these are cells
+# ////////////////////////////////////////////////////////////////////////////
+
+grts_mh <- read_GRTSmh()
+# create a spatial index of the GRTS addresses
+grts_mh_index <- tibble(
+  id = seq_len(ncell(grts_mh)),
+  grts_address = values(grts_mh)[, 1]
+) %>%
+  filter(!is.na(grts_address))
+
+
 # cell centers of the terrestrial sampling units (excluding 7220):
 units_cell_cellcenter <-
   stratum_schemepstargetpanel_spsamples %>%
@@ -129,6 +164,11 @@ units_cell_polygon <-
 
 # mapview(units_cell_polygon)
 
+
+
+
+
+## Processing the FAG calendar wrt prioritizing fieldwork in 2025 ----
 
 # This section is primarily intended as support for fieldwork planning by the
 # compartment scheme responsible, who will use these R objects directly.
@@ -203,6 +243,80 @@ fag_stratum_grts_calendar_2025_attribs <-
       factor()
   ) %>%
   relocate(scheme_ps_targetpanels)
+
+
+# Derive an object where stratum x scheme_ps_targetpanels is flattened per
+# location x FAG occasion. Beware that in reality, more locations will emerge
+# due to local replacement, so this is misleading for counting & planning (but
+# useful in spatial visualization)
+fag_grts_calendar_2025_attribs <-
+  fag_stratum_grts_calendar_2025_attribs %>%
+  mutate(
+    stratum_scheme_ps_targetpanels = str_c(
+      stratum,
+      " (",
+      grts_join_method,
+      ") ",
+      " [",
+      scheme_ps_targetpanels,
+      "]"
+    ),
+    .keep = "unused"
+  ) %>%
+  summarize(
+    stratum_scheme_ps_targetpanels =
+      str_flatten(
+        unique(stratum_scheme_ps_targetpanels),
+        collapse = " \u2588 "
+      ) %>%
+      factor(),
+    .by = !stratum_scheme_ps_targetpanels
+  ) %>%
+  relocate(stratum_scheme_ps_targetpanels)
+
+# A simple derived spatial object (as points; see earlier for the actual unit
+# geometries). Points are still repeated because of different date_interval &
+# FAG values at the same location.
+fag_grts_calendar_2025_attribs_sf <-
+  fag_grts_calendar_2025_attribs %>%
+  add_point_coords_grts(
+    grts_var = "grts_address_final",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+# prioritization of fieldwork 2025:
+fieldwork_2025_prioritization <-
+  fag_stratum_grts_calendar_2025_attribs %>%
+  mutate(
+    priority = case_when(
+      str_detect(
+        scheme_ps_targetpanels,
+        "GW_03\\.3:(PS1PANEL(09|10|11|12)|PS2PANEL0[56])|SURF_03\\.4_[a-z]+:PS\\dPANEL03"
+      ) ~ 1L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 2L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 4L,
+      .default = 5L
+    ),
+    wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
+    wait_3260 = stratum == "3260",
+    wait_7220 = str_detect(stratum, "^7220")
+  )
+
+# overview fieldwork prioritization 2025 according to schemes & panels:
+fieldwork_2025_targetpanels_prioritization_count <-
+  fieldwork_2025_prioritization %>%
+  count(
+    scheme_ps_targetpanels,
+    priority,
+    wait_watersurface,
+    wait_3260,
+    wait_7220,
+    field_activity_group
+  ) %>%
+  arrange(priority, wait_watersurface, wait_3260, wait_7220) %>%
+  pivot_wider(names_from = field_activity_group, values_from = n)
 
 
 #_______________________________________________________________________________
@@ -286,6 +400,40 @@ if (FALSE){
     sf::st_geometry() %>%
     plot()
 }
+
+
+# prioritization of fieldwork 2025:
+fieldwork_2025_prioritization <-
+  fag_stratum_grts_calendar_2025_attribs %>%
+  mutate(
+    priority = case_when(
+      str_detect(
+        scheme_ps_targetpanels,
+        "GW_03\\.3:(PS1PANEL(09|10|11|12)|PS2PANEL0[56])|SURF_03\\.4_[a-z]+:PS\\dPANEL03"
+      ) ~ 1L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 2L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 4L,
+      .default = 5L
+    ),
+    wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
+    wait_3260 = stratum == "3260",
+    wait_7220 = str_detect(stratum, "^7220")
+  )
+
+# overview fieldwork prioritization 2025 according to schemes & panels:
+fieldwork_2025_targetpanels_prioritization_count <-
+  fieldwork_2025_prioritization %>%
+  count(
+    scheme_ps_targetpanels,
+    priority,
+    wait_watersurface,
+    wait_3260,
+    wait_7220,
+    field_activity_group
+  ) %>%
+  arrange(priority, wait_watersurface, wait_3260, wait_7220) %>%
+  pivot_wider(names_from = field_activity_group, values_from = n)
 
 
 
