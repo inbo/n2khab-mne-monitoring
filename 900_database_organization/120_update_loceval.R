@@ -390,7 +390,6 @@ member_lookup <- upload_and_lookup(
 
 
 ## ----upload-protocols---------------------------------------------------------
-
 protocols <- activities %>%
   select(protocol) %>%
   distinct() %>%
