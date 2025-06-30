@@ -150,13 +150,14 @@ get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), tab
 ```{r step1-safety-dump}
 now <- format(Sys.time(), "%Y%m%d%H%M")
 dump_all(
-    here::here("dumps", glue::glue("safedump_{working_dbname}_{now}.sql")),
-    config_filepath = config_filepath,
-    database = working_dbname,
-    profile = "dumpall",
-    user = "monkey",
-    exclude_schema = c("tiger", "public")
-    )
+  here::here("dumps", glue::glue("safedump_{working_dbname}_{now}.sql")),
+  config_filepath = config_filepath,
+  database = working_dbname,
+  profile = "dumpall",
+  user = "monkey",
+  exclude_schema = c("tiger", "public")
+)
+
 ```
 
 # Gather and Upload

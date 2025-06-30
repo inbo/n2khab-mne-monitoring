@@ -84,9 +84,9 @@ For now, that procedure remains documented in =000_steps_journal.org= >>> "=data
 
 Trivially, you can just create the new database as you created the original one.
 
-#+begin_src python :eval no :tangle 211_create_empty_testing.py
+#+begin_src python :eval no :tangle 031_create_empty_testing.py
 # DO NOT MODIFY
-# this file is "tangled" automatically from `210_copy_database.org`.
+# this file is "tangled" automatically from `030_copy_database.org`.
 
 import MNMDatabaseToolbox as DTB
 
@@ -168,9 +168,9 @@ You could use a =.csv= file, or another database.
 Getting the data is as simple as establishing a connection and querying the table content.
 
 
-#+begin_src R :eval no :tangle 212_production_to_testing_example.R
+#+begin_src R :eval no :tangle 032_production_to_testing_example.R
 # DO NOT MODIFY
-# this file is "tangled" automatically from `210_copy_database.org`.
+# this file is "tangled" automatically from `030_copy_database.org`.
 
 library("dplyr")
 source("MNMDatabaseToolbox.R")
@@ -204,7 +204,7 @@ Nevertheless, I find it useful to functionalize a bit, for reasons to be clarifi
 In the example case, we will just sort the protocols.
 
 
-#+begin_src R :eval no :tangle 212_production_to_testing_example.R
+#+begin_src R :eval no :tangle 032_production_to_testing_example.R
 #_______________________________________________________________________________
 ### ENTER YOUR CODE here to modify the data!
 
@@ -226,7 +226,7 @@ protocols_data <- protocols_data %>%
 The third step was derived in detail in the =200_organized_backups.qmd= notebook,
 and the =MNMDatabaseToolbox.R= contains a convenient function for it.
 
-#+begin_src R :eval no :tangle 212_production_to_testing_example.R
+#+begin_src R :eval no :tangle 032_production_to_testing_example.R
 
 update_datatable_and_dependent_keys(
   config_filepath = file.path("./inbopostgis_server.conf"),
@@ -248,9 +248,9 @@ Simple enough to be script-used heavily.
 
 This requires minimal preparations, modification catalogue, and a loop.
 
-#+begin_src R :eval no :tangle 213_populate_testing_db.R
+#+begin_src R :eval no :tangle 033_populate_testing_db.R
 # DO NOT MODIFY
-# this file is "tangled" automatically from `210_copy_database.org`.
+# this file is "tangled" automatically from `030_copy_database.org`.
 
 library("dplyr")
 source("MNMDatabaseToolbox.R")
@@ -282,7 +282,7 @@ target_db_connection <- connect_database_configfile(
 
 We certainly need to modify some tables.
 
-#+begin_src R :eval no :tangle 213_populate_testing_db.R
+#+begin_src R :eval no :tangle 033_populate_testing_db.R
 
 # TODO limitation: we should leave the primary and foreign keys unchanged!
 
@@ -314,7 +314,7 @@ Nothing ever changes if noone uploads any data.
 #+end_quote
 Here we go.
 
-#+begin_src R :eval no :tangle 213_populate_testing_db.R
+#+begin_src R :eval no :tangle 033_populate_testing_db.R
 
 copy_over_single_table <- function(table_key, new_data) {
   # just to make the loop code below look a little less convoluted.
@@ -339,7 +339,7 @@ copy_over_single_table <- function(table_key, new_data) {
 Actually, what do we want to do to which tables?
 Here we find out.
 
-#+begin_src R :eval no :tangle 213_populate_testing_db.R
+#+begin_src R :eval no :tangle 033_populate_testing_db.R
 
 table_list_file <- file.path(glue::glue("{dbstructure_folder}/TABLES.csv"))
 table_list <- read.csv(table_list_file)
@@ -380,7 +380,7 @@ process_db_table_copy <- function(table_idx){
 
 Apply to all the table (never tired of reminding: *order matters*):
 
-#+begin_src R :eval no :tangle 213_populate_testing_db.R
+#+begin_src R :eval no :tangle 033_populate_testing_db.R
 
 # TODO due to ON DELETE SET NULL from "Locations", location_id's temporarily become NULL.
 constraints_mod <- function(do = c("DROP", "SET")){

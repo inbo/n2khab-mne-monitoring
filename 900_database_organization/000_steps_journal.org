@@ -859,14 +859,34 @@ an extra type is added upon upload of =N2kHabTypes=:
 to tag sample units in which the expected habitat is not present any more
 
 
-* Groundwater - Planning (outbound)
+* Fieldwork - Planning (outbound)
 
-** the next database tool
+** the next database
 SCHEDULED: <2025-06-30 Mon>
 
 copied =loceval= structure
 to re-activate the fieldwork calendar
 
++ create databases =mnmfield= and =mnmfield_dev=
++ create and authorize extra users
+
+#+begin_src sh
+createuser  -p 2407 -S <user>
+
+psql -p <port>
+ALTER USER <user> WITH ENCRYPTED PASSWORD '<password>';
+
+vim /var/lib/postgres/data/pg_hba.conf
+systemctl ...
+#+end_src
+
+
++ database creation script
+
+** file rename
+SCHEDULED: <2025-06-30 Mon>
+
+for better organization.
 
 * General
 
