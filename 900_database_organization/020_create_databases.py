@@ -6,7 +6,7 @@ import MNMDatabaseToolbox as DTB
 # SET search_path TO public,"metadata","outbound","inbound";
 
 
-if False:
+if True:
     # database: loceval_dev
     base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"devdb_structure"
@@ -48,7 +48,7 @@ if False:
 
 
 
-if True:
+if False:
     #### TODO prompt accidental overwrite
 
     # database: loceval
@@ -65,7 +65,7 @@ if True:
         structure_folder = structure_folder, \
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
-        db_connection = db_connection \
-        , tabula_rasa = False
+        db_connection = db_connection, \
+        tabula_rasa = False
     )
 

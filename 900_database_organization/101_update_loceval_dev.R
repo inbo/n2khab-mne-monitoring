@@ -20,7 +20,7 @@ library("mapview")
 # mapviewOptions(platform = "mapdeck")
 
 projroot <- find_root(is_rstudio_project)
-working_dbname <- "loceval"
+working_dbname <- "loceval_dev"
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
@@ -420,7 +420,7 @@ grouped_activities_upload <- grouped_activities %>%
 #   db_connection,
 #   DBI::Id(schema = "metadata", table = "GroupedActivities"),
 #   grouped_activities_upload,
-#   reference_column = "grouped_activity_id"
+#   reference_columns = "grouped_activity_id"
 # )
 
 # done manually to get multiple columns as unique lookup
@@ -455,10 +455,20 @@ grouped_activity_lookup <-
 
 ## ----upload-n2khabtype--------------------------------------------------------
 
+n2khab_types_upload <- bind_rows(
+  as_tibble(list(
+    type = c("gh"),
+    typelevel = c("main_type"),
+    main_type = c("gh")
+  )),
+  n2khab_types_expanded_properties
+  )
+
+
 n2khabtype_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "metadata", table = "N2kHabTypes"),
-  n2khab_types_expanded_properties,
+  n2khab_types_upload,
   ref_cols = "type",
   index_col = "n2khabtype_id"
 )
@@ -474,7 +484,6 @@ n2khabtype_lookup <- upload_and_lookup(
 ## ----upload-sample-locations--------------------------------------------------
 
 # NOTE: renamed for some persistence
-# orthophoto_2025_type_grts <-
 
 # Making a list of terrestrial locations to be assessed using orthophotos in
 # 2025. The procedure evaluates somewhat larger areas in which the unit is
@@ -786,7 +795,8 @@ new_location_assessments <- new_location_assessments %>%
 location_assessments <- bind_rows(
   previous_location_assessments,
   new_location_assessments
-  ) %>% select(-locationassessment_id)
+  ) %>% 
+  select(-locationassessment_id)
 # nrow(location_assessments)
 
 

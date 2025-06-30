@@ -412,7 +412,7 @@ activity_group_lookup <-
     distinct(activity_group, activity)
 
 grouped_activities <-
-  activities %>% 
+  activities %>%
   left_join(
     activity_group_lookup,
     join_by(activity),
@@ -426,7 +426,7 @@ grouped_activities <- grouped_activities %>%
   mutate_at(
     vars(activity_group, activity, activity_name, protocol),
     as.character
-  ) %>% 
+  ) %>%
   mutate(
     activity_group = ifelse(is.na(activity_group), activity, activity_group)
   )
@@ -434,15 +434,15 @@ grouped_activities <- grouped_activities %>%
 
 
 grouped_activities <- grouped_activities %>%
-  arrange(activity) %>% 
+  arrange(activity) %>%
   group_by(activity) %>%
   mutate(activity_id = cur_group_id()) %>%
   ungroup %>%
-  arrange(activity_group) %>% 
+  arrange(activity_group) %>%
   group_by(activity_group) %>%
   mutate(activity_group_id = cur_group_id()) %>%
   ungroup %>%
-  arrange(activity_group, activity) %>% 
+  arrange(activity_group, activity) %>%
   group_by(
     activity_group,
     activity
@@ -460,7 +460,7 @@ grouped_activities <- grouped_activities %>%
 
 # knitr::kable(grouped_activities %>% distinct(activity_group, activity, activity_name))
 
-# activities %>% 
+# activities %>%
 #   anti_join(
 #     activity_sequences,
 #     join_by(activity)
@@ -499,7 +499,7 @@ fag_stratum_grts_calendar_2025_attribs_sf <-
 
 if (FALSE){
   fag_stratum_grts_calendar_2025_attribs_sf %>%
-    head(32) %>% 
+    head(32) %>%
     sf::st_geometry() %>%
     plot()
 }
@@ -550,7 +550,7 @@ if (working_dbname == "loceval") {
     database = "loceval",
     profile = "inbopostgis"
   )
-    
+
 } else {
   db_connection <- connect_database_configfile(
     config_filepath,
@@ -573,73 +573,7 @@ glimpse(fag_stratum_grts_calendar_2025_attribs_sf)
 ```
 
 ## MetaData
-### over-head
 
-A general function to append metadata tables (i.e. upload rows which are missing):
-
-```{r append-tabledata}
-# TODO: option to drop; but mind cascading
-
-
-append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
-  content <- DBI::dbReadTable(conn, db_table)
-
-  if (any(is.na(reference_columns))) {
-    # ... or just take all columns
-    reference_columns <- names(data_to_append)
-  }
-
-  # refcol <- enquo(reference_columns)
-  existing <- content %>% select(!!!reference_columns)
-  to_upload <- data_to_append %>%
-    anti_join( existing, join_by(!!!reference_columns)
-  )
-
-  rs <- DBI::dbWriteTable(conn, db_table, to_upload, overwrite = FALSE, append = TRUE)
-  # res <- DBI::dbFetch(rs)
-  # DBI::dbClearResult(rs)
-
-  message(sprintf(
-    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
-    toString(db_table),
-    nrow(to_upload),
-    nrow(existing),
-    nrow(data_to_append),
-    paste0(reference_columns, collapse = ", ")
-  ))
-  return(invisible(rs))
-
-}
-
-
-upload_and_lookup <- function(conn, db_table, data, ref_cols, index_col) {
-
-  append_tabledata(conn, db_table, data, reference_columns = ref_cols)
-  
-  lookup <- dplyr::tbl(conn, db_table) %>%
-    select(!!!c(ref_cols, index_col)) %>% 
-    collect
-
-  return(lookup)
-}
-
-lookup_join <- function(.data, lookup_tbl, join_column){
-  joined_tbl <- .data %>%
-    left_join(
-      lookup_tbl,
-      by = join_by(!!enquo(join_column))
-      # relationship = "many-to-one",
-      # unmatched = "drop"
-    ) %>%
-  select(-!!enquo(join_column))
-
-  return(joined_tbl)
-
-}
-
-# DONE there were unmatched activities, not any more.
-
-```
 
 ### TeamMembers
 
@@ -691,7 +625,7 @@ protocol_lookup <- upload_and_lookup(
 
 ```{r upload-grouped-activities}
  
-grouped_activities_upload <- grouped_activities %>% 
+grouped_activities_upload <- grouped_activities %>%
   lookup_join(protocol_lookup, "protocol")
 
 # append_tabledata(
@@ -727,7 +661,7 @@ if (nrow(to_upload) > 0){
 
 grouped_activity_lookup <-
   dplyr::tbl(db_connection, db_table) %>%
-  select(activity_group, activity, grouped_activity_id, activity_group_id, activity_id) %>% 
+  select(activity_group, activity, grouped_activity_id, activity_group_id, activity_id) %>%
   collect
 
 ```
@@ -737,10 +671,21 @@ grouped_activity_lookup <-
 `n2khab_types_expanded_properties` -> `N2kHabTypes`
 
 ```{r upload-n2khabtype}
+
+n2khab_types_upload <- bind_rows(
+  as_tibble(list(
+    type = c("gh"),
+    typelevel = c("main_type"),
+    main_type = c("gh")
+  )),
+  n2khab_types_expanded_properties
+  )
+
+
 n2khabtype_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "metadata", table = "N2kHabTypes"),
-  n2khab_types_expanded_properties,
+  n2khab_types_upload,
   ref_cols = "type",
   index_col = "n2khabtype_id"
 )
@@ -918,7 +863,7 @@ sample_locations <- orthophoto_type_grts %>%
     grts_address = grts_address_final,
     previous_assessment = assessed_in_field,
     previous_assessment_date = assessment_date
-  ) %>% 
+  ) %>%
   mutate(
     across(c(
         type,
@@ -928,7 +873,7 @@ sample_locations <- orthophoto_type_grts %>%
       ),
       as.character
     )
-  ) 
+  )
 
 glimpse(sample_locations)
 ```
@@ -957,20 +902,30 @@ rs <- DBI::dbExecute(
   db_connection,
   sql_command
   )
+# print(rs)
 
+# DBI::dbReadTable(
+#   db_connection,
+#   DBI::Id(schema = "outbound", table = "LocationAssessments"),
+#   ) %>% collect() %>%
+#     head() %>% knitr::kable()
+
+# add location for previous LocationAssessment
 
 previous_locations <- DBI::dbReadTable(
-    db_connection,
-    DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  ) %>% collect() %>%
+  pull("grts_address") %>%
+  as.integer()
+
+# **Upload Spatial Locations:**
+locations <- c(
+    sample_locations %>% pull(grts_address) %>% as.integer(),
+    previous_locations
   ) %>%
-  pull("grts_address")
-
-
-locations <- sample_locations %>%
-  pull(grts_address) %>%
-  c(previous_locations) %>%
   tibble(grts_address = .) %>%
-  distinct() %>% 
+  distinct() %>%
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -988,7 +943,7 @@ locations_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "metadata", table = "Locations"),
   locations,
-  ref_cols = "grts_address", # uniqueness-issue
+  ref_cols = "grts_address",
   index_col = "location_id"
 )
 
@@ -1016,22 +971,13 @@ location_cells <-
   select(-grts_address_final) %>%
   relocate(geometry, .after = last_col())
 
-sf::st_geometry(locations) <- "wkb_geometry"
+sf::st_geometry(location_cells) <- "wkb_geometry"
 
-
-# TODO first, delete locations to prevent the `ogc_fid` duplicate error
-
-rs <- DBI::dbExecute(
+append_tabledata(
   db_connection,
-  'DELETE FROM "metadata"."Locations";'
-  )
-
-locations_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "Locations"),
-  locations,
-  ref_cols = "grts_address",
-  index_col = "location_id"
+  DBI::Id(schema = "metadata", table = "LocationCells"),
+  location_cells,
+  reference_columns = "location_id"
 )
 ```
 
@@ -1051,8 +997,7 @@ sample_locations <- sample_locations %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
-    relationship = "many-to-one",
-    unmatched = "error"
+    relationship = "many-to-one"
   )
 
 append_tabledata(
@@ -1068,7 +1013,7 @@ append_tabledata(
 
 ```{r append-location-assessments}
 
-# TODO check from above which are uploaded
+
 new_location_assessments <- sample_locations %>%
   select(
     location_id,
@@ -1097,10 +1042,8 @@ new_location_assessments <- new_location_assessments %>%
 location_assessments <- bind_rows(
   previous_location_assessments,
   new_location_assessments
-  ) %>%
-  select(-locationassessment_id) %>%
-  distinct()
-    
+  ) %>% 
+  select(-locationassessment_id)
 # nrow(location_assessments)
 
 
