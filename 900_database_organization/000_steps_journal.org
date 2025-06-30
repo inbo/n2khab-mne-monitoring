@@ -883,10 +883,13 @@ systemctl ...
 
 + database creation script
 
-** file rename
+** file renames
 SCHEDULED: <2025-06-30 Mon>
 
 for better organization.
+
+** debug init script
+
 
 * General
 
