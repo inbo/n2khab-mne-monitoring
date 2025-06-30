@@ -384,3 +384,35 @@ location_assessments <- bind_rows(
   select(-locationassessment_id)
 # nrow(location_assessments)
 ```
+
+
+```{r upload-location-assessments}
+
+rs <- DBI::dbExecute(
+  db_connection,
+  'DELETE FROM "outbound"."LocationAssessments";'
+  )
+
+# re-upload
+sf::dbWriteTable(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  location_assessments,
+  row.names = FALSE,
+  overwrite = FALSE,
+  append = TRUE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+  )
+
+```
+
+
+You can check the status/progress of location updates as follows:
+
+```{sql}
+SELECT DISTINCT assessment_done, count(*) FROM "outbound"."LocationAssessments" GROUP BY assessment_done;
+```
+
+
+
