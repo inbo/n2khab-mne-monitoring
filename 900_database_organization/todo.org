@@ -99,7 +99,7 @@
   + =upload_and_lookup=
 + [-] qfield integration
   + [X] where is the qgis qfield export gone? *[!]* -> gdal error solved
-  + [X] postgis login from qfield; auth with master password? set ID!
+  + [ ] postgis login from qfield; auth with master password? set ID!
   + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
   + [X] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
   + [X] select/join from multiple tables; alternatively auto-generate data+metadata -> postgres views views
@@ -129,7 +129,8 @@
 + [ ] email services on the server to send backup logs & errors
 + [ ] consider function-related schema's (e.g. "orthophoto")
 + [ ] meta table storing (current and previous) POC verisons
-
++ [ ] users may choose their passwords
+  + [ ] via "alter role" script in python or R
 
 * issue anticipation
 ** connectivity

@@ -161,16 +161,70 @@ dump_all(
 
 # Gather and Upload
 
+## Prone "LocationAssessments"
+
+LocationAssessments are tightly linked to a version of the sample.
+However, we do not want to loose previous assessments.
+
+As a first step, we remove all rows from the `LocationAssessments` which are apparrently untouched.
+
+```{r delete-undone-location-assessments}
+
+# clean up LocationAssessments
+verb <- "DELETE "
+sql_command <- glue::glue(
+  '{verb} FROM "outbound"."LocationAssessments"
+    WHERE ((log_user = \'yoda\') OR (log_user = \'falk\') OR (log_user = \'update\'))
+      AND (NOT cell_disapproved)
+      AND (revisit_disapproval IS NULL)
+      AND (disapproval_explanation IS NULL)
+      AND (type_suggested IS NULL)
+      AND (implications_habitatmap IS NULL)
+      AND (feedback_habitatmap IS NULL)
+      AND (notes IS NULL)
+      AND (NOT assessment_done)
+    ;')
+# print(sql_command)
+rs <- DBI::dbExecute(
+  db_connection,
+  sql_command
+  )
+# print(rs)
+
+# DBI::dbReadTable(
+#   db_connection,
+#   DBI::Id(schema = "outbound", table = "LocationAssessments"),
+#   ) %>% collect() %>%
+#     head() %>% knitr::kable()
+```
+
+The remainder are the ones we would like to store.
+
+```{r load-previous-location-assessments}
+
+# add location for previous LocationAssessment
+
+previous_locations <- DBI::dbReadTable(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  ) %>% collect() %>%
+  pull("grts_address") %>%
+  as.integer()
+
+```
+
 ## Locations
 
+Starting from "orthophoto" the sample locations...
+
 ```{r orhtophoto-to-db-sample-locations-conversion}
-sample_locations <- orthophoto_type_grts %>% 
+sample_locations <- orthophoto_type_grts %>%
   select(-grts_address) %>%
   rename(
     grts_address = grts_address_final,
     previous_assessment = assessed_in_field,
     previous_assessment_date = assessment_date
-  ) %>% 
+  ) %>%
   mutate(
     across(c(
         type,
@@ -180,13 +234,20 @@ sample_locations <- orthophoto_type_grts %>%
       ),
       as.character
     )
-  ) 
+  )
 
 ```
 
+
+... we take the new locations *and* the ones which were assessed before.
+
 ```{r distinct-locations}
-locations <- sample_locations %>%
-  distinct(grts_address) %>% 
+locations <- c(
+    sample_locations %>% pull(grts_address) %>% as.integer(),
+    previous_locations
+  ) %>%
+  tibble(grts_address = .) %>%
+  distinct() %>%
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -194,89 +255,36 @@ locations <- sample_locations %>%
   )
 
 sf::st_geometry(locations) <- "wkb_geometry"
+
 ```
 
 
 **Upload Spatial Locations:**
 
+... in a "DELETE, then INSERT" approach.
+Reminder: the DELETE cascades as is to the `LocationCells`.
+Note that this is possible because I avoided the use of `location_id` as a foreign key.
 
-```{r reference-locations}
-online_locations <- dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "metadata", table = "Locations"),
-  ) %>% collect() %>%
-  select(location_id, grts_address)
+```{r upload-locations}
 
-
-online_samplelocations <- dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = get_schema("SampleLocations"), table = "SampleLocations"),
-  ) %>% collect() 
-
-
-# TODO SampleLocations can be deleted; will be re-uploaded below.
-if (FALSE){
-  execute_sql(
-    db_connection,
-    glue::glue("DELETE FROM {get_namestring('SampleLocations')};"),
-    verbose = FALSE
+rs <- DBI::dbExecute(
+  db_connection,
+  'DELETE FROM "metadata"."Locations";'
   )
-}
-```
-
-
-```{r new-locations}
-
-# new locations
-new_locations <- locations %>%
-  anti_join(
-    online_locations,
-    by = join_by(grts_address)
-  )
-
-new_locations %>%
-  filter(grts_address == 230930)
-```
-
-
-# TODO stuck here:
-
-:::{.callout-warning title="quick diagnosis:"}
-This seems to be a dbplyr/sf issue.
-Try wrapping the upload into hand-made INSERT commands.
-:::
-
-```{r extract-and-upload-locations-from-sample}
-
-update_datatable_and_dependent_keys(
-  config_filepath,
-  working_dbname,
-  table_key = "Locations",
-  locations,
-  characteristic_columns = c("grts_address"), 
-  db_connection = db_connection,
-  verbose = TRUE
-)
-
 
 locations_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "metadata", table = "Locations"),
-  new_locations,
-  ref_cols = c("grts_address"), # uniqueness-issue
+  locations,
+  ref_cols = "grts_address",
   index_col = "location_id"
 )
 
-
 ```
 
+## Location Cells (Polygons)
 
-# CONTINUE
-
-**Upload Location Polygons:**
-
-```{r location-cells}
-#| eval: true
+```{r location-polygon-upload}
 units_cell_polygon[["grts_address_final"]] <-
   as.integer(units_cell_polygon[["grts_address_final"]])
 
@@ -289,7 +297,7 @@ location_cells <-
     relationship = "one-to-many",
     unmatched = "drop"
   ) %>%
-  select(-grts_address_final) %>% 
+  select(-grts_address_final) %>%
   relocate(geometry, .after = last_col())
 
 sf::st_geometry(location_cells) <- "wkb_geometry"
@@ -302,24 +310,32 @@ append_tabledata(
   location_cells,
   reference_columns = "location_id"
 )
+
 ```
 
+## SampleLocations
 
-**Upload Location Polygons:**
+Whereas `Locations` holds the GIS information of a location,
+`SampleLocations` are a collection of metadata about each sample.
 
-```{r upload-sample-locations}
+```{r refresh-sample-locations}
 if ("location_id" %in% names(sample_locations)) {
   # should not be the case in a continuous script;
   # this is extra safety for debugging and de-serial execution
-  sample_locations <- sample_locations %>% 
+  sample_locations <- sample_locations %>%
     select(-location_id)
 }
 sample_locations <- sample_locations %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
-    relationship = "many-to-one",
-    unmatched = "error"
+    relationship = "many-to-one"
+  )
+
+
+rs <- DBI::dbExecute(
+  db_connection,
+  'DELETE FROM "outbound"."SampleLocations";'
   )
 
 append_tabledata(
@@ -329,28 +345,42 @@ append_tabledata(
   reference_columns =
     c("type", "grts_address", "scheme_ps_targetpanels", "loceval_year")
 )
+
 ```
 
-**Append Location Assessments:**
+## LocationAssessments
 
-```{r append-location-assessments}
+```{r refresh-location-assessments}
 
-# TODO check from above which are uploaded
 new_location_assessments <- sample_locations %>%
   select(
     location_id,
     grts_address,
     type
+  ) %>%
+  mutate(
+    log_user = "update",
+    log_update = as.POSIXct(Sys.time()),
+    cell_disapproved = FALSE,
+    assessment_done = FALSE
   )
-  # %>% mutate()
 
-# append the LocationAssessments with empty lines for new sample units
-append_tabledata(
+previous_location_assessments <- DBI::dbReadTable(
   db_connection,
   DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  new_location_assessments,
-  reference_columns =
-    c("location_id", "type", "grts_address")
-)
+  ) %>% collect()
+# nrow(previous_location_assessments)
 
+new_location_assessments <- new_location_assessments %>%
+  anti_join(
+    previous_location_assessments,
+    by = join_by(type, grts_address)
+  )
+
+location_assessments <- bind_rows(
+  previous_location_assessments,
+  new_location_assessments
+  ) %>%
+  select(-locationassessment_id)
+# nrow(location_assessments)
 ```

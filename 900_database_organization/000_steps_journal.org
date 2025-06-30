@@ -123,7 +123,7 @@ SCHEDULED: <2025-06-05 Thu>
 
 | database name | loceval          |
 | schema        | loceval_outbound |
-| peer user     | Ward             |
+| peer user     | ward             |
 
 #+begin_src sh :eval no
 psql -h <host> -p <port> -U <user> -d <database> -W
@@ -791,7 +791,20 @@ from here: https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/45cde
 
 non-fluent (many features x wfs)
 
-** give up foreign key on =location=
+
+** copying a database
+SCHEDULED: <2025-06-27 Fri>
+
++ via script =210_copy_database.org=
++ sub-scripts are tangled from that file
+  + =211_create_empty_testing.py=
+  + =212_production_to_testing_example.R=
+  + =213_populate_testing_db.R=
++ e.g. "production" to "testing"
+
+
+** TODO issues with =Locations.ogc_fid= uniqueness
+SCHEDULED: <2025-06-27 Fri>
 
 + problems with updating sample due to temporarily lost lookup
   + cascading of =location_id= is non-trivial (but would work)
@@ -801,9 +814,61 @@ non-fluent (many features x wfs)
 + grts address is sufficient and necessary
 + historic field assessments (from prev samples) should also remain in the "locations"
 
-** copying a database
+For some reason, I could apped to the "Locations" table.
++ =location_id= is not the official pk
++ reason: qgis requires =ogc_fid= for =wkb= geometry tables
++ =ogc_fid= should be handled automatically (sequence!)
+  yet =dbplyr= fails trying to upload dublicates
+
+It might be that the "append" logic of dbplyr is wrong,
+or that I shoud rather use some sort of =sf::write=.
+
+*temporary solution:*
++ disabled the fk constraints on dependent tables
++ denial strategy: "load to memory, delete all, re-upload"
 
 
+** Permanent Data Captation
+CLOSED: [2025-06-30 Mon] SCHEDULED: <2025-06-16 Mon>
+
+*The database =loceval= is kind of transient (read: active, dynamic, beautiful).*
+Data prepared at home or generated in the field must be captured and moved to a completely different database: =mnmdb=.
++ =LocationCalendar= is augmented and changed dynamically -> append diffs to =mnmdb=
++ =Visits= have a field to indicate they are done, but should be moved/pruned regularly
++ =FieldNotes= must be stored irrespective of the =hide= tag; images linked and moved to storage
+
+Solved for now:
++ python script has optional =tabula_rasa= boolean arg; if =False=, data will be (re)stored during database adjustment.
++ for R, =101_update_loceval_dev.R= was surgically adjusted
++ we can copy data between databases, e.g. via a "testing"/"staging" database
+
+
+** orthophoto database project
+SCHEDULED: <2025-06-30 Mon>
+
++ incorporated adjustments suggested by Ward
++ help on-the-fly
+
+
+** n2khab type "gh"
+SCHEDULED: <2025-06-30 Mon>
+
+upon request by @WT,
+an extra type is added upon upload of =N2kHabTypes=:
+"gh" ("geen habitat")
+to tag sample units in which the expected habitat is not present any more
+
+
+* Groundwater - Planning (outbound)
+
+** the next database tool
+SCHEDULED: <2025-06-30 Mon>
+
+copied =loceval= structure
+to re-activate the fieldwork calendar
+
+
+* General
 
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>
@@ -813,16 +878,5 @@ SCHEDULED: <2025-06-16 Mon>
 + geometry -> must be updated
 + Visits -> must be adjusted, e.g. by linking in =inbound.Replacements=
 + join =Replacements= to =Visits= if they have an entry
-
-
-
-** TODO Permanent Data Captation
-SCHEDULED: <2025-06-16 Mon>
-
-*The database =loceval= is kind of transient (read: active, dynamic, beautiful).*
-Data prepared at home or generated in the field must be captured and moved to a completely different database: =mnmdb=.
-+ =LocationCalendar= is augmented and changed dynamically -> append diffs to =mnmdb=
-+ =Visits= have a field to indicate they are done, but should be moved/pruned regularly
-+ =FieldNotes= must be stored irrespective of the =hide= tag; images linked and moved to storage
 
 
