@@ -43,7 +43,7 @@ message(
 
 poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
 load(poc_rdata_path)
-source("109_snippet_selection.R")
+source("050_snippet_selection.R")
 
 # Load some custom GRTS functions
 # source(file.path(projroot, "R/grts.R"))

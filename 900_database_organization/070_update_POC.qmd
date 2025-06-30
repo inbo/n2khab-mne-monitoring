@@ -111,7 +111,7 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 ```{r source-code-snippets}
 # TODO: check for changes on every update.
 
-source("109_snippet_selection.R")
+source("050_snippet_selection.R")
 ```
 
 
