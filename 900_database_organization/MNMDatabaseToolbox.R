@@ -53,6 +53,7 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
 
 append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
   content <- DBI::dbReadTable(conn, db_table)
+  # head(content)
 
   if (any(is.na(reference_columns))) {
     # ... or just take all columns
@@ -79,7 +80,7 @@ append_tabledata <- function(conn, db_table, data_to_append, reference_columns =
   ))
   return(invisible(rs))
 
-}
+} #/ append_tabledata
 
 
 upload_and_lookup <- function(conn, db_table, data, ref_cols, index_col) {

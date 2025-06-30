@@ -791,6 +791,16 @@ from here: https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/45cde
 
 non-fluent (many features x wfs)
 
+** give up foreign key on =location=
+
++ problems with updating sample due to temporarily lost lookup
+  + cascading of =location_id= is non-trivial (but would work)
+  + yet then the =ogc_fid= is the official pk (for qgis compatibility)
+  + however, =ogc_fid= produces duplicates when auto-filling
+
++ grts address is sufficient and necessary
++ historic field assessments (from prev samples) should also remain in the "locations"
+
 ** copying a database
 
 

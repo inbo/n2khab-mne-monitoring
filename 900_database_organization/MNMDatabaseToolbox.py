@@ -55,7 +55,7 @@ def ODStoCSVs(infile, outfolder):
         table.to_csv(outfolder/f"{sheetname}.csv", index = False)
 
 
-def ReadSQLServerConfig(config_filename = "postgis_server.conf", label = None, **kwargs):
+def ReadSQLServerConfig(config_filename = "postgis_server.conf", profile = None, **kwargs):
     # will read sql configuration from a text file.
 
     # parse the config with the config parser
@@ -63,13 +63,13 @@ def ReadSQLServerConfig(config_filename = "postgis_server.conf", label = None, *
     config.read(config_filename)
 
     # per default, take first section
-    if label is None:
+    if profile is None:
         server_label = config.sections()[0]
     else:
-        server_label = label
+        server_label = profile
 
     # convert to dictionary
-    db_configuration = dict(config[label])
+    db_configuration = dict(config[profile])
 
     # extra arguments
     for kw, val in kwargs.items():
@@ -158,7 +158,7 @@ def ConnectDatabase(config_filepath, database, connection_config = None):
     # https://stackoverflow.com/a/42772654
     # user = input("user: ")
 
-    config = ReadSQLServerConfig(config_filepath, label = connection_config, database = database)
+    config = ReadSQLServerConfig(config_filepath, profile = connection_config, database = database)
 
     connection = DatabaseConnection(config)
 
@@ -375,6 +375,7 @@ def EnsureNestedQuerySpacing(query: str) -> str:
             , "CASE WHEN", "THEN", "ELSE", "END" \
             , "BEFORE", "BEGIN", "END" \
             , "CREATE", "DROP", "FOR EACH", "EXECUTE" \
+            , "MATCH", "SIMPLE", "ON DELETE", "ON UPDATE", "CASCADE" \
         ]:
         query = query.replace(keyword, f"\n\t{keyword} ")
 
@@ -636,7 +637,7 @@ class Database(dict):
 
         if (db_connection is not None) and (not lazy_creation):
             # perform all the database creation action at once
-            self.StoreData(db_connection)
+            self.PersistData(db_connection)
             self.CreateSchema(db_connection)
             self.CreateTables(db_connection)
             self.CreateViews(db_connection)
@@ -662,11 +663,11 @@ class Database(dict):
            yield(table)
 
 
-    def StoreData(self, db_connection: DatabaseConnection) -> None:
+    def PersistData(self, db_connection: DatabaseConnection) -> None:
 
         ### dump all data, for safety
         now = TI.strftime('%Y%m%d%H%M', TI.localtime())
-        db_connection.DumpAll(target_filepath = f"dumps/db_recreation_{db_connection['database']}_{now}.sql", user = "monkey")
+        db_connection.DumpAll(target_filepath = f"dumps/db_{db_connection.config['database']}_recreation_{now}.sql", user = "monkey")
 
         if self.tabula_rasa:
             if input("\n".join([
@@ -859,7 +860,7 @@ class Database(dict):
 
         ### (1) dump all data, for safety
         now = TI.strftime('%Y%m%d%H%M', TI.localtime())
-        db_connection.DumpAll(target_filepath = f"dumps/safedump_{db_connection['database']}_{now}.sql", user = "monkey")
+        db_connection.DumpAll(target_filepath = f"dumps/safedump_{db_connection.config['database']}_{now}.sql", user = "monkey")
 
         ### (2) load current data
         dependent_tables = [ \
@@ -1138,7 +1139,7 @@ if __name__ == "__main__":
 
     if True:
         pass
-        db.StoreData(db_connection)
+        db.PersistData(db_connection)
         db.CreateSchema(db_connection)
         db.CreateTables(db_connection)
         db.CreateViews(db_connection)
