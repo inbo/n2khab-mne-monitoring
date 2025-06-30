@@ -880,7 +880,8 @@ vim /var/lib/postgres/data/pg_hba.conf
 systemctl ...
 #+end_src
 
-
++ append =~/.pgpass=
++ instantiate backups (extra script, cronjob, logs, tested)
 + database creation script
 
 ** file renames
@@ -889,6 +890,7 @@ SCHEDULED: <2025-06-30 Mon>
 for better organization.
 
 ** debug init script
+
 
 
 * General
