@@ -38,6 +38,7 @@
   + [ ] local replacement view
   + [ ] ++ GroupedActivities {=module=, =scheme=}?
   + [ ] option to add activities / rows in FieldActivityPlanner?
+  + [ ] pull watina info
 
 + [-] input meeting @WT @KW @FV @FM <2025-06-24 Tue>
   + [X] decoupling LocCal - Visits!!

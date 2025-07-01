@@ -97,11 +97,6 @@ dump_all(
 #_______________________________________________________________________________
 ####   Metadata   ##############################################################
 
-### TODO Location Assessments
-# load previous in preatorio work from another database
-
-
-
 ## ----upload-teammembers-------------------------------------------------------
 members <- read_csv(here::here("db_structure", "data_TeamMembers.csv"))
 
@@ -153,6 +148,7 @@ upload_and_lookup(
   index_col = "grouped_activity_id"
 )
 
+
 ## ----upload-n2khabtype--------------------------------------------------------
 
 n2khab_types_upload <- bind_rows(
@@ -172,3 +168,33 @@ n2khabtype_lookup <- upload_and_lookup(
   ref_cols = "type",
   index_col = "n2khabtype_id"
 )
+
+
+## ----upload-location-assessments----------------------------------------------
+# load previous in preatorio work from another database
+
+db_loceval <- connect_database_configfile(
+  config_filepath,
+  database = "loceval",
+  profile = "dumpall",
+  user = "monkey",
+  password = NA
+)
+
+migrating_schema <- "outbound"
+migrating_table_key <- "LocationAssessments"
+migrating_table <- DBI::Id(schema = migrating_schema, table = migrating_table_key)
+
+locationassessments_data <- dplyr::tbl(
+    db_loceval,
+    migrating_table
+  ) %>%
+  collect() # collecting is necessary to modify offline and to re-upload
+
+
+### TODO Location Assessments: re-link locations
+# append_tabledata(
+#   db_connection,
+#   migrating_table,
+#   locationassessments_data
+# )

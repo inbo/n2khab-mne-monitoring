@@ -623,14 +623,24 @@ connect_database_configfile <- function(
   # connect to database
   #
   tryCatch({
-    database_connection <- DBI::dbConnect(
-      RPostgres::Postgres(),
-      dbname = database,
-      host = host,
-      port = port,
-      user = user,
-      password = password
-    )
+    if (is.na(password)) {
+      database_connection <- DBI::dbConnect(
+        RPostgres::Postgres(),
+        dbname = database,
+        host = host,
+        port = port,
+        user = user
+      )
+    } else {
+      database_connection <- DBI::dbConnect(
+        RPostgres::Postgres(),
+        dbname = database,
+        host = host,
+        port = port,
+        user = user,
+        password = password
+      )
+    }
     },
     error = function(wrnmsg) {
       message(
