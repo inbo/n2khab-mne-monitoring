@@ -1,8 +1,8 @@
 
 working_dbname <- "mnmfield_dev"
 config_filepath <- file.path("./inbopostgis_server.conf")
-connection_profile <- "mnmfield"
-dbstructure_folder <- "./fwdb_structure"
+connection_profile <- "mnmfield-dev"
+dbstructure_folder <- "./mnmfield_dev_structure"
 
 
 #_______________________________________________________________________________

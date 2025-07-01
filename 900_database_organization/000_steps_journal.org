@@ -803,6 +803,7 @@ SCHEDULED: <2025-06-27 Fri>
 + e.g. "production" to "testing"
 
 
+
 ** TODO issues with =Locations.ogc_fid= uniqueness
 SCHEDULED: <2025-06-27 Fri>
 
@@ -884,13 +885,23 @@ systemctl ...
 + instantiate backups (extra script, cronjob, logs, tested)
 + database creation script
 
+
 ** file renames
 SCHEDULED: <2025-06-30 Mon>
 
 for better organization.
 
-** debug init script
 
+** debug init script
+SCHEDULED: <2025-07-01 Tue>
+
+working!
+
+
+** fill with data
+SCHEDULED: <2025-07-02 Wed>
+
+(wip)
 
 
 * General
