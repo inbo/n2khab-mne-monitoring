@@ -47,6 +47,13 @@ path <- file.path(tempdir(), "objects_panflpan5.RData")
 drive_download(as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"), path = path)
 load(path)
 
+# Checking the existence of the correct data source files in the correct
+# directories
+verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+
+
+
+
 
 ## Sampling unit attributes -----------------------------
 
