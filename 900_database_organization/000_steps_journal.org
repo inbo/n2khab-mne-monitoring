@@ -901,7 +901,24 @@ working!
 ** fill with data
 SCHEDULED: <2025-07-02 Wed>
 
-(wip)
++ [X] Locations
++ [X] LocationAssessments
++ [X] FieldActivityCalendar
++ [ ] Visits
++ [ ] Replacements
+
+** create tester user
+SCHEDULED: <2025-07-02 Wed>
+
+(user who can only access the =_dev= databases,
+so that I do not have to hijack other people's accounts all the time)
+
+** qgis outbound app
+SCHEDULED: <2025-07-02 Wed>
+
+TODO:
++ ++landowner
++ re-upload bug
 
 
 * General
