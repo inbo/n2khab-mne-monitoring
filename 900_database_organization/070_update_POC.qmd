@@ -411,9 +411,8 @@ sf::dbWriteTable(
 
 You can check the status/progress of location updates as follows:
 
-```{sql}
+```{sql test-run-sql}
+#| connection: db_connection
 SELECT DISTINCT assessment_done, count(*) FROM "outbound"."LocationAssessments" GROUP BY assessment_done;
 ```
-
-
 

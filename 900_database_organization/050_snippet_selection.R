@@ -49,6 +49,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
   arrange(pick(scheme:grts_address))
 
 
+
 # merging scheme:module_combo_code:panel_set:targetpanel, still distinguishing
 # strata separately (even though they may share their location: this is unreal
 # in the case of multiple cell-centered strata). For now, not distinguishing
@@ -69,6 +70,7 @@ stratum_schemepstargetpanel_spsamples <-
   ) %>%
   relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
+
 
 # Note: if grts_address_final differs from grts_address, then this means a local
 # replacement took place already in the past. If now it appears that the stratum
@@ -110,7 +112,6 @@ units_7220 <-
     grts_address_final = grts_address
   ) %>%
   relocate(grts_address_final)
-
 
 
 # geometries of terrestrial types, excluding 7220: these are cells
@@ -274,6 +275,7 @@ fag_grts_calendar_2025_attribs <-
   ) %>%
   relocate(stratum_scheme_ps_targetpanels)
 
+
 # A simple derived spatial object (as points; see earlier for the actual unit
 # geometries). Points are still repeated because of different date_interval &
 # FAG values at the same location.
@@ -283,6 +285,37 @@ fag_grts_calendar_2025_attribs_sf <-
     grts_var = "grts_address_final",
     spatrast = grts_mh,
     spatrast_index = grts_mh_index
+  )
+
+
+# prioritization of fieldwork 2025:
+fieldwork_2025_prioritization <-
+  fag_stratum_grts_calendar_2025_attribs %>%
+  mutate(
+    priority = case_when(
+      str_detect(
+        scheme_ps_targetpanels,
+        "GW_03\\.3:(PS1PANEL(09|10|11|12)|PS2PANEL0[56])|SURF_03\\.4_[a-z]+:PS\\dPANEL03"
+      ) ~ 1L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 2L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 4L,
+      .default = 5L
+    ),
+    wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
+    wait_3260 = stratum == "3260",
+    wait_7220 = str_detect(stratum, "^7220")
+  ) %>%
+  arrange(
+    date_end,
+    priority,
+    wait_watersurface,
+    wait_3260,
+    wait_7220,
+    stratum,
+    grts_address,
+    rank,
+    field_activity_group
   )
 
 # prioritization of fieldwork 2025:
@@ -303,20 +336,6 @@ fieldwork_2025_prioritization <-
     wait_3260 = stratum == "3260",
     wait_7220 = str_detect(stratum, "^7220")
   )
-
-# overview fieldwork prioritization 2025 according to schemes & panels:
-fieldwork_2025_targetpanels_prioritization_count <-
-  fieldwork_2025_prioritization %>%
-  count(
-    scheme_ps_targetpanels,
-    priority,
-    wait_watersurface,
-    wait_3260,
-    wait_7220,
-    field_activity_group
-  ) %>%
-  arrange(priority, wait_watersurface, wait_3260, wait_7220) %>%
-  pivot_wider(names_from = field_activity_group, values_from = n)
 
 
 #_______________________________________________________________________________
@@ -377,63 +396,6 @@ grouped_activities <- grouped_activities %>%
     .before = 1
   )
 
-
-
-#_______________________________________________________________________________
-# scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar
-# scheme_moco_ps_stratum_targetpanel_spsamples
-# stratum_schemetargetpanel_spsamples
-# stratum_units_non_cell_n2khab
-
-
-fag_stratum_grts_calendar_2025_attribs_sf <-
-  fag_stratum_grts_calendar_2025_attribs %>%
-  add_point_coords_grts(
-    grts_var = "grts_address_final",
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  )
-
-if (FALSE){
-  fag_stratum_grts_calendar_2025_attribs_sf %>%
-    head(32) %>%
-    sf::st_geometry() %>%
-    plot()
-}
-
-
-# prioritization of fieldwork 2025:
-fieldwork_2025_prioritization <-
-  fag_stratum_grts_calendar_2025_attribs %>%
-  mutate(
-    priority = case_when(
-      str_detect(
-        scheme_ps_targetpanels,
-        "GW_03\\.3:(PS1PANEL(09|10|11|12)|PS2PANEL0[56])|SURF_03\\.4_[a-z]+:PS\\dPANEL03"
-      ) ~ 1L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 2L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 4L,
-      .default = 5L
-    ),
-    wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
-    wait_3260 = stratum == "3260",
-    wait_7220 = str_detect(stratum, "^7220")
-  )
-
-# overview fieldwork prioritization 2025 according to schemes & panels:
-fieldwork_2025_targetpanels_prioritization_count <-
-  fieldwork_2025_prioritization %>%
-  count(
-    scheme_ps_targetpanels,
-    priority,
-    wait_watersurface,
-    wait_3260,
-    wait_7220,
-    field_activity_group
-  ) %>%
-  arrange(priority, wait_watersurface, wait_3260, wait_7220) %>%
-  pivot_wider(names_from = field_activity_group, values_from = n)
 
 
 
