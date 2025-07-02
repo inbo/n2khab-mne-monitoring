@@ -380,7 +380,8 @@ sample_locations <-
       as.character
     )
   )
-glimpse(sample_locations)
+
+# glimpse(sample_locations)
 
 # TODO still need to join the location, below
 # TODO in the future, make sure `type` is
@@ -584,6 +585,8 @@ fieldwork_calendar <-
     relationship = "many-to-one"
   ) %>%
   select(
+    -grts_address,
+    -type,
     -scheme_ps_targetpanels,
     -scheme,
     -panel_set,
@@ -594,6 +597,15 @@ fieldwork_calendar <-
   )
 
 # glimpse(fieldwork_calendar)
+
+fac_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "FieldActivityCalendar"),
+  fieldwork_calendar,
+  ref_cols = c("samplelocation_id", "activity_group_id", "date_start"),
+  index_col = "fieldactivitycalendar_id"
+)
+
 
 # TODO check that stratum matches type from the orthofoto table
 
@@ -624,4 +636,5 @@ sf::dbWriteTable(
   )
 
 
-## TODO POC update
+## TODO POC update?
+## TODO Visits from Calendar
