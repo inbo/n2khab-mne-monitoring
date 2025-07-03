@@ -908,6 +908,17 @@ fieldwork_2025_prioritization <-
     wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
     wait_3260 = stratum == "3260",
     wait_7220 = str_detect(stratum, "^7220")
+  ) %>%
+  arrange(
+    date_end,
+    priority,
+    wait_watersurface,
+    wait_3260,
+    wait_7220,
+    stratum,
+    grts_address,
+    rank,
+    field_activity_group
   )
 
 # overview fieldwork prioritization 2025 according to schemes & panels:
