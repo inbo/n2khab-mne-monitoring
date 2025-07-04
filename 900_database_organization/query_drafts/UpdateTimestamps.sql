@@ -25,6 +25,12 @@ CREATE TRIGGER log_freefieldnotes
 BEFORE UPDATE ON "inbound"."FreeFieldNotes"
 FOR EACH ROW EXECUTE PROCEDURE sync_mod();
 
+DROP TRIGGER IF EXISTS log_extravisits ON "inbound"."ExtraVisits";
+CREATE TRIGGER log_extravisits
+BEFORE UPDATE ON "inbound"."ExtraVisits"
+FOR EACH ROW EXECUTE PROCEDURE sync_mod();
+
+
 -- on mnmfield
 DROP TRIGGER IF EXISTS log_fieldactivitycalendar ON "outbound"."FieldActivityCalendar";
 CREATE TRIGGER log_fieldactivitycalendar

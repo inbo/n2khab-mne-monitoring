@@ -21,6 +21,9 @@ library("mapview")
 
 projroot <- find_root(is_rstudio_project)
 working_dbname <- "loceval_dev"
+config_filepath <- file.path("./inbopostgis_server.conf")
+connection_profile <- "loceval-dev"
+dbstructure_folder <- "./loceval_dev_structure"
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
@@ -66,6 +69,7 @@ load(poc_rdata_path)
 ## ----check-loading-snippets-----------------------------------
 
 invisible(capture.output(source("050_snippet_selection.R")))
+source("051_snippet_transformation_code.R")
 
 stopifnot(
   "NOT FOUND: snip snap >> `grts_mh_index`" = exists("grts_mh_index")
@@ -73,22 +77,82 @@ stopifnot(
 
 stopifnot(
   "NOT FOUND: snip snap >> `scheme_moco_ps_stratum_targetpanel_spsamples`" =
-      exists("scheme_moco_ps_stratum_targetpanel_spsamples")
+    exists("scheme_moco_ps_stratum_targetpanel_spsamples")
 )
 
 stopifnot(
   "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples`" =
-      exists("stratum_schemepstargetpanel_spsamples")
+    exists("stratum_schemepstargetpanel_spsamples")
 )
 
 stopifnot(
   "NOT FOUND: snip snap >> `units_cell_polygon`" =
-      exists("units_cell_polygon")
+    exists("units_cell_polygon")
+)
+
+stopifnot(
+  "NOT FOUND: RData >> `activities`" =
+    exists("activities")
 )
 
 stopifnot(
   "NOT FOUND: RData >> `activity_sequences`" =
-      exists("activity_sequences")
+    exists("activity_sequences")
+)
+
+stopifnot(
+  "NOT FOUND: RData >> `n2khab_strata`" =
+    exists("n2khab_strata")
+)
+
+stopifnot(
+  "snip snap >> `orthophoto grts` not found" = exists("orthophoto_2025_type_grts")
+)
+
+## ----load-config--------------------------------------------------------------
+db_connection <- connect_database_configfile(
+  config_filepath,
+  database = working_dbname,
+  profile = connection_profile
+)
+
+
+
+## ----upload-teammembers-------------------------------------------------------
+members <- read_csv(
+  here::here(dbstructure_folder, "data_TeamMembers.csv"),
+  show_col_types = FALSE
+)
+
+member_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "TeamMembers"),
+  members,
+  ref_cols = "username",
+  index_col = "teammember_id"
+)
+
+
+
+
+## ----upload-protocols---------------------------------------------------------
+protocols <- activities %>%
+  select(protocol) %>%
+  distinct() %>%
+  arrange(protocol) %>%
+  filter(!is.na(protocol)) %>%
+  mutate(
+    protocol_id = 1:n(),
+    protocol = as.character(protocol),
+    description = NA
+  )
+
+protocol_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "Protocols"),
+  protocols,
+  ref_cols = "protocol",
+  index_col = "protocol_id"
 )
 
 ## ----prepare-activities-------------------------------------------------------
@@ -154,75 +218,19 @@ grouped_activities <- grouped_activities %>%
 # glimpse(grouped_activities)
 
 
-
-
-## ----load-config--------------------------------------------------------------
-config_filepath <- file.path("./inbopostgis_server.conf")
-
-if (working_dbname == "loceval") {
-  db_connection <- connect_database_configfile(
-    config_filepath,
-    database = "loceval",
-    profile = "inbopostgis"
-  )
-
-} else {
-  db_connection <- connect_database_configfile(
-    config_filepath,
-    database = working_dbname,
-    profile = "inbopostgis-dev"
-  )
-
-}
-
-
-
-## ----upload-teammembers-------------------------------------------------------
-members <- read_csv(here::here("db_structure", "data_TeamMembers.csv"))
-
-member_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "TeamMembers"),
-  members,
-  ref_cols = "username",
-  index_col = "teammember_id"
-)
-
-
-## ----upload-protocols---------------------------------------------------------
-protocols <- activities %>%
-  select(protocol) %>%
-  distinct() %>%
-  arrange(protocol) %>%
-  filter(!is.na(protocol)) %>%
-  mutate(
-    protocol_id = 1:n(),
-    protocol = as.character(protocol),
-    description = NA
-  )
-
-protocol_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "Protocols"),
-  protocols,
-  ref_cols = "protocol",
-  index_col = "protocol_id"
-)
-
-
 ## ----upload-grouped-activities------------------------------------------------
 
 grouped_activities_upload <- grouped_activities %>%
   lookup_join(protocol_lookup, "protocol")
 
-# append_tabledata(
+# NOT append_tabledata(
 #   db_connection,
 #   DBI::Id(schema = "metadata", table = "GroupedActivities"),
 #   grouped_activities_upload,
 #   reference_columns = "grouped_activity_id"
 # )
 
-# done manually to get multiple columns as unique lookup
+# -> done manually to get multiple columns as unique lookup
 
 db_table <- DBI::Id(schema = "metadata", table = "GroupedActivities")
 ga_content <- DBI::dbReadTable(db_connection, db_table)
@@ -253,6 +261,7 @@ grouped_activity_lookup <-
 
 
 ## ----upload-n2khabtype--------------------------------------------------------
+## n2khab type to stratum (below)
 
 n2khab_types_upload <- bind_rows(
   as_tibble(list(
@@ -263,7 +272,6 @@ n2khab_types_upload <- bind_rows(
   n2khab_types_expanded_properties
   )
 
-
 n2khabtype_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "metadata", table = "N2kHabTypes"),
@@ -272,33 +280,104 @@ n2khabtype_lookup <- upload_and_lookup(
   index_col = "n2khabtype_id"
 )
 
+
+
 # SELECT DISTINCT type FROM "metadata"."N2kHabTypes" ORDER BY type;
 
-## ----TODO restore-assessments-------------------------------------------------
+n2khab_strata_upload <- bind_rows(
+  as_tibble(list(
+    type = c("gh"),
+    stratum = c("gh")
+  )),
+    n2khab_strata
+  ) %>%
+  left_join(
+    n2khabtype_lookup,
+    by = join_by(type),
+    relationship = "many-to-one",
+  ) %>%
+  select(-type)
+
+DBI::dbWriteTable(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "lut_N2kHabStrata"),
+  n2khab_strata_upload,
+  overwrite = TRUE
+  )
 
 
 
 
+## ----collect-sample-locations----------------------------------------------
+# glimpse(fag_stratum_grts_calendar)
 
-## ----upload-sample-locations--------------------------------------------------
-# glimpse(orthophoto_2025_type_grts)
-stopifnot(
-  "snip snap >> `orthophoto grts` not found" = exists("orthophoto_2025_type_grts")
-)
-
-sample_locations <- orthophoto_2025_type_grts %>%
-  select(-grts_address) %>%
+sample_locations <-
+  fag_stratum_grts_calendar %>%
+  common_current_calenderfilters() %>%
+  distinct(
+    scheme_moco_ps,
+    stratum,
+    grts_address
+  ) %>%
+  unnest(scheme_moco_ps) %>%
+  # adding location attributes
+  inner_join(
+    scheme_moco_ps_stratum_targetpanel_spsamples %>%
+      select(
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        grts_join_method,
+        grts_address,
+        grts_address_final,
+        targetpanel
+      ) %>%
+      # deduplicating 7220:
+      distinct(),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  common_current_samplefilters() %>%
+  # also join the spatial poststratum, since we need this in setting
+  # GRTS-address based priorities
+  inner_join(
+    scheme_moco_ps_stratum_sppost_spsamples %>%
+      unnest(sp_poststr_samples) %>%
+      select(-sample_status),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  select(-module_combo_code) %>%
+  nest_scheme_ps_targetpanel() %>%
+  # add MHQ assessment metadata
+  inner_join(
+    stratum_grts_n2khab_phabcorrected_no_replacements %>%
+      select(stratum, grts_address, assessed_in_field, assessment_date),
+    join_by(stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  distinct() %>%
+  convert_stratum_to_type() %>%
+  rename_grts_address_final_to_grts_address() %>%
   rename(
-    grts_address = grts_address_final,
-    previous_assessment = assessed_in_field,
-    previous_assessment_date = assessment_date
+    assessment = assessed_in_field,
+    assessment_date = assessment_date # triv.
+  ) %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  mutate(
+    previous_notes = NA # FUTURE TODO
   ) %>%
   mutate(
     across(c(
-        type,
         grts_join_method,
+        scheme_ps_targetpanels,
         sp_poststratum,
-        scheme_ps_targetpanels
+        type
       ),
       as.character
     )
@@ -306,49 +385,30 @@ sample_locations <- orthophoto_2025_type_grts %>%
 
 # glimpse(sample_locations)
 
+# still need to join the location, below
+# TODO in the future, make sure `type` is
+#      correctly filled from LOCEVAL
+#      "previous_assessment" -> "assessment"
+#      and add previous_notes
 
-
-# clean up LocationAssessments
-verb <- "DELETE "
-sql_command <- glue::glue(
-  '{verb} FROM "outbound"."LocationAssessments"
-    WHERE ((log_user = \'yoda\') OR (log_user = \'falk\') OR (log_user = \'update\'))
-      AND (NOT cell_disapproved)
-      AND (revisit_disapproval IS NULL)
-      AND (disapproval_explanation IS NULL)
-      AND (type_suggested IS NULL)
-      AND (implications_habitatmap IS NULL)
-      AND (feedback_habitatmap IS NULL)
-      AND (notes IS NULL)
-      AND (NOT assessment_done)
-    ;')
-# print(sql_command)
-rs <- DBI::dbExecute(
-  db_connection,
-  sql_command
-  )
-# print(rs)
-
-# DBI::dbReadTable(
-#   db_connection,
-#   DBI::Id(schema = "outbound", table = "LocationAssessments"),
-#   ) %>% collect() %>%
-#     head() %>% knitr::kable()
-
-# add location for previous LocationAssessment
-
-previous_locations <- DBI::dbReadTable(
+## ----save-previous-location-assessments----------------------------------------------
+previous_location_assessments <- DBI::dbReadTable(
   db_connection,
   DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  ) %>% collect() %>%
-  pull("grts_address") %>%
-  as.integer()
+  ) %>% collect()
+# nrow(previous_location_assessments)
 
 
-# **Upload Spatial Locations:**
+## ----upload-locations----------------------------------------------
+# will be the union set of grts addresses in
+#    - locationassessments_data
+#    - sample_locations
+# not accounting for fieldwork_calendar because that is derived from
+# the same source as sample_locations
+
 locations <- c(
     sample_locations %>% pull(grts_address) %>% as.integer(),
-    previous_locations
+    previous_location_assessments %>% pull(grts_address) %>% as.integer()
   ) %>%
   tibble(grts_address = .) %>%
   distinct() %>%
@@ -406,7 +466,7 @@ append_tabledata(
 )
 
 
-# **Upload Sample Locations:**
+## ----upload-sample-locations----------------------------------------------
 
 if ("location_id" %in% names(sample_locations)) {
   # should not be the case in a continuous script;
@@ -421,24 +481,45 @@ sample_locations <- sample_locations %>%
     relationship = "many-to-one"
   )
 
-
 # might otherwise be duplicated due to missing fk and null constraint
 rs <- DBI::dbExecute(
   db_connection,
   'DELETE FROM "outbound"."SampleLocations";'
   )
 
-append_tabledata(
+slocs_refcols <- c(
+  "type",
+  "grts_address",
+  "scheme",
+  "panel_set",
+  "targetpanel"
+  # "sp_poststratum"
+)
+sample_locations_lookup <- upload_and_lookup(
   db_connection,
   DBI::Id(schema = "outbound", table = "SampleLocations"),
   sample_locations,
-  reference_columns =
-    c("type", "grts_address", "scheme_ps_targetpanels", "loceval_year")
+  ref_cols = slocs_refcols,
+  index_col = "samplelocation_id"
 )
 
+# sample_locations_lookup %>% nrow()
+# sample_locations_lookup %>%
+#   select(!!!slocs_refcols) %>%
+#   distinct %>%
+#   nrow()
 
 
-# **Append Location Assessments:**
+## ----restore-assessments-------------------------------------------------
+
+# orthophoto_prior_data <- dplyr::tbl(
+#     db_connection,
+#     DBI::Id(schema = "outbound", table = "LocationAssessments")
+#   ) %>%
+#   collect() # collecting is necessary to modify offline and to re-upload
+#
+# # orthophoto_upload <-
+
 
 new_location_assessments <- sample_locations %>%
   select(
@@ -452,12 +533,6 @@ new_location_assessments <- sample_locations %>%
     cell_disapproved = FALSE,
     assessment_done = FALSE
   )
-
-previous_location_assessments <- DBI::dbReadTable(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  ) %>% collect()
-# nrow(previous_location_assessments)
 
 new_location_assessments <- new_location_assessments %>%
   anti_join(
@@ -502,3 +577,47 @@ sf::dbWriteTable(
 # conn <- db_connection
 # db_table <- DBI::Id(schema = "outbound", table = "LocationAssessments")
 # data_to_append <- new_location_assessments
+
+
+
+## ----extra-visits-------------------------------------------------
+
+previous_extra_visits <- DBI::dbReadTable(
+  db_connection,
+  DBI::Id(schema = "inbound", table = "ExtraVisits"),
+  ) %>% collect()
+
+new_extra_visits <- sample_locations_lookup %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+    relationship = "many-to-one"
+  ) %>%
+  select(samplelocation_id, location_id, grts_address) %>%
+  mutate(
+    grouped_activity_id = NA,
+    teammember_id = NA,
+    date_visit = NA,
+    log_user = "update",
+    log_update = as.POSIXct(Sys.time()),
+    visit_done = FALSE
+  )
+
+new_extra_visits <- new_extra_visits %>%
+  anti_join(
+    previous_extra_visits,
+    by = join_by(samplelocation_id, grts_address)
+  )
+
+extra_visits_upload <- bind_rows(
+  previous_extra_visits,
+  new_extra_visits
+  ) %>%
+  select(-extravisit_id)
+
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "inbound", table = "ExtraVisits"),
+  extra_visits_upload,
+  reference_columns = c("grts_address", "grouped_activity_id", "teammember_id", "date_visit")
+)

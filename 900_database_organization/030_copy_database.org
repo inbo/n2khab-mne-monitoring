@@ -92,8 +92,8 @@ import MNMDatabaseToolbox as DTB
 
 # database:
 base_folder = DTB.PL.Path(".")
-structure_folder = base_folder/"devdb_structure"
-DTB.ODStoCSVs(base_folder/"loceval_dbstructure.ods", structure_folder)
+structure_folder = base_folder/"loceval_db_structure"
+DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
 db_target = DTB.ConnectDatabase(
     "inbopostgis_server.conf",
@@ -181,7 +181,7 @@ migrating_table <- DBI::Id(schema = "metadata", table = migrating_table_key)
 
 source_db_connection <- connect_database_configfile(
   config_filepath = file.path("./inbopostgis_server.conf"),
-  profile = "inbopostgis-dev",
+  profile = "loceval-dev",
   database = "loceval_dev"
 )
 
@@ -234,7 +234,7 @@ update_datatable_and_dependent_keys(
   table_key = migrating_table_key,
   new_data = protocols_data,
   profile = "testing",
-  dbstructure_folder = "devdb_structure",
+  dbstructure_folder = "loceval_dev_structure",
   verbose = FALSE
 )
 #+end_src
@@ -258,12 +258,12 @@ source("MNMDatabaseToolbox.R")
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
-dbstructure_folder <- "devdb_structure"
+dbstructure_folder <- "loceval_dev_structure"
 
 # from source...
 source_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
-  profile = "inbopostgis",
+  profile = "loceval",
   user = "monkey",
   database = "loceval"
 )
