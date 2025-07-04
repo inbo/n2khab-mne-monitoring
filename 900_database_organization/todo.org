@@ -29,6 +29,36 @@
 + [X] something wrong with python =getpasswd=
 + [ ] backup procedures
   + [ ] daily backups to S3
++ [ ] list WCS/WFS/WMS sources
++ [ ] random points in target area for well placement
++ [ ] re-upload bug
+
++ [ ] info from LocationAssessment
++ [ ] landuse/ownership: one categorical field
+
++ [ ] meeting @TDD @WT @KW @FV @FM <2025-07-02 Wed> MNM Fieldwork Outbound/Planning app
+  + [ ] INBO arcgis -> qgis via web services?
+  + [ ] n2khab_strata ++allow NULL
+  + [ ] move all =waiting_= types to a separate layer clone
+  + [ ] type -> stratum for all except Ward (see separate email)
+    + doubling by re-join of scheme
+    + loceval: strata temporally and spatially separated -> no join of =scheme_panelset=
+    + for GW app: summarized
+      + e.g. =fag_{,_stratum}_grts_calendar
+  + revisit =grts_address=
+  + [ ] ++fac_rank
+  + [ ] ++ field =praktische_info=
+  + [ ] ++ field =accessibility=
+  + [ ] required map layers @TDD:
+    + laadpalen
+    + land owner
+    + topo map (osm, google)
+    + watina summary layer
+    + bodemkaart
+    + woonplaats medewerkers
+
++ [ ] WATINA summary layer
+  + [ ] naming a priori by Tom; provide voronoi polygon layer
 
 + [-] Fieldwork Planning app
   + [X] database structure basic
