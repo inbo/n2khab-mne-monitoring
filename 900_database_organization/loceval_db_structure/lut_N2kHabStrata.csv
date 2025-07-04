@@ -1,0 +1,4 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+n2khabstratum_id,smallint,True,,True,True,,,,technical index for lookup
+n2khabtype_id,smallint,True,,False,False,N2kHabTypes.n2khabtype_id,,,natura 2000 habitat (sub-)type index (technical)
+stratum,varchar(16),True,,False,False,,,,stratum short label

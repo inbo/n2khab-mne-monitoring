@@ -3,6 +3,7 @@ metadata,Protocols,falk,"ward,karen,floris,monkey",,,,,,,protocols (preliminary 
 metadata,GroupedActivities,falk,"ward,karen,floris,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
 metadata,TeamMembers,falk,"ward,karen,floris,monkey",,,,,1,,list of team members
 metadata,N2kHabTypes,falk,"ward,karen,floris,monkey",,,,,,,habitat type
+metadata,lut_N2kHabStrata,falk,"ward,karen,floris,monkey",,,,,,,lookup table n2khab type to stratum
 metadata,Locations,falk,"ward,karen,floris,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
 metadata,LocationCells,falk,"ward,karen,floris,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
 outbound,SampleLocations,falk,"ward,karen,floris,monkey",,,,,,,list of locations currently sampled
@@ -11,3 +12,4 @@ outbound,ReplacementLocations,falk,"ward,karen,floris,monkey",,POINT,,,,1,putati
 outbound,FieldActivityCalendar,falk,"ward,karen,floris,monkey",,POINT,,,,1,(temporarily on hold) field activity calender
 inbound,Visits,falk,"ward,karen,floris,monkey","ward,karen,floris",,,,1,1,"retrieving information about location visits, linked to fieldactivitycalendar"
 inbound,FreeFieldNotes,falk,"ward,karen,floris,monkey","ward,karen,floris",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
+inbound,ExtraVisits,falk,"ward,karen,floris,monkey","ward,karen,floris",,,,1,,"inbound information about location visits, linked to SampleLocations"

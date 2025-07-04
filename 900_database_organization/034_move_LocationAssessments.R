@@ -38,10 +38,12 @@ sort_protocols <- function(prt) {
 
 update_datatable_and_dependent_keys(
   config_filepath = file.path("./inbopostgis_server.conf"),
-  working_dbname = "loceval_dev",
+  working_dbname = "loceval_testing",
   table_key = migrating_table_key,
   new_data = migtab_data,
-  profile = "loceval-dev",
-  dbstructure_folder = "loceval_dev_structure",
+  profile = "testing",
+  dbstructure_folder = "loceval_db_structure",
   verbose = FALSE
 )
+
+# SELECT DISTINCT assessment_done, cell_disapproved, count(*) FROM "outbound"."LocationAssessments" GROUP BY assessment_done, cell_disapproved;

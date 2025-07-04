@@ -27,6 +27,11 @@ dbstructure_folder <- "./loceval_dev_structure"
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
+# projroot <- find_root(is_rstudio_project)
+# working_dbname <- "loceval"
+# config_filepath <- file.path("./inbopostgis_server.conf")
+# connection_profile <- "loceval"
+# dbstructure_folder <- "./loceval_db_structure"
 
 source("MNMDatabaseToolbox.R")
 
@@ -597,7 +602,7 @@ new_extra_visits <- sample_locations_lookup %>%
   mutate(
     grouped_activity_id = NA,
     teammember_id = NA,
-    date_visit = NA,
+    date_visit = as.Date(NA),
     log_user = "update",
     log_update = as.POSIXct(Sys.time()),
     visit_done = FALSE
@@ -621,3 +626,28 @@ append_tabledata(
   extra_visits_upload,
   reference_columns = c("grts_address", "grouped_activity_id", "teammember_id", "date_visit")
 )
+
+
+### check upload
+
+slocs <- DBI::dbReadTable(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "SampleLocations"),
+  ) %>% collect()
+
+locs <- sf::st_read(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "Locations"),
+  )
+
+locs %>% anti_join(
+  slocs,
+  by = join_by(location_id)
+  )
+
+locs %>% anti_join(
+  slocs,
+  by = join_by(grts_address)
+  )
+
+# SELECT DISTINCT assessment_done, cell_disapproved, count(*) FROM "outbound"."LocationAssessments" GROUP BY assessment_done, cell_disapproved;

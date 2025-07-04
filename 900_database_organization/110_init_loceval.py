@@ -6,7 +6,7 @@ import MNMDatabaseToolbox as DTB
 # SET search_path TO public,"metadata","outbound","inbound";
 
 
-if True:
+if False:
     # database: loceval_dev
     base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"loceval_dev_structure"
@@ -54,7 +54,7 @@ if False:
     # database: loceval
     base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"loceval_db_structure"
-    DTB.ODStoCSVs(base_folder/"loceval_dbstructure.ods", structure_folder)
+    DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
