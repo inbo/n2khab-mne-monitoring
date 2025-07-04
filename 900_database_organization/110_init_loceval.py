@@ -9,12 +9,12 @@ import MNMDatabaseToolbox as DTB
 if True:
     # database: loceval_dev
     base_folder = DTB.PL.Path(".")
-    structure_folder = base_folder/"devdb_structure"
+    structure_folder = base_folder/"loceval_dev_structure"
     DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
-        connection_config = "inbopostgis-dev",
+        connection_config = "loceval-dev",
         database = "loceval_dev"
         )
     db = DTB.Database( \
@@ -30,7 +30,7 @@ if True:
 if False:
     # database: loceval_testing
     base_folder = DTB.PL.Path(".")
-    structure_folder = base_folder/"devdb_structure"
+    structure_folder = base_folder/"loceval_dev_structure"
     DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
@@ -53,12 +53,12 @@ if False:
 
     # database: loceval
     base_folder = DTB.PL.Path(".")
-    structure_folder = base_folder/"db_structure"
+    structure_folder = base_folder/"loceval_db_structure"
     DTB.ODStoCSVs(base_folder/"loceval_dbstructure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
-        connection_config = "inbopostgis",
+        connection_config = "loceval",
         database = "loceval"
     )
     db = DTB.Database( \

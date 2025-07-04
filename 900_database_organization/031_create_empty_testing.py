@@ -5,8 +5,8 @@ import MNMDatabaseToolbox as DTB
 
 # database:
 base_folder = DTB.PL.Path(".")
-structure_folder = base_folder/"devdb_structure"
-DTB.ODStoCSVs(base_folder/"loceval_dbstructure.ods", structure_folder)
+structure_folder = base_folder/"loceval_db_structure"
+DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
 db_target = DTB.ConnectDatabase(
     "inbopostgis_server.conf",
