@@ -920,8 +920,39 @@ TODO:
 + ++landowner
 + re-upload bug
 
+* learning the hard way
+
+** =dbWriteTable(..., overwrite = TRUE, ...)= is a bad idea!
+SCHEDULED: <2025-07-07 Mon>
+
+Overwriting a table is a "DROP/CREATE" procedure and therefore leads to a loss in access roles.
+
++ Just don't do it!
++ Instead, manually "DELETE+INSERT",
+  wherein the insert can be =dbWriteTable(..., overwrite = FALSE, append = TRUE, ...)=.
+
+
+** loss of links due to "=append_tabledata="
+SCHEDULED: <2025-07-07 Mon>
+
+The function =append_tabledata= checks which data rows are present in the table,
+and only uploads the novel ones.
+Problem is that foreign keys are neglected:
++ If the old data was linked to another table,
++ and that table was also updated prior to the re-upload,
++ then links will be lost.
+
+Actually, I had =update_datatable_and_dependent_keys()= in place for this.
+Time to use it.
+
+
+** =distinct= does not mean =unique= :/
+
+or does it?
+
 
 * General
+
 
 ** TODO Replacement Unit logic
 SCHEDULED: <2025-06-16 Mon>

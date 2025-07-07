@@ -6,7 +6,7 @@ import MNMDatabaseToolbox as DTB
 # SET search_path TO public,"metadata","outbound","inbound";
 
 
-if False:
+if True:
     # database: loceval_dev
     base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"loceval_dev_structure"

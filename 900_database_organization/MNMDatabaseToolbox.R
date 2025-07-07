@@ -51,6 +51,9 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
 
 # TODO: option to drop; but mind cascading
 
+# this function loads the content of a table, and then uploads only
+# the new rows which are not already present (as judged by some
+# reference columns).
 append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
   content <- DBI::dbReadTable(conn, db_table)
   # head(content)
@@ -249,11 +252,11 @@ update_datatable_and_dependent_keys <- function(
 
   dependent_tables <- table_relations %>% pull(dependent_table)
 
-  table_existing_data_list <- query_tables_data(
-      db_target,
-      database = working_dbname,
-      tables = lapply(c(table_key, dependent_tables), FUN = get_tableid)
-  )
+  # table_existing_data_list <- query_tables_data(
+  #   db_target,
+  #   database = working_dbname,
+  #   tables = lapply(c(table_key, dependent_tables), FUN = get_tableid)
+  # )
 
 
   ### (3) store key lookup of dependent table
@@ -354,8 +357,10 @@ update_datatable_and_dependent_keys <- function(
   # prior to deletion
   # in connection with `characteristic_columns`
 
-  # TODO write function
-  # to restore key lookup table
+  # TODO write function to restore key lookup table
+  # TODO allow rollback (of focal and dependent tables)
+
+  # TODO should we occasionally reset the sequence counter?
 
   # DELETE existing data -> DANGEROUS territory!
   execute_sql(
@@ -517,7 +522,7 @@ update_datatable_and_dependent_keys <- function(
   } # /loop dependent tables
 
 
-} #/update_datatable_recursively
+} #/update_datatable_and_dependent_keys
 
 
 
