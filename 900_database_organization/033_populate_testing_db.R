@@ -7,7 +7,7 @@ source("MNMDatabaseToolbox.R")
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
-dbstructure_folder <- "loceval_db_structure"
+dbstructure_folder <- "loceval_dev_structure"
 
 # from source...
 source_db_connection <- connect_database_configfile(
@@ -19,8 +19,8 @@ source_db_connection <- connect_database_configfile(
 )
 
 # ... to target
-target_db_name <- "loceval_dev"
-target_connection_profile <- "loceval-dev"
+target_db_name <- "loceval_testing"
+target_connection_profile <- "testing"
 target_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = target_connection_profile,
@@ -44,7 +44,7 @@ sort_protocols <- function(prt) {
 ### associate the functions with table names
 
 table_modification <- c(
-  # "Protocols" = function (prt) sort_protocols(prt) # (almost) anything you like
+  "Protocols" = function (prt) sort_protocols(prt) # (almost) anything you like
 )
 
 #_______________________________________________________________________________
@@ -98,17 +98,19 @@ process_db_table_copy <- function(table_idx){
 }
 
 # TODO due to ON DELETE SET NULL from "Locations", location_id's temporarily become NULL.
+#      Updating would be cumbersome.
 constraints_mod <- function(do = c("DROP", "SET")){
   # To prevent failure, I temporarily remove the constraint.
   for (table_key in c("LocationAssessments", "SampleLocations")){
 
+    # {dis/en}able fk for these tables
     execute_sql(
       target_db_connection,
       glue::glue('ALTER TABLE "outbound"."{table_key}" ALTER COLUMN location_id {do} NOT NULL;')
-    )
-  }
-}
+    ) # /sql
 
+  } # /loop
+} #/constraints_mod
 
 #_______________________________________________________________________________
 # Finally, COPY ALL DATA

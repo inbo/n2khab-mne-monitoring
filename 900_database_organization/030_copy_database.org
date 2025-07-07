@@ -265,7 +265,8 @@ source_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = "loceval",
   user = "monkey",
-  database = "loceval"
+  database = "loceval",
+  password = NA
 )
 
 # ... to target
@@ -383,17 +384,19 @@ Apply to all the table (never tired of reminding: *order matters*):
 #+begin_src R :eval no :tangle 033_populate_testing_db.R
 
 # TODO due to ON DELETE SET NULL from "Locations", location_id's temporarily become NULL.
+#      Updating would be cumbersome.
 constraints_mod <- function(do = c("DROP", "SET")){
   # To prevent failure, I temporarily remove the constraint.
   for (table_key in c("LocationAssessments", "SampleLocations")){
 
+    # {dis/en}able fk for these tables
     execute_sql(
       target_db_connection,
       glue::glue('ALTER TABLE "outbound"."{table_key}" ALTER COLUMN location_id {do} NOT NULL;')
-    )
-  }
-}
+    ) # /sql
 
+  } # /loop
+} #/constraints_mod
 
 #_______________________________________________________________________________
 # Finally, COPY ALL DATA

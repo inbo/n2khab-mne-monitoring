@@ -369,6 +369,14 @@ update_datatable_and_dependent_keys <- function(
     verbose = verbose
   )
 
+  if (length(pk) > 0) {
+    execute_sql(
+      db_target,
+      glue::glue('ALTER SEQUENCE "{get_schema(table_key)}".seq_{pk} RESTART WITH 1;'),
+      verbose = verbose
+    )
+  }
+
   # INSERT new data, appending the empty table
   #    (to make use of the "ON DELETE SET NULL" rule)
   rs <- DBI::dbWriteTable(
@@ -382,10 +390,16 @@ update_datatable_and_dependent_keys <- function(
     binary = TRUE
   )
 
+  if (length(pk) > 0) {
+    cols_to_query <- c(characteristic_columns, pk)
+  } else {
+    cols_to_query <- c(characteristic_columns, pk)
+  }
+
   new_redownload <- query_columns(
     db_target,
     get_tableid(table_key),
-    columns = c(characteristic_columns, pk)
+    columns = cols_to_query
   )
 
   # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
@@ -401,25 +415,27 @@ update_datatable_and_dependent_keys <- function(
 
 
   ## save non-recovered rows
-  not_found <- pk_lookup %>%
-    select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>%
-    filter(if_any(everything(), ~ is.na(.x)))
+  if (length(pk) > 0) {
+    not_found <- pk_lookup %>%
+      select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>%
+      filter(if_any(everything(), ~ is.na(.x)))
 
-  lost_rows <- lostrow_data %>%
-    semi_join(
-      not_found,
-      by = pk
-    )
+    lost_rows <- lostrow_data %>%
+      semi_join(
+        not_found,
+        by = pk
+      )
 
-  # mourn the loss of rows
-  if (nrow(lost_rows) > 0) {
-    warning("some previous data rows were not found back.")
-    knitr::kable(lost_rows)
-    write.csv(
-      lost_rows,
-      glue::glue("dumps/lostrows_{table_key}_{now}.csv"),
-      row.names = FALSE
-    )
+    # mourn the loss of rows
+    if (nrow(lost_rows) > 0) {
+      warning("some previous data rows were not found back.")
+      knitr::kable(lost_rows)
+      write.csv(
+        lost_rows,
+        glue::glue("dumps/lostrows_{table_key}_{now}.csv"),
+        row.names = FALSE
+      )
+    }
   }
 
 
