@@ -595,7 +595,8 @@ locations_lookup <- update_cascade_lookup(
   tabula_rasa = TRUE,
   verbose = TRUE
 )
-
+# locations_lookup %>% write.csv("dumps/lookup_locations.csv")
+# locations are nuique.
 
 # **Upload Location Polygons:**
 
@@ -749,7 +750,7 @@ cleanup_query <- glue::glue(
 execute_sql(
   db_connection,
   cleanup_query,
-  verbose = TREU
+  verbose = TRUE
 )
 
 previous_extra_visits <- dplyr::tbl(
@@ -783,7 +784,10 @@ new_extra_visits %>%
   arrange(desc(n))
 
 
-# TODO the location is still not unique?!
+# NOTE the location is still not unique?!
+# -> Of course:
+#     There are multiple sample units with different `type`
+#     on identical locations.
 
 # append the LocationAssessments with empty lines for new sample units
 extravisits_lookup <- update_cascade_lookup(
@@ -791,7 +795,7 @@ extravisits_lookup <- update_cascade_lookup(
   table_key = "ExtraVisits",
   new_data = new_extra_visits,
   index_columns = c("extravisit_id"),
-  characteristic_columns = c("grts_address", "location_id"),
+  characteristic_columns = c("grts_address", "samplelocation_id"),
   tabula_rasa = FALSE,
   verbose = TRUE
 )

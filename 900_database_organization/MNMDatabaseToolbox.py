@@ -1092,6 +1092,14 @@ if __name__ == "__main__":
     ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", base_folder/"devdb_structure")
 
 
+    """ # known error:
+    psycopg2.errors.ForeignKeyViolation:
+    insert or update on table "ExtraVisits"
+    violates foreign key constraint "fk_samplelocations_extravisits"
+    DETAIL:
+    Key (samplelocation_id)=(3636) is not present in table "SampleLocations".
+    """
+
     db = Database( \
         structure_folder = "./devdb_structure", \
         definition_csv = "TABLES.csv", \
