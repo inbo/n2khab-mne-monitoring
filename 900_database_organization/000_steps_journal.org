@@ -931,6 +931,11 @@ Overwriting a table is a "DROP/CREATE" procedure and therefore leads to a loss i
 + Instead, manually "DELETE+INSERT",
   wherein the insert can be =dbWriteTable(..., overwrite = FALSE, append = TRUE, ...)=.
 
+** =dbReadTable(...)= is better avoided, too
+SCHEDULED: <2025-07-07 Mon>
+
+... as it leads to data table inconsistencies with =dplyr.=
+
 
 ** loss of links due to "=append_tabledata="
 SCHEDULED: <2025-07-07 Mon>

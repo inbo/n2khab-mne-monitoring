@@ -35,6 +35,7 @@
   + [ ] "verouderd" field is rubbish -> correct OrthophotoAssessment view
   + [ ] loc_id mismatch: "schietveld" in Hemiksem?
   + [ ] combined UNIQUE constraints for all characteristic columns
+  + [ ] reset sequences on tabula rasa / DELETE+INSERT updates
 
 + [ ] backup procedures
   + [ ] daily backups to S3

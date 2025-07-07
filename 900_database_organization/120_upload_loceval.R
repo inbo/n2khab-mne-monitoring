@@ -529,10 +529,10 @@ cleanup_query <- glue::glue(
 execute_sql(
   db_connection,
   cleanup_query,
-  verbose = verbose
+  verbose = TRUE
 )
 
-previous_location_assessments <- DBI::dbReadTable(
+previous_location_assessments <- dplyr::tbl(
   db_connection,
   DBI::Id(schema = "outbound", table = "LocationAssessments"),
   ) %>% collect()
@@ -549,26 +549,12 @@ previous_location_assessments <- DBI::dbReadTable(
 # sample_locations %>% pull(grts_address) %>% write.csv("dumps/sample_locations.csv")
 # previous_location_assessments %>% pull(grts_address) %>% write.csv("dumps/location_assessments.csv")
 # 15937
-#
-#
-# CONTINUE
-c(
-    sample_locations %>% pull(grts_address) %>% as.integer(),
-    previous_location_assessments %>% pull(grts_address) %>% as.integer()
-  ) %>%
-  unique() %>%
-  tibble(grts_address = .) %>%
-  distinct() %>%
-  # filter(grts_address > 15930) %>%
-  arrange(grts_address) %>%
-  write.csv("dumps/test_grts.csv")
 
-locations <- c(
-    sample_locations %>% pull(grts_address) %>% as.integer(),
-    previous_location_assessments %>% pull(grts_address) %>% as.integer()
+locations <- bind_rows(
+    sample_locations %>% select(grts_address),
+    previous_location_assessments %>% select(grts_address)
   ) %>%
-  unique() %>%
-  tibble(grts_address = .) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
   # count(grts_address) %>%
   # arrange(desc(n))
@@ -637,7 +623,7 @@ message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
 execute_sql(
   db_connection,
   glue::glue('DELETE  FROM "metadata"."LocationCells";'),
-  verbose = verbose
+  verbose = TRUE
 )
 
 append_tabledata(
@@ -763,7 +749,7 @@ cleanup_query <- glue::glue(
 execute_sql(
   db_connection,
   cleanup_query,
-  verbose = verbose
+  verbose = TREU
 )
 
 previous_extra_visits <- dplyr::tbl(
@@ -796,6 +782,9 @@ new_extra_visits %>%
   count(location_id, grts_address) %>%
   arrange(desc(n))
 
+
+# TODO the location is still not unique?!
+
 # append the LocationAssessments with empty lines for new sample units
 extravisits_lookup <- update_cascade_lookup(
   schema = "inbound",
@@ -813,7 +802,7 @@ extravisits_lookup <- update_cascade_lookup(
 
 ### check upload
 
-slocs <- DBI::dbReadTable(
+slocs <- dplyr::tbl(
   db_connection,
   DBI::Id(schema = "outbound", table = "SampleLocations"),
   ) %>% collect()
