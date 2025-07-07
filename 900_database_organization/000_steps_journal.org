@@ -860,6 +860,17 @@ an extra type is added upon upload of =N2kHabTypes=:
 to tag sample units in which the expected habitat is not present any more
 
 
+** TODO =location_id= implicit foreign key
+SCHEDULED: <2025-07-07 Mon>
+
+=location_id= is not instantiated as a foreign key to avoid conflicts due to =ON DELETE SET NULL=.
+
+Therefore, it remains as a false lookup upon data update.
+
++ [X] adjusted =MNMDatabaseToolbox.py::dbTable.ListDependencies(...)=
++ [ ] TODO the "old" ones also require a new location_id -> write a function to UPDATE the lookup key by grts_address
+
+
 * Fieldwork - Planning (outbound)
 
 ** the next database
@@ -935,6 +946,8 @@ Overwriting a table is a "DROP/CREATE" procedure and therefore leads to a loss i
 SCHEDULED: <2025-07-07 Mon>
 
 ... as it leads to data table inconsistencies with =dplyr.=
+Specifically, there is trouble with combining =DBI::dbReadTable= and =dplyr::tbl= (example: get =grts_address= for combined =Locations=.
++ =distinct= does not mean =unique= :/
 
 
 ** loss of links due to "=append_tabledata="
@@ -950,10 +963,7 @@ Problem is that foreign keys are neglected:
 Actually, I had =update_datatable_and_dependent_keys()= in place for this.
 Time to use it.
 
-
-** =distinct= does not mean =unique= :/
-
-or does it?
++ [X] defined =update_cascade_lookup= to bring the procedures together and handle reference columns.
 
 
 * General

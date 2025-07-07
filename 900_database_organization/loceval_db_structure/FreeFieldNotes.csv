@@ -5,7 +5,7 @@ log_creation,timestamp,True,current_timestamp,False,False,,,,(technical) timesta
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
 hide,boolean,True,0,False,False,,,,used to hide completed notes
-teammember_id,smallint,True,,False,False,metadata.TeamMembers.teammember_id,,,link to the user who performed the visit
+teammember_id,smallint,False,,False,False,metadata.TeamMembers.teammember_id,,,link to the user who performed the visit
 field_note,text,False,NULL,False,False,,,,description of the issue
 note_date,date,True,,False,False,,,,date of the field activity
 location,varchar,False,NULL,False,False,,,,free reference to the location (database id or grts address)

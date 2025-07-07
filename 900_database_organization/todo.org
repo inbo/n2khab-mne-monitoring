@@ -28,20 +28,28 @@
   + [X] =FieldNotes= -> free input
 + [X] something wrong with python =getpasswd=
 
-+ [ ] 20250704 loceval post mortem
-  + [ ] review the "POC Update" procedure (++ExtraVisits)
++ [ ] weird cells in ofo's
+  + [ ] grts 2006953 has a direct neighbor
+  + [ ] type labels have changed (e.g. =2190_mp= -> =2190_a=)
+  + [ ] grts 681846 is a totally different type (6230 -> 3150)
+
+
++ [-] 20250704 loceval post mortem
+  + [X] review the "POC Update" procedure (++ExtraVisits)
   + [ ] new locations to assess??
     + recover old RData and compare
-  + [ ] "verouderd" field is rubbish -> correct OrthophotoAssessment view
+  + [X] "verouderd" field is rubbish -> correct OrthophotoAssessment view
   + [ ] loc_id mismatch: "schietveld" in Hemiksem?
   + [ ] combined UNIQUE constraints for all characteristic columns
-  + [ ] reset sequences on tabula rasa / DELETE+INSERT updates
+  + [X] reset sequences on tabula rasa / DELETE+INSERT updates
+
++ [ ] re-check POC update script
 
 + [ ] backup procedures
   + [ ] daily backups to S3
 + [ ] list WCS/WFS/WMS sources
 + [ ] random points in target area for well placement
-+ [ ] re-upload bug -> was fk
++ [X] re-upload bug -> was fk
 
 + [ ] info from LocationAssessment
 + [ ] landuse/ownership: one categorical field
