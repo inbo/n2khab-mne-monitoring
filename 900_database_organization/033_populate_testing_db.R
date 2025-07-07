@@ -7,19 +7,20 @@ source("MNMDatabaseToolbox.R")
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
-dbstructure_folder <- "loceval_dev_structure"
+dbstructure_folder <- "loceval_db_structure"
 
 # from source...
 source_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = "loceval",
   user = "monkey",
-  database = "loceval"
+  database = "loceval",
+  password = NA
 )
 
 # ... to target
-target_db_name <- "loceval_testing"
-target_connection_profile <- "testing"
+target_db_name <- "loceval_dev"
+target_connection_profile <- "loceval-dev"
 target_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = target_connection_profile,
@@ -43,7 +44,7 @@ sort_protocols <- function(prt) {
 ### associate the functions with table names
 
 table_modification <- c(
-  "Protocols" = function (prt) sort_protocols(prt) # (almost) anything you like
+  # "Protocols" = function (prt) sort_protocols(prt) # (almost) anything you like
 )
 
 #_______________________________________________________________________________

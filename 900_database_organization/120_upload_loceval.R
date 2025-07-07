@@ -9,6 +9,7 @@ library("terra")
 library("n2khab")
 library("googledrive")
 library("readr")
+library("glue")
 library("rprojroot")
 library("keyring")
 
@@ -33,14 +34,15 @@ dbstructure_folder <- "./loceval_dev_structure"
 # connection_profile <- "loceval"
 # dbstructure_folder <- "./loceval_db_structure"
 
+config <- configr::read.config(file = config_filepath)[[connection_profile]]
 source("MNMDatabaseToolbox.R")
 
 # Load some custom GRTS functions
 # source(file.path(projroot, "R/grts.R"))
 # TODO: rebase once PR#5 gets merged
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
-
-
+source(
+  "/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R"
+)
 
 
 
@@ -111,15 +113,133 @@ stopifnot(
 )
 
 stopifnot(
-  "snip snap >> `orthophoto grts` not found" = exists("orthophoto_2025_type_grts")
+  "snip snap >> `orthophoto grts` not found" =
+    exists("orthophoto_2025_type_grts")
 )
 
-## ----load-config--------------------------------------------------------------
+## ----establish-connection-config----------------------------------------------
 db_connection <- connect_database_configfile(
   config_filepath,
   database = working_dbname,
   profile = connection_profile
 )
+
+
+## ----update-propagate-lookup--------------------------------------------------
+# just a convenience function to pass arguments to recursive update
+update_cascade_lookup <- function(
+    schema,
+    table_key,
+    new_data,
+    index_columns,
+    tabula_rasa = FALSE,
+    characteristic_columns = NULL,
+    verbose = TRUE
+  ) {
+
+  db_table <- DBI::Id(schema = schema, table = table_key)
+
+  if (verbose) {
+    message("________________________________________________________________")
+    message(glue::glue("Cascaded update of {schema}.{table_key}"))
+  }
+
+  # characteristic columns := columns which uniquely define a data row,
+  # but which are not the primary key.
+  if (is.null(characteristic_columns)) {
+    # in case no char. cols provided, just take all columns.
+    characteristic_columns <- names(new_data)
+  }
+
+  ## (0) check that characteristic columns are UNIQUE:
+  # the char. columns of the data to upload
+  new_characteristics <- new_data %>%
+    select(!!!characteristic_columns) %>%
+    distinct()
+  stopifnot("Error: characteristic columns are not characteristic!" =
+    nrow(new_data) == nrow(new_characteristics))
+
+
+  to_upload <- new_data
+
+  # existing content
+  prior_content <- dplyr::tbl(
+    db_connection,
+    db_table
+  ) %>% collect()
+  # head(prior_content)
+
+
+  ## (1) optionally append
+  if (!tabula_rasa) {
+
+    existing_characteristics <- prior_content %>%
+      select(!!!characteristic_columns) %>%
+      distinct()
+
+    # refcol <- enquo(characteristic_columns)
+    existing_unchanged <- existing_characteristics %>%
+      anti_join(
+        new_characteristics,
+        by = join_by(!!!characteristic_columns)
+      ) %>%
+      left_join(
+        prior_content,
+        by = join_by(!!!characteristic_columns)
+      )
+
+    if (verbose) {
+      message(glue::glue("  {nrow(existing_unchanged)} rows will be retained."))
+    }
+
+    # combine existing and new data
+    to_upload <- bind_rows(
+      existing_unchanged,
+      to_upload
+    )
+  } else {
+      message(glue::glue("  Tabula rasa: no rows will be retained."))
+  }
+
+  ## do not upload index columns
+  retain_cols <- names(to_upload)
+  retain_cols <- retain_cols[!(retain_cols %in% index_columns)]
+  to_upload <- to_upload %>% select(!!!retain_cols)
+
+  ## update datatable, propagating/cascading new keys to other's fk
+  update_datatable_and_dependent_keys(
+    config_filepath = config_filepath,
+    working_dbname = working_dbname,
+    table_key = table_key,
+    new_data = to_upload,
+    profile = connection_profile,
+    dbstructure_folder = dbstructure_folder,
+    db_connection = db_connection,
+    characteristic_columns = characteristic_columns,
+    verbose = verbose
+  )
+  # TODO rename_characteristics = rename_characteristics,
+
+  lookup <- dplyr::tbl(
+      db_connection,
+      db_table
+    ) %>%
+    select(!!!c(characteristic_columns, index_columns)) %>%
+    collect
+
+  if (verbose){
+    message(sprintf(
+      "%s: %i rows uploaded, were %i existing judging by '%s'.",
+      toString(db_table),
+      nrow(to_upload),
+      nrow(prior_content),
+      paste0(characteristic_columns, collapse = ", ")
+    ))
+  }
+
+  return(lookup)
+
+} # /update_cascade_lookup
 
 
 
@@ -128,16 +248,31 @@ members <- read_csv(
   here::here(dbstructure_folder, "data_TeamMembers.csv"),
   show_col_types = FALSE
 )
+# %>% filter(username != "Yglinga")
 
-member_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "TeamMembers"),
-  members,
-  ref_cols = "username",
-  index_col = "teammember_id"
+
+
+## THIS can go WRONG!
+## ... because if members change, dependent table foreign keys are unaffected.
+# member_lookup <- upload_and_lookup(
+#   db_connection,
+#   DBI::Id(schema = "metadata", table = "TeamMembers"),
+#   members,
+#   ref_cols = "username",
+#   index_col = "teammember_id"
+# )
+
+# Testing:
+#    DELETE FROM "metadata"."TeamMembers" WHERE username LIKE 'all%';
+
+member_lookup <- update_cascade_lookup(
+  schema = "metadata",
+  table_key = "TeamMembers",
+  new_data = members,
+  index_columns = c("teammember_id"),
+  characteristic_columns = c("username"),
+  verbose = TRUE
 )
-
-
 
 
 ## ----upload-protocols---------------------------------------------------------
@@ -152,13 +287,15 @@ protocols <- activities %>%
     description = NA
   )
 
-protocol_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "Protocols"),
-  protocols,
-  ref_cols = "protocol",
-  index_col = "protocol_id"
+protocol_lookup <- update_cascade_lookup(
+  schema = "metadata",
+  table_key = "Protocols",
+  new_data = protocols,
+  index_columns = c("protocol_id"),
+  characteristic_columns = c("protocol"),
+  verbose = TRUE
 )
+
 
 ## ----prepare-activities-------------------------------------------------------
 # # there are some activities with different ranks within a sequence.
@@ -237,32 +374,14 @@ grouped_activities_upload <- grouped_activities %>%
 
 # -> done manually to get multiple columns as unique lookup
 
-db_table <- DBI::Id(schema = "metadata", table = "GroupedActivities")
-ga_content <- DBI::dbReadTable(db_connection, db_table)
-
-existing <- ga_content %>%
-  select(activity_group, activity, activity_group_id, activity_id)
-to_upload <- grouped_activities_upload %>%
-  anti_join(
-    existing,
-    join_by(activity_group, activity, activity_group_id, activity_id)
+grouped_activity_lookup <- update_cascade_lookup(
+  schema = "metadata",
+  table_key = "GroupedActivities",
+  new_data = grouped_activities_upload,
+  index_columns = c("grouped_activity_id", "activity_group_id", "activity_id"),
+  characteristic_columns = c("activity_group", "activity"),
+  verbose = TRUE
 )
-
-if (nrow(to_upload) > 0){
-  rs <- DBI::dbWriteTable(
-    db_connection,
-    db_table,
-    to_upload,
-    overwrite = FALSE,
-    append = TRUE
-  )
-  # DBI::dbClearResult(rs)
-}
-
-grouped_activity_lookup <-
-  dplyr::tbl(db_connection, db_table) %>%
-  select(activity_group, activity, grouped_activity_id, activity_group_id, activity_id) %>%
-  collect
 
 
 ## ----upload-n2khabtype--------------------------------------------------------
@@ -277,14 +396,14 @@ n2khab_types_upload <- bind_rows(
   n2khab_types_expanded_properties
   )
 
-n2khabtype_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "N2kHabTypes"),
-  n2khab_types_upload,
-  ref_cols = "type",
-  index_col = "n2khabtype_id"
+n2khabtype_lookup <- update_cascade_lookup(
+  schema = "metadata",
+  table_key = "N2kHabTypes",
+  new_data = n2khab_types_upload,
+  index_columns = c("n2khabtype_id"),
+  characteristic_columns = c("type"),
+  verbose = TRUE
 )
-
 
 
 # SELECT DISTINCT type FROM "metadata"."N2kHabTypes" ORDER BY type;
@@ -303,13 +422,15 @@ n2khab_strata_upload <- bind_rows(
   ) %>%
   select(-type)
 
-DBI::dbWriteTable(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "lut_N2kHabStrata"),
-  n2khab_strata_upload,
-  overwrite = TRUE
-  )
 
+n2khabstrata_lookup <- update_cascade_lookup(
+  schema = "metadata",
+  table_key = "lut_N2kHabStrata",
+  new_data = n2khab_strata_upload,
+  index_columns = c("n2khabstratum_id"),
+  characteristic_columns = c("stratum"),
+  verbose = TRUE
+)
 
 
 
@@ -397,6 +518,20 @@ sample_locations <-
 #      and add previous_notes
 
 ## ----save-previous-location-assessments----------------------------------------------
+
+table_str <- '"outbound"."LocationAssessments"'
+maintenance_users <- sprintf("'{update,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE log_user = ANY ({maintenance_users}::varchar[])
+     AND NOT assessment_done;"
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = verbose
+)
+
 previous_location_assessments <- DBI::dbReadTable(
   db_connection,
   DBI::Id(schema = "outbound", table = "LocationAssessments"),
@@ -411,12 +546,32 @@ previous_location_assessments <- DBI::dbReadTable(
 # not accounting for fieldwork_calendar because that is derived from
 # the same source as sample_locations
 
+# sample_locations %>% pull(grts_address) %>% write.csv("dumps/sample_locations.csv")
+# previous_location_assessments %>% pull(grts_address) %>% write.csv("dumps/location_assessments.csv")
+# 15937
+#
+#
+# CONTINUE
+c(
+    sample_locations %>% pull(grts_address) %>% as.integer(),
+    previous_location_assessments %>% pull(grts_address) %>% as.integer()
+  ) %>%
+  unique() %>%
+  tibble(grts_address = .) %>%
+  distinct() %>%
+  # filter(grts_address > 15930) %>%
+  arrange(grts_address) %>%
+  write.csv("dumps/test_grts.csv")
+
 locations <- c(
     sample_locations %>% pull(grts_address) %>% as.integer(),
     previous_location_assessments %>% pull(grts_address) %>% as.integer()
   ) %>%
+  unique() %>%
   tibble(grts_address = .) %>%
   distinct() %>%
+  # count(grts_address) %>%
+  # arrange(desc(n))
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -426,19 +581,33 @@ locations <- c(
 sf::st_geometry(locations) <- "wkb_geometry"
 
 
-# TODO first, delete locations to prevent the `ogc_fid` duplicate error
 
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "metadata"."Locations";'
-  )
 
-locations_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "Locations"),
-  locations,
-  ref_cols = "grts_address",
-  index_col = "location_id"
+
+
+# OBSOLETE first, delete locations to prevent the `ogc_fid` duplicate error
+# rs <- DBI::dbExecute(
+#   db_connection,
+#   'DELETE FROM "metadata"."Locations";'
+#   )
+#
+# locations_lookup <- upload_and_lookup(
+#   db_connection,
+#   DBI::Id(schema = "metadata", table = "Locations"),
+#   locations,
+#   ref_cols = "grts_address",
+#   index_col = "location_id"
+# )
+
+
+locations_lookup <- update_cascade_lookup(
+  schema = "metadata",
+  table_key = "Locations",
+  new_data = locations,
+  index_columns = c("location_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
 )
 
 
@@ -460,8 +629,16 @@ location_cells <-
   relocate(geometry, .after = last_col())
 
 sf::st_geometry(location_cells) <- "wkb_geometry"
-
 # glimpse(location_cells)
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
+
+execute_sql(
+  db_connection,
+  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
+  verbose = verbose
+)
 
 append_tabledata(
   db_connection,
@@ -486,11 +663,6 @@ sample_locations <- sample_locations %>%
     relationship = "many-to-one"
   )
 
-# might otherwise be duplicated due to missing fk and null constraint
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "outbound"."SampleLocations";'
-  )
 
 slocs_refcols <- c(
   "type",
@@ -500,13 +672,18 @@ slocs_refcols <- c(
   "targetpanel"
   # "sp_poststratum"
 )
-sample_locations_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "SampleLocations"),
-  sample_locations,
-  ref_cols = slocs_refcols,
-  index_col = "samplelocation_id"
+
+# tabula rasa: might otherwise be duplicated due to missing fk and null constraint
+sample_locations_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "SampleLocations",
+  new_data = sample_locations,
+  index_columns = c("samplelocation_id"),
+  characteristic_columns = slocs_refcols,
+  tabula_rasa = TRUE,
+  verbose = TRUE
 )
+
 
 # sample_locations_lookup %>% nrow()
 # sample_locations_lookup %>%
@@ -517,20 +694,23 @@ sample_locations_lookup <- upload_and_lookup(
 
 ## ----restore-assessments-------------------------------------------------
 
-# orthophoto_prior_data <- dplyr::tbl(
-#     db_connection,
-#     DBI::Id(schema = "outbound", table = "LocationAssessments")
-#   ) %>%
-#   collect() # collecting is necessary to modify offline and to re-upload
-#
-# # orthophoto_upload <-
+# Here, we want to keep existing location assessments,
+# UNLESS they never happened:
+#  - imagine a sample unit X coming into the sample, then it will get a
+#    prepared row for LocationAssessment
+#  - however, if that sample unit is removed upon POC update without ever being
+#    assessed, we remove it before.
 
 
+# assemble new assessments
 new_location_assessments <- sample_locations %>%
-  select(
-    location_id,
+  distinct(
     grts_address,
     type
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
   ) %>%
   mutate(
     log_user = "update",
@@ -545,49 +725,48 @@ new_location_assessments <- new_location_assessments %>%
     by = join_by(type, grts_address)
   )
 
-location_assessments <- bind_rows(
-  previous_location_assessments,
-  new_location_assessments
-  ) %>%
-  select(-locationassessment_id)
-# nrow(location_assessments)
+# SELECT DISTINCT log_user, assessment_done, count(*) FROM "outbound"."LocationAssessments" GROUP BY log_user, assessment_done;
+# SELECT DISTINCT type, grts_address, COUNT(*) AS n FROM "outbound"."LocationAssessments" GROUP BY type, grts_address ORDER BY n DESC;
+
+# upload_location_assessments <- bind_rows(
+#   previous_location_assessments,
+#   new_location_assessments
+#   ) %>%
+#   select(-locationassessment_id)
+# # nrow(upload_location_assessments)
 
 
-# # append the LocationAssessments with empty lines for new sample units
-# append_tabledata(
-#   db_connection,
-#   DBI::Id(schema = "outbound", table = "LocationAssessments"),
-#   location_assessments,
-#   reference_columns =
-#     c("type", "grts_address")
-# )
-
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "outbound"."LocationAssessments";'
-  )
-
-# re-upload
-sf::dbWriteTable(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  location_assessments,
-  row.names = FALSE,
-  overwrite = FALSE,
-  append = TRUE,
-  factorsAsCharacter = TRUE,
-  binary = TRUE
-  )
-
-# conn <- db_connection
-# db_table <- DBI::Id(schema = "outbound", table = "LocationAssessments")
-# data_to_append <- new_location_assessments
+# append the LocationAssessments with empty lines for new sample units
+locationassessment_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "LocationAssessments",
+  new_data = new_location_assessments,
+  index_columns = c("locationassessment_id"),
+  characteristic_columns = c("type", "grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
 
 
 
 ## ----extra-visits-------------------------------------------------
+##
 
-previous_extra_visits <- DBI::dbReadTable(
+# analogous: clean ExtraVisits
+table_str <- '"inbound"."ExtraVisits"'
+maintenance_users <- sprintf("'{update,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE log_user = ANY ({maintenance_users}::varchar[])
+     AND NOT visit_done;"
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = verbose
+)
+
+previous_extra_visits <- dplyr::tbl(
   db_connection,
   DBI::Id(schema = "inbound", table = "ExtraVisits"),
   ) %>% collect()
@@ -608,25 +787,29 @@ new_extra_visits <- sample_locations_lookup %>%
     visit_done = FALSE
   )
 
-new_extra_visits <- new_extra_visits %>%
-  anti_join(
-    previous_extra_visits,
-    by = join_by(samplelocation_id, grts_address)
-  )
+# new_extra_visits <- new_extra_visits %>%
+#   anti_join(
+#     previous_extra_visits,
+#     by = join_by(grts_address)
+#   )
+new_extra_visits %>%
+  count(location_id, grts_address) %>%
+  arrange(desc(n))
 
-extra_visits_upload <- bind_rows(
-  previous_extra_visits,
-  new_extra_visits
-  ) %>%
-  select(-extravisit_id)
-
-append_tabledata(
-  db_connection,
-  DBI::Id(schema = "inbound", table = "ExtraVisits"),
-  extra_visits_upload,
-  reference_columns = c("grts_address", "grouped_activity_id", "teammember_id", "date_visit")
+# append the LocationAssessments with empty lines for new sample units
+extravisits_lookup <- update_cascade_lookup(
+  schema = "inbound",
+  table_key = "ExtraVisits",
+  new_data = new_extra_visits,
+  index_columns = c("extravisit_id"),
+  characteristic_columns = c("grts_address", "location_id"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
 )
 
+
+
+## ----done-checks!-------------------------------------------------
 
 ### check upload
 
