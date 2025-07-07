@@ -26,7 +26,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 connection_profile <- "loceval-dev"
 dbstructure_folder <- "./loceval_dev_structure"
 
-# you might want to run the following prior to sourcing or rendering this script:
+# # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
 # projroot <- find_root(is_rstudio_project)
 # working_dbname <- "loceval"
@@ -539,6 +539,28 @@ previous_location_assessments <- dplyr::tbl(
 # nrow(previous_location_assessments)
 
 
+## ----save-previous-extra-visits----------------------------------------------
+# analogous: clean ExtraVisits
+table_str <- '"inbound"."ExtraVisits"'
+maintenance_users <- sprintf("'{update,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE log_user = ANY ({maintenance_users}::varchar[])
+     AND NOT visit_done;"
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = TRUE
+)
+
+previous_extra_visits <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "inbound", table = "ExtraVisits"),
+  ) %>% collect()
+
+
+
 ## ----upload-locations----------------------------------------------
 # will be the union set of grts addresses in
 #    - locationassessments_data
@@ -552,7 +574,8 @@ previous_location_assessments <- dplyr::tbl(
 
 locations <- bind_rows(
     sample_locations %>% select(grts_address),
-    previous_location_assessments %>% select(grts_address)
+    previous_location_assessments %>% select(grts_address),
+    previous_extra_visits %>% select(grts_address)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
@@ -710,6 +733,11 @@ new_location_assessments <- new_location_assessments %>%
   anti_join(
     previous_location_assessments,
     by = join_by(type, grts_address)
+  ) %>%
+  select(-location_id) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
   )
 
 # SELECT DISTINCT log_user, assessment_done, count(*) FROM "outbound"."LocationAssessments" GROUP BY log_user, assessment_done;
@@ -734,29 +762,12 @@ locationassessment_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
+# TODO the "old" ones also require a new location_id
+#    -> write a function to UPDATE the lookup key by grts_address
 
 
 ## ----extra-visits-------------------------------------------------
 ##
-
-# analogous: clean ExtraVisits
-table_str <- '"inbound"."ExtraVisits"'
-maintenance_users <- sprintf("'{update,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE log_user = ANY ({maintenance_users}::varchar[])
-     AND NOT visit_done;"
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
-)
-
-previous_extra_visits <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "inbound", table = "ExtraVisits"),
-  ) %>% collect()
 
 new_extra_visits <- sample_locations_lookup %>%
   left_join(
@@ -774,14 +785,9 @@ new_extra_visits <- sample_locations_lookup %>%
     visit_done = FALSE
   )
 
-# new_extra_visits <- new_extra_visits %>%
-#   anti_join(
-#     previous_extra_visits,
-#     by = join_by(grts_address)
-#   )
-new_extra_visits %>%
-  count(location_id, grts_address) %>%
-  arrange(desc(n))
+# new_extra_visits %>%
+#   count(location_id, grts_address) %>%
+#   arrange(desc(n))
 
 
 # NOTE the location is still not unique?!

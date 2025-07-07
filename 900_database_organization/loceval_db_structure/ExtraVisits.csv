@@ -2,8 +2,8 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 extravisit_id,int,True,,True,True,,,,visit index
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
-samplelocation_id,int,False,,False,False,outbound.SampleLocations.samplelocation_id,,,sample location index (technical)
-location_id,int,False,,False,False,,,,the technical sequence of all locations
+samplelocation_id,int,False,,False,False,,,,sample location index (technical) or NULL for obsolete visits
+location_id,int,False,,False,False,,,,"the technical sequence of all locations, put here for quick join"
 grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements) needed for retainer lookup"
 grouped_activity_id,smallint,False,,False,False,metadata.GroupedActivities.grouped_activity_id,,,"a link to the activity metadata, brought here via fieldactivitycalendar for convenience"
 teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit

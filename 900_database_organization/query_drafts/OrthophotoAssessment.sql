@@ -3,15 +3,13 @@ CREATE VIEW  "outbound"."OrthophotoAssessment"  AS
 SELECT
   LOC.*,
   LOCASS.locationassessment_id,
-  SLOC.loceval_year,
-  SLOC.priority_orthophoto,
   (SLOC.location_id IS NULL) AS sample_location_obsolete,
   SLOC.grts_join_method,
   SLOC.sp_poststratum,
   SLOC.scheme_ps_targetpanels,
   SLOC.type,
-  SLOC.previous_assessment,
-  SLOC.previous_assessment_date,
+  SLOC.assessment,
+  SLOC.assessment_date,
   LOCASS.cell_disapproved,
   LOCASS.revisit_disapproval,
   LOCASS.disapproval_explanation,
@@ -24,9 +22,8 @@ FROM "outbound"."LocationAssessments" AS LOCASS
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = LOCASS.location_id
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON (LOCASS.type = SLOC.type
-     AND LOCASS.grts_address = SLOC.grts_address
-     AND LOCASS.location_id = SLOC.location_id
+  ON (LOCASS.grts_address = SLOC.grts_address
+  -- AND LOCASS.type = SLOC.type
      )
 ;
 
@@ -37,7 +34,7 @@ ON UPDATE TO "outbound"."OrthophotoAssessment"
 DO INSTEAD
  UPDATE "outbound"."LocationAssessments"
  SET
-  type_adjusted = NEW.type_adjusted,
+  type_suggested = NEW.type_suggested,
   cell_disapproved = NEW.cell_disapproved,
   revisit_disapproval = NEW.revisit_disapproval,
   disapproval_explanation = NEW.disapproval_explanation,
@@ -51,4 +48,7 @@ DO INSTEAD
 
 GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO ward;
 GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO ward;
-
+GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO karen;
+GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO karen;
+GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO floris;
+GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO floris;

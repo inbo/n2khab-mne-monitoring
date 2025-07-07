@@ -413,6 +413,19 @@ constraints_mod("SET")
 This is tested by comparing =pg_dump= of both databases after copying.
 
 
+* Brief Data Inspection
+
+Some code snippets to check on relevant data (specific to =loceval=):
+
+#+begin_src sql :tangle no :eval no
+SET search_path TO public,"metadata","outbound","inbound";
+SELECT DISTINCT assessment_done, COUNT(*) AS n FROM "outbound"."LocationAssessments" GROUP BY assessment_done;
+SELECT * FROM "inbound"."FreeFieldNotes";
+SELECT * FROM "inbound"."ExtraVisits" WHERE NOT (log_user = 'update');
+
+#+end_src
+
+
 * Summary
 
 We now have a surgical method to transfer data from one to the other database.

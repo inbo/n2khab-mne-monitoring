@@ -430,10 +430,18 @@ class dbTable(dict):
     def ListDependencies(self):
         # find other tables on which this one depends
 
-        fk_fields = [(field, definition["foreign_key"]) \
+        fk_fields = [(
+            field,
+            "metadata.Locations.location_id" if (field == "location_id")
+                else definition["foreign_key"]
+            ) \
             for field, definition in self.items() \
             if (not PD.isna(definition["foreign_key"])) \
+              or (field == "location_id") \
+              and not (field in self.GetPrimaryKey()) \
             ]
+
+        print(fk_fields)
 
         return(fk_fields)
 
