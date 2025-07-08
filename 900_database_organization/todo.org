@@ -44,6 +44,7 @@
   + [X] reset sequences on tabula rasa / DELETE+INSERT updates
 
 + [ ] re-check POC update script
++ [ ] extra types (vraag Floris)
 
 + [ ] backup procedures
   + [ ] daily backups to S3

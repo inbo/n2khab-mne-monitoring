@@ -113,6 +113,123 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 }
 
 
+# procedure to loop through a table
+# which is linked to "Locations" via `location_id`
+# and restore the correct id.
+# This is necessary because previously assembled data is
+#   in some cases retained, but
+#   would loose links to the pruned "Locations" after rearrangement.
+restore_location_id_by_grts <- function(
+      db_connection,
+      dbstructure_folder,
+      target_schema,
+      table_key,
+      retain_log = FALSE,
+      verbose = FALSE
+    ) {
+
+
+  # know table relations to get the pk
+  table_relations <- read_table_relations_config(
+    storage_filepath = here::here(dbstructure_folder, "table_relations.conf")
+    ) %>%
+    filter(relation_table == tolower(table_key))
+
+  pk <- load_table_info(dbstructure_folder, table_key) %>%
+      filter(primary_key == "True") %>%
+      pull(column)
+
+  target_namestring <- glue::glue('"{target_schema}"."{table_key}"')
+
+  # query the status quo
+  location_lookup <- dplyr::tbl(
+    db_connection,
+    DBI::Id("metadata", "Locations")
+    ) %>%
+    select(grts_address, location_id) %>%
+    collect
+
+  # optional: store and retain "log_" columns
+  # TODO (though I fear this did not work)
+  target_cols <- c(pk, "grts_address")
+  if (retain_log) {
+    target_cols <- c(pk, "grts_address", "log_user", "log_update")
+  }
+
+  target_lookup <- dplyr::tbl(
+    db_connection,
+    DBI::Id(target_schema, table_key)
+    ) %>%
+    select(!!!target_cols) %>%
+    collect
+
+  key_replacement <- target_lookup %>%
+    left_join(
+      location_lookup,
+      by = join_by(grts_address),
+      relationship = "many-to-one"
+    )
+
+
+  ### UPDATE the location-related table
+
+  # repl_rownr <- 10 # testing
+  get_update_row_string <- function(repl_rownr){
+
+    dep_pk_val <- key_replacement[repl_rownr, pk]
+    val <- key_replacement[repl_rownr, "location_id"]
+    if (is.na(val)) {
+      val <- "NULL"
+    }
+
+    if (retain_log) {
+      log_user <- key_replacement[[repl_rownr, "log_user"]]
+      log_update <- key_replacement[[repl_rownr, "log_update"]]
+      logstr <- glue::glue(",
+        log_user = '{log_user}',
+        log_update = '{toString(log_update)}'
+      ")
+    } else {
+      logstr <- ""
+    }
+
+    update_string <- glue::glue("
+      UPDATE {target_namestring}
+        SET location_id = {val} {logstr}
+      WHERE {pk} = {dep_pk_val}
+      ;
+    ")
+
+    return(update_string)
+  }
+
+  # concatenate update rows
+  update_command <- lapply(
+    1:nrow(key_replacement),
+    FUN = get_update_row_string
+  )
+
+  # spin up a progress bar
+  if (verbose) {
+    pb <- txtProgressBar(
+      min = 0, max = nrow(key_replacement),
+      initial = 0, style = 1
+    )
+  }
+
+  # execute the update commands.
+  for (repl_rownr in 1:nrow(key_replacement)) {
+    if (verbose) setTxtProgressBar(pb, repl_rownr)
+    cmd <- update_command[[repl_rownr]]
+    execute_sql(db_connection, cmd, verbose = FALSE)
+  }
+
+  if (verbose) close(pb) # close the progress bar
+
+  # TODO this is sluggish, of course; I would rather prefer a combined UPDATE.
+
+}
+
 
 
 #' Update table content and cascade all key changes to dependent tables
