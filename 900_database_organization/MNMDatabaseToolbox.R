@@ -477,7 +477,6 @@ update_datatable_and_dependent_keys <- function(
   # TODO write function to restore key lookup table
   # TODO allow rollback (of focal and dependent tables)
 
-  # TODO should we occasionally reset the sequence counter?
 
   # DELETE existing data -> DANGEROUS territory!
   execute_sql(
@@ -486,6 +485,7 @@ update_datatable_and_dependent_keys <- function(
     verbose = verbose
   )
 
+  # On the occasion, we reset the sequence counter
   if (length(pk) > 0) {
     execute_sql(
       db_target,
@@ -557,6 +557,9 @@ update_datatable_and_dependent_keys <- function(
 
 
   ## update dependent tables
+  # "LocationCells"       "SampleLocations"     "LocationAssessments" "ExtraVisits"
+  # deptab <- "LocationCells"
+
   for (deptab in dependent_tables) {
 
     # extract the associating columns
@@ -624,6 +627,8 @@ update_datatable_and_dependent_keys <- function(
     # ... by looking up the dependent table pk
     dep_pk <- get_primary_key(deptab)
 
+    if (length(dep_pk) == 0) next # these is the LocationCells
+
     # repl_rownr <- 1
     get_update_row_string <- function(repl_rownr){
       dep_pk_val <- key_replacement[repl_rownr, dep_pk]
@@ -659,6 +664,129 @@ update_datatable_and_dependent_keys <- function(
 
 
 
+parametrize_cascaded_update <- function(
+    config_filepath,
+    working_dbname,
+    connection_profile,
+    dbstructure_folder,
+    db_connection
+  ) {
+
+  ucl_function <- function(
+      schema,
+      table_key,
+      new_data,
+      index_columns,
+      tabula_rasa = FALSE,
+      characteristic_columns = NULL,
+      verbose = TRUE
+    ) {
+
+    db_table <- DBI::Id(schema = schema, table = table_key)
+
+    if (verbose) {
+      message("________________________________________________________________")
+      message(glue::glue("Cascaded update of {schema}.{table_key}"))
+    }
+
+    # characteristic columns := columns which uniquely define a data row,
+    # but which are not the primary key.
+    if (is.null(characteristic_columns)) {
+      # in case no char. cols provided, just take all columns.
+      characteristic_columns <- names(new_data)
+    }
+
+    ## (0) check that characteristic columns are UNIQUE:
+    # the char. columns of the data to upload
+    new_characteristics <- new_data %>%
+      select(!!!characteristic_columns) %>%
+      distinct()
+    stopifnot("Error: characteristic columns are not characteristic!" =
+      nrow(new_data) == nrow(new_characteristics))
+
+
+    to_upload <- new_data
+
+    # existing content
+    prior_content <- dplyr::tbl(
+      db_connection,
+      db_table
+    ) %>% collect()
+    # head(prior_content)
+
+
+    ## (1) optionally append
+    if (!tabula_rasa) {
+
+      existing_characteristics <- prior_content %>%
+        select(!!!characteristic_columns) %>%
+        distinct()
+
+      # refcol <- enquo(characteristic_columns)
+      existing_unchanged <- existing_characteristics %>%
+        anti_join(
+          new_characteristics,
+          by = join_by(!!!characteristic_columns)
+        ) %>%
+        left_join(
+          prior_content,
+          by = join_by(!!!characteristic_columns)
+        )
+
+      if (verbose) {
+        message(glue::glue("  {nrow(existing_unchanged)} rows will be retained."))
+      }
+
+      # combine existing and new data
+      to_upload <- bind_rows(
+        existing_unchanged,
+        to_upload
+      )
+    } else {
+        message(glue::glue("  Tabula rasa: no rows will be retained."))
+    }
+
+    ## do not upload index columns
+    retain_cols <- names(to_upload)
+    retain_cols <- retain_cols[!(retain_cols %in% index_columns)]
+    to_upload <- to_upload %>% select(!!!retain_cols)
+
+    ## update datatable, propagating/cascading new keys to other's fk
+    update_datatable_and_dependent_keys(
+      config_filepath = config_filepath,
+      working_dbname = working_dbname,
+      table_key = table_key,
+      new_data = to_upload,
+      profile = connection_profile,
+      dbstructure_folder = dbstructure_folder,
+      db_connection = db_connection,
+      characteristic_columns = characteristic_columns,
+      verbose = verbose
+    )
+    # TODO rename_characteristics = rename_characteristics,
+
+    lookup <- dplyr::tbl(
+        db_connection,
+        db_table
+      ) %>%
+      select(!!!c(characteristic_columns, index_columns)) %>%
+      collect
+
+    if (verbose){
+      message(sprintf(
+        "%s: %i rows uploaded, were %i existing judging by '%s'.",
+        toString(db_table),
+        nrow(to_upload),
+        nrow(prior_content),
+        paste0(characteristic_columns, collapse = ", ")
+      ))
+    }
+
+    return(lookup)
+
+  } # /update_cascade_lookup
+  return(ucl_function)
+} # /parametrize_cascaded_update
 
 
 #' Connect to a postgreSQL database, using settings from a config file

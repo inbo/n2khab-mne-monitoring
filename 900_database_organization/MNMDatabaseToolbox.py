@@ -441,7 +441,7 @@ class dbTable(dict):
               and not (field in self.GetPrimaryKey()) \
             ]
 
-        print(fk_fields)
+        # print(fk_fields)
 
         return(fk_fields)
 

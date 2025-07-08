@@ -39,7 +39,7 @@
   + [ ] new locations to assess??
     + recover old RData and compare
   + [X] "verouderd" field is rubbish -> correct OrthophotoAssessment view
-  + [ ] loc_id mismatch: "schietveld" in Hemiksem?
+  + [X] loc_id mismatch: "schietveld" in Hemiksem?
   + [ ] combined UNIQUE constraints for all characteristic columns
   + [X] reset sequences on tabula rasa / DELETE+INSERT updates
 
