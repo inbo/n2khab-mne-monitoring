@@ -29,7 +29,9 @@ Here are all the choices you have.
 working_dbname <- "loceval_testing"
 config_filepath <- file.path("./inbopostgis_server.conf")
 connection_profile <- "testing"
-dbstructure_folder <- "./db_structure"
+dbstructure_folder <- "./loceval_db_structure"
+
+config <- configr::read.config(file = config_filepath)[[connection_profile]]
 ```
 
 
@@ -69,6 +71,7 @@ source("MNMDatabaseToolbox.R")
 # source(file.path(projroot, "R/grts.R"))
 # TODO: rebase once PR#5 gets merged
 source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
+source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R")
 
 ```
 
@@ -93,6 +96,14 @@ if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
 reload <- FALSE # in this one, we normally reload.
 poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
 if (reload || !file.exists(poc_rdata_path)){
+
+  # copy the old file
+  if (file.exists(poc_rdata_path)) {
+    this_date <- format(Sys.time(), "%Y%m%d")
+    backup_path <- file.path("./data", glue::glue("objects_panflpan5_{this_date}.bak"))
+    file.copy(from = poc_rdata_path, to = backup_path, overwrite = TRUE)
+  }
+
   drive_download(
     as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
     path = poc_rdata_path,
@@ -100,6 +111,7 @@ if (reload || !file.exists(poc_rdata_path)){
   )
 }
 load(poc_rdata_path)
+
 
 ```
 
@@ -109,9 +121,50 @@ load(poc_rdata_path)
 Some code snippets, possibly modified on the way, were provided by Floris.
 
 ```{r source-code-snippets}
-# TODO: check for changes on every update.
+# TODO: check for changes on every update, e.g. with `meld`:
+#       meld 020_fieldwork_organization/code_snippets.R 900_database_organization/050_snippet_selection.R
 
-source("050_snippet_selection.R")
+invisible(capture.output(source("050_snippet_selection.R")))
+source("051_snippet_transformation_code.R")
+
+stopifnot(
+  "NOT FOUND: snip snap >> `grts_mh_index`" = exists("grts_mh_index")
+)
+
+stopifnot(
+  "NOT FOUND: snip snap >> `scheme_moco_ps_stratum_targetpanel_spsamples`" =
+    exists("scheme_moco_ps_stratum_targetpanel_spsamples")
+)
+
+stopifnot(
+  "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples`" =
+    exists("stratum_schemepstargetpanel_spsamples")
+)
+
+stopifnot(
+  "NOT FOUND: snip snap >> `units_cell_polygon`" =
+    exists("units_cell_polygon")
+)
+
+stopifnot(
+  "NOT FOUND: RData >> `activities`" =
+    exists("activities")
+)
+
+stopifnot(
+  "NOT FOUND: RData >> `activity_sequences`" =
+    exists("activity_sequences")
+)
+
+stopifnot(
+  "NOT FOUND: RData >> `n2khab_strata`" =
+    exists("n2khab_strata")
+)
+
+stopifnot(
+  "snip snap >> `orthophoto grts` not found" =
+    exists("orthophoto_2025_type_grts")
+)
 ```
 
 
@@ -145,6 +198,25 @@ get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), tab
 
 ```
 
+
+## Update, Cascade, Propagate, and Lookup!
+
+Just a convenience function to pass arguments to recursive update,
+using higher order function generation to simplify the signature.
+
+```{r cascaded-update-function}
+
+update_cascade_lookup <- parametrize_cascaded_update(
+  config_filepath,
+  working_dbname,
+  connection_profile,
+  dbstructure_folder,
+  db_connection
+)
+
+```
+
+
 # dump all data, for safety
 
 ```{r step1-safety-dump}
@@ -162,7 +234,7 @@ dump_all(
 
 # Gather and Upload
 
-## Prone "LocationAssessments"
+## Prune "LocationAssessments"
 
 LocationAssessments are tightly linked to a version of the sample.
 However, we do not want to loose previous assessments.
@@ -171,32 +243,30 @@ As a first step, we remove all rows from the `LocationAssessments` which are app
 
 ```{r delete-undone-location-assessments}
 
+# > you might want to add:
+#  AND (NOT cell_disapproved)
+#  AND (revisit_disapproval IS NULL)
+#  AND (disapproval_explanation IS NULL)
+#  AND (type_suggested IS NULL)
+#  AND (implications_habitatmap IS NULL)
+#  AND (feedback_habitatmap IS NULL)
+#  AND (notes IS NULL)
+
 # clean up LocationAssessments
 verb <- "DELETE "
-sql_command <- glue::glue(
-  '{verb} FROM "outbound"."LocationAssessments"
-    WHERE ((log_user = \'yoda\') OR (log_user = \'falk\') OR (log_user = \'update\'))
-      AND (NOT cell_disapproved)
-      AND (revisit_disapproval IS NULL)
-      AND (disapproval_explanation IS NULL)
-      AND (type_suggested IS NULL)
-      AND (implications_habitatmap IS NULL)
-      AND (feedback_habitatmap IS NULL)
-      AND (notes IS NULL)
-      AND (NOT assessment_done)
-    ;')
-# print(sql_command)
-rs <- DBI::dbExecute(
+table_str <- '"outbound"."LocationAssessments"'
+maintenance_users <- sprintf("'{update,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "{verb} FROM {table_str}
+    WHERE log_user = ANY ({maintenance_users}::varchar[])
+     AND (NOT assessment_done);"
+)
+execute_sql(
   db_connection,
-  sql_command
-  )
-# print(rs)
+  cleanup_query,
+  verbose = TRUE
+)
 
-# DBI::dbReadTable(
-#   db_connection,
-#   DBI::Id(schema = "outbound", table = "LocationAssessments"),
-#   ) %>% collect() %>%
-#     head() %>% knitr::kable()
 ```
 
 The remainder are the ones we would like to store.
@@ -205,33 +275,111 @@ The remainder are the ones we would like to store.
 
 # add location for previous LocationAssessment
 
-previous_locations <- DBI::dbReadTable(
+previous_location_assessments <- dplyr::tbl(
   db_connection,
   DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  ) %>% collect() %>%
-  pull("grts_address") %>%
-  as.integer()
+  ) %>% collect()
 
 ```
 
+## Retain "ExtraVisits"
+
+Analogously, we can clean the table of `ExtraVisits` which never happened.
+
+```{r prune-extra-visits}
+table_str <- '"inbound"."ExtraVisits"'
+maintenance_users <- sprintf("'{update,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE log_user = ANY ({maintenance_users}::varchar[])
+     AND NOT visit_done;"
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = TRUE
+)
+
+previous_extra_visits <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "inbound", table = "ExtraVisits"),
+  ) %>% collect()
+
+```
+
+
 ## Locations
 
-Starting from "orthophoto" the sample locations...
+Starting from `fag_stratum_grts_calendar` to extract all info about the sample locations...
 
-```{r orhtophoto-to-db-sample-locations-conversion}
-sample_locations <- orthophoto_type_grts %>%
-  select(-grts_address) %>%
+```{r db-sample-locations-assembly}
+sample_locations <-
+  fag_stratum_grts_calendar %>%
+  common_current_calenderfilters() %>%
+  distinct(
+    scheme_moco_ps,
+    stratum,
+    grts_address
+  ) %>%
+  unnest(scheme_moco_ps) %>%
+  # adding location attributes
+  inner_join(
+    scheme_moco_ps_stratum_targetpanel_spsamples %>%
+      select(
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        grts_join_method,
+        grts_address,
+        grts_address_final,
+        targetpanel
+      ) %>%
+      # deduplicating 7220:
+      distinct(),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  common_current_samplefilters() %>%
+  # also join the spatial poststratum, since we need this in setting
+  # GRTS-address based priorities
+  inner_join(
+    scheme_moco_ps_stratum_sppost_spsamples %>%
+      unnest(sp_poststr_samples) %>%
+      select(-sample_status),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  select(-module_combo_code) %>%
+  nest_scheme_ps_targetpanel() %>%
+  # add MHQ assessment metadata
+  inner_join(
+    stratum_grts_n2khab_phabcorrected_no_replacements %>%
+      select(stratum, grts_address, assessed_in_field, assessment_date),
+    join_by(stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  distinct() %>%
+  convert_stratum_to_type() %>%
+  rename_grts_address_final_to_grts_address() %>%
   rename(
-    grts_address = grts_address_final,
-    previous_assessment = assessed_in_field,
-    previous_assessment_date = assessment_date
+    assessment = assessed_in_field,
+    assessment_date = assessment_date # triv.
+  ) %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  mutate(
+    previous_notes = NA # FUTURE TODO
   ) %>%
   mutate(
     across(c(
-        type,
         grts_join_method,
+        scheme_ps_targetpanels,
         sp_poststratum,
-        scheme_ps_targetpanels
+        type
       ),
       as.character
     )
@@ -243,12 +391,15 @@ sample_locations <- orthophoto_type_grts %>%
 ... we take the new locations *and* the ones which were assessed before.
 
 ```{r distinct-locations}
-locations <- c(
-    sample_locations %>% pull(grts_address) %>% as.integer(),
-    previous_locations
+locations <- bind_rows(
+    sample_locations %>% select(grts_address),
+    previous_location_assessments %>% select(grts_address),
+    previous_extra_visits %>% select(grts_address)
   ) %>%
-  tibble(grts_address = .) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
+  # count(grts_address) %>%
+  # arrange(desc(n))
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -265,25 +416,35 @@ sf::st_geometry(locations) <- "wkb_geometry"
 ... in a "DELETE, then INSERT" approach.
 Reminder: the DELETE cascades as is to the `LocationCells`.
 Note that this is possible because I avoided the use of `location_id` as a foreign key.
+Which lead to further trouble.
+Solved by re-establishing `location_id` via `grts_address` below,
+which unfortunately triggers update rules.
+Can't have everything :shrug:.
 
 ```{r upload-locations}
 
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "metadata"."Locations";'
-  )
-
-locations_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "Locations"),
-  locations,
-  ref_cols = "grts_address",
-  index_col = "location_id"
+locations_lookup <- update_cascade_lookup(
+  schema = "metadata",
+  table_key = "Locations",
+  new_data = locations,
+  index_columns = c("location_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
 )
 
 ```
 
 ## Location Cells (Polygons)
+
+The location cells are polygons which spatially contain the sample unit.
+Up until now, these are only 32x32m squares.
+For other types, we can later supplement more complex polygons.
+Another `geom` table with unit centroids is possible.
+
+
+All `LocationCells` can be deleted prior to update, because they are a 1-on-1 derivative of `Locations`.
+
 
 ```{r location-polygon-upload}
 units_cell_polygon[["grts_address_final"]] <-
@@ -305,12 +466,22 @@ sf::st_geometry(location_cells) <- "wkb_geometry"
 
 # glimpse(location_cells)
 
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
+
+execute_sql(
+  db_connection,
+  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
+  verbose = TRUE
+)
+
 append_tabledata(
   db_connection,
   DBI::Id(schema = "metadata", table = "LocationCells"),
   location_cells,
   reference_columns = "location_id"
 )
+
 
 ```
 
@@ -334,30 +505,58 @@ sample_locations <- sample_locations %>%
   )
 
 
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "outbound"."SampleLocations";'
-  )
+slocs_refcols <- c(
+  "type",
+  "grts_address",
+  "scheme",
+  "panel_set",
+  "targetpanel"
+  # "sp_poststratum"
+)
 
-append_tabledata(
+# tabula rasa: might otherwise be duplicated due to missing fk and null constraint
+sample_locations_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "SampleLocations",
+  new_data = sample_locations,
+  index_columns = c("samplelocation_id"),
+  characteristic_columns = slocs_refcols,
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+```
+
+
+STOP - TODO: this should not be necessary, but I will check.
+
+```{r restore-location-id-via-grts}
+#| eval: false
+
+# restore location_id's via grts
+restore_location_id_by_grts(
   db_connection,
-  DBI::Id(schema = "outbound", table = "SampleLocations"),
-  sample_locations,
-  reference_columns =
-    c("type", "grts_address", "scheme_ps_targetpanels", "loceval_year")
+  dbstructure_folder,
+  target_schema = "outbound",
+  table_key = "SampleLocations",
+  retain_log = FALSE,
+  verbose = TRUE
 )
 
 ```
+
 
 ## LocationAssessments
 
 ```{r refresh-location-assessments}
 
 new_location_assessments <- sample_locations %>%
-  select(
-    location_id,
+  distinct(
     grts_address,
     type
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
   ) %>%
   mutate(
     log_user = "update",
@@ -366,45 +565,45 @@ new_location_assessments <- sample_locations %>%
     assessment_done = FALSE
   )
 
-previous_location_assessments <- DBI::dbReadTable(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  ) %>% collect()
-# nrow(previous_location_assessments)
-
 new_location_assessments <- new_location_assessments %>%
   anti_join(
     previous_location_assessments,
     by = join_by(type, grts_address)
-  )
-
-location_assessments <- bind_rows(
-  previous_location_assessments,
-  new_location_assessments
   ) %>%
-  select(-locationassessment_id)
+  select(-location_id) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+  )
 # nrow(location_assessments)
 ```
 
 
+The `update-cascade-lookup` function will retain all existing assessments, but add the new ones.
+This then also requires a refreshment of the `location_id` lookup: the index of the locations linked in previous assessments might have changed.
+
 ```{r upload-location-assessments}
 
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "outbound"."LocationAssessments";'
-  )
+# append the LocationAssessments with empty lines for new sample units
+locationassessment_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "LocationAssessments",
+  new_data = new_location_assessments,
+  index_columns = c("locationassessment_id"),
+  characteristic_columns = c("type", "grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
 
-# re-upload
-sf::dbWriteTable(
+# restore location_id's
+restore_location_id_by_grts(
   db_connection,
-  DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  location_assessments,
-  row.names = FALSE,
-  overwrite = FALSE,
-  append = TRUE,
-  factorsAsCharacter = TRUE,
-  binary = TRUE
-  )
+  dbstructure_folder,
+  target_schema = "outbound",
+  table_key = "LocationAssessments",
+  retain_log = TRUE,
+  verbose = TRUE
+)
 
 ```
 
@@ -416,3 +615,61 @@ You can check the status/progress of location updates as follows:
 SELECT DISTINCT assessment_done, count(*) FROM "outbound"."LocationAssessments" GROUP BY assessment_done;
 ```
 
+
+## Extra Visits
+
+Analogous to LocationAssessments, we retain previous field visits and append potential new locations.
+This also demands re-linking the `location_id`.
+In the future, this will be replaced by a proper fieldwork planning machinery.
+
+
+```{r upload-extra-visits}
+
+new_extra_visits <- sample_locations_lookup %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+    relationship = "many-to-one"
+  ) %>%
+  select(samplelocation_id, location_id, grts_address) %>%
+  mutate(
+    grouped_activity_id = NA,
+    teammember_id = NA,
+    date_visit = as.Date(NA),
+    log_user = "update",
+    log_update = as.POSIXct(Sys.time()),
+    visit_done = FALSE
+  )
+
+# new_extra_visits %>%
+#   count(location_id, grts_address) %>%
+#   arrange(desc(n))
+
+
+# NOTE the location is still not unique?!
+# -> Of course:
+#     There are multiple sample units with different `type`
+#     on identical locations.
+
+# append the LocationAssessments with empty lines for new sample units
+extravisits_lookup <- update_cascade_lookup(
+  schema = "inbound",
+  table_key = "ExtraVisits",
+  new_data = new_extra_visits,
+  index_columns = c("extravisit_id"),
+  characteristic_columns = c("grts_address", "samplelocation_id"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+# restore location_id's
+restore_location_id_by_grts(
+  db_connection,
+  dbstructure_folder,
+  target_schema = "inbound",
+  table_key = "ExtraVisits",
+  retain_log = TRUE,
+  verbose = TRUE
+)
+
+```

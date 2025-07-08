@@ -44,13 +44,16 @@ source(
   "/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R"
 )
 
+source(
+  "/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R"
+)
 
 
 ## ----load-sample-rdata--------------------------------------------------------
 # Download and load R objects from the POC into global environment
 reload <- FALSE
 poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
-if (reload || !file.exists(poc_rdata_path)){
+if (reload || !file.exists(poc_rdata_path)) {
 
   # Setup for googledrive authentication. Set the appropriate env vars in
   # .Renviron and make sure you ran drive_auth() interactively with these settings
@@ -61,6 +64,13 @@ if (reload || !file.exists(poc_rdata_path)){
   }
   if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
     options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
+  }
+
+  # copy the old file
+  if (file.exists(poc_rdata_path)) {
+    this_date <- format(Sys.time(), "%Y%m%d")
+    backup_path <- file.path("./data", glue::glue("objects_panflpan5_{this_date}.bak"))
+    file.copy(from = poc_rdata_path, to = backup_path, overwrite = TRUE)
   }
 
   googledrive::drive_download(
@@ -127,119 +137,14 @@ db_connection <- connect_database_configfile(
 
 ## ----update-propagate-lookup--------------------------------------------------
 # just a convenience function to pass arguments to recursive update
-update_cascade_lookup <- function(
-    schema,
-    table_key,
-    new_data,
-    index_columns,
-    tabula_rasa = FALSE,
-    characteristic_columns = NULL,
-    verbose = TRUE
-  ) {
 
-  db_table <- DBI::Id(schema = schema, table = table_key)
-
-  if (verbose) {
-    message("________________________________________________________________")
-    message(glue::glue("Cascaded update of {schema}.{table_key}"))
-  }
-
-  # characteristic columns := columns which uniquely define a data row,
-  # but which are not the primary key.
-  if (is.null(characteristic_columns)) {
-    # in case no char. cols provided, just take all columns.
-    characteristic_columns <- names(new_data)
-  }
-
-  ## (0) check that characteristic columns are UNIQUE:
-  # the char. columns of the data to upload
-  new_characteristics <- new_data %>%
-    select(!!!characteristic_columns) %>%
-    distinct()
-  stopifnot("Error: characteristic columns are not characteristic!" =
-    nrow(new_data) == nrow(new_characteristics))
-
-
-  to_upload <- new_data
-
-  # existing content
-  prior_content <- dplyr::tbl(
-    db_connection,
-    db_table
-  ) %>% collect()
-  # head(prior_content)
-
-
-  ## (1) optionally append
-  if (!tabula_rasa) {
-
-    existing_characteristics <- prior_content %>%
-      select(!!!characteristic_columns) %>%
-      distinct()
-
-    # refcol <- enquo(characteristic_columns)
-    existing_unchanged <- existing_characteristics %>%
-      anti_join(
-        new_characteristics,
-        by = join_by(!!!characteristic_columns)
-      ) %>%
-      left_join(
-        prior_content,
-        by = join_by(!!!characteristic_columns)
-      )
-
-    if (verbose) {
-      message(glue::glue("  {nrow(existing_unchanged)} rows will be retained."))
-    }
-
-    # combine existing and new data
-    to_upload <- bind_rows(
-      existing_unchanged,
-      to_upload
-    )
-  } else {
-      message(glue::glue("  Tabula rasa: no rows will be retained."))
-  }
-
-  ## do not upload index columns
-  retain_cols <- names(to_upload)
-  retain_cols <- retain_cols[!(retain_cols %in% index_columns)]
-  to_upload <- to_upload %>% select(!!!retain_cols)
-
-  ## update datatable, propagating/cascading new keys to other's fk
-  update_datatable_and_dependent_keys(
-    config_filepath = config_filepath,
-    working_dbname = working_dbname,
-    table_key = table_key,
-    new_data = to_upload,
-    profile = connection_profile,
-    dbstructure_folder = dbstructure_folder,
-    db_connection = db_connection,
-    characteristic_columns = characteristic_columns,
-    verbose = verbose
-  )
-  # TODO rename_characteristics = rename_characteristics,
-
-  lookup <- dplyr::tbl(
-      db_connection,
-      db_table
-    ) %>%
-    select(!!!c(characteristic_columns, index_columns)) %>%
-    collect
-
-  if (verbose){
-    message(sprintf(
-      "%s: %i rows uploaded, were %i existing judging by '%s'.",
-      toString(db_table),
-      nrow(to_upload),
-      nrow(prior_content),
-      paste0(characteristic_columns, collapse = ", ")
-    ))
-  }
-
-  return(lookup)
-
-} # /update_cascade_lookup
+update_cascade_lookup <- parametrize_cascaded_update(
+  config_filepath,
+  working_dbname,
+  connection_profile,
+  dbstructure_folder,
+  db_connection
+)
 
 
 
@@ -512,7 +417,7 @@ sample_locations <-
 # glimpse(sample_locations)
 
 # still need to join the location, below
-# TODO in the future, make sure `type` is
+# TODO in the FUTURE, make sure `type` is
 #      correctly filled from LOCEVAL
 #      "previous_assessment" -> "assessment"
 #      and add previous_notes
