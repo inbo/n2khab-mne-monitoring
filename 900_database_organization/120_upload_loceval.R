@@ -695,6 +695,17 @@ sample_locations_lookup <- update_cascade_lookup(
 )
 
 
+# restore location_id's
+restore_location_id_by_grts(
+  db_connection,
+  dbstructure_folder,
+  target_schema = "outbound",
+  table_key = "SampleLocations",
+  retain_log = FALSE,
+  verbose = TRUE
+)
+
+
 # sample_locations_lookup %>% nrow()
 # sample_locations_lookup %>%
 #   select(!!!slocs_refcols) %>%
@@ -729,6 +740,8 @@ new_location_assessments <- sample_locations %>%
     assessment_done = FALSE
   )
 
+# previous_location_assessments %>% write.csv("data/20250704_Wards_LocationAssessments.csv")
+
 new_location_assessments <- new_location_assessments %>%
   anti_join(
     previous_location_assessments,
@@ -762,8 +775,25 @@ locationassessment_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
-# TODO the "old" ones also require a new location_id
+# DONE the "old" ones also require a new location_id
 #    -> write a function to UPDATE the lookup key by grts_address
+#
+## TODO trigger warning
+# # DROP TRIGGER IF EXISTS log_assessments ON "outbound"."LocationAssessments";
+# # CREATE TRIGGER log_assessments
+# # BEFORE UPDATE ON "outbound"."LocationAssessments"
+# # FOR EACH ROW EXECUTE PROCEDURE sync_mod();
+
+# restore location_id's
+restore_location_id_by_grts(
+  db_connection,
+  dbstructure_folder,
+  target_schema = "outbound",
+  table_key = "LocationAssessments",
+  retain_log = TRUE,
+  verbose = TRUE
+)
+
 
 
 ## ----extra-visits-------------------------------------------------
@@ -806,6 +836,15 @@ extravisits_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
+# restore location_id's
+restore_location_id_by_grts(
+  db_connection,
+  dbstructure_folder,
+  target_schema = "inbound",
+  table_key = "ExtraVisits",
+  retain_log = TRUE,
+  verbose = TRUE
+)
 
 
 ## ----done-checks!-------------------------------------------------
@@ -820,16 +859,30 @@ slocs <- dplyr::tbl(
 locs <- sf::st_read(
   db_connection,
   DBI::Id(schema = "metadata", table = "Locations"),
-  )
+  ) %>% collect()
 
 locs %>% anti_join(
   slocs,
   by = join_by(location_id)
   )
 
-locs %>% anti_join(
-  slocs,
-  by = join_by(grts_address)
-  )
+
+locass <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationAssessments"),
+  ) %>% collect()
+
+slocs %>% left_join(
+    locs,
+    by = join_by(location_id),
+    relationship = "many-to-many",
+    suffix = c("", "_LOC")
+  ) %>% left_join(
+    locass,
+    by = join_by(type, location_id),
+    relationship = "many-to-many",
+    suffix = c("", "_ASS")
+  ) %>%
+  count(log_user, assessment_done)
 
 # SELECT DISTINCT assessment_done, cell_disapproved, count(*) FROM "outbound"."LocationAssessments" GROUP BY assessment_done, cell_disapproved;

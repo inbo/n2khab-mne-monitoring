@@ -860,7 +860,7 @@ an extra type is added upon upload of =N2kHabTypes=:
 to tag sample units in which the expected habitat is not present any more
 
 
-** TODO =location_id= implicit foreign key
+** =location_id= implicit foreign key
 SCHEDULED: <2025-07-07 Mon>
 
 =location_id= is not instantiated as a foreign key to avoid conflicts due to =ON DELETE SET NULL=.
@@ -868,7 +868,10 @@ SCHEDULED: <2025-07-07 Mon>
 Therefore, it remains as a false lookup upon data update.
 
 + [X] adjusted =MNMDatabaseToolbox.py::dbTable.ListDependencies(...)=
-+ [ ] TODO the "old" ones also require a new location_id -> write a function to UPDATE the lookup key by grts_address
++ [X] TODO the "old" ones also require a new location_id -> write a function to UPDATE the lookup key by grts_address
+
+The location_id can now be restored for tables with a grts_address.
+
 
 
 * Fieldwork - Planning (outbound)
@@ -964,6 +967,14 @@ Actually, I had =update_datatable_and_dependent_keys()= in place for this.
 Time to use it.
 
 + [X] defined =update_cascade_lookup= to bring the procedures together and handle reference columns.
+
+** TODO update rule avoidance
+SCHEDULED: <2025-07-08 Tue>
+
+Update rules are nice,
+but for some technical tasks, it is better to circumvent them.
+
++ [ ] implement (de-)activating update rules
 
 
 * General
