@@ -82,6 +82,9 @@ if (reload || !file.exists(poc_rdata_path)) {
 
 load(poc_rdata_path)
 
+versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
+verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+
 
 ## ----check-loading-snippets-----------------------------------
 
@@ -260,6 +263,10 @@ grouped_activities <- grouped_activities %>%
     .before = 1
   )
 
+
+# grouped_activities %>%
+#   filter(is.na(activity_group_id))
+#   filter(activity_group == "GWINSTPIEZWELL")
 # knitr::kable(grouped_activities %>% distinct(activity_group, activity, activity_name))
 
 # glimpse(grouped_activities)
@@ -283,8 +290,9 @@ grouped_activity_lookup <- update_cascade_lookup(
   schema = "metadata",
   table_key = "GroupedActivities",
   new_data = grouped_activities_upload,
-  index_columns = c("grouped_activity_id", "activity_group_id", "activity_id"),
+  index_columns = c("grouped_activity_id"),
   characteristic_columns = c("activity_group", "activity"),
+  tabula_rasa = TRUE,
   verbose = TRUE
 )
 
@@ -465,6 +473,31 @@ previous_extra_visits <- dplyr::tbl(
   ) %>% collect()
 
 
+## ----save-previous-FACs----------------------------------------------
+
+table_str <- '"outbound"."FieldActivityCalendar"'
+maintenance_users <- sprintf("'{update,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE log_user = ANY ({maintenance_users}::varchar[])
+     AND (NOT done_planning)
+     AND (teammember_assigned IS NULL)
+     AND (date_visit_planned IS NULL)
+     AND (notes IS NULL)
+   ;"
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = TRUE
+)
+
+previous_calendar_plans <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "FieldActivityCalendar"),
+  ) %>% collect()
+
+
 
 ## ----upload-locations----------------------------------------------
 # will be the union set of grts addresses in
@@ -601,14 +634,14 @@ sample_locations_lookup <- update_cascade_lookup(
 
 
 # restore location_id's
-restore_location_id_by_grts(
-  db_connection,
-  dbstructure_folder,
-  target_schema = "outbound",
-  table_key = "SampleLocations",
-  retain_log = FALSE,
-  verbose = TRUE
-)
+# restore_location_id_by_grts(
+#   db_connection,
+#   dbstructure_folder,
+#   target_schema = "outbound",
+#   table_key = "SampleLocations",
+#   retain_log = FALSE,
+#   verbose = TRUE
+# )
 
 
 # sample_locations_lookup %>% nrow()
@@ -616,6 +649,139 @@ restore_location_id_by_grts(
 #   select(!!!slocs_refcols) %>%
 #   distinct %>%
 #   nrow()
+
+
+## ----fieldwork-calendar-------------------------------------------------
+
+# grouped_activities %>% distinct(activity_group, activity_group_id) %>% count(activity_group) %>% print(n=Inf)
+
+
+activity_groupid_lookup <-
+  dplyr::tbl(
+    db_connection,
+    DBI::Id(schema = "metadata", table = "GroupedActivities"),
+  ) %>%
+  distinct(activity_group, activity_group_id) %>%
+  collect()
+
+# activity_groupid_lookup %>% distinct(activity_group, activity_group_id) %>% count(activity_group) %>% print(n=Inf)
+
+
+fieldwork_calendar <-
+  fieldwork_2025_prioritization_by_stratum %>%
+  rename_grts_address_final_to_grts_address() %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  select(
+    -scheme_ps_targetpanels
+  ) %>%
+  inner_join(
+    n2khab_strata,
+    join_by(stratum),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  left_join(
+    sample_locations_lookup %>%
+      select(type, grts_address, samplelocation_id),
+    by = join_by(type, grts_address),
+    relationship = "many-to-many", # TODO
+    unmatched = "drop"
+  ) %>%
+  select(-type) %>%
+  rename(activity_rank = rank) %>%
+  left_join(
+    activity_groupid_lookup,
+    by = join_by(field_activity_group == activity_group),
+    relationship = "many-to-one"
+  ) %>%
+  select(-field_activity_group) %>%
+  mutate(
+    across(c(
+        stratum,
+        grts_join_method,
+        date_interval
+      ),
+      as.character
+    )
+  ) %>%
+  mutate(
+    log_user = "update",
+    log_update = as.POSIXct(Sys.time()),
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  )
+
+# fieldwork_calendar %>% glimpse
+
+fieldwork_calendar_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "FieldActivityCalendar",
+  new_data = fieldwork_calendar,
+  index_columns = c("fieldactivitycalendar_id"),
+  characteristic_columns = NULL,
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+## ----replacements-------------------------------------------------
+
+#| eval: true
+# glimpse(stratum_schemepstargetpanel_spsamples_terr_replacementcells)
+
+# TODO: store previous replacement info to another table
+
+replacements <- stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+  select(stratum, grts_address, replacement_cells) %>%
+  unnest(replacement_cells) %>%
+  filter(!is.na(cellnr_replac)) %>%
+  left_join(
+    n2khab_strata,
+    by = join_by(stratum),
+    relationship = "many-to-many" # TODO
+  ) %>%
+  select(-stratum) %>%
+  rename(
+    cellnr_replacement = cellnr_replac,
+    grts_address_replacement = grts_address_replac,
+    replacement_rank = ranknr
+  ) %>%
+  left_join(
+    sample_locations_lookup %>%
+      select(type, grts_address, samplelocation_id),
+    by = join_by(type, grts_address),
+    relationship = "many-to-many", # TODO
+    unmatched = "drop"
+  ) %>%
+  select(
+    -type,
+    -grts_address,
+    -cellnr_replacement
+  ) %>%
+  filter(!is.na(samplelocation_id)) %>%
+  add_point_coords_grts(
+    grts_var = "grts_address_replacement",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(replacements) <- "wkb_geometry"
+
+# glimpse(replacements)
+
+
+# TODO save previous replacement info's prior to update
+replacements_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "ReplacementLocations",
+  new_data = replacements,
+  index_columns = c("replacement_id"),
+  characteristic_columns = c("samplelocation_id", "grts_address_replacement"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
 
 
 ## ----restore-assessments-------------------------------------------------
@@ -752,7 +918,7 @@ restore_location_id_by_grts(
 )
 
 
-## ----done-checks!-------------------------------------------------
+## ----done--time-for-some-checks!-------------------------------------------------
 
 ### check upload
 

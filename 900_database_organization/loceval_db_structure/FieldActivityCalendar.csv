@@ -2,23 +2,26 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 fieldactivitycalendar_id,int,True,,True,True,,,,calendar index (technical)
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
-scheme,varchar,True,,False,False,,,,scheme
-module_combo_code,varchar,True,,False,False,,,,moco code
-panel_set,smallint,True,,False,False,,,,panel set
-type,varchar,True,,False,False,,,,type (code)
+samplelocation_id,int,False,,False,False,,,,optional link to sample locations
+stratum,varchar,True,,False,False,,,,"stratum, as planned in the sampling procedure"
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after corrections)"
-replacement_ongoing,boolean,True,0,False,False,,,,transient column to filter a view for ongoing replacements
-is_replaced,boolean,True,0,False,False,,,,indicator whether we used a replacement location
-replacement_id,int,False,NULL,False,False,,,,link to the replacement location
-replacement_reason,text,False,NULL,False,False,,,,"explanation for replacement choice, e.g. inaccessibility"
-replacement_permanence,text,False,NULL,False,False,,,,whether or not the location is permanently unavailable
-teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee
-type_adjusted,varchar,False,NULL,False,False,,,,"referring to ""N2kHabTypes"".""type"""
+priority,smallint,True,,False,False,,,,"priority, based on scheme, panel, and stratum"
 date_start,date,True,,False,False,,,,start of the panel activity sequence
 date_end,date,True,,False,False,,,,end date for the panel activity sequence
 date_interval,varchar,False,NULL,False,False,,,,experimenting with date intervals (yolo)
 activity_group_id,smallint,True,,False,False,,,,a link to the activity metadata
-visit_date_planned,date,False,NULL,False,False,,,,planned date of visit
+activity_rank,smallint,False,,False,False,,CHECK (activity_rank > 0),,execution order of the field activities
+grts_join_method,varchar,False,,False,False,,,,relation of grts address and sampling unit geometry
+wait_watersurface,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
+wait_3260,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
+wait_7220,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
+excluded,boolean,True,0,False,False,,,,activity obsolete due to sample updates or prior activities
+excluded_reason,text,False,NULL,False,False,,,,reason for exclusion (e.g. loceval type not found)
+landowner,varchar,False,NULL,False,False,,,,reference to the land owner
+inaccessible,boolean,False,NULL,False,False,,,,tag inaccessible locations
+acceccibility_revisit,date,False,NULL,False,False,,,,anticipate accessibility change
+teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee
+date_visit_planned,date,False,NULL,False,False,,,,planned date of visit
+no_visit_planned,boolean,True,0,False,False,,,,whether or not a visit is planned
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 done_planning,boolean,True,0,False,False,,,,flag to indicate preparation status
-wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
