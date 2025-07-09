@@ -7,7 +7,7 @@ source("MNMDatabaseToolbox.R")
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
-dbstructure_folder <- "loceval_dev_structure"
+dbstructure_folder <- "loceval_db_structure"
 
 # from source...
 source_db_connection <- connect_database_configfile(

@@ -43,6 +43,11 @@
   + [ ] combined UNIQUE constraints for all characteristic columns
   + [X] reset sequences on tabula rasa / DELETE+INSERT updates
 
++ [ ] remove ="FieldActivityCalendar".grts_join_method=
++ [ ] rename ="FieldActivityCalendar".acceccibility_revisit=
++ [ ] overhaul ExtraVisits -> multi visits per location
+  + grouped_activity_id
+
 + [ ] re-check POC update script
 + [ ] extra types (vraag Floris)
 

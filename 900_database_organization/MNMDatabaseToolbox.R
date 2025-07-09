@@ -653,8 +653,14 @@ update_datatable_and_dependent_keys <- function(
     )
 
     # execute the update commands.
+    message(
+      glue::glue(
+        "Updating {dependent_key} of {deptab} (N={length(update_command)})."
+      )
+    )
+
     for (cmd in update_command) {
-      execute_sql(db_target, cmd, verbose = verbose)
+      execute_sql(db_target, cmd, verbose = FALSE)
     }
 
   } # /loop dependent tables

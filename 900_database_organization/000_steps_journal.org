@@ -873,6 +873,36 @@ Therefore, it remains as a false lookup upon data update.
 The location_id can now be restored for tables with a grts_address.
 
 
+** major change =GroupedActivities=
+SCHEDULED: <2025-07-09 Wed>
+
++ found duplicate error on work with field activity calendar
++ =*_id= in =GroupedActivities= are no sequences!
++ because they were sequences, they got overwritten upon INSERT
++ which caused the same =activity_group= on different lines to get two different id's
+
+-> corrected.
+
+** field activity calendar
+SCHEDULED: <2025-07-09 Wed>
+
+critical request by @WT.
+
++ [X] structure in place
++ [X] excel sheet
++ [X] qgis project
++ [ ] forward updates to =ExtraVisits=
+
+
+** replacement locations
+SCHEDULED: <2025-07-09 Wed>
+
+critical request by @WT.
+
++ [X] structure in place
++ [ ] view to show only active replacements
++ [ ] qgis project
+
 
 * Fieldwork - Planning (outbound)
 

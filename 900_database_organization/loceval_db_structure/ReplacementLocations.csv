@@ -1,7 +1,10 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 replacement_id,int,True,,True,True,,,,replacement index (technical)
-fieldactivitycalendar_id,int,True,,False,False,FieldActivityCalendar.fieldactivitycalendar_id,,,reference to primary location calendar index
+samplelocation_id,int,True,,False,False,SampleLocations.samplelocation_id,,,reference to primary location calendar index
+grts_address_replacement,int,True,,False,False,,CHECK (grts_address_replacement > 0),,"GRTS address (`final`, i.e. after corrections)"
 replacement_rank,smallint,True,,False,False,,CHECK (replacement_rank > 0),,replacement preference order
-grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after corrections)"
+is_inappropriate,boolean,False,0,False,False,,,,indicating whether this location was visited but inappropriate as replacement unit
 is_selected,boolean,False,0,False,False,,,,indicating whether this location was selected as replacement unit
+implications_habitatmap,boolean,False,0,False,False,,,,whether disapproval has implications for habitat map
+notes,text,False,NULL,False,False,,,,free text notes which will be transferred to the field app
 wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

@@ -20,6 +20,11 @@ CREATE TRIGGER log_assessments
 BEFORE UPDATE ON "outbound"."LocationAssessments"
 FOR EACH ROW EXECUTE PROCEDURE sync_mod();
 
+DROP TRIGGER IF EXISTS log_fieldactivitycalendar ON "outbound"."FieldActivityCalendar";
+CREATE TRIGGER log_fieldactivitycalendar
+BEFORE UPDATE ON "outbound"."FieldActivityCalendar"
+FOR EACH ROW EXECUTE PROCEDURE sync_mod();
+
 DROP TRIGGER IF EXISTS log_freefieldnotes ON "inbound"."FreeFieldNotes";
 CREATE TRIGGER log_freefieldnotes
 BEFORE UPDATE ON "inbound"."FreeFieldNotes"

@@ -3,7 +3,7 @@ CREATE VIEW "inbound"."LocationEvaluation" AS
 SELECT
   LOC.*,
   EVI.extravisit_id,
-  EVI.grouped_activity_id,
+  -- EVI.grouped_activity_id,
   EVI.teammember_id,
   EVI.date_visit,
   EVI.type_assessed,
@@ -20,7 +20,14 @@ SELECT
   SLOC.assessment,
   SLOC.assessment_date,
   SLOC.is_replaced,
-  LOCASS.notes AS location_assessment
+  LOCASS.assessment_done,
+  LOCASS.cell_disapproved,
+  LOCASS.notes AS location_assessment,
+  CASE WHEN (FAC.date_visit_planned IS NULL) THEN FALSE ELSE TRUE END AS is_scheduled,
+  FAC.teammember_assigned,
+  FAC.activity_group_id,
+  FAC.date_visit_planned,
+  FAC.notes AS preparation_notes
 FROM "inbound"."ExtraVisits" AS EVI
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = EVI.location_id
@@ -28,16 +35,34 @@ LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON EVI.samplelocation_id = SLOC.samplelocation_id
 LEFT JOIN (
   SELECT
+    samplelocation_id,
+    activity_group_id,
+    landowner,
+    teammember_assigned,
+    date_visit_planned,
+    no_visit_planned,
+    notes
+  FROM "outbound"."FieldActivityCalendar" AS CAL
+  ) AS FAC
+  ON (FAC.samplelocation_id = SLOC.samplelocation_id)
+LEFT JOIN (
+  SELECT DISTINCT
     location_id,
     cell_disapproved,
     assessment_done,
     notes
   FROM "outbound"."LocationAssessments"
+  GROUP BY
+    location_id,
+    cell_disapproved,
+    assessment_done,
+    notes
   ) AS LOCASS
   ON EVI.location_id = LOCASS.location_id
 WHERE TRUE
-  AND LOCASS.assessment_done
-  AND NOT LOCASS.cell_disapproved
+  -- AND LOCASS.assessment_done
+  AND ((LOCASS.cell_disapproved IS NULL) OR (NOT LOCASS.cell_disapproved))
+  AND ((FAC.no_visit_planned IS NULL) OR (NOT FAC.no_visit_planned))
 ;
 
 
@@ -47,7 +72,7 @@ ON UPDATE TO "inbound"."LocationEvaluation"
 DO INSTEAD
  UPDATE "inbound"."ExtraVisits"
  SET
-  grouped_activity_id = NEW.grouped_activity_id,
+  -- grouped_activity_id = NEW.grouped_activity_id,
   teammember_id = NEW.teammember_id,
   date_visit = NEW.date_visit,
   type_assessed = NEW.type_assessed,
@@ -56,3 +81,12 @@ DO INSTEAD
   visit_done = NEW.visit_done
  WHERE extravisit_id = OLD.extravisit_id
 ;
+
+
+
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO ward;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO karen;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO ward;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO karen;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris;

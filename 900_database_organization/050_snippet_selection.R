@@ -357,6 +357,7 @@ missing_polygons <-
   vect()
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
+# extract(grts_mh, missing_polygons, small = FALSE, driver = "MEM") %>% head()
 missing_pol_grts <-
   extract(grts_mh, missing_polygons, small = FALSE) %>%
   as_tibble() %>%
