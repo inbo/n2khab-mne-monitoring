@@ -33,11 +33,11 @@
 + [ ] overhaul =ExtraVisits= -> multi visits per location
   + grouped_activity_id
 
-+ [ ] loceval fieldwork app
-  + [ ] replacement procedure
-  + [ ] filter "priority"
-  + [ ] days to deadline (=date_end=)
-  + [ ] view on =LocationCells= to show only those in sample
++ [X] loceval fieldwork app
+  + [X] replacement procedure
+  + [X] filter "priority"
+  + [X] days to deadline (=date_end=)
+  + [X] view on =LocationCells= to show only those in sample
 
 
 + [ ] weird cells in ofo's
@@ -64,7 +64,7 @@
 
 + [ ] re-check POC update script (=070_=)
   + [ ] add other databases
-+ [ ] extra types (vraag Floris)
++ [X] extra types (vraag Floris)
 
 + [ ] backup procedures
   + [ ] daily backups to S3
