@@ -3,7 +3,6 @@ CREATE VIEW "inbound"."LocationEvaluation" AS
 SELECT
   LOC.*,
   EVI.extravisit_id,
-  -- EVI.grouped_activity_id,
   EVI.teammember_id,
   EVI.date_visit,
   EVI.type_assessed,
@@ -70,7 +69,6 @@ LEFT JOIN (
   ) AS LOCASS
   ON EVI.location_id = LOCASS.location_id
 WHERE TRUE
-  -- AND LOCASS.assessment_done
   AND ((LOCASS.cell_disapproved IS NULL) OR (NOT LOCASS.cell_disapproved))
   AND ((FAC.no_visit_planned IS NULL) OR (NOT FAC.no_visit_planned))
 ;
@@ -107,7 +105,6 @@ ON UPDATE TO "inbound"."LocationEvaluation"
 DO ALSO
  UPDATE "outbound"."SampleLocations"
  SET
-  -- grouped_activity_id = NEW.grouped_activity_id,
   is_replaced = NEW.is_replaced,
   replacement_ongoing = NEW.replacement_ongoing,
   replacement_reason = NEW.replacement_reason,
