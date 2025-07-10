@@ -27,6 +27,10 @@ SELECT
   FAC.fieldactivitycalendar_id,
   FAC.samplelocation_id,
   FAC.activity_group_id,
+  FAC.activity_group_id IN (
+    SELECT DISTINCT activity_group_id FROM "metadata"."GroupedActivities"
+    WHERE is_loceval_activity
+  ) AS is_loceval_activity,
   FAC.activity_rank,
   FAC.priority,
   FAC.date_start,

@@ -271,6 +271,21 @@ grouped_activities <- grouped_activities %>%
 
 # glimpse(grouped_activities)
 
+# tag activities for biotic location evaluation
+grouped_activities <- grouped_activities %>%
+  mutate(is_loceval_activity =
+    activity %in% c(
+      "LOCEVALAQ",
+      "LOCEVALAQ",
+      "LOCEVALAQ",
+      "LOCEVALTERR",
+      "LSVIAQ",
+      "LSVITERR",
+      "SURFLENTSAMPLPOINT",
+      "SURFLOTSAMPLPOINT"
+      )
+  )
+
 
 ## ----upload-grouped-activities------------------------------------------------
 
