@@ -315,6 +315,18 @@ grouped_activity_lookup <- update_cascade_lookup(
 ## ----upload-n2khabtype--------------------------------------------------------
 ## n2khab type to stratum (below)
 
+extra_types <- n2khab_strata %>%
+  distinct(type) %>%
+  expand_types(mark = TRUE) %>%
+  filter(added_by_expansion) %>%
+  select(type) %>%
+  inner_join(
+    read_types() %>%
+      select(1:3) %>%
+      filter(typelevel == "subtype"),
+    join_by(type)
+  )
+
 n2khab_types_upload <- bind_rows(
   as_tibble(list(
     type = c("gh"),
@@ -322,7 +334,13 @@ n2khab_types_upload <- bind_rows(
     main_type = c("gh")
   )),
   n2khab_types_expanded_properties
-  )
+  # extra_types
+  ) %>%
+  arrange(main_type, type)
+
+n2khab_types_upload %>%
+  count(main_type, type) %>%
+  arrange(desc(n))
 
 n2khabtype_lookup <- update_cascade_lookup(
   schema = "metadata",
