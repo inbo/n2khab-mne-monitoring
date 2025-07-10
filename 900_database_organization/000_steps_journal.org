@@ -901,7 +901,11 @@ critical request by @WT.
 
 + [X] structure in place
 + [ ] view to show only active replacements
++ [ ] separate update rules for different fields
 + [ ] qgis project
++ [ ] routine to keep previous replacements intact
+
++ re-try dev creation and then live update
 
 
 * Fieldwork - Planning (outbound)

@@ -28,10 +28,28 @@
   + [X] =FieldNotes= -> free input
 + [X] something wrong with python =getpasswd=
 
++ [ ] remove ="FieldActivityCalendar".grts_join_method=
++ [ ] rename ="FieldActivityCalendar".acceccibility_revisit=
++ [ ] overhaul =ExtraVisits= -> multi visits per location
+  + grouped_activity_id
+
++ [ ] loceval fieldwork app
+  + [ ] replacement procedure
+  + [ ] filter "priority"
+  + [ ] days to deadline (=date_end=)
+  + [ ] view on =LocationCells= to show only those in sample
+
+
 + [ ] weird cells in ofo's
   + [ ] grts 2006953 has a direct neighbor
   + [ ] type labels have changed (e.g. =2190_mp= -> =2190_a=)
   + [ ] grts 681846 is a totally different type (6230 -> 3150)
+
++ [ ] POC pipeline
+  + [ ] functional modularization suggestions for code snippets
+  + [ ] =units_cell_polygon= are there other relevant polygons in there?
+  + [ ] replacements by stratum?
+  + [ ] in-memory rollback upon failed updates
 
 
 + [-] 20250704 loceval post mortem
@@ -43,16 +61,14 @@
   + [ ] combined UNIQUE constraints for all characteristic columns
   + [X] reset sequences on tabula rasa / DELETE+INSERT updates
 
-+ [ ] remove ="FieldActivityCalendar".grts_join_method=
-+ [ ] rename ="FieldActivityCalendar".acceccibility_revisit=
-+ [ ] overhaul ExtraVisits -> multi visits per location
-  + grouped_activity_id
 
-+ [ ] re-check POC update script
++ [ ] re-check POC update script (=070_=)
+  + [ ] add other databases
 + [ ] extra types (vraag Floris)
 
 + [ ] backup procedures
   + [ ] daily backups to S3
++ [ ] scripts for user management
 + [ ] list WCS/WFS/WMS sources
 + [ ] random points in target area for well placement
 + [X] re-upload bug -> was fk

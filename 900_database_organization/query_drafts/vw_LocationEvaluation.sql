@@ -10,6 +10,7 @@ SELECT
   EVI.notes,
   EVI.photo,
   EVI.visit_done,
+  SLOC.samplelocation_id,
   SLOC.grts_join_method,
   SLOC.scheme,
   SLOC.panel_set,
@@ -20,6 +21,9 @@ SELECT
   SLOC.assessment,
   SLOC.assessment_date,
   SLOC.is_replaced,
+  SLOC.replacement_ongoing,
+  SLOC.replacement_reason,
+  SLOC.replacement_permanence,
   LOCASS.assessment_done,
   LOCASS.cell_disapproved,
   LOCASS.notes AS location_assessment,
@@ -27,6 +31,9 @@ SELECT
   FAC.teammember_assigned,
   FAC.activity_group_id,
   FAC.date_visit_planned,
+  FAC.date_visit_planned - current_date AS days_to_visit,
+  FAC.date_end - current_date AS days_to_deadline,
+  FAC.priority,
   FAC.notes AS preparation_notes
 FROM "inbound"."ExtraVisits" AS EVI
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -37,6 +44,9 @@ LEFT JOIN (
   SELECT
     samplelocation_id,
     activity_group_id,
+    date_start,
+    date_end,
+    priority,
     landowner,
     teammember_assigned,
     date_visit_planned,
@@ -66,10 +76,19 @@ WHERE TRUE
 ;
 
 
-DROP RULE IF EXISTS LocationEvaluation_upd ON "inbound"."LocationEvaluation";
-CREATE RULE LocationEvaluation_upd AS
+-- https://stackoverflow.com/q/44005446
+
+DROP RULE IF EXISTS LocationEvaluation_upd0 ON "inbound"."LocationEvaluation";
+CREATE RULE LocationEvaluation_upd0 AS
 ON UPDATE TO "inbound"."LocationEvaluation"
-DO INSTEAD
+DO INSTEAD NOTHING
+;
+
+
+DROP RULE IF EXISTS LocationEvaluation_upd1 ON "inbound"."LocationEvaluation";
+CREATE RULE LocationEvaluation_upd1 AS
+ON UPDATE TO "inbound"."LocationEvaluation"
+DO ALSO
  UPDATE "inbound"."ExtraVisits"
  SET
   -- grouped_activity_id = NEW.grouped_activity_id,
@@ -80,6 +99,20 @@ DO INSTEAD
   photo = NEW.photo,
   visit_done = NEW.visit_done
  WHERE extravisit_id = OLD.extravisit_id
+;
+
+DROP RULE IF EXISTS LocationEvaluation_upd2 ON "inbound"."LocationEvaluation";
+CREATE RULE LocationEvaluation_upd2 AS
+ON UPDATE TO "inbound"."LocationEvaluation"
+DO ALSO
+ UPDATE "outbound"."SampleLocations"
+ SET
+  -- grouped_activity_id = NEW.grouped_activity_id,
+  is_replaced = NEW.is_replaced,
+  replacement_ongoing = NEW.replacement_ongoing,
+  replacement_reason = NEW.replacement_reason,
+  replacement_permanence = NEW.replacement_permanence
+ WHERE samplelocation_id = OLD.samplelocation_id
 ;
 
 

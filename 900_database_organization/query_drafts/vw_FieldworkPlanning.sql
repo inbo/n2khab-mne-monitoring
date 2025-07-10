@@ -32,9 +32,11 @@ SELECT
   FAC.date_start,
   FAC.date_end,
   FAC.date_interval,
+  FAC.date_end - current_date AS days_to_deadline,
   FAC.wait_watersurface,
   FAC.wait_3260,
   FAC.wait_7220,
+  (FAC.wait_watersurface OR FAC.wait_3260 OR FAC.wait_7220) AS is_waiting,
   FAC.excluded,
   FAC.excluded_reason,
   FAC.landowner,
@@ -75,6 +77,14 @@ LEFT JOIN (
     assessment_done
   ) AS LOCASS
   ON SLOC.location_id = LOCASS.location_id
+ORDER BY
+  FAC.date_end,
+  FAC.priority,
+  is_waiting,
+  FAC.stratum,
+  FAC.grts_address,
+  FAC.activity_rank,
+  FAC.activity_group_id
 ;
 
 
