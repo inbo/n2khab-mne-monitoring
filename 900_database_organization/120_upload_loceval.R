@@ -315,17 +315,18 @@ grouped_activity_lookup <- update_cascade_lookup(
 ## ----upload-n2khabtype--------------------------------------------------------
 ## n2khab type to stratum (below)
 
-extra_types <- n2khab_strata %>%
-  distinct(type) %>%
-  expand_types(mark = TRUE) %>%
-  filter(added_by_expansion) %>%
-  select(type) %>%
-  inner_join(
-    read_types() %>%
-      select(1:3) %>%
-      filter(typelevel == "subtype"),
-    join_by(type)
-  )
+## already included "out-of-the-snippet"
+# extra_types <- n2khab_strata %>%
+#   distinct(type) %>%
+#   expand_types(mark = TRUE) %>%
+#   filter(added_by_expansion) %>%
+#   select(type) %>%
+#   inner_join(
+#     read_types() %>%
+#       select(1:3) %>%
+#       filter(typelevel == "subtype"),
+#     join_by(type)
+#   )
 
 n2khab_types_upload <- bind_rows(
   as_tibble(list(
@@ -338,9 +339,9 @@ n2khab_types_upload <- bind_rows(
   ) %>%
   arrange(main_type, type)
 
-n2khab_types_upload %>%
-  count(main_type, type) %>%
-  arrange(desc(n))
+# n2khab_types_upload %>%
+#   count(main_type, type) %>%
+#   arrange(desc(n))
 
 n2khabtype_lookup <- update_cascade_lookup(
   schema = "metadata",
@@ -532,6 +533,63 @@ previous_calendar_plans <- dplyr::tbl(
   DBI::Id(schema = "outbound", table = "FieldActivityCalendar"),
   ) %>% collect()
 
+
+## ----replacement-archive-------------------------------------------
+
+# store replacement information of previous visits
+
+previous_sampleunits <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "SampleUnits"),
+  ) %>%
+  select(
+    sampleunit_id,
+    grts_address,
+    grts_join_method,
+    scheme,
+    panel_set,
+    targetpanel,
+    scheme_ps_targetpanels,
+    sp_poststratum,
+    type,
+    replacement_reason,
+    replacement_permanence
+  ) %>%
+  collect()
+
+
+previous_replacements <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "Replacements"),
+  ) %>%
+  select(-ogc_fid, -wkb_geometry) %>%
+  filter(
+    is_inappropriate
+    | is_selected
+    | !is.na(notes)
+  ) %>%
+  collect() %>%
+  left_join(
+    previous_sampleunits,
+    by = join_by(sampleunit_id)
+  )
+
+
+replacement_archive_lookup <- update_cascade_lookup(
+  schema = "archive",
+  table_key = "ReplacementArchives",
+  new_data = previous_replacements,
+  index_columns = c("replacementarchive_id"),
+  characteristic_columns = c(
+    "scheme_ps_targetpanels",
+    "type",
+    "grts_address",
+    "grts_address_replacement",
+    "replacement_rank"
+  ),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
 
 
 ## ----upload-locations----------------------------------------------
@@ -829,7 +887,7 @@ fieldwork_calendar_lookup <- update_cascade_lookup(
 #| eval: true
 # glimpse(stratum_schemepstargetpanel_spsamples_terr_replacementcells)
 
-# TODO: store previous replacement info to another table
+# (DONE: store previous replacement info to another table)
 
 replacements <- stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   select(stratum, grts_address, replacement_cells) %>%
@@ -872,7 +930,7 @@ sf::st_geometry(replacements_upload) <- "wkb_geometry"
 # glimpse(replacements_upload)
 
 
-# TODO save previous replacement info's prior to update
+# upload new replacements, TABULA RASA
 replacements_lookup <- update_cascade_lookup(
   schema = "outbound",
   table_key = "Replacements",
@@ -884,6 +942,54 @@ replacements_lookup <- update_cascade_lookup(
 )
 
 
+## ----replacement-cells-------------------------------------------------
+# TODO
+
+replacement_cell_rast <- replacements %>%
+  pull(grts_address_replacement) %>%
+  filter_grtsraster_by_address(spatrast = grts_mh, spatrast_index = grts_mh_index)
+set.names(replacement_cell_rast, "grts_address_replacement")
+
+replacement_cell_polygons <-
+  replacement_cell_rast %>%
+  as.polygons(aggregate = FALSE) %>%
+  sf::st_as_sf()
+
+replacement_cells <- replacement_cell_polygons %>%
+  # to prefer the tibble approach in sf, we need to convert forth and back
+  as_tibble() %>%
+  mutate(grts_address_replacement = as.integer(grts_address_replacement)) %>%
+  # it appears that the CRS is actually retrieved from the tibble, but I don't
+  # understand how (so the crs argument below isn't needed)
+  st_as_sf(crs = "EPSG:31370")
+
+replacement_cells <-
+  replacement_cells %>%
+  inner_join(
+    replacements_lookup,
+    by = join_by(grts_address_replacement),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(replacement_id)
+
+sf::st_geometry(replacement_cells) <- "wkb_geometry"
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of outbound.ReplacementCells"))
+
+execute_sql(
+  db_connection,
+  glue::glue('DELETE  FROM "outbound"."ReplacementCells";'),
+  verbose = TRUE
+)
+
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "ReplacementCells"),
+  replacement_cells,
+  reference_columns = "replacement_id"
+)
 
 
 

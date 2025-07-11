@@ -5,7 +5,8 @@ SELECT DISTINCT
  POL.ogc_fid,
  POL.wkb_geometry,
  UNIT.type,
- UNIT.replacement_ongoing
+ UNIT.replacement_ongoing,
+ UNIT.is_replaced
 FROM "outbound"."SampleUnitPolygons" AS POL
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON UNIT.sampleunit_id = POL.sampleunit_id

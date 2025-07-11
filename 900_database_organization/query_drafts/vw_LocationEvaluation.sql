@@ -2,13 +2,13 @@ DROP VIEW IF EXISTS  "inbound"."LocationEvaluation" ;
 CREATE VIEW "inbound"."LocationEvaluation" AS
 SELECT
   LOC.*,
-  EVI.visit_id,
-  EVI.teammember_id,
-  EVI.date_visit,
-  EVI.type_assessed,
-  EVI.notes,
-  EVI.photo,
-  EVI.visit_done,
+  VISIT.visit_id,
+  VISIT.teammember_id,
+  VISIT.date_visit,
+  VISIT.type_assessed,
+  VISIT.notes,
+  VISIT.photo,
+  VISIT.visit_done,
   UNIT.sampleunit_id,
   UNIT.grts_join_method,
   UNIT.scheme,
@@ -34,11 +34,11 @@ SELECT
   FAC.date_end - current_date AS days_to_deadline,
   FAC.priority,
   FAC.notes AS preparation_notes
-FROM "inbound"."Visits" AS EVI
+FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
-  ON LOC.location_id = EVI.location_id
+  ON LOC.location_id = VISIT.location_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON EVI.sampleunit_id = UNIT.sampleunit_id
+  ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
   SELECT
     sampleunit_id,
@@ -67,7 +67,7 @@ LEFT JOIN (
     assessment_done,
     notes
   ) AS LOCASS
-  ON EVI.location_id = LOCASS.location_id
+  ON VISIT.location_id = LOCASS.location_id
 WHERE TRUE
   AND ((LOCASS.cell_disapproved IS NULL) OR (NOT LOCASS.cell_disapproved))
   AND ((FAC.no_visit_planned IS NULL) OR (NOT FAC.no_visit_planned))
@@ -89,7 +89,6 @@ ON UPDATE TO "inbound"."LocationEvaluation"
 DO ALSO
  UPDATE "inbound"."Visits"
  SET
-  -- grouped_activity_id = NEW.grouped_activity_id,
   teammember_id = NEW.teammember_id,
   date_visit = NEW.date_visit,
   type_assessed = NEW.type_assessed,
