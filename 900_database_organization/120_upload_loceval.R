@@ -463,6 +463,8 @@ sample_locations <-
 #      "previous_assessment" -> "assessment"
 #      and add previous_notes
 
+
+
 ## ----save-previous-location-assessments----------------------------------------------
 
 table_str <- '"outbound"."LocationAssessments"'
@@ -684,6 +686,68 @@ sample_locations_lookup <- update_cascade_lookup(
 #   nrow()
 
 
+
+## ----polygons-------------------------------------------------
+
+
+sample_locations_for_polygons <- sample_locations_lookup %>%
+  select(type, grts_address, samplelocation_id)
+
+samplelocation_grts_cellcenters_for_polygons <- sample_locations_for_polygons %>%
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+habmap_unique_polygons <- vect(file.path(
+    locate_n2khab_data(),
+    "10_raw/habitatmap/habitatmap.gpkg"
+  )) %>%
+  .[vect(samplelocation_grts_cellcenters_for_polygons)] %>%
+  as.polygons() %>%
+  sf::st_as_sf() %>%
+  select(geometry)
+
+# note that polygons are multiplicated with this method if
+# they contain multiple sample units.
+sample_polygons <- cbind(
+  samplelocation_grts_cellcenters_for_polygons %>%
+    sf::st_drop_geometry(),
+  habmap_unique_polygons[
+  samplelocation_grts_cellcenters_for_polygons %>%
+    sf::st_nearest_feature(habmap_unique_polygons)
+  , ]
+  ) %>%
+  # (FM just copied this from FV)
+  # to prefer the tibble approach in sf, we need to convert forth and back
+  as_tibble() %>%
+  # it appears that the CRS is actually retrieved from the tibble, but I don't
+  # understand how (so the crs argument below isn't needed)
+  st_as_sf(crs = "EPSG:31370") %>%
+  select(samplelocation_id)
+
+
+sf::st_geometry(sample_polygons) <- "wkb_geometry"
+# mapview(sample_polygons)
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.SamplePolygons"))
+
+execute_sql(
+  db_connection,
+  glue::glue('DELETE  FROM "metadata"."SamplePolygons";'),
+  verbose = TRUE
+)
+
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "SamplePolygons"),
+  sample_polygons,
+  reference_columns = "samplelocation_id"
+)
+
+
 ## ----fieldwork-calendar-------------------------------------------------
 
 # grouped_activities %>% distinct(activity_group, activity_group_id) %>% count(activity_group) %>% print(n=Inf)
@@ -787,7 +851,9 @@ replacements <- stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
     by = join_by(type, grts_address),
     relationship = "many-to-many", # TODO
     unmatched = "drop"
-  ) %>%
+  )
+
+replacements_upload <- replacements %>%
   select(
     -type,
     -grts_address,
@@ -800,16 +866,16 @@ replacements <- stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
     spatrast_index = grts_mh_index
   )
 
-sf::st_geometry(replacements) <- "wkb_geometry"
+sf::st_geometry(replacements_upload) <- "wkb_geometry"
 
-# glimpse(replacements)
+# glimpse(replacements_upload)
 
 
 # TODO save previous replacement info's prior to update
 replacements_lookup <- update_cascade_lookup(
   schema = "outbound",
   table_key = "ReplacementLocations",
-  new_data = replacements,
+  new_data = replacements_upload,
   index_columns = c("replacement_id"),
   characteristic_columns = c("samplelocation_id", "grts_address_replacement"),
   tabula_rasa = TRUE,
