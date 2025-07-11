@@ -967,6 +967,15 @@ The reason we move these aside is that the replacement information has to be pos
 ** Replacement Cells
 SCHEDULED: <2025-07-11 Fri>
 
+Use of =UNION= to display the "ongoing" replacement cells together with the regular cells.
+
+
+** CellMaps
+SCHEDULED: <2025-07-11 Fri>
+
+A new table for freestyle cell mapping.
+Happy drawing!
+
 
 * Fieldwork - Planning (outbound)
 
