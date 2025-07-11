@@ -71,6 +71,10 @@ LEFT JOIN (
 WHERE TRUE
   AND ((LOCASS.cell_disapproved IS NULL) OR (NOT LOCASS.cell_disapproved))
   AND ((FAC.no_visit_planned IS NULL) OR (NOT FAC.no_visit_planned))
+  AND (FAC.activity_group_id IN
+  (SELECT DISTINCT activity_group_id FROM "metadata"."GroupedActivities"
+  WHERE is_loceval_activity)
+  )
 ;
 
 
@@ -113,9 +117,11 @@ DO ALSO
 
 
 
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO ward;
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO karen;
 GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO ward;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO karen;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO karen;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO tom;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO ward;
 GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO karen;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO tom;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO ward;

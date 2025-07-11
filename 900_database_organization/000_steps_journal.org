@@ -981,7 +981,8 @@ Happy drawing!
 SCHEDULED: <2025-07-11 Fri>
 
 + changes above pushed to production
-+ time to trash the qgis project
++ time to trash the qgis project... was not too bad
++ uploaded and mail sent
 
 
 
@@ -1116,8 +1117,11 @@ CLOSED: [2025-07-10 Thu 12:38] SCHEDULED: <2025-06-16 Mon>
 ** quick checks
 
 #+begin_src sql
-
-SELECT * FROM "inbound".""
-
+SET search_path TO public,"metadata","outbound","inbound";
+SELECT DISTINCT assessment_done, COUNT(*) AS n FROM "outbound"."LocationAssessments" GROUP BY assessment_done;
+SELECT * FROM "outbound"."FieldActivityCalendar" WHERE done_planning;
+SELECT * FROM "outbound"."Replacements" WHERE is_inappropriate OR is_selected OR (notes IS NOT NULL);
+SELECT * FROM "inbound"."Visits" WHERE NOT (log_user = 'update') AND NOT (log_user = 'falk');
+SELECT * FROM "inbound"."CellMaps";
 
 #+end_src
