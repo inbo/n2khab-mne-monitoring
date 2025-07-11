@@ -600,6 +600,92 @@ restore_location_id_by_grts(
 
 ```
 
+
+## sample unit polygons
+
+
+For the sample locations, we also need to see polygons (replacement procedure, habitat mapping).
+
+Those come from the habitat map.
+
+```{r load-location-polygons}
+
+# only get the polygons for cells in the sample
+sample_locations_for_polygons <- sample_locations_lookup %>%
+  select(type, grts_address, sampleunit_id)
+
+sampleunit_grts_cellcenters_for_polygons <- sample_locations_for_polygons %>%
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+# load and select from habitat map
+habmap_unique_polygons <- vect(file.path(
+    locate_n2khab_data(),
+    "10_raw/habitatmap/habitatmap.gpkg"
+  )) %>%
+  .[vect(sampleunit_grts_cellcenters_for_polygons)] %>%
+  as.polygons() %>%
+  sf::st_as_sf() %>%
+  select(geometry)
+```
+
+
+
+bind polygons to the sample units
+
+```{r bind-polygons-to-sample-units}
+
+# note that polygons are multiplicated with this method if
+# they contain multiple sample units.
+sample_polygons <- cbind(
+  sampleunit_grts_cellcenters_for_polygons %>%
+    sf::st_drop_geometry(),
+  habmap_unique_polygons[
+  sampleunit_grts_cellcenters_for_polygons %>%
+    sf::st_nearest_feature(habmap_unique_polygons)
+  , ]
+  ) %>%
+  # (FM just copied this from FV)
+  # to prefer the tibble approach in sf, we need to convert forth and back
+  as_tibble() %>%
+  # it appears that the CRS is actually retrieved from the tibble, but I don't
+  # understand how (so the crs argument below isn't needed)
+  st_as_sf(crs = "EPSG:31370") %>%
+  select(sampleunit_id)
+
+
+sf::st_geometry(sample_polygons) <- "wkb_geometry"
+# mapview(sample_polygons)
+
+```
+
+
+this is stored on the postgis server.
+
+```{r upload-polygons}
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of outbound.SampleUnitPolygons"))
+
+execute_sql(
+  db_connection,
+  glue::glue('DELETE  FROM "outbound"."SampleUnitPolygons";'),
+  verbose = TRUE
+)
+
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "SampleUnitPolygons"),
+  sample_polygons,
+  reference_columns = "sampleunit_id"
+)
+
+```
+
+
 ## fieldwork calendar
 
 ```{r load-activity-group-lookup}
