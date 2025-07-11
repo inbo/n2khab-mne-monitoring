@@ -4,18 +4,18 @@ SELECT
   REP.ogc_fid,
   REP.wkb_geometry,
   REP.replacement_id,
-  SLOC.samplelocation_id,
+  UNIT.sampleunit_id,
   REP.grts_address_replacement AS grts_address,
   REP.replacement_rank,
   REP.is_selected,
   REP.is_inappropriate,
   REP.implications_habitatmap,
   REP.notes
-FROM "outbound"."ReplacementLocations" AS REP
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON SLOC.samplelocation_id = REP.samplelocation_id
-WHERE SLOC.replacement_ongoing
-  AND NOT SLOC.is_replaced
+FROM "outbound"."Replacements" AS REP
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON UNIT.sampleunit_id = REP.sampleunit_id
+WHERE UNIT.replacement_ongoing
+  AND NOT UNIT.is_replaced
 ;
 
 
@@ -23,7 +23,7 @@ DROP RULE IF EXISTS ReplacementOngoing_upd ON "inbound"."ReplacementOngoing";
 CREATE RULE ReplacementOngoing_upd AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
 DO INSTEAD
- UPDATE "outbound"."ReplacementLocations"
+ UPDATE "outbound"."Replacements"
  SET
   is_selected = NEW.is_selected,
   is_inappropriate = NEW.is_inappropriate,

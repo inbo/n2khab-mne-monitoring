@@ -310,12 +310,12 @@ previous_location_assessments <- dplyr::tbl(
 
 ```
 
-## Retain "ExtraVisits"
+## Retain "Visits"
 
-Analogously, we can clean the table of `ExtraVisits` which never happened.
+Analogously, we can clean the table of `Visits` which never happened.
 
-```{r prune-extra-visits}
-table_str <- '"inbound"."ExtraVisits"'
+```{r prune-visits}
+table_str <- '"inbound"."Visits"'
 maintenance_users <- sprintf("'{update,%s}'", config$user)
 cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
@@ -328,9 +328,9 @@ execute_sql(
   verbose = TRUE
 )
 
-previous_extra_visits <- dplyr::tbl(
+previous_visits <- dplyr::tbl(
   db_connection,
-  DBI::Id(schema = "inbound", table = "ExtraVisits"),
+  DBI::Id(schema = "inbound", table = "Visits"),
   ) %>% collect()
 
 ```
@@ -338,7 +338,7 @@ previous_extra_visits <- dplyr::tbl(
 
 ## ... and FieldActivityCalendar
 
-```{r prune-extra-visits}
+```{r prune-visits}
 table_str <- '"outbound"."FieldActivityCalendar"'
 maintenance_users <- sprintf("'{update,%s}'", config$user)
 cleanup_query <- glue::glue(
@@ -450,7 +450,7 @@ sample_locations <-
 locations <- bind_rows(
     sample_locations %>% select(grts_address),
     previous_location_assessments %>% select(grts_address),
-    previous_extra_visits %>% select(grts_address)
+    previous_visits %>% select(grts_address)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
@@ -541,10 +541,10 @@ append_tabledata(
 
 ```
 
-## SampleLocations
+## SampleUnits
 
 Whereas `Locations` holds the GIS information of a location,
-`SampleLocations` are a collection of metadata about each sample.
+`SampleUnits` are a collection of metadata about each sample.
 
 ```{r refresh-sample-locations}
 if ("location_id" %in% names(sample_locations)) {
@@ -573,9 +573,9 @@ slocs_refcols <- c(
 # tabula rasa: might otherwise be duplicated due to missing fk and null constraint
 sample_locations_lookup <- update_cascade_lookup(
   schema = "outbound",
-  table_key = "SampleLocations",
+  table_key = "SampleUnits",
   new_data = sample_locations,
-  index_columns = c("samplelocation_id"),
+  index_columns = c("sampleunit_id"),
   characteristic_columns = slocs_refcols,
   tabula_rasa = TRUE,
   verbose = TRUE
@@ -593,7 +593,7 @@ restore_location_id_by_grts(
   db_connection,
   dbstructure_folder,
   target_schema = "outbound",
-  table_key = "SampleLocations",
+  table_key = "SampleUnits",
   retain_log = FALSE,
   verbose = TRUE
 )
@@ -636,7 +636,7 @@ fieldwork_calendar <-
   ) %>%
   left_join(
     sample_locations_lookup %>%
-      select(type, grts_address, samplelocation_id),
+      select(type, grts_address, sampleunit_id),
     by = join_by(type, grts_address),
     relationship = "many-to-many", # TODO
     unmatched = "drop"
@@ -709,7 +709,7 @@ replacements <- stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   ) %>%
   left_join(
     sample_locations_lookup %>%
-      select(type, grts_address, samplelocation_id),
+      select(type, grts_address, sampleunit_id),
     by = join_by(type, grts_address),
     relationship = "many-to-many", # TODO
     unmatched = "drop"
@@ -719,7 +719,7 @@ replacements <- stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
     -grts_address,
     -cellnr_replacement
   ) %>%
-  filter(!is.na(samplelocation_id)) %>% 
+  filter(!is.na(sampleunit_id)) %>% 
   add_point_coords_grts(
     grts_var = "grts_address_replacement",
     spatrast = grts_mh,
@@ -737,10 +737,10 @@ sf::st_geometry(replacements) <- "wkb_geometry"
 
 replacements_lookup <- update_cascade_lookup(
   schema = "outbound",
-  table_key = "ReplacementLocations",
+  table_key = "Replacements",
   new_data = replacements,
   index_columns = c("replacement_id"),
-  characteristic_columns = c("samplelocation_id", "grts_address_replacement"),
+  characteristic_columns = c("sampleunit_id", "grts_address_replacement"),
   tabula_rasa = TRUE,
   verbose = TRUE
 )
@@ -819,22 +819,22 @@ SELECT DISTINCT assessment_done, count(*) FROM "outbound"."LocationAssessments" 
 ```
 
 
-## Extra Visits
+## Visits
 
 Analogous to LocationAssessments, we retain previous field visits and append potential new locations.
 This also demands re-linking the `location_id`.
 In the future, this will be replaced by a proper fieldwork planning machinery.
 
 
-```{r upload-extra-visits}
+```{r upload-visits}
 
-new_extra_visits <- sample_locations_lookup %>%
+new_visits <- sample_locations_lookup %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
     relationship = "many-to-one"
   ) %>%
-  select(samplelocation_id, location_id, grts_address) %>%
+  select(sampleunit_id, location_id, grts_address) %>%
   mutate(
     grouped_activity_id = NA,
     teammember_id = NA,
@@ -844,7 +844,7 @@ new_extra_visits <- sample_locations_lookup %>%
     visit_done = FALSE
   )
 
-# new_extra_visits %>%
+# new_visits %>%
 #   count(location_id, grts_address) %>%
 #   arrange(desc(n))
 
@@ -855,12 +855,12 @@ new_extra_visits <- sample_locations_lookup %>%
 #     on identical locations.
 
 # append the LocationAssessments with empty lines for new sample units
-extravisits_lookup <- update_cascade_lookup(
+visits_lookup <- update_cascade_lookup(
   schema = "inbound",
-  table_key = "ExtraVisits",
-  new_data = new_extra_visits,
-  index_columns = c("extravisit_id"),
-  characteristic_columns = c("grts_address", "samplelocation_id"),
+  table_key = "Visits",
+  new_data = new_visits,
+  index_columns = c("visit_id"),
+  characteristic_columns = c("grts_address", "sampleunit_id"),
   tabula_rasa = FALSE,
   verbose = TRUE
 )
@@ -870,7 +870,7 @@ restore_location_id_by_grts(
   db_connection,
   dbstructure_folder,
   target_schema = "inbound",
-  table_key = "ExtraVisits",
+  table_key = "Visits",
   retain_log = TRUE,
   verbose = TRUE
 )

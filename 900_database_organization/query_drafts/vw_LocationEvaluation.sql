@@ -2,27 +2,27 @@ DROP VIEW IF EXISTS  "inbound"."LocationEvaluation" ;
 CREATE VIEW "inbound"."LocationEvaluation" AS
 SELECT
   LOC.*,
-  EVI.extravisit_id,
+  EVI.visit_id,
   EVI.teammember_id,
   EVI.date_visit,
   EVI.type_assessed,
   EVI.notes,
   EVI.photo,
   EVI.visit_done,
-  SLOC.samplelocation_id,
-  SLOC.grts_join_method,
-  SLOC.scheme,
-  SLOC.panel_set,
-  SLOC.targetpanel,
-  SLOC.scheme_ps_targetpanels,
-  SLOC.sp_poststratum,
-  SLOC.type,
-  SLOC.assessment,
-  SLOC.assessment_date,
-  SLOC.is_replaced,
-  SLOC.replacement_ongoing,
-  SLOC.replacement_reason,
-  SLOC.replacement_permanence,
+  UNIT.sampleunit_id,
+  UNIT.grts_join_method,
+  UNIT.scheme,
+  UNIT.panel_set,
+  UNIT.targetpanel,
+  UNIT.scheme_ps_targetpanels,
+  UNIT.sp_poststratum,
+  UNIT.type,
+  UNIT.assessment,
+  UNIT.assessment_date,
+  UNIT.is_replaced,
+  UNIT.replacement_ongoing,
+  UNIT.replacement_reason,
+  UNIT.replacement_permanence,
   LOCASS.assessment_done,
   LOCASS.cell_disapproved,
   LOCASS.notes AS location_assessment,
@@ -34,14 +34,14 @@ SELECT
   FAC.date_end - current_date AS days_to_deadline,
   FAC.priority,
   FAC.notes AS preparation_notes
-FROM "inbound"."ExtraVisits" AS EVI
+FROM "inbound"."Visits" AS EVI
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = EVI.location_id
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON EVI.samplelocation_id = SLOC.samplelocation_id
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON EVI.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
   SELECT
-    samplelocation_id,
+    sampleunit_id,
     activity_group_id,
     date_start,
     date_end,
@@ -53,7 +53,7 @@ LEFT JOIN (
     notes
   FROM "outbound"."FieldActivityCalendar" AS CAL
   ) AS FAC
-  ON (FAC.samplelocation_id = SLOC.samplelocation_id)
+  ON (FAC.sampleunit_id = UNIT.sampleunit_id)
 LEFT JOIN (
   SELECT DISTINCT
     location_id,
@@ -87,7 +87,7 @@ DROP RULE IF EXISTS LocationEvaluation_upd1 ON "inbound"."LocationEvaluation";
 CREATE RULE LocationEvaluation_upd1 AS
 ON UPDATE TO "inbound"."LocationEvaluation"
 DO ALSO
- UPDATE "inbound"."ExtraVisits"
+ UPDATE "inbound"."Visits"
  SET
   -- grouped_activity_id = NEW.grouped_activity_id,
   teammember_id = NEW.teammember_id,
@@ -96,20 +96,20 @@ DO ALSO
   notes = NEW.notes,
   photo = NEW.photo,
   visit_done = NEW.visit_done
- WHERE extravisit_id = OLD.extravisit_id
+ WHERE visit_id = OLD.visit_id
 ;
 
 DROP RULE IF EXISTS LocationEvaluation_upd2 ON "inbound"."LocationEvaluation";
 CREATE RULE LocationEvaluation_upd2 AS
 ON UPDATE TO "inbound"."LocationEvaluation"
 DO ALSO
- UPDATE "outbound"."SampleLocations"
+ UPDATE "outbound"."SampleUnits"
  SET
   is_replaced = NEW.is_replaced,
   replacement_ongoing = NEW.replacement_ongoing,
   replacement_reason = NEW.replacement_reason,
   replacement_permanence = NEW.replacement_permanence
- WHERE samplelocation_id = OLD.samplelocation_id
+ WHERE sampleunit_id = OLD.sampleunit_id
 ;
 
 
