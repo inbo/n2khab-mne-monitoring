@@ -895,17 +895,17 @@ critical request by @WT.
 
 
 ** replacement locations
-SCHEDULED: <2025-07-09 Wed>
+SCHEDULED: <2025-07-09 Wed>-<2025-07-10 Thu>
 
 critical request by @WT.
 
 + [X] structure in place
-+ [ ] view to show only active replacements
-+ [ ] separate update rules for different fields
-+ [ ] qgis project
++ [X] view to show only active replacements
++ [X] separate update rules for different fields -> double-rule
++ [X] qgis project
 + [ ] routine to keep previous replacements intact
 
-+ re-try dev creation and then live update
++ [X] re-try dev creation and then live update
 
 
 * Fieldwork - Planning (outbound)
@@ -953,7 +953,7 @@ SCHEDULED: <2025-07-02 Wed>
 + [X] LocationAssessments
 + [X] FieldActivityCalendar
 + [ ] Visits
-+ [ ] Replacements
+
 
 ** create tester user
 SCHEDULED: <2025-07-02 Wed>
@@ -961,12 +961,14 @@ SCHEDULED: <2025-07-02 Wed>
 (user who can only access the =_dev= databases,
 so that I do not have to hijack other people's accounts all the time)
 
+
 ** qgis outbound app
 SCHEDULED: <2025-07-02 Wed>
 
 TODO:
 + ++landowner
 + re-upload bug
+
 
 * learning the hard way
 
@@ -1014,8 +1016,8 @@ but for some technical tasks, it is better to circumvent them.
 * General
 
 
-** TODO Replacement Unit logic
-SCHEDULED: <2025-06-16 Mon>
+** DONE Replacement Unit logic
+CLOSED: [2025-07-10 Thu 12:38] SCHEDULED: <2025-06-16 Mon>
 
 /brainstorm:/
 + LocationCalendar -> must be linked
@@ -1024,3 +1026,11 @@ SCHEDULED: <2025-06-16 Mon>
 + join =Replacements= to =Visits= if they have an entry
 
 
+** quick checks
+
+#+begin_src sql
+
+SELECT * FROM "inbound".""
+
+
+#+end_src

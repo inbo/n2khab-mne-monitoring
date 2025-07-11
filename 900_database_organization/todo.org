@@ -33,6 +33,8 @@
 + [ ] overhaul =ExtraVisits= -> multi visits per location
   + grouped_activity_id
 
++ [ ] procedure to store replacements and update sample (with @FV)
+
 + [X] loceval fieldwork app
   + [X] replacement procedure
   + [X] filter "priority"
