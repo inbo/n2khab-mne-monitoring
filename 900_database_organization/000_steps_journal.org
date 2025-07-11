@@ -977,6 +977,14 @@ A new table for freestyle cell mapping.
 Happy drawing!
 
 
+** major update
+SCHEDULED: <2025-07-11 Fri>
+
++ changes above pushed to production
++ time to trash the qgis project
+
+
+
 * Fieldwork - Planning (outbound)
 
 ** the next database

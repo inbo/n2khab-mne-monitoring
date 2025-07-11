@@ -30,9 +30,14 @@ CREATE TRIGGER log_freefieldnotes
 BEFORE UPDATE ON "inbound"."FreeFieldNotes"
 FOR EACH ROW EXECUTE PROCEDURE sync_mod();
 
-DROP TRIGGER IF EXISTS log_extravisits ON "inbound"."ExtraVisits";
-CREATE TRIGGER log_extravisits
-BEFORE UPDATE ON "inbound"."ExtraVisits"
+DROP TRIGGER IF EXISTS log_visits ON "inbound"."Visits";
+CREATE TRIGGER log_visits
+BEFORE UPDATE ON "inbound"."Visits"
+FOR EACH ROW EXECUTE PROCEDURE sync_mod();
+
+DROP TRIGGER IF EXISTS log_cellmaps ON "inbound"."CellMaps";
+CREATE TRIGGER log_cellmaps
+BEFORE UPDATE ON "inbound"."CellMaps"
 FOR EACH ROW EXECUTE PROCEDURE sync_mod();
 
 

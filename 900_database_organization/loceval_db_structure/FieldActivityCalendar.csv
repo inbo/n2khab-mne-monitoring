@@ -2,7 +2,7 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 fieldactivitycalendar_id,int,True,,True,True,,,,calendar index (technical)
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
-samplelocation_id,int,False,,False,False,,,,optional link to sample locations
+sampleunit_id,int,False,,False,False,,,,optional link to sample locations
 stratum,varchar,True,,False,False,,,,"stratum, as planned in the sampling procedure"
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after corrections)"
 priority,smallint,True,,False,False,,,,"priority, based on scheme, panel, and stratum"

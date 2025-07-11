@@ -896,6 +896,66 @@ replacements_lookup <- update_cascade_lookup(
 
 ```
 
+## ReplacementCells
+
+
+
+```{r assemble-replacement-cells}
+
+replacement_cell_rast <- replacements %>%
+  pull(grts_address_replacement) %>%
+  filter_grtsraster_by_address(spatrast = grts_mh, spatrast_index = grts_mh_index)
+set.names(replacement_cell_rast, "grts_address_replacement")
+
+replacement_cell_polygons <-
+  replacement_cell_rast %>%
+  as.polygons(aggregate = FALSE) %>%
+  sf::st_as_sf()
+
+replacement_cells <- replacement_cell_polygons %>%
+  # to prefer the tibble approach in sf, we need to convert forth and back
+  as_tibble() %>%
+  mutate(grts_address_replacement = as.integer(grts_address_replacement)) %>%
+  # it appears that the CRS is actually retrieved from the tibble, but I don't
+  # understand how (so the crs argument below isn't needed)
+  st_as_sf(crs = "EPSG:31370")
+
+replacement_cells <-
+  replacement_cells %>%
+  inner_join(
+    replacements_lookup,
+    by = join_by(grts_address_replacement),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(replacement_id)
+
+sf::st_geometry(replacement_cells) <- "wkb_geometry"
+
+```
+
+
+```{r upload-replacement-cells}
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of outbound.ReplacementCells"))
+
+execute_sql(
+  db_connection,
+  glue::glue('DELETE  FROM "outbound"."ReplacementCells";'),
+  verbose = TRUE
+)
+
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "ReplacementCells"),
+  replacement_cells,
+  reference_columns = "replacement_id"
+)
+
+
+
+```
 
 ## LocationAssessments
 

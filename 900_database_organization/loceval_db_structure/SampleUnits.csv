@@ -1,0 +1,19 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+sampleunit_id,int,True,,True,True,,,,sample location index (technical)
+location_id,int,True,,False,False,,,,the technical sequence of all locations
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+grts_join_method,varchar,False,,False,False,,,,whether cell center or polygon are the unit reference
+scheme,varchar,True,,False,False,,,,monitoring scheme
+panel_set,int,False,,False,False,,,,panel reference
+targetpanel,varchar,False,,False,False,,,,panel reference
+scheme_ps_targetpanels,varchar,False,,False,False,,,,"nested concatenation of scheme, poststratum, and target panels"
+sp_poststratum,varchar,False,,False,False,,,,spatial poststratum
+type,varchar,True,,False,False,,,,"type (code), our latest best assessment"
+assessment,boolean,True,0,False,False,,,,biotics previously assessed (`assessment_in_field`)
+assessment_date,date,False,,False,False,,,,date of previous assessment
+previous_notes,text,False,,False,False,,,,collecting any notes which we took previously
+replacement_ongoing,boolean,True,0,False,False,,,,transient column to filter a view for ongoing replacements
+replacement_id,int,False,NULL,False,False,,,,link to the replacement location
+replacement_reason,text,False,NULL,False,False,,,,"explanation for replacement choice, e.g. inaccessibility"
+replacement_permanence,text,False,NULL,False,False,,,,whether or not the location is permanently unavailable
+is_replaced,boolean,True,0,False,False,,,,indicator whether we used a replacement location

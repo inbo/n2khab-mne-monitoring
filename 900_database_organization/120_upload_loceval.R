@@ -943,7 +943,7 @@ replacements_lookup <- update_cascade_lookup(
 
 
 ## ----replacement-cells-------------------------------------------------
-# TODO
+# cell square polygons for replacement cells
 
 replacement_cell_rast <- replacements %>%
   pull(grts_address_replacement) %>%

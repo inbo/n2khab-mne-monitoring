@@ -41,6 +41,6 @@ update_datatable_and_dependent_keys(
   table_key = migrating_table_key,
   new_data = protocols_data,
   profile = "testing",
-  dbstructure_folder = "loceval_dev_structure",
+  dbstructure_folder = "loceval_db_structure",
   verbose = FALSE
 )

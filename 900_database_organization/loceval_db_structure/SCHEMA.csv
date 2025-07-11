@@ -1,4 +1,6 @@
 schema,owner,usage
-outbound,falk,"ward,karen,floris,monkey"
-inbound,falk,"ward,karen,floris,monkey"
-metadata,falk,"ward,karen,floris,monkey"
+outbound,falk,"tom,ward,floris,karen,monkey"
+inbound,falk,"tom,ward,floris,karen,monkey"
+metadata,falk,"tom,ward,floris,karen,monkey"
+archive,falk,"tester,monkey"
+analysis,falk,"tom,ward,floris,karen,monkey"
