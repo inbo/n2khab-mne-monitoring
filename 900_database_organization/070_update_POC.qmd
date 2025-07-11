@@ -364,6 +364,69 @@ previous_calendar_plans <- dplyr::tbl(
 ```
 
 
+## Replacements Archive
+
+Replacements are tabula-rasa'd below.
+We still want to keep the original information.
+
+The reason we move these aside is that the replacement information has to be post-processed to adjust the SampleUnits anyways, which makes the replacement visits obsolete.
+
+
+```{r archive-replacements}
+previous_sampleunits <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "SampleUnits"),
+  ) %>%
+  select(
+    sampleunit_id,
+    grts_address,
+    grts_join_method,
+    scheme,
+    panel_set,
+    targetpanel,
+    scheme_ps_targetpanels,
+    sp_poststratum,
+    type,
+    replacement_reason,
+    replacement_permanence
+  ) %>%
+  collect()
+
+
+previous_replacements <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "Replacements"),
+  ) %>%
+  select(-ogc_fid, -wkb_geometry) %>%
+  filter(
+    is_inappropriate
+    | is_selected
+    | !is.na(notes)
+  ) %>%
+  collect() %>%
+  left_join(
+    previous_sampleunits,
+    by = join_by(sampleunit_id)
+  )
+
+
+replacement_archive_lookup <- update_cascade_lookup(
+  schema = "archive",
+  table_key = "ReplacementArchives",
+  new_data = previous_replacements,
+  index_columns = c("replacementarchive_id"),
+  characteristic_columns = c(
+    "scheme_ps_targetpanels",
+    "type",
+    "grts_address",
+    "grts_address_replacement",
+    "replacement_rank"
+  ),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+```
+
 ## Locations
 
 Starting from `fag_stratum_grts_calendar` to extract all info about the sample locations...

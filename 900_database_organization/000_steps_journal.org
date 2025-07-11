@@ -955,6 +955,18 @@ ON DELETE CASCADE ON UPDATE CASCADE;
 #+end_src
 
 
+** Replacement Archives
+SCHEDULED: <2025-07-11 Fri>
+
+Replacements are tabula-rasa'd in the sample update process.
+We still want to keep the original information.
+
+The reason we move these aside is that the replacement information has to be post-processed to adjust the SampleUnits anyways, which makes the replacement visits obsolete.
+
+
+** Replacement Cells
+SCHEDULED: <2025-07-11 Fri>
+
 
 * Fieldwork - Planning (outbound)
 

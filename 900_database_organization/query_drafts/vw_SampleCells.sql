@@ -9,6 +9,17 @@ WHERE location_id IN (
   SELECT DISTINCT location_id
   FROM "outbound"."SampleUnits"
 )
+UNION
+SELECT
+ *
+FROM "outbound"."ReplacementCells"
+WHERE replacement_id IN (
+  SELECT DISTINCT REP.replacement_id
+  FROM "outbound"."Replacements" AS REP
+  LEFT JOIN "outbound"."SampleUnits" AS UNIT
+    ON UNIT.sampleunit_id = REP.sampleunit_id
+  WHERE replacement_ongoing
+)
 ;
 
 GRANT SELECT ON  "outbound"."SampleCells"  TO ward;

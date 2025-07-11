@@ -368,8 +368,9 @@ def EnsureNestedQuerySpacing(query: str) -> str:
     # some sql keywords get crunched by gsheet cell walls
     for keyword in [ \
               "SELECT", "FROM", "WHERE" \
-            , "AS " # note that "AS" without space is in "CASE"\
             , "UPDATE", "ON UPDATE", "INSTEAD" \
+            , " ON ", "AS " # note that "AS" without space is in "CASE", and "ON" is in "FUNCTION" \
+            , "AND NOT" \
             , "LEFT JOIN" \
             , "DISTINCT", "GROUP BY", "ORDER BY" \
             , "CASE WHEN", "THEN", "ELSE", "END" \
