@@ -9,4 +9,5 @@ is_datacollection_method,boolean,False,NULL,False,False,,,,
 is_field_activity,boolean,False,NULL,False,False,,,,
 is_prep_activity,boolean,False,NULL,False,False,,,,
 is_lab_activity,boolean,False,NULL,False,False,,,,
+is_loceval_activity,boolean,False,NULL,False,False,,,,
 protocol_id,smallint,False,NULL,False,False,Protocols.protocol_id,,,referencing the protocol table

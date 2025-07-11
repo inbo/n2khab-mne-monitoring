@@ -1,15 +1,18 @@
 schema,table,owner,read_access,write_access,geometry,constraint,freesql,persistent,excluded,comment
-metadata,Protocols,falk,"ward,karen,floris,monkey",,,,,,,protocols (preliminary version)
-metadata,GroupedActivities,falk,"ward,karen,floris,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
-metadata,TeamMembers,falk,"ward,karen,floris,monkey",,,,,1,,list of team members
-metadata,N2kHabTypes,falk,"ward,karen,floris,monkey",,,,,,,habitat type
-metadata,lut_N2kHabStrata,falk,"ward,karen,floris,monkey",,,,,,,lookup table n2khab type to stratum
-metadata,Locations,falk,"ward,karen,floris,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
-metadata,LocationCells,falk,"ward,karen,floris,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
-outbound,SampleLocations,falk,"ward,karen,floris,monkey","ward,karen,floris",,,,,,list of locations currently sampled
-outbound,ReplacementLocations,falk,"ward,karen,floris,monkey",,POINT,,,,,putative replacements for inaccessible sites
-outbound,LocationAssessments,falk,"ward,karen,floris,monkey","ward,karen,floris",,,,1,,"iudicium in praetorio, prior to fieldwork, e.g. via orthophotos, including assessments of obsolete locations"
-outbound,FieldActivityCalendar,falk,"ward,karen,floris,monkey","ward,karen,floris",,,,1,,(temporarily on hold) field activity calender
-inbound,Visits,falk,"ward,karen,floris,monkey","ward,karen,floris",,,,1,1,"retrieving information about location visits, linked to fieldactivitycalendar"
-inbound,FreeFieldNotes,falk,"ward,karen,floris,monkey","ward,karen,floris",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
-inbound,ExtraVisits,falk,"ward,karen,floris,monkey","ward,karen,floris",,,,1,,"inbound information about location visits, linked to SampleLocations"
+metadata,Protocols,falk,"tom,ward,floris,karen,monkey",,,,,,,protocols (preliminary version)
+metadata,GroupedActivities,falk,"tom,ward,floris,karen,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
+metadata,TeamMembers,falk,"tom,ward,floris,karen,monkey",,,,,1,,list of team members
+metadata,N2kHabTypes,falk,"tom,ward,floris,karen,monkey",,,,,,,habitat type
+metadata,N2kHabStrata,falk,"tom,ward,floris,karen,monkey",,,,,,,lookup table n2khab type to stratum
+metadata,Locations,falk,"tom,ward,floris,karen,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
+metadata,LocationCells,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
+outbound,SampleUnits,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,,,list of locations currently sampled
+outbound,SampleUnitPolygons,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,,,habitat map polygons of the current sample locations
+outbound,Replacements,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",POINT,,,,,putative replacements for inaccessible sites
+outbound,ReplacementCells,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,,,cell polygons (squares) of the replacement cells
+outbound,LocationAssessments,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"iudicium in praetorio, prior to fieldwork, e.g. via orthophotos, including assessments of obsolete locations"
+outbound,FieldActivityCalendar,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,(temporarily on hold) field activity calender
+inbound,Visits,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"inbound information about location visits, linked to SampleUnits"
+inbound,CellMaps,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",POLYGON,,,1,,cell mapping input by drawing polygons
+inbound,FreeFieldNotes,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
+archive,ReplacementArchives,falk,"tom,ward,floris,karen,monkey",,,,,1,,archive of replacement information for samples which are not used any more

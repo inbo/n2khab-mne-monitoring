@@ -1,0 +1,20 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+replacementarchive_id,int,True,,True,True,,,,replacement archive index (technical)
+replacement_id,int,False,,False,False,,,,historic replacement index
+sampleunit_id,int,False,,False,False,,,,historic sample unit index
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+grts_join_method,varchar,False,,False,False,,,,whether cell center or polygon are the unit reference
+scheme,varchar,True,,False,False,,,,monitoring scheme
+panel_set,int,False,,False,False,,,,panel reference
+targetpanel,varchar,False,,False,False,,,,panel reference
+scheme_ps_targetpanels,varchar,False,,False,False,,,,"nested concatenation of scheme, poststratum, and target panels"
+sp_poststratum,varchar,False,,False,False,,,,spatial poststratum
+type,varchar,True,,False,False,,,,"type (code), our latest best assessment"
+replacement_reason,text,False,NULL,False,False,,,,"explanation for replacement choice, e.g. inaccessibility"
+replacement_permanence,text,False,NULL,False,False,,,,whether or not the location is permanently unavailable
+grts_address_replacement,int,True,,False,False,,CHECK (grts_address_replacement > 0),,"GRTS address (`final`, i.e. after corrections)"
+replacement_rank,smallint,True,,False,False,,CHECK (replacement_rank > 0),,replacement preference order
+is_inappropriate,boolean,True,0,False,False,,,,indicating whether this location was visited but inappropriate as replacement unit
+is_selected,boolean,True,0,False,False,,,,indicating whether this location was selected as replacement unit
+implications_habitatmap,boolean,True,0,False,False,,,,whether disapproval has implications for habitat map
+notes,text,False,NULL,False,False,,,,free text notes which will be transferred to the field app
