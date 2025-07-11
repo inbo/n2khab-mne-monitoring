@@ -908,6 +908,27 @@ critical request by @WT.
 + [X] re-try dev creation and then live update
 
 
+** The Great Rename
+SCHEDULED: <2025-07-11 Fri>
+
+with some requests by Karen, I found it opportune to rename a lot of things.
+To be applied in
++ [ ] gsheet
++ [ ] upload script
++ [ ] sample update procedure
++ [ ] all sql query scripts (especially views)
+
+The following replacements:
+| %s/SampleLocations/SampleUnits/%g       |
+| %s/samplelocation_id/sampleunit_id/%g   |
+| %s/SLOC/UNIT/%g                         |
+| %s/SamplePolygons/SampleCells/%g        |
+| %s/ExtraVisits/Visits/%g                |
+| %s/extravisit_id/visit_id/%g            |
+| %s/ReplacementLocations/Replacements/%g |
+| %s/lut_N2k/N2k/%g                       |
+
+
 * Fieldwork - Planning (outbound)
 
 ** the next database

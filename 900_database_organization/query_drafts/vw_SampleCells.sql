@@ -7,7 +7,7 @@ SELECT
 FROM "metadata"."LocationCells"
 WHERE location_id IN (
   SELECT DISTINCT location_id
-  FROM "outbound"."SampleLocations"
+  FROM "outbound"."SampleUnits"
 )
 ;
 

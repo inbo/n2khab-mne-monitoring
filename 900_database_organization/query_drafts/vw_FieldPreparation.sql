@@ -3,7 +3,7 @@ CREATE VIEW "outbound"."FieldPreparation" AS
 SELECT
   LOC.*,
   FAC.fieldactivitycalendar_id,
-  FAC.samplelocation_id,
+  FAC.sampleunit_id,
   FAC.activity_group_id,
   FAC.activity_rank,
   FAC.priority,
@@ -22,24 +22,24 @@ SELECT
   FAC.no_visit_planned,
   FAC.notes,
   FAC.done_planning,
-  SLOC.grts_join_method,
-  SLOC.scheme,
-  SLOC.panel_set,
-  SLOC.targetpanel,
-  SLOC.scheme_ps_targetpanels,
-  SLOC.sp_poststratum,
-  SLOC.type,
-  SLOC.assessment,
-  SLOC.assessment_date,
-  SLOC.previous_notes,
-  SLOC.is_replaced,
+  UNIT.grts_join_method,
+  UNIT.scheme,
+  UNIT.panel_set,
+  UNIT.targetpanel,
+  UNIT.scheme_ps_targetpanels,
+  UNIT.sp_poststratum,
+  UNIT.type,
+  UNIT.assessment,
+  UNIT.assessment_date,
+  UNIT.previous_notes,
+  UNIT.is_replaced,
   LOCASS.cell_disapproved,
   LOCASS.assessment_done
 FROM "outbound"."FieldActivityCalendar" AS FAC
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = FAC.location_id
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON FAC.samplelocation_id = SLOC.samplelocation_id
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON FAC.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
   SELECT
     location_id,
