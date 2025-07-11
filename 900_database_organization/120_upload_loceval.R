@@ -594,7 +594,7 @@ locations_lookup <- update_cascade_lookup(
 # locations_lookup %>% write.csv("dumps/lookup_locations.csv")
 # locations are nuique.
 
-# **Upload Location Polygons:**
+# **Upload Location Cells as polygons:**
 
 units_cell_polygon[["grts_address_final"]] <-
   as.integer(units_cell_polygon[["grts_address_final"]])
@@ -693,7 +693,7 @@ sample_locations_lookup <- update_cascade_lookup(
 sample_locations_for_polygons <- sample_locations_lookup %>%
   select(type, grts_address, sampleunit_id)
 
-samplelocation_grts_cellcenters_for_polygons <- sample_locations_for_polygons %>%
+sampleunit_grts_cellcenters_for_polygons <- sample_locations_for_polygons %>%
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -704,7 +704,7 @@ habmap_unique_polygons <- vect(file.path(
     locate_n2khab_data(),
     "10_raw/habitatmap/habitatmap.gpkg"
   )) %>%
-  .[vect(samplelocation_grts_cellcenters_for_polygons)] %>%
+  .[vect(sampleunit_grts_cellcenters_for_polygons)] %>%
   as.polygons() %>%
   sf::st_as_sf() %>%
   select(geometry)
@@ -712,10 +712,10 @@ habmap_unique_polygons <- vect(file.path(
 # note that polygons are multiplicated with this method if
 # they contain multiple sample units.
 sample_polygons <- cbind(
-  samplelocation_grts_cellcenters_for_polygons %>%
+  sampleunit_grts_cellcenters_for_polygons %>%
     sf::st_drop_geometry(),
   habmap_unique_polygons[
-  samplelocation_grts_cellcenters_for_polygons %>%
+  sampleunit_grts_cellcenters_for_polygons %>%
     sf::st_nearest_feature(habmap_unique_polygons)
   , ]
   ) %>%
@@ -730,6 +730,7 @@ sample_polygons <- cbind(
 
 sf::st_geometry(sample_polygons) <- "wkb_geometry"
 # mapview(sample_polygons)
+
 
 message("________________________________________________________________")
 message(glue::glue("DELETE/INSERT of outbound.SampleUnitPolygons"))

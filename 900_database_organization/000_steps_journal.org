@@ -913,10 +913,10 @@ SCHEDULED: <2025-07-11 Fri>
 
 with some requests by Karen, I found it opportune to rename a lot of things.
 To be applied in
-+ [ ] gsheet
-+ [ ] upload script
-+ [ ] sample update procedure
-+ [ ] all sql query scripts (especially views)
++ [X] gsheet
++ [X] upload script
++ [X] sample update procedure
++ [X] all sql query scripts (especially views)
 
 The following replacements:
 | %s/SampleLocations/SampleUnits/%g       |
@@ -927,6 +927,33 @@ The following replacements:
 | %s/extravisit_id/visit_id/%g            |
 | %s/ReplacementLocations/Replacements/%g |
 | %s/lut_N2k/N2k/%g                       |
+
++ [ ] testing on =dev=
++ [ ] go live
++ [ ] adjust qgis project
+
+
+** SampleUnitPolygons
+SCHEDULED: <2025-07-11 Fri>
+
+KW asked for polygons for WT.
+So I figured where to find the polygons.
+
++ Floris loads polygons for replacements
+  from =file.path(locate_n2khab_data(), "10_raw/habitatmap/habitatmap.gpkg")=
++ using =sf::.[]= subsetting, I get the SampleUnits polygons
++ polygon is taken for each sampleunit
+  + polygons are redundantly stored if they contain multiple sample units
++ upload to table.
+
+Added to =EXPOST= statements:
+#+begin_src sql
+ALTER TABLE "outbound"."SampleUnitPolygons" DROP CONSTRAINT IF EXISTS fk_SampleUnits_SampleUnitPolygons CASCADE;
+ALTER TABLE "outbound"."SampleUnitPolygons" ADD CONSTRAINT fk_SampleUnits_SampleUnitPolygons FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE CASCADE ON UPDATE CASCADE;
+#+end_src
+
 
 
 * Fieldwork - Planning (outbound)
@@ -1032,6 +1059,16 @@ Update rules are nice,
 but for some technical tasks, it is better to circumvent them.
 
 + [ ] implement (de-)activating update rules
+
+
+** TODO Polygon Memory Size
+SCHEDULED: <2025-07-11 Fri>
+
+The habitat map spatraster is quite big;
+and laptop memory is limited.
+
+I got trouble once because too little memory was left to get sample unit polygons.
+-> is there a long term solution?
 
 
 * General
