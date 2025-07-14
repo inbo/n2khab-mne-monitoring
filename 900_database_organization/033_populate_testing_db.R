@@ -14,17 +14,15 @@ source_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = "loceval",
   user = "monkey",
-  database = "loceval",
   password = NA
 )
 
 # ... to target
 target_db_name <- "loceval_testing"
-target_connection_profile <- "testing"
+target_connection_profile <- "loceval-testing"
 target_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = target_connection_profile,
-  database = target_db_name
 )
 
 # TODO limitation: we should leave the primary and foreign keys unchanged!
@@ -100,16 +98,24 @@ process_db_table_copy <- function(table_idx){
 # TODO due to ON DELETE SET NULL from "Locations", location_id's temporarily become NULL.
 #      Updating would be cumbersome.
 constraints_mod <- function(do = c("DROP", "SET")){
-  # To prevent failure, I temporarily remove the constraint.
-  for (table_key in c("LocationAssessments", "SampleLocations")){
 
+  toggle_mod <- function(schema, table_key, column){
     # {dis/en}able fk for these tables
     execute_sql(
       target_db_connection,
-      glue::glue('ALTER TABLE "outbound"."{table_key}" ALTER COLUMN location_id {do} NOT NULL;')
+      glue::glue('ALTER TABLE "{schema}"."{table_key}" ALTER COLUMN {column} {do} NOT NULL;'),
+      verbose = FALSE
     ) # /sql
+  } # /toggle_mod
 
+  # To prevent failure, I temporarily remove the constraint.
+  for (table_key in c("LocationAssessments", "SampleUnits")){
+    toggle_mod("outbound", table_key, "location_id")
   } # /loop
+
+  toggle_mod("inbound", "Visits", "location_id")
+  toggle_mod("outbound", "ReplacementCells", "replacement_id")
+
 } #/constraints_mod
 
 #_______________________________________________________________________________

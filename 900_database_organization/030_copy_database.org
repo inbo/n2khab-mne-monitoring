@@ -97,7 +97,7 @@ DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
 db_target = DTB.ConnectDatabase(
     "inbopostgis_server.conf",
-    connection_config = "testing",
+    connection_config = "loceval-testing",
     database = "loceval_testing"
     )
 db = DTB.Database( \
@@ -233,7 +233,7 @@ update_datatable_and_dependent_keys(
   working_dbname = "loceval_testing",
   table_key = migrating_table_key,
   new_data = protocols_data,
-  profile = "testing",
+  profile = "loceval-testing",
   dbstructure_folder = "loceval_db_structure",
   verbose = FALSE
 )
@@ -265,17 +265,15 @@ source_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = "loceval",
   user = "monkey",
-  database = "loceval",
   password = NA
 )
 
 # ... to target
 target_db_name <- "loceval_testing"
-target_connection_profile <- "testing"
+target_connection_profile <- "loceval-testing"
 target_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = target_connection_profile,
-  database = target_db_name
 )
 
 #+end_src
@@ -386,16 +384,24 @@ Apply to all the table (never tired of reminding: *order matters*):
 # TODO due to ON DELETE SET NULL from "Locations", location_id's temporarily become NULL.
 #      Updating would be cumbersome.
 constraints_mod <- function(do = c("DROP", "SET")){
-  # To prevent failure, I temporarily remove the constraint.
-  for (table_key in c("LocationAssessments", "SampleLocations")){
 
+  toggle_null_constraint <- function(schema, table_key, column){
     # {dis/en}able fk for these tables
     execute_sql(
       target_db_connection,
-      glue::glue('ALTER TABLE "outbound"."{table_key}" ALTER COLUMN location_id {do} NOT NULL;')
+      glue::glue('ALTER TABLE "{schema}"."{table_key}" ALTER COLUMN {column} {do} NOT NULL;'),
+      verbose = FALSE
     ) # /sql
+  } # /toggle_mod
 
+  # To prevent failure, I temporarily remove the constraint.
+  for (table_key in c("LocationAssessments", "SampleUnits")){
+    toggle_null_constraint("outbound", table_key, "location_id")
   } # /loop
+
+  toggle_null_constraint("inbound", "Visits", "location_id")
+  toggle_null_constraint("outbound", "ReplacementCells", "replacement_id")
+
 } #/constraints_mod
 
 #_______________________________________________________________________________
@@ -411,6 +417,18 @@ constraints_mod("SET")
 
 
 This is tested by comparing =pg_dump= of both databases after copying.
+
+
+You might want to modify permissions for certain users on the target database.
+
+#+begin_src sql :eval no :tangle no
+
+SET search_path TO public,"metadata","outbound","inbound","archive","analysis";
+
+GRANT USAGE ON SCHEMA "metadata" TO tester;
+GRANT SELECT ON ALL TABLES IN SCHEMA "metadata" TO tester;
+
+#+end_src
 
 
 * Brief Data Inspection

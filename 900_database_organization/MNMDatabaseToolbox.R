@@ -835,7 +835,7 @@ parametrize_cascaded_update <- function(
 #'
 connect_database_configfile <- function(
     config_filepath,
-    database,
+    database = NULL,
     profile = NULL,
     host = NULL,
     port = NULL,
@@ -867,6 +867,11 @@ connect_database_configfile <- function(
     } else {
       port <- 5439
     }
+  }
+
+  if (is.null(database)) {
+    stopifnot("database" %in% attributes(config)$names)
+    database <- config$database
   }
 
   if (is.null(user)) {

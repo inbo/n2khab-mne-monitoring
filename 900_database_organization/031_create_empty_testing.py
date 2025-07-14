@@ -10,7 +10,7 @@ DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
 db_target = DTB.ConnectDatabase(
     "inbopostgis_server.conf",
-    connection_config = "testing",
+    connection_config = "loceval-testing",
     database = "loceval_testing"
     )
 db = DTB.Database( \
