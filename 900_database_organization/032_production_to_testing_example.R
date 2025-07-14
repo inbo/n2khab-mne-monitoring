@@ -40,7 +40,7 @@ update_datatable_and_dependent_keys(
   working_dbname = "loceval_testing",
   table_key = migrating_table_key,
   new_data = protocols_data,
-  profile = "testing",
+  profile = "loceval-testing",
   dbstructure_folder = "loceval_db_structure",
   verbose = FALSE
 )
