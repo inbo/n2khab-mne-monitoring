@@ -94,7 +94,7 @@ Then to run it, with a database connection config file (as described in the scri
 #+begin_src sh :eval no
 source .dbinit/bin/activate
 # python GenerateDatabase.py
-python 020_create_databases.py
+python 110_init_loceval.py
 #+end_src
 
 
@@ -984,6 +984,28 @@ SCHEDULED: <2025-07-11 Fri>
 + time to trash the qgis project... was not too bad
 + uploaded and mail sent
 
+
+** mirror re-organization
+SCHEDULED: <2025-07-14 Mon>
+
+order and function to the database mirrors.
+
+*** development
++ the dev database mirror is used for structural adjustments and development of
++ new features, mostly empty, and unstable.
+
+*** staging
++ "staging" is a rather accurate mirror of the production database,
++ but used ad hoc in times of change to back-up the data or to test the effects
++ of structural adjustments.
+
+*** testing
++ The testing mirror is an exact copy of the production database, and
++ regularly re-copied over. Changes to the data on "testing" are non-permanent.
+
+*** production
++ This is the live environment with real data.
++ It is the least volatile, best backed-up of our database mirrors.
 
 
 * Fieldwork - Planning (outbound)
