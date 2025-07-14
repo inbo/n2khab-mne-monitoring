@@ -30,7 +30,7 @@ FROM (
   LEFT JOIN "outbound"."SampleUnits" AS UNIT
     ON UNIT.sampleunit_id = REP.sampleunit_id
   WHERE UNIT.replacement_ongoing
-    AND NOT UNIT.is_replaced
+    AND (NOT UNIT.is_replaced OR REP.is_selected)
 ) AS REPU
 LEFT JOIN "inbound"."Visits" AS VISIT
   ON REPU.sampleunit_id = VISIT.sampleunit_id
@@ -75,3 +75,8 @@ GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO floris;
 GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO ward;
 GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO karen;
 GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO floris;
+GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO tom;
+GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO tom;
+
+GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO tester;
+GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO tester;

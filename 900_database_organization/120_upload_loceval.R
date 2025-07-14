@@ -21,10 +21,19 @@ library("mapview")
 # mapviewOptions(platform = "mapdeck")
 
 projroot <- find_root(is_rstudio_project)
-working_dbname <- "loceval_dev"
 config_filepath <- file.path("./inbopostgis_server.conf")
-connection_profile <- "loceval-dev"
-dbstructure_folder <- "./loceval_dev_structure"
+if (TRUE){
+  # testing
+  working_dbname <- "loceval_testing"
+  connection_profile <- "loceval-testing"
+  dbstructure_folder <- "./loceval_db_structure"
+} else {
+  # dev
+  working_dbname <- "loceval_dev"
+  connection_profile <- "loceval-dev"
+  dbstructure_folder <- "./loceval_dev_structure"
+}
+
 
 # # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
@@ -1126,6 +1135,110 @@ restore_location_id_by_grts(
   verbose = TRUE
 )
 
+
+## ----land-use-------------------------------------------------
+
+
+landuse <- readRDS("data/landuse_export.rds")
+
+# forestry_area, # bosbeheerregio
+# fores_naam, # bosbeheer
+# np_type, # natuurpunt
+# lila_statuut,
+# durme_reservaat,
+# perc_rbh, # percelen // rbh
+# perc_naameig, # naam eigenaar
+# nbhp_type, # natuurbeheerplan
+# gewasgroep, # landbouw
+# lblhfdtlt # landbouw
+
+landinfo <- landuse %>%
+  mutate(anb = stringr::str_c("ANB: ", anb_rights)) %>%
+  mutate(mil = stringr::str_c("MIL: ", mdbd_naam, " (", mdbd_inbo, ")")) %>%
+  mutate(bos = stringr::str_c("BOS: ", forestry_area, " (", fores_naam, ")")) %>%
+  mutate(np = stringr::str_c("NP: ", np_type)) %>%
+  mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
+  mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
+  mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
+  mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
+  mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
+  tidyr::unite(landuse, c(
+      anb, mil, bos,
+      np, lila, durme,
+      perc, nbhp, lb
+    ),
+    sep = ", ",
+    na.rm = TRUE
+  ) %>%
+  distinct(
+    # schemegroup,
+    # stratum,
+    grts_address,
+    landuse
+  ) %>%
+  semi_join(
+    dplyr::tbl(
+      db_connection,
+      DBI::Id("outbound", "SampleUnits")
+    ) %>%
+    distinct(grts_address) %>%
+    collect,
+    by = join_by(grts_address)
+  )
+
+glimpse(landinfo)
+
+
+get_update_row_string_landuse <- function(landinfo_rownr){
+
+  grts <- landinfo[landinfo_rownr, "grts_address"]
+  info <- landinfo[landinfo_rownr, "landuse"]
+  if (is.na(info)) {
+    info <- "NULL"
+  }
+
+  info <- glue::glue("'{info}'")
+
+  target_namestring <- '"outbound"."FieldActivityCalendar"'
+  update_string <- glue::glue("
+    UPDATE {target_namestring}
+      SET landowner = {info}
+    WHERE grts_address = {grts}
+    ;
+  ")
+
+  return(update_string)
+}
+
+# concatenate update rows
+update_command <- lapply(
+  1:nrow(landinfo),
+  FUN = get_update_row_string_landuse
+)
+
+# spin up a progress bar
+pb <- txtProgressBar(
+  min = 0, max = nrow(landinfo),
+  initial = 0, style = 1
+)
+
+# execute the update commands.
+for (landinfo_rownr in 1:nrow(landinfo)) {
+  setTxtProgressBar(pb, landinfo_rownr)
+  cmd <- update_command[[landinfo_rownr]]
+  execute_sql(db_connection, cmd, verbose = FALSE)
+}
+
+close(pb) # close the progress bar
+
+
+landuse_reload <- dplyr::tbl(
+    db_connection,
+    DBI::Id("outbound", "FieldActivityCalendar")
+  ) %>%
+  distinct(grts_address, landowner) %>%
+  collect
+landuse_reload %>% write.csv("dumps/landuse.csv")
 
 ## ----done--time-for-some-checks!-------------------------------------------------
 
