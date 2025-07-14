@@ -75,6 +75,14 @@ def ReadSQLServerConfig(config_filename = "postgis_server.conf", profile = None,
     for kw, val in kwargs.items():
         db_configuration[kw] = val
 
+    if db_configuration["database"] is None:
+        for k, v in db_configuration.items():
+            if k not in ["password"]:
+              print(k, v)
+
+        raise Exception("Please provide a database for SQL connection!"
+        + " (None found in the config file, none provided in keyword args.)")
+
 
     # prompt password
     if 'password' not in db_configuration.keys():
@@ -154,11 +162,15 @@ class DatabaseConnection(object):
         OS.system(dump_command)
 
 
-def ConnectDatabase(config_filepath, database, connection_config = None):
+def ConnectDatabase(config_filepath, database = None, connection_config = None):
     # https://stackoverflow.com/a/42772654
     # user = input("user: ")
 
-    config = ReadSQLServerConfig(config_filepath, profile = connection_config, database = database)
+    if database is None:
+        config = ReadSQLServerConfig(config_filepath, profile = connection_config)
+    else:
+        config = ReadSQLServerConfig(config_filepath, profile = connection_config, database = database)
+
 
     connection = DatabaseConnection(config)
 
@@ -330,9 +342,9 @@ def SequenceString(schema, table, sequence_column, owner):
                     OWNED BY "{schema}"."{table}".{sequence_column};
                 ALTER TABLE "{schema}"."{table}" ALTER COLUMN {sequence_column}
                  SET DEFAULT nextval('{schema}.seq_{sequence_column}'::regclass);
-                ALTER SEQUENCE "{schema}".seq_{sequence_column} OWNER TO {owner};
             """)
 
+                # ALTER SEQUENCE "{schema}".seq_{sequence_column} OWNER TO {owner};
 
 def ForeignKeyString(schema, table, col, refcol):
     # parametrized SQL string to link a foreign key
