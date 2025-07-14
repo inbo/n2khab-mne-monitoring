@@ -19,6 +19,7 @@ WHERE replacement_id IN (
   LEFT JOIN "outbound"."SampleUnits" AS UNIT
     ON UNIT.sampleunit_id = REP.sampleunit_id
   WHERE replacement_ongoing
+    AND (NOT UNIT.is_replaced OR REP.is_selected)
 )
 ;
 
@@ -28,3 +29,8 @@ GRANT SELECT ON  "outbound"."SampleCells"  TO floris;
 GRANT UPDATE ON  "outbound"."SampleCells"  TO ward;
 GRANT UPDATE ON  "outbound"."SampleCells"  TO karen;
 GRANT UPDATE ON  "outbound"."SampleCells"  TO floris;
+GRANT SELECT ON  "outbound"."SampleCells"  TO tom;
+GRANT UPDATE ON  "outbound"."SampleCells"  TO tom;
+
+GRANT SELECT ON  "outbound"."SampleCells"  TO tester;
+GRANT UPDATE ON  "outbound"."SampleCells"  TO tester;
