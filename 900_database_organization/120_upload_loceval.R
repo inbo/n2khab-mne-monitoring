@@ -139,6 +139,7 @@ stopifnot(
     exists("orthophoto_2025_type_grts")
 )
 
+
 ## ----establish-connection-config----------------------------------------------
 db_connection <- connect_database_configfile(
   config_filepath,
@@ -393,7 +394,7 @@ n2khabstrata_lookup <- update_cascade_lookup(
 ## ----collect-sample-locations----------------------------------------------
 # glimpse(fag_stratum_grts_calendar)
 
-sample_locations <-
+sample_units <-
   fag_stratum_grts_calendar %>%
   common_current_calenderfilters() %>%
   distinct(
@@ -465,7 +466,7 @@ sample_locations <-
     )
   )
 
-# glimpse(sample_locations)
+# glimpse(sample_units)
 
 # still need to join the location, below
 # TODO in the FUTURE, make sure `type` is
@@ -604,16 +605,17 @@ replacement_archive_lookup <- update_cascade_lookup(
 ## ----upload-locations----------------------------------------------
 # will be the union set of grts addresses in
 #    - locationassessments_data
-#    - sample_locations
+#    - sample_units
+#    - TODO previous visits even in case of replacement
 # not accounting for fieldwork_calendar because that is derived from
-# the same source as sample_locations
+# the same source as sample_units
 
-# sample_locations %>% pull(grts_address) %>% write.csv("dumps/sample_locations.csv")
+# sample_units %>% pull(grts_address) %>% write.csv("dumps/sample_units.csv")
 # previous_location_assessments %>% pull(grts_address) %>% write.csv("dumps/location_assessments.csv")
 # 15937
 
 locations <- bind_rows(
-    sample_locations %>% select(grts_address),
+    sample_units %>% select(grts_address),
     previous_location_assessments %>% select(grts_address),
     previous_visits %>% select(grts_address)
   ) %>%
@@ -700,13 +702,13 @@ append_tabledata(
 
 ## ----upload-sample-locations----------------------------------------------
 
-if ("location_id" %in% names(sample_locations)) {
+if ("location_id" %in% names(sample_units)) {
   # should not be the case in a continuous script;
   # this is extra safety for debugging and de-serial execution
-  sample_locations <- sample_locations %>%
+  sample_units <- sample_units %>%
     select(-location_id)
 }
-sample_locations <- sample_locations %>%
+sample_units <- sample_units %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
@@ -724,10 +726,10 @@ slocs_refcols <- c(
 )
 
 # tabula rasa: might otherwise be duplicated due to missing fk and null constraint
-sample_locations_lookup <- update_cascade_lookup(
+sample_units_lookup <- update_cascade_lookup(
   schema = "outbound",
   table_key = "SampleUnits",
-  new_data = sample_locations,
+  new_data = sample_units,
   index_columns = c("sampleunit_id"),
   characteristic_columns = slocs_refcols,
   tabula_rasa = TRUE,
@@ -746,8 +748,8 @@ sample_locations_lookup <- update_cascade_lookup(
 # )
 
 
-# sample_locations_lookup %>% nrow()
-# sample_locations_lookup %>%
+# sample_units_lookup %>% nrow()
+# sample_units_lookup %>%
 #   select(!!!slocs_refcols) %>%
 #   distinct %>%
 #   nrow()
@@ -757,10 +759,10 @@ sample_locations_lookup <- update_cascade_lookup(
 ## ----polygons-------------------------------------------------
 
 
-sample_locations_for_polygons <- sample_locations_lookup %>%
+sample_units_for_polygons <- sample_units_lookup %>%
   select(type, grts_address, sampleunit_id)
 
-sampleunit_grts_cellcenters_for_polygons <- sample_locations_for_polygons %>%
+sampleunit_grts_cellcenters_for_polygons <- sample_units_for_polygons %>%
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -847,7 +849,7 @@ fieldwork_calendar <-
     unmatched = c("error", "drop")
   ) %>%
   left_join(
-    sample_locations_lookup %>%
+    sample_units_lookup %>%
       select(type, grts_address, sampleunit_id),
     by = join_by(type, grts_address),
     relationship = "many-to-many", # TODO
@@ -914,7 +916,7 @@ replacements <- stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
     replacement_rank = ranknr
   ) %>%
   left_join(
-    sample_locations_lookup %>%
+    sample_units_lookup %>%
       select(type, grts_address, sampleunit_id),
     by = join_by(type, grts_address),
     relationship = "many-to-many", # TODO
@@ -1013,7 +1015,7 @@ append_tabledata(
 
 
 # assemble new assessments
-new_location_assessments <- sample_locations %>%
+new_location_assessments <- sample_units %>%
   distinct(
     grts_address,
     type
@@ -1088,7 +1090,7 @@ restore_location_id_by_grts(
 ## ----extra-visits-------------------------------------------------
 ##
 
-new_visits <- sample_locations_lookup %>%
+new_visits <- sample_units_lookup %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
