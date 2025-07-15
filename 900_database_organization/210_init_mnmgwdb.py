@@ -6,16 +6,20 @@ import MNMDatabaseToolbox as DTB
 # SET search_path TO public,"metadata","outbound","inbound";
 
 
+### (1) development
+# the dev database mirror is used for structural adjustments and development of
+# new features, mostly empty, and unstable.
+
 if True:
-    # database: loceval_dev
+    # database: mnmgwdb_dev
     base_folder = DTB.PL.Path(".")
-    structure_folder = base_folder/"mnmfield_dev_structure"
-    DTB.ODStoCSVs(base_folder/"mnmfield_dev_dbstructure.ods", structure_folder)
+    structure_folder = base_folder/"mnmgwdb_dev_structure"
+    DTB.ODStoCSVs(base_folder/"mnmgwdb_dev_structure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
-        connection_config = "mnmfield-dev",
-        database = "mnmfield_dev"
+        connection_config = "mnmgwdb-dev",
+        database = "mnmgwdb_dev"
         )
     db = DTB.Database( \
         structure_folder = structure_folder, \
@@ -25,19 +29,24 @@ if True:
         tabula_rasa = False
         )
 
+
+
+### (4) production
+# This is the live environment with real data.
+# It is the least volatile, best backed-up of our database mirrors.
 
 if False:
     #### TODO prompt accidental overwrite
 
-    # database: loceval
+    # database: mnmgwdb
     base_folder = DTB.PL.Path(".")
-    structure_folder = base_folder/"mnmfield_db_structure"
-    DTB.ODStoCSVs(base_folder/"mnmfield_dbstructure.ods", structure_folder)
+    structure_folder = base_folder/"mnmgwdb_db_structure"
+    DTB.ODStoCSVs(base_folder/"mnmgwdb_db_structure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
-        connection_config = "mnmfield",
-        database = "loceval"
+        connection_config = "mnmgwdb",
+        database = "mnmgwdb"
     )
     db = DTB.Database( \
         structure_folder = structure_folder, \
@@ -46,4 +55,3 @@ if False:
         db_connection = db_connection, \
         tabula_rasa = False
     )
-

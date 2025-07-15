@@ -1,26 +1,3 @@
-
-SELECT *
-  FROM "outbound"."FieldActivityCalendar" AS FAC
-LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON FAC.sampleunit_id = UNIT.sampleunit_id
-LEFT JOIN "metadata"."Locations" AS LOC
-  ON LOC.location_id = UNIT.location_id
-LEFT JOIN (
-  SELECT DISTINCT
-    location_id,
-    cell_disapproved,
-    assessment_done
-  FROM "outbound"."LocationAssessments"
-  GROUP BY
-    location_id,
-    cell_disapproved,
-    assessment_done
-  ) AS LOCASS
-  ON UNIT.location_id = LOCASS.location_id
-WHERE done_planning
-;
-
-
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" ;
 CREATE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
@@ -30,8 +7,8 @@ SELECT
   FAC.activity_group_id,
   FAC.activity_group_id IN (
     SELECT DISTINCT activity_group_id FROM "metadata"."GroupedActivities"
-    WHERE is_loceval_activity
-  ) AS is_loceval_activity,
+    WHERE is_gw_activity
+  ) AS is_gw_activity,
   FAC.activity_rank,
   FAC.priority,
   FAC.date_start,
@@ -46,10 +23,11 @@ SELECT
   FAC.excluded_reason,
   FAC.landowner,
   FAC.inaccessible,
-  FAC.acceccibility_revisit,
+  FAC.accessibility_revisit,
   FAC.teammember_assigned,
   FAC.date_visit_planned,
   FAC.no_visit_planned,
+  FAC.watina_code,
   FAC.notes,
   FAC.done_planning,
   UNIT.grts_join_method,
@@ -58,30 +36,23 @@ SELECT
   UNIT.targetpanel,
   UNIT.scheme_ps_targetpanels,
   UNIT.sp_poststratum,
-  UNIT.type,
+  UNIT.stratum,
   UNIT.assessment,
   UNIT.assessment_date,
   UNIT.previous_notes,
   UNIT.is_replaced,
-  LOCASS.cell_disapproved,
-  LOCASS.assessment_done
+  LOCEVAL.evaluation_user,
+  LOCEVAL.loceval_date,
+  LOCEVAL.type_assessed,
+  LOCEVAL.photo AS loceval_photo,
+  LOCEVAL.notes AS loceval_notes
 FROM "outbound"."FieldActivityCalendar" AS FAC
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON FAC.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = UNIT.location_id
-LEFT JOIN (
-  SELECT DISTINCT
-    location_id,
-    cell_disapproved,
-    assessment_done
-  FROM "outbound"."LocationAssessments"
-  GROUP BY
-    location_id,
-    cell_disapproved,
-    assessment_done
-  ) AS LOCASS
-  ON UNIT.location_id = LOCASS.location_id
+LEFT JOIN "outbound"."LocationEvaluations" AS LOCEVAL
+  ON UNIT.sampleunit_id = LOCEVAL.sampleunit_id
 ORDER BY
   FAC.date_end,
   FAC.priority,
@@ -103,11 +74,12 @@ DO INSTEAD
   excluded_reason = NEW.excluded_reason,
   landowner = NEW.landowner,
   inaccessible = NEW.inaccessible,
-  acceccibility_revisit = NEW.acceccibility_revisit,
+  accessibility_revisit = NEW.accessibility_revisit,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.no_visit_planned,
   notes = NEW.notes,
+  no_visit_planned = NEW.no_visit_planned,
+  watina_code = NEW.watina_code,
   done_planning = NEW.done_planning
  WHERE fieldactivitycalendar_id = OLD.fieldactivitycalendar_id
 ;
