@@ -928,9 +928,9 @@ The following replacements:
 | %s/ReplacementLocations/Replacements/%g |
 | %s/lut_N2k/N2k/%g                       |
 
-+ [ ] testing on =dev=
-+ [ ] go live
-+ [ ] adjust qgis project
++ [X] testing on =dev=
++ [X] go live
++ [X] adjust qgis project
 
 
 ** SampleUnitPolygons
@@ -1008,7 +1008,22 @@ order and function to the database mirrors.
 + It is the least volatile, best backed-up of our database mirrors.
 
 
-* Fieldwork - Planning (outbound)
+** populate testing db
+SCHEDULED: <2025-07-14 Mon>
+
++ qgis connection changing plugin
++ extra permissions for test user
+
+** extra info for Ward
+SCHEDULED: <2025-07-14 Mon>
+
+e.g. ANB; from "accessibility" preliminary analysis
+
+** MILESTONE: first field data by Ward
+SCHEDULED: <2025-07-14 Mon>
+
+
+* MNMGWDB
 
 ** the next database
 SCHEDULED: <2025-06-30 Mon>
@@ -1068,6 +1083,25 @@ SCHEDULED: <2025-07-02 Wed>
 TODO:
 + ++landowner
 + re-upload bug
+
+
+** RESTART (5): mnmgwdb
+SCHEDULED: <2025-07-14 Mon>
+
++ with experience and input from =loceval=
++ new name: =mnmgwdb=
+
++ remove local replacement logic
++ all work based on =stratum=, not on =type=
+  + e.g. =N2kHabType= --> =++stratum= --> =N2kHabStrata=
++ =LocationEvaluations=
+  + assembled notes on all prior notes and field visits
+  + hung up on the SampleLocations, which is where they go
++ unfilter GroupedActivities
++ +CellMaps+ (on hold)
+
+** adjusted db structure
+SCHEDULED: <2025-07-15 Tue>
 
 
 * learning the hard way
@@ -1144,6 +1178,7 @@ SELECT DISTINCT assessment_done, COUNT(*) AS n FROM "outbound"."LocationAssessme
 SELECT * FROM "outbound"."FieldActivityCalendar" WHERE done_planning;
 SELECT * FROM "outbound"."Replacements" WHERE is_inappropriate OR is_selected OR (notes IS NOT NULL);
 SELECT * FROM "inbound"."Visits" WHERE NOT (log_user = 'update') AND NOT (log_user = 'falk');
+SELECT * FROM "inbound"."FreeFieldNotes" WHERE NOT log_creator = 'falk';
 SELECT * FROM "inbound"."CellMaps";
 
 #+end_src

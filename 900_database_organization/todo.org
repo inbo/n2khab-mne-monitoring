@@ -28,12 +28,11 @@
   + [X] =FieldNotes= -> free input
 + [X] something wrong with python =getpasswd=
 
+* loceval
 + [ ] remove ="FieldActivityCalendar".grts_join_method=
 + [ ] rename ="FieldActivityCalendar".acceccibility_revisit=
-+ [ ] overhaul =ExtraVisits= -> multi visits per location
-  + grouped_activity_id
++ [X] overhaul =ExtraVisits= -> multi visits per location +> grouped_activity_id
 
-+ [ ] procedure to store replacements and update sample (with @FV)
 
 + [X] loceval fieldwork app
   + [X] replacement procedure
@@ -47,12 +46,6 @@
   + [ ] type labels have changed (e.g. =2190_mp= -> =2190_a=)
   + [ ] grts 681846 is a totally different type (6230 -> 3150)
 
-+ [ ] POC pipeline
-  + [ ] functional modularization suggestions for code snippets
-  + [ ] =units_cell_polygon= are there other relevant polygons in there?
-  + [ ] replacements by stratum?
-  + [ ] in-memory rollback upon failed updates
-
 
 + [-] 20250704 loceval post mortem
   + [X] review the "POC Update" procedure (++ExtraVisits)
@@ -63,21 +56,23 @@
   + [ ] combined UNIQUE constraints for all characteristic columns
   + [X] reset sequences on tabula rasa / DELETE+INSERT updates
 
++ [ ] 20250714 loceval post mortem (II)
+  + [ ] in-memory rollback upon failed updates
+  + [ ] R-based backups (all tables to R objects)
+  + [ ] ensure safety of =FreeFieldNotes= and =CellMaps=
 
-+ [ ] re-check POC update script (=070_=)
-  + [ ] add other databases
-+ [X] extra types (vraag Floris)
 
-+ [ ] backup procedures
-  + [ ] daily backups to S3
-+ [ ] scripts for user management
-+ [ ] list WCS/WFS/WMS sources
-+ [ ] random points in target area for well placement
-+ [X] re-upload bug -> was fk
++ [-] Fieldwork Planning app
+  + [X] database structure basic
+  + [X] upload data
+  + [X] qgis-directed views
+  + [X] qgis project
+  + [X] local replacement view
+  + [X] ++ GroupedActivities {=module=, =scheme=}?
+  + [ ] option to add activities / rows in FieldActivityPlanner?
 
-+ [ ] info from LocationAssessment
-+ [ ] landuse/ownership: one categorical field
 
+* mnmgwdb
 + [ ] meeting @TDD @WT @KW @FV @FM <2025-07-02 Wed> MNM Fieldwork Outbound/Planning app
   + [ ] INBO arcgis -> qgis via web services?
   + [ ] n2khab_strata ++allow NULL
@@ -102,43 +97,32 @@
 + [ ] WATINA summary layer
   + [ ] naming a priori by Tom; provide voronoi polygon layer
 
-+ [-] Fieldwork Planning app
-  + [X] database structure basic
-  + [ ] upload data
-  + [ ] qgis-directed views
-  + [ ] qgis project
-  + [ ] local replacement view
-  + [ ] ++ GroupedActivities {=module=, =scheme=}?
-  + [ ] option to add activities / rows in FieldActivityPlanner?
-  + [ ] pull watina info
 
-+ [-] input meeting @WT @KW @FV @FM <2025-06-24 Tue>
-  + [X] decoupling LocCal - Visits!!
-  + [X] =ortophoto_2025_cells= and =ortophoto_2025_cellcenters=
-  + [X] orthophotos:
-    + via "datavindplaats" -> wcs/wfs
-    + winter && summer
-  + [X] use =grts_address_final=
-  + [X] =ortophoto_2025_type_grts=
-    + assessment
-    + sp_poststratum
-    + scheme_ps_targetpanels
-  + [X] ++ fields
-    + cel afgekeurd
-    + natuur/niet
-    + tijdelijk verloren
-    + implications polygon/habmap; feedback habitatkaart
-  + [X] landuse
-    + ANB
-    + landbouw
-  + [ ] location qgis projects
-  + [X] habmap: use 2023 fixed version; later: preliminary update by @FV
-  + [ ] protocol-like criteria by @WT
-  + [-] qgis design
-    + [X] types -> qgis map label
-    + [X] "activity" visible in form
-    + [ ] test attribute table sorting
-    + [X] add habitatmap (raw; wfs?) as background layer
+* POC
++ [ ] procedure to store replacements and update sample (with @FV)
+
++ [-] POC pipeline
+  + [ ] functional modularization suggestions for code snippets
+  + [X] =units_cell_polygon= are there other relevant polygons in there?
+  + [ ] replacements by stratum?
+
+
++ [ ] re-check POC update script (=070_=)
+  + [ ] add other databases
++ [X] extra types (vraag Floris)
+
++ [ ] backup procedures
+  + [ ] daily backups to S3
++ [ ] scripts for user management
++ [ ] list WCS/WFS/WMS sources
++ [ ] random points in target area for well placement
++ [X] re-upload bug -> was fk
+
++ [X] info from LocationAssessment
++ [X] landuse/ownership: one categorical field
+
+
+* technical
 
 + [ ] exclude admin from =log_= rules
 + [-] suggestions @FV <2025-06-18 Wed>
@@ -152,7 +136,7 @@
   + [X] =stratum_corrected= -> =type_assessed=
   + [X] corner points or polygons for sample units (also depends on type)
   + [ ] two replacement procedures: =local replacement= vs. drop-out ( ↖sampling)
-  + [ ] there was a table (replacements?) with inconsistent pk name
+  + [X] there was a table (replacements?) with inconsistent pk name
 + [ ] request Tom: also get Watina datalayers
 + [ ] test gps data collection via qfield
   + [ ] coordinates
@@ -244,3 +228,35 @@ Using `by = character()` to perform a cross join was deprecated in dplyr 1.1.0.
 + bug report: =sf::dbWriteTable()= seems to overwrite boolean defaults
 
 + logseq project in the folder -> document database processes
+
+
+* COMMENT Archive
+
+
++ [-] input meeting @WT @KW @FV @FM <2025-06-24 Tue>
+  + [X] decoupling LocCal - Visits!!
+  + [X] =ortophoto_2025_cells= and =ortophoto_2025_cellcenters=
+  + [X] orthophotos:
+    + via "datavindplaats" -> wcs/wfs
+    + winter && summer
+  + [X] use =grts_address_final=
+  + [X] =ortophoto_2025_type_grts=
+    + assessment
+    + sp_poststratum
+    + scheme_ps_targetpanels
+  + [X] ++ fields
+    + cel afgekeurd
+    + natuur/niet
+    + tijdelijk verloren
+    + implications polygon/habmap; feedback habitatkaart
+  + [X] landuse
+    + ANB
+    + landbouw
+  + [X] location qgis projects
+  + [X] habmap: use 2023 fixed version; later: preliminary update by @FV
+  + [ ] protocol-like criteria by @WT
+  + [X] qgis design
+    + [X] types -> qgis map label
+    + [X] "activity" visible in form
+    + [X] test attribute table sorting
+    + [X] add habitatmap (raw; wfs?) as background layer
