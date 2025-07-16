@@ -31,10 +31,16 @@
 
 * loceval
 + [ ] remove ="FieldActivityCalendar".grts_join_method=
-+ [X] rename ="FieldActivityCalendar".acceccibility_revisit=
 + [X] overhaul =ExtraVisits= -> multi visits per location +> grouped_activity_id
-+ [X] add column ="Visits".recovery_hints=
 
++ [ ] change requests Ward 20250716
+  + [X] rename ="FieldActivityCalendar".acceccibility_revisit=
+  + [X] add column ="Visits".recovery_hints=
+  + [X] color changes
+  + [X] accessibility per SampleUnits
+  + [ ] apply to production
+
++ [ ] accessibility across locations (see journal)
 
 
 + [X] loceval fieldwork app
@@ -52,17 +58,19 @@
 
 + [-] 20250704 loceval post mortem
   + [X] review the "POC Update" procedure (++ExtraVisits)
-  + [ ] new locations to assess??
+  + [X] new locations to assess??
     + recover old RData and compare
+    + were aquatic units
   + [X] "verouderd" field is rubbish -> correct OrthophotoAssessment view
   + [X] loc_id mismatch: "schietveld" in Hemiksem?
   + [ ] combined UNIQUE constraints for all characteristic columns
   + [X] reset sequences on tabula rasa / DELETE+INSERT updates
 
 + [ ] 20250714 loceval post mortem (II)
-  + [ ] in-memory rollback upon failed updates
   + [ ] R-based backups (all tables to R objects)
+  + [ ] in-memory rollback upon failed updates
   + [ ] ensure safety of =FreeFieldNotes= and =CellMaps=
+  + [ ] follow-up =visit_cancelled=
 
 
 + [-] Fieldwork Planning app
@@ -102,9 +110,20 @@
 
 
 * POC
++ [ ] =mnmgwdb=:
+  + [ ] use of =stratum=
+  + [ ] central unit is NOT sample unit, but location ~> =SampleLocations= (because we will place exactly one obswell, no matter how many schemes/strata)
 + [ ] procedure to store actual *replacements* and update sample (with @FV)
 + [ ] possible to mark sample units from MHQ? (request Ward 20250716)
 + [ ] double-check =is_gw_activity=
++ [ ] no option to add activities / rows in FieldActivityPlanner?
+
++ (minor)
+#+begin_src R :eval no
+Warning message:
+In x@pntr$extractVectorFlat(y@pntr, "", FALSE, touches[1], small[1],  :
+  GDAL Message 1: DeprecationWarning: 'Memory' driver is deprecated since GDAL 3.11. Use 'MEM' onwards. Further messages of this type will be suppressed.
+#+end_src
 
 + [-] POC pipeline
   + [ ] functional modularization suggestions for code snippets

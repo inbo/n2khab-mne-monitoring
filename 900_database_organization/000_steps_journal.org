@@ -1022,8 +1022,33 @@ e.g. ANB; from "accessibility" preliminary analysis
 ** MILESTONE: first field data by Ward
 SCHEDULED: <2025-07-14 Mon>
 
+** minor change requests Ward
+SCHEDULED: <2025-07-16 Wed>
 
-* MNMGWDB
++ ++ =recovery_hints=
++ rename accessibility_revisit
++ colors
++ accessibility to SampleUnits
+
+#+begin_src R :eval no
+rename_FieldActivityCalendar <- function(fac) {
+fac <- fac %>% dplyr::rename(accessibility_revisit = acceccibility_revisit)
+return(fac)
+}
+table_modification <- c(
+"FieldActivityCalendar" = function (fac) rename_FieldActivityCalendar(fac) # (almost) anything you like
+)
+
+#+end_src
+
+
+** TODO accessibility across locations
+
++ accessibility is now stored on SampleUnits
++ but it is informative for all locations on a GRTS
+
+
+* mnmgwdb
 
 ** the next database
 SCHEDULED: <2025-06-30 Mon>
@@ -1100,8 +1125,13 @@ SCHEDULED: <2025-07-14 Mon>
 + unfilter GroupedActivities
 + +CellMaps+ (on hold)
 
-** adjusted db structure
-SCHEDULED: <2025-07-15 Tue>
+** TODO adjusted db structure
+SCHEDULED: <2025-07-16 Wed>
+
++ does not work on SampleUnits, but distinct SampleLocations
++ sufficient to plan fieldwork by activity_group for now,
+  + later, there might be specific star-structure tables with extra data per activity group, linked to/branching from =Visits=
++ =SSPSTaPas=, a simple lookup table.
 
 
 * learning the hard way

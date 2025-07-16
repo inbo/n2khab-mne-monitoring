@@ -37,12 +37,17 @@ sort_protocols <- function(prt) {
   return(prt)
 }
 
+rename_FieldActivityCalendar <- function(fac) {
+  fac <- fac %>% dplyr::rename(accessibility_revisit = acceccibility_revisit)
+  return(fac)
+}
 
 #_______________________________________________________________________________
 ### associate the functions with table names
 
 table_modification <- c(
   "Protocols" = function (prt) sort_protocols(prt) # (almost) anything you like
+  # "FieldActivityCalendar" = function (fac) rename_FieldActivityCalendar(fac) # (almost) anything you like
 )
 
 #_______________________________________________________________________________
@@ -99,7 +104,7 @@ process_db_table_copy <- function(table_idx){
 #      Updating would be cumbersome.
 constraints_mod <- function(do = c("DROP", "SET")){
 
-  toggle_mod <- function(schema, table_key, column){
+  toggle_null_constraint <- function(schema, table_key, column){
     # {dis/en}able fk for these tables
     execute_sql(
       target_db_connection,
@@ -110,11 +115,11 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
   # To prevent failure, I temporarily remove the constraint.
   for (table_key in c("LocationAssessments", "SampleUnits")){
-    toggle_mod("outbound", table_key, "location_id")
+    toggle_null_constraint("outbound", table_key, "location_id")
   } # /loop
 
-  toggle_mod("inbound", "Visits", "location_id")
-  toggle_mod("outbound", "ReplacementCells", "replacement_id")
+  toggle_null_constraint("inbound", "Visits", "location_id")
+  toggle_null_constraint("outbound", "ReplacementCells", "replacement_id")
 
 } #/constraints_mod
 

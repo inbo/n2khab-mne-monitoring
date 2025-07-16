@@ -1,5 +1,5 @@
 ALTER TABLE "outbound"."SampleUnits" ADD COLUMN recovery_hints varchar DEFAULT NULL;
-OMMENT ON COLUMN "outbound"."SampleUnits".recovery_hints IS E'notes on how to find back the marking';
+COMMENT ON COLUMN "outbound"."SampleUnits".recovery_hints IS E'notes on how to find back the marking';
 
 
 DROP VIEW IF EXISTS  "inbound"."LocationEvaluation" ;
@@ -132,6 +132,8 @@ GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO karen;
 GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO tom;
 GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO ward;
 
+-- GRANT SELECT ON  "inbound"."LocationEvaluation"  TO tester;
+-- GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO tester;
 
 
 ALTER TABLE "outbound"."FieldActivityCalendar" RENAME COLUMN acceccibility_revisit TO accessibility_revisit;
@@ -238,3 +240,21 @@ GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO karen;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO floris;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO tom;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO tom;
+
+-- GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO tester;
+-- GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO tester;
+
+
+
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN accessibility_inaccessible boolean;
+COMMENT ON COLUMN "outbound"."SampleUnits".accessibility_inaccessible IS E'tag inaccessible locations';
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN accessibility_revisit date;
+COMMENT ON COLUMN "outbound"."SampleUnits".accessibility_revisit IS E'anticipate accessibility change';
+
+
+-- SELECT DISTINCT inaccessible, accessibility_revisit FROM "outbound"."FieldActivityCalendar";
+
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN inaccessible;
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN accessibility_revisit;

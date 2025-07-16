@@ -716,7 +716,7 @@ sample_units <- sample_units %>%
   )
 
 
-slocs_refcols <- c(
+samuns_refcols <- c(
   "type",
   "grts_address",
   "scheme",
@@ -731,7 +731,7 @@ sample_units_lookup <- update_cascade_lookup(
   table_key = "SampleUnits",
   new_data = sample_units,
   index_columns = c("sampleunit_id"),
-  characteristic_columns = slocs_refcols,
+  characteristic_columns = samuns_refcols,
   tabula_rasa = TRUE,
   verbose = TRUE
 )
@@ -750,7 +750,7 @@ sample_units_lookup <- update_cascade_lookup(
 
 # sample_units_lookup %>% nrow()
 # sample_units_lookup %>%
-#   select(!!!slocs_refcols) %>%
+#   select(!!!samuns_refcols) %>%
 #   distinct %>%
 #   nrow()
 
@@ -1246,7 +1246,7 @@ landuse_reload %>% write.csv("dumps/landuse.csv")
 
 ### check upload
 
-slocs <- dplyr::tbl(
+samuns <- dplyr::tbl(
   db_connection,
   DBI::Id(schema = "outbound", table = "SampleUnits"),
   ) %>% collect()
@@ -1257,7 +1257,7 @@ locs <- sf::st_read(
   ) %>% collect()
 
 locs %>% anti_join(
-  slocs,
+  samuns,
   by = join_by(location_id)
   )
 
@@ -1267,7 +1267,7 @@ locass <- dplyr::tbl(
   DBI::Id(schema = "outbound", table = "LocationAssessments"),
   ) %>% collect()
 
-slocs %>% left_join(
+samuns %>% left_join(
     locs,
     by = join_by(location_id),
     relationship = "many-to-many",
