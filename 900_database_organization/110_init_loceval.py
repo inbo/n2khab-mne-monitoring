@@ -10,7 +10,7 @@ import MNMDatabaseToolbox as DTB
 # the dev database mirror is used for structural adjustments and development of
 # new features, mostly empty, and unstable.
 
-if False:
+if True:
     # database: loceval_dev
     base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"loceval_dev_structure"
@@ -35,7 +35,7 @@ if False:
 # but used ad hoc in times of change to back-up the data or to test the effects
 # of structural adjustments.
 
-if True:
+if False:
     # database: loceval_staging
     base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"loceval_db_structure"
@@ -57,7 +57,7 @@ if True:
 # The testing mirror is an exact copy of the production database, and
 # regularly re-copied over. Changes to the data on "testing" are non-permanent.
 
-if True:
+if False:
     # database: loceval_testing
     base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"loceval_db_structure"

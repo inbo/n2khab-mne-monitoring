@@ -19,6 +19,7 @@ SELECT
   UNIT.type,
   UNIT.assessment,
   UNIT.assessment_date,
+  UNIT.recovery_hints,
   UNIT.is_replaced,
   UNIT.replacement_ongoing,
   UNIT.replacement_reason,

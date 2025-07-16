@@ -45,7 +45,7 @@ SELECT
   FAC.excluded_reason,
   FAC.landowner,
   FAC.inaccessible,
-  FAC.acceccibility_revisit,
+  FAC.accessibility_revisit,
   FAC.teammember_assigned,
   FAC.date_visit_planned,
   FAC.no_visit_planned,
@@ -102,7 +102,7 @@ DO INSTEAD
   excluded_reason = NEW.excluded_reason,
   landowner = NEW.landowner,
   inaccessible = NEW.inaccessible,
-  acceccibility_revisit = NEW.acceccibility_revisit,
+  accessibility_revisit = NEW.accessibility_revisit,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
   no_visit_planned = NEW.no_visit_planned,
@@ -119,3 +119,6 @@ GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO floris;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO ward;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO karen;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO floris;
+
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO tom;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO tom;
