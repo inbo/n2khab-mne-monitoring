@@ -7,8 +7,11 @@ import MNMDatabaseToolbox as DTB
 
 restore_dev = False
 restore_staging = False
-restore_testing = True
+restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
+base_folder = DTB.PL.Path(".")
+DTB.ODStoCSVs(base_folder/"loceval_dev_structure.ods", base_folder/"loceval_db_structure")
+DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", base_folder/"loceval_db_structure")
 
 ### (1) development
 # the dev database mirror is used for structural adjustments and development of
@@ -16,9 +19,6 @@ restore_testing = True
 
 if restore_dev:
     # database: loceval_dev
-    base_folder = DTB.PL.Path(".")
-    structure_folder = base_folder/"loceval_dev_structure"
-    DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
@@ -41,7 +41,6 @@ if restore_dev:
 
 if restore_staging:
     # database: loceval_staging
-    base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"loceval_db_structure"
     DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
@@ -63,9 +62,8 @@ if restore_staging:
 
 if restore_testing:
     # database: loceval_testing
-    base_folder = DTB.PL.Path(".")
-    structure_folder = base_folder/"loceval_db_structure"
-    DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
+    # structure_folder = base_folder/"loceval_db_structure"
+    # DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
@@ -87,7 +85,6 @@ if False:
     #### TODO prompt accidental overwrite
 
     # database: loceval
-    base_folder = DTB.PL.Path(".")
     structure_folder = base_folder/"loceval_db_structure"
     DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
