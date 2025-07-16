@@ -1047,6 +1047,10 @@ table_modification <- c(
 + accessibility is now stored on SampleUnits
 + but it is informative for all locations on a GRTS
 
+** TODO rtkgps accuracy
+
++ extra field
+
 
 * mnmgwdb
 
@@ -1126,12 +1130,13 @@ SCHEDULED: <2025-07-14 Mon>
 + +CellMaps+ (on hold)
 
 ** TODO adjusted db structure
-SCHEDULED: <2025-07-16 Wed>
+SCHEDULED: <2025-07-15 Wed>-<2025-07-17 Wed>
 
 + does not work on SampleUnits, but distinct SampleLocations
 + sufficient to plan fieldwork by activity_group for now,
   + later, there might be specific star-structure tables with extra data per activity group, linked to/branching from =Visits=
 + =SSPSTaPas=, a simple lookup table.
++ [ ]
 
 
 * learning the hard way
@@ -1229,5 +1234,13 @@ SELECT * FROM "outbound"."Replacements" WHERE is_inappropriate OR is_selected OR
 SELECT * FROM "inbound"."Visits" WHERE NOT (log_user = 'update') AND NOT (log_user = 'falk');
 SELECT * FROM "inbound"."FreeFieldNotes" WHERE NOT log_creator = 'falk';
 SELECT * FROM "inbound"."CellMaps";
+
+
+SELECT visit_id, sampleunit_id, notes FROM "inbound"."Visits"
+  WHERE visit_done
+  AND notes IS NOT NULL;
+
+SELECT sampleunit_id, recovery_hints FROM "outbound"."SampleUnits"
+  WHERE recovery_hints IS NOT NULL;
 
 #+end_src
