@@ -19,6 +19,8 @@ SELECT
   UNIT.type,
   UNIT.assessment,
   UNIT.assessment_date,
+  UNIT.accessibility_inaccessible,
+  UNIT.accessibility_revisit,
   UNIT.recovery_hints,
   UNIT.is_replaced,
   UNIT.replacement_ongoing,
@@ -109,6 +111,9 @@ ON UPDATE TO "inbound"."LocationEvaluation"
 DO ALSO
  UPDATE "outbound"."SampleUnits"
  SET
+  accessibility_inaccessible = NEW.accessibility_inaccessible,
+  accessibility_revisit = NEW.accessibility_revisit,
+  recovery_hints = NEW.recovery_hints,
   is_replaced = NEW.is_replaced,
   replacement_ongoing = NEW.replacement_ongoing,
   replacement_reason = NEW.replacement_reason,

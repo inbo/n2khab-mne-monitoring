@@ -11,8 +11,8 @@ outbound,SampleUnitPolygons,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,,,hab
 outbound,Replacements,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",POINT,,,,,putative replacements for inaccessible sites
 outbound,ReplacementCells,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,,,cell polygons (squares) of the replacement cells
 outbound,LocationAssessments,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"iudicium in praetorio, prior to fieldwork, e.g. via orthophotos, including assessments of obsolete locations"
-outbound,FieldActivityCalendar,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,(temporarily on hold) field activity calender
-inbound,Visits,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"inbound information about location visits, linked to SampleUnits"
+outbound,FieldActivityCalendar,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,field activity calender for planning fieldwork
+inbound,Visits,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"inbound information about location visits, linked to SampleUnits and FieldActivityCalendar"
 inbound,CellMaps,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",POLYGON,,,1,,cell mapping input by drawing polygons
 inbound,FreeFieldNotes,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 archive,ReplacementArchives,falk,"tom,ward,floris,karen,monkey",,,,,1,,archive of replacement information for samples which are not used any more

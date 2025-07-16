@@ -18,8 +18,6 @@ wait_7220,boolean,False,,False,False,,,,filter field for convenient aquatic type
 excluded,boolean,True,0,False,False,,,,activity obsolete due to sample updates or prior activities
 excluded_reason,text,False,NULL,False,False,,,,reason for exclusion (e.g. loceval type not found)
 landowner,varchar,False,NULL,False,False,,,,reference to the land owner
-inaccessible,boolean,False,NULL,False,False,,,,tag inaccessible locations
-acceccibility_revisit,date,False,NULL,False,False,,,,anticipate accessibility change
 teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee
 date_visit_planned,date,False,NULL,False,False,,,,planned date of visit
 no_visit_planned,boolean,True,0,False,False,,,,whether or not a visit is planned
