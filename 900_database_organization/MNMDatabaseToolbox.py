@@ -382,8 +382,8 @@ def EnsureNestedQuerySpacing(query: str) -> str:
               "SELECT", "FROM", "WHERE" \
             , "UPDATE", "ON UPDATE", "INSTEAD" \
             , " ON ", "AS " # note that "AS" without space is in "CASE", and "ON" is in "FUNCTION" \
-            , "AND NOT" \
-            , "LEFT JOIN" \
+            , "AND NOT", " AND " \
+            , "LEFT JOIN", "UNION" \
             , "DISTINCT", "GROUP BY", "ORDER BY" \
             , "CASE WHEN", "THEN", "ELSE", "END" \
             , "BEFORE", "BEGIN", "END" \

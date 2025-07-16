@@ -1170,6 +1170,25 @@ CLOSED: [2025-07-10 Thu 12:38] SCHEDULED: <2025-06-16 Mon>
 + join =Replacements= to =Visits= if they have an entry
 
 
+** python updates
+
+update all requirements:
+#+begin_src sh :eval no
+cp python_requirements.txt python_requirements.bak
+cat python_requirements.txt | cut -f1 -d= | xargs pip install -U
+pip freeze > python_requirements.txt
+#+end_src
+
+
+GDAL requires special attention:
+python bindings version always needs to match system version (which is not generally the latest one available on PyPI).
+Its line can be deleted from the =requirements.txt= prior to the update.
+
+#+begin_src sh :eval no
+pip install --no-cache --force-reinstall gdal[numpy]=="$(gdal-config --version).*" --break-system-packages
+#+end_src
+
+
 ** quick checks
 
 #+begin_src sql

@@ -3,13 +3,13 @@ CREATE VIEW  "outbound"."OrthophotoAssessment"  AS
 SELECT
   LOC.*,
   LOCASS.locationassessment_id,
-  (SLOC.location_id IS NULL) AS sample_location_obsolete,
-  SLOC.grts_join_method,
-  SLOC.sp_poststratum,
-  SLOC.scheme_ps_targetpanels,
-  SLOC.type,
-  SLOC.assessment,
-  SLOC.assessment_date,
+  (UNIT.location_id IS NULL) AS sample_location_obsolete,
+  UNIT.grts_join_method,
+  UNIT.sp_poststratum,
+  UNIT.scheme_ps_targetpanels,
+  UNIT.type,
+  UNIT.assessment,
+  UNIT.assessment_date,
   LOCASS.cell_disapproved,
   LOCASS.revisit_disapproval,
   LOCASS.disapproval_explanation,
@@ -21,9 +21,9 @@ SELECT
 FROM "outbound"."LocationAssessments" AS LOCASS
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = LOCASS.location_id
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON (LOCASS.grts_address = SLOC.grts_address
-  -- AND LOCASS.type = SLOC.type
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON (LOCASS.grts_address = UNIT.grts_address
+  -- AND LOCASS.type = UNIT.type
      )
 ;
 

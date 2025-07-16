@@ -28,10 +28,13 @@
   + [X] =FieldNotes= -> free input
 + [X] something wrong with python =getpasswd=
 
+
 * loceval
 + [ ] remove ="FieldActivityCalendar".grts_join_method=
-+ [ ] rename ="FieldActivityCalendar".acceccibility_revisit=
++ [X] rename ="FieldActivityCalendar".acceccibility_revisit=
 + [X] overhaul =ExtraVisits= -> multi visits per location +> grouped_activity_id
++ [X] add column ="Visits".recovery_hints=
+
 
 
 + [X] loceval fieldwork app
@@ -99,7 +102,9 @@
 
 
 * POC
-+ [ ] procedure to store replacements and update sample (with @FV)
++ [ ] procedure to store actual *replacements* and update sample (with @FV)
++ [ ] possible to mark sample units from MHQ? (request Ward 20250716)
++ [ ] double-check =is_gw_activity=
 
 + [-] POC pipeline
   + [ ] functional modularization suggestions for code snippets
