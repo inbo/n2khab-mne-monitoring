@@ -41,6 +41,7 @@
   + [ ] apply to production
 
 + [ ] accessibility across locations (see journal)
++ [ ] ++ =rtkgps_accuracy=
 
 
 + [X] loceval fieldwork app

@@ -23,6 +23,7 @@ SELECT
   VISIT.lims_code,
   VISIT.visit_cancelled,
   VISIT.visit_done,
+recovery_hints,
   GAP.activity_group_id,
   GAP.is_field_activity,
   GAP.is_gw_activity,

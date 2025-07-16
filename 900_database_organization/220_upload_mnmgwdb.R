@@ -1,6 +1,3 @@
-TODO: SampleUnits -> SampleLocations
-
-
 ## libraries----------------------------------------------------------------
 library("dplyr")
 library("tidyr")
@@ -361,9 +358,9 @@ n2khab_strata_upload <- n2khab_types_expanded_properties %>%
   )
 
 # # SELECT DISTINCT type FROM "metadata"."N2kHabStrata";
-n2khab_strata_upload %>%
-  select(type, main_type, stratum) %>%
-  knitr::kable()
+# n2khab_strata_upload %>%
+#   select(type, main_type, stratum) %>%
+#   knitr::kable()
 
 
 n2khabstrata_lookup <- update_cascade_lookup(
@@ -380,6 +377,8 @@ n2khabstrata_lookup <- update_cascade_lookup(
 ## ----collect-location-assessments----------------------------------------------
 # load previous in preatorio work from another database
 
+# TODO this will be more complex; including MHQ assessments and other prior visits
+# TODO include `recovery_hints`
 if (FALSE) {
   migrating_schema <- "outbound"
   migrating_table_key <- "LocationEvaluations"
@@ -420,7 +419,7 @@ sample_units <-
   # adding location attributes
   inner_join(
     scheme_moco_ps_stratum_targetpanel_spsamples %>%
-      select(
+      distinct( # <- deduplicating 7220
         scheme,
         module_combo_code,
         panel_set,
@@ -429,9 +428,7 @@ sample_units <-
         grts_address,
         grts_address_final,
         targetpanel
-      ) %>%
-      # deduplicating 7220:
-      distinct(),
+      ),
     join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
     relationship = "many-to-one",
     unmatched = c("error", "drop")
@@ -482,6 +479,49 @@ sample_units <-
 
 # glimpse(sample_units)
 
+# fag_stratum_grts_calendar %>% filter(grts_address %in% c(22107438)) %>% knitr::kable()
+# scheme_moco_ps_stratum_targetpanel_spsamples %>% filter(grts_address %in% c(22107438)) %>% knitr::kable()
+#
+# scheme_moco_ps_stratum_targetpanel_spsamples %>%
+#   filter(scheme == "GW_03.3") %>%
+#   distinct(scheme, stratum, grts_address, panel_set) %>%
+#   count(grts_address, stratum) %>%
+#   filter(n>1) %>%
+#   arrange(desc(n))
+#
+# scheme_moco_ps_stratum_targetpanel_spsamples %>% filter(grts_address %in% c(13688242)) %>% knitr::kable()
+#
+# sample_units %>% count(grts_address) %>% arrange(desc(n))
+# sample_units %>% filter(grts_address %in% c(22107438)) %>% knitr::kable()
+# sample_units %>% filter(grts_address %in% c(23238, 22021842, 22107438)) %>%
+#   count(grts_address, scheme, stratum, panel_set) %>% arrange(desc(n))
+# sample_units %>% count(scheme)
+
+# glimpse(sample_units)
+
+sample_locations <- sample_units %>%
+  summarize(
+    scheme_ps_targetpanels = str_flatten(
+      sort(unique(scheme_ps_targetpanels)),
+      collapse = " | "
+    ) %>% as.character(),
+    schemes = str_flatten(
+      sort(unique(scheme)),
+      collapse = ", "
+    ) %>% as.character(),
+    strata = str_flatten(
+      sort(unique(stratum)),
+      collapse = ", "
+    ) %>% as.character(),
+    .by = c(
+      grts_address,
+    )
+  )
+
+# sample_locations %>% count(schemes, strata)
+
+# glimpse(sample_locations)
+
 # still need to join the location, below
 # TODO in the FUTURE, make sure `type` is
 #      correctly filled from LOCEVAL
@@ -518,13 +558,13 @@ previous_visits <- dplyr::tbl(
 
 ## ----save-previous-FACs----------------------------------------------
 
-table_str <- '"outbound"."FieldActivityCalendar"'
+table_str <- '"outbound"."FieldworkCalendar"'
 maintenance_users <- sprintf("'{update,%s}'", config$user)
 cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE log_user = ANY ({maintenance_users}::varchar[])
      AND (NOT excluded)
-     AND (NOT inaccessible)
+     AND (inaccessible IS NULL OR NOT (inaccessible = FALSE))
      AND (teammember_assigned IS NULL)
      AND (date_visit_planned IS NULL)
      AND (NOT no_visit_planned)
@@ -541,24 +581,25 @@ execute_sql(
 
 previous_calendar_plans <- dplyr::tbl(
   db_connection,
-  DBI::Id(schema = "outbound", table = "FieldActivityCalendar"),
+  DBI::Id(schema = "outbound", table = "FieldworkCalendar"),
   ) %>% collect()
 
-
+glimpse(previous_calendar_plans)
 
 
 
 ## ----upload-locations----------------------------------------------
 # will be the union set of grts addresses in
-#    - locationassessments_data
-#    - sample_units
+#    - sample_locations
+#    - previous visits
+#    - previous calendar plans
 # not accounting for fieldwork_calendar because that is derived from
-# the same source as sample_units
+# the same source as sample_locations
 
-locations <- c(
-    sample_units %>% pull(grts_address) %>% as.integer(),
-    previous_visits %>% pull(grts_address) %>% as.integer(),
-    previous_calendar_plans %>% pull(grts_address) %>% as.integer()
+locations <- bind_rows(
+    sample_locations %>% select(grts_address),
+    previous_calendar_plans %>% select(grts_address),
+    previous_visits %>% select(grts_address)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
@@ -625,13 +666,13 @@ append_tabledata(
 
 ## ----upload-sample-locations----------------------------------------------
 
-if ("location_id" %in% names(sample_units)) {
+if ("location_id" %in% names(sample_locations)) {
   # should not be the case in a continuous script;
   # this is extra safety for debugging and de-serial execution
-  sample_units <- sample_units %>%
+  sample_locations <- sample_locations %>%
     select(-location_id)
 }
-sample_units <- sample_units %>%
+sample_locations <- sample_locations %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
@@ -639,22 +680,13 @@ sample_units <- sample_units %>%
   )
 
 
-slocs_refcols <- c(
-  "stratum",
-  "grts_address",
-  "scheme",
-  "panel_set",
-  "targetpanel"
-  # "sp_poststratum"
-)
-
 # tabula rasa: might otherwise be duplicated due to missing fk and null constraint
-sample_units_lookup <- update_cascade_lookup(
+sample_locations_lookup <- update_cascade_lookup(
   schema = "outbound",
-  table_key = "SampleUnits",
-  new_data = sample_units,
-  index_columns = c("sampleunit_id"),
-  characteristic_columns = slocs_refcols,
+  table_key = "SampleLocations",
+  new_data = sample_locations,
+  index_columns = c("samplelocation_id"),
+  characteristic_columns = c("grts_address"),
   tabula_rasa = TRUE,
   verbose = TRUE
 )
@@ -665,14 +697,14 @@ sample_units_lookup <- update_cascade_lookup(
 #   db_connection,
 #   dbstructure_folder,
 #   target_schema = "outbound",
-#   table_key = "SampleUnits",
+#   table_key = "SampleLocations",
 #   retain_log = FALSE,
 #   verbose = TRUE
 # )
 
 
-# sample_units_lookup %>% nrow()
-# sample_units_lookup %>%
+# sample_locations_lookup %>% nrow()
+# sample_locations_lookup %>%
 #   select(!!!slocs_refcols) %>%
 #   distinct %>%
 #   nrow()
@@ -701,10 +733,10 @@ fieldwork_calendar <-
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
   left_join(
-    sample_units_lookup %>%
-      select(grts_address, location_id),
-    by = join_by(stratum, grts_address),
-    relationship = "many-to-many", # TODO
+    sample_locations_lookup %>%
+      select(grts_address),
+    by = join_by(grts_address),
+    relationship = "many-to-one",
     unmatched = "drop"
   ) %>%
   rename(activity_rank = rank) %>%
@@ -714,10 +746,14 @@ fieldwork_calendar <-
     relationship = "many-to-one"
   ) %>%
   select(-field_activity_group) %>%
+  left_join(
+    sample_locations_lookup,
+    by = join_by(grts_address),
+    relationship = "many-to-one"
+  ) %>%
+  relocate(samplelocation_id) %>%
   mutate(
     across(c(
-        stratum,
-        grts_join_method,
         date_interval
       ),
       as.character
@@ -733,149 +769,80 @@ fieldwork_calendar <-
 
 # fieldwork_calendar %>% glimpse
 
+
+## SSPSTaPas
+
+sspstapas <- update_cascade_lookup(
+  schema = "metadata",
+  table_key = "SSPSTaPas",
+  new_data = fieldwork_calendar %>%
+    distinct(stratum_scheme_ps_targetpanels) %>%
+    arrange(stratum_scheme_ps_targetpanels),
+  index_columns = c("sspstapa_id"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+
+replace_sspstapa_by_lookup <- function(df) {
+  df_new <- df %>%
+    left_join(
+      sspstapas,
+      by = join_by(stratum_scheme_ps_targetpanels),
+      relationship = "many-to-one"
+    ) %>%
+    relocate(
+      sspstapa_id,
+      .after = stratum_scheme_ps_targetpanels
+    ) %>%
+    select(-stratum_scheme_ps_targetpanels)
+
+  return(df_new)
+}
+
+fc_characteristic_cols <- c(
+    "samplelocation_id",
+    "sspstapa_id",
+    "grts_address",
+    "activity_group_id",
+    "date_start"
+  )
+
+# previous_calendar_test <- fieldwork_calendar[1:500,]
+
+fieldwork_celandar_new <- fieldwork_calendar %>%
+  replace_sspstapa_by_lookup() %>%
+  anti_join(
+    previous_calendar_plans %>% replace_sspstapa_by_lookup(),
+    by = join_by(!!!fc_characteristic_cols)
+  )
+
 fieldwork_calendar_lookup <- update_cascade_lookup(
   schema = "outbound",
-  table_key = "FieldActivityCalendar",
-  new_data = fieldwork_calendar,
-  index_columns = c("fieldactivitycalendar_id"),
-  characteristic_columns = NULL,
+  table_key = "FieldworkCalendar",
+  new_data = fieldwork_celandar_new,
+  index_columns = c("fieldworkcalendar_id"),
+  characteristic_columns = fc_characteristic_cols,
   tabula_rasa = FALSE,
   verbose = TRUE
 )
 
+# TODO are previous_calendar_plans retained correctly?
+
 
 ## ----upload-calendar----------------------------------------------
 
-
-fieldwork_calendar <-
-  fag_stratum_grts_calendar %>%
-  common_current_calenderfilters() %>%
+fieldwork_calendar_lookup %>%
   select(
-    scheme_moco_ps,
-    stratum,
-    grts_address,
-    starts_with("date"),
-    field_activity_group,
-    rank
-  ) %>%
-  # move the fieldwork that was kept for 2024, to 2025, since that is indeed
-  # its meaning
-  mutate(
-    across(c(date_start, date_end), \(x) {
-      if_else(year(date_start) == 2024, x + years(1), x)
-    }),
-    date_interval = interval(
-      force_tz(date_start, "Europe/Brussels"),
-      force_tz(date_end, "Europe/Brussels")
-    )
-  ) %>%
-  unnest(scheme_moco_ps) %>%
-  # adding location attributes
-  inner_join(
-    scheme_moco_ps_stratum_targetpanel_spsamples %>%
-      select(
-        scheme,
-        module_combo_code,
-        panel_set,
-        stratum,
-        grts_join_method,
-        grts_address,
-        grts_address_final,
-        targetpanel
-      ) %>%
-      # deduplicating 7220:
-      distinct(),
-    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  ) %>%
-  relocate(grts_address_final, .after = grts_address) %>%
-  # also join the spatial poststratum, since we need this in setting
-  # GRTS-address based priorities
-  inner_join(
-    scheme_moco_ps_stratum_sppost_spsamples %>%
-      unnest(sp_poststr_samples) %>%
-      select(-sample_status),
-    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
-    relationship = "many-to-one"
-  ) %>%
-  select(-module_combo_code) %>%
-  common_current_samplefilters() %>%
-  nest_scheme_ps_targetpanel() %>%
-  prioritize_and_arrange_fieldwork() %>%
-  # convert_stratum_to_type() %>%
-  rename_grts_address_final_to_grts_address() %>%
-  left_join(
-    grouped_activities_lookup %>%
-      select(activity_group, activity_group_id) %>%
-      distinct()
-    ,
-    by = join_by(field_activity_group == activity_group),
-    relationship = "many-to-many"
-  ) %>%
-  select(-field_activity_group) %>%
-  rename(activity_rank = rank) %>%
-  relocate(activity_rank, .after = activity_group_id) %>%
-  left_join(
-    sample_units_lookup,
-    by = slocs_refcols,
-    relationship = "many-to-one"
+    fieldworkcalendar_id,
+    !!!fc_characteristic_cols
   ) %>%
   left_join(
     locations_lookup,
-    by = join_by(grts_address),
-    relationship = "many-to-one"
-  ) %>%
-  select(
-    -grts_address,
-    -type,
-    -scheme_ps_targetpanels,
-    -scheme,
-    -panel_set,
-    -sp_poststratum,
-    -date_interval,
-    -grts_join_method,
-    -targetpanel
-  )
-
-# glimpse(fieldwork_calendar)
-
-fac_lookup <- upload_and_lookup(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "FieldActivityCalendar"),
-  fieldwork_calendar,
-  ref_cols = c("samplelocation_id", "activity_group_id", "date_start"),
-  index_col = "fieldactivitycalendar_id"
-)
-
-
-
-locationassessments_upload <- locationassessments_data %>%
-  select(-location_id) %>%
-  left_join(
-    locations_lookup,
-    by = join_by(grts_address),
-    relationship = "many-to-one"
-  )
-
-# Location Assessments: re-link locations
-rs <- DBI::dbExecute(
-  db_connection,
-  'DELETE FROM "outbound"."LocationAssessments";'
-  )
-
-# re-upload
-sf::dbWriteTable(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  locationassessments_upload,
-  row.names = FALSE,
-  overwrite = FALSE,
-  append = TRUE,
-  factorsAsCharacter = TRUE,
-  binary = TRUE
+    by = join_by(grts_address)
   )
 
 
 ## TODO POC update?
 ## TODO Visits from Calendar
+
+## TODO sync FreeFieldNotes back and forth (extra script)
