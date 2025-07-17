@@ -10,7 +10,7 @@ restore_staging = False
 restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
 base_folder = DTB.PL.Path(".")
-DTB.ODStoCSVs(base_folder/"loceval_dev_structure.ods", base_folder/"loceval_db_structure")
+DTB.ODStoCSVs(base_folder/"loceval_dev_structure.ods", base_folder/"loceval_dev_structure")
 DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", base_folder/"loceval_db_structure")
 
 ### (1) development
@@ -26,7 +26,7 @@ if restore_dev:
         database = "loceval_dev"
         )
     db = DTB.Database( \
-        structure_folder = structure_folder, \
+        structure_folder = base_folder/"loceval_dev_structure", \
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
         db_connection = db_connection, \
@@ -41,15 +41,13 @@ if restore_dev:
 
 if restore_staging:
     # database: loceval_staging
-    structure_folder = base_folder/"loceval_db_structure"
-    DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
         connection_config = "loceval-staging",
         )
     db = DTB.Database( \
-        structure_folder = structure_folder, \
+        structure_folder = base_folder/"loceval_db_structure", \
         lazy_creation = False, \
         db_connection = db_connection, \
         tabula_rasa = True
@@ -70,7 +68,7 @@ if restore_testing:
         connection_config = "loceval-testing",
         )
     db = DTB.Database( \
-        structure_folder = structure_folder, \
+        structure_folder = base_folder/"loceval_db_structure", \
         lazy_creation = False, \
         db_connection = db_connection, \
         tabula_rasa = True
@@ -85,16 +83,12 @@ if False:
     #### TODO prompt accidental overwrite
 
     # database: loceval
-    structure_folder = base_folder/"loceval_db_structure"
-    DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
-
     db_connection = DTB.ConnectDatabase(
         "inbopostgis_server.conf",
         connection_config = "loceval",
-        database = "loceval"
     )
     db = DTB.Database( \
-        structure_folder = structure_folder, \
+        structure_folder = base_folder/"loceval_db_structure", \
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
         db_connection = db_connection, \

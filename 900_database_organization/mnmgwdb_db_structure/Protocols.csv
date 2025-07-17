@@ -1,0 +1,4 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+protocol_id,smallint,True,,True,True,,,,protocol index (technical)
+protocol,varchar,True,,False,False,,,,protocol short label
+description,varchar,False,NULL,False,False,,,,a description of the protocol (tbd)

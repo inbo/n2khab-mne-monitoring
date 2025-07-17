@@ -1,3 +1,5 @@
+-- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldworkcalendar_id = 3;
+
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" ;
 CREATE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
@@ -6,8 +8,10 @@ SELECT
   SSPSTP.stratum_scheme_ps_targetpanels,
   SLOC.schemes,
   SLOC.strata,
-  SLOC.accessibility_inaccessible,
-  SLOC.accessibility_revisit,
+  LINF.locationinfo_id,
+  LINF.accessibility_inaccessible,
+  LINF.accessibility_revisit,
+  LINF.landowner,
   FWCAL.fieldworkcalendar_id,
   FWCAL.samplelocation_id,
   FWCAL.date_start,
@@ -27,7 +31,6 @@ SELECT
   (FWCAL.wait_watersurface OR FWCAL.wait_3260 OR FWCAL.wait_7220) AS is_waiting,
   FWCAL.excluded,
   FWCAL.excluded_reason,
-  FWCAL.landowner,
   FWCAL.teammember_assigned,
   FWCAL.date_visit_planned,
   FWCAL.no_visit_planned,
@@ -41,6 +44,8 @@ LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON FWCAL.samplelocation_id = SLOC.samplelocation_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = SLOC.location_id
+LEFT JOIN "outbound"."LocationInfos" AS LINF
+  ON LOC.location_id = LINF.location_id
 LEFT JOIN "metadata"."SSPSTaPas" AS SSPSTP
   ON SSPSTP.sspstapa_id = FWCAL.sspstapa_id
 LEFT JOIN (
@@ -65,15 +70,19 @@ ORDER BY
 ;
 
 
-DROP RULE IF EXISTS FieldworkPlanning_upd ON "outbound"."FieldworkPlanning";
-CREATE RULE FieldworkPlanning_upd AS
+-- DROP RULE IF EXISTS FieldworkPlanning_upd0 ON "outbound"."FieldworkPlanning";
+-- CREATE RULE FieldworkPlanning_upd0 AS
+-- ON UPDATE TO "outbound"."FieldworkPlanning"
+-- DO INSTEAD NOTHING;
+
+DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd1 AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO INSTEAD
  UPDATE "outbound"."FieldworkCalendar"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
-  landowner = NEW.landowner,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
   no_visit_planned = NEW.no_visit_planned,
@@ -83,6 +92,17 @@ DO INSTEAD
  WHERE fieldworkcalendar_id = OLD.fieldworkcalendar_id
 ;
 
+DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd2 AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO ALSO
+ UPDATE "outbound"."LocationInfos"
+ SET
+  landowner = NEW.landowner,
+  accessibility_inaccessible = NEW.accessibility_inaccessible,
+  accessibility_revisit = NEW.accessibility_revisit
+ WHERE locationinfo_id = OLD.locationinfo_id
+;
 
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tom;

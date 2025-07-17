@@ -479,7 +479,7 @@ sample_units <-
 ## ----save-previous-location-assessments----------------------------------------------
 
 table_str <- '"outbound"."LocationAssessments"'
-maintenance_users <- sprintf("'{update,%s}'", config$user)
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
 cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE log_user = ANY ({maintenance_users}::varchar[])
@@ -501,7 +501,7 @@ previous_location_assessments <- dplyr::tbl(
 ## ----save-previous-extra-visits----------------------------------------------
 # analogous: clean Visits
 table_str <- '"inbound"."Visits"'
-maintenance_users <- sprintf("'{update,%s}'", config$user)
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
 cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE log_user = ANY ({maintenance_users}::varchar[])
@@ -522,7 +522,7 @@ previous_visits <- dplyr::tbl(
 ## ----save-previous-FACs----------------------------------------------
 
 table_str <- '"outbound"."FieldActivityCalendar"'
-maintenance_users <- sprintf("'{update,%s}'", config$user)
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
 cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE log_user = ANY ({maintenance_users}::varchar[])
@@ -873,7 +873,7 @@ fieldwork_calendar <-
     )
   ) %>%
   mutate(
-    log_user = "update",
+    log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
     excluded = FALSE,
     no_visit_planned = FALSE,
@@ -1020,12 +1020,8 @@ new_location_assessments <- sample_units %>%
     grts_address,
     type
   ) %>%
-  left_join(
-    locations_lookup,
-    by = join_by(grts_address),
-  ) %>%
   mutate(
-    log_user = "update",
+    log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
     cell_disapproved = FALSE,
     assessment_done = FALSE
@@ -1101,7 +1097,7 @@ new_visits <- sample_units_lookup %>%
     grouped_activity_id = NA,
     teammember_id = NA,
     date_visit = as.Date(NA),
-    log_user = "update",
+    log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
     visit_done = FALSE
   )

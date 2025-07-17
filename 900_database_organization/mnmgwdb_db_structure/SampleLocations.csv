@@ -1,0 +1,8 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+samplelocation_id,int,True,,True,True,,,,sample location index (technical)
+location_id,int,False,,False,False,,,,the technical sequence of all locations
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+scheme_ps_targetpanels,varchar,False,,False,False,,,,"nested concatenation of scheme, poststratum, and target panels"
+schemes,varchar,True,,False,False,,,,schemes for which this location is sampled
+strata,varchar,True,,False,False,,,,strata for which the cell is eligible
+is_replacement,bool,True,0,False,False,,,,whether or not this is a repalcement cell
