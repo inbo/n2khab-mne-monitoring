@@ -2,65 +2,66 @@ DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" ;
 CREATE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
-  FAC.fieldactivitycalendar_id,
-  FAC.sampleunit_id,
-  FAC.activity_group_id,
-  FAC.activity_group_id IN (
+  SLOC.scheme_ps_targetpanels,
+  SSPSTP.stratum_scheme_ps_targetpanels,
+  SLOC.schemes,
+  SLOC.strata,
+  SLOC.accessibility_inaccessible,
+  SLOC.accessibility_revisit,
+  FWCAL.fieldworkcalendar_id,
+  FWCAL.samplelocation_id,
+  FWCAL.date_start,
+  FWCAL.date_end,
+  FWCAL.date_interval,
+  FWCAL.date_end - current_date AS days_to_deadline,
+  FWCAL.activity_group_id,
+  FWCAL.activity_group_id IN (
     SELECT DISTINCT activity_group_id FROM "metadata"."GroupedActivities"
     WHERE is_gw_activity
   ) AS is_gw_activity,
-  FAC.activity_rank,
-  FAC.priority,
-  FAC.date_start,
-  FAC.date_end,
-  FAC.date_interval,
-  FAC.date_end - current_date AS days_to_deadline,
-  FAC.wait_watersurface,
-  FAC.wait_3260,
-  FAC.wait_7220,
-  (FAC.wait_watersurface OR FAC.wait_3260 OR FAC.wait_7220) AS is_waiting,
-  FAC.excluded,
-  FAC.excluded_reason,
-  FAC.landowner,
-  FAC.inaccessible,
-  FAC.accessibility_revisit,
-  FAC.teammember_assigned,
-  FAC.date_visit_planned,
-  FAC.no_visit_planned,
-  FAC.watina_code,
-  FAC.notes,
-  FAC.done_planning,
-  UNIT.grts_join_method,
-  UNIT.scheme,
-  UNIT.panel_set,
-  UNIT.targetpanel,
-  UNIT.scheme_ps_targetpanels,
-  UNIT.sp_poststratum,
-  UNIT.stratum,
-  UNIT.assessment,
-  UNIT.assessment_date,
-  UNIT.previous_notes,
-  UNIT.is_replaced,
-  LOCEVAL.evaluation_user,
-  LOCEVAL.loceval_date,
-  LOCEVAL.type_assessed,
-  LOCEVAL.photo AS loceval_photo,
-  LOCEVAL.notes AS loceval_notes
-FROM "outbound"."FieldActivityCalendar" AS FAC
-LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON FAC.sampleunit_id = UNIT.sampleunit_id
+  FWCAL.activity_rank,
+  FWCAL.priority,
+  FWCAL.wait_watersurface,
+  FWCAL.wait_3260,
+  FWCAL.wait_7220,
+  (FWCAL.wait_watersurface OR FWCAL.wait_3260 OR FWCAL.wait_7220) AS is_waiting,
+  FWCAL.excluded,
+  FWCAL.excluded_reason,
+  FWCAL.landowner,
+  FWCAL.teammember_assigned,
+  FWCAL.date_visit_planned,
+  FWCAL.no_visit_planned,
+  FWCAL.watina_code,
+  FWCAL.notes,
+  FWCAL.done_planning,
+  LOCEVAL.has_loceval,
+  LOCEVAL.latest_visit
+FROM "outbound"."FieldworkCalendar" AS FWCAL
+LEFT JOIN "outbound"."SampleLocations" AS SLOC
+  ON FWCAL.samplelocation_id = SLOC.samplelocation_id
 LEFT JOIN "metadata"."Locations" AS LOC
-  ON LOC.location_id = UNIT.location_id
-LEFT JOIN "outbound"."LocationEvaluations" AS LOCEVAL
-  ON UNIT.sampleunit_id = LOCEVAL.sampleunit_id
+  ON LOC.location_id = SLOC.location_id
+LEFT JOIN "metadata"."SSPSTaPas" AS SSPSTP
+  ON SSPSTP.sspstapa_id = FWCAL.sspstapa_id
+LEFT JOIN (
+    SELECT DISTINCT
+      samplelocation_id,
+      eval_source,
+      MAX(eval_date) AS latest_visit,
+      TRUE AS has_loceval
+    FROM "outbound"."LocationEvaluations" AS LE
+    WHERE eval_source = 'loceval'
+    GROUP BY samplelocation_id, eval_source
+  ) AS LOCEVAL
+    ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
 ORDER BY
-  FAC.date_end,
-  FAC.priority,
+  FWCAL.date_end,
+  FWCAL.priority,
   is_waiting,
-  FAC.stratum,
-  FAC.grts_address,
-  FAC.activity_rank,
-  FAC.activity_group_id
+  SLOC.strata,
+  FWCAL.grts_address,
+  FWCAL.activity_rank,
+  FWCAL.activity_group_id
 ;
 
 
@@ -68,40 +69,33 @@ DROP RULE IF EXISTS FieldworkPlanning_upd ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO INSTEAD
- UPDATE "outbound"."FieldActivityCalendar"
+ UPDATE "outbound"."FieldworkCalendar"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
   landowner = NEW.landowner,
-  inaccessible = NEW.inaccessible,
-  accessibility_revisit = NEW.accessibility_revisit,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  notes = NEW.notes,
   no_visit_planned = NEW.no_visit_planned,
   watina_code = NEW.watina_code,
+  notes = NEW.notes,
   done_planning = NEW.done_planning
- WHERE fieldactivitycalendar_id = OLD.fieldactivitycalendar_id
+ WHERE fieldworkcalendar_id = OLD.fieldworkcalendar_id
 ;
 
 
 
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  tom;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  yglinga;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  jens;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  lise;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  wouter;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  floris;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  karen;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  tester;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  ward;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  monkey;
-
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  tom;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  yglinga;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  jens;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  lise;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  wouter;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  floris;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  karen;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  tester;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tom;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  yglinga;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  jens;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  lise;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  wouter;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  floris;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  karen;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  ward;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  monkey;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  floris;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  karen;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester;
