@@ -374,28 +374,6 @@ n2khabstrata_lookup <- update_cascade_lookup(
 
 
 
-## ----collect-location-assessments----------------------------------------------
-# load previous in preatorio work from another database
-
-# TODO this will be more complex; including MHQ assessments and other prior visits
-# TODO include `recovery_hints`
-if (FALSE) {
-  migrating_schema <- "outbound"
-  migrating_table_key <- "LocationEvaluations"
-  migrating_table <- DBI::Id(
-    schema = migrating_schema,
-    table = migrating_table_key
-    )
-
-  locationassessments_data <- dplyr::tbl(
-      loceval_connection,
-      migrating_table
-    ) %>%
-    collect() # collecting is necessary to modify offline and to re-upload
-}
-
-# before we upload, we need to collect all locations
-
 
 ## ----collect-sample-locations----------------------------------------------
 # glimpse(fag_stratum_grts_calendar)
@@ -530,6 +508,9 @@ sample_locations <- sample_units %>%
 
 
 ## ----save-previous-extra-visits----------------------------------------------
+## NOTE IMPORTANT: First, Visits are pruned and the relevant ones remain.
+##                 Then, FieldworkCalendar is pruned, and those which are
+##                 still linked to visits remain (even if empty).
 # analogous: clean Visits
 table_str <- '"inbound"."Visits"'
 maintenance_users <- sprintf("'{update,%s}'", config$user)
@@ -556,9 +537,11 @@ previous_visits <- dplyr::tbl(
   ) %>% collect()
 
 
+
 ## ----save-previous-FACs----------------------------------------------
 
 table_str <- '"outbound"."FieldworkCalendar"'
+table_str_visits <- '"inbound"."Visits"'
 maintenance_users <- sprintf("'{update,%s}'", config$user)
 cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
@@ -571,6 +554,10 @@ cleanup_query <- glue::glue(
      AND (watina_code IS NULL)
      AND (notes IS NULL)
      AND (NOT done_planning)
+     AND (fieldworkcalendar_id NOT IN (
+       SELECT DISTINCT fieldworkcalendar_id
+       FROM {table_str_visits}
+     ))
    ;"
 )
 execute_sql(
@@ -582,10 +569,17 @@ execute_sql(
 previous_calendar_plans <- dplyr::tbl(
   db_connection,
   DBI::Id(schema = "outbound", table = "FieldworkCalendar"),
-  ) %>% collect()
+  ) %>%
+  left_join(
+    dplyr::tbl(db_connection,
+      DBI::Id(schema = "metadata", table = "SSPSTaPas")),
+    by = join_by(sspstapa_id)
+  ) %>%
+  relocate(stratum_scheme_ps_targetpanels, .after = sspstapa_id) %>%
+  select(-sspstapa_id) %>%
+  collect()
 
-glimpse(previous_calendar_plans)
-
+# glimpse(previous_calendar_plans)
 
 
 ## ----upload-locations----------------------------------------------
@@ -681,7 +675,7 @@ sample_locations <- sample_locations %>%
 
 
 # tabula rasa: might otherwise be duplicated due to missing fk and null constraint
-sample_locations_lookup <- update_cascade_lookup(
+samplelocations_lookup <- update_cascade_lookup(
   schema = "outbound",
   table_key = "SampleLocations",
   new_data = sample_locations,
@@ -703,8 +697,8 @@ sample_locations_lookup <- update_cascade_lookup(
 # )
 
 
-# sample_locations_lookup %>% nrow()
-# sample_locations_lookup %>%
+# samplelocations_lookup %>% nrow()
+# samplelocations_lookup %>%
 #   select(!!!slocs_refcols) %>%
 #   distinct %>%
 #   nrow()
@@ -733,7 +727,7 @@ fieldwork_calendar <-
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
   left_join(
-    sample_locations_lookup %>%
+    samplelocations_lookup %>%
       select(grts_address),
     by = join_by(grts_address),
     relationship = "many-to-one",
@@ -747,7 +741,7 @@ fieldwork_calendar <-
   ) %>%
   select(-field_activity_group) %>%
   left_join(
-    sample_locations_lookup,
+    samplelocations_lookup,
     by = join_by(grts_address),
     relationship = "many-to-one"
   ) %>%
@@ -799,7 +793,7 @@ replace_sspstapa_by_lookup <- function(df) {
   return(df_new)
 }
 
-fc_characteristic_cols <- c(
+fieldcalendar_characols <- c(
     "samplelocation_id",
     "sspstapa_id",
     "grts_address",
@@ -813,15 +807,17 @@ fieldwork_celandar_new <- fieldwork_calendar %>%
   replace_sspstapa_by_lookup() %>%
   anti_join(
     previous_calendar_plans %>% replace_sspstapa_by_lookup(),
-    by = join_by(!!!fc_characteristic_cols)
+    by = join_by(!!!fieldcalendar_characols)
   )
+
+## ----upload-calendar----------------------------------------------
 
 fieldwork_calendar_lookup <- update_cascade_lookup(
   schema = "outbound",
   table_key = "FieldworkCalendar",
   new_data = fieldwork_celandar_new,
   index_columns = c("fieldworkcalendar_id"),
-  characteristic_columns = fc_characteristic_cols,
+  characteristic_columns = fieldcalendar_characols,
   tabula_rasa = FALSE,
   verbose = TRUE
 )
@@ -829,20 +825,91 @@ fieldwork_calendar_lookup <- update_cascade_lookup(
 # TODO are previous_calendar_plans retained correctly?
 
 
-## ----upload-calendar----------------------------------------------
 
-fieldwork_calendar_lookup %>%
+new_visits <- fieldwork_calendar_lookup %>%
   select(
     fieldworkcalendar_id,
-    !!!fc_characteristic_cols
+    !!!fieldcalendar_characols
   ) %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address)
+  ) %>%
+  mutate(
+    log_user = "update",
+    log_update = as.POSIXct(Sys.time()),
+    visit_cancelled = FALSE,
+    visit_done = FALSE
+  )
+
+visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
+
+visits_upload <- new_visits %>%
+  anti_join(
+    previous_visits,
+    by = join_by(!!!visits_characols)
   )
 
 
-## TODO POC update?
-## TODO Visits from Calendar
+visits_lookup <- update_cascade_lookup(
+  schema = "inbound",
+  table_key = "Visits",
+  new_data = visits_upload,
+  index_columns = c("visit_id"),
+  characteristic_columns = visits_characols,
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+## TODO LocationEvaluations incl. recovery_hints
 
 ## TODO sync FreeFieldNotes back and forth (extra script)
+
+
+## TODO POC update?
+
+
+
+## ----collect-location-assessments----------------------------------------------
+# load previous in preatorio work from another database
+# TODO type_assessed -> must be adjusted upstream in the POC; kept now for double-check
+
+
+# this is slightly more complex: a UNION view form `loceval` database
+#      include `photos` and `recovery_hints`
+# TODO include MHQ assessments and other prior visits
+
+locationevaluation_input <- dplyr::tbl(
+    loceval_connection,
+    DBI::Id("outbound", "gwTransfer")
+  ) %>%
+  collect() # collecting is necessary to modify offline and to re-upload
+
+# locationevaluation_input %>% count(eval_source)
+# locationevaluation_input %>% distinct(eval_name)
+
+# before we upload, we need to collect all locations
+locationevaluations_upload <- locationevaluation_input %>%
+  left_join(
+    samplelocations_lookup,
+    by = join_by(grts_address),
+    relationship = "many-to-one"
+  ) %>%
+  relocate(samplelocation_id)
+
+locationevaluation_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "LocationEvaluations",
+  new_data = locationevaluations_upload,
+  index_columns = c("locationevaluation_id"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+
+
+## ----done!----------------------------------------------
+
+# source("220_upload_mnmgwdb.R")
+# python 210_init_mnmgwdb.py 2>&1 | tee dump1.log
+# Rscript 220_upload_mnmgwdb.R 2>&1 | tee dump2.log
