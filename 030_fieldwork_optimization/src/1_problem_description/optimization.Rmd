@@ -1,0 +1,467 @@
+---
+title: "MNM optimization"
+author: "Raïsa Carmen"
+date: "2024-08-05"
+output: html_document
+bibliography: references.bib
+params:
+    year: 2028
+    quarter: 3
+    update_rdata_file: FALSE
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+    echo = FALSE,
+    dpi = 300)
+library(leaflet)
+library(tidyverse)
+library(rprojroot)
+library(readxl)
+library(patchwork)
+library(kableExtra)
+library(ompr)
+library(latex2exp)
+library(RColorBrewer)
+library(git2rdata)
+library(sf)
+
+# Setup for googledrive authentication. Set the appropriate env vars in
+# .Renviron and make sure you ran drive_auth() interactively with these settings
+# for the first run (or to renew an expired Oauth token)
+if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
+  options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
+}
+if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
+  options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
+}
+library(googledrive)
+library(googlesheets4)
+
+library(rprojroot)
+projroot <- find_root(has_file("030_optimization.Rproj"))
+gitroot <- find_root(is_git_root)
+datapath <- file.path(projroot, "data")
+#Gaverstraat 4 in Geraarsbergen
+labo <- tibble(xwgs84 = 3.880461,
+                   ywgs84 = 50.763545) %>%
+  st_as_sf(coords = c("xwgs84", "ywgs84"),
+           remove = FALSE,
+           crs = "EPSG:4326")
+#Herman Teirlinck gebouw
+depot <- tibble(xwgs84 = 4.350106276159696,
+                   ywgs84 = 50.86657505809358) %>%
+  st_as_sf(coords = c("xwgs84", "ywgs84"),
+           remove = FALSE,
+           crs = "EPSG:4326")
+homeloc <- tibble(xwgs84 = 4.575175,
+                   ywgs84 = 50.9299745) %>%
+  st_as_sf(coords = c("xwgs84", "ywgs84"),
+           remove = FALSE,
+           crs = "EPSG:4326")
+```
+
+```{r set-filepaths, include = FALSE}
+rdata_path <- file.path(
+    datapath,
+    "objects_panflpan5.Rdata")
+update_rdata <- !file.exists(rdata_path) || params$update_rdata_file
+```
+
+
+
+```{r read-rdata-file, include = FALSE, warning = FALSE, message = FALSE}
+load(rdata_path)
+load(paste0(datapath, "/traveltimes.Rdata")) #pairwise distances
+#info over de objecten
+#scheme_domain_fag_stratum_spsamples_calendar: deze heeft de meeste rijen. Hier zitten dubbels in wanneer bvb dezelfde staal op dezelfde locatie voor twee verschillende meetnetten moet genomen worden. In praktijk is dit 1 bezoek en wordt er maar 1 staal genomen dus dat is niet relevant voor de optimalisatie
+#fag_stratum_grts_calendar: hier zijn dubbels voor meetnetten uit gehaald omdat eenzelfde staal voor verschillende meetnetten gebruikt kan worden en er geen nood is aan een tweede bezoek of staalname.
+#fag_grts_calendar: Hier zijn ook dubbels mbt stratum (habitat) uit gehaald. Eén locatie kan immers soms gelinkt worden aan meerdere habitats en dan kan diezelfde locatie in de planning zitten voor meerdere habitats. In realiteit is er op iedere locatie slechts één habitat aanwezig en zal voor de andere habitats een andere, extra locatie bezocht moeten worden die nog niet in deze lijst zit. 
+
+#summary(scheme_domain_fag_stratum_spsamples_calendar)
+fag_grts_calendar <- 
+    fag_grts_calendar %>%
+    mutate(quarter = quarter(date_start),
+           quarter2 = quarter(date_end - 1), # we substract one day since it needs to be done BEFORE the end date.
+           year = year(date_start),
+           year2 = year(date_end - 1),
+           timewindow = factor(ifelse(as.numeric(date_end - date_start) < 40,
+                                      "month", "quarter")))
+#check whether there is no interference between quarters
+sum(fag_grts_calendar$year !=
+        fag_grts_calendar$year2)
+sum(fag_grts_calendar$quarter !=
+        fag_grts_calendar$quarter2)
+
+fag_grts_calendar %>%
+    mutate(diff = date_end - date_start) %>%
+    dplyr::pull(diff) %>%
+    as.numeric() %>%
+    hist()
+
+fag_grts_calendar %>%
+    dplyr::pull(timewindow) %>% summary()
+#The following comment is no longer valid after the data was updated (24% now needs to be done within a month).
+#There are very little visits with a visiting window that is smaller than a quarter (2.5% have a specific month). Maybe we don't need time windows and can just specify that some samples should not be put in the same route (when they have to be executed in different specific months) ->routes worden dan initieel niet toegewezen aan een dag, dat gebeurt nadien. Er moet wel nagekeken worden dat er niet meer dan 20 sites met timewindow == "month" per maand gepland moeten worden. In het slechtste geval worden immer allemaal aan dezelfde fieldworker toegewezen, in 20 verschillende routes en dan kan die ene veldwerker die niet allemaal doen op 1 maand tijd. We kunnen dit eventueel ook hard afdwingen.
+
+#data for one quarter ->+-1500 locations to visit
+data <- fag_grts_calendar %>%
+    filter(year == params$year & quarter == params$quarter) %>%
+    left_join(samplinglocations_sf %>%
+                  dplyr::select(grts_address_final) %>%
+                  cbind(sf::st_coordinates(
+                      samplinglocations_sf)) %>%
+                  sf::st_drop_geometry() %>% distinct())
+```
+
+```{r eval = FALSE}
+#Some locations are visited for multiple purposes and or/ in different time frames
+data %>%
+  group_by(grts_address_final) %>%
+  summarize(n = n()) %>%
+  ggplot() +
+  geom_histogram(aes(x = n))
+#same locations visited in the same time frame for different field_activity_groups
+data %>%
+  group_by(grts_address_final, date_start, date_end) %>%
+  summarize(n = n()) %>%
+  ggplot() +
+  geom_histogram(aes(x = n))
+#same location visited for the same field_activity_group but in a different time frame
+data %>%
+  group_by(grts_address_final, field_activity_group) %>%
+  summarize(n = n()) %>%
+  ggplot() +
+  geom_histogram(aes(x = n))
+```
+
+<!-- - A python library for VRP -->
+<!-- https://arxiv.org/abs/2403.13795 -->
+<!-- - VROOM open source vehicle routing solver -->
+<!-- https://github.com/VROOM-Project/vroom -->
+<!-- - vb hoe vroom te gebruiken -->
+<!-- https://github.com/VROOM-Project/vroom/blob/release/1.14/docs/API.md -->
+<!-- - Eliminate subtours with the library igraph -->
+<!-- https://r-opt.github.io/rmpk/articles/tsp-subtour.html -->
+
+
+# Introduction
+
+In this report, we aim to optimally plan field visits. We will start with a simple Vehicle Routing Problem (VRP) formulation and work our way up to include more and more problem-specific details and constraints. In time, we would like to plan routes such that the work is equally divided over field workers and we minimize the number of traveled kilometers.
+
+## Problem setting
+
+The Monitoring Programme for the Natural Environment (MNM/MNE) aims to determine the status and trend of certain environmental variables at Natura 2000 habitat sites, in order to identify and quantify current environmental pressure points at the Flanders level. Where applicable, it aims to assist in determining why conservation status is unfavorable and/or insufficiently moving in the desired direction. This supports the planning, supporting rationale, evaluation & adjustment of Flemish nature policy.
+
+Determining the status and trend of pressure variable requires field visits all over Flanders at regular intervals to gather, i.e. soil and water samples that are then analysed at INBO's laboratory. The data collection will start in 2024 and is planned to continue until at least 2038.
+
+```{r leafletmap, fig.cap= "An overview of all unique locations that need to be visited."}
+library(leaflet)
+samplinglocations_sf %>%
+  st_transform(crs = 4326) %>%
+  leaflet(width = "100%", height = 400) %>%
+  addTiles() %>%
+  leaflet::addMarkers(clusterOptions = markerClusterOptions())
+```
+
+### Field visits / activities
+
+For each field visit, we know:
+
+- The period in which the field visit needs to take place (this may be a month, quarter or year).
+- The location (x and y coordinates).
+- The skills required to execute the field visit.
+- The estimated activity duration at the site.
+
+Additionally, there are some rules that determine when to visit the laboratory or the depot.
+
+- If a water sample is taken, the field worker needs to drop it off at the laboratory within 48 hours.
+- Some field visits require the field worker to visit the depot up front to gather tools, and collection materials (cups/tubes/...) that are needed to complete the field visit.
+
+Lastly, there is one field activity that needs 2 visits to the same location. The visits need to be at least 1 and at most 3 days apart. During the first visit, the monitoring well is emptied and the water level is read during the second visit. 
+
+### Travel times
+
+Using the x-y coordinates of each of the locations, we calculate the travel times between pairs of locations up front. However, since there are over 4500 unique locations, we only calculate the travel times for locations that are within 20km of each other. However, travel times between the depot, laboratory, and field workers' home on the one hand and all field locations on the other hand *are all* calculated, no matter the distance between the both.
+
+In addition to travel times to drive from one location to the other, we add a fixed "search time" of 20 minutes. Since the field locations are located at Natura 2000 sites, they are rarely (never) located close to a road and the field workers will always have to get to the right location on foot.
+
+### Field workers
+
+Over the years, field workers will be hired in a staggered fashion, as the field work increases. By 2028, a total of 18 field workers are hired to execute the field work. For each field worker, we have the following data:
+
+- Their home location. We will assume that the field workers always start their route from their home location.
+- Their skills set; some field activities require special skills which not all field workers have.
+- How much they work (full time / part time). This determines the number of routes that need to be scheduled for the worker.
+- When (s)he will start working. Field workers will be hired in a staggered fashion as the amount of field work will also increase over the coming years until it reaches a stable amount of field work by 2028.
+
+### Additional information
+
+- For now, both traveling time and field activity time are estimates that have not been checked in practice. Since we want to convince the field workers of the value of the scheduling tool, we will limit the total time per route (traveling and field activities) to 6.5 hours.  After a month or so of testing, we will consult the field workers to discuss how realistic the time estimates are and whether they should be changed.
+- The field locations should be located in a specific habitat. If a field worker arrives at a site which which does not have the right habitat, he will have to re-route to a "back-up location". For instance, if a certain location (according to our data) should be in a heather habitat but the field worker concludes during his visit that it currently is actually a forest, he will have to travel to an alternative, back-up location that is in a heather habitat. Currently, the predicted habitat is based on [Flander's Natura2000 habitat map](https://www.vlaanderen.be/datavindplaats/catalogus/biologische-waarderingskaart-en-natura-2000-habitatkaart-toestand-2023) but this map may be outdated in some locations. Since we cannot predict these re-routings, we currently simply account for them by not making the routes too long (i.e. planning only 6.5 hours per route).
+
+
+Ideally, we would like a model that schedules all routes for one year for all field workers at the same time.
+Apart from the fact that it is always better to take as much into account as possible, this would allow us to also balance the total non-useful time (ie travelling time) over all fieldworkers.
+That would avoid that, for instance, some workers are doomed to visit all far-away locations and some privileged workers to only visit locations that are close-by.
+However, due to the size of the problem, we are forced to reduce the size of the problem significantly to be able to solve it. How we plan to work around this is described below.
+
+
+## Methodology
+
+As INBO is an Open science institute, we aim to develop an open source workflow to optimize the field workers' routes. This also means that we will aim to avoid commercial solvers if possible. [HiGHS](https://highs.dev/) should be one of the best Open Source solvers and we will benchmark it against [CPLEX](https://www.ibm.com/products/ilog-cplex-optimization-studio).
+
+Typically, the decision variables in our VRP would be binary $x_{ijft}$ which is 1 if location $j$ is visited after location $i$, by field worker $f$, on day $t$.
+The VRP is an NP hard problem so the computation time to achieve the optimal solution will increase exponentially with the number of sites. Field experts consider problems of 20 sites doable and, if you are lucky, you might find a solution for a problem with up to 100 sites as well. However, we need to plan 1200 to 1300 site visits each quarter. If there are 1300 sites to visit, 16 field workers and 60 working days in a quarter, this means we will have at least $1300*1300*16*60 = 1.622.400.000$ decision variables which immediately showcases why it might be too difficult to solve.
+
+There are a couple of ways to tackle this problem:
+
+- Simplify the problem:
+    - We might omit $x_{ijft}$ decision variables for locations $i$ and $j$ that are far away from each other and will therefor likely not be visited in the same route in the optimal solution. For instance, there is at least 40 kilometers between 75% of the sites. Deleting decision variables for pairs of locations that are at least 40 would reduce the number of decision variables significantly.
+    - Although the sites have time windows in which they must be visited (month, quarter, or year), we could consider to exclude the $t$ index from $x_{ijtf}$ and thus reduce the number of decision variables by a factor 60 for each quarter. One problem, though is planning visits to the laboratory to drop of the samples which have been collected over a couple of days. When these laboratory visits need to take place therefor depend on when certain types of samples have been collected. For now, we simply force the model to include the laboratory in 40% of the routes (2 days in a 5 days working week).
+- Use a branch and price algorithm. In a B&P algorithm, good feasible routes (within the time limit, starting and ending at a home location) are discovered in a separate pricing problem. These routes are then added to the master (columns generation).
+- There also exists some good heuristic procedures that can yield good solutions. However, most of these heuristics seem to be commercially developed, payed software programs. [VROOM](https://github.com/VROOM-Project/vroom) is an open source alternative but it is unclear how well this heuristic can be customized to eg. include visits to the laboratory.
+
+### A first mathematical model
+
+We start with the data for one fictitious field worker and will plan 20 routes (one month of data). For now, we simply force the model to include the laboratory in 40% of the routes (2 days in a 5 days working week or 8 days per month). The idea would be first just get 20 routes and next assign each route to a specific day in the month. If the laboratory is visited in 8 out of 20 routes, we should hopefully be able to plan the routes such that water samples are delivered to the laboratory within 48 hours in a second step.
+
+#### Steps to reduce the size of the problem
+
+- We currently only include one field worker since that allows us to only include locations for which this worker has the right skills. This already reduces the size of the problem. 
+- We only include the following links between locations (*):
+  - All links from the home location to the laboratory and all field locations
+  - All links from the laboratory to the home location and all field locations
+  - Links between field locations:
+    - For each field location, we include all links to other field locations that are within 20km of each other
+    - For remote field locations which have less than 20 neighboring locations within 20km, we include the links to the 20 closest neighboring field locations.
+
+#### Decision variables and parameters
+
+Instead of decision variables $x_{ijft}$, we therefor have $x_{lt}$ for each link $l$ that satisfy the conditions in (*) above. There is only one field worker so the $f$ index is not necessary.
+
+We currently have the following decision variables:
+
+- $x_{lt}$ is a binary decision variable that is one if link $l \in L$ is part of route $t \in \{1, ..., T\}$.
+- $y_{it}$ is a binary decision variable that is one if location $i \in I$ is visited on route $t \in \{1, ..., T\}$.
+- $z_{i}$  is a binary decision variable that is one if location $i \in I$ is visited on any of the routes.
+
+where $T$ is the number of routes, $L$ is the set of eligible links between locations, and $I$ is the set of locations that may be visited, including the home and laboratory location.
+
+- $d_{l}$ is the travelling distance between two locations in meters (field locations, laboratory, and fieldworkers' home locations) $l \in L$.
+- $dt_{l}$ is the travelling time between two locations in minutes (field locations, laboratory, and fieldworkers' home locations) $l \in L$.
+- $t_{max}$ maximum time  that can be planned in a day for a fieldworker. This includes both travelling times and time spend at each site for eg taking the samples. For now, we will set this to 6.5 hours.
+- $t_i$ activity time spend at site to eg. take samples $i \in I$.
+- $b_i$ a bonus that is incurred for visiting location $i$. This bonus is higher for field locations that:
+  - require a rare skill or a combination of skills that not many other field workers have.
+  - need to be executed more urgently
+  
+
+<!-- - $p_1$ a cost per kilometer traveled. This should include mainly the fuel costs per kilometer. -->
+<!-- - $p_2$ a cost per day that a fieldworker is on the road (we want the model to plan the routes as efficiently as possible, ie: we prefer the fieldworker to do one whole day in stead of two half days). -->
+<!-- - $p_3$ a cost per minute of time (either for travel or for executing field activities). -->
+
+#### The mathematical model
+
+The aim is to find routes for each fieldworkers' day of work such that (1) each route starts and finishes at the fieldworkers' home location, (2) locations that are urgent and/or require many / rare skills are prioritized, and (3) the expected travel and work time for each day's route should not exceed $t_{max}$.
+
+
+\begin{equation} 
+\begin{aligned}
+\text{max } & \sum_{i}(b_{i} * z_{i}) &&\\
+s.t. & &&\\
+ & \sum_{l \text{ that start at home}} x_{lt} = 1 & \forall t   &\text{ (1)}\\
+ & \sum_{l \text{ that end at home}} x_{lt} = 1 & \forall t   &\text{ (2)}\\
+ & \sum_{l \text{ that connect lab and home}}  \sum_{t} x_{lt} \geq \frac{2T}{5} & &\text{ (3)}\\
+ & \sum_{l} (d_l * x_{lt})  + \sum_{l} (t_i * y_{it}) \leq t_{max}  & \forall t &\text{ (4)}\\
+ & y{it} - \frac{\sum_{l\text{ that start at } i}x_{lt}}{T * c(I)}\leq 1-\frac{1}{T * c(I) + 1}&\forall t, i &\text{ (5)}\\
+  & z{i} - \frac{\sum_{t}y_{it}}{T}\leq 1-\frac{1}{T + 1}&\forall  i&\text{ (6)}\\
+ & x_{lt} + x_{l't} <= 1 \text{ where l connects location i to j and l' connects location j to i}& \forall l, t  & \text{ (7)}\\
+  & \sum_{l \text{ starts in} i} x_{lt} + \sum_{l' \text{ ends in }i} x_{l't} = 0&\forall  i, r&\text{ (8)}\\
+\end{aligned}
+(\#eq:ip-formulation)
+\end{equation} 
+
+The objective function maximizes the bonus that is obtained from visiting locations.
+The first two constraints ensures that all routes start and end at the home location (strictly, only one of these is needed since we also have the flow conservation constraint (8)).
+The third constraint makes sure that the laboratory is visited in at least $\frac{2}{5}$ of the routes.
+The fourth constraint ensure that each route does not take longer than $t_{max}$ to complete.
+The fifth and sixth constraint link the $x$, $y$ and $z$ decision variables.
+The seventh constraint eliminates subtours of size 2. We might have to exclude subtours of a larger size as well (eg [link]( https://how-to.aimms.com/Articles/332/332-Implicit-Dantzig-Fulkerson-Johnson.html)).
+The eight constraint is the flow conservation constraints that specifies that, if a route $t$ arrives at location $i$, it also need to leave this location.
+
+#### A first test for 1 fieldworker
+
+We test the specified model, both with an Open-Source solver (Highs) and with Cplex.
+When planning two routes for one field worker;
+
+- Highs found a solution with an objective value of 38 after 6 minutes.
+- Cplex found a solution with an objective value of 40 within 30 seconds.
+
+When planning twenty routes for one field worker (approximately one month):
+
+- Highs found a solution with an objective value of 58 after 9 hours. On inspection, we saw that de same locations were visited several times while there's no bonus for visiting them more than once.
+- Cplex found a solution with an objective value of 50 within 30 seconds and 124 within 10 minutes.
+
+
+```{r mipmodel-test2, eval = FALSE, echo = FALSE}
+# maximal distance between two subsequent locations, in meters
+max_dist <- 20000 
+#minimal number of other locations that should be reachable from each location
+#This will only be relevant for remote locations that have less than
+#min_nb_links locations at a distance below max_dist
+min_nb_links <- 20
+#------------------------------------------------------------------------------#
+#we will filter the data which is relevant only for this month and this field worker.
+#the subset of field activities that this field worker can execute
+skills <- c("GWLEVINST", "GWLEVREAD", "GWSHALLSAMP")
+homeloc <- data_frame(xwgs84 = 4.575175,
+                   ywgs84 = 50.9299745) %>%
+  st_as_sf(coords = c("xwgs84", "ywgs84"),
+           remove = FALSE,
+           crs = "EPSG:4326")
+#fictituous time to execute a field activity group in the field or at the laboratory.
+activity_time <-
+  tibble(activity = c(as.character(unique(data$field_activity_group)), "labo"),
+         time = c(30, 10, 15, 20, 25, 35, 25))
+search_time <- 20 # time to get from the road to the field location and back again. Assumed to be fixed for now.
+source("./src/make_model_inputs.R")
+
+
+#example formulation
+
+
+
+
+model <- MIPModel() %>% 
+  # add_variable(x[i, j, r], i = 1:nb_loc, j = 1:nb_loc, r = 1:nb_routes,
+  #              x_combinations(i, j), type = "binary") %>% 
+  add_variable(x[ij, r], ij = x_combis$ij, r = 1:nb_routes, type = "binary") %>% 
+  add_variable(y[i, r], i = 1:nb_loc, r = 1:nb_routes, type = "binary") %>%
+  set_objective(sum_expr(p[i] * (-1 * y[i, r]), #a penalty if it is NOT scheduled
+                         i = 1:nb_loc, r = 1:nb_routes) +
+                  p1 * sum_expr(d[ij] * x[ij, r],
+                                ij = x_combis$ij, r = 1:nb_routes),
+                sense = "min") %>% 
+  add_constraint(sum_expr(x[ij, r], ij = home_idx_i) == 1,
+                 r = 1:nb_routes) %>% #53.72 sec
+  add_constraint(sum_expr(x[ij, r], ij = home_idx_j) == 1,
+                 r = 1:nb_routes) %>% 
+  add_constraint(sum_expr(x[ij, r], r = 1:nb_routes) >= 8, #at least 8 out of 20 routes visit the labo
+                 ij = home_labo_ij) %>%
+  add_constraint(sum_expr(dt[ij] * x[ij, r], ij = x_combis$ij) +
+                 sum_expr(t[i] * y[i, r], i = 1:nb_loc)
+                 <= tmax, r = 1:nb_routes) %>% #53.72sec +  50.97 sec = 105 sec
+  add_constraint(y[i, r] >= sum_expr(link_y_x[i, ij] * x[ij, r],
+                                     ij = x_combis$ij),
+                 r = 1:nb_routes, i = 1:nb_loc) %>% #This suddenly takes a really long time! Maybe better to use the highs package directly?
+  add_constraint(x[ij, r] <= 1 - link_ij_ji[ij, ji] * x[ji, r],
+                 r = 1:nb_routes, ij = seq_len(nrow(x_combis)/2)) %>%
+  add_constraint(sum(link_flow_i[i, ij] * sum_expr(x[ij, r])) ==
+                   sum(link_flow_j[i, ij] * sum_expr(x[ij, r])),
+                 i = 1:nb_loc, r = 1:nb_routes) %>%#flow constraint; if we arrive there, we need to leave there
+  add_constraint(sum_expr(y[i, r], r = 1:nb_routes) <= 1 , i = 1:nb_loc)
+#building the model takes a long time so we save it
+save(model, file = paste0(datapath, "/model.Rdata"))
+```
+
+```{r solve-model, include=FALSE, eval = FALSE}
+library(ROI)
+library(ROI.plugin.glpk)
+library(ompr.roi)
+result <- model %>% 
+  solve_model(with_ROI("glpk", verbose = TRUE))
+```
+
+```{r solve-model2, include=FALSE, eval = FALSE}
+#convert to a highs model, should be faster to solve...
+source("./src/as_highs_model.R")
+library(highs)
+library(tictoc)
+#test highs package:
+mdl <- as_highs_model(model)
+tic()
+s <- highs_solve(L = as.numeric(highs_mdl$L), lower = highs_mdl$lower,
+                 upper = highs_mdl$upper, A = highs_mdl$A, lhs = highs_mdl$lhs,
+                 rhs = highs_mdl$rhs, offset = highs_mdl$offset)
+toc()
+
+#of alternatief: https://notesofdabbler.github.io/optwithR/highs_example_ompr.html
+model %>% solve_model(highs_optimizer())
+```
+
+```{r model-highs}
+
+
+```
+
+### Future improvements
+
+#### Refining the laboratory and depot visits
+
+We now require that the route between the home and laboratory location is visited in $\frac{2}{5}$ days.
+In reality, though, whether or not the laboratory needs to be visited depends on the field activities that have been performed.
+Additionally, it is not necessary to link home and laboratory directly; it may be smarter to also visit some field locations on the way from home to the laboratory.
+Lastly, the depot is currently not yet included in the model.
+At this location, the right tools and materials need to be picked up to be able to execute some field activities. We also know that there is a limited number of some of the tools. Ideally, the model would keep track of how many of these tools are being used simultaneously and make sure that the tool is available for all field workers that need to perform those specific activities.
+
+We plan to solve this by specifying some logical weekly patterns of laboratory.
+One example could be; visit the depot on Monday and visit the laboratory on Thursday.
+If this weekly pattern is chosen for one of the field workers, he will be allowed to take water samples only on Wednesday and Thursday (48 hours before visiting the laboratory).
+All other days of the week, he may only perform field activities that do not require water samples.
+
+
+#### Excluding subtours
+
+Since the travel time and especially the activity time at the field location is usually pretty long, it is unlikely that more than 10 locations can be visited in one day. 
+For now, we only exclude subtours of size 2. 
+Maybe it suffices to exclude subtours up to size (4 or) 5.
+Since the home location need to be included each day, one subtour, including the home location will visit at least (5 or) 6 locations.
+As such, it is unlikely that there is enough time left to generate a second subtour or at least size (5 or) 6.
+
+Note that we do need to be careful to exclude big subtours that include the home location!
+If the field worker lives far away from the labo/depot, it's possible that no tour of length(5 or) 6 can be found that includes both the home and labo/depot location!
+
+#### Reducing the problem size further
+
+Maybe it makes sense to limit the possibilities in routes between two locations even more. It might make sense to, for instance, only select locations that are within a certain distance of the home location, and the route between the home location and the laboratory / depot.
+
+Below, we show an example with a buffer of 20km around the home location and a buffer of 10km around the routes between the home location (in blue), the depot (in red) and the laboratory (in green). Of course, we have to make sure that each location can be visited by at least one field worker with the right skills! It might be a good idea to divide Flanders up into different parts around each of the field workers' home locations such that all field locations can be visited but the model size is reduced.
+
+```{r warning = FALSE, message = FALSE}
+bufferhome <- st_buffer(homeloc, dist = units::as_units(20, "km"))
+bufferlabo <-  st_union(homeloc, labo, by_feature = TRUE) %>%
+  st_cast("LINESTRING") %>%
+  st_buffer(dist = units::as_units(10, "km"))
+bufferdepot <-  st_union(homeloc, depot, by_feature = TRUE) %>%
+  st_cast("LINESTRING") %>%
+  st_buffer(dist = units::as_units(10, "km"))
+buffer <- st_union(bufferhome, bufferlabo)
+buffer <- st_union(buffer, bufferdepot)
+leaflet(width = "100%", height = 400) %>%
+  addTiles() %>%
+  addCircles(data = homeloc, color = "blue") %>%
+  addCircles(data = depot, color = "red") %>%
+  addCircles(data = labo, color = "green") %>%
+  addPolygons(data = buffer, opacity = 0.2, color = "purple")
+```
+
+#### Including multiple field workers
+
+For now, I believe the problem is still too difficult to solve to include multiple field workers (ie. it takes too long to solve now with just one worker).
+Alternatively, we could eg find the 5 best routes for fieldworker 1, exclude these locations from the locations that need to be visited, then plan 5 routes for the next worker, and continue like that until we have 20 routes for each of the fieldworkers.
+
+If it is possible to include more field workers, we might want to refine the objective function to also, for instance, (1) balance the driving time among field workers or (2) minimize the total traveled distance.
+
+
+### Other ideas?
+
+- Would it be better to make solutions where one location is visited more than once infeasible? We could, for instance alter constraint (7) such that we also sum the $x_{lt}$ and $x_{l't}$ over all $t$.
+- Prize-Collecting Vehicle Routing (PCVRP) inspiration: The objectives are to maximize the total prize and assign a sequence of customers to each truck of the fleet minimizing the total distance traveled such that a predefined amount of demands are satisfied and the total demand served by each truck does not exceed its capacity.
+  - We want to do the same; specify an objective function that minimizes the traveled distance. Some locations HAVE TO be visited (since they need to be done this month). Then, we can search for a feasible solution iteratively with a higher and higher collected prize to add 
+
+# Bibliography
+
+

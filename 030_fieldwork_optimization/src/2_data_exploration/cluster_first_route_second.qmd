@@ -1,0 +1,1065 @@
+---
+title: "Cluster first, route second"
+author: "Raïsa Carmen"
+format: 
+    html: 
+        code-fold: true
+bibliography: references.bib
+---
+
+# Introduction
+
+First tests showed that it will be very hard to include more than one field worker with more than one month of data and locations. However, there will be 18 field workers in the end and we would like to be able to include more than one field worker to be able to share the load of the tasks over different workers.
+
+- balance their useful time (field work, not travel time).
+- decide which field worker will best visit each location for several field workers simultaneously.
+
+In VRP literature (for example @golden2008vehicle), they also describe techniques which first cluster / assign locations to a vehicle and will next optimize the route for each of the vehicles. For heterogeneous VRPs with capacity constraints and skills, the clustering becomes more difficult. The literature on site-dependent VRP (SDVRP) is also of interest since, here there is an interaction between the vehicle and the site. In our case, field workers have skills which may or may not allow them to execute some field activities and not others.
+
+## Data exploration
+
+We first explore the data a bit more.
+
+```{r}
+#| label: setup
+#| message: false
+#| warning: false
+#| echo: false
+library(seriation)
+library(tidyverse)
+library(googledrive)
+library(googlesheets4)
+library(leaflet)
+library(sf)
+library(rprojroot)
+library(knitr)
+library(kableExtra)
+#drive_auth()
+```
+
+```{r}
+#| label: read-data
+#| warning: false
+#| message: false
+
+google_sheet_id <- "1wFbevEcaNbQ1RBIwEdkoloRYmarQ59E2gctbcxVyH_M"
+data_workers <- googlesheets4::read_sheet(google_sheet_id,
+                                          sheet = "fieldworkers")
+load(find_root_file("data/binary/intermediate/objects_panflpan5.Rdata",
+                    criterion = has_file("030_optimization.Rproj")))
+data_activity_time <- googlesheets4::read_sheet(google_sheet_id,
+                                          sheet = "field_activity_duration") %>%
+    rbind(googlesheets4::read_sheet(google_sheet_id,
+                                          sheet = "prep_activities") %>%
+              rename(activity = prep_activity) %>%
+              dplyr::select(activity, duration_minutes)) %>%
+    rbind(googlesheets4::read_sheet(google_sheet_id,
+                                          sheet = "lab_activities") %>%
+              rename(activity = lab_activity) %>%
+              dplyr::select(activity, duration_minutes))
+fag_grts_calendar <- fag_grts_calendar %>%
+  rename(grts_address = grts_address_final)
+```
+
+### Field work
+
+The field work has been determined for the next years (until 2038).
+The amount of field work will increase over the coming years until it reaches a steady level around 2028 (fig-fieldwork-amount).
+This amount of field work will then be maintained until 2038.
+
+```{r}
+#| label: fig-fieldwork-amount
+#| fig-cap: "Change in the number of visited locations and the number of field activities over the years."
+fag_grts_calendar %>%
+    mutate(year = year(date_start)) %>%
+    group_by(year) %>%
+    summarize(n = n_distinct(grts_address)) %>%
+    mutate(type = "locations") %>%
+    rbind(fag_grts_calendar %>%
+              mutate(year = year(date_start)) %>%
+              group_by(year) %>%
+              summarize(n = n_distinct(field_activity_group, grts_address)) %>%
+              mutate(type = "fag")
+          ) %>%
+    ggplot() +
+    geom_line(aes(y = n, x = year, group = type, color = type)) +
+    scale_color_discrete(name = "",
+                         limits = c("fag", "locations"),
+                         labels = c("field activities", "locations")) +
+    theme_bw() +
+    ylab("Number of activities or locations") +
+    xlab("Year")
+```
+
+
+@fig-field-locations shows all unique field locations.
+They represent a stratified sample over all natural habitats.
+There may be some uncertainty over which habitat is located in which location.
+If the habitat at the site does not correspond to the habitat that was expected based on Flanders' habitat maps, an alternative, backup location for this habitat will have to be visited instead.
+
+```{r}
+#| label: fig-field-locations
+#| fig-cap: "The current field locations. Each field location will have to be visited several times over the coming years."
+samplinglocations_sf %>%
+    st_transform("EPSG:4326") %>%
+    leaflet() %>%
+    addTiles() %>%
+    addCircles()
+```
+
+### Activities
+
+There are `r nrow(activities)` different activities.
+Most of these activities have to be done in the field.
+They may involve taking water or soil samples, installing or maintaining materials in the field, or checking the field location itself (@tbl-activities).
+There are, however, also some preparatory activities such as loading the right materials which are done in the depot in Brussels.
+Lastly, if samples are taken in the field (soil/water), they will need to be analysed in the laboratory.
+The field workers will thus have to deliver the samples to the laboratory and prepare their samples in the laboratory for further analysis.
+
+```{r}
+#| label: tbl-activities
+#| tbl-cap: "An overview of all activities. Blue activities are executed in the field. Green activities are executed in the lab (in Geraardsbergen). Red activities need to be executed before some of the field activities (in the depot in Brussels)"
+#| warning: false
+#| message: false
+
+colors <-
+    activities %>%
+    mutate(color = ifelse(is_field_activity,
+                          "blue",
+                          ifelse(is_prep_activity,
+                                 "red",
+                                 "forestgreen"))) %>%
+    dplyr::pull(color)
+activities %>%
+    dplyr::select(activity, activity_name) %>%
+    full_join(data_activity_time) %>%
+    kable(booktabs = TRUE) %>%
+    kableExtra::column_spec(1, color = colors)
+```
+
+```{r}
+field_activities <- 
+  activities %>% 
+  filter(is_field_activity) %>% 
+  select(starts_with("activity")) %>% 
+  rename_with(~ str_c("field_", .))
+
+field_activity_sequences <- 
+  activity_sequences %>% 
+  semi_join(field_activities, join_by(activity == field_activity)) %>% 
+  rename(
+    field_activity = activity,
+    field_activity_group = activity_group
+  )
+```
+
+There are precedence constraints between some of the activities, as shown in @fig-precedence-constraints.
+It is also important to note that all soil and water deliveries to the laboratory need to take place within 48 hours of taking the sample.
+
+One last detail concerning the field activities is that field activity GWSHALLCLEAN must always precede field activity GWSHALLSAMP by at least one and at most 3 days.
+This is because one always needs to empty the shallow piezometer and then allow some time for it to fill up again before being able to sample it, within 3 days.
+Preferably, the same field worker will return to the piezometer since (s)he will know the location of the piezometer well.
+
+```{r}
+#| label: fig-precedence-constraints
+#| fig-cap: "An overview of all activities with precedence constraints. Preparatory activities at the depot are in red, lab activities that follow after the field work are on the right are in green. The blue activities take place in the field."
+#| warning: false
+#| message: false
+data_activity_precendence <- googlesheets4::read_sheet(google_sheet_id,
+                                          sheet = "field_activity_groups") %>%
+    dplyr::filter(!is.na(days_until_labo) |
+                      !is.na(non_field_activity_before) |
+                      !is.na(non_field_activity_next))
+depot_loc <- unique(data_activity_precendence$non_field_activity_before)
+lab_loc <- data_activity_precendence %>%
+    dplyr::filter(!is.na(non_field_activity_next)) %>%
+    dplyr::pull(non_field_activity_next) %>%
+    unique()
+pos_dat <- data_activity_precendence %>%
+    mutate(type = "field",
+           xpos = 2,
+           ypos = seq_len(nrow(data_activity_precendence))) %>%
+    dplyr::select(field_activity_group, type, xpos, ypos) %>%
+    rbind(tibble(field_activity_group = depot_loc,
+                     type = "depot",
+                     xpos = 1,
+                     ypos = nrow(data_activity_precendence) / 2 -
+                         length(depot_loc) / 2 +
+                         seq_len(length(depot_loc)))) %>%
+    rbind(tibble(field_activity_group = lab_loc,
+                     type = "lab",
+                     xpos = 3,
+                     ypos = nrow(data_activity_precendence) / 2 -
+                         length(lab_loc) / 2 +
+                         seq_len(length(lab_loc))))
+before <- which(!is.na(data_activity_precendence$non_field_activity_before))
+after <- which(!is.na(data_activity_precendence$non_field_activity_next))
+edge_dat <- tibble(
+    start = unlist(
+        data_activity_precendence[before, "non_field_activity_before"]),
+    end = unlist(
+        data_activity_precendence[before, "field_activity_group"])) %>%
+    rbind(tibble(
+        start = unlist(
+            data_activity_precendence[after, "field_activity_group"]),
+        end = unlist(
+            data_activity_precendence[after, "non_field_activity_next"])))
+# Use two successive merges to join node x,y positions
+# for each edge you want to draw.
+tmp_dat = merge(edge_dat, pos_dat, by.x = "start", by.y = "field_activity_group")
+seg_dat = merge(tmp_dat, pos_dat, by.x = "end", by.y = "field_activity_group")
+
+# Remove unneeded columns and change column names for convenience.
+seg_dat$type.x = NULL
+seg_dat$type.y = NULL
+names(seg_dat) = c("end", "start", "x", "y", "xend", "yend")
+
+ggplot() +
+    #geom_point(data = pos_dat, aes(x = xpos, y = ypos, colour = type), size = 1) +
+    geom_segment(data = seg_dat, aes(x = x, y = y, xend = xend, yend = yend),
+                 colour = "grey50") +
+    geom_text(data = pos_dat, aes(x = xpos, y = ypos, colour = type, label = field_activity_group)) +
+    scale_colour_manual(values = c(field = "blue", depot = "red", lab = "forestgreen")) +
+    theme_bw() +
+    xlim(0.75,3.25) +
+    theme(axis.line = element_blank(), axis.text.x = element_blank(),
+          axis.text.y = element_blank(), axis.ticks = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "none")
+```
+
+#### Field activity groups
+
+The planned field work is described on the level of "field activity groups", rather than field activities. Some field activities belong to more than one field activity group. The time to execute a field activity group is the sum of the activity time of each of the field activities of which it consists. @tbl-fag shows all activity groups, the activities that belong to the activity group, and the total estimated time.
+
+```{r}
+#| label: tbl-fag
+#| tbl-cap: "An overview of all activity groups with their total activity time and the number of full-time equivalents (FTE) that can execute this task."
+#| warning: false
+#| message: false
+fag_duration <- activity_sequences %>%
+  dplyr::select(activity, activity_group) %>%
+  distinct() %>%
+  left_join(data_activity_time) %>%
+  group_by(activity_group) %>%
+  summarize(activities = paste(activity, collapse = ", "),
+            total_time = sum(duration_minutes, na.rm = TRUE))
+fag_duration <- fag_duration %>%
+  mutate(nb_fte =
+           sapply(fag_duration$activity_group,
+                  function(x){
+                    if (paste0("Field_worker_skills_", x) %in%
+                      colnames(data_workers)) {
+                      fte <- sum(data_workers[
+                        data_workers[,
+                                     paste0("Field_worker_skills_", x)] ==
+                        1, "Field_worker_regime"])
+                      return(fte)
+                      }
+                    else {
+                      return(NA)
+                    }
+                    }))
+fag_duration %>%
+  kable(booktabs = TRUE,
+        colnames = c("activity_group", "activities", "total time", "nb FTE"))
+```
+
+### Field workers
+
+The field workers are hired in a staggered fashion.
+The first workers are hired in the second quarter of 2025 and the last one will not start until the third quarter of 2027.
+By the end of 2027, we expect to have a team of 18 field workers who each may or may not work full time. 
+
+Each of the field workers has a home location (@fig-home-locations).
+For now, these are fictitious locations since these field workers still need to be hired.
+In fact, these home locations are a random sample of field locations and one can see that they incidentally are mainly located in West-Flanders and Limburg which is definitely not the best but we will work with it anyway...
+
+```{r}
+#| label: fig-home-locations
+#| fig-cap: "(Fictitious) home location for each of the field workers"
+data_workers %>%
+    st_as_sf(coords = c("Field_worker_home_bl72_x", "Field_worker_home_bl72_y"),
+             crs = "EPSG:31370") %>%
+    st_transform("EPSG:4326") %>%
+    leaflet() %>%
+    addTiles() %>%
+    addCircles()
+```
+
+For each worker, we will know on which days of the week they will (not) work (@fig-regime-week).
+
+```{r}
+#| label: fig-regime-week
+#| fig-cap: "(Fictitious) days of the week that the field workers are (not) available"
+data_workers %>%
+    pivot_longer(cols = starts_with("Field_worker_reg_"),
+                 values_to = "work_time",
+                 names_to = "day_of_week") %>%
+    mutate(day_of_week = str_remove(day_of_week, "Field_worker_reg_")) %>%
+    ggplot(aes(x = day_of_week, y = Field_worker_ID,
+               fill = as.factor(work_time))) +
+    geom_tile(width = 0.98, height = 0.85) + 
+    scale_x_discrete(limits = c("monday", "tuesday", "wednesday",
+                                "thursday", "friday")) +
+    scale_fill_manual(name = "working",
+                        limits = c("0", "0.5", "1"),
+                        labels = c("no", "half-time", "yes"),
+                        values = c("red", "orange", "forestgreen")) +
+     theme_bw() +
+    ylab("Field worker") +
+    xlab("Day of the week")
+```
+
+Lastly, each of the workers may (not) have specific skills which translates into which activities they may (not) be able to execute in the field (@fig-skills).
+
+```{r}
+#| label: fig-skills
+#| fig-cap: "(Fictitious) skills for each field worker."
+data_workers %>%
+    pivot_longer(cols = starts_with("Field_worker_skills_"),
+                 values_to = "capability",
+                 names_to = "skill") %>%
+    mutate(skill = str_remove(skill, "Field_worker_skills_")) %>%
+    ggplot(aes(y = skill, x = Field_worker_ID,
+               fill = as.factor(capability))) +
+    geom_tile(width = 0.98, height = 0.85) +
+    scale_fill_manual(name = "Capable",
+                        limits = c("0", "1"),
+                        labels = c("no", "yes"),
+                        values = c("red", "forestgreen")) +
+     theme_bw() +
+    ylab("Field activity") +
+    xlab("Field worker")
+```
+
+Some skills may be harder to obtain and therefor rarer than others (@fig-rare-skills). This means that some field activities can only be executed by a couple of field workers.
+
+```{r}
+#| label: fig-rare-skills
+#| fig-cap: "(Fictitious) example of how many field workers can execute each of the field activities."
+data_workers %>%
+    pivot_longer(cols = starts_with("Field_worker_skills_"),
+                 values_to = "capability",
+                 names_to = "skill") %>%
+    mutate(skill = str_remove(skill, "Field_worker_skills_")) %>%
+    group_by(skill) %>%
+    summarize(nb_fw = sum(capability)) %>%
+    ggplot(aes(y = skill, x = nb_fw)) +
+    geom_bar(stat = "identity") +
+    theme_bw() +
+    ylab("Field activity") +
+    xlab("Number of field worker with the right skill")
+```
+
+# Methodology
+
+We will reduce the problem size by taking the following steps:
+
+- Focus on a limited time period (one week in our example).
+- Focus on a limited geographical area.
+- First assign each of the tasks in that geographical area that can be executed in that time period to a limited set of workers. We will call this step **clustering** as a cluster of tasks is assigned to each of the field workers.
+- Next, we solve the optimization model where we make routes for each of the field workers such that:
+  - each task that *has to* be executed this month is added to a route.
+  - the routes are feasible within the time constraints.
+  - task that do not **have** to be but **can** be executed this month are also added to the route as much as possible.
+
+## Clustering
+
+For the clustering, we will focus on a limited geographical area and a limited time period (one week). We will only allow each task to be done by a limited number of field workers.
+In this way, we limit the solution space which will reduce the overall size of the optimization model and will hopefully allow us to obtain a better solution with less computation time. There are some competing interests at play to define a "good" clustering:
+
+- Each mandatory activity in the region can be done by at least one fieldworker. We can allow for some flexibility and assign some activities to two or three fieldworkers, especially for activities that are urgent and that require rare skills. We need to check that the total time needed to execute all mandatory activities this month does not exceed the available time of the field workers that can execute the field activities (and we need to (approximately) account for travel times which will eat into the available time for actual fieldwork).
+- We do not want too many field workers that can execute each activity since this will increase the solution space.
+- Activities can only be assigned to field workers with the right skills.
+- We preferably assign activities to field workers that are close to their home location.
+- We only include **some** non-mandatory activities to the clustering, we will add more non-mandatory activities if (1) we suspect there will be overcapacity (there are little mandatory activities for the available time) or if (2) we approach the end of a trimester or year (it makes little sense to add non-mandatory that need to be done this year in the beginning of January). If we add non-mandatory activities, we prioritize activities with (1) the closest due-date, (2) activities that can be done by field workers with overcapacity (especially if they have rare skills; we want to use their rare skill to the fullest), (3) in the geographical region on which we focus.
+- Since activities may have to be done in a particular year, trimester or month, and we will plan routes per week, we will divide Flanders into (partly overlapping) regions which each will be visited in just one week of the month. Therefor, activities that have to be executed this month, will have to be added to a route in this week because we may not return to this region later this month.
+
+Table @tbl-fag shows how many FTE are capable of executing each of the FAG.
+Let's look at the data for 2028, @tbl-fag-fte shows the total number of times each FAG needs to be executed and the total estimated activity time.
+For one FTE, we count 200 working days per year and 7.6 working hours per day.
+The last column shows that seem to show that the most critical activities are LSVITERR, LOCEVALTERR, GWINSTPIEZWELL, and SURFLENTDATACOLL. Workers with these skills will have to prioritize these activities. It should also be noted that field worker number 1 is the only worker that can do both LOCEVALTERR and LSVITERR, meaning he will be quite busy with only these activities since we do not even include travelling time for now ((26080 + 15340) / 91200  = `r (26080 + 15340) / 91200` FTE).
+
+```{r}
+#| label: tbl-fag-fte
+#| tbl-cap: "Number of times a FAG needs to be done and estimated total activity time in 2028."
+#| warning: FALSE
+#| message: FALSE
+
+overview <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == 2028) %>%
+  group_by(field_activity_group) %>%
+  summarize(nb_times = n()) %>%
+  full_join(fag_duration %>%
+              dplyr::select(activity_group, total_time, nb_fte),
+            by = join_by(field_activity_group == activity_group)) %>%
+  mutate(total_time_2028 = nb_times * total_time,
+         total_time_available = nb_fte * 200 * 7.6 * 60,
+         field_activity_group = as.character(field_activity_group)
+  )
+overview %>%
+  rbind(list("Total", NA, NA, sum(data_workers$Field_worker_regime),
+          sum(overview$total_time_2028, na.rm = TRUE),
+          sum(data_workers$Field_worker_regime) * 200 * 7.6 * 60)) %>%
+  mutate(ratio = paste0(round(total_time_2028 / total_time_available * 100, 2),
+                        "%")) %>%
+  kable()
+```
+
+We can use seriation to reorder the skills matrix of Figure @fig-skills to identify field workers with similar skills more clearly.
+Figure @fig-fag-skills-seriation shows that we can completely separate the planning of some activities from others since they are executed by (a) different worker(s).
+
+1) Worker 17 only executes one activity; we can make his planning separately.
+2) Worker 13-16 need to execute all SPATPOSITPIPE and GWLEVREADDIVER activities and all SOILUPPERSAMP that field worker 17 did not complete.
+3) Worker 1 can execute many activities but will likely have his hands full just completing LOCEVALTERR and LSVITERR; we can plan those seperately
+4) Worker 2-6 are responsible for a set of 10 activities. Worker 3 needs to prioritise GWLEVREADDIVER and GWINSTWELLDIVER
+5) ...
+
+
+```{r}
+#| label: fig-fag-skills-seriation
+#| fig-cap: "Reordered skill matrix, using the bond energy algorithm (BEA) of the seriation R package."
+#| warning: FALSE
+#| message: FALSE
+skills <- data_workers %>%
+    dplyr::select(Field_worker_ID, starts_with("Field_worker_skills_"))
+skills_mat <- skills %>%
+  dplyr::select(-Field_worker_ID) %>%
+  as.matrix()
+rownames(skills_mat) <- skills$Field_worker_ID
+colnames(skills_mat) <- str_remove(colnames(skills)[-1], "Field_worker_skills_")
+# p <- bertinplot(skills_mat, panel = panel.tiles)
+o <- seriate_rep(skills_mat, method = "BEA", criterion = "ME", rep = 25)
+bertinplot(skills_mat, o, panel = panel.tiles)
+```
+
+```{r}
+#| label: fig-fag-skills-seriation-grouped
+#| fig-cap: "Reordered skill matrix with grouped workers (field worker groups, FWG), using the bond energy algorithm (BEA) of the seriation R package."
+#| warning: FALSE
+#| message: FALSE
+#-----------------We can use hierarchical clustering---------------------------#
+# Compute distances between rows using Hamming distance
+dist_matrix <- dist(skills_mat, method = "binary")
+# Perform hierarchical clustering
+hc <- hclust(dist_matrix, method = "complete")
+#hc
+# Plot the dendrogram
+#plot(hc, main = "Dendrogram of Hierarchical Clustering")
+#----------------We can use k-means clustering instead-------------------------#
+set.seed(2025)
+k <- 8  # Number of clusters (8 is inspired by the hierarchical clustering)
+kmeans_result <- kmeans(skills_mat, centers = k)
+# Print cluster assignments
+#print(kmeans_result$cluster)
+
+# we make groups for workers and activities.
+# In each group, there may be more than one worker or activity.
+# One worker may be in more than one group.
+# One activity is always in just one of the groups.
+# The order of the groups also defines in what order the activities are planned.
+# eg: worker 3 is the only one capable of executing "GWINSTWELLDIVERDEEP" and
+# "GWLEVREADDIVERDEEP". We prioritize these activities for him and only allow
+# him to do other activities if he has any time left.
+colMax <- function(data) sapply(data, max, na.rm = TRUE)
+group_wor <- sapply(seq_len(k),
+       FUN = function(x){
+         group_wor <- names(kmeans_result$cluster[kmeans_result$cluster == x]) # the workers in this group
+         return(group_wor)
+       })
+group_act <- sapply(seq_len(k),
+       FUN = function(x){
+         if (length(group_wor[[x]]) > 1) {
+           group_act <- colMax(as_tibble(skills_mat[group_wor[[x]],])) # the activities this group can do
+         } else {
+           group_act <- skills_mat[group_wor[[x]],]
+         }
+         return(group_act)
+       })
+#bertinplot(as.matrix(group_act), panel = panel.tiles)
+#seriate is an algorithm without guaranteed optimality. The solution may also be different each time it is run. We save o for future use.
+# o <- seriate_rep(as.matrix(group_act), method = "BEA", criterion = "ME",
+#                   rep = 25)
+# save(o, file = "data/seriate_groups.Rdata")
+load(find_root_file("data/seriate_groups.Rdata",
+                    criterion = has_file("030_optimization.Rproj")))
+group_act <- as.matrix(group_act)[unname(unlist(o[1])), unlist(o[2])]
+colnames(group_act) <- paste0("FWG", as.character(unlist(o[2])))
+bertinplot(as.matrix(group_act), panel = panel.tiles)
+group_act <- as_tibble(group_act) %>%
+  mutate(activity = rownames(group_act))
+#the priority of an activity is x of it can only be executed by x of the
+# groups. activities with priority one can only be executed by that group and
+# should get priority over other activities in that group.
+# It should be noted that the priority in a group may change. For instance, if
+# an activity *can* be done by two groups and the planning for one of those
+# groups has already been made, then the remaining non-scheduled activities may
+# get a higher priority in the second group.
+group_act <- group_act %>%
+  mutate(priority = rowSums(group_act %>%
+                              dplyr::select(starts_with("FWG"))))
+group_wor_fte <- sapply(group_wor,
+                        FUN = function(x) {
+                          data_workers %>%
+                            dplyr::filter(Field_worker_ID %in% as.numeric(x)) %>%
+                            dplyr::pull(Field_worker_regime) %>%
+                            sum()
+                        })
+```
+
+
+### Overview of the load for each of the field worker groups
+
+Here, we calculate the estimated load for each of the field worker groups (FWGs).
+
+- For each month in 2028, we calculate how often each of the activities need to be done. If an activity can be done during a trimester or year in stead of during one month, we assume that the load is spread evenly over the whole trimester/year.
+- The total time (in minutes) necessary for that activity is activity time \* number of times that activity needs to be executed that month.
+- We transform the total time in minutes to load, expressed in FTE by dividing the total time by $60  * 7.6* 200/12$ (60 minutes in an hour, 7.5 hours in a day, 200 working days in a year and 12 months in a year).
+
+While each worker is a member of only one of the FWG(s), each FAG may be done by more than one FWG; that is expressed by the priority. Therefor, it may not be problematic if the total calculated load exceeds the available FTE in some FWG as some of the activities will be done by other FWG.
+Nevertheless, these load calculations do not include travel times so we need to have some buffer for this.
+The more workers have a certain skill, the less time is lost for travelling since we can assume that the workers are geographically spread and can therefor focus on field locations close o their home, therefor limiting travelling times.
+Looking at the figures below, we decide the following:
+
+- FWG 1 will focus on LSVITERR and LOCEVALTERR only. 
+- FWG 2 will focus on LSVIAQ and will also share responsibility for GWSURFLEVREADDIVERMAN, SURFLENTLOCEVALSAMPLPOINT, and SURFLENTDATACOLL, together with FWG 6 and 7.
+- FWG 3 has many priority1 FAGs and will focus on these; ADHOCPIPEREPLACE, GWINSTPIEZWELL, ADHOCDIVERREPLACE, GWSHALLSAMPREADMAN, GWSHALLCLEAN and GWSURFSHALLSAMPREADMAN.
+- FWG 4 focuses on SURFADHOCGAUGEREPLACE and SURFINSTGAUGE and shares responsibility with FWG 5 for SURFLOTDATACOLL.
+- FWG 5 focuses on SPATPOSITGAUGE and SURFLOTLOCEVALSAMPLPOINT and shares responsibility with FWG 5 for SURFLOTDATACOLL.
+- FWG 6  and 7 share responsibility with FWG 2 for GWSURFLEVREADDIVERMAN, SURFLENTLOCEVALSAMPLPOINT and SURFLENTDATACOLL.
+- FWG 8 focuses on SPATPOSITPIPE, GWLEVREADDIVERMAN and SOILUPPERSAMP
+
+This is summarized in @fig-clustering-conclusion:
+
+- If an assignment is labeled "not possible", it means that this FWG does not have the necessary skill to execute the FAG.
+- If an assignment is labeled "possible, not preferred", the FWG has the necessary skill but the FAG is either not scheduled in the planning or already taken up by one or more other FWG. We will only allow these field workers to take up these tasks if they are very close to their home location and the priority for these field workers to take up these tasks will be very low.
+- If an assignment is labeled "shared responsibility", the FWG has the necessary skill and they will prioritize these FAGs, together with one or more other FWG.
+- If an assignment is labeled "focus", the FWG has the necessary skill and they will solely prioritise .
+
+
+
+
+
+
+
+```{r}
+#| label: fig-group1-time
+#| fig-cap: !expr paste0("Load of group 1 (field worker ", str_c(group_wor[[1]], collapse =", "), ") over time for 2028. There", ifelse(group_wor_fte[1] < 2, " is ",  " are "), group_wor_fte[1], " FTE available. The solid black line represents the total load for this group of field workers. The priority (line type) shows how many of the worker groups can do the fag.")
+#| warning: FALSE
+#| message: FALSE
+group <- 1
+fags <- group_act %>%
+  dplyr::filter(!!as.name(paste0("FWG", group)) == 1)
+year <- 2028
+
+a <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == year | year(date_end) == year,
+                field_activity_group %in% fags$activity) %>%
+  mutate(type =  ifelse(year(date_start) == year,
+                        month(date_end) - month(date_start),
+                        12 - month(date_start) + month(date_end)),
+         type = ifelse(type < 0,#this activity interval starts in one year and ends in another
+                       12 + type,
+                       type),
+         start = ifelse(year(date_start) == year,
+                          month(date_start),
+                          12 - month(date_start))) %>%
+  group_by(field_activity_group, type, start) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  left_join(fag_duration %>%
+              dplyr::select(-nb_fte, -activities),
+             join_by(field_activity_group == activity_group)) %>%
+  mutate(total_duration = total_time * n / (60 * 200/12 * 7.6),#express it in FTE
+         end = start + type)
+b <- lapply(seq_len(nrow(a)),
+       FUN = function(x){
+         expand.grid(month = unlist(a[x, "start"]):unlist(a[x, "end"]),
+             field_activity_group = unlist(a[x,"field_activity_group"]),
+             load = unlist(a[x, "total_duration"]) / (unlist(a[x, "type"]) + 1))
+       })
+monthly_act <- do.call("rbind", b) %>%
+  group_by(month, field_activity_group) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  left_join(group_act %>% dplyr::select(-starts_with("FWG")),
+            join_by(field_activity_group == activity))
+do.call("rbind", b) %>%
+  group_by(month) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  ggplot(aes(x = month, y = load)) +
+  geom_line() + 
+  geom_line(data = monthly_act,
+            aes(color = field_activity_group,
+                lty = as.factor(priority))) +
+  ylab("load (FTE)") +
+  xlim(0, 12) +
+  ylim(0, NA) +
+  scale_linetype_discrete(name = "priority")
+```
+
+
+```{r}
+#| label: fig-group2-time
+#| fig-cap: !expr paste0("Load of group 2 (field worker ", str_c(group_wor[[2]], collapse =", "), ") over time for 2028. There", ifelse(group_wor_fte[2] < 2, " is ",  " are "), group_wor_fte[2], " FTE available. The solid black line represents the total load for this group of field workers. The priority (line type) shows how many of the worker groups can do the fag.")
+#| warning: FALSE
+#| message: FALSE
+group <- 2
+fags <- group_act %>%
+  dplyr::filter(!!as.name(paste0("FWG", group)) == 1)
+year <- 2028
+
+a <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == year | year(date_end) == year,
+                field_activity_group %in% fags$activity) %>%
+  mutate(type =  ifelse(year(date_start) == year,
+                        month(date_end) - month(date_start),
+                        12 - month(date_start) + month(date_end)),
+         type = ifelse(type < 0,#this activity interval starts in one year and ends in another
+                       12 + type,
+                       type),
+         start = ifelse(year(date_start) == year,
+                          month(date_start),
+                          12 - month(date_start))) %>%
+  group_by(field_activity_group, type, start) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  left_join(fag_duration %>%
+              dplyr::select(-nb_fte, -activities),
+             join_by(field_activity_group == activity_group)) %>%
+  mutate(total_duration = total_time * n / (60 * 200/12 * 7.6),#express it in FTE
+         end = start + type)
+b <- lapply(seq_len(nrow(a)),
+       FUN = function(x){
+         expand.grid(month = unlist(a[x, "start"]):unlist(a[x, "end"]),
+             field_activity_group = unlist(a[x,"field_activity_group"]),
+             load = unlist(a[x, "total_duration"]) / (unlist(a[x, "type"]) + 1))
+       })
+monthly_act <- do.call("rbind", b) %>%
+  group_by(month, field_activity_group) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  left_join(group_act %>% dplyr::select(-starts_with("FWG")),
+            join_by(field_activity_group == activity))
+do.call("rbind", b) %>%
+  group_by(month) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  ggplot(aes(x = month, y = load)) +
+  geom_line() + 
+  geom_line(data = monthly_act,
+            aes(color = field_activity_group,
+                lty = as.factor(priority))) +
+  ylab("load (FTE)") +
+  xlim(0, 12) +
+  ylim(0, NA) +
+  scale_linetype_discrete(name = "priority")
+```
+
+```{r}
+#| label: fig-group3-time
+#| fig-cap: !expr paste0("Load of group 3 (field worker ", str_c(group_wor[[3]], collapse =", "), ") over time for 2028. There", ifelse(group_wor_fte[3] < 2, " is ",  " are "), group_wor_fte[3], " FTE available. The solid black line represents the total load for this group of field workers. The priority (line type) shows how many of the worker groups can do the fag.")
+#| warning: FALSE
+#| message: FALSE
+group <- 3
+fags <- group_act %>%
+  dplyr::filter(!!as.name(paste0("FWG", group)) == 1)
+year <- 2028
+
+a <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == year | year(date_end) == year,
+                field_activity_group %in% fags$activity) %>%
+  mutate(type =  ifelse(year(date_start) == year,
+                        month(date_end) - month(date_start),
+                        12 - month(date_start) + month(date_end)),
+         type = ifelse(type < 0,#this activity interval starts in one year and ends in another
+                       12 + type,
+                       type),
+         start = ifelse(year(date_start) == year,
+                          month(date_start),
+                          12 - month(date_start))) %>%
+  group_by(field_activity_group, type, start) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  left_join(fag_duration %>%
+              dplyr::select(-nb_fte, -activities),
+             join_by(field_activity_group == activity_group)) %>%
+  mutate(total_duration = total_time * n / (60 * 200 / 12 * 7.6),#express it in FTE
+         end = start + type)
+b <- lapply(seq_len(nrow(a)),
+       FUN = function(x){
+         expand.grid(month = unlist(a[x, "start"]):unlist(a[x, "end"]),
+             field_activity_group = unlist(a[x,"field_activity_group"]),
+             load = unlist(a[x, "total_duration"]) / (unlist(a[x, "type"]) + 1))
+       })
+monthly_act <- do.call("rbind", b) %>%
+  group_by(month, field_activity_group) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  left_join(group_act %>% dplyr::select(-starts_with("FWG")),
+            join_by(field_activity_group == activity))
+do.call("rbind", b) %>%
+  group_by(month) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  ggplot(aes(x = month, y = load)) +
+  geom_line() + 
+  geom_line(data = monthly_act,
+            aes(color = field_activity_group,
+                lty = as.factor(priority))) +
+  ylab("load (FTE)") +
+  xlim(0, 12) +
+  ylim(0, NA) +
+  scale_linetype_discrete(name = "priority")
+```
+
+
+```{r}
+#| label: fig-group4-time
+#| fig-cap: !expr paste0("Load of group 4 (field worker ", str_c(group_wor[[4]], collapse =", "), ") over time for 2028. There", ifelse(group_wor_fte[4] < 2, " is ",  " are "), group_wor_fte[4], " FTE available. The solid black line represents the total load for this group of field workers. The priority (line type) shows how many of the worker groups can do the fag.")
+#| warning: FALSE
+#| message: FALSE
+group <- 4
+fags <- group_act %>%
+  dplyr::filter(!!as.name(paste0("FWG", group)) == 1)
+year <- 2028
+
+a <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == year | year(date_end) == year,
+                field_activity_group %in% fags$activity) %>%
+  mutate(type =  ifelse(year(date_start) == year,
+                        month(date_end) - month(date_start),
+                        12 - month(date_start) + month(date_end)),
+         type = ifelse(type < 0,#this activity interval starts in one year and ends in another
+                       12 + type,
+                       type),
+         start = ifelse(year(date_start) == year,
+                          month(date_start),
+                          12 - month(date_start))) %>%
+  group_by(field_activity_group, type, start) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  left_join(fag_duration %>%
+              dplyr::select(-nb_fte, -activities),
+             join_by(field_activity_group == activity_group)) %>%
+  mutate(total_duration = total_time * n / (60 * 200/12 * 7.6),#express it in FTE
+         end = start + type)
+b <- lapply(seq_len(nrow(a)),
+       FUN = function(x){
+         expand.grid(month = unlist(a[x, "start"]):unlist(a[x, "end"]),
+             field_activity_group = unlist(a[x,"field_activity_group"]),
+             load = unlist(a[x, "total_duration"]) / (unlist(a[x, "type"]) + 1))
+       })
+monthly_act <- do.call("rbind", b) %>%
+  group_by(month, field_activity_group) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  left_join(group_act %>% dplyr::select(-starts_with("FWG")),
+            join_by(field_activity_group == activity))
+do.call("rbind", b) %>%
+  group_by(month) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  ggplot(aes(x = month, y = load)) +
+  geom_line() + 
+  geom_line(data = monthly_act,
+            aes(color = field_activity_group,
+                lty = as.factor(priority))) +
+  ylab("load (FTE)") +
+  xlim(0, 12) +
+  ylim(0, NA) +
+  scale_linetype_discrete(name = "priority")
+```
+
+
+```{r}
+#| label: fig-group5-time
+#| fig-cap: !expr paste0("Load of group 5 (field worker ", str_c(group_wor[[5]], collapse =", "), ") over time for 2028. There", ifelse(group_wor_fte[5] < 2, " is ",  " are "), group_wor_fte[5], " FTE available. The solid black line represents the total load for this group of field workers. The priority (line type) shows how many of the worker groups can do the fag.")
+#| warning: FALSE
+#| message: FALSE
+group <- 5
+fags <- group_act %>%
+  dplyr::filter(!!as.name(paste0("FWG", group)) == 1)
+year <- 2028
+
+a <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == year | year(date_end) == year,
+                field_activity_group %in% fags$activity) %>%
+  mutate(type =  ifelse(year(date_start) == year,
+                        month(date_end) - month(date_start),
+                        12 - month(date_start) + month(date_end)),
+         type = ifelse(type < 0,#this activity interval starts in one year and ends in another
+                       12 + type,
+                       type),
+         start = ifelse(year(date_start) == year,
+                          month(date_start),
+                          12 - month(date_start))) %>%
+  group_by(field_activity_group, type, start) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  left_join(fag_duration %>%
+              dplyr::select(-nb_fte, -activities),
+             join_by(field_activity_group == activity_group)) %>%
+  mutate(total_duration = total_time * n / (60 * 200/12 * 7.6),#express it in FTE
+         end = start + type)
+b <- lapply(seq_len(nrow(a)),
+       FUN = function(x){
+         expand.grid(month = unlist(a[x, "start"]):unlist(a[x, "end"]),
+             field_activity_group = unlist(a[x,"field_activity_group"]),
+             load = unlist(a[x, "total_duration"]) / (unlist(a[x, "type"]) + 1))
+       })
+monthly_act <- do.call("rbind", b) %>%
+  group_by(month, field_activity_group) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  left_join(group_act %>% dplyr::select(-starts_with("FWG")),
+            join_by(field_activity_group == activity))
+do.call("rbind", b) %>%
+  group_by(month) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  ggplot(aes(x = month, y = load)) +
+  geom_line() + 
+  geom_line(data = monthly_act,
+            aes(color = field_activity_group,
+                lty = as.factor(priority))) +
+  ylab("load (FTE)") +
+  xlim(0, 12) +
+  ylim(0, NA) +
+  scale_linetype_discrete(name = "priority")
+```
+
+
+```{r}
+#| label: fig-group6-time
+#| fig-cap: !expr paste0("Load of group 6 (field worker ", str_c(group_wor[[6]], collapse =", "), ") over time for 2028. There", ifelse(group_wor_fte[6] < 2, " is ",  " are "), group_wor_fte[6], " FTE available. The solid black line represents the total load for this group of field workers. The priority (line type) shows how many of the worker groups can do the fag.")
+#| warning: FALSE
+#| message: FALSE
+group <- 6
+fags <- group_act %>%
+  dplyr::filter(!!as.name(paste0("FWG", group)) == 1)
+year <- 2028
+
+a <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == year | year(date_end) == year,
+                field_activity_group %in% fags$activity) %>%
+  mutate(type =  ifelse(year(date_start) == year,
+                        month(date_end) - month(date_start),
+                        12 - month(date_start) + month(date_end)),
+         type = ifelse(type < 0,#this activity interval starts in one year and ends in another
+                       12 + type,
+                       type),
+         start = ifelse(year(date_start) == year,
+                          month(date_start),
+                          12 - month(date_start))) %>%
+  group_by(field_activity_group, type, start) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  left_join(fag_duration %>%
+              dplyr::select(-nb_fte, -activities),
+             join_by(field_activity_group == activity_group)) %>%
+  mutate(total_duration = total_time * n / (60 * 200/12 * 7.6),#express it in FTE
+         end = start + type)
+b <- lapply(seq_len(nrow(a)),
+       FUN = function(x){
+         expand.grid(month = unlist(a[x, "start"]):unlist(a[x, "end"]),
+             field_activity_group = unlist(a[x,"field_activity_group"]),
+             load = unlist(a[x, "total_duration"]) / (unlist(a[x, "type"]) + 1))
+       })
+monthly_act <- do.call("rbind", b) %>%
+  group_by(month, field_activity_group) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  left_join(group_act %>% dplyr::select(-starts_with("FWG")),
+            join_by(field_activity_group == activity))
+do.call("rbind", b) %>%
+  group_by(month) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  ggplot(aes(x = month, y = load)) +
+  geom_line() + 
+  geom_line(data = monthly_act,
+            aes(color = field_activity_group,
+                lty = as.factor(priority))) +
+  ylab("load (FTE)") +
+  xlim(0, 12) +
+  ylim(0, NA) +
+  scale_linetype_discrete(name = "priority")
+```
+
+
+```{r}
+#| label: fig-group7-time
+#| fig-cap: !expr paste0("Load of group 7 (field worker ", str_c(group_wor[[7]], collapse =", "), ") over time for 2028. There", ifelse(group_wor_fte[7] < 2, " is ",  " are "), group_wor_fte[7], " FTE available. The solid black line represents the total load for this group of field workers. The priority (line type) shows how many of the worker groups can do the fag.")
+#| warning: FALSE
+#| message: FALSE
+group <- 7
+fags <- group_act %>%
+  dplyr::filter(!!as.name(paste0("FWG", group)) == 1)
+year <- 2028
+
+a <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == year | year(date_end) == year,
+                field_activity_group %in% fags$activity) %>%
+  mutate(type =  ifelse(year(date_start) == year,
+                        month(date_end) - month(date_start),
+                        12 - month(date_start) + month(date_end)),
+         type = ifelse(type < 0,#this activity interval starts in one year and ends in another
+                       12 + type,
+                       type),
+         start = ifelse(year(date_start) == year,
+                          month(date_start),
+                          12 - month(date_start))) %>%
+  group_by(field_activity_group, type, start) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  left_join(fag_duration %>%
+              dplyr::select(-nb_fte, -activities),
+             join_by(field_activity_group == activity_group)) %>%
+  mutate(total_duration = total_time * n / (60 * 200/12 * 7.6),#express it in FTE
+         end = start + type)
+b <- lapply(seq_len(nrow(a)),
+       FUN = function(x){
+         expand.grid(month = unlist(a[x, "start"]):unlist(a[x, "end"]),
+             field_activity_group = unlist(a[x,"field_activity_group"]),
+             load = unlist(a[x, "total_duration"]) / (unlist(a[x, "type"]) + 1))
+       })
+monthly_act <- do.call("rbind", b) %>%
+  group_by(month, field_activity_group) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  left_join(group_act %>% dplyr::select(-starts_with("FWG")),
+            join_by(field_activity_group == activity))
+do.call("rbind", b) %>%
+  group_by(month) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  ggplot(aes(x = month, y = load)) +
+  geom_line() + 
+  geom_line(data = monthly_act,
+            aes(color = field_activity_group,
+                lty = as.factor(priority))) +
+  ylab("load (FTE)") +
+  xlim(0, 12) +
+  ylim(0, NA) +
+  scale_linetype_discrete(name = "priority")
+```
+
+
+```{r}
+#| label: fig-group8-time
+#| fig-cap: !expr paste0("Load of group 8 (field worker ", str_c(group_wor[[8]], collapse =", "), ") over time for 2028. There", ifelse(group_wor_fte[8] < 2, " is ",  " are "), group_wor_fte[8], " FTE available. The solid black line represents the total load for this group of field workers. The priority (line type) shows how many of the worker groups can do the fag.")
+#| warning: FALSE
+#| message: FALSE
+group <- 8
+fags <- group_act %>%
+  dplyr::filter(!!as.name(paste0("FWG", group)) == 1)
+year <- 2028
+
+a <- fag_grts_calendar %>%
+  dplyr::filter(year(date_start) == year | year(date_end) == year,
+                field_activity_group %in% fags$activity) %>%
+  mutate(type =  ifelse(year(date_start) == year,
+                        month(date_end) - month(date_start),
+                        12 - month(date_start) + month(date_end)),
+         type = ifelse(type < 0,#this activity interval starts in one year and ends in another
+                       12 + type,
+                       type),
+         start = ifelse(year(date_start) == year,
+                          month(date_start),
+                          12 - month(date_start))) %>%
+  group_by(field_activity_group, type, start) %>%
+  summarize(n = n()) %>%
+  ungroup() %>%
+  left_join(fag_duration %>%
+              dplyr::select(-nb_fte, -activities),
+             join_by(field_activity_group == activity_group)) %>%
+  mutate(total_duration = total_time * n / (60 * 200/12 * 7.6),#express it in FTE
+         end = start + type)
+b <- lapply(seq_len(nrow(a)),
+       FUN = function(x){
+         expand.grid(month = unlist(a[x, "start"]):unlist(a[x, "end"]),
+             field_activity_group = unlist(a[x,"field_activity_group"]),
+             load = unlist(a[x, "total_duration"]) / (unlist(a[x, "type"]) + 1))
+       })
+monthly_act <- do.call("rbind", b) %>%
+  group_by(month, field_activity_group) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  left_join(group_act %>% dplyr::select(-starts_with("FWG")),
+            join_by(field_activity_group == activity))
+do.call("rbind", b) %>%
+  group_by(month) %>%
+  summarize(load = sum(load)) %>%
+  ungroup() %>%
+  ggplot(aes(x = month, y = load)) +
+  geom_line() + 
+  geom_line(data = monthly_act,
+            aes(color = field_activity_group,
+                lty = as.factor(priority))) +
+  ylab("load (FTE)") +
+  xlim(0, 12) +
+  ylim(0, NA) +
+  scale_linetype_discrete(name = "priority")
+```
+
+```{r}
+#| label: fig-clustering-conclusion
+#| fig-cap: Assignment of FAG to FWG. The color indicates which FAG are prioritized by which FWGs, the numbers in brackets define the total estimated FTE that are needed to execute the FAG. Some FAG are currently not planned in the calendar, as indicated with \"(NA)\".
+#| warning: FALSE
+#| message: FALSE
+
+manual_assignment <- 
+  readxl::read_excel(path =
+                       find_root_file("manual_clustering_fag_fwg.xlsx",
+                                      criterion =
+                                        has_file("030_optimization.Rproj")),
+                     range = "B1:J29") %>%
+  left_join(overview %>% dplyr::select(field_activity_group, total_time_2028),
+            join_by(activity == field_activity_group)) %>%
+  mutate(activity = paste0(activity, " (",
+                           round(total_time_2028/60/7.6/200, 2),
+                           ")"))
+manual_assignment %>%
+  pivot_longer(cols = starts_with("FWG"),
+               names_to = "FWG",
+               values_to = "assignment") %>%
+  mutate(assignment = ifelse(assignment == 0,
+                             "not possible",
+                             ifelse(assignment == 1,
+                                    "possible, not preferred",
+                                    ifelse(assignment == 2,
+                                           "shared responsibility",
+                                           "focus"))),
+         assignment = factor(as.factor(assignment),
+                             levels = c("not possible",
+                                        "possible, not preferred",
+                                        "shared responsibility",
+                                        "focus"),
+                             ordered = TRUE),
+         activity = factor(as.factor(activity),
+                           levels = manual_assignment$activity,
+                           ordered = TRUE),
+         FWG = factor(as.factor(FWG),
+                           levels = colnames(
+                             manual_assignment %>%
+                               dplyr::select(starts_with("FWG"))),
+                           ordered = TRUE)) %>%
+  ggplot(aes(y = activity, x = FWG)) +
+  geom_tile(aes(fill = assignment)) +
+  scale_fill_manual(breaks = c("not possible",
+                               "possible, not preferred",
+                               "shared responsibility",
+                               "focus"),
+                    values = c("ivory",
+                               "orange",
+                               "yellow",
+                               "forestgreen"))
+
+
+```
+
+
