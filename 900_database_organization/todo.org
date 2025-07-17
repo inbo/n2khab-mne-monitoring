@@ -42,7 +42,9 @@
 
 + [ ] accessibility across locations (see journal)
 + [ ] ++ =rtkgps_accuracy=
++ [ ] ++ LocationAssessment creation date (for info -> mnmgwdb)
 
++ [ ] new schema: =transfer= for back/forth between databases
 
 + [X] loceval fieldwork app
   + [X] replacement procedure
@@ -118,6 +120,7 @@
 + [ ] possible to mark sample units from MHQ? (request Ward 20250716)
 + [ ] double-check =is_gw_activity=
 + [ ] no option to add activities / rows in FieldActivityPlanner?
++ [ ] what to do with the CellMaps? (e.g. transfer mnmgwdb?)
 
 + (minor)
 #+begin_src R :eval no
