@@ -22,26 +22,26 @@ library("mapview")
 
 projroot <- find_root(is_rstudio_project)
 config_filepath <- file.path("./inbopostgis_server.conf")
-if (FALSE) {
-  # testing
-  working_dbname <- "mnmgwdb_testing"
-  connection_profile <- "mnmgwdb-testing"
-  dbstructure_folder <- "./mnmgwdb_db_structure"
-} else {
-  # dev
-  working_dbname <- "mnmgwdb_dev"
-  connection_profile <- "mnmgwdb-dev"
-  dbstructure_folder <- "./mnmgwdb_dev_structure"
-}
+
+# if (FALSE) {
+#   # testing
+#   working_dbname <- "mnmgwdb_testing"
+#   connection_profile <- "mnmgwdb-testing"
+#   dbstructure_folder <- "./mnmgwdb_db_structure"
+# } else {
+#   # dev
+#   working_dbname <- "mnmgwdb_dev"
+#   connection_profile <- "mnmgwdb-dev"
+#   dbstructure_folder <- "./mnmgwdb_dev_structure"
+# }
 
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
-# projroot <- find_root(is_rstudio_project)
-# working_dbname <- "loceval"
-# config_filepath <- file.path("./inbopostgis_server.conf")
-# connection_profile <- "loceval"
-# dbstructure_folder <- "./loceval_db_structure"
+working_dbname <- "mnmgwdb"
+connection_profile <- "mnmgwdb"
+dbstructure_folder <- "./mnmgwdb_db_structure"
+# source("220_upload_mnmgwdb.R")
 
 config <- configr::read.config(file = config_filepath)[[connection_profile]]
 source("MNMDatabaseToolbox.R")
@@ -110,11 +110,6 @@ stopifnot(
 )
 
 stopifnot(
-  "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples`" =
-    exists("stratum_schemepstargetpanel_spsamples")
-)
-
-stopifnot(
   "NOT FOUND: snip snap >> `units_cell_polygon`" =
     exists("units_cell_polygon")
 )
@@ -132,11 +127,6 @@ stopifnot(
 stopifnot(
   "NOT FOUND: RData >> `n2khab_strata`" =
     exists("n2khab_strata")
-)
-
-stopifnot(
-  "snip snap >> `orthophoto grts` not found" =
-    exists("orthophoto_2025_type_grts")
 )
 
 stopifnot(
@@ -497,8 +487,61 @@ sample_locations <- sample_units %>%
   )
 
 # sample_locations %>% count(schemes, strata)
+# glimpse(sample_locations)
+
+## ----relocate-replacements----------------------------------------------
+
+replacement_lookup <- dplyr::tbl(
+  loceval_connection,
+  DBI::Id("outbound", "SampleUnits")
+  ) %>%
+  filter(is_replaced) %>%
+  left_join(
+  dplyr::tbl(
+    loceval_connection,
+    DBI::Id("outbound", "Replacements")
+    ) %>%
+    filter(is_selected, !is_inappropriate),
+  by = join_by(sampleunit_id)
+  ) %>%
+  select(grts_address, grts_address_replacement) %>%
+  filter(
+    # TODO we do not have a dropout field yet; some replaced don't have good candidates
+    !is.na(grts_address_replacement)
+  ) %>%
+  collect
+
+
+sample_locations %>%
+  filter(grts_address %in% (replacement_lookup %>% pull(grts_address))) %>%
+  knitr::kable()
+
+relocate_grts_replacements <- function(df, ...) {
+  df <- df %>%
+    left_join(
+      replacement_lookup,
+      by = join_by(grts_address),
+      ...
+    ) %>%
+    mutate(grts_address = as.integer(
+      coalesce(grts_address_replacement, grts_address)
+      )) %>%
+    select(-grts_address_replacement)
+  return(df)
+}
+
+sample_locations <- sample_locations %>%
+  relocate_grts_replacements(
+    relationship = "one-to-one"
+  )
+sample_locations <- sample_locations %>%
+  mutate(is_replacement = grts_address %in% (replacement_lookup %>% pull(grts_address_replacement)))
 
 # glimpse(sample_locations)
+# sample_locations %>%
+#   filter(grts_address %in% (replacement_lookup %>% pull(grts_address_replacement))) %>%
+#   knitr::kable()
+# sample_locations %>% filter(is_replacement)
 
 # still need to join the location, below
 # TODO in the FUTURE, make sure `type` is
@@ -507,13 +550,37 @@ sample_locations <- sample_units %>%
 #      and add previous_notes
 
 
+## ----save-previous-location-infos----------------------------------------------
+table_str <- '"outbound"."LocationInfos"'
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE TRUE
+      AND log_user = ANY ({maintenance_users}::varchar[])
+      AND (accessibility_inaccessible IS NULL OR (NOT accessibility_inaccessible))
+      AND (accessibility_revisit IS NULL)
+  ;" # landowner will be script-updated (outbound)
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = TRUE
+)
+
+previous_locinfos <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationInfos"),
+  ) %>% collect()
+
+
+
 ## ----save-previous-extra-visits----------------------------------------------
 ## NOTE IMPORTANT: First, Visits are pruned and the relevant ones remain.
 ##                 Then, FieldworkCalendar is pruned, and those which are
 ##                 still linked to visits remain (even if empty).
 # analogous: clean Visits
 table_str <- '"inbound"."Visits"'
-maintenance_users <- sprintf("'{update,%s}'", config$user)
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
 cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE log_user = ANY ({maintenance_users}::varchar[])
@@ -542,12 +609,11 @@ previous_visits <- dplyr::tbl(
 
 table_str <- '"outbound"."FieldworkCalendar"'
 table_str_visits <- '"inbound"."Visits"'
-maintenance_users <- sprintf("'{update,%s}'", config$user)
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
 cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE log_user = ANY ({maintenance_users}::varchar[])
      AND (NOT excluded)
-     AND (inaccessible IS NULL OR NOT (inaccessible = FALSE))
      AND (teammember_assigned IS NULL)
      AND (date_visit_planned IS NULL)
      AND (NOT no_visit_planned)
@@ -593,7 +659,8 @@ previous_calendar_plans <- dplyr::tbl(
 locations <- bind_rows(
     sample_locations %>% select(grts_address),
     previous_calendar_plans %>% select(grts_address),
-    previous_visits %>% select(grts_address)
+    previous_visits %>% select(grts_address),
+    previous_locinfos %>% select(grts_address)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
@@ -703,6 +770,42 @@ samplelocations_lookup <- update_cascade_lookup(
 #   distinct %>%
 #   nrow()
 
+## ----location-infos-------------------------------------------------
+
+# assemble new assessments
+new_locinfos <- sample_locations %>%
+  distinct(
+    grts_address
+  ) %>%
+  mutate(
+    log_creator = "maintenance",
+    log_creation = as.POSIXct(Sys.time()),
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time())
+  )
+
+# previous_locinfos %>% write.csv("data/20250704_Wards_LocationAssessments.csv")
+
+new_locinfos <- new_locinfos %>%
+  anti_join(
+    previous_locinfos,
+    by = join_by(grts_address)
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+  )
+
+locationinfo_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "LocationInfos",
+  new_data = new_locinfos,
+  index_columns = c("locationinfo_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
 
 ## ----fieldwork-calendar-------------------------------------------------
 
@@ -722,6 +825,12 @@ activity_groupid_lookup <-
 
 # prioritization of fieldwork 2025 with stratum collapsed
 # (preferred for planning of non-biotic FAGs)
+
+# TODO double check with Floris
+gw_field_activities <- grouped_activities %>%
+  filter(is_gw_activity, is_field_activity) %>%
+  distinct(activity_group)
+
 fieldwork_calendar <-
   fieldwork_2025_prioritization_shorter %>%
   rename_grts_address_final_to_grts_address() %>%
@@ -733,13 +842,17 @@ fieldwork_calendar <-
     relationship = "many-to-one",
     unmatched = "drop"
   ) %>%
-  rename(activity_rank = rank) %>%
+  rename(
+    activity_rank = rank,
+    activity_group = field_activity_group
+  ) %>%
+  semi_join(gw_field_activities, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
-    by = join_by(field_activity_group == activity_group),
+    by = join_by(activity_group),
     relationship = "many-to-one"
   ) %>%
-  select(-field_activity_group) %>%
+  select(-activity_group) %>%
   left_join(
     samplelocations_lookup,
     by = join_by(grts_address),
@@ -754,7 +867,7 @@ fieldwork_calendar <-
     )
   ) %>%
   mutate(
-    log_user = "update",
+    log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
     excluded = FALSE,
     no_visit_planned = FALSE,
@@ -802,6 +915,8 @@ fieldcalendar_characols <- c(
   )
 
 # previous_calendar_test <- fieldwork_calendar[1:500,]
+# glimpse(previous_calendar_plans %>% replace_sspstapa_by_lookup())
+# TODO had an issue where sspstapas were lost...
 
 fieldwork_celandar_new <- fieldwork_calendar %>%
   replace_sspstapa_by_lookup() %>%
@@ -809,7 +924,6 @@ fieldwork_celandar_new <- fieldwork_calendar %>%
     previous_calendar_plans %>% replace_sspstapa_by_lookup(),
     by = join_by(!!!fieldcalendar_characols)
   )
-
 ## ----upload-calendar----------------------------------------------
 
 fieldwork_calendar_lookup <- update_cascade_lookup(
@@ -823,7 +937,7 @@ fieldwork_calendar_lookup <- update_cascade_lookup(
 )
 
 # TODO are previous_calendar_plans retained correctly?
-
+# glimpse(fieldwork_calendar_lookup)
 
 
 new_visits <- fieldwork_calendar_lookup %>%
@@ -836,7 +950,7 @@ new_visits <- fieldwork_calendar_lookup %>%
     by = join_by(grts_address)
   ) %>%
   mutate(
-    log_user = "update",
+    log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
     visit_cancelled = FALSE,
     visit_done = FALSE
@@ -886,6 +1000,9 @@ locationevaluation_input <- dplyr::tbl(
   ) %>%
   collect() # collecting is necessary to modify offline and to re-upload
 
+locationevaluation_input <- locationevaluation_input %>%
+  relocate_grts_replacements(relationship = "many-to-one")
+
 # locationevaluation_input %>% count(eval_source)
 # locationevaluation_input %>% distinct(eval_name)
 
@@ -908,8 +1025,112 @@ locationevaluation_lookup <- update_cascade_lookup(
 )
 
 
+## ----land-use-------------------------------------------------
+
+
+landuse <- readRDS("data/landuse_export.rds")
+
+# forestry_area, # bosbeheerregio
+# fores_naam, # bosbeheer
+# np_type, # natuurpunt
+# lila_statuut,
+# durme_reservaat,
+# perc_rbh, # percelen // rbh
+# perc_naameig, # naam eigenaar
+# nbhp_type, # natuurbeheerplan
+# gewasgroep, # landbouw
+# lblhfdtlt # landbouw
+
+landinfo <- landuse %>%
+  mutate(anb = stringr::str_c("ANB: ", anb_rights)) %>%
+  mutate(mil = stringr::str_c("MIL: ", mdbd_naam, " (", mdbd_inbo, ")")) %>%
+  mutate(bos = stringr::str_c("BOS: ", forestry_area, " (", fores_naam, ")")) %>%
+  mutate(np = stringr::str_c("NP: ", np_type)) %>%
+  mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
+  mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
+  mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
+  mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
+  mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
+  tidyr::unite(landuse, c(
+      anb, mil, bos,
+      np, lila, durme,
+      perc, nbhp, lb
+    ),
+    sep = ", ",
+    na.rm = TRUE
+  ) %>%
+  distinct(
+    # schemegroup,
+    # stratum,
+    grts_address,
+    landuse
+  ) %>%
+  semi_join(
+    dplyr::tbl(
+      db_connection,
+      DBI::Id("outbound", "LocationInfos")
+    ) %>%
+    distinct(grts_address) %>%
+    collect,
+    by = join_by(grts_address)
+  )
+
+glimpse(landinfo)
+
+
+get_update_row_string_landuse <- function(landinfo_rownr){
+
+  grts <- landinfo[landinfo_rownr, "grts_address"]
+  info <- landinfo[landinfo_rownr, "landuse"]
+  if (is.na(info)) {
+    info <- "NULL"
+  }
+
+  info <- glue::glue("'{info}'")
+
+  target_namestring <- '"outbound"."LocationInfos"'
+  update_string <- glue::glue("
+    UPDATE {target_namestring}
+      SET landowner = {info}
+    WHERE grts_address = {grts}
+    ;
+  ")
+
+  return(update_string)
+}
+
+# concatenate update rows
+update_command <- lapply(
+  1:nrow(landinfo),
+  FUN = get_update_row_string_landuse
+)
+
+# spin up a progress bar
+pb <- txtProgressBar(
+  min = 0, max = nrow(landinfo),
+  initial = 0, style = 1
+)
+
+# execute the update commands.
+for (landinfo_rownr in 1:nrow(landinfo)) {
+  setTxtProgressBar(pb, landinfo_rownr)
+  cmd <- update_command[[landinfo_rownr]]
+  execute_sql(db_connection, cmd, verbose = FALSE)
+}
+
+close(pb) # close the progress bar
+
+
+landuse_reload <- dplyr::tbl(
+    db_connection,
+    DBI::Id("outbound", "LocationInfos")
+  ) %>%
+  distinct(grts_address, landowner) %>%
+  collect
+# landuse_reload %>% write.csv("dumps/landuse.csv")
+
+
 ## ----done!----------------------------------------------
 
-# source("220_upload_mnmgwdb.R")
 # python 210_init_mnmgwdb.py 2>&1 | tee dump1.log
 # Rscript 220_upload_mnmgwdb.R 2>&1 | tee dump2.log

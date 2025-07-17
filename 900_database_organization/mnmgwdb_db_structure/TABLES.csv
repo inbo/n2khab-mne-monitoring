@@ -1,0 +1,15 @@
+schema,table,owner,read_access,write_access,geometry,constraint,freesql,persistent,excluded,comment
+metadata,Protocols,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,protocols (preliminary version)
+metadata,GroupedActivities,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
+metadata,TeamMembers,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,1,,list of team members
+metadata,N2kHabStrata,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,n2khab types and strata
+metadata,SSPSTaPas,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,1,,lookup for stratum_scheme_ps_targetpanels
+metadata,Locations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
+metadata,LocationCells,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
+outbound,LocationInfos,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,"persistent infos about specific locations, e.g. accessibility"
+outbound,SampleLocations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
+outbound,LocationEvaluations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
+outbound,FieldworkCalendar,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,field activity calender
+inbound,Visits,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,"inbound information about location visits, planned in FieldworkCalendar, linked to SampleLocations and field activity GROUP"
+inbound,CellMaps,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POLYGON,,,1,1,cell mapping input by drawing polygons
+inbound,FreeFieldNotes,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"

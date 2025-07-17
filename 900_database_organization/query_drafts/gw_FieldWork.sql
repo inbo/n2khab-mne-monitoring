@@ -1,7 +1,5 @@
 
 
-
-
 DROP VIEW IF EXISTS  "inbound"."FieldWork" ;
 CREATE VIEW "inbound"."FieldWork" AS
 SELECT

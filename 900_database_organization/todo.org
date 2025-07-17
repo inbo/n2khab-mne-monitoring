@@ -117,10 +117,12 @@
   + [ ] use of =stratum=
   + [ ] central unit is NOT sample unit, but location ~> =SampleLocations= (because we will place exactly one obswell, no matter how many schemes/strata)
 + [ ] procedure to store actual *replacements* and update sample (with @FV)
+  + quick solution: move for =mnmgwdb=
 + [ ] possible to mark sample units from MHQ? (request Ward 20250716)
 + [ ] double-check =is_gw_activity=
 + [ ] no option to add activities / rows in FieldActivityPlanner?
 + [ ] what to do with the CellMaps? (e.g. transfer mnmgwdb?)
++ [ ] =grts_address=: integer or int64?
 
 + (minor)
 #+begin_src R :eval no

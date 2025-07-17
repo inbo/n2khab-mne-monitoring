@@ -1042,14 +1042,26 @@ table_modification <- c(
 #+end_src
 
 
-** TODO accessibility across locations
+** TODO [#A] accessibility across locations
 
-+ accessibility is now stored on SampleUnits
++ accessibility is +now stored on SampleUnits+ THIS was a bad idea.
 + but it is informative for all locations on a GRTS
+
+-> and therefore must be stored separately.
+[[file:./surgery/202507_locationinfos_loceval.sql]]
+
++ [ ] prepare + test
++ [ ] apply
+
 
 ** TODO rtkgps accuracy
 
 + extra field
+
+
+** TODO replacement notes to sample unit
+
+Ward is storing notes about the SampleUnits in Replacements.
 
 
 * mnmgwdb
@@ -1139,6 +1151,12 @@ SCHEDULED: <2025-07-15 Wed>-<2025-07-17 Wed>
 + [ ]
 
 
+** replacements: ad hoc solution
+
++ via query from loceval and lookup
+=sample_locations <- sample_locations %>% relocate_grts_replacements()=
+
+
 * learning the hard way
 
 ** =dbWriteTable(..., overwrite = TRUE, ...)= is a bad idea!
@@ -1194,6 +1212,13 @@ I got trouble once because too little memory was left to get sample unit polygon
 
 * General
 
+** TODO fk columns which allow NULL
+SCHEDULED: <2025-07-17 Thu>
+
+e.g. FieldworkCalendar.sspstapa_id
+required because they are set NULL on cascaded update during re-upload
+should rather deactivate/activate the constraint
+
 
 ** DONE Replacement Unit logic
 CLOSED: [2025-07-10 Thu 12:38] SCHEDULED: <2025-06-16 Mon>
@@ -1226,7 +1251,7 @@ pip install --no-cache --force-reinstall gdal[numpy]=="$(gdal-config --version).
 
 ** quick checks
 
-#+begin_src sql
+#+begin_src sql :eval no
 SET search_path TO public,"metadata","outbound","inbound";
 SELECT DISTINCT assessment_done, COUNT(*) AS n FROM "outbound"."LocationAssessments" GROUP BY assessment_done;
 SELECT * FROM "outbound"."FieldActivityCalendar" WHERE done_planning;
@@ -1242,5 +1267,22 @@ SELECT visit_id, sampleunit_id, notes FROM "inbound"."Visits"
 
 SELECT sampleunit_id, recovery_hints FROM "outbound"."SampleUnits"
   WHERE recovery_hints IS NOT NULL;
+
+-- replacements
+SELECT
+  UNIT.sampleunit_id,
+  UNIT.grts_address,
+  REP.grts_address_replacement
+FROM "outbound"."Replacements" AS REP
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON UNIT.sampleunit_id = REP.sampleunit_id
+WHERE REP.is_selected
+  AND NOT REP.is_inappropriate
+  AND UNIT.is_replaced
+;
+
+
+-- mnmgwdb
+SELECT * FROM "outbound"."FieldworkPlanning" WHERE done_planning;
 
 #+end_src

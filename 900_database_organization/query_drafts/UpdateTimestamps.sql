@@ -15,6 +15,11 @@ END;
 $sync_mod$ LANGUAGE plpgsql;
 
 -- on loceval
+DROP TRIGGER IF EXISTS log_locationinfos ON "inbound"."LocationInfos";
+CREATE TRIGGER log_locationinfos
+BEFORE UPDATE ON "inbound"."LocationInfos"
+FOR EACH ROW EXECUTE PROCEDURE sync_mod();
+
 DROP TRIGGER IF EXISTS log_assessments ON "outbound"."LocationAssessments";
 CREATE TRIGGER log_assessments
 BEFORE UPDATE ON "outbound"."LocationAssessments"
@@ -42,6 +47,11 @@ FOR EACH ROW EXECUTE PROCEDURE sync_mod();
 
 
 -- on mnmgwdb
+DROP TRIGGER IF EXISTS log_locationinfos ON "inbound"."LocationInfos";
+CREATE TRIGGER log_locationinfos
+BEFORE UPDATE ON "inbound"."LocationInfos"
+FOR EACH ROW EXECUTE PROCEDURE sync_mod();
+
 DROP TRIGGER IF EXISTS log_fieldactivitycalendar ON "outbound"."FieldActivityCalendar";
 CREATE TRIGGER log_fieldactivitycalendar
 BEFORE UPDATE ON "outbound"."FieldActivityCalendar"
