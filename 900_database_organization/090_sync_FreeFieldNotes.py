@@ -141,22 +141,38 @@ def upload(df, to_connection):
         VALUES ({vals:s});
     """
 
-    cols = ", ".join(df.columns)
+    # , "fieldnote_id"
     # df.dtypes
     # df.columns
 
     upload_to_target = df.copy()
 
     # upload_to_target = target_to_source.copy()
-
     for col in upload_to_target.columns:
         upload_to_target[col] = \
             [col_change_functions.get(col, noop)(val) \
              for val in df[col].values]
 
+
+    existing_data = GPD.read_postgis( \
+            """ SELECT * FROM "inbound"."FreeFieldNotes";""", \
+            con = to_connection.connection, \
+            geom_col = "wkb_geometry" \
+        ) \
+        .loc[:, ["ogc_fid", "fieldnote_id"]] \
+        .astype(int)
+
+    ogc_counter = int(existing_data["ogc_fid"].max())
+    ffnid_counter = int(existing_data["fieldnote_id"].max())
+    nrows = upload_to_target.shape[0]
+
+    upload_to_target['ogc_fid'] = list(map(str, ogc_counter + NP.arange(nrows) + 1))
+    upload_to_target['fieldnote_id'] = list(map(str, ffnid_counter + NP.arange(nrows) + 1))
+
     # upload_to_target.dtypes
     row_string = [", ".join(row) for i, row in upload_to_target.iterrows()]
 
+    cols = ", ".join([col for col in upload_to_target.columns])
     vals = "),\n(".join(row_string)
 
 

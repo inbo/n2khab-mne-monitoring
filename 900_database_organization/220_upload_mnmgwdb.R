@@ -976,9 +976,9 @@ visits_lookup <- update_cascade_lookup(
 )
 
 
-## TODO LocationEvaluations incl. recovery_hints
+## (DONE: LocationEvaluations incl. recovery_hints)
 
-## TODO sync FreeFieldNotes back and forth (extra script)
+## (DONE sync FreeFieldNotes back and forth (extra script))
 
 
 ## TODO POC update?

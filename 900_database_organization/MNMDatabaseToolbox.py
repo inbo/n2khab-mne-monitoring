@@ -162,15 +162,14 @@ class DatabaseConnection(object):
         OS.system(dump_command)
 
 
-def ConnectDatabase(config_filepath, database = None, connection_config = None):
+def ConnectDatabase(config_filepath, database = None, connection_config = None, **kwargs):
     # https://stackoverflow.com/a/42772654
     # user = input("user: ")
 
     if database is None:
-        config = ReadSQLServerConfig(config_filepath, profile = connection_config)
+        config = ReadSQLServerConfig(config_filepath, profile = connection_config, **kwargs)
     else:
-        config = ReadSQLServerConfig(config_filepath, profile = connection_config, database = database)
-
+        config = ReadSQLServerConfig(config_filepath, profile = connection_config, database = database, **kwargs)
 
     connection = DatabaseConnection(config)
 
