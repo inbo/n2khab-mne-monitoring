@@ -1141,20 +1141,30 @@ SCHEDULED: <2025-07-14 Mon>
 + unfilter GroupedActivities
 + +CellMaps+ (on hold)
 
-** TODO adjusted db structure
+** adjusted db structure
 SCHEDULED: <2025-07-15 Wed>-<2025-07-17 Wed>
 
 + does not work on SampleUnits, but distinct SampleLocations
 + sufficient to plan fieldwork by activity_group for now,
   + later, there might be specific star-structure tables with extra data per activity group, linked to/branching from =Visits=
 + =SSPSTaPas=, a simple lookup table.
-+ [ ]
++ views
++ data inflow from =loceval=
++ =LocationInfos= to get permanent info about certain locations
 
 
 ** replacements: ad hoc solution
+SCHEDULED: <2025-07-17 Thu>
 
 + via query from loceval and lookup
 =sample_locations <- sample_locations %>% relocate_grts_replacements()=
+
+
+** testing mirror
+SCHEDULED: <2025-07-18 Fri>
+
++ a database mirror to work on
++ script to copy data
 
 
 * learning the hard way
@@ -1285,4 +1295,21 @@ WHERE REP.is_selected
 -- mnmgwdb
 SELECT * FROM "outbound"."FieldworkPlanning" WHERE done_planning;
 
+SELECT * FROM "inbound"."FieldworkPlanning" WHERE samplelocation_id IS NULL;
+
+
+SELECT
+  VST.log_user,
+  VST.log_update,
+  FWCAL.fieldworkcalendar_id,
+  SLOC.samplelocation_id,
+  -- LOC.location_id,
+  -- sspstapa_id,
+  SLOC.grts_address
+FROM "inbound"."Visits" AS VST
+LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
+  ON FWCAL.fieldworkcalendar_id = VST.fieldworkcalendar_id
+LEFT JOIN "outbound"."SampleLocations" AS SLOC
+  ON SLOC.samplelocation_id = VST.samplelocation_id
+;
 #+end_src

@@ -5,24 +5,26 @@ library("dplyr")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
+database_label <- "mnmgwdb"
+
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
-dbstructure_folder <- "loceval_dev_structure"
+dbstructure_folder <- glue::glue("{database_label}_dev_structure")
 
 # from source...
 source_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
-  profile = "loceval",
+  profile = database_label,
   user = "monkey",
   password = NA
 )
 
 # ... to target
-target_db_name <- "loceval_testing"
-target_connection_profile <- "loceval-testing"
+target_db_name <- glue::glue("{database_label}_testing")
+target_connection_profile <- glue::glue("{database_label}-testing")
 target_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
-  profile = target_connection_profile,
+  profile = target_connection_profile
 )
 
 # TODO limitation: we should leave the primary and foreign keys unchanged!
@@ -113,13 +115,25 @@ constraints_mod <- function(do = c("DROP", "SET")){
     ) # /sql
   } # /toggle_mod
 
-  # To prevent failure, I temporarily remove the constraint.
-  for (table_key in c("LocationAssessments", "SampleUnits")){
-    toggle_null_constraint("outbound", table_key, "location_id")
-  } # /loop
 
-  toggle_null_constraint("inbound", "Visits", "location_id")
-  toggle_null_constraint("outbound", "ReplacementCells", "replacement_id")
+  if (database_label == "loceval") {
+    # To prevent failure, I temporarily remove the constraint.
+    for (table_key in c("LocationAssessments", "SampleUnits", "LocationInfos")){
+      toggle_null_constraint("outbound", table_key, "location_id")
+    } # /loop
+
+    toggle_null_constraint("inbound", "Visits", "location_id")
+    toggle_null_constraint("outbound", "ReplacementCells", "replacement_id")
+  }
+
+  if (database_label == "mnmgwdb") {
+    # To prevent failure, I temporarily remove the constraint.
+    for (table_key in c("SampleLocations", "LocationInfos")){
+      toggle_null_constraint("outbound", table_key, "location_id")
+    } # /loop
+
+    toggle_null_constraint("inbound", "Visits", "location_id")
+  }
 
 } #/constraints_mod
 
