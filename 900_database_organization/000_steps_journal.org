@@ -1185,6 +1185,13 @@ SCHEDULED: <2025-07-18 Fri>
 
 location evaluation work can now be script-pushed no =mnmgwdb=.
 
+** TODO activity or activity_group?
+SCHEDULED: <2025-07-18 Fri>
+
+What to filter for in the grouped_activity table?
+-> now went for =activity_group=
+
+
 
 * learning the hard way
 
