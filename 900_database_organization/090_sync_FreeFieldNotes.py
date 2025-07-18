@@ -21,12 +21,12 @@ mnmgwdb = DTB.ConnectDatabase(
     base_folder/"inbopostgis_server.conf",
     connection_config = f"mnmgwdb{suffix}"
     )
-mnmgwdb.config["database"]
+# mnmgwdb.config["database"]
 
 query = """
-             SELECT *
-             FROM "{schema:s}"."{table:s}";
-         """
+    SELECT *
+    FROM "{schema:s}"."{table:s}";
+"""
 
 source_data = GPD.read_postgis( \
     query.format(schema = "inbound", table = "FreeFieldNotes"), \
