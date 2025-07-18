@@ -21,9 +21,8 @@ if restore_dev:
     # database: loceval_dev
 
     db_connection = DTB.ConnectDatabase(
-        "inbopostgis_server.conf",
+        base_folder/"inbopostgis_server.conf",
         connection_config = "loceval-dev",
-        database = "loceval_dev"
         )
     db = DTB.Database( \
         structure_folder = base_folder/"loceval_dev_structure", \
@@ -43,7 +42,7 @@ if restore_staging:
     # database: loceval_staging
 
     db_connection = DTB.ConnectDatabase(
-        "inbopostgis_server.conf",
+        base_folder/"inbopostgis_server.conf",
         connection_config = "loceval-staging",
         )
     db = DTB.Database( \
@@ -64,11 +63,11 @@ if restore_testing:
     # DTB.ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", structure_folder)
 
     db_connection = DTB.ConnectDatabase(
-        "inbopostgis_server.conf",
+        base_folder/"inbopostgis_server.conf",
         connection_config = "loceval-testing",
         )
     db = DTB.Database( \
-        structure_folder = base_folder/"loceval_db_structure", \
+        structure_folder = base_folder/"loceval_dev_structure", \
         lazy_creation = False, \
         db_connection = db_connection, \
         tabula_rasa = True
@@ -84,7 +83,7 @@ if False:
 
     # database: loceval
     db_connection = DTB.ConnectDatabase(
-        "inbopostgis_server.conf",
+        base_folder/"inbopostgis_server.conf",
         connection_config = "loceval",
     )
     db = DTB.Database( \

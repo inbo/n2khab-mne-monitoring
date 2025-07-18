@@ -20,7 +20,7 @@ DTB.ODStoCSVs(base_folder/"mnmgwdb_db_structure.ods", base_folder/"mnmgwdb_db_st
 if restore_dev:
     # database: mnmgwdb_dev
     db_connection = DTB.ConnectDatabase(
-        "inbopostgis_server.conf",
+        base_folder/"inbopostgis_server.conf",
         connection_config = "mnmgwdb-dev",
         )
     db = DTB.Database( \
@@ -39,7 +39,7 @@ if restore_dev:
 if restore_testing:
     # database: mnmgwdb_dev
     db_connection = DTB.ConnectDatabase(
-        "inbopostgis_server.conf",
+        base_folder/"inbopostgis_server.conf",
         connection_config = "mnmgwdb-testing",
         )
     db = DTB.Database( \
@@ -61,7 +61,7 @@ if False:
 
     # database: mnmgwdb PRODUCTION
     db_connection = DTB.ConnectDatabase(
-        "inbopostgis_server.conf",
+        base_folder/"inbopostgis_server.conf",
         connection_config = "mnmgwdb",
     )
     db = DTB.Database( \
