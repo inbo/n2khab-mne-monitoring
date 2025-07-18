@@ -33,3 +33,5 @@ GRANT SELECT ON  "outbound"."LocevalInfo"  TO  karen;
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tester;
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  ward;
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  monkey;
+
+GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tom;

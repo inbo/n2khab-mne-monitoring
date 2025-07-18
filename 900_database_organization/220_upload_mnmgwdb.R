@@ -134,7 +134,9 @@ stopifnot(
     exists("fieldwork_2025_prioritization_shorter")
 )
 
-
+# fag_stratum_grts_calendar_2025_attribs %>% distinct(field_activity_group)
+# fieldwork_2025_prioritization_by_stratum %>% distinct(field_activity_group)
+# fieldwork_2025_prioritization_shorter %>% distinct(field_activity_group)
 
 ## ----establish-connection-config----------------------------------------------
 db_connection <- connect_database_configfile(
@@ -275,12 +277,12 @@ grouped_activities <- grouped_activities %>%
 # knitr::kable(grouped_activities %>% distinct(activity_group, activity, activity_name))
 
 # glimpse(grouped_activities)
-
+# grouped_activities %>% distinct(activity_group)
 
 # tag activities for groundwater monitoring
 grouped_activities <- grouped_activities %>%
   mutate(is_gw_activity =
-    activity %in% c(
+    activity_group %in% c(
       "GWINSTWELLDIVER",
       "GWINSTPIEZNODIVER",
       "GWINSTPIEZWELL",
@@ -306,6 +308,11 @@ grouped_activities <- grouped_activities %>%
 grouped_activities_upload <- grouped_activities %>%
   lookup_join(protocol_lookup, "protocol")
 
+grouped_activities_upload %>%
+  filter(activity_group == "GWINSTPIEZWELL") %>%
+  glimpse()
+grouped_activities_upload %>%
+  select(activity_group, is_gw_activity) %>% print(n=Inf)
 # NOT append_tabledata(
 #   db_connection,
 #   DBI::Id(schema = "metadata", table = "GroupedActivities"),
@@ -511,6 +518,7 @@ replacement_lookup <- dplyr::tbl(
   ) %>%
   collect
 
+# TODO test what happens if two are selected
 
 sample_locations %>%
   filter(grts_address %in% (replacement_lookup %>% pull(grts_address))) %>%
