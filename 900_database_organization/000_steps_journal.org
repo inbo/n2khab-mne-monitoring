@@ -1167,6 +1167,25 @@ SCHEDULED: <2025-07-18 Fri>
 + script to copy data
 
 
+** sync FreeFieldNotes
+SCHEDULED: <2025-07-18 Fri>
+
+a script to copy back-and-forth FreeFieldNotes between the databases.
+
+
+** WAIT sync LocationInfos
+SCHEDULED: <2025-07-18 Fri>
+
+prepared a script to sync accessibility between the two databases
+but have to wait for =loceval= surgery.
+
+
+** update LocationEvaluations and Replacements for =mnmgwdb=
+SCHEDULED: <2025-07-18 Fri>
+
+location evaluation work can now be script-pushed no =mnmgwdb=.
+
+
 * learning the hard way
 
 ** =dbWriteTable(..., overwrite = TRUE, ...)= is a bad idea!
@@ -1218,6 +1237,12 @@ and laptop memory is limited.
 
 I got trouble once because too little memory was left to get sample unit polygons.
 -> is there a long term solution?
+
+** appending locations
+SCHEDULED: <2025-07-18 Fri>
+
+creating a new locations works when explicitly passing the next =ogc_fid= AND =location_id=.
+Omitting either of them in the insert will fail. :shrug:
 
 
 * General

@@ -87,6 +87,8 @@
 
 
 * mnmgwdb
++ [ ] good question Tom: where is =GWINSTPIEZWELL=?
+
 + [ ] meeting @TDD @WT @KW @FV @FM <2025-07-02 Wed> MNM Fieldwork Outbound/Planning app
   + [ ] INBO arcgis -> qgis via web services?
   + [ ] n2khab_strata ++allow NULL
