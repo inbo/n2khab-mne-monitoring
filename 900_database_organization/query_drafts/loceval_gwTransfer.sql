@@ -51,3 +51,4 @@ WHERE TRUE
 
 
 GRANT SELECT ON  "outbound"."gwTransfer"  TO  monkey;
+GRANT SELECT ON  "outbound"."gwTransfer"  TO  yoda;
