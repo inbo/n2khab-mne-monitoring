@@ -1048,10 +1048,13 @@ table_modification <- c(
 + but it is informative for all locations on a GRTS
 
 -> and therefore must be stored separately.
-[[file:./surgery/202507_locationinfos_loceval.sql]]
+[[file:./surgery/20250722_accessibility_2loceval.sql]]
 
-+ [ ] prepare + test
-+ [ ] apply
++ [X] prepare + test
++ [X] apply
++ [X] mail
+
+also moved =recovery_hints= to =LocationInfos=
 
 
 ** TODO rtkgps accuracy
@@ -1062,6 +1065,20 @@ table_modification <- c(
 ** TODO replacement notes to sample unit
 
 Ward is storing notes about the SampleUnits in Replacements.
+
+
+** TODO activity or activity_group?
+SCHEDULED: <2025-07-18 Fri>
+
+What to filter for in the grouped_activity table?
+-> now went for =activity_group=
+
+
+** TODO data type issues in sync FreeFieldNotes
+SCHEDULED: <2025-07-22 Tue>
+
+see =090_sync_FreeFieldNotes.py= -> refinement necessary
+
 
 
 * mnmgwdb

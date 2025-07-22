@@ -8,7 +8,7 @@ import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
 suffix = "-testing"
-# suffix = ""
+suffix = ""
 
 base_folder = DTB.PL.Path(".")
 
@@ -34,6 +34,7 @@ source_data = GPD.read_postgis( \
     geom_col = "wkb_geometry" \
     )
 # print(source_data.sample(3).T)
+source_data["teammember_id"]# .astype(NP.int64)
 
 source_data.drop(["ogc_fid", "fieldnote_id"], axis = 1, inplace = True)
 # source_data["wkb_geometry"] = source_data["wkb_geometry"].to_wkb(hex = True)
@@ -44,6 +45,8 @@ target_data = GPD.read_postgis( \
     geom_col = "wkb_geometry" \
     )
 # print(target_data.sample(1).T)
+# target_data["teammember_id"].astype(NP.int64)
+# TODO data types must match; might be issues if one does not have teammember_id
 
 target_data.drop(["ogc_fid", "fieldnote_id"], axis = 1, inplace = True)
 # target_data["wkb_geometry"] = target_data["wkb_geometry"].to_wkb(hex = True)
@@ -162,8 +165,13 @@ def upload(df, to_connection):
         .loc[:, ["ogc_fid", "fieldnote_id"]] \
         .astype(int)
 
-    ogc_counter = int(existing_data["ogc_fid"].max())
-    ffnid_counter = int(existing_data["fieldnote_id"].max())
+    if existing_data.shape[0] > 0:
+        ogc_counter = int(existing_data["ogc_fid"].max())
+        ffnid_counter = int(existing_data["fieldnote_id"].max())
+    else:
+        ogc_counter = int(1)
+        ffnid_counter = int(1)
+
     nrows = upload_to_target.shape[0]
 
     upload_to_target['ogc_fid'] = list(map(str, ogc_counter + NP.arange(nrows) + 1))
