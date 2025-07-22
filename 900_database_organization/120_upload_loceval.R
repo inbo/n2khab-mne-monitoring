@@ -37,9 +37,7 @@ if (TRUE){
 
 # # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
-# projroot <- find_root(is_rstudio_project)
 # working_dbname <- "loceval"
-# config_filepath <- file.path("./inbopostgis_server.conf")
 # connection_profile <- "loceval"
 # dbstructure_folder <- "./loceval_db_structure"
 
@@ -475,6 +473,28 @@ sample_units <-
 #      and add previous_notes
 
 
+## ----save-previous-location-infos----------------------------------------------
+table_str <- '"outbound"."LocationInfos"'
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE TRUE
+      AND log_user = ANY ({maintenance_users}::varchar[])
+      AND (accessibility_inaccessible IS NULL OR (NOT accessibility_inaccessible))
+      AND (accessibility_revisit IS NULL)
+  ;" # landowner will be script-updated (outbound)
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = TRUE
+)
+
+previous_locationinfos <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "outbound", table = "LocationInfos"),
+  ) %>% collect()
+
 
 ## ----save-previous-location-assessments----------------------------------------------
 
@@ -616,6 +636,7 @@ replacement_archive_lookup <- update_cascade_lookup(
 
 locations <- bind_rows(
     sample_units %>% select(grts_address),
+    previous_locationinfos %>% select(grts_address),
     previous_location_assessments %>% select(grts_address),
     previous_visits %>% select(grts_address)
   ) %>%
@@ -815,6 +836,43 @@ append_tabledata(
   DBI::Id(schema = "outbound", table = "SampleUnitPolygons"),
   sample_polygons,
   reference_columns = "sampleunit_id"
+)
+
+
+## ----location-infos-------------------------------------------------
+
+# assemble new assessments
+new_locinfos <- sample_units %>%
+  distinct(
+    grts_address
+  ) %>%
+  mutate(
+    log_creator = "maintenance",
+    log_creation = as.POSIXct(Sys.time()),
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time())
+  )
+
+# previous_locinfos %>% write.csv("data/20250704_Wards_LocationAssessments.csv")
+
+new_locinfos <- new_locinfos %>%
+  anti_join(
+    previous_locinfos,
+    by = join_by(grts_address)
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+  )
+
+locationinfo_lookup <- update_cascade_lookup(
+  schema = "outbound",
+  table_key = "LocationInfos",
+  new_data = new_locinfos,
+  index_columns = c("locationinfo_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
 )
 
 
@@ -1137,6 +1195,13 @@ restore_location_id_by_grts(
 ## ----land-use-------------------------------------------------
 
 
+# locs <- sf::st_read(
+#   db_connection,
+#   DBI::Id(schema = "metadata", table = "Locations"),
+#   ) %>% collect()
+# locations_lookup <- locs %>% select(grts_address, location_id)
+# locations_lookup <- locations_lookup %>% sf::st_drop_geometry()
+
 landuse <- readRDS("data/landuse_export.rds")
 
 # forestry_area, # bosbeheerregio
@@ -1197,7 +1262,7 @@ get_update_row_string_landuse <- function(landinfo_rownr){
 
   info <- glue::glue("'{info}'")
 
-  target_namestring <- '"outbound"."FieldActivityCalendar"'
+  target_namestring <- '"outbound"."LocationInfos"'
   update_string <- glue::glue("
     UPDATE {target_namestring}
       SET landowner = {info}
@@ -1236,7 +1301,7 @@ landuse_reload <- dplyr::tbl(
   ) %>%
   distinct(grts_address, landowner) %>%
   collect
-landuse_reload %>% write.csv("dumps/landuse.csv")
+landuse_reload %>% write.csv("dumps/LocationInfos.csv")
 
 ## ----done--time-for-some-checks!-------------------------------------------------
 

@@ -5,7 +5,9 @@ library("dplyr")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
-database_label <- "mnmgwdb"
+# database_label <- "mnmgwdb"
+database_label <- "loceval"
+target_mirror <- "staging"
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
@@ -117,8 +119,8 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
 
   if (database_label == "loceval") {
-    # To prevent failure, I temporarily remove the constraint.
-    for (table_key in c("LocationAssessments", "SampleUnits", "LocationInfos")){
+    # To prevent failure, I temporarily remove the constraint. # , "LocationInfos"
+    for (table_key in c("LocationAssessments", "SampleUnits")){
       toggle_null_constraint("outbound", table_key, "location_id")
     } # /loop
 

@@ -19,13 +19,15 @@ SELECT
   UNIT.type,
   UNIT.assessment,
   UNIT.assessment_date,
-  UNIT.accessibility_inaccessible,
-  UNIT.accessibility_revisit,
-  UNIT.recovery_hints,
   UNIT.is_replaced,
   UNIT.replacement_ongoing,
   UNIT.replacement_reason,
   UNIT.replacement_permanence,
+  INFO.locationinfo_id,
+  INFO.recovery_hints,
+  INFO.landowner,
+  INFO.accessibility_inaccessible,
+  INFO.accessibility_revisit,
   LOCASS.assessment_done,
   LOCASS.cell_disapproved,
   LOCASS.notes AS location_assessment,
@@ -40,6 +42,8 @@ SELECT
 FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
+LEFT JOIN "outbound"."LocationInfos" AS INFO
+  ON INFO.location_id = VISIT.location_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
@@ -49,7 +53,6 @@ LEFT JOIN (
     date_start,
     date_end,
     priority,
-    landowner,
     teammember_assigned,
     date_visit_planned,
     no_visit_planned,
@@ -111,14 +114,25 @@ ON UPDATE TO "inbound"."LocationEvaluation"
 DO ALSO
  UPDATE "outbound"."SampleUnits"
  SET
-  accessibility_inaccessible = NEW.accessibility_inaccessible,
-  accessibility_revisit = NEW.accessibility_revisit,
   recovery_hints = NEW.recovery_hints,
   is_replaced = NEW.is_replaced,
   replacement_ongoing = NEW.replacement_ongoing,
   replacement_reason = NEW.replacement_reason,
   replacement_permanence = NEW.replacement_permanence
  WHERE sampleunit_id = OLD.sampleunit_id
+;
+
+DROP RULE IF EXISTS LocationEvaluation_upd3 ON "inbound"."LocationEvaluation";
+CREATE RULE LocationEvaluation_upd3 AS
+ON UPDATE TO "inbound"."LocationEvaluation"
+DO ALSO
+ UPDATE "outbound"."LocationInfos"
+ SET
+  landowner = NEW.landowner,
+  recovery_hints = NEW.recovery_hints,
+  accessibility_inaccessible = NEW.accessibility_inaccessible,
+  accessibility_revisit = NEW.accessibility_revisit
+ WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
 
