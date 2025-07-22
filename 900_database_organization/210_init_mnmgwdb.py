@@ -43,11 +43,11 @@ if restore_testing:
         connection_config = "mnmgwdb-testing",
         )
     db = DTB.Database( \
-        structure_folder = base_folder/"mnmgwdb_dev_structure", \
+        structure_folder = base_folder/"mnmgwdb_db_structure", \
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
         db_connection = db_connection, \
-        tabula_rasa = False
+        tabula_rasa = True
         )
 
 

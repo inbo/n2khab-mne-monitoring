@@ -12,9 +12,6 @@ type,varchar,True,,False,False,,,,"type (code), our latest best assessment"
 assessment,boolean,True,0,False,False,,,,biotics previously assessed (`assessment_in_field`)
 assessment_date,date,False,,False,False,,,,date of previous assessment
 previous_notes,text,False,,False,False,,,,collecting any notes which we took previously
-recovery_hints,varchar,False,NULL,False,False,,,,notes on how to find back the marking
-accessibility_inaccessible,boolean,False,NULL,False,False,,,,tag inaccessible locations
-accessibility_revisit,date,False,NULL,False,False,,,,anticipate accessibility change
 replacement_ongoing,boolean,True,0,False,False,,,,transient column to filter a view for ongoing replacements
 replacement_id,int,False,NULL,False,False,,,,link to the replacement location
 replacement_reason,text,False,NULL,False,False,,,,"explanation for replacement choice, e.g. inaccessibility"

@@ -7,7 +7,7 @@ source("MNMDatabaseToolbox.R")
 
 # database_label <- "mnmgwdb"
 database_label <- "loceval"
-target_mirror <- "staging"
+target_mirror <- "testing"
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
@@ -22,8 +22,8 @@ source_db_connection <- connect_database_configfile(
 )
 
 # ... to target
-target_db_name <- glue::glue("{database_label}_testing")
-target_connection_profile <- glue::glue("{database_label}-testing")
+target_db_name <- glue::glue("{database_label}_{target_mirror}")
+target_connection_profile <- glue::glue("{database_label}-{target_mirror}")
 target_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = target_connection_profile
@@ -119,8 +119,8 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
 
   if (database_label == "loceval") {
-    # To prevent failure, I temporarily remove the constraint. # , "LocationInfos"
-    for (table_key in c("LocationAssessments", "SampleUnits")){
+    # To prevent failure, I temporarily remove the constraint.
+    for (table_key in c("LocationAssessments", "SampleUnits", "LocationInfos")){
       toggle_null_constraint("outbound", table_key, "location_id")
     } # /loop
 

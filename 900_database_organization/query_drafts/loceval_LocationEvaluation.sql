@@ -114,7 +114,6 @@ ON UPDATE TO "inbound"."LocationEvaluation"
 DO ALSO
  UPDATE "outbound"."SampleUnits"
  SET
-  recovery_hints = NEW.recovery_hints,
   is_replaced = NEW.is_replaced,
   replacement_ongoing = NEW.replacement_ongoing,
   replacement_reason = NEW.replacement_reason,
@@ -128,7 +127,6 @@ ON UPDATE TO "inbound"."LocationEvaluation"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
-  landowner = NEW.landowner,
   recovery_hints = NEW.recovery_hints,
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit

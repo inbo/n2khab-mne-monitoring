@@ -21,7 +21,10 @@ SELECT
   VISIT.lims_code,
   VISIT.visit_cancelled,
   VISIT.visit_done,
-recovery_hints,
+  INFO.locationinfo_id,
+  INFO.accessibility_inaccessible,
+  INFO.accessibility_revisit,
+  INFO.recovery_hints,
   GAP.activity_group_id,
   GAP.is_field_activity,
   GAP.is_gw_activity,
@@ -29,6 +32,8 @@ recovery_hints,
 FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
+LEFT JOIN "metadata"."LocationInfos" AS INFO
+  ON INFO.location_id = VISIT.location_id
 LEFT JOIN "outbound"."FieldActivityCalendar" AS FACAL
   ON FACAL.fieldactivitycalendar_id = VISIT.fieldactivitycalendar_id
 LEFT JOIN (
@@ -73,6 +78,17 @@ DO INSTEAD
  WHERE visit_id = OLD.visit_id
 ;
 
+DROP RULE IF EXISTS FieldWork_upd1 ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd1 AS
+ON UPDATE TO "inbound"."FieldWork"
+DO ALSO
+ UPDATE "outbound"."LocationInfos"
+ SET
+  accessibility_inaccessible = NEW.accessibility_inaccessible,
+  accessibility_revisit = NEW.accessibility_revisit,
+  recovery_hints = NEW.recovery_hints,
+ WHERE locationinfo_id = OLD.locationinfo_id
+;
 
 GRANT SELECT ON  "inbound"."FieldWork"  TO  tom;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  yglinga;
