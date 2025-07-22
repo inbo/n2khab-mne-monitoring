@@ -8,10 +8,11 @@ SELECT
   SSPSTP.stratum_scheme_ps_targetpanels,
   SLOC.schemes,
   SLOC.strata,
-  LINF.locationinfo_id,
-  LINF.accessibility_inaccessible,
-  LINF.accessibility_revisit,
-  LINF.landowner,
+  INFO.locationinfo_id,
+  INFO.accessibility_inaccessible,
+  INFO.accessibility_revisit,
+  INFO.landowner,
+  INFO.recovery_hints,
   FWCAL.fieldworkcalendar_id,
   FWCAL.samplelocation_id,
   FWCAL.date_start,
@@ -44,8 +45,8 @@ LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON FWCAL.samplelocation_id = SLOC.samplelocation_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = SLOC.location_id
-LEFT JOIN "outbound"."LocationInfos" AS LINF
-  ON LOC.location_id = LINF.location_id
+LEFT JOIN "outbound"."LocationInfos" AS INFO
+  ON LOC.location_id = INFO.location_id
 LEFT JOIN "metadata"."SSPSTaPas" AS SSPSTP
   ON SSPSTP.sspstapa_id = FWCAL.sspstapa_id
 LEFT JOIN (
@@ -90,18 +91,6 @@ DO INSTEAD
   notes = NEW.notes,
   done_planning = NEW.done_planning
  WHERE fieldworkcalendar_id = OLD.fieldworkcalendar_id
-;
-
-DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
-CREATE RULE FieldworkPlanning_upd2 AS
-ON UPDATE TO "outbound"."FieldworkPlanning"
-DO ALSO
- UPDATE "outbound"."LocationInfos"
- SET
-  landowner = NEW.landowner,
-  accessibility_inaccessible = NEW.accessibility_inaccessible,
-  accessibility_revisit = NEW.accessibility_revisit
- WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
 

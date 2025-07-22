@@ -275,8 +275,8 @@ source_db_connection <- connect_database_configfile(
 )
 
 # ... to target
-target_db_name <- glue::glue("{database_label}_testing")
-target_connection_profile <- glue::glue("{database_label}-testing")
+target_db_name <- glue::glue("{database_label}_{target_mirror}")
+target_connection_profile <- glue::glue("{database_label}-{target_mirror}")
 target_db_connection <- connect_database_configfile(
   config_filepath = config_filepath,
   profile = target_connection_profile

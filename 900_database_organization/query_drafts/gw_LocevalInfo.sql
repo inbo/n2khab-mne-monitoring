@@ -10,8 +10,7 @@ SELECT
   LOCEVAL.eval_name,
   LOCEVAL.eval_date,
   LOCEVAL.notes,
-  LOCEVAL.photo,
-  LOCEVAL.recovery_hints
+  LOCEVAL.photo
 FROM "outbound"."LocationEvaluations" AS LOCEVAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON (LOCEVAL.samplelocation_id = SLOC.location_id)

@@ -9,3 +9,4 @@ grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`fi
 landowner,varchar,False,NULL,False,False,,,,reference to the land owner
 accessibility_inaccessible,boolean,False,NULL,False,False,,,,tag inaccessible locations
 accessibility_revisit,date,False,NULL,False,False,,,,anticipate accessibility change
+recovery_hints,varchar,False,NULL,False,False,,,,notes on how to find back the marking
