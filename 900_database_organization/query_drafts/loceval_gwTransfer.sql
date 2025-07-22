@@ -14,8 +14,7 @@ SELECT
   VISIT.date_visit AS eval_date,
   VISIT.visit_id AS eval_id,
   VISIT.notes,
-  VISIT.photo,
-  UNIT.recovery_hints
+  VISIT.photo
 FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
@@ -38,8 +37,7 @@ SELECT
   CAST(LOCASS.log_update AS DATE) AS eval_date,
   LOCASS.locationassessment_id AS eval_id,
   LOCASS.notes,
-  NULL AS photo,
-  NULL AS recovery_hints
+  NULL AS photo
 FROM "outbound"."LocationAssessments" AS LOCASS
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON (LOCASS.grts_address = UNIT.grts_address

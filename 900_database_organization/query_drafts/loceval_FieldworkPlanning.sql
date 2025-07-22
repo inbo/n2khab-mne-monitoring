@@ -43,7 +43,7 @@ SELECT
   (FAC.wait_watersurface OR FAC.wait_3260 OR FAC.wait_7220) AS is_waiting,
   FAC.excluded,
   FAC.excluded_reason,
-  FAC.landowner,
+  INFO.landowner,
   FAC.teammember_assigned,
   FAC.date_visit_planned,
   FAC.no_visit_planned,
@@ -59,9 +59,10 @@ SELECT
   UNIT.assessment,
   UNIT.assessment_date,
   UNIT.previous_notes,
-  UNIT.accessibility_inaccessible,
-  UNIT.accessibility_revisit,
-  UNIT.recovery_hints,
+  INFO.locationinfo_id,
+  INFO.accessibility_inaccessible,
+  INFO.accessibility_revisit,
+  INFO.recovery_hints,
   UNIT.is_replaced,
   LOCASS.cell_disapproved,
   LOCASS.assessment_done
@@ -70,6 +71,8 @@ LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON FAC.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = UNIT.location_id
+LEFT JOIN "outbound"."LocationInfos" AS INFO
+  ON INFO.location_id = UNIT.location_id
 LEFT JOIN (
   SELECT DISTINCT
     location_id,
@@ -93,15 +96,21 @@ ORDER BY
 ;
 
 
-DROP RULE IF EXISTS FieldworkPlanning_upd ON "outbound"."FieldworkPlanning";
-CREATE RULE FieldworkPlanning_upd AS
+DROP RULE IF EXISTS FieldworkPlanning_upd0 ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd0 AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
-DO INSTEAD
+DO INSTEAD NOTHING
+;
+
+
+DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd1 AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO ALSO
  UPDATE "outbound"."FieldActivityCalendar"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
-  landowner = NEW.landowner,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
   no_visit_planned = NEW.no_visit_planned,
@@ -111,6 +120,18 @@ DO INSTEAD
 ;
 
 
+DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd2 AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO ALSO
+ UPDATE "outbound"."LocationInfos"
+ SET
+  accessibility_inaccessible = NEW.accessibility_inaccessible,
+  accessibility_revisit = NEW.accessibility_revisit,
+  landowner = NEW.landowner,
+  recovery_hints = NEW.recovery_hints
+ WHERE locationinfo_id = OLD.locationinfo_id
+;
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO ward;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO karen;

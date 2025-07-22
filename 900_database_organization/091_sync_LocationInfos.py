@@ -8,7 +8,7 @@ import pandas as PD
 import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
-suffix = "-testing"
+suffix = ""
 
 base_folder = DTB.PL.Path(".")
 
@@ -69,7 +69,7 @@ source_data = source_data.loc[[grts in common_grts for grts in source_data["grts
 target_data = target_data.loc[[grts in common_grts for grts in target_data["grts_address"].values], :]
 
 #perform outer join
-accessibility_cols = ["grts_address", "accessibility_inaccessible", "accessibility_revisit"]
+accessibility_cols = ["grts_address", "accessibility_inaccessible", "accessibility_revisit", "recovery_hints"]
 outer = source_data.loc[:, accessibility_cols] \
     .merge(target_data.loc[:, accessibility_cols], \
            how='outer', indicator=True)
@@ -114,15 +114,18 @@ target_to_source = target_to_source.loc[
 
 
 ### create update strings
+clean_sqlstr = lambda txt: txt.replace("'", "")
 
 noop = lambda val: val
 val_to_bool = lambda val: "NULL" if PD.isna(val) else ("TRUE" if bool(val) else "FALSE")
 val_to_datetime = lambda val: "NULL" if PD.isna(val) else f"'{str(val)}'"
 val_to_int = lambda val: "NULL" if PD.isna(val) else str(int(val))
+val_to_string = lambda val: "NULL" if PD.isna(val) else f"E'{clean_sqlstr(val)}'"
 
 col_change_functions = {
     "accessibility_inaccessible": val_to_bool,
     "accessibility_revisit": val_to_datetime,
+    "recovery_hints": val_to_string,
     "grts_address": val_to_int
     }
 
@@ -130,7 +133,8 @@ col_change_functions = {
 update_command = """
     UPDATE "outbound"."LocationInfos"
     SET accessibility_inaccessible = {accessibility_inaccessible},
-        accessibility_revisit = {accessibility_revisit}
+        accessibility_revisit = {accessibility_revisit},
+        recovery_hints = {recovery_hints}
     WHERE grts_address = {grts_address};
 """
 
@@ -157,3 +161,6 @@ for _, row in target_to_source.iterrows():
         update_command.format(**update_value_dict),
         verbose = True
        )
+
+
+# TODO there is some potential here for using temporary tables and `UPDATE... SET... FROM... WHERE...;` script.

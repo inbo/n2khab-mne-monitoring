@@ -6,7 +6,7 @@ import MNMDatabaseToolbox as DTB
 # SET search_path TO public,"metadata","outbound","inbound";
 
 restore_dev = False
-restore_staging = False
+restore_staging = True
 restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
 base_folder = DTB.PL.Path(".")
@@ -46,7 +46,7 @@ if restore_staging:
         connection_config = "loceval-staging",
         )
     db = DTB.Database( \
-        structure_folder = base_folder/"loceval_db_structure", \
+        structure_folder = base_folder/"loceval_dev_structure", \
         lazy_creation = False, \
         db_connection = db_connection, \
         tabula_rasa = True
@@ -67,7 +67,7 @@ if restore_testing:
         connection_config = "loceval-testing",
         )
     db = DTB.Database( \
-        structure_folder = base_folder/"loceval_dev_structure", \
+        structure_folder = base_folder/"loceval_db_structure", \
         lazy_creation = False, \
         db_connection = db_connection, \
         tabula_rasa = True
