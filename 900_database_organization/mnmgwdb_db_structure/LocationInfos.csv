@@ -1,12 +1,14 @@
-column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-locationinfo_id,int,True,,True,True,,,,location info index (technical)
-log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
-log_creation,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of creation
-log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
-log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
-location_id,int,True,,False,False,,,,the technical sequence of all locations
-grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
-landowner,varchar,False,NULL,False,False,,,,reference to the land owner
-accessibility_inaccessible,boolean,False,NULL,False,False,,,,tag inaccessible locations
-accessibility_revisit,date,False,NULL,False,False,,,,anticipate accessibility change
-recovery_hints,varchar,False,NULL,False,False,,,,notes on how to find back the marking
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment,Unnamed: 10
+locationinfo_id,int,True,,True,True,,,,location info index (technical),
+log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry,
+log_creation,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of creation,
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry,
+log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification,
+location_id,int,True,,False,False,,,,the technical sequence of all locations,
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)",
+landowner,varchar,False,NULL,False,False,,,,reference to the land owner,
+accessibility_inaccessible,boolean,False,NULL,False,False,,,,tag inaccessible locations,
+accessibility_revisit,date,False,NULL,False,False,,,,anticipate accessibility change,
+recovery_hints,varchar,False,NULL,False,False,,,,notes on how to find back the marking,
+watina_code_1,varchar,False,NULL,False,False,,,,prepared and reserved WATINA code for obs well placement (1),
+watina_code_2,varchar,False,NULL,False,False,,,,prepared and reserved WATINA code for obs well placement (2), 

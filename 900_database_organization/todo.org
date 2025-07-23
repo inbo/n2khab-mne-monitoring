@@ -87,7 +87,13 @@
 
 
 * mnmgwdb
-+ [ ] good question Tom: where is =GWINSTPIEZWELL=?
++ [X] good question Tom: where is =GWINSTPIEZWELL=? -> filter group instead of activity.
++ [X] two watina_code fields instead of one
++ [ ] replacement / split -> duplicate activities
++ [ ] plan lab activity capacity limit
+  + [ ] gather info about lab load per activity
+  + [ ] compute capacity per workweek
+  + [ ] view/adjustment to display this for fw planning
 
 + [ ] meeting @TDD @WT @KW @FV @FM <2025-07-02 Wed> MNM Fieldwork Outbound/Planning app
   + [ ] INBO arcgis -> qgis via web services?

@@ -1,0 +1,14 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+fieldwork_id,int,True,,True,False,,,,fieldwork index: shared index over multiple fieldwork activity tables
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
+samplelocation_id,int,False,,False,False,,,,sample location index (technical) or NULL for obsolete visits
+fieldworkcalendar_id,int,False,,False,False,outbound.FieldworkCalendar.fieldworkcalendar_id,,,link to FwC
+visit_id,int,False,,False,False,inbound.Visits.visit_id,,,link to the `Visits`
+grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements) needed for retainer lookup"
+activity_group_id,smallint,True,,False,False,,,,"a link to the activity metadata, brought here via fieldworkcalendar for convenience"
+date_start,date,True,,False,False,,,,start of the panel activity sequence (included to keep recurrent visits unique)
+teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
+date_visit,date,False,NULL,False,False,,,,date of the field activity
+visit_done,boolean,True,0,False,False,,,,double check that the activity was complete
+lims_code,varchar,False,NULL,False,False,,,,LIMS code of this sampling visit

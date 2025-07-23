@@ -1067,11 +1067,12 @@ also moved =recovery_hints= to =LocationInfos=
 Ward is storing notes about the SampleUnits in Replacements.
 
 
-** TODO activity or activity_group?
+** activity or activity_group?
 SCHEDULED: <2025-07-18 Fri>
 
 What to filter for in the grouped_activity table?
 -> now went for =activity_group=
+also confirmed with loceval tasks that there was none forgotten
 
 
 ** TODO data type issues in sync FreeFieldNotes
@@ -1125,7 +1126,7 @@ SCHEDULED: <2025-07-02 Wed>
 + [X] Locations
 + [X] LocationAssessments
 + [X] FieldActivityCalendar
-+ [ ] Visits
++ [X] Visits
 
 
 ** create tester user
@@ -1217,6 +1218,34 @@ SCHEDULED: <2025-07-23 Wed>
 + added fields
 + updated views
 + removed old field
+
+
+** FieldWork view
+SCHEDULED: <2025-07-23 Wed>
+
+major update.
+
++ concept: multiple tables per activity group
++ one view to rule them all
++ shared index of =*Activities= tables
+  + via =EXPOST= code
+  + =COALESCE= in view
+
+
+** TODO FieldWork "app"
+SCHEDULED: <2025-07-24 Thu>
+
++ personalized
++ translated
++ dynamic
+
+
+** TODO [#A] random placement
+SCHEDULED: <2025-07-24 Thu>
+
+give random positions in the vicinity of cell centre,
+but not in the MHQ target area,
+as polar coordinates.
 
 
 * learning the hard way
@@ -1329,7 +1358,7 @@ SELECT * FROM "inbound"."FreeFieldNotes" WHERE NOT log_creator = 'falk';
 SELECT * FROM "inbound"."CellMaps";
 
 
-SELECT visit_id, sampleunit_id, notes FROM "inbound"."Visits"
+SELECT visit_id, log_update, sampleunit_id, notes FROM "inbound"."Visits"
   WHERE visit_done
   AND notes IS NOT NULL;
 
@@ -1348,8 +1377,10 @@ WHERE REP.is_selected
   AND NOT REP.is_inappropriate
   AND UNIT.is_replaced
 ;
+#+end_src
 
 
+#+begin_src sql :eval no
 -- mnmgwdb
 SELECT * FROM "outbound"."FieldworkPlanning" WHERE done_planning;
 
@@ -1370,4 +1401,7 @@ LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON SLOC.samplelocation_id = VST.samplelocation_id
 ;
+
+
+SELECT DISTINCT eval_source, count(*) FROM "outbound"."LocationEvaluations" GROUP BY eval_source;
 #+end_src
