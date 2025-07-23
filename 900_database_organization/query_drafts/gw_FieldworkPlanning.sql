@@ -13,6 +13,8 @@ SELECT
   INFO.accessibility_revisit,
   INFO.landowner,
   INFO.recovery_hints,
+  INFO.watina_code_1,
+  INFO.watina_code_2,
   FWCAL.fieldworkcalendar_id,
   FWCAL.samplelocation_id,
   FWCAL.date_start,
@@ -35,7 +37,6 @@ SELECT
   FWCAL.teammember_assigned,
   FWCAL.date_visit_planned,
   FWCAL.no_visit_planned,
-  FWCAL.watina_code,
   FWCAL.notes,
   FWCAL.done_planning,
   LOCEVAL.has_loceval,
@@ -87,12 +88,21 @@ DO INSTEAD
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
   no_visit_planned = NEW.no_visit_planned,
-  watina_code = NEW.watina_code,
   notes = NEW.notes,
   done_planning = NEW.done_planning
  WHERE fieldworkcalendar_id = OLD.fieldworkcalendar_id
 ;
 
+DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd2 AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO ALSO
+ UPDATE "outbound"."LocationInfos"
+ SET
+  watina_code_1 = NEW.watina_code_1,
+  watina_code_2 = NEW.watina_code_2
+ WHERE locationinfo_id = OLD.locationinfo_id
+;
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tom;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  yglinga;

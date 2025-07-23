@@ -1209,6 +1209,13 @@ What to filter for in the grouped_activity table?
 -> now went for =activity_group=
 
 
+** duplicate watina_code
+SCHEDULED: <2025-07-23 Wed>
+
++ added fields
++ updated views
++ removed old field
+
 
 * learning the hard way
 
