@@ -303,6 +303,7 @@ update_datatable_and_dependent_keys <- function(
     characteristic_columns = NULL,
     rename_characteristics = NULL,
     db_connection = NULL,
+    skip_sequence_reset = FALSE,
     verbose = TRUE
     ) {
 
@@ -486,7 +487,7 @@ update_datatable_and_dependent_keys <- function(
   )
 
   # On the occasion, we reset the sequence counter
-  if (length(pk) > 0) {
+  if ((length(pk) > 0) && (!skip_sequence_reset)) {
     execute_sql(
       db_target,
       glue::glue('ALTER SEQUENCE "{get_schema(table_key)}".seq_{pk} RESTART WITH 1;'),
@@ -685,6 +686,7 @@ parametrize_cascaded_update <- function(
       index_columns,
       tabula_rasa = FALSE,
       characteristic_columns = NULL,
+      skip_sequence_reset = FALSE,
       verbose = TRUE
     ) {
 
@@ -767,6 +769,7 @@ parametrize_cascaded_update <- function(
       dbstructure_folder = dbstructure_folder,
       db_connection = db_connection,
       characteristic_columns = characteristic_columns,
+      skip_sequence_reset = skip_sequence_reset,
       verbose = verbose
     )
     # TODO rename_characteristics = rename_characteristics,

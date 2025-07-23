@@ -23,24 +23,24 @@ library("mapview")
 projroot <- find_root(is_rstudio_project)
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-# if (FALSE) {
-#   # testing
-#   working_dbname <- "mnmgwdb_testing"
-#   connection_profile <- "mnmgwdb-testing"
-#   dbstructure_folder <- "./mnmgwdb_db_structure"
-# } else {
-#   # dev
-#   working_dbname <- "mnmgwdb_dev"
-#   connection_profile <- "mnmgwdb-dev"
-#   dbstructure_folder <- "./mnmgwdb_dev_structure"
-# }
+if (FALSE) {
+  # testing
+  working_dbname <- "mnmgwdb_testing"
+  connection_profile <- "mnmgwdb-testing"
+  dbstructure_folder <- "./mnmgwdb_db_structure"
+} else {
+  # dev
+  working_dbname <- "mnmgwdb_dev"
+  connection_profile <- "mnmgwdb-dev"
+  dbstructure_folder <- "./mnmgwdb_dev_structure"
+}
 
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
-working_dbname <- "mnmgwdb"
-connection_profile <- "mnmgwdb"
-dbstructure_folder <- "./mnmgwdb_db_structure"
+# working_dbname <- "mnmgwdb"
+# connection_profile <- "mnmgwdb"
+# dbstructure_folder <- "./mnmgwdb_db_structure"
 # source("220_upload_mnmgwdb.R")
 
 config <- configr::read.config(file = config_filepath)[[connection_profile]]
@@ -308,11 +308,11 @@ grouped_activities <- grouped_activities %>%
 grouped_activities_upload <- grouped_activities %>%
   lookup_join(protocol_lookup, "protocol")
 
-grouped_activities_upload %>%
-  filter(activity_group == "GWINSTPIEZWELL") %>%
-  glimpse()
-grouped_activities_upload %>%
-  select(activity_group, is_gw_activity) %>% print(n=Inf)
+# grouped_activities_upload %>%
+#   filter(activity_group == "GWINSTPIEZWELL") %>%
+#   glimpse()
+# grouped_activities_upload %>%
+#   select(activity_group, is_gw_activity) %>% print(n=Inf)
 # NOT append_tabledata(
 #   db_connection,
 #   DBI::Id(schema = "metadata", table = "GroupedActivities"),
@@ -567,6 +567,8 @@ cleanup_query <- glue::glue(
       AND log_user = ANY ({maintenance_users}::varchar[])
       AND (accessibility_inaccessible IS NULL OR (NOT accessibility_inaccessible))
       AND (accessibility_revisit IS NULL)
+      AND (watina_code_1 IS NULL)
+      AND (watina_code_2 IS NULL)
   ;" # landowner will be script-updated (outbound)
 )
 execute_sql(
@@ -597,8 +599,9 @@ cleanup_query <- glue::glue(
       AND (notes IS NULL)
       AND (photo IS NULL)
       AND (lims_code IS NULL)
-      AND (NOT visit_cancelled)
-     AND NOT visit_done;"
+      AND (NOT issues)
+      AND (NOT visit_done)
+   ;"
 )
 execute_sql(
   db_connection,
@@ -625,7 +628,6 @@ cleanup_query <- glue::glue(
      AND (teammember_assigned IS NULL)
      AND (date_visit_planned IS NULL)
      AND (NOT no_visit_planned)
-     AND (watina_code IS NULL)
      AND (notes IS NULL)
      AND (NOT done_planning)
      AND (fieldworkcalendar_id NOT IN (
@@ -654,6 +656,64 @@ previous_calendar_plans <- dplyr::tbl(
   collect()
 
 # glimpse(previous_calendar_plans)
+
+
+
+## ----previous-activities----------------------------------------------
+table_str <- '"inbound"."WellInstallationActivities"'
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE TRUE
+      AND log_user = ANY ({maintenance_users}::varchar[])
+      AND (no_diver IS NULL OR (NOT no_diver))
+      AND (diver_id IS NULL)
+      AND (photo_soil IS NULL)
+      AND (photo_well IS NULL)
+      AND (teammember_id IS NULL)
+      AND (date_visit IS NULL)
+      AND (NOT visit_done)
+  ;"
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = TRUE
+)
+
+previous_wellinstallations <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "inbound", table = "WellInstallationActivities"),
+  ) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
+  collect()
+
+
+table_str <- '"inbound"."ChemicalSamplingActivities"'
+maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
+cleanup_query <- glue::glue(
+  "DELETE FROM {table_str}
+    WHERE TRUE
+      AND log_user = ANY ({maintenance_users}::varchar[])
+      AND (lims_code IS NULL)
+      AND (teammember_id IS NULL)
+      AND (date_visit IS NULL)
+      AND (NOT visit_done)
+  ;"
+)
+execute_sql(
+  db_connection,
+  cleanup_query,
+  verbose = TRUE
+)
+
+previous_chemicalsamplings <- dplyr::tbl(
+  db_connection,
+  DBI::Id(schema = "inbound", table = "ChemicalSamplingActivities"),
+  ) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
+  collect()
+
 
 
 ## ----upload-locations----------------------------------------------
@@ -960,7 +1020,7 @@ new_visits <- fieldwork_calendar_lookup %>%
   mutate(
     log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
-    visit_cancelled = FALSE,
+    issues = FALSE,
     visit_done = FALSE
   )
 
@@ -983,6 +1043,33 @@ visits_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
+
+### TODO GWSHALLSAMP!!!
+if (FALSE) {
+
+  grouped_activities  %>%
+    filter(is_gw_activity, grepl("^GW.*SAMP", activity_group)) %>%
+    select(
+      activity_group,
+      activity,
+      activity_name
+    )
+
+  visits_lookup %>%
+    distinct(activity_group_id) %>%
+    left_join(
+      grouped_activities,
+      by = join_by(activity_group_id)
+    ) %>%
+    select(
+      activity_group,
+      activity,
+      activity_name
+    )
+
+  fieldwork_2025_prioritization_shorter %>%
+    distinct(field_activity_group)
+}
 
 ## (DONE: LocationEvaluations incl. recovery_hints)
 
@@ -1138,7 +1225,127 @@ landuse_reload <- dplyr::tbl(
 # landuse_reload %>% write.csv("dumps/landuse.csv")
 
 
+##//////////////////////////////////////////////////////////////////////////////
+## ACTIVITIES <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+##\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+visits_reload <- dplyr::tbl(
+    db_connection,
+    DBI::Id("inbound", "Visits")
+  ) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
+  select(
+    samplelocation_id,
+    fieldworkcalendar_id,
+    visit_id,
+    grts_address,
+    activity_group_id,
+    date_start
+  ) %>%
+  collect()
+
+
+fieldwork_charcols <- c(
+    "samplelocation_id",
+    "fieldworkcalendar_id",
+    "visit_id",
+    "grts_address",
+    "activity_group_id",
+    "date_start"
+  )
+
+
+## ---- WellInstallationActivities ---------------------------------------------
+
+activity_subset <- grouped_activities_upload %>%
+  filter(grepl("^GWINST", activity_group))
+
+# visits_linked <- visits_upload %>%
+#   left_join(
+#     visits_lookup,
+#     by = join_by(!!!visits_characols)
+#   )
+
+wellinstallations <- visits_reload %>%
+  semi_join(
+    activity_subset,
+    by = join_by(activity_group_id)
+  )
+
+
+# TODO: re-download previous_wellinstallations?
+#       -> check whether duplicates appear due to failed anti-join after id renewal elsewhere
+
+wellinstallations_upload <- wellinstallations %>%
+  anti_join(
+    previous_wellinstallations,
+    by = join_by(!!!fieldwork_charcols)
+  ) %>%
+  mutate(
+    no_diver = FALSE,
+    visit_done = FALSE,
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time())
+  )
+
+wellinstallation_lookup <- update_cascade_lookup(
+  schema = "inbound",
+  table_key = "WellInstallationActivities",
+  new_data = wellinstallations_upload,
+  index_columns = c("fieldwork_id"),
+  characteristic_columns = fieldwork_charcols,
+  skip_sequence_reset = TRUE,
+  verbose = TRUE
+)
+
+
+## ---- ChemicalSamplingActivities ---------------------------------------------
+
+activity_subset <- grouped_activities_upload %>%
+  filter(activity_group %in%
+    c(grouped_activities_upload %>%
+      filter(grepl("^GW.*SAMP", activity)) %>%
+      pull(activity_group))
+  )
+
+chemicalsamplings <- visits_reload %>%
+  semi_join(
+    activity_subset,
+    by = join_by(activity_group_id)
+  )
+
+chemicalsampling_upload <- chemicalsamplings %>%
+  anti_join(
+    previous_chemicalsamplings,
+    by = join_by(!!!fieldwork_charcols)
+  ) %>%
+  mutate(
+    visit_done = FALSE,
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time())
+  )
+
+chemicalsampling_lookup <- update_cascade_lookup(
+  schema = "inbound",
+  table_key = "ChemicalSamplingActivities",
+  new_data = chemicalsampling_upload,
+  index_columns = c("fieldwork_id"),
+  characteristic_columns = fieldwork_charcols,
+  skip_sequence_reset = TRUE,
+  verbose = TRUE
+)
+
+
+
 ## ----done!----------------------------------------------
 
 # python 210_init_mnmgwdb.py 2>&1 | tee dump1.log
 # Rscript 220_upload_mnmgwdb.R 2>&1 | tee dump2.log
+# source("220_upload_mnmgwdb.R")
+
+# fw_check <- dplyr::tbl(
+#   db_connection,
+#   DBI::Id("inbound", "FieldWork")
+# ) %>% collect
+#
+# fw_check %>% mutate(fwid_is_null = is.na(fieldwork_id)) %>% count(activity_group_id, fwid_is_null)

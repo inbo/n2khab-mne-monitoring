@@ -388,6 +388,7 @@ def EnsureNestedQuerySpacing(query: str) -> str:
             , "BEFORE", "BEGIN", "END" \
             , "CREATE", "DROP", "FOR EACH", "EXECUTE" \
             , "MATCH", "SIMPLE", "ON DELETE", "ON UPDATE", "CASCADE" \
+            , "INCREMENT", "MINVALUE", "MAXVALUE", "START WITH", "CACHE", "NO CYCLE" \
         ]:
         query = query.replace(keyword, f"\n\t{keyword} ")
 

@@ -342,17 +342,17 @@ grouped_activity_lookup <- update_cascade_lookup(
 ## n2khab type to stratum (below)
 
 ## already included "out-of-the-snippet"
-# extra_types <- n2khab_strata %>%
-#   distinct(type) %>%
-#   expand_types(mark = TRUE) %>%
-#   filter(added_by_expansion) %>%
-#   select(type) %>%
-#   inner_join(
-#     read_types() %>%
-#       select(1:3) %>%
-#       filter(typelevel == "subtype"),
-#     join_by(type)
-#   )
+extra_types <- n2khab_strata %>%
+  distinct(type) %>%
+  expand_types(mark = TRUE) %>%
+  filter(added_by_expansion) %>%
+  select(type) %>%
+  inner_join(
+    read_types() %>%
+      select(1:3) %>%
+      filter(typelevel == "subtype"),
+    join_by(type)
+  )
 
 n2khab_types_upload <- bind_rows(
   as_tibble(list(

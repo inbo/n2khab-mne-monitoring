@@ -7,9 +7,12 @@ metadata,SSPSTaPas,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",
 metadata,Locations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
 metadata,LocationCells,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
 outbound,LocationInfos,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
-outbound,SampleLocations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
+outbound,SampleLocations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
 outbound,LocationEvaluations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
 outbound,FieldworkCalendar,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,field activity calender
+outbound,Divers,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",tom,,,,1,,list of reserved diver numbers for selection
 inbound,Visits,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,"inbound information about location visits, planned in FieldworkCalendar, linked to SampleLocations and field activity GROUP"
+inbound,WellInstallationActivities,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,information collected for certain activities (well installations); linked to a subset of Visits
+inbound,ChemicalSamplingActivities,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,information collected for certain activities (chemical sampling); linked to a subset of Visits
 inbound,CellMaps,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POLYGON,,,1,1,cell mapping input by drawing polygons
 inbound,FreeFieldNotes,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"

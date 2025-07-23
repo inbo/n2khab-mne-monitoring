@@ -4,38 +4,46 @@ DROP VIEW IF EXISTS  "inbound"."FieldWork" ;
 CREATE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
-  FACAL.teammember_assigned,
-  FACAL.activity_rank,
-  CASE WHEN (FACAL.date_visit_planned IS NULL) THEN FALSE ELSE TRUE END AS is_scheduled,
-  FACAL.date_visit_planned,
-  FACAL.date_visit_planned - current_date AS days_to_visit,
-  FACAL.date_end - current_date AS days_to_deadline,
-  FACAL.landowner,
-  FACAL.watina_code,
-  FACAL.notes AS preparation_notes,
+  FwCAL.teammember_assigned,
+  FwCAL.activity_rank,
+  CASE WHEN (FwCAL.date_visit_planned IS NULL) THEN FALSE ELSE TRUE END AS is_scheduled,
+  FwCAL.date_visit_planned,
+  FwCAL.date_visit_planned - current_date AS days_to_visit,
+  FwCAL.date_end - current_date AS days_to_deadline,
+  FwCAL.notes AS preparation_notes,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
   VISIT.notes,
   VISIT.photo,
-  VISIT.lims_code,
-  VISIT.visit_cancelled,
-  VISIT.visit_done,
+  VISIT.issues,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
   INFO.recovery_hints,
+  INFO.landowner,
+  INFO.watina_code_1,
+  INFO.watina_code_2,
   GAP.activity_group_id,
   GAP.is_field_activity,
   GAP.is_gw_activity,
-  GAP.protocols
+  GAP.protocols,
+  COALESCE( WIA.fieldwork_id, CSA.fieldwork_id) AS fieldwork_id,
+  WIA.photo_soil,
+  WIA.photo_well,
+  WIA.watina_code_used_1,
+  WIA.watina_code_used_2,
+  WIA.no_diver,
+  WIA.diver_id,
+  CSA.lims_code,
+  VISIT.visit_done
 FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
-LEFT JOIN "metadata"."LocationInfos" AS INFO
+LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON INFO.location_id = VISIT.location_id
-LEFT JOIN "outbound"."FieldActivityCalendar" AS FACAL
-  ON FACAL.fieldactivitycalendar_id = VISIT.fieldactivitycalendar_id
+LEFT JOIN "outbound"."FieldworkCalendar" AS FwCAL
+  ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN (
   SELECT DISTINCT
     activity_group_id,
@@ -53,9 +61,13 @@ LEFT JOIN (
     is_gw_activity
   ) AS GAP
   ON GAP.activity_group_id = VISIT.activity_group_id
+LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
+  ON VISIT.visit_id = WIA.visit_id
+LEFT JOIN "inbound"."ChemicalSamplingActivities" AS CSA
+  ON VISIT.visit_id = CSA.visit_id
 WHERE TRUE
-  AND ((FACAL.no_visit_planned IS NULL) OR (NOT FACAL.no_visit_planned))
-  AND NOT FACAL.excluded
+  AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
+  AND NOT FwCAL.excluded
   AND GAP.is_gw_activity
 ;
 
@@ -72,8 +84,7 @@ DO INSTEAD
   date_visit = NEW.date_visit,
   notes = NEW.notes,
   photo = NEW.photo,
-  lims_code = NEW.lims_code,
-  visit_cancelled = NEW.visit_cancelled,
+  issues = NEW.issues,
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
@@ -86,9 +97,41 @@ DO ALSO
  SET
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit,
-  recovery_hints = NEW.recovery_hints,
+  recovery_hints = NEW.recovery_hints
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
+
+DROP RULE IF EXISTS FieldWork_upd2 ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd2 AS
+ON UPDATE TO "inbound"."FieldWork"
+DO ALSO
+ UPDATE "inbound"."WellInstallationActivities"
+ SET
+  teammember_id = NEW.teammember_id,
+  date_visit = NEW.date_visit,
+  photo_soil = NEW.photo_soil,
+  photo_well = NEW.photo_well,
+  watina_code_used_1 = NEW.watina_code_used_1,
+  watina_code_used_2 = NEW.watina_code_used_2,
+  no_diver = NEW.no_diver,
+  diver_id = NEW.diver_id,
+  visit_done = NEW.visit_done
+ WHERE fieldwork_id = OLD.fieldwork_id
+;
+
+DROP RULE IF EXISTS FieldWork_upd3 ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd3 AS
+ON UPDATE TO "inbound"."FieldWork"
+DO ALSO
+ UPDATE "inbound"."ChemicalSamplingActivities"
+ SET
+  teammember_id = NEW.teammember_id,
+  date_visit = NEW.date_visit,
+  lims_code = NEW.lims_code,
+  visit_done = NEW.visit_done
+ WHERE fieldwork_id = OLD.fieldwork_id
+;
+
 
 GRANT SELECT ON  "inbound"."FieldWork"  TO  tom;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  yglinga;
