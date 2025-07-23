@@ -33,6 +33,9 @@ if (TRUE){
   connection_profile <- "loceval-dev"
   dbstructure_folder <- "./loceval_dev_structure"
 }
+working_dbname <- "loceval_staging"
+connection_profile <- "loceval-staging"
+dbstructure_folder <- "./loceval_dev_structure"
 
 
 # # you might want to run the following prior to sourcing or rendering this script:
@@ -281,19 +284,34 @@ grouped_activities <- grouped_activities %>%
 
 # tag activities for biotic location evaluation
 grouped_activities <- grouped_activities %>%
-  mutate(is_loceval_activity =
-    activity %in% c(
-      "LOCEVALAQ",
-      "LOCEVALAQ",
-      "LOCEVALAQ",
-      "LOCEVALTERR",
-      "LSVIAQ",
-      "LSVITERR",
-      "SURFLENTSAMPLPOINT",
-      "SURFLOTSAMPLPOINT"
-      )
+  mutate(
+    is_loceval_activity =
+      activity_group %in% c(
+        "LOCEVALAQ",
+        "LOCEVALTERR",
+        "LSVIAQ",
+        "LSVITERR",
+        "SURFLENTLOCEVALSAMPLPOINT",
+        "SURFLOTLOCEVALSAMPLPOINT",
+        "SURFLENTSAMPLPOINT",
+        "SURFLOTSAMPLPOINT"
+        )
   )
-
+#    , wrong_loceval_activity =
+#       activity %in% c(
+#         "LOCEVALAQ",
+#         "LOCEVALAQ",
+#         "LOCEVALAQ",
+#         "LOCEVALTERR",
+#         "LSVIAQ",
+#         "LSVITERR",
+#         "SURFLENTSAMPLPOINT",
+#         "SURFLOTSAMPLPOINT"
+#         )
+# knitr::kable(grouped_activities %>%
+#   filter(is_loceval_activity != wrong_loceval_activity) %>%
+#   select(-grouped_activity_id, -activity_id, -activity_group_id, -protocol, -is_lab_activity, -is_prep_activity)
+#   )
 
 ## ----upload-grouped-activities------------------------------------------------
 
