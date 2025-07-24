@@ -33,9 +33,6 @@ if (TRUE){
   connection_profile <- "loceval-dev"
   dbstructure_folder <- "./loceval_dev_structure"
 }
-working_dbname <- "loceval_staging"
-connection_profile <- "loceval-staging"
-dbstructure_folder <- "./loceval_dev_structure"
 
 
 # # you might want to run the following prior to sourcing or rendering this script:
@@ -380,6 +377,7 @@ n2khabtype_lookup <- update_cascade_lookup(
 
 
 # SELECT DISTINCT type FROM "metadata"."N2kHabTypes" ORDER BY type;
+n2khab_strata %>% filter(grepl('91[6E]0.*', type))
 
 n2khab_strata_upload <- bind_rows(
   as_tibble(list(

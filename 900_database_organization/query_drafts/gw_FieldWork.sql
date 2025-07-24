@@ -1,6 +1,6 @@
 
 
-DROP VIEW IF EXISTS  "inbound"."FieldWork" ;
+DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
@@ -29,6 +29,8 @@ SELECT
   GAP.is_gw_activity,
   GAP.protocols,
   COALESCE( WIA.fieldwork_id, CSA.fieldwork_id) AS fieldwork_id,
+  CASE WHEN WIA.is_installation IS NULL THEN FALSE ELSE WIA.is_installation END AS show_installation,
+  CASE WHEN CSA.is_sampling IS NULL THEN FALSE ELSE CSA.is_sampling END AS show_sampling,
   WIA.photo_soil,
   WIA.photo_well,
   WIA.watina_code_used_1,
@@ -61,9 +63,15 @@ LEFT JOIN (
     is_gw_activity
   ) AS GAP
   ON GAP.activity_group_id = VISIT.activity_group_id
-LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
+LEFT JOIN (
+  SELECT *, TRUE AS is_installation
+  FROM "inbound"."WellInstallationActivities"
+) AS WIA
   ON VISIT.visit_id = WIA.visit_id
-LEFT JOIN "inbound"."ChemicalSamplingActivities" AS CSA
+LEFT JOIN (
+  SELECT *, TRUE AS is_sampling
+  FROM "inbound"."ChemicalSamplingActivities"
+) AS CSA
   ON VISIT.visit_id = CSA.visit_id
 WHERE TRUE
   AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
@@ -141,6 +149,7 @@ GRANT SELECT ON  "inbound"."FieldWork"  TO  wouter;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  floris;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  karen;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
+GRANT SELECT ON  "inbound"."FieldWork"  TO  falk;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  ward;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  monkey;
 
@@ -152,3 +161,4 @@ GRANT UPDATE ON  "inbound"."FieldWork"  TO  wouter;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  floris;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  karen;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
+GRANT UPDATE ON  "inbound"."FieldWork"  TO  falk;

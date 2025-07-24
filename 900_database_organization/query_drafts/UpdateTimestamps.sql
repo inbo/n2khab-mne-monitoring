@@ -67,6 +67,11 @@ CREATE TRIGGER log_wellinstallationactivities
 BEFORE UPDATE ON "inbound"."WellInstallationActivities"
 FOR EACH ROW EXECUTE PROCEDURE sync_mod();
 
+DROP TRIGGER IF EXISTS log_chemicalsamplingactivities ON "inbound"."ChemicalSamplingActivities";
+CREATE TRIGGER log_chemicalsamplingactivities
+BEFORE UPDATE ON "inbound"."ChemicalSamplingActivities"
+FOR EACH ROW EXECUTE PROCEDURE sync_mod();
+
 DROP TRIGGER IF EXISTS log_freefieldnotes ON "inbound"."FreeFieldNotes";
 CREATE TRIGGER log_freefieldnotes
 BEFORE UPDATE ON "inbound"."FreeFieldNotes"
