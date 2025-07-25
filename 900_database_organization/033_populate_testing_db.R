@@ -5,8 +5,8 @@ library("dplyr")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
-# database_label <- "mnmgwdb"
-database_label <- "loceval"
+database_label <- "mnmgwdb"
+# database_label <- "loceval"
 target_mirror <- "testing"
 
 # credentials are stored for easy access

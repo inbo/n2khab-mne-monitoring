@@ -187,6 +187,8 @@ location_reference_list = {
     '"outbound"."LocationEvaluations"': {'grts': True, 'location_id': False}
 }
 
+# TODO it is necessary to duplicate lines if strata are moved to other places.
+# TODO maybe retain original grts and stratum
 
 for table_namestring, has_columns in location_reference_list.items():
     has_grts = has_columns['grts']

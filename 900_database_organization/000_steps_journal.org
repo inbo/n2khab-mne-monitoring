@@ -1226,13 +1226,14 @@ SCHEDULED: <2025-07-23 Wed>
 major update.
 
 + concept: multiple tables per activity group
+  +
 + one view to rule them all
 + shared index of =*Activities= tables
   + via =EXPOST= code
   + =COALESCE= in view
 
 
-** TODO FieldWork "app"
+** FieldWork "app"
 SCHEDULED: <2025-07-24 Thu>
 
 + personalized
@@ -1246,6 +1247,23 @@ SCHEDULED: <2025-07-24 Thu>
 give random positions in the vicinity of cell centre,
 but not in the MHQ target area,
 as polar coordinates.
+Also provide cell mapping
+and MHQ quadrant
+
+
+** missing =location_id= in =mnmgwdb=
+SCHEDULED: <2025-07-25 Fri>
+
+location_id 527 / grts_address 6314694
+had lost their connection.
+Got manually re-established.
+
+** watina codes decision
+SCHEDULED: <2025-07-25 Fri>
+
+| even | 2 | piezometer | (filter on deep 60 cm)       |
+| odd  | 1 | peilbuis   | (filter almost whole length) |
+
 
 
 * learning the hard way
