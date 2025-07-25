@@ -28,17 +28,27 @@
   + [X] =FieldNotes= -> free input
 + [X] something wrong with python =getpasswd=
 
++ [ ] adjustment 2190_a* (mail Floris)
 
 * loceval
 + [ ] remove ="FieldActivityCalendar".grts_join_method=
 + [X] overhaul =ExtraVisits= -> multi visits per location +> grouped_activity_id
 
-+ [ ] change requests Ward 20250716
++ [ ] what is wrong with =SampleUnits= >> =replacement_done=, =is_replaced= in qfield form?
+  + [ ] they seem not to feed back reliably
+  + [ ] update rules?
+  + [ ] wrong join?
+
++ [ ] keep =grts_original= for replacements (sampling always based on original)
+
++ [ ] check incomplete replacements
+
++ [X] change requests Ward 20250716
   + [X] rename ="FieldActivityCalendar".acceccibility_revisit=
   + [X] add column ="Visits".recovery_hints=
   + [X] color changes
   + [X] accessibility per SampleUnits
-  + [ ] apply to production
+  + [X] apply to production
 
 + [ ] accessibility across locations (see journal)
 + [ ] ++ =rtkgps_accuracy=
@@ -90,10 +100,21 @@
 + [X] good question Tom: where is =GWINSTPIEZWELL=? -> filter group instead of activity.
 + [X] two watina_code fields instead of one
 + [ ] replacement / split -> duplicate activities
+  + [ ] in script =092_*.py=
+  + [ ] in the update procedure
 + [ ] plan lab activity capacity limit
   + [ ] gather info about lab load per activity
   + [ ] compute capacity per workweek
   + [ ] view/adjustment to display this for fw planning
+
++ [ ] qgis/qfield authentification for project sharing, there must be something online
++ [ ] soilmap_simple as gpkg layer
++ [ ] cell mapping
++ [ ] new fields
+  + [ ] divers: free field for exotic divers / re-use
+  + [ ] two fotos soil profiles
+  + [ ] checkbox for requiring "soil profile revision"
+  + [ ] LIMS: project code + recipient code
 
 + [ ] meeting @TDD @WT @KW @FV @FM <2025-07-02 Wed> MNM Fieldwork Outbound/Planning app
   + [ ] INBO arcgis -> qgis via web services?
@@ -120,6 +141,8 @@
   + [ ] naming a priori by Tom; provide voronoi polygon layer
 
 + [ ] see mail
+
++ [ ] divers: batch, serial; ++ view with previously placed
 
 * POC
 + [ ] =mnmgwdb=:
