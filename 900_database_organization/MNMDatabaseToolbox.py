@@ -176,11 +176,16 @@ def ConnectDatabase(config_filepath, database = None, connection_config = None, 
     return(connection)
 
 
-def ExecuteSQL(db_connection, sql_command, verbose = True) -> None:
+def ExecuteSQL(db_connection, sql_command, verbose = True, test_dry = False) -> None:
     # execute an sql statement, with all the necessary connection management
 
     if verbose:
         print(sql_command)
+
+    if test_dry:
+        print("skipped.")
+        return
+
     db_connection.execute(SQL.text(sql_command))
     db_connection.commit()
 

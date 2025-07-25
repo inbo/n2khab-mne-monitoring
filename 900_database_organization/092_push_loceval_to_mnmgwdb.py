@@ -17,6 +17,9 @@ import geopandas as GPD
 suffix = "-testing"
 # suffix = ""
 
+
+dry_test = True
+
 base_folder = DTB.PL.Path(".")
 
 loceval = DTB.ConnectDatabase(
@@ -36,6 +39,62 @@ mnmgwdb = DTB.ConnectDatabase(
 
 ### find local replacements
 
+transfer_data = PD.read_sql_table( \
+        "gwTransfer", \
+        schema = "outbound", \
+        con = loceval.connection \
+    ).astype({"grts_address": int})
+# transfer_data.loc[
+#     NP.logical_and(
+#         transfer_data["grts_address"].values == 23238,
+#         transfer_data["eval_source"].values == "loceval"
+#     ), :].T
+samplelocations_lookup = PD.read_sql_table( \
+        "SampleLocations", \
+        schema = "outbound", \
+        con = mnmgwdb.connection \
+    ).loc[:, ["grts_address", "samplelocation_id"]] \
+    .astype({"grts_address": int, "samplelocation_id": int}) \
+    .set_index("grts_address", inplace = False)
+
+# before we upload, we need to collect all locations
+loceval_joined = transfer_data \
+    .join(
+        samplelocations_lookup, \
+        how = "left", \
+        on = "grts_address"
+    )
+
+
+loceval_nolocations = loceval_joined.loc[
+    PD.isna(loceval_joined["samplelocation_id"].values),
+    :]
+# TODO dump!!
+
+loceval_upload = loceval_joined.loc[
+    NP.logical_not(PD.isna(loceval_joined["samplelocation_id"].values)),
+    :] \
+    .astype({"grts_address": int, "samplelocation_id": int})
+
+print(loceval_upload.sample(3).T)
+
+delete_command = f"""
+       DELETE FROM "outbound"."LocationEvaluations"
+       WHERE TRUE;
+   """
+DTB.ExecuteSQL(mnmgwdb, delete_command, verbose = True, test_dry = dry_test)
+
+# print(insert_command)
+loceval_upload.to_sql( \
+    "LocationEvaluations", \
+    schema = "outbound", \
+    con = mnmgwdb.connection, \
+    index = False, \
+    if_exists = "append", \
+    method = "multi" \
+)
+
+# important: these are not relocated!
 
 
 
@@ -154,7 +213,7 @@ for idx, row in new_locations.iterrows():
 
     # print(insert_command)
 
-    DTB.ExecuteSQL(mnmgwdb, insert_command, verbose = True)
+    DTB.ExecuteSQL(mnmgwdb, insert_command, verbose = True, test_dry = dry_test)
 
 
 
@@ -275,7 +334,7 @@ def DuplicateTableRow(
         WHERE {identifier_string};
     """
 
-    DTB.ExecuteSQL(db, insert_command, verbose = True)
+    DTB.ExecuteSQL(db, insert_command, verbose = True, test_dry = dry_test)
 
 
 # SELECT * FROM "outbound"."SampleLocations" WHERE samplelocation_id = 667;
@@ -301,6 +360,7 @@ for grts_to_replace in replacement_data["grts_address"].unique():
     # duplicate = this_grts_replacement.iloc[1, :]
     for duplicate_index, duplicate in this_grts_replacement.iloc[1:, :].iterrows():
 
+        ## duplicate SampleLocation
         samplelocation_next = int(PD.read_sql(
             """
                 SELECT samplelocation_id FROM "outbound"."SampleLocations"
@@ -321,8 +381,11 @@ for grts_to_replace in replacement_data["grts_address"].unique():
             index_newvalues = [samplelocation_next]
            )
 
+        # important: store the right id
         replacement_data.loc[duplicate_index, "new_samplelocation_id"] = samplelocation_next
 
+
+        ## duplicate FieldworkCalendar
         fwcal_next = int(PD.read_sql(
             """
                 SELECT fieldworkcalendar_id FROM "outbound"."FieldworkCalendar"
@@ -343,6 +406,48 @@ for grts_to_replace in replacement_data["grts_address"].unique():
            )
 
 
+        ## duplicate LocationEvaluations
+        loceval_next = int(PD.read_sql(
+            """
+                SELECT locationevaluation_id FROM "outbound"."LocationEvaluations"
+                ORDER BY locationevaluation_id DESC
+                LIMIT 1;
+            """,
+            con = mnmgwdb.connection
+           ).values[0, 0]) + 1
+
+        # TODO !!!  this should rather be a re-link samplelocation_id based on grts and type
+        print(duplicate)
+        print(loceval_upload)
+        grts_old = duplicate["grts_address"]
+        grts_new = duplicate["grts_address_replacement"]
+        type_new = duplicate["type"]
+
+        # stratum_new = duplicate["stratum"]
+        # TODO stratum by join
+
+        update_query = f"""
+                UPDATE "outbound"."LocationEvaluations"
+                SET grts_address = {grts_new}, samplelocation_id = {samplelocation_next}
+                WHERE grts_address = {grts_old} 
+                  AND type = {type_new}
+                  AND samplelocation_id = {old_samplelocation}
+                ;
+        """
+
+        DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = dry_test)
+
+        # DuplicateTableRow(
+        #     db = mnmgwdb,
+        #     schema = "outbound",
+        #     table_key = "LocationEvaluations",
+        #     identifier_dict = {"samplelocation_id": old_samplelocation},
+        #     index_columns = ["locationevaluation_id", "type", "stratum"],
+        #     index_newvalues = [loceval_next, type_new, type_new]
+        #    )
+
+
+        ## duplicate Visits
         visit_next = int(PD.read_sql(
             """
                 SELECT visit_id FROM "inbound"."Visits"
@@ -366,6 +471,7 @@ for grts_to_replace in replacement_data["grts_address"].unique():
         # TODO !!!! ALTER TABLE "outbound"."FieldworkCalendar" DROP CONSTRAINT "FieldworkCalendar_pkey" CASCADE;
         # TODO !!!! ALTER TABLE "inbound"."Visits" DROP CONSTRAINT "Visits_pkey" CASCADE;
 
+        ## duplicate *Activities
         ## check if this is a WIA of CSA
         # activity_table  = "ChemicalSamplingActivities"
         for activity_table in ["WellInstallationActivities", "ChemicalSamplingActivities"]:
@@ -450,7 +556,7 @@ for table_namestring, has_columns in location_reference_list.items():
             """
 
             # print(update_command)
-            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True)
+            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = dry_test)
 
 
     if has_location_id:
@@ -475,66 +581,9 @@ for table_namestring, has_columns in location_reference_list.items():
 
             # print(update_command)
 
-            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True)
+            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = dry_test)
 
 
 # SELECT * FROM "outbound".""
 #
 #
-
-transfer_data = PD.read_sql_table( \
-        "gwTransfer", \
-        schema = "outbound", \
-        con = loceval.connection \
-    ).astype({"grts_address": int})
-# transfer_data.loc[
-#     NP.logical_and(
-#         transfer_data["grts_address"].values == 23238,
-#         transfer_data["eval_source"].values == "loceval"
-#     ), :].T
-samplelocations_lookup = PD.read_sql_table( \
-        "SampleLocations", \
-        schema = "outbound", \
-        con = mnmgwdb.connection \
-    ).loc[:, ["grts_address", "samplelocation_id"]] \
-    .astype({"grts_address": int, "samplelocation_id": int}) \
-    .set_index("grts_address", inplace = False)
-
-# before we upload, we need to collect all locations
-loceval_joined = transfer_data \
-    .join(
-        samplelocations_lookup, \
-        how = "left", \
-        on = "grts_address"
-    )
-
-
-loceval_nolocations = loceval_joined.loc[
-    PD.isna(loceval_joined["samplelocation_id"].values),
-    :]
-# TODO dump!!
-
-loceval_upload = loceval_joined.loc[
-    NP.logical_not(PD.isna(loceval_joined["samplelocation_id"].values)),
-    :] \
-    .astype({"grts_address": int, "samplelocation_id": int})
-
-print(loceval_upload.sample(3).T)
-
-delete_command = f"""
-       DELETE FROM "outbound"."LocationEvaluations"
-       WHERE TRUE;
-   """
-DTB.ExecuteSQL(mnmgwdb, delete_command, verbose = True)
-
-# print(insert_command)
-loceval_upload.to_sql( \
-    "LocationEvaluations", \
-    schema = "outbound", \
-    con = mnmgwdb.connection, \
-    index = False, \
-    if_exists = "append", \
-    method = "multi" \
-)
-
-# important: these are not relocated!
