@@ -8,8 +8,8 @@ import pandas as PD
 import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
-suffix = "-testing"
-# suffix = ""
+# suffix = "-testing"
+suffix = ""
 
 base_folder = DTB.PL.Path(".")
 
