@@ -18,8 +18,6 @@ suffix = "-testing"
 # suffix = ""
 
 
-dry_test = True
-
 base_folder = DTB.PL.Path(".")
 
 loceval = DTB.ConnectDatabase(
@@ -49,6 +47,7 @@ transfer_data = PD.read_sql_table( \
 #         transfer_data["grts_address"].values == 23238,
 #         transfer_data["eval_source"].values == "loceval"
 #     ), :].T
+
 samplelocations_lookup = PD.read_sql_table( \
         "SampleLocations", \
         schema = "outbound", \
@@ -82,7 +81,7 @@ delete_command = f"""
        DELETE FROM "outbound"."LocationEvaluations"
        WHERE TRUE;
    """
-DTB.ExecuteSQL(mnmgwdb, delete_command, verbose = True, test_dry = dry_test)
+DTB.ExecuteSQL(mnmgwdb, delete_command, verbose = True, test_dry = False)
 
 # print(insert_command)
 loceval_upload.to_sql( \
@@ -167,6 +166,7 @@ WHERE UNIT.grts_address IN (
 ;
 """
 
+# select the ones from `loceval` which indicate some replacement
 replacement_data = GPD.read_postgis( \
     query, \
     con = loceval.connection, \
@@ -176,6 +176,7 @@ replacement_data.loc[
     replacement_data["grts_address"].values == 23238
     , :].T
 
+# compare to the locations in `mnmgwdb`
 existing_locations = GPD.read_postgis( \
     """SELECT * FROM "metadata"."Locations";""", \
     con = mnmgwdb.connection, \
@@ -187,6 +188,7 @@ new_locations = replacement_data.loc[
      for grts_repl in replacement_data["grts_address_replacement"].values],
     :
 ]
+# print("\n".join(map(str, list(map(int, sorted(existing_locations["grts_address"].values))))))
 
 ogc_counter = int(existing_locations["ogc_fid"].max())
 lid_counter = int(existing_locations["location_id"].max())
@@ -201,6 +203,7 @@ val_to_geom_point = lambda val: "NULL" if PD.isna(val) else f"'{clean_sqlstr(str
 val_to_int = lambda val: "NULL" if PD.isna(val) else str(int(val))
 
 
+# we start by creating new locations
 for idx, row in new_locations.iterrows():
     geom_str = val_to_geom_point(row["wkb_geometry"])
     grts_new = val_to_int(row["grts_address_replacement"])
@@ -213,7 +216,7 @@ for idx, row in new_locations.iterrows():
 
     # print(insert_command)
 
-    DTB.ExecuteSQL(mnmgwdb, insert_command, verbose = True, test_dry = dry_test)
+    DTB.ExecuteSQL(mnmgwdb, insert_command, verbose = True, test_dry = False)
 
 
 
@@ -225,6 +228,7 @@ for idx, row in new_locations.iterrows():
 # DELETE FROM "metadata"."Locations" WHERE location_id = 1352;
 
 
+## join the new, corrected location id to the list of replacements
 # replacement_data["new_location_id"] = NP.nan
 # replacement_data.drop("new_location_id", axis = 1, inplace = True)
 existing_again = PD.read_sql( \
@@ -244,7 +248,7 @@ replacement_data = replacement_data.join(
 
 replacement_data
 
-### also join samplelocation_id
+## also join samplelocation_id -> lookup to the SampleLocations
 
 existing_samplelocations = PD.read_sql( \
     """SELECT DISTINCT grts_address, samplelocation_id
@@ -259,21 +263,27 @@ replacement_data["samplelocation_id"] = NP.nan
 
 missing = []
 for idx, row in replacement_data.iterrows():
+    # first, check the grts_address
     found_existing = \
         existing_samplelocations["grts_address"].values \
             == row["grts_address"]
+
+    # if that is not found, check whether instead the location appears in previous replacements
     if not any(found_existing):
         found_existing = \
             existing_samplelocations["grts_address"].values \
                 == row["grts_address_replacement"]
 
+    # ... assemble the ones not found
     if not any(found_existing):
         print(idx, row)
         missing.append(idx)
     else:
+        # finally, if it was found, just store the identifier
         replacement_data.loc[idx, "samplelocation_id"] = \
             existing_samplelocations.loc[found_existing, "samplelocation_id"].values[0]
 
+## some of the sample location ids are recovered from the other replacements
 missing_lookup = replacement_data.loc[:, ["grts_address", "samplelocation_id"]].dropna().drop_duplicates()
 missing_lookup.set_index("grts_address", inplace = True)
 
@@ -282,13 +292,14 @@ for miss in missing:
     replacement_data.loc[miss, "samplelocation_id"] = \
         missing_lookup.loc[grts, "samplelocation_id"]
 
+# (that data type issue again)
 replacement_data["samplelocation_id"] = replacement_data["samplelocation_id"].astype(int)
 
 
 print(replacement_data.sample(3).T)
 
 ### replace the location_id and grts in other tables
-# TODO it is necessary to duplicate lines if strata are moved to other places.
+# TODO it is necessary to duplicate lines if strata of the same GRTS are moved to separate locations.
 # TODO maybe retain original grts and stratum
 
 
@@ -334,7 +345,7 @@ def DuplicateTableRow(
         WHERE {identifier_string};
     """
 
-    DTB.ExecuteSQL(db, insert_command, verbose = True, test_dry = dry_test)
+    DTB.ExecuteSQL(db, insert_command, verbose = True, test_dry = False)
 
 
 # SELECT * FROM "outbound"."SampleLocations" WHERE samplelocation_id = 667;
@@ -426,16 +437,17 @@ for grts_to_replace in replacement_data["grts_address"].unique():
         # stratum_new = duplicate["stratum"]
         # TODO stratum by join
 
-        update_query = f"""
+        update_command = f"""
                 UPDATE "outbound"."LocationEvaluations"
                 SET grts_address = {grts_new}, samplelocation_id = {samplelocation_next}
                 WHERE grts_address = {grts_old} 
-                  AND type = {type_new}
+                  AND type = '{type_new}'
                   AND samplelocation_id = {old_samplelocation}
                 ;
         """
+        print(update_command)
 
-        DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = dry_test)
+        DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = False)
 
         # DuplicateTableRow(
         #     db = mnmgwdb,
@@ -509,7 +521,7 @@ for grts_to_replace in replacement_data["grts_address"].unique():
 
 
 #### updates of grts and location_id
-#### TODO also update samplelocation_id?
+## also update samplelocation_id
 
 location_reference_list = {
     '"outbound"."SampleLocations"': {'grts': True, 'location_id': True, 'sloc': True},
@@ -530,6 +542,27 @@ for table_namestring, has_columns in location_reference_list.items():
     has_location_id = has_columns['location_id']
     has_sloc = has_columns['sloc']
 
+
+    if has_sloc:
+        for _, row in replacement_data.iterrows():
+            # row = replacement_data.iloc[4, :]
+            grts_old = val_to_int(row["grts_address"])
+            grts_new = val_to_int(row["grts_address_replacement"])
+            sloc_old = val_to_int(row["samplelocation_id"])
+            sloc_new = val_to_int(row["new_samplelocation_id"])
+
+            if (sloc_old == sloc_new) or (row["new_samplelocation_id"] == 0):
+                continue
+
+            update_command = f"""
+                UPDATE {table_namestring}
+                SET samplelocation_id = {sloc_new}
+                WHERE grts_address = {grts_old} AND samplelocation_id = {sloc_old};
+            """
+
+            # print(update_command)
+            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = False)
+
     # if the table has GRTS
     if has_grts:
 
@@ -538,7 +571,7 @@ for table_namestring, has_columns in location_reference_list.items():
         for _, row in replacement_data.iterrows():
             grts_old = val_to_int(row["grts_address"])
             grts_new = val_to_int(row["grts_address_replacement"])
-            sloc_new_new = val_to_int(row["grts_address_replacement"])
+            sloc_new = val_to_int(row["new_samplelocation_id"])
 
             if grts_old == grts_new:
                 continue
@@ -547,7 +580,7 @@ for table_namestring, has_columns in location_reference_list.items():
                 filter_str = f"grts_address = {grts_old}"
             else:
                 sloc_id = row["new_samplelocation_id"]
-                filter_str = f"grts_address = {grts_old} AND samplelocation_id = {sloc_id}"
+                filter_str = f"grts_address = {grts_old} AND samplelocation_id = {sloc_new}"
 
             update_command = f"""
                 UPDATE {table_namestring}
@@ -556,7 +589,7 @@ for table_namestring, has_columns in location_reference_list.items():
             """
 
             # print(update_command)
-            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = dry_test)
+            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = False)
 
 
     if has_location_id:
@@ -581,9 +614,11 @@ for table_namestring, has_columns in location_reference_list.items():
 
             # print(update_command)
 
-            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = dry_test)
+            DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = False)
 
 
-# SELECT * FROM "outbound".""
+# SELECT * FROM "metadata"."Locations" WHERE grts_address = 23238 OR grts_address = 6314694;
+# SELECT * FROM "outbound"."SampleLocations" WHERE is_replacement;
+# SELECT * FROM "outbound"."SampleLocations" WHERE grts_address = 23238 OR grts_address = 6314694;
 #
 #
