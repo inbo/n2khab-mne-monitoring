@@ -1277,6 +1277,24 @@ Embarassing, and not to my personal standards, but functioning.
 [!] the proper way to handle this will be an upstream adjustment in the POC, with a POC re-upload.
 
 
+** better LocationCells sync/display
+SCHEDULED: <2025-07-28 Mon>
+
+upating the =LocationCells= (i.e. square polygons from GRTS raster)
+which now include replacement locations
+
+also, view adjusted to just show those currently in the sample.
+
+
+** replacement affects =LocationInfos=
+SCHEDULED: <2025-07-28 Mon>
+
+Replacements are now stored on the server: =archive.ReplacementData=.
+
+When pushing back and forth the =LocationInfos=, those are taken into account.
+
+
+
 ** TODO [#A] random placement
 SCHEDULED: <2025-07-29 Tue>
 
