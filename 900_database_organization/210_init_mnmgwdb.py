@@ -3,7 +3,7 @@
 import MNMDatabaseToolbox as DTB
 
 # https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
-# SET search_path TO public,"metadata","outbound","inbound";
+# SET search_path TO public,"metadata","outbound","inbound","archive";
 
 restore_dev = False
 # restore_staging = False

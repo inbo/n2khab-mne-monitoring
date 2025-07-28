@@ -8,7 +8,8 @@ import pandas as PD
 import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
-suffix = ""
+suffix = "-testing"
+# suffix = ""
 
 base_folder = DTB.PL.Path(".")
 
@@ -43,6 +44,9 @@ source_data = PD.read_sql_table( \
     con = loceval.connection \
 )
 
+# print(source_data.sample(3).T)
+
+
 ### target
 target_locations = GPD.read_postgis( \
     query.format(schema = "metadata", table = "Locations"), \
@@ -56,10 +60,18 @@ target_data = PD.read_sql_table( \
     con = mnmgwdb.connection \
 )
 
+# print(target_data.sample(3).T)
 
-# print(source_data.sample(3).T)
+
+### link replacments
+target_replacements = PD.read_sql_table( \
+    query.format(schema = "archive", table = "ReplacementData"), \
+    con = mnmgwdb.connection, \
+)
 
 
+
+### associate data
 common_grts = source_data.loc[:, ["grts_address"]] \
     .merge(target_data.loc[:, ["grts_address"]], \
            how='inner', indicator=False).values.ravel()

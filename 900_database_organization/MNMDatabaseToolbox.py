@@ -129,6 +129,9 @@ class DatabaseConnection(object):
         self.info = self.connection.info
         # print(dir(self.connection))
 
+    def __str__(self):
+        return(str({k: v for k, v in self.config.items() if not k == "password"}))
+
     def HasTable(self, table, schema = 'public'):
         # check if a table is present in the data
         return(SQL.inspect(self.engine).has_table(table, schema = schema))
