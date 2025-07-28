@@ -1241,22 +1241,14 @@ SCHEDULED: <2025-07-24 Thu>
 + dynamic
 
 
-** TODO [#A] random placement
-SCHEDULED: <2025-07-24 Thu>
-
-give random positions in the vicinity of cell centre,
-but not in the MHQ target area,
-as polar coordinates.
-Also provide cell mapping
-and MHQ quadrant
-
-
 ** missing =location_id= in =mnmgwdb=
 SCHEDULED: <2025-07-25 Fri>
 
 location_id 527 / grts_address 6314694
 had lost their connection.
+Probably in the course of [[replacement duplication]].
 Got manually re-established.
+
 
 ** watina codes decision
 SCHEDULED: <2025-07-25 Fri>
@@ -1264,6 +1256,35 @@ SCHEDULED: <2025-07-25 Fri>
 | even | 2 | piezometer | (filter on deep 60 cm)       |
 | odd  | 1 | peilbuis   | (filter almost whole length) |
 
+
+** replacement duplication
+SCHEDULED: <2025-07-25 Fri>-<2025-07-28 Mon>
+
+When local replacement is performed (=loceval=),
+it can happen that multiple (two or three) *sample units at the same location*
+end up in different places.
+For =mnmgwdb=, this means that
+- the affected =SampleLocation=
+- and all downstream items (=FieldworkCalender= planning, =Visits=, ...)
+must be done for any of the split locations.
+
+
+This is now solved in a preliminary way with [[file:./092_push_loceval_to_mnmgwdb.py]] script.
+
+The script is complex, convoluted, and prone to fail.
+Embarassing, and not to my personal standards, but functioning.
+
+[!] the proper way to handle this will be an upstream adjustment in the POC, with a POC re-upload.
+
+
+** TODO [#A] random placement
+SCHEDULED: <2025-07-29 Tue>
+
+give random positions in the vicinity of cell centre,
+but not in the MHQ target area,
+as polar coordinates.
+Also provide cell mapping
+and MHQ quadrant
 
 
 * learning the hard way
@@ -1323,6 +1344,15 @@ SCHEDULED: <2025-07-18 Fri>
 
 creating a new locations works when explicitly passing the next =ogc_fid= AND =location_id=.
 Omitting either of them in the insert will fail. :shrug:
+
+
+** take primary keys seriously
+SCHEDULED: <2025-07-28 Mon>
+
+During replacement relocation [[replacement duplication][(see above)]], I at some point deactivated pk checks for some tables.
+I later found out that the checks correctly triggered errors: rows were duplicated prior to upload, which was logically correct, but not general (and thus overlooked).
+
+Lesson repeated: pk constraints are good; always assume that they work well.
 
 
 * General
