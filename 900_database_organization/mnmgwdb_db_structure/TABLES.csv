@@ -16,3 +16,4 @@ inbound,WellInstallationActivities,falk,"tom,yglinga,jens,lise,wouter,floris,kar
 inbound,ChemicalSamplingActivities,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,information collected for certain activities (chemical sampling); linked to a subset of Visits
 inbound,CellMaps,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POLYGON,,,1,1,cell mapping input by drawing polygons
 inbound,FreeFieldNotes,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
+archive,ReplacementData,falk,,,,,,1,,storing info about replacements (temporary solution)

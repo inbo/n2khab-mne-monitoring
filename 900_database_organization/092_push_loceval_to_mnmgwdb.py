@@ -36,94 +36,9 @@ mnmgwdb = DTB.ConnectDatabase(
 
 
 
-### find local replacements
-
-# transfer_data = PD.read_sql_table( \
-#         "gwTransfer", \
-#         schema = "outbound", \
-#         con = loceval.connection \
-#     ).astype({"grts_address": int})
-# transfer_data.loc[
-#     NP.logical_and(
-#         transfer_data["grts_address"].values == 23238,
-#         transfer_data["eval_source"].values == "loceval"
-#     ), :].T
-#
-# samplelocations_lookup = PD.read_sql_table( \
-#         "SampleLocations", \
-#         schema = "outbound", \
-#         con = mnmgwdb.connection \
-#     ).loc[:, ["grts_address", "samplelocation_id", "strata"]] \
-#     .astype({"grts_address": int, "samplelocation_id": int}) \
-#     .set_index("grts_address", inplace = False)
-#
-# # TODO check duplicate grts in lookup
-#
-# # before we upload, we need to collect all locations
-# loceval_joined = transfer_data \
-#     .join(
-#         samplelocations_lookup, \
-#         how = "left", \
-#         on = "grts_address"
-#     )
-
-
-# loceval_nolocations = loceval_joined.loc[
-#     PD.isna(loceval_joined["samplelocation_id"].values),
-#     :]
-# # TODO dump!!
-#
-# loceval_upload = loceval_joined.loc[
-#     NP.logical_not(PD.isna(loceval_joined["samplelocation_id"].values)),
-#     :] \
-#     .astype({"grts_address": int, "samplelocation_id": int})
-#
-# print(loceval_upload.sample(3).T)
-#
-# delete_command = f"""
-#        DELETE FROM "outbound"."LocationEvaluations"
-#        WHERE TRUE;
-#    """
-# DTB.ExecuteSQL(mnmgwdb, delete_command, verbose = True, test_dry = False)
-#
-# # print(insert_command)
-# loceval_upload.to_sql( \
-#     "LocationEvaluations", \
-#     schema = "outbound", \
-#     con = mnmgwdb.connection, \
-#     index = False, \
-#     if_exists = "append", \
-#     method = "multi" \
-# )
-
-# important: these are not relocated!
-
-
-
-### relocate local replacements
-
-# query = """
-# SELECT
-#   LOREP.wkb_geometry,
-#   UNIT.type,
-#   UNIT.grts_address,
-#   UNIT.location_id,
-#   LOREP.grts_address_replacement,
-#   LOREP.replacement_rank,
-#   LOREP.notes
-# FROM "outbound"."SampleUnits" AS UNIT
-# LEFT JOIN "outbound"."Replacements" AS LOREP
-#   ON UNIT.sampleunit_id = LOREP.sampleunit_id
-# WHERE UNIT.grts_address IN (
-#   SELECT DISTINCT grts_address
-#   FROM "outbound"."Replacements" AS RP
-#   LEFT JOIN "outbound"."SampleUnits" AS SU
-#   ON SU.sampleunit_id = RP.sampleunit_id
-#   WHERE is_selected
-#   AND NOT is_inappropriate
-#   )
-# ;
-# """
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### find local replacements
+#///////////////////////////////////////////////////////////////////////////////
 
 query = """
 SELECT
@@ -257,11 +172,6 @@ for idx, row in new_locations.iterrows():
 
 
 ### intermediate cleaning up
-# DELETE FROM "metadata"."Locations" WHERE location_id = 667;
-# DELETE FROM "metadata"."Locations" WHERE location_id = 668;
-# DELETE FROM "metadata"."Locations" WHERE location_id = 669;
-# DELETE FROM "metadata"."Locations" WHERE location_id = 1352;
-
 
 ## join the new, corrected location id to the list of replacements
 # replacement_data["new_location_id"] = NP.nan
@@ -346,9 +256,7 @@ print(replacement_data.loc[replacement_data["grts_address"].values == 23238, :])
 
 
 ### replace the location_id and grts in other tables
-# TODO it is necessary to duplicate lines if strata of the same GRTS are moved to separate locations.
-# TODO maybe retain original grts and stratum
-
+# it is necessary to duplicate lines if strata of the same GRTS are moved to separate locations.
 
 def DuplicateTableRow(
         db,
@@ -403,7 +311,12 @@ def DuplicateTableRow(
 # table_namestring = '"outbound"."SampleLocations"'
 # grts_to_replace = 23238
 
+
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### update references everywhere
+#///////////////////////////////////////////////////////////////////////////////
 ### duplicate all lines of a split observation, based on samplelocation_id
+
 replacement_data["new_samplelocation_id"] = replacement_data["samplelocation_id"]
 
 unique_samplelocations = replacement_data.loc[:, ["grts_address", "samplelocation_id"]].drop_duplicates()
@@ -598,44 +511,11 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
             DTB.ExecuteSQL(mnmgwdb, delete_command, verbose = True, test_dry = False)
 
 
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### transfer loceval
+#///////////////////////////////////////////////////////////////////////////////
 
-        # ## DO NOT YET duplicate LocationEvaluations
-        # ## does not work yet because those are still on "no location found" due to changed GRTS
-        # ## TODO update separately via "replacement_data"
-        # loceval_next = int(PD.read_sql(
-        #     """
-        #         SELECT locationevaluation_id FROM "outbound"."LocationEvaluations"
-        #         ORDER BY locationevaluation_id DESC
-        #         LIMIT 1;
-        #     """,
-        #     con = mnmgwdb.connection
-        #    ).values[0, 0]) + 1
-
-        # # this should rather be a re-link samplelocation_id based on grts and type
-        # print(duplicate)
-        # print(loceval_upload)
-        # grts_old = duplicate["grts_address"]
-        # grts_new = duplicate["grts_address_replacement"]
-        # type_new = duplicate["type"]
-
-        # # stratum_new = duplicate["stratum"]
-        # # NO: stratum not duplicated by join.
-
-        # update_command = f"""
-        #         UPDATE "outbound"."LocationEvaluations"
-        #         SET grts_address = {grts_new}, samplelocation_id = {samplelocation_next}
-        #         WHERE eval_source = 'loceval'
-        #           AND grts_address = {grts_old}
-        #           AND type = '{type_new}'
-        #           AND samplelocation_id = {old_samplelocation}
-        #         ;
-        # """
-        # print(update_command)
-
-        # DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = False)
-
-        # SELECT * FROM "outbound"."LocationEvaluations" WHERE samplelocation_id = 527 OR samplelocation_id = 667;
-
+### store replacement_data on the server for reference
 
 print(replacement_data)
 
@@ -664,10 +544,6 @@ replacement_upload.to_sql( \
         if_exists = "append", \
         method = "multi" \
     )
-
-#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-# transfer loceval
-#///////////////////////////////////////////////////////////////////////////////
 
 transfer_data = PD.read_sql_table( \
         "gwTransfer", \
@@ -732,106 +608,6 @@ loceval_upload.to_sql( \
 )
 
 
-#### updates of grts and location_id
-## also update samplelocation_id
-# NOTE this should be obsolete
-
-if False:
-    location_reference_list = {
-        '"outbound"."SampleLocations"': {'grts': True, 'location_id': True, 'sloc': True},
-        '"outbound"."FieldworkCalendar"': {'grts': True, 'location_id': False, 'sloc': True},
-        '"inbound"."Visits"': {'grts': True, 'location_id': True, 'sloc': True},
-        '"outbound"."LocationInfos"': {'grts': True, 'location_id': True, 'sloc': False},
-        '"outbound"."LocationEvaluations"': {'grts': True, 'location_id': False, 'sloc': False}
-       }
-
-
-    # has_columns = {'grts': True, 'location_id': True}
-    # has_grts = has_columns['grts']
-    # has_location_id = has_columns['location_id']
-
-    # loop the tables to update
-    for table_namestring, has_columns in location_reference_list.items():
-        has_grts = has_columns['grts']
-        has_location_id = has_columns['location_id']
-        has_sloc = has_columns['sloc']
-
-
-        if has_sloc:
-            for _, row in replacement_data.iterrows():
-                # row = replacement_data.iloc[4, :]
-                grts_old = val_to_int(row["grts_address"])
-                grts_new = val_to_int(row["grts_address_replacement"])
-                sloc_old = val_to_int(row["samplelocation_id"])
-                sloc_new = val_to_int(row["new_samplelocation_id"])
-
-                if (sloc_old == sloc_new) or (row["new_samplelocation_id"] == 0):
-                    continue
-
-                update_command = f"""
-                    UPDATE {table_namestring}
-                    SET samplelocation_id = {sloc_new}
-                    WHERE grts_address = {grts_old} AND samplelocation_id = {sloc_old};
-                """
-
-                # print(update_command)
-                DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = False)
-
-        # if the table has GRTS
-        if has_grts:
-
-            # loop all GRTS addresses
-
-            for _, row in replacement_data.iterrows():
-                grts_old = val_to_int(row["grts_address"])
-                grts_new = val_to_int(row["grts_address_replacement"])
-                sloc_new = val_to_int(row["new_samplelocation_id"])
-
-                if grts_old == grts_new:
-                    continue
-
-                if (not has_sloc) or (row["new_samplelocation_id"] == 0):
-                    filter_str = f"grts_address = {grts_old}"
-                else:
-                    sloc_id = row["new_samplelocation_id"]
-                    filter_str = f"grts_address = {grts_old} AND samplelocation_id = {sloc_new}"
-
-                update_command = f"""
-                    UPDATE {table_namestring}
-                    SET grts_address = {grts_new}
-                    WHERE {filter_str};
-                """
-
-                # print(update_command)
-                DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = False)
-
-
-        if has_location_id:
-            for _, row in replacement_data.iterrows():
-                location_old = val_to_int(row["location_id"])
-                location_new = val_to_int(row["new_location_id"])
-                if location_old == location_new:
-                    continue
-
-                if (not has_sloc) or (row["new_samplelocation_id"] == 0):
-                    filter_str = f"location_id = {location_old}"
-                else:
-                    sloc_id = row["new_samplelocation_id"]
-                    filter_str = f"location_id = {location_old} AND samplelocation_id = {sloc_id}"
-
-
-                update_command = f"""
-                    UPDATE {table_namestring}
-                    SET location_id = {location_new}
-                    WHERE {filter_str};
-                """
-
-                # print(update_command)
-
-                DTB.ExecuteSQL(mnmgwdb, update_command, verbose = True, test_dry = False)
-
-# TODO remove orignial
-# TODO check double upload
 
 # SELECT * FROM "metadata"."Locations" WHERE grts_address = 23238 OR grts_address = 6314694 OR grts_address = 23091910;
 # SELECT * FROM "outbound"."SampleLocations" WHERE is_replacement;
