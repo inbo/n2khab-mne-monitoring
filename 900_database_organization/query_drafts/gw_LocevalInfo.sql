@@ -13,7 +13,7 @@ SELECT
   LOCEVAL.photo
 FROM "outbound"."LocationEvaluations" AS LOCEVAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON (LOCEVAL.samplelocation_id = SLOC.location_id)
+  ON (LOCEVAL.samplelocation_id = SLOC.samplelocation_id)
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = SLOC.location_id
 WHERE TRUE
