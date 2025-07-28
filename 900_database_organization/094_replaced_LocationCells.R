@@ -14,17 +14,39 @@ library("rprojroot")
 library("keyring")
 
 source("MNMDatabaseToolbox.R")
-# keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
-working_dbname <- "mnmgwdb_testing"
-connection_profile <- "mnmgwdb-testing"
-dbstructure_folder <- "./mnmgwdb_db_structure"
+projroot <- find_root(is_rstudio_project)
+config_filepath <- file.path("./inbopostgis_server.conf")
+
+testing <- FALSE
+if (testing) {
+  working_dbname <- "mnmgwdb_testing"
+  connection_profile <- "mnmgwdb-testing"
+  dbstructure_folder <- "./mnmgwdb_db_structure"
+} else {
+  # source("094_replaced_LocationCells.R")
+  keyring::key_set("DBPassword", "db_user_password") # <- for source database
+  working_dbname <- "mnmgwdb"
+  connection_profile <- "mnmgwdb"
+  dbstructure_folder <- "./mnmgwdb_db_structure"
+}
 
 db_connection <- connect_database_configfile(
   config_filepath,
   database = working_dbname,
   profile = connection_profile
 )
+
+
+loceval_connection <- connect_database_configfile(
+  config_filepath,
+  database = "loceval",
+  profile = "dumpall",
+  user = "monkey",
+  password = NA
+)
+
+
 
 # replacements <- dplyr::tbl(
 #     db_connection,
@@ -40,6 +62,7 @@ locations_grts <- dplyr::tbl(
   select(grts_address, location_id) %>%
   collect
 
+locations_grts %>% filter(location_id == 527)
 
 # re-load POC data
 poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
@@ -59,7 +82,7 @@ units_cell_polygon[["grts_address_final"]] <-
 location_cells <-
   units_cell_polygon %>%
   inner_join(
-    locations_grts,
+    locations_grts %>% distinct,
     by = join_by(grts_address_final == grts_address),
     relationship = "one-to-many",
     unmatched = "drop"
@@ -69,6 +92,9 @@ location_cells <-
 
 sf::st_geometry(location_cells) <- "wkb_geometry"
 # glimpse(location_cells)
+location_cells %>%
+  filter(location_id == 527)
+
 
 message("________________________________________________________________")
 message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
@@ -87,13 +113,42 @@ append_tabledata(
 )
 
 
+extra_cells <- sf::st_read(
+    loceval_connection,
+    DBI::Id("outbound", "ReplacementCells")
+  ) %>%
+  collect %>%
+  left_join(
+    dplyr::tbl(
+        loceval_connection,
+        DBI::Id("outbound", "Replacements")
+      ) %>% collect %>% select(-ogc_fid, -wkb_geometry),
+    by = join_by(replacement_id)
+  ) %>%
+  rename(grts_address = grts_address_replacement) %>%
+  inner_join(
+    locations_grts,
+    by = join_by(grts_address)
+  ) %>%
+  select(location_id) %>%
+  distinct
+
+append_tabledata(
+  db_connection,
+  DBI::Id(schema = "metadata", table = "LocationCells"),
+  extra_cells,
+  reference_columns = "location_id"
+)
+
+
+
 # SELECT *
 # FROM "outbound"."SampleLocations" AS SLOC
 # LEFT JOIN "metadata"."LocationCells" AS CELL
 #   ON CELL.location_id = SLOC.location_id
 # ;
 
-if (False) {
+if (FALSE) {
 sample_locations <- dplyr::tbl(
     db_connection,
     DBI::Id("outbound", "SampleLocations")
