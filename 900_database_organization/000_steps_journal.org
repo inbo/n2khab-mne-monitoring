@@ -1293,6 +1293,27 @@ Replacements are now stored on the server: =archive.ReplacementData=.
 
 When pushing back and forth the =LocationInfos=, those are taken into account.
 
+#+begin_src sql :eval no
+SELECT * FROM "outbound"."LocationInfos"
+WHERE grts_address = 23238
+  OR grts_address = 23091910
+  OR grts_address = 6314694
+;
+#+end_src
+
+
+** a stray point in Chartreuzenbos/Holsbeek
+
+SELECT * FROM "outbound"."FieldworkPlanning" WHERE grts_address = 115846;
+#+begin_quote
+Chartreuzenbos bij Holsbeek -> vervangcel gekozen, maar "lokale vervanging nodig" niet aan.
+Is gepland als type =9190=, maar vervangcel =9130_end= vastgesteld.
+
+Het is niet duidelijk waar de peilbuis naartoe moet:
+- ofvel op de originele cel (<- "geen vervanging")
+- ofwel op de vervangcel 1 (<- "vervangcel gekozen")
+- ofwel nergens (andere type dan gepland).
+#+end_quote
 
 
 ** TODO [#A] random placement
@@ -1303,6 +1324,8 @@ but not in the MHQ target area,
 as polar coordinates.
 Also provide cell mapping
 and MHQ quadrant
+
+
 
 
 * learning the hard way
