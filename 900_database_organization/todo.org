@@ -101,67 +101,75 @@
 
 + [X] good question Tom: where is =GWINSTPIEZWELL=? -> filter group instead of activity.
 + [X] two watina_code fields instead of one
-+ [ ] replacement / split -> duplicate activities
++ [-] replacement / split -> duplicate activities
   + !!! the loceval prep is lost, and the activity from qgis
-    + run 210 tabula rasa
-    + run 033
-    + then run 092
-  + [ ] in script =092_*.py=
+  + [X] in script =092_*.py=
   + [ ] in the update procedure
-+ [ ] plan lab activity capacity limit
-  + [ ] gather info about lab load per activity
-  + [ ] compute capacity per workweek
-  + [ ] view/adjustment to display this for fw planning
-+ [ ] gmaps attachment link (Ward/Tom)
 
-+ [ ] qgis/qfield authentification for project sharing, there must be something online
-+ [ ] soilmap_simple as gpkg layer
-+ [ ] cell mapping
-  + [ ] ?? why are some sample raster cells not visible?
+fieldwork:
++ [ ] gmaps attachment link (Ward/Tom)
+  + [ ] show WGS84 coords for car navigation
+    + via extra table, linked on location_id
 + [ ] new fields
   + [ ] divers: free field for exotic divers / re-use
   + [ ] two fotos soil profiles
   + [ ] checkbox for requiring "soil profile revision"
   + [ ] LIMS: project code + recipient code
 
-+ [ ] meeting @TDD @WT @KW @FV @FM <2025-07-02 Wed> MNM Fieldwork Outbound/Planning app
++ [ ] divers: batch, serial; ++ view with non-previously placed
+  + [ ] but also a free field
+
+planning:
++ [ ] soilmap_simple as gpkg layer
+
+
++ [ ] plan lab activity capacity limit
+  + [ ] gather info about lab load per activity
+  + [ ] compute capacity per workweek
+  + [ ] view/adjustment to display this for fw planning
+
++ [ ] qgis/qfield authentification for project sharing, there must be something online
+  + seems to be good?
++ [-] cell mapping
+  + [X] ?? why are some sample raster cells not visible?
+  + [ ]  should be good, but refine later
+
++ [-] meeting @TDD @WT @KW @FV @FM <2025-07-02 Wed> MNM Fieldwork Outbound/Planning app
   + [ ] INBO arcgis -> qgis via web services?
-  + [ ] n2khab_strata ++allow NULL
-  + [ ] move all =waiting_= types to a separate layer clone
-  + [ ] type -> stratum for all except Ward (see separate email)
+  + [X] n2khab_strata ++allow NULL
+  + [X] move all =waiting_= types to a separate layer clone
+  + [X] type -> stratum for all except Ward (see separate email)
     + doubling by re-join of scheme
     + loceval: strata temporally and spatially separated -> no join of =scheme_panelset=
     + for GW app: summarized
-      + e.g. =fag_{,_stratum}_grts_calendar
+      + e.g. =fag_{,_stratum}_grts_calendar=
   + revisit =grts_address=
-  + [ ] ++fac_rank
-  + [ ] ++ field =praktische_info=
-  + [ ] ++ field =accessibility=
+  + [ ] ++ fac_rank
+  + [X] ++ field =praktische_info=
+  + [X] ++ field =accessibility=
   + [ ] required map layers @TDD:
-    + laadpalen
-    + land owner
-    + topo map (osm, google)
-    + watina summary layer
-    + bodemkaart
-    + woonplaats medewerkers
+    + [ ] laadpalen
+    + [ ] land owner
+    + [ ] topo map (osm, google)
+    + [ ] watina summary layer
+    + [ ] bodemkaart
+    + [ ] woonplaats medewerkers
 
 + [ ] WATINA summary layer
   + [ ] naming a priori by Tom; provide voronoi polygon layer
 
-+ [ ] see mail
-
-+ [ ] divers: batch, serial; ++ view with previously placed
 
 * POC
-+ [ ] =mnmgwdb=:
-  + [ ] use of =stratum=
-  + [ ] central unit is NOT sample unit, but location ~> =SampleLocations= (because we will place exactly one obswell, no matter how many schemes/strata)
++ [X] =mnmgwdb=:
+  + [X] use of =stratum=
+  + [X] central unit is NOT sample unit, but location ~> =SampleLocations= (because we will place exactly one obswell, no matter how many schemes/strata)
 + [ ] procedure to store actual *replacements* and update sample (with @FV)
   + quick solution: move for =mnmgwdb=
+  + which is a headache.
 + [ ] possible to mark sample units from MHQ? (request Ward 20250716)
-+ [ ] double-check =is_gw_activity=
++ [X] double-check =is_gw_activity=
 + [ ] no option to add activities / rows in FieldActivityPlanner?
-+ [ ] what to do with the CellMaps? (e.g. transfer mnmgwdb?)
++ [X] what to do with the CellMaps? (e.g. transfer mnmgwdb?)
 + [ ] =grts_address=: integer or int64?
 
 + (minor)
@@ -174,20 +182,21 @@ In x@pntr$extractVectorFlat(y@pntr, "", FALSE, touches[1], small[1],  :
 + [-] POC pipeline
   + [ ] functional modularization suggestions for code snippets
   + [X] =units_cell_polygon= are there other relevant polygons in there?
-  + [ ] replacements by stratum?
-
+  + [X] replacements by stratum?
 
 + [ ] re-check POC update script (=070_=)
   + [ ] add other databases
+  + [ ] check with sync procedure
 + [X] extra types (vraag Floris)
 
-+ [ ] backup procedures
-  + [ ] daily backups to S3
++ [X] backup procedures
+  + [X] daily backups to S3
 + [ ] scripts for user management
 + [ ] list WCS/WFS/WMS sources
-+ [ ] random points in target area for well placement
-+ [X] re-upload bug -> was fk
 
++ [ ] random points in target area for well placement
+
++ [X] re-upload bug -> was fk
 + [X] info from LocationAssessment
 + [X] landuse/ownership: one categorical field
 
