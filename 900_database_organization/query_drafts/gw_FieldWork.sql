@@ -131,8 +131,7 @@ DO ALSO
   watina_code_used_2_piezometer = NEW.watina_code_used_2_piezometer,
   no_diver = NEW.no_diver,
   diver_id = NEW.diver_id,
-  free_diver = NEW.free_diver,
-  visit_done = NEW.visit_done
+  free_diver = NEW.free_diver
  WHERE fieldwork_id = OLD.fieldwork_id
 ;
 
@@ -145,8 +144,7 @@ DO ALSO
   teammember_id = NEW.teammember_id,
   date_visit = NEW.date_visit,
   project_code = NEW.project_code,
-  recipient_code = NEW.recipient_code,
-  visit_done = NEW.visit_done
+  recipient_code = NEW.recipient_code
  WHERE fieldwork_id = OLD.fieldwork_id
 ;
 
