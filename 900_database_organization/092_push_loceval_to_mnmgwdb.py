@@ -615,3 +615,26 @@ loceval_upload.to_sql( \
 # SELECT DISTINCT fieldworkcalendar_id FROM "outbound"."FieldworkCalendar" WHERE samplelocation_id IN (SELECT DISTINCT samplelocation_id FROM "outbound"."SampleLocations" WHERE grts_address = 23238 OR grts_address = 6314694 OR grts_address = 23091910);
 #
 # SELECT * FROM "outbound"."FieldworkCalendar" AS CAL LEFT JOIN "archive"."ReplacementData" AS REP ON CAL.grts_address = REP.grts_address WHERE done_planning AND replacementdata_id IS NOT NULL;
+
+
+### CellMaps
+cellmaps = GPD.read_postgis( \
+    """SELECT * FROM "inbound"."CellMaps";""", \
+    con = loceval.connection, \
+    geom_col = "wkb_geometry" \
+    )
+
+delete_command = f"""
+       DELETE FROM "outbound"."CellMaps"
+       WHERE TRUE;
+   """
+DTB.ExecuteSQL(mnmgwdb, delete_command, verbose = True, test_dry = False)
+
+# print(insert_command)
+cellmaps.to_postgis( \
+    "CellMaps", \
+    schema = "outbound", \
+    con = mnmgwdb.connection, \
+    index = False, \
+    if_exists = "append", \
+)

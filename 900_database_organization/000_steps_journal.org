@@ -1378,6 +1378,12 @@ spatially balanced random sampling:
 + view to only show the ones which have =loceval=
 
 
+** cellmaps to mnmgwdb
+SCHEDULED: <2025-07-29 Tue>
+
+just a quick, raw transfer
+
+
 * learning the hard way
 
 ** =dbWriteTable(..., overwrite = TRUE, ...)= is a bad idea!

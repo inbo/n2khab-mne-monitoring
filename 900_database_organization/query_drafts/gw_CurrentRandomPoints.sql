@@ -12,15 +12,6 @@ WHERE samplelocation_id IN (
 ;
 
 
-GRANT SELECT ON  "inbound"."FieldWork"  TO  tom;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  yglinga;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  jens;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  lise;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  wouter;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  floris;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  karen;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  falk;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  ward;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  monkey;
+GRANT SELECT ON  "outbound"."RandomCellPoints"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk, ward, monkey;
 
-GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
+GRANT SELECT ON  "outbound"."RandomCellPoints"  TO  tester;
