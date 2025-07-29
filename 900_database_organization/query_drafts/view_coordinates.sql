@@ -3,6 +3,7 @@ DROP VIEW IF EXISTS  "outbound"."LocationCoords";
 CREATE VIEW "outbound"."LocationCoords" AS
 SELECT
   LOC.*,
+  COORDS.coordinate_id,
   COORDS.wgs84_x,
   COORDS.wgs84_y,
   COORDS.lambert_x,
