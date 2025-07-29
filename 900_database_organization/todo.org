@@ -97,7 +97,7 @@
 
 
 * mnmgwdb
-
++ tester doesn't consistently get access,
 
 + [X] good question Tom: where is =GWINSTPIEZWELL=? -> filter group instead of activity.
 + [X] two watina_code fields instead of one
