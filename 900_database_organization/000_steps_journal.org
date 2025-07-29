@@ -1302,7 +1302,8 @@ WHERE grts_address = 23238
 #+end_src
 
 
-** a stray point in Chartreuzenbos/Holsbeek
+** DONE a stray point in Chartreuzenbos/Holsbeek
+CLOSED: [2025-07-28 Mon]
 
 SELECT * FROM "outbound"."FieldworkPlanning" WHERE grts_address = 115846;
 #+begin_quote
@@ -1314,6 +1315,34 @@ Het is niet duidelijk waar de peilbuis naartoe moet:
 - ofwel op de vervangcel 1 (<- "vervangcel gekozen")
 - ofwel nergens (andere type dan gepland).
 #+end_quote
+
+
+#+begin_quote
+dat was mijn oefenpunt, maar blijkbaar niet alles netjes teruggezet. Bij deze staat alles normaal netjes terug op null/standaardinstelling
+#+end_quote
+
+
+** coordinates and google map navigation
+SCHEDULED: <2025-07-29 Tue>
+
+There is now a =Coordinates= table, and a view, providing links to start google navigation.
+Both =loceval= and =mnmgwdb=.
+
+
+** fieldwork app v1
+SCHEDULED: <2025-07-29 Tue>
+
+minor feature requests implemented:
++ =watina_code_used_1 TO watina_code_used_1_peilbuis=
++ =watina_code_used_2 TO watina_code_used_2_piezometer=
++ =photo_soil TO photo_soil_1_peilbuis=
++ ="inbound"."WellInstallationActivities".photo_soil_2_piezometer=
++ =lims_code TO recipient_code=
++ ="inbound"."ChemicalSamplingActivities".project_code=
+
+Further:
+views and qfield projects adjusted
+release veldwerk-app
 
 
 ** TODO [#A] random placement

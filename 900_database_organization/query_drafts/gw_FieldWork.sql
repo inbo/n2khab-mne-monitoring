@@ -31,13 +31,16 @@ SELECT
   COALESCE( WIA.fieldwork_id, CSA.fieldwork_id) AS fieldwork_id,
   CASE WHEN WIA.is_installation IS NULL THEN FALSE ELSE WIA.is_installation END AS show_installation,
   CASE WHEN CSA.is_sampling IS NULL THEN FALSE ELSE CSA.is_sampling END AS show_sampling,
-  WIA.photo_soil,
+  WIA.photo_soil_1_peilbuis,
+  WIA.photo_soil_2_piezometer,
   WIA.photo_well,
-  WIA.watina_code_used_1,
-  WIA.watina_code_used_2,
+  WIA.watina_code_used_1_peilbuis,
+  WIA.watina_code_used_2_piezometer,
   WIA.no_diver,
   WIA.diver_id,
-  CSA.lims_code,
+  WIA.free_diver,
+  CSA.project_code,
+  CSA.recipient_code,
   VISIT.visit_done
 FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -117,12 +120,14 @@ DO ALSO
  SET
   teammember_id = NEW.teammember_id,
   date_visit = NEW.date_visit,
-  photo_soil = NEW.photo_soil,
+  photo_soil_1_peilbuis = NEW.photo_soil_1_peilbuis,
+  photo_soil_2_piezometer = NEW.photo_soil_2_piezometer,
   photo_well = NEW.photo_well,
-  watina_code_used_1 = NEW.watina_code_used_1,
-  watina_code_used_2 = NEW.watina_code_used_2,
+  watina_code_used_1_peilbuis = NEW.watina_code_used_1_peilbuis,
+  watina_code_used_2_piezometer = NEW.watina_code_used_2_piezometer,
   no_diver = NEW.no_diver,
   diver_id = NEW.diver_id,
+  free_diver = NEW.free_diver,
   visit_done = NEW.visit_done
  WHERE fieldwork_id = OLD.fieldwork_id
 ;
@@ -135,7 +140,8 @@ DO ALSO
  SET
   teammember_id = NEW.teammember_id,
   date_visit = NEW.date_visit,
-  lims_code = NEW.lims_code,
+  project_code = NEW.project_code,
+  recipient_code = NEW.recipient_code,
   visit_done = NEW.visit_done
  WHERE fieldwork_id = OLD.fieldwork_id
 ;
@@ -148,7 +154,6 @@ GRANT SELECT ON  "inbound"."FieldWork"  TO  lise;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  wouter;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  floris;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  karen;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  falk;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  ward;
 GRANT SELECT ON  "inbound"."FieldWork"  TO  monkey;
@@ -160,5 +165,7 @@ GRANT UPDATE ON  "inbound"."FieldWork"  TO  lise;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  wouter;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  floris;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  karen;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  falk;
+
+GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
+GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
