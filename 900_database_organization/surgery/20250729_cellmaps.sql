@@ -59,4 +59,5 @@ ALTER TABLE "outbound"."CellMaps" ALTER COLUMN cellmap_id
  SET DEFAULT nextval('outbound.seq_cellmap_id'::regclass);
 
 GRANT USAGE ON SEQUENCE "outbound"."seq_cellmap_id" TO tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey;
+GRANT SELECT ON SEQUENCE "outbound"."seq_cellmap_id" TO monkey;
 GRANT SELECT ON "outbound"."CellMaps" TO tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
