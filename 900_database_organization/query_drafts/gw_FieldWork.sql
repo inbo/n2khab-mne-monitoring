@@ -39,6 +39,7 @@ SELECT
   WIA.soilprofile_notes,
   WIA.soilprofile_unclear,
   WIA.no_diver,
+  WIA.random_point_number,
   WIA.diver_id,
   WIA.free_diver,
   CSA.project_code,
@@ -129,6 +130,7 @@ DO ALSO
   photo_well = NEW.photo_well,
   watina_code_used_1_peilbuis = NEW.watina_code_used_1_peilbuis,
   watina_code_used_2_piezometer = NEW.watina_code_used_2_piezometer,
+  random_point_number = NEW.random_point_number,
   no_diver = NEW.no_diver,
   diver_id = NEW.diver_id,
   free_diver = NEW.free_diver

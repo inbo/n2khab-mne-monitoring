@@ -3,6 +3,7 @@ DROP VIEW IF EXISTS  "outbound"."LocevalInfo" ;
 CREATE VIEW "outbound"."LocevalInfo" AS
 SELECT
   LOC.*,
+  LOCEVAL.locationevaluation_id,
   LOCEVAL.scheme,
   LOCEVAL.type,
   LOCEVAL.type_assessed,
@@ -29,8 +30,7 @@ GRANT SELECT ON  "outbound"."LocevalInfo"  TO  lise;
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  wouter;
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  floris;
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  karen;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tester;
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  ward;
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  monkey;
 
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tom;
+GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tester;

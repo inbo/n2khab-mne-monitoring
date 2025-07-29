@@ -123,3 +123,9 @@ GRANT USAGE ON SEQUENCE "outbound"."RandomPoints_ogc_fid_seq" TO tester;
 
 -- source 230_*
 SELECT * FROM "outbound"."RandomPoints";
+
+
+
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN random_point_number smallint DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".random_point_number IS 'if so, which random point was chosen';
