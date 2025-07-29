@@ -1347,16 +1347,35 @@ views and qfield projects adjusted
 release veldwerk-app
 
 
-** TODO [#A] random placement
+** random placement
 SCHEDULED: <2025-07-29 Tue>
 
+#+begin_quote
 give random positions in the vicinity of cell centre,
 but not in the MHQ target area,
 as polar coordinates.
 Also provide cell mapping
 and MHQ quadrant
+#+end_quote
 
++ on non-forest sample units, we spare an MHQ square of 3x3m NorthWest plus 3m buffer
++ on forest sample units,
+  + we spare a 16x16 square centered plus 2m buffer
+  + but only if assessment was done before
++ all within the target polygon
 
+spatially balanced random sampling:
++ use =spbal::BAS=
++ on a 1x1 fake polygon
++ scale to (radius, angle)
++ use polygon coords as *polar* and re-transform back to cartesian
+  + this will make central points more likely
++ use =grts_address= as random seed for repro
++ sample many points, then intersect with cell constraints
++ keep first 20, ranked by order of appearance (not: distance)
+
++ upload script
++ view to only show the ones which have =loceval=
 
 
 * learning the hard way

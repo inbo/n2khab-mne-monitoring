@@ -6,6 +6,8 @@ source("MNMDatabaseToolbox.R")
 
 config_filepath <- file.path("./inbopostgis_server.conf")
 
+# TODO also give coords for FreeFieldNotes
+
 
 update_location_coordinates <- function(database_label, testing = TRUE) {
   # db_name <- glue::glue("{database_label}_testing")

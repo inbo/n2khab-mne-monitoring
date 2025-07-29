@@ -98,6 +98,7 @@
 
 * mnmgwdb
 + [ ] tester does not consistently get access (manual adjustments), create a placeholder fieldworker to facilitate auth management
++ [ ] =metadata.Coordinates=: also give coords for FreeFieldNotes (complicates view)
 
 + [X] good question Tom: where is =GWINSTPIEZWELL=? -> filter group instead of activity.
 + [X] two watina_code fields instead of one
