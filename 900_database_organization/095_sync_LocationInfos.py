@@ -93,7 +93,7 @@ source_data = source_data.rename(columns = {"grts_address": "grts_address_origin
 
 
 ## target
-target_data.loc[target_data["grts_address"].values == 23238, :]
+# target_data.loc[target_data["grts_address"].values == 23238, :]
 
 # outer = source_data.loc[:, ["grts_address"]] \
 #     .merge(target_data.loc[:, ["grts_address"]], \
@@ -150,9 +150,12 @@ target_new = source_data.loc[[missing_target.iloc[i, :] for i in range(missing_t
 
 source_new = source_new.reset_index(drop = False)
 target_new = target_new.reset_index(drop = False)
-common_columns = target_new.columns
+
+# some columns are mnmgwdb only (e.g. watina code)
+common_columns = list(set(target_new.columns).intersection(set(source_new.columns)))
 source_new = source_new.loc[:, common_columns]
 source_new = source_new.rename(columns = {"grts_address_original": "grts_address"}).drop(columns = "grts_address_replacement")
+target_new = target_new.loc[:, common_columns]
 target_new = target_new.rename(columns = {"grts_address_replacement": "grts_address"}).drop(columns = "grts_address_original")
 source_new = source_new.drop(columns = "locationinfo_id")
 target_new = target_new.drop(columns = "locationinfo_id")
@@ -193,7 +196,12 @@ for _, insert_source in source_new.iterrows():
     locationid = PD.read_sql(
         locationid_lookup_query,
         con = loceval.connection
-    ).iloc[0, 0]
+    )
+    if NP.multiply(*locationid.shape) == 0:
+        print(f"""GRTS address not found in {loceval.config["database"]}::"metadata"."Locations": {insert_value_dict["grts_address"]}""")
+        continue
+
+    locationid = locationid.iloc[0, 0]
 
     insert_value_dict["location_id"] = str(int(locationid))
 
@@ -245,7 +253,12 @@ for _, insert_target in target_new.iterrows():
     locationid = PD.read_sql(
         locationid_lookup_query,
         con = mnmgwdb.connection
-    ).iloc[0, 0]
+    )
+    if NP.multiply(*locationid.shape) == 0:
+        print(f"""GRTS address not found in {mnmgwdb.config["database"]}::"metadata"."Locations": {insert_value_dict["grts_address"]}""")
+        continue
+
+    locationid = locationid.iloc[0, 0]
 
     insert_value_dict["location_id"] = str(int(locationid))
 
