@@ -1339,6 +1339,8 @@ minor feature requests implemented:
 + ="inbound"."WellInstallationActivities".photo_soil_2_piezometer=
 + =lims_code TO recipient_code=
 + ="inbound"."ChemicalSamplingActivities".project_code=
++ ="inbound"."WellInstallationActivities".soilprofile_notes=
++ ="inbound"."WellInstallationActivities".soilprofile_unclear=
 
 Further:
 views and qfield projects adjusted

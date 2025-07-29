@@ -30,3 +30,16 @@ COMMENT ON COLUMN "inbound"."ChemicalSamplingActivities".project_code IS 'LIMS p
 
 
 -- adjust views!!
+-- remember update rules!
+-- adjust projects
+
+
+
+
+soilprofile_notes
+soilprofile_unclear
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN soilprofile_notes varchar DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".soilprofile_notes IS 'notes about the soil profiles';
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN soilprofile_unclear BOOLEAN NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".soilprofile_unclear IS 'help requested for evaluation of the soil profile';

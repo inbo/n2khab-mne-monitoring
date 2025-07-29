@@ -97,7 +97,7 @@
 
 
 * mnmgwdb
-+ tester doesn't consistently get access,
++ [ ] tester does not consistently get access (manual adjustments), create a placeholder fieldworker to facilitate auth management
 
 + [X] good question Tom: where is =GWINSTPIEZWELL=? -> filter group instead of activity.
 + [X] two watina_code fields instead of one
@@ -107,17 +107,17 @@
   + [ ] in the update procedure
 
 fieldwork:
-+ [ ] gmaps attachment link (Ward/Tom)
-  + [ ] show WGS84 coords for car navigation
-    + via extra table, linked on location_id
-+ [ ] new fields
-  + [ ] divers: free field for exotic divers / re-use
-  + [ ] two fotos soil profiles
-  + [ ] checkbox for requiring "soil profile revision"
-  + [ ] LIMS: project code + recipient code
++ [X] gmaps attachment link (Ward/Tom)
+  + [X] show WGS84 coords for car navigation via extra table, linked on location_id
++ [X] new fields
+  + [X] divers: free field for exotic divers / re-use
+  + [X] two fotos soil profiles
+  + [X] checkbox for requiring "soil profile revision"
+  + [X] LIMS: project code + recipient code
 
-+ [ ] divers: batch, serial; ++ view with non-previously placed
-  + [ ] but also a free field
++ [-] divers:
+  + [ ] batch, serial; ++ view with non-previously placed
+  + [X] but also a free field
 
 planning:
 + [ ] soilmap_simple as gpkg layer
