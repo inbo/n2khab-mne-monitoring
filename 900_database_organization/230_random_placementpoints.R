@@ -49,7 +49,7 @@ loceval_connection <- connect_database_configfile(
 )
 
 
-if (FALSE){
+if (TRUE){
 ### info from POC
 source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
 source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R")
@@ -242,9 +242,9 @@ generate_random_points <- function(
   inside_target <- random_points_sf[st_intersects(random_points_sf, target_area, sparse = FALSE),]
 
   if (is_assessed && is_forest) {
-    outside_mhq <- inside_target[st_disjoint(inside_target, mhq_safety, sparse = FALSE),]
-  } else {
     outside_mhq <- inside_target
+  } else {
+    outside_mhq <- inside_target[st_disjoint(inside_target, mhq_safety, sparse = FALSE),]
   }
   points_in_habitat <- outside_mhq[st_intersects(outside_mhq, cellmap_polygons, sparse = FALSE),]
   points_in_habitat <- points_in_habitat[1:n_points,]
