@@ -8,11 +8,21 @@ SELECT
   COORDS.wgs84_y,
   COORDS.lambert_x,
   COORDS.lambert_y,
-  '<a href="https://www.google.com/maps/dir/?api=1&destination=' ||
+  '<a href="https://www.google.com/maps/place' ||
     CAST(COORDS.wgs84_y AS VARCHAR) ||
-    '%2C' ||
+    ',' ||
     CAST(COORDS.wgs84_x AS VARCHAR) ||
-    '&travelmode=driving"> to google </a>'
+    '"> google </a>, <br><br> ' ||
+  '<a href="https://www.openstreetmap.org/?mlat=' ||
+    CAST(COORDS.wgs84_y AS VARCHAR) ||
+    '&mlon=' ||
+    CAST(COORDS.wgs84_x AS VARCHAR) ||
+    '"> openstreetmap </a>, <br><br> ' ||
+  '<a href="https://waze.com/ul?ll=' ||
+    CAST(COORDS.wgs84_y AS VARCHAR) ||
+    ',' ||
+    CAST(COORDS.wgs84_x AS VARCHAR) ||
+    '"> waze </a>'
     AS google_link
 FROM "metadata"."Locations" AS LOC
 LEFT JOIN "metadata"."Coordinates" AS COORDS
