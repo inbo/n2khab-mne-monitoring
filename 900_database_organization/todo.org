@@ -1,5 +1,22 @@
 #+title: TODO
 
+* daily
+
++ backup shell script
+
++ 090_sync_FreeFieldNotes.py
++ 092_push_loceval_to_mnmgwdb.py
++ 094_replaced_LocationCells.R
++ 095_sync_LocationInfos.py
++ 096_update_wgs84_coordinates.R
+
+if replacements:
++ 230_random_placementpoints.R
++ 231_mhq_areas.R
+
+if major updates:
++ 2x 033_populate_testing_db.R
+
 * mainline
 + [X] credentials to config
 + [X] =UNIQUE= tag? -> constraints added
