@@ -126,7 +126,8 @@ col_change_functions = {
     "note_date": val_to_datetime,
     "location": val_to_string,
     "activity": val_to_int,
-    "photo": val_to_string
+    "photo": val_to_string,
+    "audio": val_to_string
    }
 
 

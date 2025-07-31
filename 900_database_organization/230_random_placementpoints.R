@@ -297,7 +297,7 @@ randompoints_locationwise <- function(location_row) {
     any
 
   if (is_forest) {
-      target_radius <- 18
+      target_radius <- 16 # NOT: 18 m # BUT: 10 is too little
   }
 
   current_points <- 0
@@ -376,6 +376,22 @@ all_points <- all_points %>%
   )
 
 all_points <- all_points %>% sf::st_cast("POINT")
+
+lamberts <- as.data.frame(
+    sf::st_coordinates(all_points)
+  ) %>%
+  setNames(c("lambert_lon", "lambert_lat"))
+
+all_points <- cbind(all_points, lamberts) %>%
+  mutate_at(
+    vars(
+      lambert_lon,
+      lambert_lat,
+      angle,
+      angle_look,
+      distance_m
+    ), function (x) round(x, 2)
+  )
 
 sf::st_geometry(all_points) <- "wkb_geometry"
 

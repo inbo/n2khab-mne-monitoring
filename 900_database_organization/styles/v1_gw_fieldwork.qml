@@ -529,7 +529,6 @@
             <Option type="QString" name="Layer" value="TeamMembers_7b130dfb_4e81_4a64_b8ab_98b1126d4e5e"/>
             <Option type="QString" name="LayerName" value="teamleden"/>
             <Option type="QString" name="LayerProviderName" value="postgres"/>
-            <Option type="QString" name="LayerSource" value="dbname='mnmgwdb' host=172.233.44.119 port=2407 sslmode=disable authcfg=28k9ni1 key='teammember_id' checkPrimaryKeyUnicity='1' table=&quot;metadata&quot;.&quot;TeamMembers&quot;"/>
             <Option type="int" name="NofColumns" value="1"/>
             <Option type="bool" name="OrderByDescending" value="false"/>
             <Option type="bool" name="OrderByField" value="false"/>
@@ -649,7 +648,6 @@
             <Option type="QString" name="Layer" value="TeamMembers_7b130dfb_4e81_4a64_b8ab_98b1126d4e5e"/>
             <Option type="QString" name="LayerName" value="teamleden"/>
             <Option type="QString" name="LayerProviderName" value="postgres"/>
-            <Option type="QString" name="LayerSource" value="dbname='mnmgwdb' host=172.233.44.119 port=2407 sslmode=disable authcfg=28k9ni1 key='teammember_id' checkPrimaryKeyUnicity='1' table=&quot;metadata&quot;.&quot;TeamMembers&quot;"/>
             <Option type="int" name="NofColumns" value="1"/>
             <Option type="bool" name="OrderByDescending" value="false"/>
             <Option type="bool" name="OrderByField" value="false"/>
@@ -817,7 +815,6 @@
             <Option type="QString" name="Layer" value="GroupedActivities_7b003742_4602_43a4_a781_12bf4892160b"/>
             <Option type="QString" name="LayerName" value="activiteiten"/>
             <Option type="QString" name="LayerProviderName" value="postgres"/>
-            <Option type="QString" name="LayerSource" value="dbname='mnmgwdb' host=172.233.44.119 port=2407 sslmode=disable authcfg=28k9ni1 key='grouped_activity_id' checkPrimaryKeyUnicity='1' table=&quot;metadata&quot;.&quot;GroupedActivities&quot;"/>
             <Option type="int" name="NofColumns" value="1"/>
             <Option type="bool" name="OrderByDescending" value="false"/>
             <Option type="bool" name="OrderByField" value="false"/>
@@ -1047,7 +1044,6 @@
             <Option type="QString" name="Layer" value="Divers_977bcdad_e184_4796_872d_fa9b4142994d"/>
             <Option type="QString" name="LayerName" value="divers"/>
             <Option type="QString" name="LayerProviderName" value="postgres"/>
-            <Option type="QString" name="LayerSource" value="dbname='mnmgwdb' host=172.233.44.119 port=2407 sslmode=disable authcfg=28k9ni1 key='diver_id' checkPrimaryKeyUnicity='1' table=&quot;outbound&quot;.&quot;Divers&quot;"/>
             <Option type="int" name="NofColumns" value="1"/>
             <Option type="bool" name="OrderByDescending" value="false"/>
             <Option type="bool" name="OrderByField" value="false"/>

@@ -804,7 +804,6 @@
             <Option value="GroupedActivities_351c4488_a3c2_41b1_bf80_f1c95610d4b8" name="Layer" type="QString"/>
             <Option value="GroupedActivities" name="LayerName" type="QString"/>
             <Option value="postgres" name="LayerProviderName" type="QString"/>
-            <Option value="dbname='mnmgwdb' host=172.233.44.119 port=2407 sslmode=disable authcfg=9z25893 key='grouped_activity_id' checkPrimaryKeyUnicity='0' table=&quot;metadata&quot;.&quot;GroupedActivities&quot; sql=&quot;is_gw_activity&quot;" name="LayerSource" type="QString"/>
             <Option value="1" name="NofColumns" type="int"/>
             <Option value="false" name="OrderByDescending" type="bool"/>
             <Option value="false" name="OrderByField" type="bool"/>
@@ -942,7 +941,6 @@
             <Option value="TeamMembers_c9285032_4411_4ab9_829f_620ce33ce7cd" name="Layer" type="QString"/>
             <Option value="TeamMembers" name="LayerName" type="QString"/>
             <Option value="postgres" name="LayerProviderName" type="QString"/>
-            <Option value="dbname='mnmgwdb' host=172.233.44.119 port=2407 sslmode=disable authcfg=9z25893 key='teammember_id' checkPrimaryKeyUnicity='0' table=&quot;metadata&quot;.&quot;TeamMembers&quot;" name="LayerSource" type="QString"/>
             <Option value="1" name="NofColumns" type="int"/>
             <Option value="false" name="OrderByDescending" type="bool"/>
             <Option value="false" name="OrderByField" type="bool"/>

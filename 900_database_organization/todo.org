@@ -43,6 +43,9 @@
 
 + [ ] check incomplete replacements
 
++ [ ] CellMapping: enable multiple polygons (wrong random points in Vorsdonk 47685766)
+  + =SELECT * FROM "inbound"."CellMaps" WHERE label = 'Stronken';=
+
 + [X] change requests Ward 20250716
   + [X] rename ="FieldActivityCalendar".acceccibility_revisit=
   + [X] add column ="Visits".recovery_hints=
@@ -99,6 +102,11 @@
 * mnmgwdb
 + [ ] tester does not consistently get access (manual adjustments), create a placeholder fieldworker to facilitate auth management
 + [ ] =metadata.Coordinates=: also give coords for FreeFieldNotes (complicates view)
+
++ [X] do replacements transfer correctly? 17318 -> 4211622 # now they do
+
++ [ ] target area in forests: 10m did not yield any placement points; set to 16m (=cell radius)
+  + TO BE DISCUSSED
 
 + [X] good question Tom: where is =GWINSTPIEZWELL=? -> filter group instead of activity.
 + [X] two watina_code fields instead of one
