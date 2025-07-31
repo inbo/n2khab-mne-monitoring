@@ -1,12 +1,12 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis styleCategories="Symbology|Symbology3D|Labeling|Fields|Forms|Actions|MapTips|Diagrams|AttributeTable|Rendering|CustomProperties|GeometryOptions|Relations|Temporal|Legend|Elevation|Notes" autoRefreshMode="Disabled" labelsEnabled="0" simplifyMaxScale="1" simplifyDrawingHints="0" simplifyAlgorithm="0" maxScale="0" symbologyReferenceScale="-1" minScale="100000000" simplifyDrawingTol="1" hasScaleBasedVisibilityFlag="0" version="3.44.0-Solothurn" autoRefreshTime="0" simplifyLocal="1">
-  <temporal startExpression="" enabled="0" limitMode="0" fixedDuration="0" endField="" accumulate="0" startField="log_creation" durationUnit="min" mode="0" durationField="ogc_fid" endExpression="">
+<qgis autoRefreshMode="Disabled" labelsEnabled="0" maxScale="0" simplifyDrawingHints="0" styleCategories="Symbology|Symbology3D|Labeling|Fields|Forms|Actions|MapTips|Diagrams|AttributeTable|Rendering|CustomProperties|GeometryOptions|Relations|Temporal|Legend|Elevation|Notes" simplifyDrawingTol="1" minScale="100000000" symbologyReferenceScale="-1" hasScaleBasedVisibilityFlag="0" simplifyMaxScale="1" simplifyAlgorithm="0" simplifyLocal="1" version="3.44.1-Solothurn" autoRefreshTime="0">
+  <temporal accumulate="0" endExpression="" endField="" startField="log_creation" startExpression="" durationField="ogc_fid" mode="0" fixedDuration="0" limitMode="0" durationUnit="min" enabled="0">
     <fixedRange>
       <start></start>
       <end></end>
     </fixedRange>
   </temporal>
-  <elevation extrusionEnabled="0" binding="Centroid" zscale="1" symbology="Line" respectLayerSymbol="1" customToleranceEnabled="0" type="IndividualFeatures" extrusion="0" clamping="Terrain" showMarkerSymbolInSurfacePlots="0" zoffset="0">
+  <elevation extrusionEnabled="0" customToleranceEnabled="0" clamping="Terrain" type="IndividualFeatures" zoffset="0" symbology="Line" showMarkerSymbolInSurfacePlots="0" zscale="1" extrusion="0" binding="Centroid" respectLayerSymbol="1">
     <data-defined-properties>
       <Option type="Map">
         <Option name="name" value="" type="QString"/>
@@ -15,7 +15,7 @@
       </Option>
     </data-defined-properties>
     <profileLineSymbol>
-      <symbol alpha="1" name="" frame_rate="10" is_animated="0" type="line" clip_to_extent="1" force_rhr="0">
+      <symbol name="" type="line" alpha="1" force_rhr="0" clip_to_extent="1" is_animated="0" frame_rate="10">
         <data_defined_properties>
           <Option type="Map">
             <Option name="name" value="" type="QString"/>
@@ -23,7 +23,7 @@
             <Option name="type" value="collection" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" pass="0" enabled="1" id="{2fa848a7-c495-4ba5-baad-f7e7db0fbd0c}" class="SimpleLine">
+        <layer locked="0" class="SimpleLine" id="{2fa848a7-c495-4ba5-baad-f7e7db0fbd0c}" pass="0" enabled="1">
           <Option type="Map">
             <Option name="align_dash_pattern" value="0" type="QString"/>
             <Option name="capstyle" value="square" type="QString"/>
@@ -64,7 +64,7 @@
       </symbol>
     </profileLineSymbol>
     <profileFillSymbol>
-      <symbol alpha="1" name="" frame_rate="10" is_animated="0" type="fill" clip_to_extent="1" force_rhr="0">
+      <symbol name="" type="fill" alpha="1" force_rhr="0" clip_to_extent="1" is_animated="0" frame_rate="10">
         <data_defined_properties>
           <Option type="Map">
             <Option name="name" value="" type="QString"/>
@@ -72,7 +72,7 @@
             <Option name="type" value="collection" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" pass="0" enabled="1" id="{6a43f6a3-3536-49b7-b3e2-ce797063cf06}" class="SimpleFill">
+        <layer locked="0" class="SimpleFill" id="{6a43f6a3-3536-49b7-b3e2-ce797063cf06}" pass="0" enabled="1">
           <Option type="Map">
             <Option name="border_width_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
             <Option name="color" value="141,90,153,255,rgb:0.5529412,0.3529412,0.6,1" type="QString"/>
@@ -97,7 +97,7 @@
       </symbol>
     </profileFillSymbol>
     <profileMarkerSymbol>
-      <symbol alpha="1" name="" frame_rate="10" is_animated="0" type="marker" clip_to_extent="1" force_rhr="0">
+      <symbol name="" type="marker" alpha="1" force_rhr="0" clip_to_extent="1" is_animated="0" frame_rate="10">
         <data_defined_properties>
           <Option type="Map">
             <Option name="name" value="" type="QString"/>
@@ -105,7 +105,7 @@
             <Option name="type" value="collection" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" pass="0" enabled="1" id="{934d4b55-fa58-4aa8-9192-a5d114b4d09c}" class="SimpleMarker">
+        <layer locked="0" class="SimpleMarker" id="{934d4b55-fa58-4aa8-9192-a5d114b4d09c}" pass="0" enabled="1">
           <Option type="Map">
             <Option name="angle" value="0" type="QString"/>
             <Option name="cap_style" value="square" type="QString"/>
@@ -138,9 +138,9 @@
       </symbol>
     </profileMarkerSymbol>
   </elevation>
-  <renderer-v2 enableorderby="0" symbollevels="0" type="singleSymbol" referencescale="-1" forceraster="0">
+  <renderer-v2 enableorderby="0" type="singleSymbol" referencescale="-1" symbollevels="0" forceraster="0">
     <symbols>
-      <symbol alpha="1" name="0" frame_rate="10" is_animated="0" type="marker" clip_to_extent="1" force_rhr="0">
+      <symbol name="0" type="marker" alpha="0.6" force_rhr="0" clip_to_extent="1" is_animated="0" frame_rate="10">
         <data_defined_properties>
           <Option type="Map">
             <Option name="name" value="" type="QString"/>
@@ -148,7 +148,7 @@
             <Option name="type" value="collection" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" pass="0" enabled="1" id="{cd1cf3ab-a580-49f9-9704-56528a8a4767}" class="SimpleMarker">
+        <layer locked="0" class="SimpleMarker" id="{cd1cf3ab-a580-49f9-9704-56528a8a4767}" pass="0" enabled="1">
           <Option type="Map">
             <Option name="angle" value="0" type="QString"/>
             <Option name="cap_style" value="square" type="QString"/>
@@ -193,7 +193,7 @@
   <selection mode="Default">
     <selectionColor invalid="1"/>
     <selectionSymbol>
-      <symbol alpha="1" name="" frame_rate="10" is_animated="0" type="marker" clip_to_extent="1" force_rhr="0">
+      <symbol name="" type="marker" alpha="1" force_rhr="0" clip_to_extent="1" is_animated="0" frame_rate="10">
         <data_defined_properties>
           <Option type="Map">
             <Option name="name" value="" type="QString"/>
@@ -201,7 +201,7 @@
             <Option name="type" value="collection" type="QString"/>
           </Option>
         </data_defined_properties>
-        <layer locked="0" pass="0" enabled="1" id="{4a9d6a5c-8ef6-489d-8eba-61252a199af0}" class="SimpleMarker">
+        <layer locked="0" class="SimpleMarker" id="{4a9d6a5c-8ef6-489d-8eba-61252a199af0}" pass="0" enabled="1">
           <Option type="Map">
             <Option name="angle" value="0" type="QString"/>
             <Option name="cap_style" value="square" type="QString"/>
@@ -239,7 +239,7 @@
       <Option name="QFieldSync/action" value="no_action" type="QString"/>
       <Option name="QFieldSync/attachment_naming" value="{&quot;photo&quot;: &quot;'DCIM/freefieldnotes_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}" type="QString"/>
       <Option name="QFieldSync/cloud_action" value="no_action" type="QString"/>
-      <Option name="QFieldSync/geometry_locked_expression" value="" type="QString"/>
+      <Option name="QFieldSync/geometry_locked_expression" type="invalid"/>
       <Option name="QFieldSync/photo_naming" value="{&quot;photo&quot;: &quot;'DCIM/freefieldnotes_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}" type="QString"/>
       <Option name="QFieldSync/relationship_maximum_visible" value="{}" type="QString"/>
       <Option name="QFieldSync/tracking_distance_requirement_minimum_meters" value="30" type="int"/>
@@ -349,19 +349,19 @@
             <Option name="DisplayGroupName" value="false" type="bool"/>
             <Option name="FilterExpression" type="invalid"/>
             <Option name="Group" type="invalid"/>
-            <Option name="Key" value="teammember_id" type="QString"/>
-            <Option name="Layer" value="TeamMembers_c9285032_4411_4ab9_829f_620ce33ce7cd" type="QString"/>
-            <Option name="LayerName" value="TeamMembers" type="QString"/>
-            <Option name="LayerProviderName" value="postgres" type="QString"/>
-            <Option name="LayerSource" value="dbname='mnmgwdb' host=172.233.44.119 port=2407 sslmode=disable authcfg=9z25893 key='teammember_id' checkPrimaryKeyUnicity='0' table=&quot;metadata&quot;.&quot;TeamMembers&quot;" type="QString"/>
+            <Option name="Key" type="invalid"/>
+            <Option name="Layer" type="invalid"/>
+            <Option name="LayerName" type="invalid"/>
+            <Option name="LayerProviderName" type="invalid"/>
+            <Option name="LayerSource" type="invalid"/>
             <Option name="NofColumns" value="1" type="int"/>
             <Option name="OrderByDescending" value="false" type="bool"/>
             <Option name="OrderByField" value="false" type="bool"/>
-            <Option name="OrderByFieldName" value="teammember_id" type="QString"/>
+            <Option name="OrderByFieldName" type="invalid"/>
             <Option name="OrderByKey" value="true" type="bool"/>
             <Option name="OrderByValue" value="false" type="bool"/>
             <Option name="UseCompleter" value="false" type="bool"/>
-            <Option name="Value" value="username" type="QString"/>
+            <Option name="Value" value="" type="QString"/>
           </Option>
         </config>
       </editWidget>
@@ -412,10 +412,9 @@
             <Option name="FilterExpression" type="invalid"/>
             <Option name="Group" value="activity_group" type="QString"/>
             <Option name="Key" value="activity_group_id" type="QString"/>
-            <Option name="Layer" value="GroupedActivities_351c4488_a3c2_41b1_bf80_f1c95610d4b8" type="QString"/>
+            <Option name="Layer" value="GroupedActivities_3a123066_4e77_4433_8772_2ad9c3538040" type="QString"/>
             <Option name="LayerName" value="GroupedActivities" type="QString"/>
             <Option name="LayerProviderName" value="postgres" type="QString"/>
-            <Option name="LayerSource" value="dbname='mnmgwdb' host=172.233.44.119 port=2407 sslmode=disable authcfg=9z25893 key='grouped_activity_id' checkPrimaryKeyUnicity='0' table=&quot;metadata&quot;.&quot;GroupedActivities&quot; sql=&quot;is_gw_activity&quot;" type="QString"/>
             <Option name="NofColumns" value="1" type="int"/>
             <Option name="OrderByDescending" value="false" type="bool"/>
             <Option name="OrderByField" value="false" type="bool"/>
@@ -452,6 +451,30 @@
         </config>
       </editWidget>
     </field>
+    <field name="audio" configurationFlags="NoFlag">
+      <editWidget type="ExternalResource">
+        <config>
+          <Option type="Map">
+            <Option name="DefaultRoot" value="DCIM" type="QString"/>
+            <Option name="DocumentViewer" value="3" type="int"/>
+            <Option name="DocumentViewerHeight" value="0" type="int"/>
+            <Option name="DocumentViewerWidth" value="0" type="int"/>
+            <Option name="FileWidget" value="true" type="bool"/>
+            <Option name="FileWidgetButton" value="true" type="bool"/>
+            <Option name="FileWidgetFilter" type="invalid"/>
+            <Option name="PropertyCollection" type="Map">
+              <Option name="name" type="invalid"/>
+              <Option name="properties" type="invalid"/>
+              <Option name="type" value="collection" type="QString"/>
+            </Option>
+            <Option name="RelativeStorage" value="1" type="int"/>
+            <Option name="StorageAuthConfigId" type="invalid"/>
+            <Option name="StorageMode" value="0" type="int"/>
+            <Option name="StorageType" type="invalid"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
   </fieldConfiguration>
   <aliases>
     <alias name="" index="0" field="ogc_fid"/>
@@ -467,6 +490,7 @@
     <alias name="locatie" index="10" field="location"/>
     <alias name="activiteit" index="11" field="activity"/>
     <alias name="foto" index="12" field="photo"/>
+    <alias name="toonopname" index="13" field="audio"/>
   </aliases>
   <splitPolicies>
     <policy policy="DefaultValue" field="ogc_fid"/>
@@ -482,72 +506,77 @@
     <policy policy="DefaultValue" field="location"/>
     <policy policy="DefaultValue" field="activity"/>
     <policy policy="DefaultValue" field="photo"/>
+    <policy policy="DefaultValue" field="audio"/>
   </splitPolicies>
   <defaults>
-    <default applyOnUpdate="0" field="ogc_fid" expression=""/>
-    <default applyOnUpdate="0" field="fieldnote_id" expression=""/>
-    <default applyOnUpdate="0" field="log_creator" expression=""/>
-    <default applyOnUpdate="0" field="log_creation" expression=""/>
-    <default applyOnUpdate="0" field="log_user" expression=""/>
-    <default applyOnUpdate="0" field="log_update" expression=""/>
-    <default applyOnUpdate="0" field="hide" expression=""/>
-    <default applyOnUpdate="0" field="teammember_id" expression=""/>
-    <default applyOnUpdate="0" field="field_note" expression=""/>
-    <default applyOnUpdate="0" field="note_date" expression=""/>
-    <default applyOnUpdate="0" field="location" expression=""/>
-    <default applyOnUpdate="0" field="activity" expression=""/>
-    <default applyOnUpdate="0" field="photo" expression=""/>
+    <default expression="" applyOnUpdate="0" field="ogc_fid"/>
+    <default expression="" applyOnUpdate="0" field="fieldnote_id"/>
+    <default expression="" applyOnUpdate="0" field="log_creator"/>
+    <default expression="" applyOnUpdate="0" field="log_creation"/>
+    <default expression="" applyOnUpdate="0" field="log_user"/>
+    <default expression="" applyOnUpdate="0" field="log_update"/>
+    <default expression="" applyOnUpdate="0" field="hide"/>
+    <default expression="" applyOnUpdate="0" field="teammember_id"/>
+    <default expression="" applyOnUpdate="0" field="field_note"/>
+    <default expression="" applyOnUpdate="0" field="note_date"/>
+    <default expression="" applyOnUpdate="0" field="location"/>
+    <default expression="" applyOnUpdate="0" field="activity"/>
+    <default expression="" applyOnUpdate="0" field="photo"/>
+    <default expression="" applyOnUpdate="0" field="audio"/>
   </defaults>
   <constraints>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="1" constraints="3" field="ogc_fid"/>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="1" constraints="3" field="fieldnote_id"/>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="0" constraints="1" field="log_creator"/>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="0" constraints="1" field="log_creation"/>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="0" constraints="1" field="log_user"/>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="0" constraints="1" field="log_update"/>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="0" constraints="1" field="hide"/>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="0" constraints="1" field="teammember_id"/>
-    <constraint notnull_strength="0" exp_strength="0" unique_strength="0" constraints="0" field="field_note"/>
-    <constraint notnull_strength="1" exp_strength="0" unique_strength="0" constraints="1" field="note_date"/>
-    <constraint notnull_strength="0" exp_strength="0" unique_strength="0" constraints="0" field="location"/>
-    <constraint notnull_strength="0" exp_strength="0" unique_strength="0" constraints="0" field="activity"/>
-    <constraint notnull_strength="0" exp_strength="0" unique_strength="0" constraints="0" field="photo"/>
+    <constraint notnull_strength="1" field="ogc_fid" exp_strength="0" unique_strength="1" constraints="3"/>
+    <constraint notnull_strength="1" field="fieldnote_id" exp_strength="0" unique_strength="1" constraints="3"/>
+    <constraint notnull_strength="1" field="log_creator" exp_strength="0" unique_strength="0" constraints="1"/>
+    <constraint notnull_strength="1" field="log_creation" exp_strength="0" unique_strength="0" constraints="1"/>
+    <constraint notnull_strength="1" field="log_user" exp_strength="0" unique_strength="0" constraints="1"/>
+    <constraint notnull_strength="1" field="log_update" exp_strength="0" unique_strength="0" constraints="1"/>
+    <constraint notnull_strength="1" field="hide" exp_strength="0" unique_strength="0" constraints="1"/>
+    <constraint notnull_strength="1" field="teammember_id" exp_strength="0" unique_strength="0" constraints="1"/>
+    <constraint notnull_strength="0" field="field_note" exp_strength="0" unique_strength="0" constraints="0"/>
+    <constraint notnull_strength="1" field="note_date" exp_strength="0" unique_strength="0" constraints="1"/>
+    <constraint notnull_strength="0" field="location" exp_strength="0" unique_strength="0" constraints="0"/>
+    <constraint notnull_strength="0" field="activity" exp_strength="0" unique_strength="0" constraints="0"/>
+    <constraint notnull_strength="0" field="photo" exp_strength="0" unique_strength="0" constraints="0"/>
+    <constraint notnull_strength="0" field="audio" exp_strength="0" unique_strength="0" constraints="0"/>
   </constraints>
   <constraintExpressions>
-    <constraint desc="" field="ogc_fid" exp=""/>
-    <constraint desc="" field="fieldnote_id" exp=""/>
-    <constraint desc="" field="log_creator" exp=""/>
-    <constraint desc="" field="log_creation" exp=""/>
-    <constraint desc="" field="log_user" exp=""/>
-    <constraint desc="" field="log_update" exp=""/>
-    <constraint desc="" field="hide" exp=""/>
-    <constraint desc="" field="teammember_id" exp=""/>
-    <constraint desc="" field="field_note" exp=""/>
-    <constraint desc="" field="note_date" exp=""/>
-    <constraint desc="" field="location" exp=""/>
-    <constraint desc="" field="activity" exp=""/>
-    <constraint desc="" field="photo" exp=""/>
+    <constraint field="ogc_fid" desc="" exp=""/>
+    <constraint field="fieldnote_id" desc="" exp=""/>
+    <constraint field="log_creator" desc="" exp=""/>
+    <constraint field="log_creation" desc="" exp=""/>
+    <constraint field="log_user" desc="" exp=""/>
+    <constraint field="log_update" desc="" exp=""/>
+    <constraint field="hide" desc="" exp=""/>
+    <constraint field="teammember_id" desc="" exp=""/>
+    <constraint field="field_note" desc="" exp=""/>
+    <constraint field="note_date" desc="" exp=""/>
+    <constraint field="location" desc="" exp=""/>
+    <constraint field="activity" desc="" exp=""/>
+    <constraint field="photo" desc="" exp=""/>
+    <constraint field="audio" desc="" exp=""/>
   </constraintExpressions>
   <expressionfields/>
   <attributeactions>
-    <defaultAction value="{00000000-0000-0000-0000-000000000000}" key="Canvas"/>
+    <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
   </attributeactions>
-  <attributetableconfig sortOrder="0" actionWidgetStyle="dropDown" sortExpression="">
+  <attributetableconfig sortExpression="" actionWidgetStyle="dropDown" sortOrder="0">
     <columns>
-      <column width="-1" name="ogc_fid" hidden="0" type="field"/>
-      <column width="-1" name="fieldnote_id" hidden="0" type="field"/>
-      <column width="-1" name="log_creator" hidden="0" type="field"/>
-      <column width="-1" name="log_creation" hidden="0" type="field"/>
-      <column width="-1" name="log_user" hidden="0" type="field"/>
-      <column width="-1" name="log_update" hidden="0" type="field"/>
-      <column width="-1" name="hide" hidden="0" type="field"/>
-      <column width="-1" name="teammember_id" hidden="0" type="field"/>
-      <column width="-1" name="field_note" hidden="0" type="field"/>
-      <column width="-1" name="note_date" hidden="0" type="field"/>
-      <column width="-1" name="location" hidden="0" type="field"/>
-      <column width="-1" name="activity" hidden="0" type="field"/>
-      <column width="-1" name="photo" hidden="0" type="field"/>
-      <column width="-1" hidden="1" type="actions"/>
+      <column name="ogc_fid" hidden="0" type="field" width="-1"/>
+      <column name="fieldnote_id" hidden="0" type="field" width="-1"/>
+      <column name="log_creator" hidden="0" type="field" width="-1"/>
+      <column name="log_creation" hidden="0" type="field" width="-1"/>
+      <column name="log_user" hidden="0" type="field" width="-1"/>
+      <column name="log_update" hidden="0" type="field" width="-1"/>
+      <column name="hide" hidden="0" type="field" width="-1"/>
+      <column name="teammember_id" hidden="0" type="field" width="-1"/>
+      <column name="field_note" hidden="0" type="field" width="-1"/>
+      <column name="note_date" hidden="0" type="field" width="-1"/>
+      <column name="location" hidden="0" type="field" width="-1"/>
+      <column name="activity" hidden="0" type="field" width="-1"/>
+      <column name="photo" hidden="0" type="field" width="-1"/>
+      <column name="audio" hidden="0" type="field" width="-1"/>
+      <column hidden="1" type="actions" width="-1"/>
     </columns>
   </attributetableconfig>
   <conditionalstyles>
@@ -579,42 +608,48 @@ def my_form_open(dialog, layer, feature):
   <featformsuppress>0</featformsuppress>
   <editorlayout>tablayout</editorlayout>
   <attributeEditorForm>
-    <labelStyle labelColor="" overrideLabelFont="0" overrideLabelColor="0">
-      <labelFont bold="0" underline="0" style="" description="Cantarell,10,-1,5,50,0,0,0,0,0" strikethrough="0" italic="0"/>
+    <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+      <labelFont italic="0" strikethrough="0" bold="0" description="Cantarell,10,-1,5,50,0,0,0,0,0" underline="0" style=""/>
     </labelStyle>
-    <attributeEditorField name="teammember_id" showLabel="1" horizontalStretch="0" index="7" verticalStretch="0">
-      <labelStyle labelColor="" overrideLabelFont="0" overrideLabelColor="0">
-        <labelFont bold="0" underline="0" style="" description="Cantarell,10,-1,5,50,0,0,0,0,0" strikethrough="0" italic="0"/>
+    <attributeEditorField name="teammember_id" horizontalStretch="0" showLabel="1" index="7" verticalStretch="0">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont italic="0" strikethrough="0" bold="0" description="Cantarell,10,-1,5,50,0,0,0,0,0" underline="0" style=""/>
       </labelStyle>
     </attributeEditorField>
-    <attributeEditorField name="field_note" showLabel="1" horizontalStretch="0" index="8" verticalStretch="0">
-      <labelStyle labelColor="" overrideLabelFont="0" overrideLabelColor="0">
-        <labelFont bold="0" underline="0" style="" description="Cantarell,10,-1,5,50,0,0,0,0,0" strikethrough="0" italic="0"/>
+    <attributeEditorField name="field_note" horizontalStretch="0" showLabel="1" index="8" verticalStretch="0">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont italic="0" strikethrough="0" bold="0" description="Cantarell,10,-1,5,50,0,0,0,0,0" underline="0" style=""/>
       </labelStyle>
     </attributeEditorField>
-    <attributeEditorField name="note_date" showLabel="1" horizontalStretch="0" index="9" verticalStretch="0">
-      <labelStyle labelColor="" overrideLabelFont="0" overrideLabelColor="0">
-        <labelFont bold="0" underline="0" style="" description="Cantarell,10,-1,5,50,0,0,0,0,0" strikethrough="0" italic="0"/>
+    <attributeEditorField name="note_date" horizontalStretch="0" showLabel="1" index="9" verticalStretch="0">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont italic="0" strikethrough="0" bold="0" description="Cantarell,10,-1,5,50,0,0,0,0,0" underline="0" style=""/>
       </labelStyle>
     </attributeEditorField>
-    <attributeEditorField name="location" showLabel="1" horizontalStretch="0" index="10" verticalStretch="0">
-      <labelStyle labelColor="" overrideLabelFont="0" overrideLabelColor="0">
-        <labelFont bold="0" underline="0" style="" description="Cantarell,10,-1,5,50,0,0,0,0,0" strikethrough="0" italic="0"/>
+    <attributeEditorField name="location" horizontalStretch="0" showLabel="1" index="10" verticalStretch="0">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont italic="0" strikethrough="0" bold="0" description="Cantarell,10,-1,5,50,0,0,0,0,0" underline="0" style=""/>
       </labelStyle>
     </attributeEditorField>
-    <attributeEditorField name="activity" showLabel="1" horizontalStretch="0" index="11" verticalStretch="0">
-      <labelStyle labelColor="" overrideLabelFont="0" overrideLabelColor="0">
-        <labelFont bold="0" underline="0" style="" description="Cantarell,10,-1,5,50,0,0,0,0,0" strikethrough="0" italic="0"/>
+    <attributeEditorField name="activity" horizontalStretch="0" showLabel="1" index="11" verticalStretch="0">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont italic="0" strikethrough="0" bold="0" description="Cantarell,10,-1,5,50,0,0,0,0,0" underline="0" style=""/>
       </labelStyle>
     </attributeEditorField>
-    <attributeEditorField name="photo" showLabel="1" horizontalStretch="0" index="12" verticalStretch="0">
-      <labelStyle labelColor="" overrideLabelFont="0" overrideLabelColor="0">
-        <labelFont bold="0" underline="0" style="" description="Cantarell,10,-1,5,50,0,0,0,0,0" strikethrough="0" italic="0"/>
+    <attributeEditorField name="photo" horizontalStretch="0" showLabel="1" index="12" verticalStretch="0">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont italic="0" strikethrough="0" bold="0" description="Cantarell,10,-1,5,50,0,0,0,0,0" underline="0" style=""/>
+      </labelStyle>
+    </attributeEditorField>
+    <attributeEditorField name="audio" horizontalStretch="0" showLabel="1" index="13" verticalStretch="0">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont italic="0" strikethrough="0" bold="0" description="Cantarell,10,-1,5,50,0,0,0,0,0" underline="0" style=""/>
       </labelStyle>
     </attributeEditorField>
   </attributeEditorForm>
   <editable>
     <field name="activity" editable="1"/>
+    <field name="audio" editable="1"/>
     <field name="field_note" editable="1"/>
     <field name="fieldnote_id" editable="1"/>
     <field name="hide" editable="0"/>
@@ -630,6 +665,7 @@ def my_form_open(dialog, layer, feature):
   </editable>
   <labelOnTop>
     <field name="activity" labelOnTop="0"/>
+    <field name="audio" labelOnTop="0"/>
     <field name="field_note" labelOnTop="0"/>
     <field name="fieldnote_id" labelOnTop="0"/>
     <field name="hide" labelOnTop="0"/>
@@ -645,6 +681,7 @@ def my_form_open(dialog, layer, feature):
   </labelOnTop>
   <reuseLastValue>
     <field name="activity" reuseLastValue="0"/>
+    <field name="audio" reuseLastValue="0"/>
     <field name="field_note" reuseLastValue="0"/>
     <field name="fieldnote_id" reuseLastValue="0"/>
     <field name="hide" reuseLastValue="0"/>
@@ -656,7 +693,7 @@ def my_form_open(dialog, layer, feature):
     <field name="note_date" reuseLastValue="1"/>
     <field name="ogc_fid" reuseLastValue="0"/>
     <field name="photo" reuseLastValue="0"/>
-    <field name="teammember_id" reuseLastValue="0"/>
+    <field name="teammember_id" reuseLastValue="1"/>
   </reuseLastValue>
   <dataDefinedFieldProperties/>
   <widgets/>

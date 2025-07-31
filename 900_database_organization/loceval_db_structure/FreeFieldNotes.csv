@@ -11,4 +11,5 @@ note_date,date,True,,False,False,,,,date of the field activity
 location,varchar,False,NULL,False,False,,,,free reference to the location (database id or grts address)
 activity,varchar,False,NULL,False,False,,,,what activity was performed (reference to GroupedActivities)
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
+audio,varchar,False,NULL,False,False,,,,audio message to brighten up your rainy days
 wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

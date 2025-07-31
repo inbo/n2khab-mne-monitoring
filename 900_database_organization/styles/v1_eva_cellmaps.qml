@@ -470,7 +470,6 @@
             <Option type="QString" value="N2kHabTypes_17f1db33_9953_4338_b778_ceaaf2f0e6b8" name="Layer"/>
             <Option type="QString" value="N2kHabTypes" name="LayerName"/>
             <Option type="QString" value="postgres" name="LayerProviderName"/>
-            <Option type="QString" value="dbname='loceval' host=172.233.44.119 port=2407 sslmode=disable authcfg=9wwr376 key='n2khabtype_id' checkPrimaryKeyUnicity='0' table=&quot;metadata&quot;.&quot;N2kHabTypes&quot;" name="LayerSource"/>
             <Option type="int" value="1" name="NofColumns"/>
             <Option type="bool" value="false" name="OrderByDescending"/>
             <Option type="bool" value="false" name="OrderByField"/>

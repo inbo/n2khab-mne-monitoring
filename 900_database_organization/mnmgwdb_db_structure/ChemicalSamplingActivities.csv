@@ -11,4 +11,5 @@ date_start,date,True,,False,False,,,,start of the panel activity sequence (inclu
 teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
 date_visit,date,False,NULL,False,False,,,,date of the field activity
 visit_done,boolean,True,0,False,False,,,,double check that the activity was complete
-lims_code,varchar,False,NULL,False,False,,,,LIMS code of this sampling visit
+project_code,varchar,False,NULL,False,False,,,,LIMS project code of this sample
+recipient_code,varchar,False,NULL,False,False,,,,LIMS recipient code of this sample

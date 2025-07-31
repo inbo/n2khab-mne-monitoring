@@ -1384,6 +1384,30 @@ SCHEDULED: <2025-07-29 Tue>
 just a quick, raw transfer
 
 
+** random points: refinement
+SCHEDULED: <2025-07-31 Thu>
+
++ show Lambert for RTKGPS
++ round values
++ correct MHQ area
+
+** replacement f**k-up
+SCHEDULED: <2025-07-31 Thu>
+
++ single replacements were not moved due to a bug.
++ e.g. 17318 -> 4211622
+
+** MHQ zone to polygons
+SCHEDULED: <2025-07-31 Thu>
+
+done.
+
+** qfield audio attachments
+SCHEDULED: <2025-07-31 Thu>
+
+because why not?
+
+
 * learning the hard way
 
 ** =dbWriteTable(..., overwrite = TRUE, ...)= is a bad idea!
@@ -1450,6 +1474,13 @@ During replacement relocation [[replacement duplication][(see above)]], I at som
 I later found out that the checks correctly triggered errors: rows were duplicated prior to upload, which was logically correct, but not general (and thus overlooked).
 
 Lesson repeated: pk constraints are good; always assume that they work well.
+
+
+** major programming bugs
+SCHEDULED: <2025-07-31 Thu>
+
++ wrong IF clause (just switched arguments) on forest/assessment MHQ determination
++ replacement procedure: obob <= instead of < 1 cell (was originally only for duplication)
 
 
 * General

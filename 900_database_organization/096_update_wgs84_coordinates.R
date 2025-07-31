@@ -11,6 +11,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 
 update_location_coordinates <- function(database_label, testing = TRUE) {
   # db_name <- glue::glue("{database_label}_testing")
+  # database_label <- "mnmgwdb"
 
   if (testing) {
     connection_profile <- glue::glue("{database_label}-testing")
@@ -41,8 +42,21 @@ update_location_coordinates <- function(database_label, testing = TRUE) {
       sf::st_drop_geometry(locations_wgs84),
       sf::st_coordinates(locations_wgs84)
     ) %>%
-    rename(wgs84_x = X, wgs84_y = Y)
+    rename(wgs84_x = X, wgs84_y = Y) %>%
+    mutate_at(
+      vars(
+        lambert_x,
+        lambert_y,
+      ), function (x) round(x, 2)
+    ) %>%
+    mutate_at(
+      vars(
+        wgs84_x,
+        wgs84_y,
+      ), function (x) round(x, 6)
+    )
 
+  # DELETE FROM "metadata"."Coordinates";
   append_tabledata(
     db_connection,
     DBI::Id(schema = "metadata", table = "Coordinates"),

@@ -3,11 +3,11 @@
 import MNMDatabaseToolbox as DTB
 
 # https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
-# SET search_path TO public,"metadata","outbound","inbound";
+# SET search_path TO public,"metadata","outbound","inbound","archive";
 
 restore_dev = False
 restore_staging = False
-restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
+restore_testing = True # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
 base_folder = DTB.PL.Path(".")
 DTB.ODStoCSVs(base_folder/"loceval_dev_structure.ods", base_folder/"loceval_dev_structure")
@@ -46,7 +46,7 @@ if restore_staging:
         connection_config = "loceval-staging",
         )
     db = DTB.Database( \
-        structure_folder = base_folder/"loceval_dev_structure", \
+        structure_folder = base_folder/"loceval_db_structure", \
         lazy_creation = False, \
         db_connection = db_connection, \
         tabula_rasa = True
@@ -67,7 +67,7 @@ if restore_testing:
         connection_config = "loceval-testing",
         )
     db = DTB.Database( \
-        structure_folder = base_folder/"loceval_db_structure", \
+        structure_folder = base_folder/"loceval_dev_structure", \
         lazy_creation = False, \
         db_connection = db_connection, \
         tabula_rasa = True

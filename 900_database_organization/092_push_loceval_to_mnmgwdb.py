@@ -26,6 +26,7 @@ loceval = DTB.ConnectDatabase(
     # connection_config = f"dumpall",
     # database = f"loceval{suffix}"
     connection_config = f"loceval{suffix}"
+    # connection_config = f"loceval"
     )
 
 mnmgwdb = DTB.ConnectDatabase(
@@ -91,7 +92,7 @@ replacement_data = GPD.read_postgis( \
     geom_col = "wkb_geometry" \
     ).astype({"grts_address": int, "grts_address_replacement": int})
 replacement_data.loc[
-    replacement_data["grts_address"].values == 23238
+    replacement_data["grts_address"].values == 17318
     , :].T
 
 # compare to the locations in `mnmgwdb`
@@ -192,7 +193,7 @@ replacement_data = replacement_data.join(
 )
 
 replacement_data.loc[
-    replacement_data["grts_address"].values == 23238
+    replacement_data["grts_address"].values == 17318
     , :].T
 
 ## also join samplelocation_id -> lookup to the SampleLocations
@@ -235,7 +236,7 @@ for idx, row in replacement_data.iterrows():
 
 print(missing)
 replacement_data.loc[
-    replacement_data["grts_address"].values == 23238
+    replacement_data["grts_address"].values == 23257
     , :].T
 
 ## some of the sample location ids are recovered from the other replacements
@@ -252,7 +253,7 @@ replacement_data["samplelocation_id"] = replacement_data["samplelocation_id"].as
 
 
 # print(replacement_data.sample(3).T)
-print(replacement_data.loc[replacement_data["grts_address"].values == 23238, :])
+print(replacement_data.loc[replacement_data["grts_address"].values == 17318, :].T)
 
 
 ### replace the location_id and grts in other tables
@@ -321,8 +322,11 @@ replacement_data["new_samplelocation_id"] = replacement_data["samplelocation_id"
 
 unique_samplelocations = replacement_data.loc[:, ["grts_address", "samplelocation_id"]].drop_duplicates()
 
+
 for _, potential_duplicates in unique_samplelocations.iterrows():
     # potential_duplicates = unique_samplelocations.loc[unique_samplelocations["grts_address"].values == 23238, :]
+    # potential_duplicates = unique_samplelocations.loc[unique_samplelocations.loc[unique_samplelocations["grts_address"].values == 17318, :].index.values[0], :]
+    # potential_duplicates = unique_samplelocations.loc[unique_samplelocations.loc[unique_samplelocations["grts_address"].values == 23257, :].index.values[0], :]
     podup = potential_duplicates.to_dict()
 
     duplicate_replacement = replacement_data.loc[
@@ -332,7 +336,7 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
             )
         , :]
 
-    if duplicate_replacement.shape[0] <= 1:
+    if duplicate_replacement.shape[0] < 1: # !!! WAS <= 1 -> did I not replace the singles?!
         continue
 
     # do not loop if replacement was done previously
@@ -341,7 +345,7 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
     # store the originals to delete them later
     old_identifiers = []
 
-    # duplicate_index = 4
+    # duplicate_index = 5
     # duplicate = duplicate_replacement.loc[duplicate_index]
     for duplicate_index, duplicate in duplicate_replacement.iterrows():
 
@@ -386,6 +390,10 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
             """,
             con = mnmgwdb.connection
            ).values.astype(int).ravel()
+
+        if len(fwcal_subset) < 1:
+            # there are replacements which do not have mnmgwdb calendar events yet.
+            old_identifiers.append({"samplelocation_id": old_samplelocation, "fieldworkcalendar_id": None})
 
         for fwcal_id in fwcal_subset:
 
@@ -483,7 +491,16 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
 
     ### DELETE rows by old identifiers
     obsolete_rows = PD.DataFrame.from_dict(old_identifiers).drop_duplicates()
+
+    # print("#"*80)
+    # print(potential_duplicates)
+    # print(obsolete_rows)
+    # print(replacement_data)
+
     for fwcal_id in NP.unique(obsolete_rows["fieldworkcalendar_id"].values):
+        if fwcal_id is None:
+            continue
+
         for table in [
                 '"outbound"."FieldworkCalendar"',
                 '"inbound"."Visits"',
