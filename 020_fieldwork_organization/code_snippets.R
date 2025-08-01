@@ -1155,6 +1155,51 @@ if (FALSE) {
 
 
 
+
+
+## Processing the FAG calendar wrt specific questions -------------------------
+
+# Classifying strata in groundwater schemes according to different allowed
+# maximum depths for the PIEZ/WELL installation
+
+fag_stratum_grts_calendar %>%
+  filter(str_detect(field_activity_group, "INST")) %>%
+  unnest(scheme_moco_ps) %>%
+  filter(str_detect(scheme, "^GW")) %>%
+  distinct(stratum) %>%
+  # adding type attributes
+  inner_join(
+    n2khab_strata,
+    join_by(stratum),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  inner_join(
+    n2khab_types_expanded_properties %>%
+      select(type, grts_join_method, groundw_dep),
+    join_by(type),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  mutate(
+    max_depth_groups = case_when(
+      # non-cell types can go much deeper (soil surface is not the relevant
+      # reference)
+      !str_detect(grts_join_method, "cell") ~ 3L,
+      # strictly groundwater dependent cell types get more strict rules
+      groundw_dep == "GD2" ~ 2L,
+      # remaining cell types get the most strict rules
+      .default = 1L
+    )
+  )
+
+
+
+
+
+
+
+
 ## Making selections for orthophoto assessments in 2025 ----------------------
 
 # Making a list of terrestrial locations to be assessed using orthophotos in
