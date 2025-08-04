@@ -934,7 +934,18 @@ fag_stratum_grts_calendar_2025_attribs <-
     field_activity_group,
     rank
   ) %>%
-  filter(year(date_start) < 2026) %>%
+  filter(
+    year(date_start) < 2026 |
+      # already allow GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from 2026 to be
+      # executed in 2025:
+      (
+        year(date_start) < 2027 &
+          !str_detect(
+            field_activity_group,
+            "LOCEVAL|^GW.*(CLEAN|SAMP)|^SURF|^LSVI"
+          )
+      )
+  ) %>%
   # count(date_start, date_end, date_interval) %>%
   # move the fieldwork that was kept for 2024, to 2025, since that is indeed
   # its meaning
@@ -973,10 +984,10 @@ fag_stratum_grts_calendar_2025_attribs <-
   # location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
   # shrinked version of the one at the level of the whole sample (see sampling
   # unit attributes in the beginning), since we limited the activities to those
-  # planned before 2026, and then generate stratum_scheme_ps_targetpanels as a
-  # location attribute. So it says specifically which schemes x panel sets x
-  # targetpanels are served by the specific fieldwork at a specific date
-  # interval.
+  # planned before 2026 (sometimes 2027), and then generate
+  # stratum_scheme_ps_targetpanels as a location attribute. So it says
+  # specifically which schemes x panel sets x targetpanels are served by the
+  # specific fieldwork at a specific date interval.
   mutate(scheme_ps_targetpanel = str_glue(
     "{ scheme }:PS{ panel_set }{ targetpanel }"
   )) %>%
@@ -1046,14 +1057,15 @@ fieldwork_2025_prioritization_by_stratum <-
   fag_stratum_grts_calendar_2025_attribs %>%
   mutate(
     priority = case_when(
-      str_detect(
-        scheme_ps_targetpanels,
-        "GW_03\\.3:(PS1PANEL(09|10|11|12)|PS2PANEL0[56])|SURF_03\\.4_[a-z]+:PS\\dPANEL03"
-      ) ~ 1L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 2L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 4L,
-      .default = 5L
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL12|PS2PANEL06)") ~ 7L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL11)") ~ 1L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL10|PS2PANEL05)") ~ 2L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL09)") ~ 3L,
+      str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL03") ~ 4L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 5L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 6L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 8L,
+      .default = 9L
     ),
     wait_watersurface = str_detect(stratum, "^31|^2190_a"),
     wait_3260 = stratum == "3260",
