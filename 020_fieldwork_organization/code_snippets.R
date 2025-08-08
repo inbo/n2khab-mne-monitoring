@@ -934,18 +934,24 @@ fag_stratum_grts_calendar_2025_attribs <-
     field_activity_group,
     rank
   ) %>%
+  mutate(has_gw = map_lgl(
+    scheme_moco_ps,
+    \(df) any(str_detect(df$scheme, "^GW"))
+  )) %>%
   filter(
     year(date_start) < 2026 |
       # already allow GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from 2026 to be
       # executed in 2025:
       (
         year(date_start) < 2027 &
-          !str_detect(
+          has_gw &
+          str_detect(
             field_activity_group,
-            "LOCEVAL|^GW.*(CLEAN|SAMP)|^SURF|^LSVI"
+            "INST|LEVREAD|SPATPOSIT"
           )
       )
   ) %>%
+  select(-has_gw) %>%
   # count(date_start, date_end, date_interval) %>%
   # move the fieldwork that was kept for 2024, to 2025, since that is indeed
   # its meaning
