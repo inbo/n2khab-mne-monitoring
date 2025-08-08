@@ -1121,7 +1121,11 @@ fieldwork_2025_targetpanels_prioritization_count <-
     field_activity_group
   ) %>%
   arrange(priority, wait_watersurface, wait_3260, wait_7220) %>%
-  pivot_wider(names_from = field_activity_group, values_from = n)
+  pivot_wider(
+    names_from = field_activity_group,
+    names_sort = TRUE,
+    values_from = n
+  )
 
 
 gs_id <- "1RXhqlK8nu_BdIiYEbjhjoNnu82wnn6zGfQSdzyi-afI"
@@ -1149,7 +1153,11 @@ fieldwork_2025_dates_prioritization_count <-
   ) %>%
   arrange(date_end, priority, wait_watersurface, wait_3260, wait_7220) %>%
   select(-date_end) %>%
-  pivot_wider(names_from = field_activity_group, values_from = n)
+  pivot_wider(
+    names_from = field_activity_group,
+    names_sort = TRUE,
+    values_from = n
+  )
 
 # WRITE PIVOT TABLE TO GSHEET:
 if (FALSE) {
