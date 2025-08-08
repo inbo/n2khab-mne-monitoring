@@ -854,10 +854,10 @@ fag_fa_stratum_grts_calendar <-
   select(-c(typelevel_certain:inaccessible))
 
 # Note that both calendar objects have a scheme_moco_ps column that makes clear
-# which scheme x module combo x panel set the FAG is serving. This may be a
-# SUBSET of the same information at the level of the spatial sampling unit
-# without considering FAG occasions, since not all field activities necessarily
-# serve all schemes.
+# which combinations of scheme x module combo x panel set the FAG is serving.
+# This may be a SUBSET of the same information at the level of the spatial
+# sampling unit without considering FAG occasions, since not all field
+# activities necessarily serve all schemes.
 
 # Link between field activities and their protocol
 fa_protocol <-
