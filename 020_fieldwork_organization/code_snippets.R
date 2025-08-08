@@ -69,6 +69,12 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 scheme_moco_ps_stratum_targetpanel_spsamples <-
   scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar %>%
   inner_join(
+    domainpart_grts_n2khab,
+    join_by(grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  inner_join(
     n2khab_strata,
     join_by(stratum),
     relationship = "many-to-one",
@@ -97,6 +103,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
     sample_support_code,
     grts_address,
     grts_address_final,
+    domain_part,
     targetpanel,
     last_type_assessment = assessment_date,
     last_type_assessment_in_field = assessed_in_field,
@@ -468,6 +475,12 @@ hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended <-
 stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
   stratum_schemepstargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
+  # We drop domain_part since its value can change within a polygon, which
+  # otherwise requires extra attention in grouping operations. As we always
+  # _identify_ the sampling units using grts_address x stratum (not
+  # grts_address_final, which is only relevant for fieldwork), we also use its
+  # domain_part attribute, regardless whether a local replacement took place.
+  select(-domain_part) %>%
   # adding polygon_id attribute (sometimes more than one, as explained above)
   inner_join(
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended,
@@ -976,6 +989,7 @@ fag_stratum_grts_calendar_2025_attribs <-
         grts_join_method,
         grts_address,
         grts_address_final,
+        domain_part,
         targetpanel
       ) %>%
       # deduplicating 7220:
@@ -984,7 +998,7 @@ fag_stratum_grts_calendar_2025_attribs <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
-  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(grts_address_final, domain_part, .after = grts_address) %>%
   select(-module_combo_code) %>%
   # flatten scheme x panel set x targetpanel to unique strings per stratum x
   # location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
@@ -1259,6 +1273,7 @@ orthophoto_2025_type_grts <-
         grts_join_method,
         grts_address,
         grts_address_final,
+        domain_part,
         targetpanel
       ) %>%
       # deduplicating 7220:
@@ -1273,16 +1288,6 @@ orthophoto_2025_type_grts <-
     # only keep cell-based types (aquatic & 7220 will be more reliable or simply
     # not possible to evaluate on orthophoto)
     str_detect(grts_join_method, "cell")
-  ) %>%
-  # also join the spatial poststratum, since we need this in setting
-  # GRTS-address based priorities
-  inner_join(
-    scheme_moco_ps_stratum_sppost_spsamples %>%
-      unnest(sp_poststr_samples) %>%
-      select(-sample_status),
-    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
   ) %>%
   # add MHQ assessment metadata
   inner_join(
@@ -1326,7 +1331,7 @@ orthophoto_2025_type_grts <-
       grts_address <= median(grts_address) ~ 2L,
       .default = 3L
     ),
-    .by = c(type, loceval_year, scheme, panel_set, sp_poststratum)
+    .by = c(type, loceval_year, scheme, panel_set, domain_part)
   ) %>%
   # collapse scheme & panel_set since these can have different values for the
   # same location
@@ -1349,14 +1354,14 @@ orthophoto_2025_type_grts <-
       grts_address,
       grts_address_final,
       starts_with("assess"),
-      sp_poststratum
+      domain_part
     )
   ) %>%
   arrange(
     loceval_year,
     priority_orthophoto,
     type,
-    sp_poststratum,
+    domain_part,
     grts_address
   )
 
@@ -1375,7 +1380,7 @@ orthophoto_2025_cells <-
     loceval_year,
     priority_orthophoto,
     type,
-    sp_poststratum,
+    domain_part,
     grts_address
   )
 
