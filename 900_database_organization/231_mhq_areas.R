@@ -27,10 +27,10 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 # testing
 # working_dbname <- "mnmgwdb_testing"
 # connection_profile <- "mnmgwdb-testing"
-# working_dbname <- "mnmgwdb"
-# connection_profile <- "mnmgwdb"
-working_dbname <- "loceval"
-connection_profile <- "loceval"
+working_dbname <- "mnmgwdb"
+connection_profile <- "mnmgwdb"
+# working_dbname <- "loceval"
+# connection_profile <- "loceval"
 
 db_using_locations <- grepl("mnmgwdb", working_dbname)
 
@@ -173,7 +173,7 @@ generate_mhq_polygon <- function(
   }
 
 
-  if (is_assessed && is_forest) {
+  if (is_forest && !is_assessed) {
     return(NA)
   } else {
     return(sf::st_as_sf(mhq_safety, crs = 31370))
