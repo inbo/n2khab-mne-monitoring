@@ -27,6 +27,8 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 # testing
 working_dbname <- "mnmgwdb"
 connection_profile <- "mnmgwdb"
+# working_dbname <- "mnmgwdb_testing"
+# connection_profile <- "mnmgwdb-testing"
 
 
 config <- configr::read.config(file = config_filepath)[[connection_profile]]
@@ -196,11 +198,19 @@ generate_random_points <- function(
   ) {
 
 
-  target_area <- sf::st_buffer(one_location, target_radius)
-  # mapview(target_area)
-
   cell_center <- sf::st_coordinates(one_location)
 
+  # target_area <- sf::st_buffer(one_location, target_radius)
+  target_area <- make_polygon(
+      rbind(
+        cell_center + make_a_point(16, 16),
+        cell_center + make_a_point(16, -16),
+        cell_center + make_a_point(-16, -16),
+        cell_center + make_a_point(-16, 16),
+        cell_center + make_a_point(16, 16)
+      )
+    )
+  # mapview(target_area)
 
   if (is_forest) {
 
@@ -239,12 +249,14 @@ generate_random_points <- function(
     ) + do.call(rbind, replicate(n_samples, c(cell_center, 0, 0), simplify=FALSE))
   random_points_sf <- sf::st_as_sf(random_points, coords = c("X", "Y"), crs = 31370)
 
-  inside_target <- random_points_sf[st_intersects(random_points_sf, target_area, sparse = FALSE),]
+  inside_cell <- random_points_sf[
+      st_intersects(random_points_sf, target_area, sparse = FALSE),
+      ]
 
-  if (is_assessed && is_forest) {
-    outside_mhq <- inside_target
+  if ( is_forest && !is_assessed ) {
+    outside_mhq <- inside_cell
   } else {
-    outside_mhq <- inside_target[st_disjoint(inside_target, mhq_safety, sparse = FALSE),]
+    outside_mhq <- inside_cell[st_disjoint(inside_cell, mhq_safety, sparse = FALSE), ]
   }
   points_in_habitat <- outside_mhq[st_intersects(outside_mhq, cellmap_polygons, sparse = FALSE),]
   points_in_habitat <- points_in_habitat[1:n_points,]
@@ -370,7 +382,8 @@ all_points <- all_points %>%
   mutate(
     randompoint_id = 1:nrow(all_points),
     angle = -(phi+90) %% 360,
-    angle_look = (-angle) + 360,
+    # angle_look = (-angle) + 360, # wrong, updated 20250812
+    angle_look = (angle + 180) %% 360,
     compass = cimir::cimis_degrees_to_compass(angle),
     distance_m = r
   )
