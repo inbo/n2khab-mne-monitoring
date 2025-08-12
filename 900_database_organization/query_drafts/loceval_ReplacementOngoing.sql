@@ -12,6 +12,7 @@ SELECT
   VISIT.notes AS unit_notes,
   VISIT.visit_id,
   VISIT.type_assessed,
+  VISIT.photo,
   VISIT.visit_done
 FROM (
   SELECT
@@ -26,9 +27,15 @@ FROM (
     REP.implications_habitatmap,
     UNIT.is_replaced,
     REP.notes AS rep_notes
+    -- INFO.location_id,
+    -- INFO.accessibility_inaccessible,
+    -- INFO.accessibility_revisit,
+    -- INFO.recovery_hints
   FROM "outbound"."Replacements" AS REP
   LEFT JOIN "outbound"."SampleUnits" AS UNIT
     ON UNIT.sampleunit_id = REP.sampleunit_id
+  -- LEFT JOIN "outbound"."LocationInfos" AS INFO
+  --  ON UNIT.location_id = INFO.location_id
   WHERE UNIT.replacement_ongoing
     AND (NOT UNIT.is_replaced OR REP.is_selected)
 ) AS REPU
@@ -43,6 +50,29 @@ ON UPDATE TO "inbound"."ReplacementOngoing"
 DO INSTEAD NOTHING
 ;
 
+DROP RULE IF EXISTS ReplacementOngoing_upd3 ON "inbound"."ReplacementOngoing";
+CREATE RULE ReplacementOngoing_upd3 AS
+ON UPDATE TO "inbound"."ReplacementOngoing"
+DO ALSO
+ UPDATE "outbound"."SampleUnits"
+ SET
+  is_replaced = NEW.is_replaced
+ WHERE sampleunit_id = OLD.sampleunit_id
+;
+
+DROP RULE IF EXISTS ReplacementOngoing_upd2 ON "inbound"."ReplacementOngoing";
+CREATE RULE ReplacementOngoing_upd2 AS
+ON UPDATE TO "inbound"."ReplacementOngoing"
+DO ALSO
+ UPDATE "inbound"."Visits"
+ SET
+  type_assessed = NEW.type_assessed,
+  notes = NEW.unit_notes,
+  photo = NEW.photo,
+  visit_done = NEW.visit_done
+ WHERE visit_id = OLD.visit_id
+;
+
 DROP RULE IF EXISTS ReplacementOngoing_upd1 ON "inbound"."ReplacementOngoing";
 CREATE RULE ReplacementOngoing_upd1 AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
@@ -54,18 +84,6 @@ DO ALSO
   implications_habitatmap = NEW.implications_habitatmap,
   notes = NEW.rep_notes
  WHERE replacement_id = OLD.replacement_id
-;
-
-DROP RULE IF EXISTS ReplacementOngoing_upd2 ON "inbound"."ReplacementOngoing";
-CREATE RULE ReplacementOngoing_upd2 AS
-ON UPDATE TO "inbound"."ReplacementOngoing"
-DO ALSO
- UPDATE "inbound"."Visits"
- SET
-  type_assessed = NEW.type_assessed,
-  notes = NEW.unit_notes,
-  visit_done = NEW.visit_done
- WHERE visit_id = OLD.visit_id
 ;
 
 
