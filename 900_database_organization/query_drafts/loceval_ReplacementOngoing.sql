@@ -19,6 +19,7 @@ FROM (
     REP.ogc_fid,
     REP.wkb_geometry,
     REP.replacement_id,
+    UNIT.location_id,
     UNIT.sampleunit_id,
     REP.grts_address_replacement AS grts_address,
     REP.replacement_rank,
@@ -26,16 +27,16 @@ FROM (
     REP.is_inappropriate,
     REP.implications_habitatmap,
     UNIT.is_replaced,
-    REP.notes AS rep_notes
-    -- INFO.location_id,
-    -- INFO.accessibility_inaccessible,
-    -- INFO.accessibility_revisit,
-    -- INFO.recovery_hints
+    REP.notes AS rep_notes,
+    INFO.locationinfo_id,
+    INFO.accessibility_inaccessible,
+    INFO.accessibility_revisit,
+    INFO.recovery_hints
   FROM "outbound"."Replacements" AS REP
   LEFT JOIN "outbound"."SampleUnits" AS UNIT
     ON UNIT.sampleunit_id = REP.sampleunit_id
-  -- LEFT JOIN "outbound"."LocationInfos" AS INFO
-  --  ON UNIT.location_id = INFO.location_id
+  LEFT JOIN "outbound"."LocationInfos" AS INFO
+   ON UNIT.location_id = INFO.location_id
   WHERE UNIT.replacement_ongoing
     AND (NOT UNIT.is_replaced OR REP.is_selected)
 ) AS REPU
@@ -48,6 +49,31 @@ DROP RULE IF EXISTS ReplacementOngoing_upd0 ON "inbound"."ReplacementOngoing";
 CREATE RULE ReplacementOngoing_upd0 AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
 DO INSTEAD NOTHING
+;
+
+DROP RULE IF EXISTS ReplacementOngoing_upd1 ON "inbound"."ReplacementOngoing";
+CREATE RULE ReplacementOngoing_upd1 AS
+ON UPDATE TO "inbound"."ReplacementOngoing"
+DO ALSO
+ UPDATE "outbound"."Replacements"
+ SET
+  is_selected = NEW.is_selected,
+  is_inappropriate = NEW.is_inappropriate,
+  implications_habitatmap = NEW.implications_habitatmap,
+  notes = NEW.rep_notes
+ WHERE replacement_id = OLD.replacement_id
+;
+
+DROP RULE IF EXISTS ReplacementOngoing_upd4 ON "inbound"."ReplacementOngoing";
+CREATE RULE ReplacementOngoing_upd4 AS
+ON UPDATE TO "inbound"."ReplacementOngoing"
+DO ALSO
+ UPDATE "outbound"."LocationInfos"
+ SET
+  accessibility_inaccessible = NEW.accessibility_inaccessible,
+  accessibility_revisit = NEW.accessibility_revisit,
+  recovery_hints = NEW.recovery_hints
+ WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
 DROP RULE IF EXISTS ReplacementOngoing_upd3 ON "inbound"."ReplacementOngoing";
@@ -71,19 +97,6 @@ DO ALSO
   photo = NEW.photo,
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
-;
-
-DROP RULE IF EXISTS ReplacementOngoing_upd1 ON "inbound"."ReplacementOngoing";
-CREATE RULE ReplacementOngoing_upd1 AS
-ON UPDATE TO "inbound"."ReplacementOngoing"
-DO ALSO
- UPDATE "outbound"."Replacements"
- SET
-  is_selected = NEW.is_selected,
-  is_inappropriate = NEW.is_inappropriate,
-  implications_habitatmap = NEW.implications_habitatmap,
-  notes = NEW.rep_notes
- WHERE replacement_id = OLD.replacement_id
 ;
 
 

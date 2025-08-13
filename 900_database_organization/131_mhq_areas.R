@@ -25,10 +25,8 @@ projroot <- find_root(is_rstudio_project)
 config_filepath <- file.path("./inbopostgis_server.conf")
 
 # testing
-# working_dbname <- "mnmgwdb_testing"
-# connection_profile <- "mnmgwdb-testing"
-working_dbname <- "mnmgwdb"
-connection_profile <- "mnmgwdb"
+working_dbname <- "loceval"
+connection_profile <- "loceval"
 
 db_using_locations <- grepl("mnmgwdb", working_dbname)
 
