@@ -1,12 +1,63 @@
 # DO NOT MODIFY
 # this file is "tangled" automatically from `030_copy_database.org`.
+#
+#         350 | 6
+#            680 |
+#            667 |
+#            686 |
+#            669 |
+#            674 |
+#         243 | 5
+#            677 |
+#            683 |
+#            668 |
+#            672 |
+#         265 | 5
+#            681 |
+#            687 |
+#            670 |
+#            675 |
+#         325 | 4
+#            676 |
+#            682 |
+#            671 |
+#         647 | 4
+#            678 |
+#            684 |
+#            673 |
+#         469 | 3
+#            679 |
+#            685 |
+
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id =
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 667;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 668;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 669;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 670;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 671;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 672;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 673;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 674;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 675;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 676;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 677;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 678;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 679;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 680;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 681;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 682;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 683;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 684;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 685;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 686;
+#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 687;
 
 library("dplyr")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
-database_label <- "mnmgwdb"
-# database_label <- "loceval"
+# database_label <- "mnmgwdb"
+database_label <- "loceval"
 target_mirror <- "testing"
 
 # credentials are stored for easy access

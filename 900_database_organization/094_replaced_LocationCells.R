@@ -62,7 +62,7 @@ locations_grts <- dplyr::tbl(
   select(grts_address, location_id) %>%
   collect
 
-locations_grts %>% filter(location_id == 527)
+# locations_grts %>% filter(location_id == 527)
 
 # re-load POC data
 poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
