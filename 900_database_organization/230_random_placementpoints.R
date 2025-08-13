@@ -299,7 +299,7 @@ randompoints_locationwise <- function(location_row) {
   one_location <- locations[location_row, ]
   location_seed <- as.integer(one_location$grts_address)
 
-  target_radius <- 10 # m
+  target_radius <- sqrt(2*16^2) # m
   n_samples <- 128
   n_points <- 20
   is_forest <- one_location$is_forest
@@ -308,9 +308,9 @@ randompoints_locationwise <- function(location_row) {
     pull(assessed) %>%
     any
 
-  if (is_forest) {
-      target_radius <- 16 # NOT: 18 m # BUT: 10 is too little
-  }
+  # if (is_forest) {
+  #     target_radius <- 16 # NOT: 18 m # BUT: 10 is too little
+  # }
 
   current_points <- 0
   limit_count <- 1
