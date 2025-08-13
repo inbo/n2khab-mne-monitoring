@@ -1,7 +1,10 @@
 
+-- https://stackoverflow.com/questions/59836997/select-single-first-occurrence-of-row-against-distinct-local-id-from-a-table-and
 
 DROP VIEW IF EXISTS  "outbound"."SampleCells" ;
 CREATE VIEW "outbound"."SampleCells" AS
+SELECT DISTINCT ON (location_id) *
+FROM (
 SELECT
  *
 FROM "metadata"."LocationCells"
@@ -21,6 +24,9 @@ WHERE replacement_id IN (
   WHERE replacement_ongoing
     AND (NOT UNIT.is_replaced OR REP.is_selected)
 )
+)
+GROUP BY ogc_fid, wkb_geometry, location_id
+ORDER BY location_id
 ;
 
 GRANT SELECT ON  "outbound"."SampleCells"  TO ward;
