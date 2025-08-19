@@ -6,8 +6,8 @@ import MNMDatabaseToolbox as DTB
 # SET search_path TO public,"metadata","outbound","inbound","archive";
 
 restore_dev = False
-# restore_staging = False
-restore_testing = True # tabula rasa; note that it requires `dev` roles but works on `prod` structure
+restore_staging = False
+restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
 base_folder = DTB.PL.Path(".")
 DTB.ODStoCSVs(base_folder/"mnmgwdb_dev_structure.ods", base_folder/"mnmgwdb_dev_structure")
@@ -30,6 +30,27 @@ if restore_dev:
         db_connection = db_connection, \
         tabula_rasa = False
         )
+
+
+### (2) staging
+# "staging" is a rather accurate mirror of the production database,
+# but used ad hoc in times of change to back-up the data or to test the effects
+# of structural adjustments.
+
+if restore_staging:
+    # database: mnmgwdb_dev
+    db_connection = DTB.ConnectDatabase(
+        base_folder/"inbopostgis_server.conf",
+        connection_config = "mnmgwdb-staging",
+        )
+    db = DTB.Database( \
+        structure_folder = base_folder/"mnmgwdb_db_structure", \
+        definition_csv = "TABLES.csv", \
+        lazy_creation = False, \
+        db_connection = db_connection, \
+        tabula_rasa = True
+        )
+
 
 
 ### (3) testing

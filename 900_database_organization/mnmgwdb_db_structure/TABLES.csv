@@ -13,6 +13,7 @@ outbound,LocationEvaluations,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tes
 outbound,FieldworkCalendar,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,field activity calender
 outbound,Divers,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",tom,,,,1,,list of reserved diver numbers for selection
 outbound,RandomPoints,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,POINT,,,,,random points for placement in the cell
+outbound,MHQPolygons,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,POLYGON,,,1,,MHQ sample areas NO TRESPASSING!
 outbound,CellMaps,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",POLYGON,,,1,,cell mapping input by drawing polygons
 inbound,Visits,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,"inbound information about location visits, planned in FieldworkCalendar, linked to SampleLocations and field activity GROUP"
 inbound,WellInstallationActivities,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,information collected for certain activities (well installations); linked to a subset of Visits
