@@ -535,7 +535,7 @@ delete_obsolete_calendar_entries(obsolete)
 
 ## (III) INSERT to_upload
 
-Insert_new_fieldwork <- function(to_upload) {
+insert_new_fieldwork <- function(to_upload) {
   new_fieldwork_upload <- to_upload %>%
     select(
       -scheme_ps_targetpanels,
@@ -728,3 +728,6 @@ Insert_new_fieldwork <- function(to_upload) {
 
 glimpse(to_upload)
 insert_new_fieldwork(to_upload)
+
+
+# SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address IN (1818369, 769793);
