@@ -940,7 +940,7 @@ fieldwork_calendar <-
     excluded = FALSE,
     no_visit_planned = FALSE,
     done_planning = FALSE
-  )
+  ) %>% glimpse
 
 # fieldwork_calendar %>% glimpse
 
@@ -986,7 +986,7 @@ fieldcalendar_characols <- c(
 # glimpse(previous_calendar_plans %>% replace_sspstapa_by_lookup())
 # TODO had an issue where sspstapas were lost...
 
-fieldwork_celandar_new <- fieldwork_calendar %>%
+fieldwork_calendar_new <- fieldwork_calendar %>%
   replace_sspstapa_by_lookup() %>%
   anti_join(
     previous_calendar_plans %>% replace_sspstapa_by_lookup(),
@@ -997,7 +997,7 @@ fieldwork_celandar_new <- fieldwork_calendar %>%
 fieldwork_calendar_lookup <- update_cascade_lookup(
   schema = "outbound",
   table_key = "FieldworkCalendar",
-  new_data = fieldwork_celandar_new,
+  new_data = fieldwork_calendar_new,
   index_columns = c("fieldworkcalendar_id"),
   characteristic_columns = fieldcalendar_characols,
   tabula_rasa = FALSE,
