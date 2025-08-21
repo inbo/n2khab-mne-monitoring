@@ -20,8 +20,9 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 
 testing <- FALSE
 if (testing) {
-  working_dbname <- "mnmgwdb_testing"
-  connection_profile <- "mnmgwdb-testing"
+  suffix <- "staging" # "testing"
+  working_dbname <- glue::glue("mnmgwdb_{suffix}")
+  connection_profile <- glue::glue("mnmgwdb-{suffix}")
   dbstructure_folder <- "./mnmgwdb_db_structure"
 } else {
   # source("094_replaced_LocationCells.R")
@@ -31,12 +32,13 @@ if (testing) {
   dbstructure_folder <- "./mnmgwdb_db_structure"
 }
 
+
+### connect to databases
 db_connection <- connect_database_configfile(
   config_filepath,
   database = working_dbname,
   profile = connection_profile
 )
-
 
 loceval_connection <- connect_database_configfile(
   config_filepath,

@@ -18,6 +18,7 @@ if major updates:
 + 2x 033_populate_testing_db.R
 
 * mainline
++ [ ] write a function to restore all =seq_keys= to the last used value (special: shared =fieldwork_id=).
 + [X] credentials to config
 + [X] =UNIQUE= tag? -> constraints added
 + [-] migration and real test

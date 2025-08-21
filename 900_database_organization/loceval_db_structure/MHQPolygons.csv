@@ -1,0 +1,6 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+mhqpolygon_id,int,True,,True,True,,,,mhq polygon index (technical)
+sampleunit_id,int,False,,False,False,,,,optional link to sample locations
+location_id,int,False,,False,False,,,,optional link to locations
+grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+wkb_geometry,,False,,False,False,,,,polygon geometry (31370 / Lambert 72): target location

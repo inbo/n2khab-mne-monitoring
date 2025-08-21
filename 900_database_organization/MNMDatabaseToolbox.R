@@ -245,7 +245,7 @@ restore_location_id_by_grts <- function(
 #' reloading backed up content of a previous data version, or for copying
 #' data from one connection to the other.
 #'        hint: use keyring::key_set("DBPassword", "db_user_password") to
-#'        store a connection password
+#'        store a connection password prior to execution.
 #'
 #' @param config_filepath the path to the config file
 #' @param working_dbname the target database name
@@ -488,9 +488,13 @@ update_datatable_and_dependent_keys <- function(
 
   # On the occasion, we reset the sequence counter
   if ((length(pk) > 0) && (!skip_sequence_reset)) {
+
+    sequence_key <- glue::glue('"{get_schema(table_key)}".seq_{pk}')
+    nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
+    current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
     execute_sql(
       db_target,
-      glue::glue('ALTER SEQUENCE "{get_schema(table_key)}".seq_{pk} RESTART WITH 1;'),
+      glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
       verbose = verbose
     )
   }
@@ -507,6 +511,24 @@ update_datatable_and_dependent_keys <- function(
     factorsAsCharacter = TRUE,
     binary = TRUE
   )
+
+  ## restore sequence
+  if ((length(pk) > 0) && (!skip_sequence_reset)) {
+    nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+    if (pk %in% colnames(new_data)) {
+      max_pk <- new_data %>% pull(pk)
+    } else {
+      max_pk <- nrow(new_data)
+    }
+    nextval <- max(c(nextval, max_pk))
+
+    execute_sql(
+      db_target,
+      glue::glue("SELECT setval('{sequence_key}', {nextval});"),
+      verbose = verbose
+    )
+  }
+
 
   if (length(pk) > 0) {
     cols_to_query <- c(characteristic_columns, pk)
@@ -670,6 +692,158 @@ update_datatable_and_dependent_keys <- function(
 } #/update_datatable_and_dependent_keys
 
 
+# the first entry is the table itself
+# find_dependent_tables("mnmgwdb_db_structure", "Visits")
+find_dependent_tables <- function(dbstructure_folder = "db_structure", table_key) {
+  # dbstructure_folder <- "./mnmgwdb_db_structure"
+  # table_key <- "Visits"
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+  stopifnot("glue" = require("glue"))
+
+  schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+    select(table, schema, geometry, excluded)
+
+  ### (2) load current data
+  excluded_tables <- schemas %>%
+    filter(!is.na(excluded)) %>%
+    filter(excluded == 1) %>%
+    pull(table)
+
+  table_relations <- read_table_relations_config(
+    storage_filepath = here::here(dbstructure_folder, "table_relations.conf")
+    ) %>%
+    filter(relation_table == tolower(table_key),
+      !(dependent_table %in% excluded_tables)
+    )
+
+  dependent_tables <- c(
+    table_key,
+    table_relations %>% pull(dependent_table)
+    )
+
+  create_dbi_identifier <- function(tabkey) {
+    schema <- schemas %>% filter(tolower(table) == tolower(tabkey)) %>% pull(schema)
+    tkey_right <- schemas %>% filter(tolower(table) == tolower(tabkey)) %>% pull(table)
+    return(DBI::Id(schema, tkey_right))
+  }
+
+  table_ids <- lapply(dependent_tables, FUN = create_dbi_identifier)
+
+  return(table_ids)
+
+} # /find_dependent_tables
+
+
+# store the content of a table in memory
+load_table_content <- function(
+    db_connection,
+    dbstructure_folder,
+    table_id
+    ) {
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+
+  is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+    select(table, geometry) %>%
+    filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
+    pull(geometry) %>% is.na
+
+  if (is_spatial) {
+    data <- sf::st_read(db_connection, table_id) %>% collect
+  } else {
+    data <- dplyr::tbl(db_connection, table_id) %>% collect
+  }
+
+  return(list("id" = table_id, "data" = data))
+
+} # /load_table_content
+
+
+# push table from memory back to the server
+restore_table_data_from_memory <- function(
+    db_target,
+    content_list,
+    dbstructure_folder = "db_structure",
+    verbose = TRUE
+  ) {
+  # content_list <- table_content_storage[[3]]
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+  stopifnot("glue" = require("glue"))
+
+  table_id <- content_list$id
+  table_key <- attr(table_id, "name")
+  table_lable <- glue::glue('"{table_key[[1]]}"."{table_key[[2]]}"')
+  table_data <- content_list$data
+
+
+  if (all(is.na(table_data)) || (nrow(table_data) < 1)) {
+    message("no data to restore.")
+    return(invisible(NA))
+  }
+
+  # restore data
+  get_primary_key <- function(tablelabel){
+    pk <- load_table_info(dbstructure_folder, tablelabel) %>%
+      filter(primary_key == "True") %>%
+      pull(column)
+    return(pk)
+  }
+
+  pk <- get_primary_key(table_key[[2]])
+
+  # TODO need to branch geometry tables?
+  # is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+  #   select(table, geometry) %>%
+  #   filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
+  #   pull(geometry) %>% is.na
+
+  # using dplyr/DBI to upload has the usual issues of deletion/restroation,
+  # i.e. that user roles are not persistent.
+  # Hence, the usual trick of "empty/append".
+
+  # Note that I neglect dependent table here, since they will be re-uploaded after
+  ## delete from table
+  execute_sql(
+    db_target,
+    glue::glue("DELETE FROM {table_lable};"),
+    verbose = verbose
+  )
+
+  ## reset the sequence
+  sequence_key <- glue::glue('"{table_key[[1]]}".seq_{pk}')
+  nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
+
+  current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+
+  execute_sql(
+    db_target,
+    glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
+    verbose = verbose
+  )
+
+  ## append the table data
+  append_tabledata(db_target, table_id, table_data)
+
+  ## restore sequence
+  nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+  nextval <- max(c(nextval, current_highest, table_data %>% pull(pk)))
+
+  execute_sql(
+    db_target,
+    glue::glue("SELECT setval('{sequence_key}', {nextval});"),
+    verbose = verbose
+  )
+
+  return(invisible(NULL))
+
+} # /restore_table_data_from_memory
+
+
 
 parametrize_cascaded_update <- function(
     config_filepath,
@@ -759,20 +933,56 @@ parametrize_cascaded_update <- function(
     retain_cols <- retain_cols[!(retain_cols %in% index_columns)]
     to_upload <- to_upload %>% select(!!!retain_cols)
 
-    ## update datatable, propagating/cascading new keys to other's fk
-    update_datatable_and_dependent_keys(
-      config_filepath = config_filepath,
-      working_dbname = working_dbname,
-      table_key = table_key,
-      new_data = to_upload,
-      profile = connection_profile,
-      dbstructure_folder = dbstructure_folder,
-      db_connection = db_connection,
-      characteristic_columns = characteristic_columns,
-      skip_sequence_reset = skip_sequence_reset,
-      verbose = verbose
-    )
-    # TODO rename_characteristics = rename_characteristics,
+
+    ### double safety: load/catch/restore
+    # savetabs <- find_dependent_tables("mnmgwdb_db_structure", "Visits")
+    savetabs <- find_dependent_tables(dbstructure_folder, table_key)
+
+    load_table_content_this_connection <- function(table_id) {
+      return(load_table_content(db_connection, dbstructure_folder, table_id))
+    }
+
+    table_content_storage <- lapply(savetabs, FUN = load_table_content_this_connection)
+
+
+    restore_table_content_this_connection <- function(content_list) {
+      restore_table_data_from_memory(
+        db_connection,
+        content_list,
+        dbstructure_folder = dbstructure_folder,
+        verbose = TRUE
+      )
+    }
+
+
+    tryCatch({
+      ### update datatable, propagating/cascading new keys to other's fk
+
+      update_datatable_and_dependent_keys(
+        config_filepath = config_filepath,
+        working_dbname = working_dbname,
+        table_key = table_key,
+        new_data = to_upload,
+        profile = connection_profile,
+        dbstructure_folder = dbstructure_folder,
+        db_connection = db_connection,
+        characteristic_columns = characteristic_columns,
+        skip_sequence_reset = skip_sequence_reset,
+        verbose = verbose
+      )
+      # TODO rename_characteristics = rename_characteristics,
+    }, error = function(wrnmsg) {
+      message("##### update failed! #####")
+      message(glue::glue("--> uploading {nrow(to_upload)} rows to {table_key} "))
+      message(wrnmsg)
+      message("\nrestoring data.\n")
+      invisible(lapply(
+        table_content_storage,
+        FUN = restore_table_content_this_connection
+      ))
+      return(NA)
+    })
+
 
     lookup <- dplyr::tbl(
         db_connection,

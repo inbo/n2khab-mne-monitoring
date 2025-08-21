@@ -98,11 +98,9 @@ replacement_data = GPD.read_postgis( \
     geom_col = "wkb_geometry" \
     ).astype({"grts_address": int, "grts_address_replacement": int})
 replacement_data.loc[
-    replacement_data["grts_address"].values == 23238
+    replacement_data["grts_address"].values == 84598 # 23238 253621
     , :].T
-replacement_data.loc[
-    replacement_data["grts_address"].values == 253621
-    , :].T
+
 
 # compare to the locations in `mnmgwdb`
 existing_locations = GPD.read_postgis( \
@@ -111,11 +109,9 @@ existing_locations = GPD.read_postgis( \
     geom_col = "wkb_geometry" \
     ).astype({"grts_address": int})
 existing_locations.loc[
-    [any(int(val) == NP.array([23238, 6314694, 23091910]))
-     for val in existing_locations["grts_address"].values
-     ], :]
-existing_locations.loc[
-    [any(int(val) == NP.array([253621, 4447925]))
+    # [any(int(val) == NP.array([23238, 6314694, 23091910]))
+    # [any(int(val) == NP.array([253621, 4447925]))
+    [any(int(val) == NP.array([84598, 871030]))
      for val in existing_locations["grts_address"].values
      ], :]
 # print("\n".join(map(str, list(map(int, sorted(existing_locations["grts_address"].values))))))
@@ -157,11 +153,15 @@ val_to_int = lambda val: "NULL" if PD.isna(val) else str(int(val))
 
 
 # we start by creating new locations
+grts_done = []
 for idx, row in new_locations.iterrows():
     # idx = 1
     # row = new_locations.iloc[0, :]
     geom_str = val_to_geom_point(row["wkb_geometry"])
     grts_new = val_to_int(row["grts_address_replacement"])
+    if grts_new in grts_done:
+        continue
+    grts_done.append(grts_new)
     ogc_counter += 1
     lid_counter += 1
     insert_command = f"""
@@ -200,10 +200,7 @@ replacement_data = replacement_data.join(
 )
 
 replacement_data.loc[
-    replacement_data["grts_address"].values == 23238
-    , :].T
-replacement_data.loc[
-    replacement_data["grts_address"].values == 253621
+    replacement_data["grts_address"].values == 84598 # 23238 253621
     , :].T
 
 ## also join samplelocation_id -> lookup to the SampleLocations
@@ -262,15 +259,14 @@ for idx, row in replacement_data.iterrows():
 
 print(missing)
 replacement_data.loc[
-    replacement_data["grts_address"].values == 23238
-    , :].T
-replacement_data.loc[
-    replacement_data["grts_address"].values == 253621
+    replacement_data["grts_address"].values == 84598 # 23238 253621
     , :].T
 
+# existing_samplelocations.loc[existing_samplelocations["grts_address"].values == 23238, :]
+# existing_samplelocations.loc[existing_samplelocations["grts_address"].values == 23091910, :]
 
 ## some of the sample location ids are recovered from the other replacements
-missing_lookup = replacement_data.loc[:, ["grts_address", "samplelocation_id"]].drop_duplicates()
+missing_lookup = replacement_data.loc[:, ["grts_address", "samplelocation_id"]].drop_duplicates().dropna()
 missing_lookup.set_index("grts_address", inplace = True)
 
 for miss in missing:
@@ -283,8 +279,9 @@ replacement_data["samplelocation_id"] = replacement_data["samplelocation_id"].as
 
 
 # print(replacement_data.sample(3).T)
-print(replacement_data.loc[replacement_data["grts_address"].values == 23238, :].T)
-print(replacement_data.loc[replacement_data["grts_address"].values == 253621, :].T)
+# print(replacement_data.loc[replacement_data["grts_address"].values == 23238, :].T)
+# print(replacement_data.loc[replacement_data["grts_address"].values == 253621, :].T)
+print(replacement_data.loc[replacement_data["grts_address"].values == 84598, :].T)
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\

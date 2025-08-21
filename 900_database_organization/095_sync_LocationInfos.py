@@ -14,9 +14,9 @@ import pandas as PD
 import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
+suffix = ""
 # suffix = "-testing"
 # suffix = "-staging"
-suffix = ""
 
 print("|"*64)
 print(f"going to sync LocationInfos between *loceval{suffix}* and *mnmgwdb{suffix}*. \n")
