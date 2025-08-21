@@ -18,10 +18,11 @@ source("MNMDatabaseToolbox.R")
 projroot <- find_root(is_rstudio_project)
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-testing <- TRUE
+testing <- FALSE
 if (testing) {
-  working_dbname <- "mnmgwdb_testing"
-  connection_profile <- "mnmgwdb-testing"
+  suffix <- "staging" # "testing"
+  working_dbname <- glue::glue("mnmgwdb_{suffix}")
+  connection_profile <- glue::glue("mnmgwdb-{suffix}")
   dbstructure_folder <- "./mnmgwdb_db_structure"
 } else {
   # source("094_replaced_LocationCells.R")
@@ -92,6 +93,12 @@ activity_groupid_lookup <-
   ) %>%
   distinct(activity_group, activity_group_id) %>%
   collect()
+
+
+# fieldwork_2025_prioritization_by_stratum %>%
+# fieldwork_calendar %>%
+# samplelocations_lookup %>%
+#   filter(grts_address == 871030)
 
 fieldwork_calendar <-
   fieldwork_2025_prioritization_by_stratum %>%
@@ -216,7 +223,8 @@ fieldwork_calendar <- fieldwork_calendar %>%
       select(
         grts_address, stratum, new_samplelocation_id, grts_address_replacement
       ),
-    by = join_by(grts_address, stratum)
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-many"
   ) %>%
   mutate(
     samplelocation_id = new_samplelocation_id,
@@ -330,6 +338,7 @@ prior_visits <- dplyr::tbl(
 # sloc <- fieldwork_calendar %>% filter(grts_address == 253621) %>% pull(samplelocation_id) %>% unique
 # and a great example:
 # sloc <- fieldwork_calendar %>% filter(grts_address == 1818369) %>% pull(samplelocation_id) %>% unique
+# sloc = 860 # potential duplicate 20250821
 
 classify_calendar_events <- function(sloc) {
   calendar <- fieldwork_calendar %>%
@@ -424,6 +433,11 @@ update_fieldwork_calendar <- function(to_update) {
   really_update <- to_update %>%
     anti_join(prior_visits, by = join_by(fieldworkcalendar_id))
 
+  if (nrow(really_update) == 0) {
+    message("nothing to update.")
+    return(invisible(NA))
+  }
+
   not_updated_because_already_done <- to_update %>%
     anti_join(really_update, by = join_by(samplelocation_id, temp_idx)) %>%
     pull(fieldworkcalendar_id)
@@ -452,6 +466,7 @@ update_fieldwork_calendar <- function(to_update) {
       ]
 
     if(FALSE) {
+      # for debugging
       bind_rows(
         prior_calendar %>% select(!!!common_columns),
         really_update %>% select(!!!common_columns)
@@ -589,6 +604,8 @@ insert_new_fieldwork <- function(to_upload) {
       tabula_rasa = FALSE,
       verbose = TRUE
     )
+    # fieldwork_calendar_upload %>%
+    #   count(grts_address, samplelocation_id, sspstapa_id, activity_group_id, date_start)
   }
 
   ## append new visits
@@ -725,6 +742,7 @@ insert_new_fieldwork <- function(to_upload) {
 
 } # /insert_new_fieldwork
 
+to_upload %>% filter(grts_address == 871030) %>% knitr::kable()
 
 glimpse(to_upload)
 insert_new_fieldwork(to_upload)

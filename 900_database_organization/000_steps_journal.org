@@ -1407,6 +1407,37 @@ SCHEDULED: <2025-07-31 Thu>
 
 because why not?
 
+** dynamic update field activity calendar
+SCHEDULED: <2025-08-20 Wed>
+
+replacements required return to field activity calendar
+because different types replaced to separate grts just duplicating FAC was insufficient
+FACal may diverge between types.
+
+
+** safety net: memory backup whilst upload/cascade
+SCHEDULED: <2025-08-21 Thu>
+
+typical errors to catch:
++ column renames
++ key duplicates
++ null constraints
+
+should all be safe now: upload stops and restores previous data
+based on table and dependencies
+
+** two replacements to the same grts
+SCHEDULED: <2025-08-21 Thu>
+
+special case where two replacements end up on the same GRTS
+produced duplicate location
+errors should be caught now, but keeping an eye open.
+
+Temporarily, this will cause double planning for Tom.
+
+
+** TODO fill since monday
+
 
 * learning the hard way
 

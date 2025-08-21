@@ -23,7 +23,7 @@ library("mapview")
 projroot <- find_root(is_rstudio_project)
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-if (FALSE) {
+if (TRUE) {
   # testing
   working_dbname <- "mnmgwdb_testing"
   connection_profile <- "mnmgwdb-testing"
@@ -97,8 +97,10 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
 ## ----check-loading-snippets-----------------------------------
 
+message("running code snippets...")
 invisible(capture.output(source("050_snippet_selection.R")))
 source("051_snippet_transformation_code.R")
+message("done.")
 
 stopifnot(
   "NOT FOUND: snip snap >> `grts_mh_index`" = exists("grts_mh_index")
@@ -187,6 +189,7 @@ member_lookup <- update_cascade_lookup(
   characteristic_columns = c("username"),
   verbose = TRUE
 )
+stopifnot("STOP: update failed." = !is.na(member_lookup))
 
 
 ## ----upload-protocols---------------------------------------------------------
@@ -498,52 +501,63 @@ sample_locations <- sample_units %>%
 
 ## ----relocate-replacements----------------------------------------------
 
-replacement_lookup <- dplyr::tbl(
-  loceval_connection,
-  DBI::Id("outbound", "SampleUnits")
-  ) %>%
-  filter(is_replaced) %>%
-  left_join(
-  dplyr::tbl(
-    loceval_connection,
-    DBI::Id("outbound", "Replacements")
+if (FALSE) {
+  # TODO I will not replace here yet.
+  #      This happens only in `092_push_loceval_to_mnmgwdb.py`.
+  replacement_lookup <- dplyr::tbl(
+      loceval_connection,
+      DBI::Id("outbound", "SampleUnits")
     ) %>%
-    filter(is_selected, !is_inappropriate),
-  by = join_by(sampleunit_id)
-  ) %>%
-  select(grts_address, grts_address_replacement) %>%
-  filter(
-    # TODO we do not have a dropout field yet; some replaced don't have good candidates
-    !is.na(grts_address_replacement)
-  ) %>%
-  collect
-
-# TODO test what happens if two are selected
-
-sample_locations %>%
-  filter(grts_address %in% (replacement_lookup %>% pull(grts_address))) %>%
-  knitr::kable()
-
-relocate_grts_replacements <- function(df, ...) {
-  df <- df %>%
+    filter(is_replaced) %>%
     left_join(
-      replacement_lookup,
-      by = join_by(grts_address),
-      ...
+    dplyr::tbl(
+      loceval_connection,
+      DBI::Id("outbound", "Replacements")
+      ) %>%
+      filter(is_selected, !is_inappropriate),
+    by = join_by(sampleunit_id)
     ) %>%
-    mutate(grts_address = as.integer(
-      coalesce(grts_address_replacement, grts_address)
-      )) %>%
-    select(-grts_address_replacement)
-  return(df)
+    select(grts_address, grts_address_replacement) %>%
+    filter(
+      # TODO we do not have a dropout field yet; some replaced don't have good candidates
+      !is.na(grts_address_replacement)
+    ) %>%
+    collect
+
+  # TODO test what happens if two are selected
+
+  sample_locations %>%
+    filter(grts_address %in% as.integer(replacement_lookup %>% pull(grts_address))) %>%
+    knitr::kable()
+
+  relocate_grts_replacements <- function(df, ...) {
+    # TODO this is buggy and requires type=stratum to be included.
+    #      However, stratum will be integrated to mnmgwdb later.
+    #      Hence, I will not sloppily correct this now.
+    df <- df %>%
+      left_join(
+        replacement_lookup,
+        by = join_by(grts_address),
+        ...
+      ) %>%
+      mutate(grts_address = as.integer(
+        coalesce(grts_address_replacement, grts_address)
+        )) %>%
+      select(-grts_address_replacement)
+    return(df)
+  }
+} else {
+  relocate_grts_replacements <- function(df, ...) df
 }
 
+# df <- sample_locations
 sample_locations <- sample_locations %>%
   relocate_grts_replacements(
-    relationship = "one-to-one"
+    relationship = "one-to-many"
   )
-sample_locations <- sample_locations %>%
-  mutate(is_replacement = grts_address %in% (replacement_lookup %>% pull(grts_address_replacement)))
+# sample_locations <- sample_locations %>%
+#   mutate(is_replacement = grts_address %in% (replacement_lookup %>% pull(grts_address_replacement)))
+
 
 # glimpse(sample_locations)
 # sample_locations %>%
@@ -567,6 +581,7 @@ cleanup_query <- glue::glue(
       AND log_user = ANY ({maintenance_users}::varchar[])
       AND (accessibility_inaccessible IS NULL OR (NOT accessibility_inaccessible))
       AND (accessibility_revisit IS NULL)
+      AND (recovery_hints IS NULL)
       AND (watina_code_1 IS NULL)
       AND (watina_code_2 IS NULL)
   ;" # landowner will be script-updated (outbound)
@@ -625,6 +640,7 @@ cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE log_user = ANY ({maintenance_users}::varchar[])
      AND (NOT excluded)
+     AND (excluded IS NULL)
      AND (teammember_assigned IS NULL)
      AND (date_visit_planned IS NULL)
      AND (NOT no_visit_planned)
@@ -666,12 +682,19 @@ cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE TRUE
       AND log_user = ANY ({maintenance_users}::varchar[])
-      AND (no_diver IS NULL OR (NOT no_diver))
-      AND (diver_id IS NULL)
-      AND (photo_soil IS NULL)
-      AND (photo_well IS NULL)
       AND (teammember_id IS NULL)
       AND (date_visit IS NULL)
+      AND (photo_soil_1_peilbuis IS NULL)
+      AND (photo_soil_2_piezometer IS NULL)
+      AND (photo_well IS NULL)
+      AND (watina_code_used_1_peilbuis IS NULL)
+      AND (watina_code_used_2_piezometer IS NULL)
+      AND (soilprofile_notes IS NULL)
+      AND (soilprofile_unclear IS NULL OR (NOT soilprofile_unclear))
+      AND (random_point_number IS NULL)
+      AND (no_diver IS NULL OR (NOT no_diver))
+      AND (diver_id IS NULL)
+      AND (free_diver IS NULL)
       AND (NOT visit_done)
   ;"
 )
@@ -695,9 +718,10 @@ cleanup_query <- glue::glue(
   "DELETE FROM {table_str}
     WHERE TRUE
       AND log_user = ANY ({maintenance_users}::varchar[])
-      AND (lims_code IS NULL)
       AND (teammember_id IS NULL)
       AND (date_visit IS NULL)
+      AND (project_code IS NULL)
+      AND (recipient_code IS NULL)
       AND (NOT visit_done)
   ;"
 )
@@ -806,7 +830,7 @@ sample_locations <- sample_locations %>%
     locations_lookup,
     by = join_by(grts_address),
     relationship = "many-to-one"
-  )
+  ) %>% distinct # TODO remove after stratum is in place
 
 
 # tabula rasa: might otherwise be duplicated due to missing fk and null constraint
@@ -815,7 +839,7 @@ samplelocations_lookup <- update_cascade_lookup(
   table_key = "SampleLocations",
   new_data = sample_locations,
   index_columns = c("samplelocation_id"),
-  characteristic_columns = c("grts_address"),
+  characteristic_columns = c("grts_address", "location_id"),
   tabula_rasa = TRUE,
   verbose = TRUE
 )
@@ -903,12 +927,9 @@ fieldwork_calendar <-
   fieldwork_2025_prioritization_shorter %>%
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
-  left_join(
-    samplelocations_lookup %>%
-      select(grts_address),
+  semi_join(
+    samplelocations_lookup,
     by = join_by(grts_address),
-    relationship = "many-to-one",
-    unmatched = "drop"
   ) %>%
   rename(
     activity_rank = rank,
@@ -922,7 +943,7 @@ fieldwork_calendar <-
   ) %>%
   select(-activity_group) %>%
   left_join(
-    samplelocations_lookup,
+    samplelocations_lookup %>% select(grts_address, samplelocation_id),
     by = join_by(grts_address),
     relationship = "many-to-one"
   ) %>%
@@ -1093,10 +1114,12 @@ locationevaluation_input <- dplyr::tbl(
     loceval_connection,
     DBI::Id("outbound", "gwTransfer")
   ) %>%
+  select(-grts_address_original) %>%
   collect() # collecting is necessary to modify offline and to re-upload
 
 locationevaluation_input <- locationevaluation_input %>%
-  relocate_grts_replacements(relationship = "many-to-one")
+  # relocate_grts_replacements(relationship = "many-to-many") %>%
+  distinct
 
 # locationevaluation_input %>% count(eval_source)
 # locationevaluation_input %>% distinct(eval_name)
@@ -1104,11 +1127,16 @@ locationevaluation_input <- locationevaluation_input %>%
 # before we upload, we need to collect all locations
 locationevaluations_upload <- locationevaluation_input %>%
   left_join(
-    samplelocations_lookup,
+    samplelocations_lookup %>% select(grts_address, samplelocation_id),
     by = join_by(grts_address),
     relationship = "many-to-one"
   ) %>%
-  relocate(samplelocation_id)
+  relocate(samplelocation_id) %>%
+  mutate(
+    eval_name = coalesce(eval_name, log_user)
+  )
+
+# locationevaluations_upload %>% filter(is.na(eval_name))
 
 locationevaluation_lookup <- update_cascade_lookup(
   schema = "outbound",
@@ -1226,7 +1254,7 @@ landuse_reload <- dplyr::tbl(
 
 
 ##//////////////////////////////////////////////////////////////////////////////
-## ACTIVITIES <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+#< ACTIVITIES <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 ##\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 visits_reload <- dplyr::tbl(
@@ -1283,6 +1311,7 @@ wellinstallations_upload <- wellinstallations %>%
   ) %>%
   mutate(
     no_diver = FALSE,
+    soilprofile_unclear = FALSE,
     visit_done = FALSE,
     log_user = "maintenance",
     log_update = as.POSIXct(Sys.time())
@@ -1338,6 +1367,8 @@ chemicalsampling_lookup <- update_cascade_lookup(
 
 
 ## ----done!----------------------------------------------
+message("________________________________________________________________")
+message("All done. Hopefully well.")
 
 # python 210_init_mnmgwdb.py 2>&1 | tee dump1.log
 # Rscript 220_upload_mnmgwdb.R 2>&1 | tee dump2.log

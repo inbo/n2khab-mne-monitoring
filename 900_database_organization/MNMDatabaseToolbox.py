@@ -696,14 +696,22 @@ class Database(dict):
 
         ### dump all data, for safety
         now = TI.strftime('%Y%m%d%H%M', TI.localtime())
-        db_connection.DumpAll(target_filepath = f"dumps/db_{db_connection.config['database']}_recreation_{now}.sql", user = "monkey")
+        db_label = db_connection.config['database']
+        db_connection.DumpAll(target_filepath = f"dumps/db_{db_label}_recreation_{now}.sql", user = "monkey")
 
         if self.tabula_rasa:
-            if input("\n".join([
+            conf_string = f"Oh greatest of computers, please clear {db_label}!"
+            input_string = input("\n".join([
                     "WARNING:",
                     "Recreating BLANK, i.e. without data recovery.",
-                    "Type 'Yes!' to confirm: "
-                ])) == "Yes!":
+                    f"Type '{conf_string}' to confirm: \n"
+                ]))
+            if (input_string != conf_string) and (input_string != 'Shut up, just do it.'):
+                raise(IOError("Confirmation failed, will not tablua rasa the database."))
+
+            if (input_string == 'Shut up, just do it.'):
+                print("Okay, okay. You asked for it.")
+                TI.sleep(2)
                 return
 
         # store data of persistent tables

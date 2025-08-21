@@ -6,12 +6,13 @@ metadata,N2kHabTypes,falk,"tom,ward,floris,karen,monkey",,,,,,,habitat type
 metadata,N2kHabStrata,falk,"tom,ward,floris,karen,monkey",,,,,,,lookup table n2khab type to stratum
 metadata,Locations,falk,"tom,ward,floris,karen,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
 metadata,LocationCells,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
-metadata,Coordinates,falk,"tom,ward,floris,karen,monkey,",,,,,,,coordinates of the grts points (in other CRS)
+metadata,Coordinates,falk,"tom,ward,floris,karen,monkey",,,,,,,coordinates of the grts points (in other CRS)
 outbound,LocationInfos,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
 outbound,SampleUnits,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,,,list of locations currently sampled
 outbound,SampleUnitPolygons,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,,,habitat map polygons of the current sample locations
 outbound,Replacements,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",POINT,,,,,putative replacements for inaccessible sites
 outbound,ReplacementCells,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,,,cell polygons (squares) of the replacement cells
+outbound,MHQPolygons,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,1,,MHQ sample areas NO TRESPASSING!
 outbound,LocationAssessments,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"iudicium in praetorio, prior to fieldwork, e.g. via orthophotos, including assessments of obsolete locations"
 outbound,FieldActivityCalendar,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,field activity calender for planning fieldwork
 inbound,Visits,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"inbound information about location visits, linked to SampleUnits and FieldActivityCalendar"
