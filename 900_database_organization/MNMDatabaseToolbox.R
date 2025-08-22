@@ -1,5 +1,7 @@
 
 
+is.atomic.na <- function(checkvar) is.atomic(checkvar) && (length(checkvar) == 1) && is.na(checkvar)
+
 
 load_table_info <- function(subfolder, tablelabel){
   table_info <- read.csv(
@@ -781,7 +783,7 @@ restore_table_data_from_memory <- function(
   table_data <- content_list$data
 
 
-  if (all(is.na(table_data)) || (nrow(table_data) < 1)) {
+  if (is.atomic.na(table_data) || (nrow(table_data) < 1)) {
     message("no data to restore.")
     return(invisible(NA))
   }
