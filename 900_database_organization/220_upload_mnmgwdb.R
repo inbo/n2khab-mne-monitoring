@@ -24,24 +24,20 @@ projroot <- find_root(is_rstudio_project)
 config_filepath <- file.path("./inbopostgis_server.conf")
 
 if (TRUE) {
-  # testing
-  working_dbname <- "mnmgwdb_testing"
-  connection_profile <- "mnmgwdb-testing"
-  dbstructure_folder <- "./mnmgwdb_db_structure"
+  # testing, staging, dev mirrors
+  suffix <- "staging" # "testing"
+  working_dbname <- glue::glue("mnmgwdb_{suffix}")
+  connection_profile <- glue::glue("mnmgwdb-{suffix}")
+  dbstructure_folder <- "./mnmgwdb_db_structure" # should be adjusted for `testing`
 } else {
-  # dev
-  working_dbname <- "mnmgwdb_dev"
-  connection_profile <- "mnmgwdb-dev"
-  dbstructure_folder <- "./mnmgwdb_dev_structure"
+  # production
+  working_dbname <- "mnmgwdb"
+  connection_profile <- "mnmgwdb"
+  dbstructure_folder <- "./mnmgwdb_db_structure"
+  keyring::key_set("DBPassword", "db_user_password")
+  # source("220_upload_mnmgwdb.R")
 }
 
-
-# you might want to run the following prior to sourcing or rendering this script:
-# keyring::key_set("DBPassword", "db_user_password")
-# working_dbname <- "mnmgwdb"
-# connection_profile <- "mnmgwdb"
-# dbstructure_folder <- "./mnmgwdb_db_structure"
-# source("220_upload_mnmgwdb.R")
 
 config <- configr::read.config(file = config_filepath)[[connection_profile]]
 source("MNMDatabaseToolbox.R")
@@ -159,7 +155,7 @@ loceval_connection <- connect_database_configfile(
 ## ----update-propagate-lookup--------------------------------------------------
 # just a convenience function to pass arguments to recursive update
 
-update_cascade_lookup <- parametrize_cascaded_update(
+update_cascade_lookup_unchecked <- parametrize_cascaded_update(
   config_filepath,
   working_dbname,
   connection_profile,
@@ -167,7 +163,11 @@ update_cascade_lookup <- parametrize_cascaded_update(
   db_connection
 )
 
-
+update_cascade_lookup <- function(...) {
+  lookup_df <- update_cascade_lookup_unchecked(...)
+  stopifnot("STOP: update failed." = isFALSE(is.scalar.na(lookup_df)))
+  return(lookup_df)
+}
 
 #_______________________________________________________________________________
 ####   Metadata   ##############################################################
@@ -189,7 +189,6 @@ member_lookup <- update_cascade_lookup(
   characteristic_columns = c("username"),
   verbose = TRUE
 )
-stopifnot("STOP: update failed." = !is.na(member_lookup))
 
 
 ## ----upload-protocols---------------------------------------------------------
@@ -767,6 +766,8 @@ locations <- bind_rows(
 sf::st_geometry(locations) <- "wkb_geometry"
 
 
+# TODO problem here if there are `Coordinates` left of locations which get deleted
+#      experienced 20250822 when working on `mnmgwdb_staging` after clone and replacement.
 
 locations_lookup <- update_cascade_lookup(
   schema = "metadata",

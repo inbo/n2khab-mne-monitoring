@@ -1,6 +1,6 @@
 
 
-is.atomic.na <- function(checkvar) is.atomic(checkvar) && (length(checkvar) == 1) && is.na(checkvar)
+is.scalar.na <- function(checkvar) is.atomic(checkvar) && (length(checkvar) == 1) && is.na(checkvar)
 
 
 load_table_info <- function(subfolder, tablelabel){
@@ -489,7 +489,7 @@ update_datatable_and_dependent_keys <- function(
   )
 
   # On the occasion, we reset the sequence counter
-  if ((length(pk) > 0) && (!skip_sequence_reset)) {
+  if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
 
     sequence_key <- glue::glue('"{get_schema(table_key)}".seq_{pk}')
     nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
@@ -515,7 +515,7 @@ update_datatable_and_dependent_keys <- function(
   )
 
   ## restore sequence
-  if ((length(pk) > 0) && (!skip_sequence_reset)) {
+  if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
     nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
     if (pk %in% colnames(new_data)) {
       max_pk <- new_data %>% pull(pk)
@@ -603,7 +603,7 @@ update_datatable_and_dependent_keys <- function(
     # ensure `_old` suffix for joining below
     # dependent_col_old <- glue::glue("{dependent_key}_old")
     reference_col_old <- glue::glue("{reference_key}_old")
-    if (!(reference_col_old %in% names(pk_lookup))) {
+    if (isFALSE(reference_col_old %in% names(pk_lookup))) {
       names(pk_link)[names(pk_link) == reference_key] <- reference_col_old
     }
 
@@ -783,7 +783,7 @@ restore_table_data_from_memory <- function(
   table_data <- content_list$data
 
 
-  if (is.atomic.na(table_data) || (nrow(table_data) < 1)) {
+  if (is.scalar.na(table_data) || (nrow(table_data) < 1)) {
     message("no data to restore.")
     return(invisible(NA))
   }
