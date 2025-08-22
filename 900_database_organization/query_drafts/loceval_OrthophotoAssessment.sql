@@ -7,9 +7,9 @@ SELECT
   UNIT.grts_join_method,
   UNIT.sp_poststratum,
   UNIT.scheme_ps_targetpanels,
-  UNIT.type,
   UNIT.assessment,
   UNIT.assessment_date,
+  LOCASS.type,
   LOCASS.cell_disapproved,
   LOCASS.revisit_disapproval,
   LOCASS.disapproval_explanation,
@@ -25,6 +25,7 @@ LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON (LOCASS.grts_address = UNIT.grts_address
   -- AND LOCASS.type = UNIT.type
      )
+  WHERE UNIT.location_id IS NOT NULL
 ;
 
 
