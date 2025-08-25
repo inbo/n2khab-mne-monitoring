@@ -8,7 +8,7 @@ SELECT
   COORDS.wgs84_y,
   COORDS.lambert_x,
   COORDS.lambert_y,
-  '<a href="https://www.google.com/maps/place' ||
+  '<a href="https://www.google.com/maps/place/' ||
     CAST(COORDS.wgs84_y AS VARCHAR) ||
     ',' ||
     CAST(COORDS.wgs84_x AS VARCHAR) ||

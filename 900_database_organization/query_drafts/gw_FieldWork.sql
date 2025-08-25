@@ -1,3 +1,4 @@
+-- SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
 
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
@@ -11,6 +12,7 @@ SELECT
   FwCAL.date_visit_planned - current_date AS days_to_visit,
   FwCAL.date_end - current_date AS days_to_deadline,
   FwCAL.notes AS preparation_notes,
+  SLOC.strata AS type,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
@@ -52,6 +54,8 @@ LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON INFO.location_id = VISIT.location_id
 LEFT JOIN "outbound"."FieldworkCalendar" AS FwCAL
   ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
+LEFT JOIN "outbound"."SampleLocations" AS SLOC
+  ON FwCAL.samplelocation_id = SLOC.samplelocation_id
 LEFT JOIN (
   SELECT DISTINCT
     activity_group_id,
