@@ -18,7 +18,7 @@ source("MNMDatabaseToolbox.R")
 projroot <- find_root(is_rstudio_project)
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-testing <- FALSE
+testing <- TRUE
 if (testing) {
   suffix <- "staging" # "testing"
   working_dbname <- glue::glue("mnmgwdb_{suffix}")
@@ -142,6 +142,62 @@ fieldwork_calendar <-
     no_visit_planned = FALSE,
     done_planning = FALSE
   )
+
+
+### quick fix: restore SSPSTaPas link (20250825)
+if (FALSE) {
+  sspstapas_values <- fieldwork_calendar %>%
+    mutate(
+      stratum_scheme_ps_targetpanels = str_c(
+          stratum,
+          " (",
+          grts_join_method,
+          ") ",
+          " [",
+          scheme_ps_targetpanels,
+          "]"
+        )
+    ) %>%
+    select(samplelocation_id, stratum_scheme_ps_targetpanels) %>%
+    left_join(
+      dplyr::tbl(
+        db_connection,
+        DBI::Id(schema = "metadata", table = "SSPSTaPas")
+      ) %>% collect(),
+      by = join_by(stratum_scheme_ps_targetpanels)
+    ) %>%
+    distinct()
+
+  update_sspstapas_restore <- function(row_nr, target_namestring) {
+    row <- sspstapas_values[row_nr, ]
+    if (is.na(row[[1]])){
+        return(invisible(NA))
+    }
+
+    if (is.na(row[[3]])){
+        return(invisible(NA))
+    }
+
+    update_string <- glue::glue("
+       UPDATE {target_namestring}
+         SET sspstapa_id = '{row[[3]]}'
+       WHERE samplelocation_id = {row[[1]]}
+       ;
+     ")
+
+    execute_sql(
+      db_connection,
+      update_string,
+      verbose = TRUE
+    )
+  }
+  for (row_nr in 1:nrow(sspstapas_values)){
+    targettable_namestring <- glue::glue('"outbound"."FieldworkCalendar"')
+    targettable_namestring <- glue::glue('"inbound"."Visits"')
+    update_sspstapas_restore(row_nr, targettable_namestring)
+  }
+
+}
 
 fieldwork_calendar %>%
   filter(grts_address == 23238)
@@ -312,8 +368,8 @@ previous_calendar_planned <-
   )
 
 # nrow(previous_calendar_plans) == nrow(previous_non_activities) + nrow(previous_calendar_planned)
-glimpse(fieldwork_calendar)
-glimpse(previous_calendar_planned)
+# glimpse(fieldwork_calendar)
+# glimpse(previous_calendar_planned)
 
 
 
@@ -636,16 +692,19 @@ insert_new_fieldwork <- function(to_upload) {
       visit_done = FALSE
     )
 
-  visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
+  # visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols) # some fwcal_id were NULL at this point
+  visits_characols <- fieldcalendar_characols
 
   visits_upload <- new_visits
+  visits_upload %>% print(n=Inf)
+  # visits_upload %>% count(fieldworkcalendar_id)
 
   if (nrow(visits_upload) > 0) {
     visits_lookup <- update_cascade_lookup(
       schema = "inbound",
       table_key = "Visits",
       new_data = visits_upload,
-      index_columns = c("visit_id"),
+      index_columns = c("fieldworkcalendar_id", "visit_id"),
       characteristic_columns = visits_characols,
       tabula_rasa = FALSE,
       verbose = TRUE

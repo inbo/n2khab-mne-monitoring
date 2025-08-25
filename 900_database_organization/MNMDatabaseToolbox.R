@@ -446,19 +446,22 @@ update_datatable_and_dependent_keys <- function(
     characteristic_columns <- get_characteristic_columns(table_key)
   } # TODO else: check that col really is a field in the table
 
-  old_data <- query_columns(
-    db_target,
-    get_tableid(table_key),
-    columns = c(characteristic_columns, pk)
-  )
+  # TODO there must be more column match checks
+  # prior to deletion
+  # in connection with `characteristic_columns`
 
-  # this data is not lost yet, but will be checked against the `new_data` to upload.
-  lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
+  # TODO write function to restore key lookup table
+  # TODO allow rollback (of focal and dependent tables)
 
-  # what about `sf` data?
-  # - R function overloading: no matter if sf or not
-  # - because geometry columns are skipped for `characteristic_columns`
-  #       -> seems to work the same
+  old_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect
+
+
+  ### ERROR
+  # the old data does not contain dependent table keys any more.
+  # if there are no characteristic columns, depentent table lookups are dead
+  # at the point of DELETE.
+  # This happened with SSPSTapas on production already (20250825).
+
 
 
   ### (5) UPLOAD/replace the data
@@ -467,21 +470,74 @@ update_datatable_and_dependent_keys <- function(
   # to rename cols in the new_data to the server data logic
   # new_data
   # rename_characteristics
-  for (rnc in 1:length(rename_characteristics)) {
+  for (rnc in seq_len(length(rename_characteristics))) {
     new_colname <- rename_characteristics[[rnc]]
     server_colname <- names(rename_characteristics)[rnc]
     names(new_data)[names(new_data) == new_colname] <- server_colname
   }
 
-  # TODO there must be more column match checks
-  # prior to deletion
-  # in connection with `characteristic_columns`
+  # ## NO: no appending needed here; appending happens in the wrapper.
+  # # per default, this function appends the table content,
+  # # which means that
+  # #   - all entries in `new_data` are uploaded anyways
+  # #   - `old_data` rows which do not match `new_data` in characteristic
+  # #     columns are also re-uploaded
+  # if (append_existing) {
+  #   # columns must either be non-index, or in the new data
+  #   # (to avoid case where existing indices are rowbound with NULL)
+  #   subset_columns <- names(old_data)
+  #   subset_columns <- subset_columns[
+  #     (!(subset_columns %in% index_columns))
+  #     || (subset_columns %in% names(new_data))
+  #   ]
 
-  # TODO write function to restore key lookup table
-  # TODO allow rollback (of focal and dependent tables)
+  #   # new and old data go together
+  #   new_data <- bind_rows(
+  #     old_data %>%
+  #       select(!!!subset_columns) %>%
+  #       anti_join(
+  #         new_data,
+  #         by = join_by(!!!characteristic_columns)
+  #       ),
+  #       new_data
+  #     ) %>%
+  #     distinct
+
+  # }
+
+  # this data is not lost yet, but will be checked against the `new_data` to upload.
+  # lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
+
+  # what about `sf` data?
+  # - R function overloading: no matter if sf or not
+  # - because geometry columns are skipped for `characteristic_columns`
+  #       -> seems to work the same
 
 
-  # DELETE existing data -> DANGEROUS territory!
+  ### store dependent table lookups
+  # here I short-circuit the DELETE/CASCADE process.
+  store_dependent_lookups <- function(deptab) {
+
+    dep_pk <- get_primary_key(deptab)
+
+    # the pk is the fk in the dt
+    fk_lookup <- dplyr::tbl(
+      db_target,
+      get_tableid(deptab)
+    ) %>%
+    select(!!!c(dep_pk, pk)) %>%
+    collect
+
+    return(fk_lookup)
+  }
+
+  fk_lookups <- lapply(
+    dependent_tables,
+    FUN = store_dependent_lookups
+  ) %>% setNames(dependent_tables)
+
+
+  ### DELETE existing data -> DANGEROUS territory!
   execute_sql(
     db_target,
     glue::glue("DELETE  FROM {get_namestring(table_key)};"),
@@ -494,6 +550,8 @@ update_datatable_and_dependent_keys <- function(
     sequence_key <- glue::glue('"{get_schema(table_key)}".seq_{pk}')
     nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
     current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+
+    # set to one because data is re-inserted
     execute_sql(
       db_target,
       glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
@@ -517,11 +575,9 @@ update_datatable_and_dependent_keys <- function(
   ## restore sequence
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
     nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
-    if (pk %in% colnames(new_data)) {
-      max_pk <- new_data %>% pull(pk)
-    } else {
-      max_pk <- nrow(new_data)
-    }
+    max_pk <- dplyr::tbl(db_target, get_tableid(table_key)) %>%
+      select(!!pk) %>% collect %>%
+      pull(!!pk) %>% max
     nextval <- max(c(nextval, max_pk))
 
     execute_sql(
@@ -535,7 +591,7 @@ update_datatable_and_dependent_keys <- function(
   if (length(pk) > 0) {
     cols_to_query <- c(characteristic_columns, pk)
   } else {
-    cols_to_query <- c(characteristic_columns, pk)
+    cols_to_query <- c(characteristic_columns)
   }
 
   new_redownload <- query_columns(
@@ -562,10 +618,11 @@ update_datatable_and_dependent_keys <- function(
       select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>%
       filter(if_any(everything(), ~ is.na(.x)))
 
-    lost_rows <- lostrow_data %>%
+    # (corrected 20250825)
+    lost_rows <- old_data %>%
       semi_join(
         not_found,
-        by = pk
+        by = join_by(!!pk == !!glue::glue("{pk}_old"))
       )
 
     # mourn the loss of rows
@@ -584,6 +641,7 @@ update_datatable_and_dependent_keys <- function(
   ## update dependent tables
   # "LocationCells"       "SampleLocations"     "LocationAssessments" "ExtraVisits"
   # deptab <- "LocationCells"
+  # deptab <- dependent_tables[[1]]
 
   for (deptab in dependent_tables) {
 
@@ -639,12 +697,17 @@ update_datatable_and_dependent_keys <- function(
 
     # restrict this to modified data, ignore empty rows
     # by FILTER for changed values
-    key_replacement <- key_replacement[
-      !mapply(identical,
-        key_replacement[[reference_col_old]],
-        key_replacement[[dependent_key]]
+    key_replacement <- bind_rows(
+      key_replacement[
+        !mapply(identical,
+          key_replacement[[reference_col_old]],
+          key_replacement[[dependent_key]]
+        )
+        , ],
+      key_replacement[
+        is.na(key_replacement[[reference_col_old]])
+        , ]
       )
-    , ]
 
     if (nrow(key_replacement) == 0) next # nothing to update
 
@@ -654,10 +717,24 @@ update_datatable_and_dependent_keys <- function(
 
     if (length(dep_pk) == 0) next # these is the LocationCells
 
+    fk_table <- fk_lookups[[deptab]]
     # repl_rownr <- 1
     get_update_row_string <- function(repl_rownr){
       dep_pk_val <- key_replacement[repl_rownr, dep_pk]
-      val <- key_replacement[repl_rownr, dependent_key]
+      val <- key_replacement[repl_rownr, dependent_key][[1]]
+
+      # desparate attempt 1: check the previously saved data
+      fk_vals <- fk_table %>% pull(!!dep_pk)
+      if (is.na(val)) {
+        fk_val <- fk_table[fk_vals == dep_pk_val[[1]],] %>% pull(!!pk)
+
+        if (isFALSE(is.na(fk_val))) {
+          old_vals <- pk_link %>% pull(!!reference_col_old)
+          val <- pk_link[old_vals == fk_val, 2][[1]]
+        }
+      }
+
+      # failure: set NULL
       if (is.na(val)) {
         val <- "NULL"
       }
@@ -902,20 +979,31 @@ parametrize_cascaded_update <- function(
     ## (1) optionally append
     if (!tabula_rasa) {
 
-      existing_characteristics <- prior_content %>%
-        select(!!!characteristic_columns) %>%
-        distinct()
+      # columns must either be non-index, or in the new data
+      # (to avoid case where existing indices are rowbound with NULL)
+      subset_columns <- names(prior_content)
+      subset_columns <- subset_columns[
+        (!(subset_columns %in% index_columns))
+        | (subset_columns %in% names(to_upload))
+      ]
 
-      # refcol <- enquo(characteristic_columns)
-      existing_unchanged <- existing_characteristics %>%
+      existing_unchanged <- prior_content %>%
+        select(!!!subset_columns) %>%
         anti_join(
           new_characteristics,
           by = join_by(!!!characteristic_columns)
-        ) %>%
-        left_join(
-          prior_content,
-          by = join_by(!!!characteristic_columns)
         )
+
+      # # refcol <- enquo(characteristic_columns)
+      # existing_unchanged <- existing_characteristics %>%
+      #   anti_join(
+      #     new_characteristics,
+      #     by = join_by(!!!characteristic_columns)
+      #   ) %>%
+      #   left_join(
+      #     prior_content,
+      #     by = join_by(!!!characteristic_columns)
+      #   )
 
       if (verbose) {
         message(glue::glue("  {nrow(existing_unchanged)} rows will be retained."))
@@ -923,9 +1011,10 @@ parametrize_cascaded_update <- function(
 
       # combine existing and new data
       to_upload <- bind_rows(
-        existing_unchanged,
-        to_upload
-      )
+          existing_unchanged,
+          to_upload
+        ) %>%
+        distinct()
     } else {
         message(glue::glue("  Tabula rasa: no rows will be retained."))
     }

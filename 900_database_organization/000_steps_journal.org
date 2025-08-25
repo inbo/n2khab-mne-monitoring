@@ -1407,6 +1407,43 @@ SCHEDULED: <2025-07-31 Thu>
 
 because why not?
 
+** multiple bugs in local replacement sync
+SCHEDULED: <2025-08-18 Mon>
+
+most notable,
++ duplication was not applied for single type replacements -> replacements missing
++ field activity calendar was plainly duplicated, which is wrong (it diverges per type)
+
+** handling of sequences
+SCHEDULED: <2025-08-19 Tue>
+
+sequence handling is a bit tricky: they keep auto-incrementing, causing duplicates/replacements to keep counting; foreign keys did not always work (due to CASCADE on R table update workaround); resetting them is fishy
+
+But here we go
+
+#+begin_src R :eval no
+  sequence_key <- glue::glue('"{table_key[[1]]}".seq_{pk}')
+  nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
+  current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+  execute_sql(
+    db_target,
+    glue::glue("SELECT setval('{sequence_key}', {nextval});"),
+    verbose = verbose
+  )
+
+#+end_src
+
+#+begin_src sql :eval no
+SET search_path TO public,"metadata","outbound","inbound","archive";
+\ds+
+
+SELECT * FROM pg_get_serial_sequence('"outbound"."LocationInfos"', 'locationinfo_id');
+SELECT nextval(pg_get_serial_sequence('"outbound"."LocationInfos"', 'locationinfo_id')) AS new_id;
+SELECT setval(pg_get_serial_sequence('"outbound"."LocationInfos"', 'locationinfo_id'), 720);
+
+#+end_src
+
+
 ** dynamic update field activity calendar
 SCHEDULED: <2025-08-20 Wed>
 
@@ -1437,6 +1474,21 @@ Temporarily, this will cause double planning for Tom.
 
 
 ** TODO fill since monday
+
+** minor change requests Y
+SCHEDULED: <2025-08-25 Mon>
+
++ correct google link for navigation
++ type to FieldWork view
+
+** correct upload procedure
+SCHEDULED: <2025-08-25 Mon>
+
+some errors because SSPSTaPas had become NULL
+then, the "identical" request upon fieldwork calendar upload does not find items
+and erroneously re-uploads them
+
+work in progress..
 
 
 * learning the hard way
