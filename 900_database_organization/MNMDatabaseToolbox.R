@@ -977,7 +977,7 @@ parametrize_cascaded_update <- function(
 
 
     ## (1) optionally append
-    if (!tabula_rasa) {
+    if (isFALSE(tabula_rasa)) {
 
       # columns must either be non-index, or in the new data
       # (to avoid case where existing indices are rowbound with NULL)
@@ -990,6 +990,13 @@ parametrize_cascaded_update <- function(
       existing_unchanged <- prior_content %>%
         select(!!!subset_columns) %>%
         anti_join(
+          new_characteristics,
+          by = join_by(!!!characteristic_columns)
+        )
+
+      existing_removed <- prior_content %>%
+        select(!!!subset_columns) %>%
+        semi_join(
           new_characteristics,
           by = join_by(!!!characteristic_columns)
         )
@@ -1007,6 +1014,15 @@ parametrize_cascaded_update <- function(
 
       if (verbose) {
         message(glue::glue("  {nrow(existing_unchanged)} rows will be retained."))
+        if (nrow(existing_removed) > 0) {
+          message(glue::glue("  {nrow(existing_removed)} rows changed, potential info LOST."))
+          now <- format(Sys.time(), "%Y%m%d%H%M")
+          write.csv(
+            existing_removed,
+            glue::glue("dumps/lost_changerows_{table_key}_{now}.csv"),
+            row.names = FALSE
+          )
+        }
       }
 
       # combine existing and new data

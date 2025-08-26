@@ -1473,13 +1473,12 @@ errors should be caught now, but keeping an eye open.
 Temporarily, this will cause double planning for Tom.
 
 
-** TODO fill since monday
-
 ** minor change requests Y
 SCHEDULED: <2025-08-25 Mon>
 
 + correct google link for navigation
 + type to FieldWork view
+
 
 ** correct upload procedure
 SCHEDULED: <2025-08-25 Mon>
@@ -1489,6 +1488,34 @@ then, the "identical" request upon fieldwork calendar upload does not find items
 and erroneously re-uploads them
 
 work in progress..
+
+
+** duplicate LocationInfos and disconnected Visits
+SCHEDULED: <2025-08-26 Tue>
+
+There was a quadruplicate row in LocationInfos for grts  871030
+mnmgwdb# DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id IN (698, 697, 696);
+
+the query
+loceval# SELECT * FROM "outbound"."LocationInfos" WHERE grts_address = 871030;
+returns two identical rows, which is plausible, because they are two types on different =location_id=.
+
+There were visits without a fieldworkcalendar_id; corrected in the 093_ script.
+
+
+** disconnected FieldworkCalendar events
+SCHEDULED: <2025-08-26 Tue>
+
+during the update =093_=, fieldworkcalendar_id is lost in some dependent tables;
+most importantly =Visits=.
+
+NOTES
++ this happens NOT during =update_cascade_lookup= (UCL) of fieldworkcalendar
++ UCL of =Visits= still fails for duplicates!
++ some recovery procedures are assembled in 093 with =if (FALSE)=
+  might be good to outsource them (e.g. WIA and CSA)
++ Deletion was one issue, because it did not CASCADE.
++ [ ] TODO there are still 99 WIA disconnected (also no visit_id); should be restored via sloc/activity
 
 
 * learning the hard way
