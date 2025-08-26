@@ -206,6 +206,7 @@ fieldwork_calendar %>%
 #   select(stratum, field_activity_group, rank, priority, date_interval, scheme_ps_targetpanels)
 
 
+# check errors in the sample units
 if(FALSE){
 sample_units <-
   fag_stratum_grts_calendar %>%
@@ -329,7 +330,7 @@ replace_sspstapa_by_lookup <- function(df) {
 
 fieldcalendar_characols <- c(
     "samplelocation_id",
-    "sspstapa_id",
+    # "sspstapa_id",
     "grts_address",
     "activity_group_id",
     "date_start"
@@ -344,7 +345,7 @@ previous_calendar_plans <- previous_calendar_plans %>%
   semi_join(
     fieldwork_calendar,
     by = join_by(samplelocation_id)
-  ) %>% glimpse
+  ) # %>% glimpse
 
 
 # find the ones where nothing has been planned
@@ -594,11 +595,22 @@ update_fieldwork_calendar(to_update)
 delete_obsolete_calendar_entries <- function(obsolete) {
   target_namestring <- '"outbound"."FieldworkCalendar"'
   ids_to_delete <- paste0(obsolete %>% pull(fieldworkcalendar_id), collapse = ',')
-  execute_sql(
-    db_connection,
-    glue::glue("DELETE FROM {target_namestring} CASCADE WHERE fieldworkcalendar_id IN ({ids_to_delete});"),
-    verbose = TRUE
-  )
+
+  # dependent tables must all be cleaned
+  for (target_namestring in
+       c(
+         '"inbound"."ChemicalSamplingActivities"',
+         '"inbound"."WellInstallationActivities"',
+         '"inbound"."Visits"',
+         '"outbound"."FieldworkCalendar"'
+      )) {
+
+    execute_sql(
+      db_connection,
+      glue::glue("DELETE FROM {target_namestring} WHERE fieldworkcalendar_id IN ({ids_to_delete});"),
+      verbose = TRUE
+    )
+  }
 }
 
 glimpse(obsolete)
@@ -699,6 +711,70 @@ insert_new_fieldwork <- function(to_upload) {
   visits_upload %>% print(n=Inf)
   # visits_upload %>% count(fieldworkcalendar_id)
 
+
+  # RECOVER / correct missing fieldworkcalendar_ids in "Visits"
+  if (FALSE) {
+
+    fieldwork_calendar_lookup <- dplyr::tbl(
+        db_connection,
+        DBI::Id(schema = "outbound", table = "FieldworkCalendar")
+      ) %>%
+      select(
+        !!!c(fieldcalendar_characols, "fieldworkcalendar_id")
+      ) %>%
+      collect
+
+
+    visits_existing <- dplyr::tbl(
+      db_connection,
+      DBI::Id(schema = "inbound", table = "Visits")
+      ) %>% collect
+
+    visits_to_recover <- visits_existing %>%
+      filter(is.na(fieldworkcalendar_id)) %>%
+      select(-fieldworkcalendar_id)
+
+    recovered_visits <- visits_to_recover %>%
+      left_join(
+        fieldwork_calendar_lookup %>%
+          select(samplelocation_id, activity_group_id, date_start, fieldworkcalendar_id),
+        by = join_by(samplelocation_id, activity_group_id, date_start)
+      ) %>%
+      relocate(fieldworkcalendar_id) %>%
+      select(-log_user, -log_update, -visit_id) %>%
+      distinct()
+      # %>% write.csv(glue::glue("dumps/recovering_visits.csv"), row.names = FALSE)
+
+      execute_sql(
+        db_connection,
+        glue::glue('DELETE FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;'),
+        verbose = verbose
+      )
+
+      rs <- DBI::dbWriteTable(
+        db_connection,
+        DBI::Id(schema = "inbound", table = "Visits"),
+        recovered_visits,
+        overwrite = FALSE,
+        append = TRUE
+      )
+
+     visits_upload <- visits_upload %>%
+       anti_join(
+          recovered_visits,
+          by = join_by(
+            fieldworkcalendar_id,
+            samplelocation_id,
+            grts_address,
+            activity_group_id,
+            date_start
+          )
+       )
+  } # /RECOVER visits
+
+  # NOTE 20250826 that the "new" visits to upload here already have
+  # rows in the Visits table, which somehow lost link to FwCal
+
   if (nrow(visits_upload) > 0) {
     visits_lookup <- update_cascade_lookup(
       schema = "inbound",
@@ -709,6 +785,16 @@ insert_new_fieldwork <- function(to_upload) {
       tabula_rasa = FALSE,
       verbose = TRUE
     )
+  } else {
+    visits_lookup <- dplyr::tbl(
+        db_connection,
+        DBI::Id(schema = "inbound", table = "Visits")
+      ) %>%
+      select(
+        !!!c(visits_characols, "fieldworkcalendar_id", "visit_id")
+      ) %>%
+      collect
+
   }
 
   ### fieldwork activity special tables
