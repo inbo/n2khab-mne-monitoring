@@ -187,6 +187,9 @@ existing_again = PD.read_sql( \
     con = mnmgwdb.connection, \
     index_col = "grts_address_replacement"
 )
+
+# existing_again.loc[[871030], :]
+
 # existing_again.loc[[4447925], :] # grml...
 # existing_again = existing_again.loc[
 #     [grts for grts in existing_again.index.values
@@ -206,7 +209,12 @@ replacement_data.loc[
 ## also join samplelocation_id -> lookup to the SampleLocations
 
 existing_samplelocations = PD.read_sql( \
-    """SELECT DISTINCT grts_address, samplelocation_id, location_id AS location_id_current
+    """
+    SELECT DISTINCT
+      grts_address,
+      strata,
+      samplelocation_id,
+      location_id AS location_id_current
     FROM "outbound"."SampleLocations"
     ;
     """, \
@@ -214,6 +222,9 @@ existing_samplelocations = PD.read_sql( \
 )
 # NOTE: some locations have been mis-replaced previously; their original GRTS is not stored (yet)
 
+existing_samplelocations.loc[
+    existing_samplelocations["grts_address"].values == 871030
+    , :].T
 # existing_samplelocations.loc[
 #     existing_samplelocations["grts_address"].values == 253621
 #     , :].T
@@ -226,12 +237,20 @@ replacement_data["to_duplicate"] = False
 
 missing = []
 # idx = int(replacement_data.loc[replacement_data["grts_address_replacement"].values == 4447925, :].index.values[0])
+# idx = int(replacement_data.loc[replacement_data["grts_address_replacement"].values == 871030, :].index.values[0])
 # row = replacement_data.iloc[idx, :]
 for idx, row in replacement_data.iterrows():
     # first, check the grts_address_replacement
-    found_existing = \
+    found_existing = NP.logical_and( \
         existing_samplelocations["grts_address"].values \
-            == int(row["grts_address_replacement"])
+            == int(row["grts_address_replacement"]),
+        NP.array([row["type"] in val
+            for val in existing_samplelocations["strata"].values], \
+            dtype = bool)
+        )
+
+    if sum(found_existing) > 1:
+        raise(IOError(f"""found more than one replacement for grts/r {int(row["grts_address_replacement"])}."""))
 
     if any(found_existing):
         replacement_data.loc[idx, "samplelocation_id"] = \
@@ -245,6 +264,9 @@ for idx, row in replacement_data.iterrows():
     found_original = \
         existing_samplelocations["grts_address"].values \
             == int(row["grts_address"])
+
+    if sum(found_original) > 1:
+        raise(IOError(f"""found more than one original for grts {int(row["grts_address"])}."""))
 
     if any(found_original):
         replacement_data.loc[idx, "samplelocation_id"] = \
