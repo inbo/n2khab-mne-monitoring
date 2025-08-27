@@ -561,6 +561,9 @@ update_datatable_and_dependent_keys <- function(
 
   # INSERT new data, appending the empty table
   #    (to make use of the "ON DELETE SET NULL" rule)
+  # new_data %>%
+  #   filter(grts_address == 871030, activity_group_id == 4) %>%
+  #   knitr::kable()
   rs <- DBI::dbWriteTable(
     db_target,
     get_tableid(table_key),
@@ -571,6 +574,9 @@ update_datatable_and_dependent_keys <- function(
     factorsAsCharacter = TRUE,
     binary = TRUE
   )
+
+  # new_data %>% head() %>% knitr::kable()
+
 
   ## restore sequence
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
@@ -589,6 +595,7 @@ update_datatable_and_dependent_keys <- function(
 
 
   if (length(pk) > 0) {
+    ### TODO !!! shouldn't this be *all* index_columns, instead just pk?
     cols_to_query <- c(characteristic_columns, pk)
   } else {
     cols_to_query <- c(characteristic_columns)
@@ -602,6 +609,12 @@ update_datatable_and_dependent_keys <- function(
 
   # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
   # entries which were not present prior to update are not in this lookup
+  new_redownload %>%
+    count(samplelocation_id, grts_address, activity_group_id,
+          date_start, fieldworkcalendar_id
+          ) %>%
+    arrange(desc(n))
+
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,
@@ -610,6 +623,26 @@ update_datatable_and_dependent_keys <- function(
       suffix = c("_old", ""),
       unmatched = "drop"
     )
+
+  if (FALSE) {
+    a <- old_data %>%
+      select(!!c(pk, characteristic_columns))  %>%
+      filter(grts_address == 23238)
+    b <- new_redownload %>%
+      select(!!c(pk, characteristic_columns))  %>%
+      filter(grts_address == 23238)
+    new_redownload %>% head() %>% knitr::kable()
+    a %>% knitr::kable()
+    b %>% knitr::kable()
+
+    a %>% left_join(
+      b,
+      by = characteristic_columns,
+      relationship = "one-to-one",
+      suffix = c("_old", ""),
+      unmatched = "drop"
+    ) %>% knitr::kable()
+  }
 
 
   ## save non-recovered rows
@@ -974,6 +1007,7 @@ parametrize_cascaded_update <- function(
       db_table
     ) %>% collect()
     # head(prior_content)
+    # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
 
     ## (1) optionally append
@@ -993,6 +1027,9 @@ parametrize_cascaded_update <- function(
           new_characteristics,
           by = join_by(!!!characteristic_columns)
         )
+      # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+      # new_characteristics %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+      # existing_unchanged %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
       existing_removed <- prior_content %>%
         select(!!!subset_columns) %>%
@@ -1000,6 +1037,7 @@ parametrize_cascaded_update <- function(
           new_characteristics,
           by = join_by(!!!characteristic_columns)
         )
+      # existing_removed %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
       # # refcol <- enquo(characteristic_columns)
       # existing_unchanged <- existing_characteristics %>%
@@ -1030,7 +1068,8 @@ parametrize_cascaded_update <- function(
           existing_unchanged,
           to_upload
         ) %>%
-        distinct()
+        distinct() # HERE is the bug.
+      # to_upload %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
     } else {
         message(glue::glue("  Tabula rasa: no rows will be retained."))
     }

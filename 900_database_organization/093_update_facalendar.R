@@ -18,7 +18,7 @@ source("MNMDatabaseToolbox.R")
 projroot <- find_root(is_rstudio_project)
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-testing <- TRUE
+testing <- FALSE
 if (testing) {
   suffix <- "staging" # "testing"
   working_dbname <- glue::glue("mnmgwdb_{suffix}")
@@ -100,7 +100,15 @@ activity_groupid_lookup <-
 # samplelocations_lookup %>%
 #   filter(grts_address == 871030)
 
-fieldwork_calendar <-
+# fieldwork_2025_prioritization_by_stratum %>%
+#   filter(grts_address == 84598, field_activity_group == "LOCEVALTERR") %>%
+#   t() %>% knitr::kable()
+#
+# fieldwork_2025_prioritization_by_stratum %>%
+#   filter(grts_address == 84598, field_activity_group != "LOCEVALTERR") %>%
+#   t() %>% knitr::kable()
+
+fieldwork_calendar_raw <-
   fieldwork_2025_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
@@ -146,7 +154,7 @@ fieldwork_calendar <-
 
 ### quick fix: restore SSPSTaPas link (20250825)
 if (FALSE) {
-  sspstapas_values <- fieldwork_calendar %>%
+  sspstapas_values <- fieldwork_calendar_raw %>%
     mutate(
       stratum_scheme_ps_targetpanels = str_c(
           stratum,
@@ -199,8 +207,8 @@ if (FALSE) {
 
 }
 
-fieldwork_calendar %>%
-  filter(grts_address == 23238)
+# fieldwork_calendar_raw %>%
+#   filter(grts_address == 23238)
 # fieldwork_2025_prioritization_by_stratum %>%
 #   filter(grts_address == 23238) %>%
 #   select(stratum, field_activity_group, rank, priority, date_interval, scheme_ps_targetpanels)
@@ -258,10 +266,11 @@ previous_calendar_plans <- dplyr::tbl(
 
 # glimpse(previous_calendar_plans)
 
+# previous_calendar_plans %>% filter(grts_address == 871030, activity_group_id == 4) %>% t() %>% knitr::kable()
 
+# previous_calendar_plans %>% filter(grts_address == 871030, activity_group_id == 4) %>% t() %>% knitr::kable()
 
 ### select only replaced locations
-
 replacements <- dplyr::tbl(
     db_connection,
     DBI::Id(schema = "archive", table = "ReplacementData")
@@ -269,8 +278,15 @@ replacements <- dplyr::tbl(
   rename(c("stratum" = "type")) %>%
   collect
 
+# replacements %>%
+#   filter(grts_address_replacement == 871030)
+# fieldwork_calendar_raw %>%
+#   filter(grts_address == 84598, activity_group_id == 4) %>%
+#   t() %>% knitr::kable()
+# --> NOT fine here -> coupled to wrong stratum
+# replacements %>% filter(grts_address_replacement == 871030) %>% t() %>% knitr::kable()
 
-fieldwork_calendar <- fieldwork_calendar %>%
+fieldwork_calendar <- fieldwork_calendar_raw %>%
   semi_join(
     replacements,
     by = join_by(grts_address, stratum)
@@ -298,6 +314,36 @@ fieldwork_calendar <- fieldwork_calendar %>%
   ) %>%
   select(-new_samplelocation_id, grts_address_replacement)
 
+# --> NOT fine here -> coupled to wrong stratum
+
+### find calendar entries which are not in the calendar any more
+# example *was*:
+# fieldwork_calendar %>% filter(grts_address == 871030, activity_group_id == 4) %>% t() %>% knitr::kable()
+# previous_calendar_plans %>% filter(grts_address == 871030, activity_group_id == 4) %>% t() %>% knitr::kable()
+
+obsolete_nonplans <- previous_calendar_plans %>%
+  filter(!done_planning) %>%
+  semi_join(
+    replacements %>%
+      select(-grts_address) %>%
+      rename(
+        grts_address = grts_address_replacement,
+        samplelocation_id = new_samplelocation_id
+      ),
+    by = join_by(grts_address, samplelocation_id)
+  ) %>%
+  anti_join(
+    fieldwork_calendar,
+    by = join_by(
+      samplelocation_id,
+      grts_address,
+      activity_group_id,
+      date_start
+    )
+  )
+
+message(glue::glue(">>> The following {nrow(obsolete_nonplans)} plans have become obsolete prior to execution; they will be deleted:"))
+obsolete_nonplans %>% t() %>% knitr::kable()
 
 # TODO remove `stratum_scheme_ps_targetpanels` on switch to SampleUnits
 
@@ -330,7 +376,7 @@ replace_sspstapa_by_lookup <- function(df) {
 
 fieldcalendar_characols <- c(
     "samplelocation_id",
-    # "sspstapa_id",
+    "sspstapa_id",
     "grts_address",
     "activity_group_id",
     "date_start"
@@ -386,7 +432,7 @@ prior_visits <- dplyr::tbl(
   filter(visit_done) %>%
   select(fieldworkcalendar_id) %>%
   collect()
-
+# prior_visits %>% filter(fieldworkcalendar_id %in% c(1161, 1201))
 
 ### TODO loop
 # testing
@@ -396,6 +442,11 @@ prior_visits <- dplyr::tbl(
 # and a great example:
 # sloc <- fieldwork_calendar %>% filter(grts_address == 1818369) %>% pull(samplelocation_id) %>% unique
 # sloc = 860 # potential duplicate 20250821
+# # real duplicate 20250827 -> grts 871030 (repl for 84598; only FA on 7150 and none on 4010)
+# sloc <- fieldwork_calendar %>% filter(grts_address == 871030) %>% pull(samplelocation_id) %>% unique
+# fieldwork_calendar %>% filter(grts_address == 871030, activity_group_id == 4) %>% t() %>% knitr::kable()
+
+sloc <- 857
 
 classify_calendar_events <- function(sloc) {
   calendar <- fieldwork_calendar %>%
@@ -479,6 +530,11 @@ to_update <- bind_rows(lapply(
   seq_len(length(all_calendar_modifications)),
   FUN = function(elm) all_calendar_modifications[[elm]]$to_update
   ))
+
+# to_upload %>%
+#   filter(grts_address == 871030) %>%
+#   t() %>% knitr::kable()
+# --> no duplicate yet
 
 ## (I) UPDATE existing fwcal
 # CASES:
@@ -587,6 +643,7 @@ update_fieldwork_calendar <- function(to_update) {
 }
 
 glimpse(to_update)
+# to_update %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 update_fieldwork_calendar(to_update)
 
 
@@ -614,8 +671,11 @@ delete_obsolete_calendar_entries <- function(obsolete) {
 }
 
 glimpse(obsolete)
+# obsolete %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 delete_obsolete_calendar_entries(obsolete)
 
+# also delete the ones which were never planned, from above:
+delete_obsolete_calendar_entries(obsolete_nonplans)
 ## (III) INSERT to_upload
 
 insert_new_fieldwork <- function(to_upload) {
@@ -627,6 +687,7 @@ insert_new_fieldwork <- function(to_upload) {
       -grts_address_replacement,
       -temp_idx
     )
+  # new_fieldwork_upload %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
 
   sspstapas <- dplyr::tbl(
@@ -661,6 +722,7 @@ insert_new_fieldwork <- function(to_upload) {
 
   fieldwork_calendar_upload <- new_fieldwork_upload %>%
     replace_sspstapa_by_lookup()
+  # fieldwork_calendar_upload %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
   if (nrow(fieldwork_calendar_upload) > 0) {
     fieldwork_calendar_lookup <- update_cascade_lookup(
@@ -705,7 +767,7 @@ insert_new_fieldwork <- function(to_upload) {
     )
 
   # visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols) # some fwcal_id were NULL at this point
-  visits_characols <- fieldcalendar_characols
+  visits_characols <- c(fieldcalendar_characols, "fieldworkcalendar_id")
 
   visits_upload <- new_visits
   visits_upload %>% print(n=Inf)
@@ -780,7 +842,7 @@ insert_new_fieldwork <- function(to_upload) {
       schema = "inbound",
       table_key = "Visits",
       new_data = visits_upload,
-      index_columns = c("fieldworkcalendar_id", "visit_id"),
+      index_columns = c("visit_id"), # "fieldworkcalendar_id",
       characteristic_columns = visits_characols,
       tabula_rasa = FALSE,
       verbose = TRUE
@@ -894,3 +956,7 @@ insert_new_fieldwork(to_upload)
 
 
 # SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address IN (1818369, 769793);
+
+message("________________________________________________________________")
+message("  Finished. Make sure to inspect the log.  ")
+message("________________________________________________________________")
