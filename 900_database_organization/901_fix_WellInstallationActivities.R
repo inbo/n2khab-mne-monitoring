@@ -9,7 +9,7 @@ source("MNMDatabaseToolbox.R")
 
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-testing <- TRUE
+testing <- FALSE
 if (testing) {
   suffix <- "staging" # "testing"
   working_dbname <- glue::glue("mnmgwdb_{suffix}")
@@ -109,10 +109,12 @@ convert_all_to_strings <- function(df) {
 
 }
 
+fixna <- function(val) if (is.na(val)) "NULL" else val
+
 collapse_sql_string <- function (namedvec, collapse_symbol = ", ") paste0(
     sapply(
       seq_len(length(namedvec)),
-      FUN = function(i) glue::glue("{names(namedvec)[[i]]} = {namedvec[[i]]}")
+      FUN = function(i) glue::glue("{names(namedvec)[[i]]} = {fixna(namedvec[[i]])}")
     ),
     collapse = collapse_symbol
   )

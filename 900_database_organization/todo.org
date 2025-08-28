@@ -18,6 +18,13 @@ if major updates:
 + 2x 033_populate_testing_db.R
 
 * mainline
++ [ ] 093 still cuts links to WIA and CSA (temporarily using 901)
++ [ ] there ARE already visits which disappeared from the calendar
+  -> instantiate archiving system
+  SELECT * FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;
+
+
+
 + [ ] write a function to restore all =seq_keys= to the last used value (special: shared =fieldwork_id=).
 + [X] credentials to config
 + [X] =UNIQUE= tag? -> constraints added
