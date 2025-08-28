@@ -192,6 +192,19 @@ def upload(df, to_connection):
         verbose = True
        )
 
+    # reset pk counter
+    DTB.ExecuteSQL(
+        to_connection,
+        """
+        SELECT setval(
+          '"inbound".seq_fieldnote_id',
+          (SELECT MAX(fieldnote_id) FROM "inbound"."FreeFieldNotes")
+        );
+        """,
+        verbose = True
+       )
+
+
 print("/"*64)
 print(f"Uploading from **{loceval.config['database']}** to **{mnmgwdb.config['database']}**:")
 upload(source_to_target, to_connection = mnmgwdb)

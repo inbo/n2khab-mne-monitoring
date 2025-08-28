@@ -21,6 +21,8 @@ if major updates:
 + 2x 033_populate_testing_db.R
 
 * mainline
+
++ [X] free fieldnote counter issue in =090_*=: =SELECT setval('seq_fieldnote_id', (SELECT MAX(fieldnote_id) FROM "inbound"."FreeFieldNotes"));=
 + [ ] 093 still cuts links to WIA and CSA (temporarily using 901)
   also check LocationInfos
 + [ ] there ARE already visits which disappeared from the calendar
