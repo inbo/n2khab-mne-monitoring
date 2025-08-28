@@ -662,6 +662,9 @@ delete_obsolete_calendar_entries <- function(obsolete) {
          '"outbound"."FieldworkCalendar"'
       )) {
 
+    message(ids_to_delete)
+    if ((length(ids_to_delete) == 0) || (ids_to_delete == "")) next
+
     execute_sql(
       db_connection,
       glue::glue("DELETE FROM {target_namestring} WHERE fieldworkcalendar_id IN ({ids_to_delete});"),
