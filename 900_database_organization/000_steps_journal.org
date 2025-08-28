@@ -1515,7 +1515,14 @@ NOTES
 + some recovery procedures are assembled in 093 with =if (FALSE)=
   might be good to outsource them (e.g. WIA and CSA)
 + Deletion was one issue, because it did not CASCADE.
-+ [ ] TODO there are still 99 WIA disconnected (also no visit_id); should be restored via sloc/activity
++ [X] TODO there are still 99 WIA disconnected (also no visit_id); should be restored via sloc/activity
+
+** WIA/CSA quickfix
+SCHEDULED: <2025-08-28 Thu>
+
+script =901_*= for temporary re-link
+as well as several recipes to delete missing connections
+yet they return by means of =093_*=
 
 
 * learning the hard way
