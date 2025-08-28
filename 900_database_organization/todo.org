@@ -6,9 +6,12 @@
 
 + 090_sync_FreeFieldNotes.py
 + 092_push_loceval_to_mnmgwdb.py
++ 093_update_facalendar.R
 + 094_replaced_LocationCells.R
 + 095_sync_LocationInfos.py
 + 096_update_wgs84_coordinates.R
+
++ 901_fix_WellInstallationActivities.R
 
 if replacements:
 + 230_random_placementpoints.R
@@ -19,10 +22,11 @@ if major updates:
 
 * mainline
 + [ ] 093 still cuts links to WIA and CSA (temporarily using 901)
+  also check LocationInfos
 + [ ] there ARE already visits which disappeared from the calendar
-  -> instantiate archiving system
+  -> instantiate archiving system which stores info from FwCal and Visits
   SELECT * FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;
-
++ [ ] new table // view: *Wells*
 
 
 + [ ] write a function to restore all =seq_keys= to the last used value (special: shared =fieldwork_id=).
