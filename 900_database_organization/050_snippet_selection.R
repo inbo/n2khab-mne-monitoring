@@ -20,6 +20,12 @@
 scheme_moco_ps_stratum_targetpanel_spsamples <-
   scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar %>%
   inner_join(
+    domainpart_grts_n2khab,
+    join_by(grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  inner_join(
     n2khab_strata,
     join_by(stratum),
     relationship = "many-to-one",
@@ -48,6 +54,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
     sample_support_code,
     grts_address,
     grts_address_final,
+    domain_part,
     targetpanel,
     last_type_assessment = assessment_date,
     last_type_assessment_in_field = assessed_in_field,
@@ -420,6 +427,12 @@ hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended <-
 stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
   stratum_schemepstargetpanel_spsamples %>%
   filter(str_detect(sample_support_code, "cell")) %>%
+  # We drop domain_part since its value can change within a polygon, which
+  # otherwise requires extra attention in grouping operations. As we always
+  # _identify_ the sampling units using grts_address x stratum (not
+  # grts_address_final, which is only relevant for fieldwork), we also use its
+  # domain_part attribute, regardless whether a local replacement took place.
+  select(-domain_part) %>%
   # adding polygon_id attribute (sometimes more than one, as explained above)
   inner_join(
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended,
@@ -806,10 +819,10 @@ fag_fa_stratum_grts_calendar <-
   select(-c(typelevel_certain:inaccessible))
 
 # Note that both calendar objects have a scheme_moco_ps column that makes clear
-# which scheme x module combo x panel set the FAG is serving. This may be a
-# SUBSET of the same information at the level of the spatial sampling unit
-# without considering FAG occasions, since not all field activities necessarily
-# serve all schemes.
+# which combinations of scheme x module combo x panel set the FAG is serving.
+# This may be a SUBSET of the same information at the level of the spatial
+# sampling unit without considering FAG occasions, since not all field
+# activities necessarily serve all schemes.
 
 # Link between field activities and their protocol
 fa_protocol <-
@@ -886,7 +899,24 @@ fag_stratum_grts_calendar_2025_attribs <-
     field_activity_group,
     rank
   ) %>%
-  filter(year(date_start) < 2026) %>%
+  mutate(has_gw = map_lgl(
+    scheme_moco_ps,
+    \(df) any(str_detect(df$scheme, "^GW"))
+  )) %>%
+  filter(
+    year(date_start) < 2026 |
+      # already allow GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from 2026 to be
+      # executed in 2025:
+      (
+        year(date_start) < 2027 &
+          has_gw &
+          str_detect(
+            field_activity_group,
+            "INST|LEVREAD|SPATPOSIT"
+          )
+      )
+  ) %>%
+  select(-has_gw) %>%
   # count(date_start, date_end, date_interval) %>%
   # move the fieldwork that was kept for 2024, to 2025, since that is indeed
   # its meaning
@@ -911,6 +941,7 @@ fag_stratum_grts_calendar_2025_attribs <-
         grts_join_method,
         grts_address,
         grts_address_final,
+        domain_part,
         targetpanel
       ) %>%
       # deduplicating 7220:
@@ -919,16 +950,16 @@ fag_stratum_grts_calendar_2025_attribs <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
-  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(grts_address_final, domain_part, .after = grts_address) %>%
   select(-module_combo_code) %>%
   # flatten scheme x panel set x targetpanel to unique strings per stratum x
   # location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
   # shrinked version of the one at the level of the whole sample (see sampling
   # unit attributes in the beginning), since we limited the activities to those
-  # planned before 2026, and then generate stratum_scheme_ps_targetpanels as a
-  # location attribute. So it says specifically which schemes x panel sets x
-  # targetpanels are served by the specific fieldwork at a specific date
-  # interval.
+  # planned before 2026 (sometimes 2027), and then generate
+  # stratum_scheme_ps_targetpanels as a location attribute. So it says
+  # specifically which schemes x panel sets x targetpanels are served by the
+  # specific fieldwork at a specific date interval.
   mutate(scheme_ps_targetpanel = str_glue(
     "{ scheme }:PS{ panel_set }{ targetpanel }"
   )) %>%
@@ -993,21 +1024,22 @@ fag_grts_calendar_2025_attribs_sf <-
   )
 
 # prioritization of fieldwork 2025 with stratum distinguished (preferred for
-# counts and for planning of biotic FAGs):
+# counts and for planning):
 fieldwork_2025_prioritization_by_stratum <-
   fag_stratum_grts_calendar_2025_attribs %>%
   mutate(
     priority = case_when(
-      str_detect(
-        scheme_ps_targetpanels,
-        "GW_03\\.3:(PS1PANEL(09|10|11|12)|PS2PANEL0[56])|SURF_03\\.4_[a-z]+:PS\\dPANEL03"
-      ) ~ 1L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 2L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 4L,
-      .default = 5L
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL12|PS2PANEL06)") ~ 7L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL11)") ~ 1L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL10|PS2PANEL05)") ~ 2L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL09)") ~ 3L,
+      str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL03") ~ 4L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 5L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 6L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 8L,
+      .default = 9L
     ),
-    wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
+    wait_watersurface = str_detect(stratum, "^31|^2190_a"),
     wait_3260 = stratum == "3260",
     wait_7220 = str_detect(stratum, "^7220")
   ) %>%
@@ -1061,7 +1093,11 @@ fieldwork_2025_targetpanels_prioritization_count <-
     field_activity_group
   ) %>%
   arrange(priority, wait_watersurface, wait_3260, wait_7220) %>%
-  pivot_wider(names_from = field_activity_group, values_from = n)
+  pivot_wider(
+    names_from = field_activity_group,
+    names_sort = TRUE,
+    values_from = n
+  )
 
 
 gs_id <- "1RXhqlK8nu_BdIiYEbjhjoNnu82wnn6zGfQSdzyi-afI"
@@ -1089,7 +1125,11 @@ fieldwork_2025_dates_prioritization_count <-
   ) %>%
   arrange(date_end, priority, wait_watersurface, wait_3260, wait_7220) %>%
   select(-date_end) %>%
-  pivot_wider(names_from = field_activity_group, values_from = n)
+  pivot_wider(
+    names_from = field_activity_group,
+    names_sort = TRUE,
+    values_from = n
+  )
 
 # WRITE PIVOT TABLE TO GSHEET:
 if (FALSE) {
@@ -1100,6 +1140,51 @@ if (FALSE) {
       sheet = "fieldwork_2025_dates_prioritization_count"
     )
 }
+
+
+
+
+
+
+
+
+
+## Processing the FAG calendar wrt specific questions -------------------------
+
+# Classifying strata in groundwater schemes according to different allowed
+# maximum depths for the PIEZ/WELL installation
+
+fag_stratum_grts_calendar %>%
+  filter(str_detect(field_activity_group, "INST")) %>%
+  unnest(scheme_moco_ps) %>%
+  filter(str_detect(scheme, "^GW")) %>%
+  distinct(stratum) %>%
+  # adding type attributes
+  inner_join(
+    n2khab_strata,
+    join_by(stratum),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  inner_join(
+    n2khab_types_expanded_properties %>%
+      select(type, grts_join_method, groundw_dep),
+    join_by(type),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  mutate(
+    max_depth_groups = case_when(
+      # non-cell types can go much deeper (soil surface is not the relevant
+      # reference)
+      !str_detect(grts_join_method, "cell") ~ 3L,
+      # strictly groundwater dependent cell types get more strict rules
+      groundw_dep == "GD2" ~ 2L,
+      # remaining cell types get the most strict rules
+      .default = 1L
+    )
+  )
+
 
 
 
@@ -1140,6 +1225,7 @@ orthophoto_2025_type_grts <-
         grts_join_method,
         grts_address,
         grts_address_final,
+        domain_part,
         targetpanel
       ) %>%
       # deduplicating 7220:
@@ -1154,16 +1240,6 @@ orthophoto_2025_type_grts <-
     # only keep cell-based types (aquatic & 7220 will be more reliable or simply
     # not possible to evaluate on orthophoto)
     str_detect(grts_join_method, "cell")
-  ) %>%
-  # also join the spatial poststratum, since we need this in setting
-  # GRTS-address based priorities
-  inner_join(
-    scheme_moco_ps_stratum_sppost_spsamples %>%
-      unnest(sp_poststr_samples) %>%
-      select(-sample_status),
-    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
   ) %>%
   # add MHQ assessment metadata
   inner_join(
@@ -1207,7 +1283,7 @@ orthophoto_2025_type_grts <-
       grts_address <= median(grts_address) ~ 2L,
       .default = 3L
     ),
-    .by = c(type, loceval_year, scheme, panel_set, sp_poststratum)
+    .by = c(type, loceval_year, scheme, panel_set, domain_part)
   ) %>%
   # collapse scheme & panel_set since these can have different values for the
   # same location
@@ -1230,14 +1306,14 @@ orthophoto_2025_type_grts <-
       grts_address,
       grts_address_final,
       starts_with("assess"),
-      sp_poststratum
+      domain_part
     )
   ) %>%
   arrange(
     loceval_year,
     priority_orthophoto,
     type,
-    sp_poststratum,
+    domain_part,
     grts_address
   )
 
@@ -1256,7 +1332,7 @@ orthophoto_2025_cells <-
     loceval_year,
     priority_orthophoto,
     type,
-    sp_poststratum,
+    domain_part,
     grts_address
   )
 
