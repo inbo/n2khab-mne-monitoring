@@ -23,66 +23,50 @@ Let's bring the sample to the field - again!
 
 In all brevity, I collect steps here to get a new POC to the database.
 
-Here are all the choices you have.
-
-```{r upload-parameters-dev}
-#| eval: true
-working_dbname <- "loceval_dev"
-config_filepath <- file.path("./inbopostgis_server.conf")
-connection_profile <- "loceval-dev"
-dbstructure_folder <- "./loceval_dev_structure"
-
-config <- configr::read.config(file = config_filepath)[[connection_profile]]
-```
-
-```{r upload-parameters-testing}
-#| eval: false
-working_dbname <- "loceval_testing"
-config_filepath <- file.path("./inbopostgis_server.conf")
-connection_profile <- "testing"
-dbstructure_folder <- "./loceval_db_structure"
-
-config <- configr::read.config(file = config_filepath)[[connection_profile]]
-```
-
 
 # preparation
+
+## backup
+
+1. Make sure to manually trigger backups.
+  - `ssh` to the server
+  - execute scripts in `~/backups`
+  - bring files home with `scp`
+
+2. Mirrors: try everything on `testing` and then `staging`, first.
+  - The `testing` mirror (data sync with `033_populate_testing_db.R`) is open for play and can taken even rough rides, though note that user permissions differ on there.
+  - On `staging`, everything is exactly identical to the production server, because it gets synced with the commands below.
+  - use the `suffix` to control database connections below.
+  
+  
+Syncing the `*_staging` database mirrors:
+  
+```{sh sync-staging}
+#| eval: false
+pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c > /tmp/<database>_db_dump.txt \
+        && psql -U <database_user> -h <host> -p <port> -d <database>_staging -W < /tmp/<database>_db_dump.txt \
+        && rm /tmp/<database>_db_dump.txt
+```
+
+  - has to be done for `loceval` and `mnmgwdb` 
+  - if necessary, re-instantiate the mirror prior to data upload (and then run `110_*` and `210_*`, if necessary)
+  - Finally, use the `pg_dump | psql` command chain above above.
+
 
 ## libraries and variables
 
 ```{r libraries}
-library("dplyr")
-library("tidyr")
-library("stringr")
-library("purrr")
-library("lubridate")
-library("sf")
-library("terra")
-library("n2khab")
-library("googledrive")
-library("readr")
-library("rprojroot")
-library("keyring")
+source("MNMDatabaseToolbox.R")
 
-library("configr")
-library("DBI")
-library("RPostgres")
+load_poc_common_libraries()
+load_database_interaction_libraries()
 
-library("mapview")
+# library("mapview") # debugging only
 # mapviewOptions(platform = "mapdeck")
 
-projroot <- find_root(is_rstudio_project)
 
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password")
-
-source("MNMDatabaseToolbox.R")
-
-# Load some custom GRTS functions
-# source(file.path(projroot, "R/grts.R"))
-# TODO: rebase once PR#5 gets merged
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R")
 
 ```
 
@@ -90,42 +74,7 @@ source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/mis
 ## info stream from POC
 
 ```{r load-sample-rdata}
-
-
-# Setup for googledrive authentication. Set the appropriate env vars in
-# .Renviron and make sure you ran drive_auth() interactively with these settings
-# for the first run (or to renew an expired Oauth token).
-# See ?gargle::gargle_options for more information.
-if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
-  options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
-}
-if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
-  options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
-}
-
-# Download and load R objects from the POC into global environment
-reload <- FALSE # in this one, we normally reload.
-poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
-if (reload || !file.exists(poc_rdata_path)){
-
-  # copy the old file
-  if (file.exists(poc_rdata_path)) {
-    this_date <- format(Sys.time(), "%Y%m%d")
-    backup_path <- file.path("./data", glue::glue("objects_panflpan5_{this_date}.bak"))
-    file.copy(from = poc_rdata_path, to = backup_path, overwrite = TRUE)
-  }
-
-  drive_download(
-    as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
-    path = poc_rdata_path,
-    overwrite = reload
-  )
-}
-load(poc_rdata_path)
-
-versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
-verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
-
+load_poc_rdata(reload = FALSE)
 
 ```
 
@@ -138,61 +87,13 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 # TODO: check for changes on every update, e.g. with `meld`:
 #       meld 020_fieldwork_organization/code_snippets.R 900_database_organization/050_snippet_selection.R
 
-invisible(capture.output(source("050_snippet_selection.R")))
-source("051_snippet_transformation_code.R")
-
-stopifnot(
-  "NOT FOUND: snip snap >> `grts_mh_index`" = exists("grts_mh_index")
-)
-
-stopifnot(
-  "NOT FOUND: snip snap >> `scheme_moco_ps_stratum_targetpanel_spsamples`" =
-    exists("scheme_moco_ps_stratum_targetpanel_spsamples")
-)
-
-stopifnot(
-  "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples`" =
-    exists("stratum_schemepstargetpanel_spsamples")
-)
-
-stopifnot(
-  "NOT FOUND: snip snap >> `units_cell_polygon`" =
-    exists("units_cell_polygon")
-)
-
-stopifnot(
-  "NOT FOUND: RData >> `activities`" =
-    exists("activities")
-)
-
-stopifnot(
-  "NOT FOUND: RData >> `activity_sequences`" =
-    exists("activity_sequences")
-)
-
-stopifnot(
-  "NOT FOUND: RData >> `n2khab_strata`" =
-    exists("n2khab_strata")
-)
-
-stopifnot(
-  "snip snap >> `orthophoto grts` not found" =
-    exists("orthophoto_2025_type_grts")
-)
-
-# fieldwork calendar
-stopifnot(
-  "NOT FOUND: snip snap >> `fieldwork_2025_prioritization_by_stratum`" =
-    exists("fieldwork_2025_prioritization_by_stratum")
-)
-
-# replacements
-stopifnot(
-  "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples_terr_replacementcells`" =
-    exists("stratum_schemepstargetpanel_spsamples_terr_replacementcells")
-)
-
-
+# Load some custom GRTS functions
+# project_root <- find_root(is_git_root)
+# source(file.path(project_root, "R/grts.R"))
+# TODO: rebase once PR#5 gets merged
+base_path = "/data/git/n2khab-mne-monitoring_support"
+base_path = "/work/inbo/git/n2khab-mne-monitoring_support"
+load_poc_code_snippets(base_path)
 ```
 
 
@@ -201,27 +102,15 @@ stopifnot(
 
 ```{r load-config}
 
+config_filepath <- file.path("./inbopostgis_server.conf")
 
-db_connection <- connect_database_configfile(
+keyring::key_set("DBPassword", "db_user_password") # <- for source database
+
+loceval <- connect_mnm_database(
   config_filepath,
-  database = working_dbname,
-  profile = connection_profile
-)
+  database_mirror = "loceval-staging"
+) 
 
-
-schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-  select(table, schema, geometry)
-
-# These are clumsy, temporary, provisional helpers.
-# But, hey, there will be time later.
-get_schema <- function(tablelabel) {
-  return(schemas %>%
-    filter(table == tablelabel) %>%
-    pull(schema)
-  )
-}
-get_namestring <- function(tablelabel) glue::glue('"{get_schema(tablelabel)}"."{tablelabel}"')
-get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), table = tablelabel)
 
 
 ```
@@ -234,12 +123,8 @@ using higher order function generation to simplify the signature.
 
 ```{r cascaded-update-function}
 
-update_cascade_lookup <- parametrize_cascaded_update(
-  config_filepath,
-  working_dbname,
-  connection_profile,
-  dbstructure_folder,
-  db_connection
+update_cascade_loceval <- parametrize_cascaded_update(
+  loceval
 )
 
 ```
@@ -250,9 +135,9 @@ update_cascade_lookup <- parametrize_cascaded_update(
 ```{r step1-safety-dump}
 now <- format(Sys.time(), "%Y%m%d%H%M")
 dump_all(
-  here::here("dumps", glue::glue("safedump_{working_dbname}_{now}.sql")),
+  here::here("dumps", glue::glue("safedump_{loceval$database}_{now}.sql")),
   config_filepath = config_filepath,
-  database = working_dbname,
+  database = loceval$database,
   profile = "dumpall",
   user = "monkey",
   exclude_schema = c("tiger", "public")
