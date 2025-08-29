@@ -1,103 +1,178 @@
+#_______________________________________________________________________________
+# common commands
 
+# .libPaths("/data/R/library")
+# SET search_path TO public,"metadata","outbound","inbound","archive";
+
+#_______________________________________________________________________________
+# LIBRARIES
+
+load_libraries <- function(libs) {
+  load_lib <- function(...) {
+    suppressPackageStartupMessages(library(...))
+  }
+  sapply(unique(libs), load_lib, character.only = TRUE)
+  return(invisible(NULL))
+}
+
+poc_common_libraries <- c(
+  "dplyr",
+  "tidyr",
+  "stringr",
+  "purrr",
+  "lubridate",
+  "googledrive",
+  "readr",
+  "rprojroot",
+  "sf",
+  "terra",
+  "n2khab"
+)
+load_poc_common_libraries <- function(
+  ) load_libraries(poc_common_libraries)
+# load_poc_common_libraries()
+
+database_interaction_libraries <- c(
+  "configr",
+  "keyring",
+  "DBI",
+  "RPostgres",
+  "dplyr",
+  "glue"
+)
+load_database_interaction_libraries <- function(
+  ) load_libraries(database_interaction_libraries)
+# load_database_interaction_libraries()
+
+spatial_data_handling_libraries <- c(
+  "sf",
+  "terra"
+)
+load_spatial_data_handling_libraries <- function(
+  ) load_libraries(spatial_data_handling_libraries)
+# load_spatial_data_handling_libraries()
+
+inbo_libraries <- c(
+  "n2khab",
+  "inbospatial",
+  "inbodb"
+)
+load_inbo_libraries <- function(
+  ) load_libraries(inbo_libraries)
+# load_inbo_libraries()
+
+
+#_______________________________________________________________________________
+# POC DATA AND CODE
+
+load_poc_rdata <- function(data_basepath = "./data", reload = FALSE) {
+
+  # Setup for googledrive authentication. Set the appropriate env vars in
+  # .Renviron and make sure you ran drive_auth() interactively with these settings
+  # for the first run (or to renew an expired Oauth token).
+  # See ?gargle::gargle_options for more information.
+  if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
+    options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
+  }
+  if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
+    options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
+  }
+
+  # Download and load R objects from the POC into global environment
+  # reload <- FALSE # in this one, we normally reload.
+  poc_rdata_path <- file.path(data_basepath, "objects_panflpan5.RData")
+  if (reload || !file.exists(poc_rdata_path)){
+
+    # copy the old file
+    if (file.exists(poc_rdata_path)) {
+      this_date <- format(Sys.time(), "%Y%m%d")
+      backup_path <- file.path(data_basepath, glue::glue("objects_panflpan5_{this_date}.bak"))
+      file.copy(from = poc_rdata_path, to = backup_path, overwrite = TRUE)
+    }
+
+    drive_download(
+      as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
+      path = poc_rdata_path,
+      overwrite = reload
+    )
+  }
+  load(poc_rdata_path)
+
+  versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
+  verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+}
+
+
+load_poc_code_snippets <- function(base_path = NA) {
+
+  if (is.na(base_path)) {
+    base_path <- rprojroot::find_root(is_git_root)
+  }
+
+  source(file.path(base_path, "020_fieldwork_organization/R/grts.R"))
+  source(file.path(base_path, "020_fieldwork_organization/R/misc.R"))
+
+  invisible(capture.output(source("050_snippet_selection.R")))
+  source("051_snippet_transformation_code.R")
+
+  stopifnot(
+    "NOT FOUND: snip snap >> `grts_mh_index`" = exists("grts_mh_index")
+  )
+
+  stopifnot(
+    "NOT FOUND: snip snap >> `scheme_moco_ps_stratum_targetpanel_spsamples`" =
+      exists("scheme_moco_ps_stratum_targetpanel_spsamples")
+  )
+
+  stopifnot(
+    "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples`" =
+      exists("stratum_schemepstargetpanel_spsamples")
+  )
+
+  stopifnot(
+    "NOT FOUND: snip snap >> `units_cell_polygon`" =
+      exists("units_cell_polygon")
+  )
+
+  stopifnot(
+    "NOT FOUND: RData >> `activities`" =
+      exists("activities")
+  )
+
+  stopifnot(
+    "NOT FOUND: RData >> `activity_sequences`" =
+      exists("activity_sequences")
+  )
+
+  stopifnot(
+    "NOT FOUND: RData >> `n2khab_strata`" =
+      exists("n2khab_strata")
+  )
+
+  stopifnot(
+    "snip snap >> `orthophoto grts` not found" =
+      exists("orthophoto_2025_type_grts")
+  )
+
+  # fieldwork calendar
+  stopifnot(
+    "NOT FOUND: snip snap >> `fieldwork_2025_prioritization_by_stratum`" =
+      exists("fieldwork_2025_prioritization_by_stratum")
+  )
+
+  # replacements
+  stopifnot(
+    "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples_terr_replacementcells`" =
+      exists("stratum_schemepstargetpanel_spsamples_terr_replacementcells")
+  )
+
+}
+
+
+#_______________________________________________________________________________
+# MISC
 
 is.scalar.na <- function(checkvar) is.atomic(checkvar) && (length(checkvar) == 1) && is.na(checkvar)
-
-
-load_table_info <- function(subfolder, tablelabel){
-  table_info <- read.csv(
-    here::here(subfolder, glue::glue("{tablelabel}.csv"))
-  )
-  return(table_info)
-}
-
-query_columns <- function(db_connection, table_id, columns){
-  dplyr::tbl(db_connection, table_id) %>%
-    dplyr::select(!!!rlang::syms(columns)) %>%
-    dplyr::collect()
-}
-
-
-# query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
-query_tables_data <- function (db_connection, database, tables) {
-  data <- lapply(
-    tables,
-    FUN = function(tablelabel) {
-        dplyr::collect(dplyr::tbl(db_connection, tablelabel))
-      }
-  )
-  return(data)
-}
-
-
-
-execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
-  # a rather trivial wrapper for dbExecute
-  # which doesn't even work for multi-commands :/
-
-  if (verbose) {
-    message(sql_command)
-  }
-
-  stopifnot("DBI" = require("DBI"))
-
-  rs <- DBI::dbExecute(db_connection, sql_command)
-
-  if (verbose) {
-    message("done.")
-  }
-
-  return(invisible(rs))
-
-}
-
-
-# TODO: option to drop; but mind cascading
-
-# this function loads the content of a table, and then uploads only
-# the new rows which are not already present (as judged by some
-# reference columns).
-append_tabledata <- function(conn, db_table, data_to_append, reference_columns = NA){
-  content <- DBI::dbReadTable(conn, db_table)
-  # head(content)
-
-  if (any(is.na(reference_columns))) {
-    # ... or just take all columns
-    reference_columns <- names(data_to_append)
-  }
-
-  # refcol <- enquo(reference_columns)
-  existing <- content %>% select(!!!reference_columns)
-  to_upload <- data_to_append %>%
-    anti_join( existing, join_by(!!!reference_columns)
-  )
-
-  rs <- DBI::dbWriteTable(conn, db_table, to_upload, overwrite = FALSE, append = TRUE)
-  # res <- DBI::dbFetch(rs)
-  # DBI::dbClearResult(rs)
-
-  message(sprintf(
-    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
-    toString(db_table),
-    nrow(to_upload),
-    nrow(existing),
-    nrow(data_to_append),
-    paste0(reference_columns, collapse = ", ")
-  ))
-  return(invisible(rs))
-
-} #/ append_tabledata
-
-
-upload_and_lookup <- function(conn, db_table, data, ref_cols, index_col) {
-
-  append_tabledata(conn, db_table, data, reference_columns = ref_cols)
-
-  lookup <- dplyr::tbl(conn, db_table) %>%
-    select(!!!c(ref_cols, index_col)) %>%
-    collect
-
-  return(lookup)
-}
 
 
 lookup_join <- function(.data, lookup_tbl, join_column){
@@ -115,6 +190,103 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 }
 
 
+#_______________________________________________________________________________
+# SQL CONVENIENCE
+
+execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
+  # a rather trivial wrapper for dbExecute
+  # which doesn't even work for multi-commands :/
+
+  if (verbose) {
+    message(sql_command)
+  }
+
+  stopifnot("DBI" = require("DBI"))
+
+  rs <- DBI::dbExecute(mnmdb$connection, sql_command)
+
+  if (verbose) {
+    message("done.")
+  }
+
+  return(invisible(rs))
+
+}
+
+
+# TODO: option to drop; but mind cascading
+
+# this function loads the content of a table, and then uploads only
+# the new rows which are not already present (as judged by some
+# characteristic columns).
+append_tabledata <- function(
+    mnmdb,
+    db_table,
+    data_to_append,
+    characteristic_columns = NA
+  ) {
+  content <- DBI::dbReadTable(mnmdb$connection, db_table)
+  # head(content)
+
+  if (any(is.na(characteristic_columns))) {
+    # ... or just take all columns
+    characteristic_columns <- names(data_to_append)
+  }
+
+  # refcol <- enquo(characteristic_columns)
+  existing <- content %>% select(!!!characteristic_columns)
+  to_upload <- data_to_append %>%
+    anti_join( existing, join_by(!!!characteristic_columns)
+  )
+
+  rs <- DBI::dbWriteTable(
+    mnmdb$connection,
+    db_table,
+    to_upload,
+    overwrite = FALSE,
+    append = TRUE
+  )
+  # res <- DBI::dbFetch(rs)
+  # DBI::dbClearResult(rs)
+
+  message(sprintf(
+    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
+    toString(db_table),
+    nrow(to_upload),
+    nrow(existing),
+    nrow(data_to_append),
+    paste0(characteristic_columns, collapse = ", ")
+  ))
+  return(invisible(rs))
+
+} #/ append_tabledata
+
+
+upload_and_lookup <- function(
+    mnmdb,
+    ...,
+    characteristic_columns,
+    index_columns
+  ) {
+
+  append_tabledata(
+    mnmdb$connection,
+    ...,
+    characteristic_columns
+  )
+
+  lookup <- mnmdb$query_columns(
+    table_label,
+    c(characteristic_columns, index_columns)
+  )
+
+  return(lookup)
+}
+
+
+#_______________________________________________________________________________
+# LOOKUP RESTORATION
+
 # procedure to loop through a table
 # which is linked to "Locations" via `location_id`
 # and restore the correct id.
@@ -122,34 +294,24 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 #   in some cases retained, but
 #   would loose links to the pruned "Locations" after rearrangement.
 restore_location_id_by_grts <- function(
-      db_connection,
-      dbstructure_folder,
-      target_schema,
-      table_key,
+      mnmdb,
+      table_label,
       retain_log = FALSE,
       verbose = FALSE
     ) {
 
 
   # know table relations to get the pk
-  table_relations <- read_table_relations_config(
-    storage_filepath = here::here(dbstructure_folder, "table_relations.conf")
-    ) %>%
-    filter(relation_table == tolower(table_key))
+  table_relations <- mnmdb$table_relations %>%
+    filter(relation_table == tolower(table_label))
 
-  pk <- load_table_info(dbstructure_folder, table_key) %>%
-      filter(primary_key == "True") %>%
-      pull(column)
+  pk <- mnmdb$get_primary_key(table_label)
 
-  target_namestring <- glue::glue('"{target_schema}"."{table_key}"')
+  target_namestring <- mnmdb$get_namestring(table_label)
 
   # query the status quo
-  location_lookup <- dplyr::tbl(
-    db_connection,
-    DBI::Id("metadata", "Locations")
-    ) %>%
-    select(grts_address, location_id) %>%
-    collect
+  location_lookup <- mnmdb$query_tbl("Locations") %>%
+    select(grts_address, location_id)
 
   # optional: store and retain "log_" columns
   # TODO (though I fear this did not work)
@@ -158,12 +320,8 @@ restore_location_id_by_grts <- function(
     target_cols <- c(pk, "grts_address", "log_user", "log_update")
   }
 
-  target_lookup <- dplyr::tbl(
-    db_connection,
-    DBI::Id(target_schema, table_key)
-    ) %>%
-    select(!!!target_cols) %>%
-    collect
+  target_lookup <- mnmdb$query_tbl(table_label) %>%
+    select(!!!target_cols)
 
   key_replacement <- target_lookup %>%
     left_join(
@@ -223,16 +381,18 @@ restore_location_id_by_grts <- function(
   for (repl_rownr in 1:nrow(key_replacement)) {
     if (verbose) setTxtProgressBar(pb, repl_rownr)
     cmd <- update_command[[repl_rownr]]
-    execute_sql(db_connection, cmd, verbose = FALSE)
+    mnmdb$execute_sql(cmd, verbose = FALSE)
   }
 
   if (verbose) close(pb) # close the progress bar
 
   # TODO this is sluggish, of course; I would rather prefer a combined UPDATE.
 
-}
+} # /restore_location_id_by_grts
 
 
+#_______________________________________________________________________________
+# UPDATE - CASCADE
 
 #' Update table content and cascade all key changes to dependent tables
 #'
@@ -335,14 +495,14 @@ update_datatable_and_dependent_keys <- function(
 
   # These are clumsy, temporary, provisional helpers.
   # But, hey, there will be time later.
-  get_schema <- function(tablelabel) {
+  get_schema <- function(table_label) {
     return(schemas %>%
-      filter(table == tablelabel) %>%
+      filter(table == table_label) %>%
       pull(schema)
     )
   }
-  get_namestring <- function(tablelabel) glue::glue('"{get_schema(tablelabel)}"."{tablelabel}"')
-  get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), table = tablelabel)
+  get_namestring <- function(table_label) glue::glue('"{get_schema(table_label)}"."{table_label}"')
+  get_tableid <- function(table_label) DBI::Id(schema = get_schema(table_label), table = table_label)
 
 
   ### (1) dump all data, for safety
@@ -380,70 +540,20 @@ update_datatable_and_dependent_keys <- function(
 
 
   ### (3) store key lookup of dependent table
-  get_primary_key <- function(tablelabel){
-    pk <- load_table_info(dbstructure_folder, tablelabel) %>%
-      filter(primary_key == "True") %>%
-      pull(column)
-    return(pk)
-  }
-
-  get_characteristic_columns <- function(tablelabel){
-
-    # excluded from checks
-    logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
-
-    full_table_info <- load_table_info(dbstructure_folder, tablelabel)
-
-    pk <- full_table_info %>%
-      filter(primary_key == "True") %>%
-      pull(column)
-
-    characteristic_columns <- full_table_info %>%
-      filter(
-        !(column %in% logging_columns),
-        !(column %in% pk),
-      ) %>%
-      pull(column)
-
-    return(characteristic_columns)
-  }
-
 
   # query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
   # deptab_key <- "GroupedActivities"
-  query_dependent_columns <- function(table_key, deptab_key) {
-
-    # with a little help from my Python
-    deptab_pk <- get_primary_key(deptab_key)
-
-    # get the foreign key columns
-    dependent_key <- table_relations %>%
-      filter(
-        relation_table == tolower(table_key),
-        dependent_table == deptab_key
-      ) %>%
-      pull(dependent_column)
-
-    # lookup the key columns
-    key_lookup <- query_columns(
-      db_target,
-      get_tableid(deptab_key),
-      c(deptab_pk, dependent_key)
-    )
-
-    return(key_lookup)
-  }
 
   lookups <- lapply(
     dependent_tables,
-    FUN = function(deptab_key) query_dependent_columns(table_key, deptab_key)
+    FUN = function(deptab_key) mnmdb$lookup_dependent_columns(table_key, deptab_key)
   ) %>% setNames(dependent_tables)
 
   ### (4) retrieve old data
-  pk <- get_primary_key(table_key)
+  pk <- mnmdb$get_primary_key(table_key)
 
   if (is.null(characteristic_columns)) {
-    characteristic_columns <- get_characteristic_columns(table_key)
+    characteristic_columns <- mnmdb$get_characteristic_columns(table_key)
   } # TODO else: check that col really is a field in the table
 
   # TODO there must be more column match checks
@@ -518,7 +628,7 @@ update_datatable_and_dependent_keys <- function(
   # here I short-circuit the DELETE/CASCADE process.
   store_dependent_lookups <- function(deptab) {
 
-    dep_pk <- get_primary_key(deptab)
+    dep_pk <- mnmdb$get_primary_key(deptab)
 
     # the pk is the fk in the dt
     fk_lookup <- dplyr::tbl(
@@ -746,7 +856,7 @@ update_datatable_and_dependent_keys <- function(
 
     ### UPDATE the dependent table
     # ... by looking up the dependent table pk
-    dep_pk <- get_primary_key(deptab)
+    dep_pk <- mnmdb$get_primary_key(deptab)
 
     if (length(dep_pk) == 0) next # these is the LocationCells
 
@@ -804,170 +914,11 @@ update_datatable_and_dependent_keys <- function(
 } #/update_datatable_and_dependent_keys
 
 
-# the first entry is the table itself
-# find_dependent_tables("mnmgwdb_db_structure", "Visits")
-find_dependent_tables <- function(dbstructure_folder = "db_structure", table_key) {
-  # dbstructure_folder <- "./mnmgwdb_db_structure"
-  # table_key <- "Visits"
 
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("DBI" = require("DBI"))
-  stopifnot("glue" = require("glue"))
-
-  schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-    select(table, schema, geometry, excluded)
-
-  ### (2) load current data
-  excluded_tables <- schemas %>%
-    filter(!is.na(excluded)) %>%
-    filter(excluded == 1) %>%
-    pull(table)
-
-  table_relations <- read_table_relations_config(
-    storage_filepath = here::here(dbstructure_folder, "table_relations.conf")
-    ) %>%
-    filter(relation_table == tolower(table_key),
-      !(dependent_table %in% excluded_tables)
-    )
-
-  dependent_tables <- c(
-    table_key,
-    table_relations %>% pull(dependent_table)
-    )
-
-  create_dbi_identifier <- function(tabkey) {
-    schema <- schemas %>% filter(tolower(table) == tolower(tabkey)) %>% pull(schema)
-    tkey_right <- schemas %>% filter(tolower(table) == tolower(tabkey)) %>% pull(table)
-    return(DBI::Id(schema, tkey_right))
-  }
-
-  table_ids <- lapply(dependent_tables, FUN = create_dbi_identifier)
-
-  return(table_ids)
-
-} # /find_dependent_tables
-
-
-# store the content of a table in memory
-load_table_content <- function(
-    db_connection,
-    dbstructure_folder,
-    table_id
-    ) {
-
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("DBI" = require("DBI"))
-
-  is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-    select(table, geometry) %>%
-    filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
-    pull(geometry) %>% is.na
-
-  if (is_spatial) {
-    data <- sf::st_read(db_connection, table_id) %>% collect
-  } else {
-    data <- dplyr::tbl(db_connection, table_id) %>% collect
-  }
-
-  return(list("id" = table_id, "data" = data))
-
-} # /load_table_content
-
-
-# push table from memory back to the server
-restore_table_data_from_memory <- function(
-    db_target,
-    content_list,
-    dbstructure_folder = "db_structure",
-    verbose = TRUE
-  ) {
-  # content_list <- table_content_storage[[3]]
-
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("DBI" = require("DBI"))
-  stopifnot("glue" = require("glue"))
-
-  table_id <- content_list$id
-  table_key <- attr(table_id, "name")
-  table_lable <- glue::glue('"{table_key[[1]]}"."{table_key[[2]]}"')
-  table_data <- content_list$data
-
-
-  if (is.scalar.na(table_data) || (nrow(table_data) < 1)) {
-    message("no data to restore.")
-    return(invisible(NA))
-  }
-
-  # restore data
-  get_primary_key <- function(tablelabel){
-    pk <- load_table_info(dbstructure_folder, tablelabel) %>%
-      filter(primary_key == "True") %>%
-      pull(column)
-    return(pk)
-  }
-
-  pk <- get_primary_key(table_key[[2]])
-
-  # TODO need to branch geometry tables?
-  # is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-  #   select(table, geometry) %>%
-  #   filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
-  #   pull(geometry) %>% is.na
-
-  # using dplyr/DBI to upload has the usual issues of deletion/restroation,
-  # i.e. that user roles are not persistent.
-  # Hence, the usual trick of "empty/append".
-
-  # Note that I neglect dependent table here, since they will be re-uploaded after
-  ## delete from table
-  execute_sql(
-    db_target,
-    glue::glue("DELETE FROM {table_lable};"),
-    verbose = verbose
-  )
-
-  ## reset the sequence
-  sequence_key <- glue::glue('"{table_key[[1]]}".seq_{pk}')
-  nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
-
-  current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
-
-  execute_sql(
-    db_target,
-    glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
-    verbose = verbose
-  )
-
-  ## append the table data
-  append_tabledata(db_target, table_id, table_data)
-
-  ## restore sequence
-  nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
-  nextval <- max(c(nextval, current_highest, table_data %>% pull(pk)))
-
-  execute_sql(
-    db_target,
-    glue::glue("SELECT setval('{sequence_key}', {nextval});"),
-    verbose = verbose
-  )
-
-  return(invisible(NULL))
-
-} # /restore_table_data_from_memory
-
-
-
-parametrize_cascaded_update <- function(
-    config_filepath,
-    working_dbname,
-    connection_profile,
-    dbstructure_folder,
-    db_connection
-  ) {
+parametrize_cascaded_update <- function(mnmdb) {
 
   ucl_function <- function(
-      schema,
-      table_key,
+      table_label,
       new_data,
       index_columns,
       tabula_rasa = FALSE,
@@ -976,7 +927,7 @@ parametrize_cascaded_update <- function(
       verbose = TRUE
     ) {
 
-    db_table <- DBI::Id(schema = schema, table = table_key)
+    schema <- mnmdb$get_schema(table_label)
 
     if (verbose) {
       message("________________________________________________________________")
@@ -987,7 +938,7 @@ parametrize_cascaded_update <- function(
     # but which are not the primary key.
     if (is.null(characteristic_columns)) {
       # in case no char. cols provided, just take all columns.
-      characteristic_columns <- names(new_data)
+      characteristic_columns <- mnmdb$get_characteristic_columns
     }
 
     ## (0) check that characteristic columns are UNIQUE:
@@ -1002,10 +953,7 @@ parametrize_cascaded_update <- function(
     to_upload <- new_data
 
     # existing content
-    prior_content <- dplyr::tbl(
-      db_connection,
-      db_table
-    ) %>% collect()
+    prior_content <- mnmdb$query_tbl(table_label)
     # head(prior_content)
     # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
@@ -1081,37 +1029,15 @@ parametrize_cascaded_update <- function(
 
 
     ### double safety: load/catch/restore
-    # savetabs <- find_dependent_tables("mnmgwdb_db_structure", "Visits")
-    savetabs <- find_dependent_tables(dbstructure_folder, table_key)
-
-    load_table_content_this_connection <- function(table_id) {
-      return(load_table_content(db_connection, dbstructure_folder, table_id))
-    }
-
-    table_content_storage <- lapply(savetabs, FUN = load_table_content_this_connection)
-
-
-    restore_table_content_this_connection <- function(content_list) {
-      restore_table_data_from_memory(
-        db_connection,
-        content_list,
-        dbstructure_folder = dbstructure_folder,
-        verbose = TRUE
-      )
-    }
-
+    table_content_storage <- mnmdb$store_table_deptree_in_memory(table_label)
 
     tryCatch({
       ### update datatable, propagating/cascading new keys to other's fk
 
       update_datatable_and_dependent_keys(
-        config_filepath = config_filepath,
-        working_dbname = working_dbname,
+        mnmdb,
         table_key = table_key,
         new_data = to_upload,
-        profile = connection_profile,
-        dbstructure_folder = dbstructure_folder,
-        db_connection = db_connection,
         characteristic_columns = characteristic_columns,
         skip_sequence_reset = skip_sequence_reset,
         verbose = verbose
@@ -1122,25 +1048,22 @@ parametrize_cascaded_update <- function(
       message(glue::glue("--> uploading {nrow(to_upload)} rows to {table_key} "))
       message(wrnmsg)
       message("\nrestoring data.\n")
-      invisible(lapply(
-        table_content_storage,
-        FUN = restore_table_content_this_connection
-      ))
+      invisible(
+        mnmdb$restore_table_data_from_memory(table_content_storage)
+      )
       return(NA)
     })
 
 
-    lookup <- dplyr::tbl(
-        db_connection,
-        db_table
-      ) %>%
-      select(!!!c(characteristic_columns, index_columns)) %>%
-      collect
+    lookup <- mnmdb$query_columns(
+      table_key,
+      c(characteristic_columns, index_columns)
+      )
 
     if (verbose){
       message(sprintf(
         "%s: %i rows uploaded, were %i existing judging by '%s'.",
-        toString(db_table),
+        mnmdb$get_namestring,
         nrow(to_upload),
         nrow(prior_content),
         paste0(characteristic_columns, collapse = ", ")
@@ -1150,9 +1073,213 @@ parametrize_cascaded_update <- function(
     return(lookup)
 
   } # /update_cascade_lookup
+
   return(ucl_function)
 } # /parametrize_cascaded_update
 
+
+#_______________________________________________________________________________
+# DATABASE STRUCTURE
+
+# the first entry is the table itself
+# find_dependent_tables("mnmgwdb_db_structure", "Visits")
+obsolete_find_dependent_tables <- function(dbstructure_folder = "db_structure", table_key) {
+  # dbstructure_folder <- "./mnmgwdb_db_structure"
+  # table_key <- "Visits"
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+  stopifnot("glue" = require("glue"))
+
+  schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+    select(table, schema, geometry, excluded)
+
+  ### (2) load current data
+  excluded_tables <- schemas %>%
+    filter(!is.na(excluded)) %>%
+    filter(excluded == 1) %>%
+    pull(table)
+
+  table_relations <- read_table_relations_config(
+    storage_filepath = here::here(dbstructure_folder, "table_relations.conf")
+    ) %>%
+    filter(relation_table == tolower(table_key),
+      !(dependent_table %in% excluded_tables)
+    )
+
+  dependent_tables <- c(
+    table_key,
+    table_relations %>% pull(dependent_table)
+    )
+
+  create_dbi_identifier <- function(tabkey) {
+    schema <- schemas %>% filter(tolower(table) == tolower(tabkey)) %>% pull(schema)
+    tkey_right <- schemas %>% filter(tolower(table) == tolower(tabkey)) %>% pull(table)
+    return(DBI::Id(schema, tkey_right))
+  }
+
+  table_ids <- lapply(dependent_tables, FUN = create_dbi_identifier)
+
+  return(table_ids)
+
+} # /find_dependent_tables
+
+
+# store the content of a table in memory
+obsolete_load_table_content <- function(
+    db_connection,
+    dbstructure_folder,
+    table_id
+    ) {
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+
+  is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+    select(table, geometry) %>%
+    filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
+    pull(geometry) %>% is.na
+
+  if (is_spatial) {
+    data <- sf::st_read(db_connection, table_id) %>% collect
+  } else {
+    data <- dplyr::tbl(db_connection, table_id) %>% collect
+  }
+
+  return(list("id" = table_id, "data" = data))
+
+} # /load_table_content
+
+
+# push table from memory back to the server
+obsolete_restore_table_data_from_memory <- function(
+    db_target,
+    content_list,
+    dbstructure_folder = "db_structure",
+    verbose = TRUE
+  ) {
+  # content_list <- table_content_storage[[3]]
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+  stopifnot("glue" = require("glue"))
+
+  table_id <- content_list$id
+  table_key <- attr(table_id, "name")
+  table_lable <- glue::glue('"{table_key[[1]]}"."{table_key[[2]]}"')
+  table_data <- content_list$data
+
+
+  if (is.scalar.na(table_data) || (nrow(table_data) < 1)) {
+    message("no data to restore.")
+    return(invisible(NA))
+  }
+
+  # restore data
+  pk <- mnmdb$get_primary_key(table_key[[2]])
+
+  # TODO need to branch geometry tables?
+  # is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+  #   select(table, geometry) %>%
+  #   filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
+  #   pull(geometry) %>% is.na
+
+  # using dplyr/DBI to upload has the usual issues of deletion/restroation,
+  # i.e. that user roles are not persistent.
+  # Hence, the usual trick of "empty/append".
+
+  # Note that I neglect dependent table here, since they will be re-uploaded after
+  ## delete from table
+  execute_sql(
+    db_target,
+    glue::glue("DELETE FROM {table_lable};"),
+    verbose = verbose
+  )
+
+  ## reset the sequence
+  sequence_key <- glue::glue('"{table_key[[1]]}".seq_{pk}')
+  nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
+
+  current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+
+  execute_sql(
+    db_target,
+    glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
+    verbose = verbose
+  )
+
+  ## append the table data
+  append_tabledata(db_target, table_id, table_data)
+
+  ## restore sequence
+  nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+  nextval <- max(c(nextval, current_highest, table_data %>% pull(pk)))
+
+  execute_sql(
+    db_target,
+    glue::glue("SELECT setval('{sequence_key}', {nextval});"),
+    verbose = verbose
+  )
+
+  return(invisible(NULL))
+
+} # /restore_table_data_from_memory
+
+
+
+
+#' Read a table relation config file and convert it to data frame.
+#'
+#' @param storage_filepath the path to the config file
+#'
+#' @return data frame with the column relations from a dependent to a relation
+#'     table. Note that relation table names are lowercase due to some
+#'     ConfigParser limitation.
+#'
+#' @examples
+#' \dontrun{
+#'    read_table_relations_config(storage_filepath = file.path("./devdb_structure/table_relations.conf"))
+#' }
+#'
+read_table_relations_config <- function(storage_filepath) {
+
+  stopifnot("configr" = require("configr"))
+
+  # read the raw file
+  table_relations <- configr::read.config(file = storage_filepath)
+
+  # Initialize empty. What a humble procedure.
+  relation_lookup <- data.frame(
+    relation_table = character(),
+    dependent_table = character(),
+    dependent_column = character(),
+    relation_column = character()
+  )
+
+  # oh, how I miss my dictionaries!
+  for (deptab in attributes(table_relations)[[1]]) {
+    for (reltab in attributes(table_relations[[deptab]])$names){
+      if(is.null(table_relations[[deptab]][reltab])) next
+      new_row <- c(
+        reltab,
+        deptab,
+        eval(parse(text = sprintf("c%s", table_relations[[deptab]][[reltab]])))
+      )
+      relation_lookup <- dplyr::bind_rows(
+        relation_lookup,
+        setNames(new_row, names(relation_lookup))
+      )
+    }
+  }
+
+  # knitr::kable(relation_lookup)
+  return(relation_lookup)
+
+}
+
+
+#_______________________________________________________________________________
+# CONNECTION HANDLING
 
 #' Connect to a postgreSQL database, using settings from a config file
 #'
@@ -1307,6 +1434,327 @@ connect_database_configfile <- function(
 } # /connect_database_configfile
 
 
+#' Connect to an MNM database by config and mirror.
+#'
+#' Connect to an MNM postgreSQL database.
+#' Just requires a config file and a mirror.
+#' The returned object is feature-rich, bringing all required
+#' lookup-tables and functions.
+#'
+#' @param config_filepath the path to the config file
+#' @param database_mirror database and mirror (equal to "config profile")
+#' @param ... further connection parameters, forwarded to connect_database_configfile
+#'
+connect_mnm_database <- function(
+    config_filepath,
+    database_mirror = NA,
+    skip_structure_assembly = FALSE ,
+    ...
+  ) {
+  # database_mirror <- "mnmgwdb-staging"
+
+  stopifnot(
+    "glue" = require("glue"),
+    "DBI" = require("DBI"),
+    "keyring" = require("keyring"),
+    "configr" = require("configr")
+  )
+  stopifnot("provide database mirror" = isFALSE(is.na(mirror)))
+
+  # collect db connection
+  db <- list()
+  db$connection_profile <- database_mirror
+
+  # load profile
+  config <- configr::read.config(file = config_filepath)[[db$connection_profile]]
+
+  for (cfg in attributes(config)$names) {
+    if (cfg == "password") next
+    db[[cfg]] <- config[[cfg]]
+  }
+
+  # connect
+  db$connection <- connect_database_configfile(
+    config_filepath,
+    profile = database_mirror,
+    database = config$database
+  )
+  if ("database" %in% attributes(config)$names) {
+    db$connection <- connect_database_configfile(
+      config_filepath,
+      profile = database_mirror,
+      database = config$database,
+      ...
+    )
+  } else {
+    db$connection <- connect_database_configfile(
+      config_filepath,
+      profile = database_mirror,
+      ...
+    )
+  }
+
+  # extend
+  if (isFALSE(skip_structure_assembly)) {
+    db <- mnmdb_assemble_structure_lookups(db)
+    db <- mnmdb_assemble_query_functions(db)
+  }
+
+  return(db)
+} # /connect_mnm_database
+
+
+# take a database object and give it some structure
+mnmdb_assemble_structure_lookups <- function(db) {
+
+  # tables and their relations
+  db$tables <- read.csv(here::here(db$folder, "TABLES.csv")) %>%
+    select(table, schema, geometry, excluded)
+
+  # this one is created by python scripts
+  db$table_relations <- read_table_relations_config(
+    storage_filepath = here::here(db$folder, "table_relations.conf")
+    )
+
+  # some tables are excluded
+  db$excluded_tables <- db$tables %>%
+    filter(!is.na(excluded)) %>%
+    filter(excluded == 1) %>%
+    pull(table)
+
+  # get schema for a table
+  db$get_schema <- function(table_label) {
+    return(
+      schemas %>%
+        filter(table == table_label) %>%
+        pull(schema)
+    )
+  }
+
+  # get namestring as used in direct SQL queries
+  db$get_namestring <- function(table_label) glue::glue('"{db$get_schema(table_label)}"."{table_label}"')
+
+  # get table Id as used DBI/dbplyr queries
+  db$get_tableid <- function(table_label) DBI::Id(schema = db$get_schema(table_label), table = table_label)
+
+  ### table dependency structure
+  db$get_dependent_tables <- function (table_key) {
+    return(c(
+      table_key,
+      db$table_relations %>%
+      filter(relation_table == tolower(table_key),
+        !(dependent_table %in% db$excluded_tables)
+      ) %>% pull(dependent_table)
+    ))
+  }
+
+  # same as above, but from lowercase table key
+  db$get_dbi_identifier_lowercase <- function(tabkey) {
+    schema <- db$tables %>%
+      filter(tolower(table) == tolower(tabkey)) %>%
+      pull(schema)
+    tkey_right <- schemas %>%
+      filter(tolower(table) == tolower(tabkey)) %>%
+      pull(table)
+    return(DBI::Id(schema, tkey_right))
+  }
+
+  # return table IDs for all dependent tables
+  db$get_dependent_table_ids <- function(table_key){
+    return(lapply(
+      db$get_dependent_tables(table_key),
+      FUN = db$get_dbi_identifier_lowercase
+    ))
+  }
+
+  # specific table info
+  db$load_table_info <- function(table_label){
+    table_info <- read.csv(
+      here::here(db$folder, glue::glue("{table_label}.csv"))
+    )
+    return(table_info)
+  }
+
+
+  db$get_characteristic_columns <- function(table_label){
+
+    # excluded from checks
+    logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
+
+    full_table_info <- db$load_table_info(table_label)
+
+    pk <- full_table_info %>%
+      filter(primary_key == "True") %>%
+      pull(column)
+
+    characteristic_columns <- full_table_info %>%
+      filter(
+        !(column %in% logging_columns),
+        !(column %in% pk),
+      ) %>%
+      pull(column)
+
+    return(characteristic_columns)
+  }
+
+
+  # or need a primary key?
+  db$get_primary_key <- function(table_label) {
+    return(
+      db$load_table_info(table_label) %>%
+        filter(primary_key == "True") %>%
+        pull(column)
+    )
+  }
+
+  # the result: a database object with more features
+  return(db)
+} # /mnmdb_assemble_structure_lookups
+
+
+mnmdb_assemble_query_functions <- function(db) {
+
+  db$query_columns <- function(table_label, select_columns){
+    dplyr::tbl(db$connection, db$get_tableid(table_label)) %>%
+      dplyr::select(!!!rlang::syms(select_columns)) %>%
+      dplyr::collect()
+  }
+
+  db$is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+    select(table, geometry) %>%
+    filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
+    pull(geometry) %>% is.na
+
+  db$query_tbl <- function(table_label) {
+    if (db$is_spatial(table_label)) {
+      data <- sf::st_read(db_connection, table_id) %>% collect
+    } else {
+      data <- dplyr::tbl(db_connection, table_id) %>% collect
+    }
+    return(data)
+  }
+
+  # query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
+  db$query_tables_data <- function(tables) {
+    data <- lapply(
+      tables,
+      FUN =
+    )
+    return(data)
+  }
+
+  # all dependent lookup columns
+  db$lookup_dependent_columns <- function(table_label, deptab_label) {
+
+    # with a little help from my Python
+    deptab_pk <- db$get_primary_key(deptab_label)
+
+    # get the foreign key columns
+    dependent_key <- db$table_relations %>%
+      filter(
+        relation_table == tolower(table_label),
+        dependent_table == deptab_label
+      ) %>%
+      pull(dependent_column)
+
+    # lookup the key columns
+    key_lookup <- db$query_columns(
+      deptab_label,
+      c(deptab_pk, dependent_key)
+    )
+
+    return(key_lookup)
+  }
+
+
+  # temporarily store table and dependencies in memory
+  db$store_table_deptree_in_memory <- function(table_label) {
+    # savetabs <- find_dependent_tables("mnmgwdb_db_structure", "Visits")
+    savetabs <- mnmdb$get_dependent_tables(table_label)
+
+    return(
+      lapply(
+        savetabs,
+        FUN = function(tablab) list(
+          "label" = tablab,
+          "data" = db$query_tbs(tablab)
+        )
+      )
+    )
+  }
+
+  # direct execution
+  db$execute_sql <- function(...) {return(execute_sql(db$connection, ...)}
+
+  # push table from memory back to the server
+  #   involves key resetting
+  db$restore_table_data_from_memory <- function(table_content_storage, verbose = TRUE) {
+    restore_ <- function(tabledata_list) {
+
+      table_label <- tabledata_list$label
+      schema <- db$get_schema(table_label)
+      table_id <- db$get_tableid(table_label)
+      table_data <- tabledata_list$data
+
+      if (is.scalar.na(table_data) || (nrow(table_data) < 1)) {
+        message("no data to restore.")
+        return(invisible(NA))
+      }
+
+      # restore data
+      pk <- db$get_primary_key(table_label)
+
+      # Note that I neglect dependent table here, since they will be re-uploaded after
+      ## delete from table
+      db$execute_sql(
+        glue::glue("DELETE FROM {table_label};"),
+        verbose = verbose
+      )
+
+      ## reset the sequence
+      sequence_key <- glue::glue('"{schema}".seq_{pk}')
+      nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
+
+      current_highest <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
+
+      db$execute_sql(
+        glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
+        verbose = verbose
+      )
+
+      ## append the table data
+      append_tabledata(db$connection, table_id, table_data)
+
+      ## restore sequence
+      nextval <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
+      nextval <- max(c(nextval, current_highest, table_data %>% pull(pk)))
+
+      db$execute_sql(
+        glue::glue("SELECT setval('{sequence_key}', {nextval});"),
+        verbose = verbose
+      )
+
+      return(invisible(NULL))
+    }
+
+    # list-restore
+    invisible(
+      lapply(table_content_storage, FUN = restore_)
+    )
+  }
+
+
+
+  return(db)
+
+} # /mnmdb_assemble_query_functions
+
+
+#_______________________________________________________________________________
+# HANDLE BACKUPS
+
+### TODO CONTINUE move this to db$ // mnmdb$
+
 #' dump the database with a system call to `pg_dump` (linux)
 #'
 #' @details To apply this from scripts, password is not used. Make sure
@@ -1398,51 +1846,3 @@ dump_all <- function(
 } # /dump_all
 
 
-#' Read a table relation config file and convert it to data frame.
-#'
-#' @param storage_filepath the path to the config file
-#'
-#' @return data frame with the column relations from a dependent to a relation
-#'     table. Note that relation table names are lowercase due to some
-#'     ConfigParser limitation.
-#'
-#' @examples
-#' \dontrun{
-#'    read_table_relations_config(storage_filepath = file.path("./devdb_structure/table_relations.conf"))
-#' }
-#'
-read_table_relations_config <- function(storage_filepath) {
-
-  stopifnot("configr" = require("configr"))
-
-  # read the raw file
-  table_relations <- configr::read.config(file = storage_filepath)
-
-  # Initialize empty. What a humble procedure.
-  relation_lookup <- data.frame(
-    relation_table = character(),
-    dependent_table = character(),
-    dependent_column = character(),
-    relation_column = character()
-  )
-
-  # oh, how I miss my dictionaries!
-  for (deptab in attributes(table_relations)[[1]]) {
-    for (reltab in attributes(table_relations[[deptab]])$names){
-      if(is.null(table_relations[[deptab]][reltab])) next
-      new_row <- c(
-        reltab,
-        deptab,
-        eval(parse(text = sprintf("c%s", table_relations[[deptab]][[reltab]])))
-      )
-      relation_lookup <- dplyr::bind_rows(
-        relation_lookup,
-        setNames(new_row, names(relation_lookup))
-      )
-    }
-  }
-
-  # knitr::kable(relation_lookup)
-  return(relation_lookup)
-
-}
