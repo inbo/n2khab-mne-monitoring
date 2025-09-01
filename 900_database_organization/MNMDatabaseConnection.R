@@ -18,7 +18,8 @@
 #
 # The `db$` (list) object brings functions and general structural information.
 # These functions are limited: they cannot change the `db$` object,
-# nor store data in it.
+# nor store data in R (though note that some functions do, of course, change
+# database content.
 #
 # +---------------------------------------------------------------------+
 # | `db$` / `mnmdb$` bring database structure and references with them. |
@@ -107,6 +108,8 @@ execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
 #'
 #' @param mnmdb an MNM database including DBI connection, structure, and
 #'        working functions. See `MNMDatabaseConnection.R` for details.
+#' @param target_filepath triv.
+#' @param exclude_schema schemata to exclude, e.g. c("tiger", "public")
 #'
 #' @examples
 #' \dontrun{

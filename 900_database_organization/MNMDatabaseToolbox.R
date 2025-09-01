@@ -227,7 +227,6 @@ restore_location_id_by_grts <- function(
 #'   )
 #' }
 #'
-# ### TODO!!! continue conversion
 update_datatable_and_dependent_keys <- function(
     mnmdb,
     table_label,
@@ -580,8 +579,32 @@ update_datatable_and_dependent_keys <- function(
 
 
 
+#' parametrize cascaded update for a given database
+#'
+#' The update_datatable... function above relies on the database which is given.
+#' Yet it also has aspects which only change at runtime (hence not part of the
+#' `MNMDatabaseConnection.R`).
+#' This function parametrizes the cascaded upload with a given connection.
+#'
+#'
 parametrize_cascaded_update <- function(mnmdb) {
 
+  #' Take this, @roxygen! A function within a function to be returned
+  #' for functional application.
+  #' Here: the parametrized "update/cascade/lookup" function.
+  #' How dare you do not handle this, @roxygen?
+  #' Don't we agree that functions are first class citizens in R?!
+  #'
+  #' @param table_label the table lable
+  #' @param new_data new data for upload
+  #' @param index_columns colums which are returned in the lookup
+  #' @param tabula_rasa empty the table prior to upload (fresh restart)
+  #' @param characteristic_columns a subset of columns of the data table
+  #'        by which old and new data can be uniquely identified and joined;
+  #'        refers to the new data
+  #' @param skip_sequence_reset do (or do not) reset the sequence columns
+  #' @param verbose provides extra prose on the way, in case you need it
+  #'
   ucl_function <- function(
       table_label,
       new_data,
@@ -593,17 +616,18 @@ parametrize_cascaded_update <- function(mnmdb) {
     ) {
 
     schema <- mnmdb$get_schema(table_label)
+    # this is a rather abstract construct; hope R will work it.
 
     if (verbose) {
       message("________________________________________________________________")
-      message(glue::glue("Cascaded update of {schema}.{table_key}"))
+      message(glue::glue("Cascaded update of {schema}.{table_label}"))
     }
 
     # characteristic columns := columns which uniquely define a data row,
     # but which are not the primary key.
     if (is.null(characteristic_columns)) {
       # in case no char. cols provided, just take all columns.
-      characteristic_columns <- mnmdb$get_characteristic_columns
+      characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
     }
 
     ## (0) check that characteristic columns are UNIQUE:
@@ -615,7 +639,7 @@ parametrize_cascaded_update <- function(mnmdb) {
       nrow(new_data) == nrow(new_characteristics))
 
 
-    to_upload <- new_data
+    new_data_raw <- new_data
 
     # existing content
     prior_content <- mnmdb$query_table(table_label)
@@ -631,7 +655,7 @@ parametrize_cascaded_update <- function(mnmdb) {
       subset_columns <- names(prior_content)
       subset_columns <- subset_columns[
         (!(subset_columns %in% index_columns))
-        | (subset_columns %in% names(to_upload))
+        | (subset_columns %in% names(new_data))
       ]
 
       existing_unchanged <- prior_content %>%
@@ -652,17 +676,6 @@ parametrize_cascaded_update <- function(mnmdb) {
         )
       # existing_removed %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
-      # # refcol <- enquo(characteristic_columns)
-      # existing_unchanged <- existing_characteristics %>%
-      #   anti_join(
-      #     new_characteristics,
-      #     by = join_by(!!!characteristic_columns)
-      #   ) %>%
-      #   left_join(
-      #     prior_content,
-      #     by = join_by(!!!characteristic_columns)
-      #   )
-
       if (verbose) {
         message(glue::glue("  {nrow(existing_unchanged)} rows will be retained."))
         if (nrow(existing_removed) > 0) {
@@ -677,20 +690,20 @@ parametrize_cascaded_update <- function(mnmdb) {
       }
 
       # combine existing and new data
-      to_upload <- bind_rows(
+      new_data <- bind_rows(
           existing_unchanged,
-          to_upload
+          new_data
         ) %>%
-        distinct() # HERE is the bug.
-      # to_upload %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+        distinct()
+      # new_data %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
     } else {
-        message(glue::glue("  Tabula rasa: no rows will be retained."))
+      message(glue::glue("  Tabula rasa: no rows will be retained."))
     }
 
     ## do not upload index columns
-    retain_cols <- names(to_upload)
+    retain_cols <- names(new_data)
     retain_cols <- retain_cols[!(retain_cols %in% index_columns)]
-    to_upload <- to_upload %>% select(!!!retain_cols)
+    new_data <- new_data %>% select(!!!retain_cols)
 
 
     ### double safety: load/catch/restore
@@ -701,16 +714,18 @@ parametrize_cascaded_update <- function(mnmdb) {
 
       update_datatable_and_dependent_keys(
         mnmdb,
-        table_key = table_key,
-        new_data = to_upload,
+        table_label = table_label,
+        new_data = new_data,
         characteristic_columns = characteristic_columns,
         skip_sequence_reset = skip_sequence_reset,
         verbose = verbose
       )
       # TODO rename_characteristics = rename_characteristics,
     }, error = function(wrnmsg) {
+      message("\n")
+      message("##########################")
       message("##### update failed! #####")
-      message(glue::glue("--> uploading {nrow(to_upload)} rows to {table_key} "))
+      message(glue::glue("--> FAILED uploading {nrow(new_data)} rows to {table_label} :"))
       message(wrnmsg)
       message("\nrestoring data.\n")
       invisible(
@@ -729,7 +744,7 @@ parametrize_cascaded_update <- function(mnmdb) {
       message(sprintf(
         "%s: %i rows uploaded, were %i existing judging by '%s'.",
         mnmdb$get_namestring,
-        nrow(to_upload),
+        nrow(new_data),
         nrow(prior_content),
         paste0(characteristic_columns, collapse = ", ")
       ))
