@@ -1,11 +1,100 @@
+#!/usr/bin/env Rscript
 
 # poor man's OOP: the database connection list object
 # supposed to be loaded prior to "DatabaseToolbox"
 
 #_______________________________________________________________________________
 ### TABLE OF CONTENTS
+#
+# Conventions:
+# - `table_namestring` is the SQL table reference including quotes,
+#     e.g. `"metadata"."TeamMembers"`
+# - `table_label` is just the case sensitive table name, e.g. `TeamMembers`
+# - `table_key` is tha same as label, but can be all lowercase, e.g. `teammembers`
+# - `table_id` is the DBI table identifier,
+#     e.g. DBI::Id(schema = "metadata", table = "TeamMembers")
+# - `db$` is the abstract variable name / `mnmdb$` is the same in applications
+#    (analogous to class / object dualism)
+#
+# The `db$` (list) object brings functions and general structural information.
+# These functions are limited: they cannot change the `db$` object,
+# nor store data in it.
+#
+# +---------------------------------------------------------------------+
+# | `db$` / `mnmdb$` bring database structure and references with them. |
+# +---------------------------------------------------------------------+
+#   no less, no more.
 
+# SQL Basics
+# > execute_sql(mnmdb, sql_command, verbose = TRUE) -> invisible(result)
+#
+# Database Structure
+# > read_table_relations_config(storage_filepath) -> relation_lookup
+#
+# Connection Handling
+# > connect_database_configfile(
+#     config_filepath, database, profile, host, port, user, password
+#   ) -> database_connection
+#
+# Database Workhorse
+# > connect_mnm_database(
+#     config_filepath,
+#     database_mirror = NA,
+#     skip_structure_assembly = FALSE,
+#     [... -> connection_database_configfile]
+#   ) -> mnmdb
+#   - db$connection_profile
+#   - db$folder
+#   - db$host
+#   - db$port
+#   - db$database
+#   - db$user
+#   - db$connection
+# > mnmdb_assemble_structure_lookups(db) -> db
+#   - db$tables
+#   - db$table_relations
+#   - db$excluded_tables
+#   - db$get_schema(table_label) -> character
+#   - db$get_namestring(table_label) -> character
+#   - db$get_table_id(table_label) -> DBI::Id
+#   - db$get_dependent_tables(table_key) -> c(key, df)
+#   - db$get_table_id_lowercase(table_key) -> DBI::Id
+#   - db$get_dependent_table_ids(table_key) -> list(DBI::Id)
+#   - db$load_table_info(table_label) -> df(table info)
+#   - db$get_characteristic_columns(table_label) -> c(column names)
+#   - db$get_primary_key(table_label) -> character(pk)
+# > mnmdb_assemble_query_functions(db) -> db
+#   - db$execute_sql(...) -> rs
+#   - db$query_columns(table_label, select_columns) -> df(columns)
+#   - db$is_spatial(table_key) -> bool
+#   - db$query_tbl(table_label) -> df
+#   - db$query_tables_data(tables) -> list(df)
+#   - db$lookup_dependent_columns(table_label, deptab_label) -> df(pk, fk)
+#   - db$store_table_deptree_in_memory(table_label) -> list("label", "data")
+#   - db$restore_table_data_from_memory(table_content_storage, verbose)
 
+#_______________________________________________________________________________
+### SQL BASICS
+
+execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
+  # a rather trivial wrapper for dbExecute
+  # which doesn't even work for multi-commands :/
+
+  if (verbose) {
+    message(sql_command)
+  }
+
+  stopifnot("DBI" = require("DBI"))
+
+  rs <- DBI::dbExecute(mnmdb$connection, sql_command)
+
+  if (verbose) {
+    message("done.")
+  }
+
+  return(invisible(rs))
+
+}
 
 
 #_______________________________________________________________________________
@@ -66,7 +155,7 @@ read_table_relations_config <- function(storage_filepath) {
   # knitr::kable(relation_lookup)
   return(relation_lookup)
 
-}
+} # /read_table_relations_config
 
 
 #_______________________________________________________________________________
@@ -242,7 +331,7 @@ connect_database_configfile <- function(
 connect_mnm_database <- function(
     config_filepath,
     database_mirror = NA,
-    skip_structure_assembly = FALSE ,
+    skip_structure_assembly = FALSE,
     ...
   ) {
   # database_mirror <- "mnmgwdb-staging"
@@ -329,7 +418,19 @@ mnmdb_assemble_structure_lookups <- function(db) {
   db$get_namestring <- function(table_label) glue::glue('"{db$get_schema(table_label)}"."{table_label}"')
 
   # get table Id as used DBI/dbplyr queries
-  db$get_tableid <- function(table_label) DBI::Id(schema = db$get_schema(table_label), table = table_label)
+  db$get_table_id <- function(table_label) DBI::Id(schema = db$get_schema(table_label), table = table_label)
+
+  # same as above, but from lowercase table key
+  db$get_table_id_lowercase <- function(table_key) {
+    schema <- db$tables %>%
+      filter(tolower(table) == tolower(table_key)) %>%
+      pull(schema)
+    tkey_right <- schemas %>%
+      filter(tolower(table) == tolower(table_key)) %>%
+      pull(table)
+    return(DBI::Id(schema, tkey_right))
+  }
+
 
   ### table dependency structure
   db$get_dependent_tables <- function (table_key) {
@@ -342,27 +443,16 @@ mnmdb_assemble_structure_lookups <- function(db) {
     ))
   }
 
-  # same as above, but from lowercase table key
-  db$get_dbi_identifier_lowercase <- function(tabkey) {
-    schema <- db$tables %>%
-      filter(tolower(table) == tolower(tabkey)) %>%
-      pull(schema)
-    tkey_right <- schemas %>%
-      filter(tolower(table) == tolower(tabkey)) %>%
-      pull(table)
-    return(DBI::Id(schema, tkey_right))
-  }
-
   # return table IDs for all dependent tables
-  db$get_dependent_table_ids <- function(table_key){
+  db$get_dependent_table_ids <- function(table_key) {
     return(lapply(
       db$get_dependent_tables(table_key),
-      FUN = db$get_dbi_identifier_lowercase
+      FUN = db$get_table_id_lowercase
     ))
   }
 
   # specific table info
-  db$load_table_info <- function(table_label){
+  db$load_table_info <- function(table_label) {
     table_info <- read.csv(
       here::here(db$folder, glue::glue("{table_label}.csv"))
     )
@@ -370,7 +460,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
   }
 
 
-  db$get_characteristic_columns <- function(table_label){
+  db$get_characteristic_columns <- function(table_label) {
 
     # excluded from checks
     logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
@@ -408,16 +498,24 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
 mnmdb_assemble_query_functions <- function(db) {
 
-  db$query_columns <- function(table_label, select_columns){
-    dplyr::tbl(db$connection, db$get_tableid(table_label)) %>%
+  # direct execution
+  db$execute_sql <- function(...) {return(execute_sql(db$connection, ...)}
+
+  db$query_columns <- function(table_label, select_columns) {
+    dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
       dplyr::select(!!!rlang::syms(select_columns)) %>%
       dplyr::collect()
   }
 
-  db$is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-    select(table, geometry) %>%
-    filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
-    pull(geometry) %>% is.na
+  db$is_spatial <- function(table_key) {
+    check <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+      select(table, geometry) %>%
+      filter(tolower(table) == tolower(table_key)) %>%
+      pull(geometry) %>% is.na
+    # attr(table_id, "name")[[2]] # would be the variant for a DBI::Id
+
+    return(check)
+  }
 
   db$query_tbl <- function(table_label) {
     if (db$is_spatial(table_label)) {
@@ -428,13 +526,13 @@ mnmdb_assemble_query_functions <- function(db) {
     return(data)
   }
 
-  # query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
+  # query_columns(db_connection, get_table_id(table_key), c("protocol_id", "description"))
   db$query_tables_data <- function(tables) {
-    data <- lapply(
+    contentlist <- lapply(
       tables,
-      FUN =
+      FUN = query_tbl
     )
-    return(data)
+    return(contentlist)
   }
 
   # all dependent lookup columns
@@ -477,9 +575,6 @@ mnmdb_assemble_query_functions <- function(db) {
     )
   }
 
-  # direct execution
-  db$execute_sql <- function(...) {return(execute_sql(db$connection, ...)}
-
   # push table from memory back to the server
   #   involves key resetting
   db$restore_table_data_from_memory <- function(table_content_storage, verbose = TRUE) {
@@ -487,7 +582,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
       table_label <- tabledata_list$label
       schema <- db$get_schema(table_label)
-      table_id <- db$get_tableid(table_label)
+      table_id <- db$get_table_id(table_label)
       table_data <- tabledata_list$data
 
       if (is.scalar.na(table_data) || (nrow(table_data) < 1)) {
@@ -535,6 +630,8 @@ mnmdb_assemble_query_functions <- function(db) {
     invisible(
       lapply(table_content_storage, FUN = restore_)
     )
+
+    return(invisible(NULL))
   }
 
 
@@ -544,97 +641,3 @@ mnmdb_assemble_query_functions <- function(db) {
 } # /mnmdb_assemble_query_functions
 
 
-#_______________________________________________________________________________
-# HANDLE BACKUPS
-
-### TODO CONTINUE move this to db$ // mnmdb$
-
-#' dump the database with a system call to `pg_dump` (linux)
-#'
-#' @details To apply this from scripts, password is not used. Make sure
-#' to configure your `~/.pgpass` file.
-#'
-#' @param target_filepath the path to store the dump
-#' @param config_filepath the path to the config file
-#' @param database the database to backup
-#' @param profile config section header (configs
-#'        with multiple connection settings; best define a `dumpall`)
-#' @param host the database server (usually an IP address)
-#' @param port the port on which the host serves postgreSQL, default 5439
-#' @param user the database username
-#'
-#' @examples
-#' \dontrun{
-#'   now <- format(Sys.time(), "%Y%m%d%H%M")
-#'   dump_all(
-#'     here::here(glue::glue("dumps/safedump_{now}.sql")),
-#'     config_filepath = config_filepath,
-#'     database = working_dbname,
-#'     profile = "dumpall",
-#'     user = "readonly_user",
-#'     exclude_schema = c("tiger", "public")
-#'   )
-#' }
-#'
-dump_all <- function(
-    target_filepath,
-    config_filepath,
-    database,
-    profile = NULL,
-    user = NULL,
-    host = NULL,
-    port = NULL,
-    exclude_schema = NULL
-    ) {
-
-  stopifnot(
-    "configr" = require("configr"),
-    "glue" = require("glue"),
-    "here" = require("here")
-  )
-
-  # profile (section within the config file)
-  if (is.null(profile)) {
-    profile <- 1 # use the first profile by default
-  }
-
-  # read connection info from a config file,
-  # unless user provided different credentials
-  config <- configr::read.config(file = config_filepath)[[profile]]
-
-  if (is.null(host)) {
-    stopifnot("host" %in% attributes(config)$names)
-    host <- config$host
-  }
-
-  if (is.null(port)) {
-    if ("port" %in% attributes(config)$names) {
-      port <- config$port
-    } else {
-      port <- 5439
-    }
-  }
-
-  if (is.null(user)) {
-    stopifnot("user" %in% attributes(config)$names)
-    user <- config$user
-  }
-
-  # exclude some schemas
-  if (!is.null(exclude_schema)) {
-
-    exschem_string <- c()
-    for (exschem in exclude_schema){
-      exschem_string <- c(exschem_string, glue::glue("-N {exschem}"))
-    }
-    exschem_string <- paste(exschem_string, collapse = " ")
-  }
-
-  # dump the database!
-  dump_string <- glue::glue('
-    pg_dump -U {user} -h {host} -p {port} -d {database} {exschem_string} --no-password > "{target_filepath}"
-    ')
-
-  system(dump_string)
-
-} # /dump_all

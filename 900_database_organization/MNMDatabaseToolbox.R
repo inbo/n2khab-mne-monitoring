@@ -1,115 +1,21 @@
+#!/usr/bin/env Rscript
+
+# Various database-related helper functions.
+# Usually depend on
+# - libraries (`MNMLibraryCollection.R`), specifically
+#     `poc_common_libraries`,
+#     `database_interaction_libraries`,
+#     `load_poc_code_snippets`
+# - the POC
+#   (`050_snippet_selection.R`, `051_snippet_transformation_code.R`, to be moved)
+# - a database connection (`MNMDatabaseConnection.R`)
+#
+
 #_______________________________________________________________________________
 # common commands (quick helpers for Falk)
 
 # .libPaths("/data/R/library")
 # SET search_path TO public,"metadata","outbound","inbound","archive";
-
-#_______________________________________________________________________________
-# POC DATA AND CODE
-
-load_poc_rdata <- function(data_basepath = "./data", reload = FALSE) {
-
-  # Setup for googledrive authentication. Set the appropriate env vars in
-  # .Renviron and make sure you ran drive_auth() interactively with these settings
-  # for the first run (or to renew an expired Oauth token).
-  # See ?gargle::gargle_options for more information.
-  if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
-    options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
-  }
-  if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
-    options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
-  }
-
-  # Download and load R objects from the POC into global environment
-  # reload <- FALSE # in this one, we normally reload.
-  poc_rdata_path <- file.path(data_basepath, "objects_panflpan5.RData")
-  if (reload || !file.exists(poc_rdata_path)){
-
-    # copy the old file
-    if (file.exists(poc_rdata_path)) {
-      this_date <- format(Sys.time(), "%Y%m%d")
-      backup_path <- file.path(data_basepath, glue::glue("objects_panflpan5_{this_date}.bak"))
-      file.copy(from = poc_rdata_path, to = backup_path, overwrite = TRUE)
-    }
-
-    drive_download(
-      as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
-      path = poc_rdata_path,
-      overwrite = reload
-    )
-  }
-  load(poc_rdata_path)
-
-  versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
-  verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
-}
-
-
-load_poc_code_snippets <- function(base_path = NA) {
-
-  if (is.na(base_path)) {
-    base_path <- rprojroot::find_root(is_git_root)
-  }
-
-  source(file.path(base_path, "020_fieldwork_organization/R/grts.R"))
-  source(file.path(base_path, "020_fieldwork_organization/R/misc.R"))
-
-  invisible(capture.output(source("050_snippet_selection.R")))
-  source("051_snippet_transformation_code.R")
-
-  stopifnot(
-    "NOT FOUND: snip snap >> `grts_mh_index`" = exists("grts_mh_index")
-  )
-
-  stopifnot(
-    "NOT FOUND: snip snap >> `scheme_moco_ps_stratum_targetpanel_spsamples`" =
-      exists("scheme_moco_ps_stratum_targetpanel_spsamples")
-  )
-
-  stopifnot(
-    "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples`" =
-      exists("stratum_schemepstargetpanel_spsamples")
-  )
-
-  stopifnot(
-    "NOT FOUND: snip snap >> `units_cell_polygon`" =
-      exists("units_cell_polygon")
-  )
-
-  stopifnot(
-    "NOT FOUND: RData >> `activities`" =
-      exists("activities")
-  )
-
-  stopifnot(
-    "NOT FOUND: RData >> `activity_sequences`" =
-      exists("activity_sequences")
-  )
-
-  stopifnot(
-    "NOT FOUND: RData >> `n2khab_strata`" =
-      exists("n2khab_strata")
-  )
-
-  stopifnot(
-    "snip snap >> `orthophoto grts` not found" =
-      exists("orthophoto_2025_type_grts")
-  )
-
-  # fieldwork calendar
-  stopifnot(
-    "NOT FOUND: snip snap >> `fieldwork_2025_prioritization_by_stratum`" =
-      exists("fieldwork_2025_prioritization_by_stratum")
-  )
-
-  # replacements
-  stopifnot(
-    "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples_terr_replacementcells`" =
-      exists("stratum_schemepstargetpanel_spsamples_terr_replacementcells")
-  )
-
-}
-
 
 #_______________________________________________________________________________
 # MISC
@@ -132,29 +38,6 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 }
 
 
-#_______________________________________________________________________________
-# SQL CONVENIENCE
-
-execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
-  # a rather trivial wrapper for dbExecute
-  # which doesn't even work for multi-commands :/
-
-  if (verbose) {
-    message(sql_command)
-  }
-
-  stopifnot("DBI" = require("DBI"))
-
-  rs <- DBI::dbExecute(mnmdb$connection, sql_command)
-
-  if (verbose) {
-    message("done.")
-  }
-
-  return(invisible(rs))
-
-}
-
 
 # TODO: option to drop; but mind cascading
 
@@ -163,11 +46,12 @@ execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
 # characteristic columns).
 append_tabledata <- function(
     mnmdb,
-    db_table,
+    table_id,
     data_to_append,
     characteristic_columns = NA
   ) {
-  content <- DBI::dbReadTable(mnmdb$connection, db_table)
+
+  content <- DBI::dbReadTable(mnmdb$connection, table_id)
   # head(content)
 
   if (any(is.na(characteristic_columns))) {
@@ -178,12 +62,12 @@ append_tabledata <- function(
   # refcol <- enquo(characteristic_columns)
   existing <- content %>% select(!!!characteristic_columns)
   to_upload <- data_to_append %>%
-    anti_join( existing, join_by(!!!characteristic_columns)
+    anti_join(existing, join_by(!!!characteristic_columns)
   )
 
   rs <- DBI::dbWriteTable(
     mnmdb$connection,
-    db_table,
+    table_id,
     to_upload,
     overwrite = FALSE,
     append = TRUE
@@ -206,17 +90,24 @@ append_tabledata <- function(
 
 upload_and_lookup <- function(
     mnmdb,
-    ...,
+    table_label,
+    ..., # -> append_tabledata
     characteristic_columns,
     index_columns
   ) {
 
+  # label and id
+  table_id <- mnmdb$get_table_id(table_label)
+
+  # append the data
   append_tabledata(
     mnmdb$connection,
+    table_id = table_id,
     ...,
     characteristic_columns
   )
 
+  # collect the lookup (link characteristics to index)
   lookup <- mnmdb$query_columns(
     table_label,
     c(characteristic_columns, index_columns)
@@ -262,8 +153,7 @@ restore_location_id_by_grts <- function(
     target_cols <- c(pk, "grts_address", "log_user", "log_update")
   }
 
-  target_lookup <- mnmdb$query_tbl(table_label) %>%
-    select(!!!target_cols)
+  target_lookup <- mnmdb$query_columns(table_label, target_cols)
 
   key_replacement <- target_lookup %>%
     left_join(
@@ -276,7 +166,7 @@ restore_location_id_by_grts <- function(
   ### UPDATE the location-related table
 
   # repl_rownr <- 10 # testing
-  get_update_row_string <- function(repl_rownr){
+  get_update_row_string <- function(repl_rownr) {
 
     dep_pk_val <- key_replacement[repl_rownr, pk]
     val <- key_replacement[repl_rownr, "location_id"]
@@ -307,7 +197,7 @@ restore_location_id_by_grts <- function(
 
   # concatenate update rows
   update_command <- lapply(
-    1:nrow(key_replacement),
+    seq_len(nrow(key_replacement)),
     FUN = get_update_row_string
   )
 
@@ -397,6 +287,7 @@ restore_location_id_by_grts <- function(
 #'    )
 #' }
 #'
+# ### TODO!!! continue conversion
 update_datatable_and_dependent_keys <- function(
     config_filepath,
     working_dbname,
@@ -432,19 +323,19 @@ update_datatable_and_dependent_keys <- function(
     dbstructure_folder <- "db_structure"
   }
 
-  schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-    select(table, schema, geometry, excluded)
+  # schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+  #   select(table, schema, geometry, excluded)
 
   # These are clumsy, temporary, provisional helpers.
   # But, hey, there will be time later.
-  get_schema <- function(table_label) {
-    return(schemas %>%
-      filter(table == table_label) %>%
-      pull(schema)
-    )
-  }
-  get_namestring <- function(table_label) glue::glue('"{get_schema(table_label)}"."{table_label}"')
-  get_tableid <- function(table_label) DBI::Id(schema = get_schema(table_label), table = table_label)
+  ## get_schema <- function(table_label) {
+  ##   return(schemas %>%
+  ##     filter(table == table_label) %>%
+  ##     pull(schema)
+  ##   )
+  ## }
+  # get_namestring <- function(table_label) glue::glue('"{get_schema(table_label)}"."{table_label}"')
+  # get_tableid <- function(table_label) DBI::Id(schema = get_schema(table_label), table = table_label)
 
 
   ### (1) dump all data, for safety
@@ -477,13 +368,13 @@ update_datatable_and_dependent_keys <- function(
   # table_existing_data_list <- query_tables_data(
   #   db_target,
   #   database = working_dbname,
-  #   tables = lapply(c(table_key, dependent_tables), FUN = get_tableid)
+  #   tables = lapply(c(table_key, dependent_tables), FUN = get_table_id)
   # )
 
 
   ### (3) store key lookup of dependent table
 
-  # query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
+  # query_columns(db_connection, get_table_id(table_key), c("protocol_id", "description"))
   # deptab_key <- "GroupedActivities"
 
   lookups <- lapply(
@@ -505,7 +396,7 @@ update_datatable_and_dependent_keys <- function(
   # TODO write function to restore key lookup table
   # TODO allow rollback (of focal and dependent tables)
 
-  old_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect
+  old_data <- dplyr::tbl(db_target, get_table_id(table_key)) %>% collect
 
 
   ### ERROR
@@ -558,7 +449,7 @@ update_datatable_and_dependent_keys <- function(
   # }
 
   # this data is not lost yet, but will be checked against the `new_data` to upload.
-  # lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
+  # lostrow_data <- dplyr::tbl(db_target, mnmdb$get_table_id(table_key)) %>% collect()
 
   # what about `sf` data?
   # - R function overloading: no matter if sf or not
@@ -575,7 +466,7 @@ update_datatable_and_dependent_keys <- function(
     # the pk is the fk in the dt
     fk_lookup <- dplyr::tbl(
       db_target,
-      get_tableid(deptab)
+      mnmdb$get_table_id(deptab)
     ) %>%
     select(!!!c(dep_pk, pk)) %>%
     collect
@@ -618,7 +509,7 @@ update_datatable_and_dependent_keys <- function(
   #   knitr::kable()
   rs <- DBI::dbWriteTable(
     db_target,
-    get_tableid(table_key),
+    mnmdb$get_table_id(table_key),
     new_data,
     row.names = FALSE,
     overwrite = FALSE,
@@ -633,7 +524,7 @@ update_datatable_and_dependent_keys <- function(
   ## restore sequence
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
     nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
-    max_pk <- dplyr::tbl(db_target, get_tableid(table_key)) %>%
+    max_pk <- dplyr::tbl(db_target, mnmdb$get_table_id(table_key)) %>%
       select(!!pk) %>% collect %>%
       pull(!!pk) %>% max
     nextval <- max(c(nextval, max_pk))
@@ -655,7 +546,7 @@ update_datatable_and_dependent_keys <- function(
 
   new_redownload <- query_columns(
     db_target,
-    get_tableid(table_key),
+    mnmdb$get_table_id(table_key),
     columns = cols_to_query
   )
 
@@ -1020,149 +911,98 @@ parametrize_cascaded_update <- function(mnmdb) {
 } # /parametrize_cascaded_update
 
 
+
 #_______________________________________________________________________________
-# DATABASE STRUCTURE
+# HANDLE BACKUPS
 
-# the first entry is the table itself
-# find_dependent_tables("mnmgwdb_db_structure", "Visits")
-obsolete_find_dependent_tables <- function(dbstructure_folder = "db_structure", table_key) {
-  # dbstructure_folder <- "./mnmgwdb_db_structure"
-  # table_key <- "Visits"
+### TODO CONTINUE move this to db$ // mnmdb$
 
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("DBI" = require("DBI"))
-  stopifnot("glue" = require("glue"))
-
-  schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-    select(table, schema, geometry, excluded)
-
-  ### (2) load current data
-  excluded_tables <- schemas %>%
-    filter(!is.na(excluded)) %>%
-    filter(excluded == 1) %>%
-    pull(table)
-
-  table_relations <- read_table_relations_config(
-    storage_filepath = here::here(dbstructure_folder, "table_relations.conf")
-    ) %>%
-    filter(relation_table == tolower(table_key),
-      !(dependent_table %in% excluded_tables)
-    )
-
-  dependent_tables <- c(
-    table_key,
-    table_relations %>% pull(dependent_table)
-    )
-
-  create_dbi_identifier <- function(tabkey) {
-    schema <- schemas %>% filter(tolower(table) == tolower(tabkey)) %>% pull(schema)
-    tkey_right <- schemas %>% filter(tolower(table) == tolower(tabkey)) %>% pull(table)
-    return(DBI::Id(schema, tkey_right))
-  }
-
-  table_ids <- lapply(dependent_tables, FUN = create_dbi_identifier)
-
-  return(table_ids)
-
-} # /find_dependent_tables
-
-
-# store the content of a table in memory
-obsolete_load_table_content <- function(
-    db_connection,
-    dbstructure_folder,
-    table_id
+#' dump the database with a system call to `pg_dump` (linux)
+#'
+#' @details To apply this from scripts, password is not used. Make sure
+#' to configure your `~/.pgpass` file.
+#'
+#' @param target_filepath the path to store the dump
+#' @param config_filepath the path to the config file
+#' @param database the database to backup
+#' @param profile config section header (configs
+#'        with multiple connection settings; best define a `dumpall`)
+#' @param host the database server (usually an IP address)
+#' @param port the port on which the host serves postgreSQL, default 5439
+#' @param user the database username
+#'
+#' @examples
+#' \dontrun{
+#'   now <- format(Sys.time(), "%Y%m%d%H%M")
+#'   dump_all(
+#'     here::here(glue::glue("dumps/safedump_{now}.sql")),
+#'     config_filepath = config_filepath,
+#'     database = working_dbname,
+#'     profile = "dumpall",
+#'     user = "readonly_user",
+#'     exclude_schema = c("tiger", "public")
+#'   )
+#' }
+#'
+dump_all <- function(
+    target_filepath,
+    config_filepath,
+    database,
+    profile = NULL,
+    user = NULL,
+    host = NULL,
+    port = NULL,
+    exclude_schema = NULL
     ) {
 
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("DBI" = require("DBI"))
+  stopifnot(
+    "configr" = require("configr"),
+    "glue" = require("glue"),
+    "here" = require("here")
+  )
 
-  is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-    select(table, geometry) %>%
-    filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
-    pull(geometry) %>% is.na
-
-  if (is_spatial) {
-    data <- sf::st_read(db_connection, table_id) %>% collect
-  } else {
-    data <- dplyr::tbl(db_connection, table_id) %>% collect
+  # profile (section within the config file)
+  if (is.null(profile)) {
+    profile <- 1 # use the first profile by default
   }
 
-  return(list("id" = table_id, "data" = data))
+  # read connection info from a config file,
+  # unless user provided different credentials
+  config <- configr::read.config(file = config_filepath)[[profile]]
 
-} # /load_table_content
-
-
-# push table from memory back to the server
-obsolete_restore_table_data_from_memory <- function(
-    db_target,
-    content_list,
-    dbstructure_folder = "db_structure",
-    verbose = TRUE
-  ) {
-  # content_list <- table_content_storage[[3]]
-
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("DBI" = require("DBI"))
-  stopifnot("glue" = require("glue"))
-
-  table_id <- content_list$id
-  table_key <- attr(table_id, "name")
-  table_lable <- glue::glue('"{table_key[[1]]}"."{table_key[[2]]}"')
-  table_data <- content_list$data
-
-
-  if (is.scalar.na(table_data) || (nrow(table_data) < 1)) {
-    message("no data to restore.")
-    return(invisible(NA))
+  if (is.null(host)) {
+    stopifnot("host" %in% attributes(config)$names)
+    host <- config$host
   }
 
-  # restore data
-  pk <- mnmdb$get_primary_key(table_key[[2]])
+  if (is.null(port)) {
+    if ("port" %in% attributes(config)$names) {
+      port <- config$port
+    } else {
+      port <- 5439
+    }
+  }
 
-  # TODO need to branch geometry tables?
-  # is_spatial <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-  #   select(table, geometry) %>%
-  #   filter(tolower(table) == tolower(attr(table_id, "name")[[2]])) %>%
-  #   pull(geometry) %>% is.na
+  if (is.null(user)) {
+    stopifnot("user" %in% attributes(config)$names)
+    user <- config$user
+  }
 
-  # using dplyr/DBI to upload has the usual issues of deletion/restroation,
-  # i.e. that user roles are not persistent.
-  # Hence, the usual trick of "empty/append".
+  # exclude some schemas
+  if (!is.null(exclude_schema)) {
 
-  # Note that I neglect dependent table here, since they will be re-uploaded after
-  ## delete from table
-  execute_sql(
-    db_target,
-    glue::glue("DELETE FROM {table_lable};"),
-    verbose = verbose
-  )
+    exschem_string <- c()
+    for (exschem in exclude_schema){
+      exschem_string <- c(exschem_string, glue::glue("-N {exschem}"))
+    }
+    exschem_string <- paste(exschem_string, collapse = " ")
+  }
 
-  ## reset the sequence
-  sequence_key <- glue::glue('"{table_key[[1]]}".seq_{pk}')
-  nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
+  # dump the database!
+  dump_string <- glue::glue('
+    pg_dump -U {user} -h {host} -p {port} -d {database} {exschem_string} --no-password > "{target_filepath}"
+    ')
 
-  current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+  system(dump_string)
 
-  execute_sql(
-    db_target,
-    glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
-    verbose = verbose
-  )
-
-  ## append the table data
-  append_tabledata(db_target, table_id, table_data)
-
-  ## restore sequence
-  nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
-  nextval <- max(c(nextval, current_highest, table_data %>% pull(pk)))
-
-  execute_sql(
-    db_target,
-    glue::glue("SELECT setval('{sequence_key}', {nextval});"),
-    verbose = verbose
-  )
-
-  return(invisible(NULL))
-
-} # /restore_table_data_from_memory
+} # /dump_all
