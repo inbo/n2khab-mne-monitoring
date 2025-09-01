@@ -135,7 +135,6 @@ loceval <- connect_mnm_database(
   database_mirror = "loceval-staging"
 ) 
 
-
 ```
 
 
@@ -161,6 +160,7 @@ loceval$dump_all(
 )
 
 ```
+
 
 # Gather and Upload
 
