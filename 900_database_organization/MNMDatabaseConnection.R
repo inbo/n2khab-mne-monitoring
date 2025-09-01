@@ -1,4 +1,4 @@
-#!/usr/bin/env Rscript
+#!usr/bin/env Rscript
 
 # poor man's OOP: the database connection list object
 # supposed to be loaded prior to "DatabaseToolbox"
@@ -49,6 +49,7 @@
 #   - db$port
 #   - db$database
 #   - db$user
+#   - db$shellstring
 #   - db$connection
 # > mnmdb_assemble_structure_lookups(db) -> db
 #   - db$tables
@@ -66,12 +67,15 @@
 # > mnmdb_assemble_query_functions(db) -> db
 #   - db$execute_sql(...) -> rs
 #   - db$query_columns(table_label, select_columns) -> df(columns)
+#   - db$pull_column(table_label, select_column) -> c()
 #   - db$is_spatial(table_key) -> bool
-#   - db$query_tbl(table_label) -> df
+#   - db$query_table(table_label) -> df
 #   - db$query_tables_data(tables) -> list(df)
 #   - db$lookup_dependent_columns(table_label, deptab_label) -> df(pk, fk)
+#   - db$set_sequence_key(table_label, sequence_label, new_key_value, verbose)
 #   - db$store_table_deptree_in_memory(table_label) -> list("label", "data")
 #   - db$restore_table_data_from_memory(table_content_storage, verbose)
+#   - db$insert_data(table_label, new_data)
 
 #_______________________________________________________________________________
 ### SQL BASICS
@@ -95,6 +99,127 @@ execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
   return(invisible(rs))
 
 }
+
+#' dump the database with a system call to `pg_dump` (linux)
+#'
+#' @details To apply this from scripts, password is not used. Make sure
+#' to configure your `~/.pgpass` file.
+#'
+#' @param mnmdb an MNM database including DBI connection, structure, and
+#'        working functions. See `MNMDatabaseConnection.R` for details.
+#'
+#' @examples
+#' \dontrun{
+#'   config_filepath <- file.path("./postgis_server.conf")
+#'   # keyring::key_set("DBPassword", "db_user_password") # <- for source database
+#'   db_to_dump <- connect_mnm_database(
+#'     config_filepath,
+#'     database_mirror = "mnmdb-testing",
+#'     user = "readonly_user"
+#'   )
+#'   now <- format(Sys.time(), "%Y%m%d%H%M")
+#'   dump_all(
+#'     mnmdb = db_to_dump,
+#'     here::here(glue::glue("dumps/safedump_{now}.sql")),
+#'     exclude_schema = c("tiger", "public")
+#'   )
+#' }
+#'
+dump_all <- function(
+    mnmdb,
+    target_filepath,
+    exclude_schema = NULL
+  ) {
+
+  stopifnot(
+    "configr" = require("configr"),
+    "glue" = require("glue"),
+    "here" = require("here")
+  )
+
+  # exclude some schemas
+  if (!is.null(exclude_schema)) {
+
+    exschem_string <- c()
+    for (exschem in exclude_schema){
+      exschem_string <- c(exschem_string, glue::glue("-N {exschem}"))
+    }
+    exschem_string <- paste(exschem_string, collapse = " ")
+  }
+
+  # dump the database!
+  dump_string <- glue::glue('
+    pg_dump {mnmdb$shellstring} {exschem_string} --no-password > "{target_filepath}"
+    ')
+
+  system(dump_string)
+
+} # /dump_all
+
+
+#' Append data to a table which is not already in there.
+#'
+#' This function loads the content of a table, and then uploads only
+#' the new rows which are not already present (as judged by some
+#' characteristic columns).
+#'
+#' @param db_connection an existing database connection, optionally passed
+#'        to prevent repeated connection in scripts
+#' @param table_id a DBI::Id of the table to append
+#' @param data_to_append triv.
+#' @param characteristic_columns a subset of columns of the data table
+#'        by which old and new data can be uniquely identified and joined;
+#'        refers to the new data
+#' @param verbose provides extra prose on the way, in case you need it
+#'
+append_tabledata <- function(
+    db_connection,
+    table_id,
+    data_to_append,
+    characteristic_columns = NA,
+    verbose = TRUE
+  ) {
+
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+
+  content <- DBI::dbReadTable(db_connection, table_id)
+  # head(content)
+
+  if (any(is.na(characteristic_columns))) {
+    # ... or just take all columns
+    characteristic_columns <- names(data_to_append)
+  }
+
+  # refcol <- enquo(characteristic_columns)
+  existing <- content %>% dplyr::select(!!!characteristic_columns)
+  to_upload <- data_to_append %>%
+    dplyr::anti_join(existing, dplyr::join_by(!!!characteristic_columns)
+  )
+
+  rs <- DBI::dbWriteTable(
+    db_connection,
+    table_id,
+    to_upload,
+    overwrite = FALSE,
+    append = TRUE
+  )
+  # res <- DBI::dbFetch(rs)
+  # DBI::dbClearResult(rs)
+
+  message(sprintf(
+    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
+    toString(table_id),
+    nrow(to_upload),
+    nrow(existing),
+    nrow(data_to_append),
+    paste0(characteristic_columns, collapse = ", ")
+  ))
+
+  return(invisible(rs))
+
+} #/ append_tabledata
 
 
 #_______________________________________________________________________________
@@ -356,6 +481,9 @@ connect_mnm_database <- function(
     db[[cfg]] <- config[[cfg]]
   }
 
+  # shell string for psql use
+  db$shellstring <- glue::glue("-U {db$user} -h {db$host} -p {db$port} -d {db$database}")
+
   # connect
   db$connection <- connect_database_configfile(
     config_filepath,
@@ -376,6 +504,10 @@ connect_mnm_database <- function(
       ...
     )
   }
+
+  # direct execution
+  db$execute_sql <- function(...) {return(execute_sql(db$connection, ...))}
+  db$dump_all <- function(...) {return(dump_all(db, ...))}
 
   # extend
   if (isFALSE(skip_structure_assembly)) {
@@ -437,7 +569,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
     return(c(
       table_key,
       db$table_relations %>%
-      filter(relation_table == tolower(table_key),
+      filter(tolower(relation_table) == tolower(table_key),
         !(dependent_table %in% db$excluded_tables)
       ) %>% pull(dependent_table)
     ))
@@ -498,13 +630,19 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
 mnmdb_assemble_query_functions <- function(db) {
 
-  # direct execution
-  db$execute_sql <- function(...) {return(execute_sql(db$connection, ...)}
-
   db$query_columns <- function(table_label, select_columns) {
     dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
       dplyr::select(!!!rlang::syms(select_columns)) %>%
-      dplyr::collect()
+      dplyr::collect() %>%
+      return()
+  }
+
+  db$pull_column <- function(table_label, select_column) {
+    dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
+      dplyr::select(!!select_column) %>%
+      dplyr::collect() %>%
+      dplyr::pull(!!select_column) %>%
+      return()
   }
 
   db$is_spatial <- function(table_key) {
@@ -517,7 +655,7 @@ mnmdb_assemble_query_functions <- function(db) {
     return(check)
   }
 
-  db$query_tbl <- function(table_label) {
+  db$query_table <- function(table_label) {
     if (db$is_spatial(table_label)) {
       data <- sf::st_read(db_connection, table_id) %>% collect
     } else {
@@ -530,7 +668,7 @@ mnmdb_assemble_query_functions <- function(db) {
   db$query_tables_data <- function(tables) {
     contentlist <- lapply(
       tables,
-      FUN = query_tbl
+      FUN = query_table
     )
     return(contentlist)
   }
@@ -557,6 +695,64 @@ mnmdb_assemble_query_functions <- function(db) {
 
     return(key_lookup)
   }
+
+
+  # set table sequence key; defaults to "1" (=reset), can do "max" (current highest)
+  db$set_sequence_key <- function(
+      table_label,
+      sequence_label = NULL,
+      new_key_value = NULL,
+      verbose = FALSE
+    ) {
+
+    # primary key -> related to sequence label
+    pk <- db$get_primary_key(table_label)
+
+    if (is.null(sequence_label)) {
+      sequence_label <- glue::glue('"{db$get_schema(table_label)}".seq_{pk}')
+    }
+
+    # log pre/post values
+    key_log <- list("label" = sequence_label)
+
+    # check current value
+    nextval_query <- glue::glue("SELECT last_value FROM {sequence_label};")
+    current_highest <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
+    key_log$pre <- current_highest
+
+    if (is.null(new_key_value)) {
+      new_key_value <- "1"
+      # set to one because data is re-inserted
+      db$execute_sql(
+        glue::glue(
+          "ALTER SEQUENCE {sequence_label} RESTART WITH {new_key_value};"
+        ),
+        verbose = verbose
+      )
+
+      key_log$post <- new_key_value
+
+      return(invisible(key_log))
+
+    } else if (new_key_value == "max") {
+      # set to current max value in the database
+      nextval <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
+      max_pk <- db$pull_column(table_label, pk) %>% max
+      new_key_value <- max(c(nextval, max_pk))
+
+    }
+
+    # set the key, either to given value, or to current "max"
+    db$execute_sql(
+      glue::glue("SELECT setval('{sequence_key}', {new_key_val});"),
+      verbose = verbose
+    )
+
+    # return log
+    key_log$post <- new_key_value
+    return(invisible(key_log))
+
+  } # /set_sequence_key
 
 
   # temporarily store table and dependencies in memory
@@ -594,34 +790,20 @@ mnmdb_assemble_query_functions <- function(db) {
       pk <- db$get_primary_key(table_label)
 
       # Note that I neglect dependent table here, since they will be re-uploaded after
-      ## delete from table
+      # delete from table
       db$execute_sql(
         glue::glue("DELETE FROM {table_label};"),
         verbose = verbose
       )
 
-      ## reset the sequence
-      sequence_key <- glue::glue('"{schema}".seq_{pk}')
-      nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
+      # reset the sequence
+      db$reset_sequence_key(table_label)
 
-      current_highest <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
-
-      db$execute_sql(
-        glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
-        verbose = verbose
-      )
-
-      ## append the table data
+      # append the table data
       append_tabledata(db$connection, table_id, table_data)
 
-      ## restore sequence
-      nextval <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
-      nextval <- max(c(nextval, current_highest, table_data %>% pull(pk)))
-
-      db$execute_sql(
-        glue::glue("SELECT setval('{sequence_key}', {nextval});"),
-        verbose = verbose
-      )
+      # restore sequence
+      db$reset_sequence_key(table_label, "max")
 
       return(invisible(NULL))
     }
@@ -634,6 +816,21 @@ mnmdb_assemble_query_functions <- function(db) {
     return(invisible(NULL))
   }
 
+
+  # insert table data
+  db$insert_data <- function(table_label, new_data) {
+    rs <- DBI::dbWriteTable(
+      db$connection,
+      db$get_table_id(table_label),
+      new_data,
+      row.names = FALSE,
+      overwrite = FALSE,
+      append = TRUE,
+      factorsAsCharacter = TRUE,
+      binary = TRUE
+    )
+    return(invisible(rs))
+  }
 
 
   return(db)

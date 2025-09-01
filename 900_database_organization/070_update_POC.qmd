@@ -92,7 +92,6 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 # source(file.path(project_root, "R/grts.R"))
 # TODO: rebase once PR#5 gets merged
 base_path = "/data/git/n2khab-mne-monitoring_support"
-base_path = "/work/inbo/git/n2khab-mne-monitoring_support"
 load_poc_code_snippets(base_path)
 ```
 

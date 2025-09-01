@@ -148,3 +148,38 @@ obsolete_restore_table_data_from_memory <- function(
   return(invisible(NULL))
 
 } # /restore_table_data_from_memory
+
+
+
+dump_all_obsolete <- function() {
+  # what wonce worked with all attributes,
+  # now exploits the "beauty" and "simplicity" of the db$list.
+
+  # # profile (section within the config file)
+  # if (is.null(profile)) {
+  #   profile <- 1 # use the first profile by default
+  # }
+
+  # read connection info from a config file,
+  # unless user provided different credentials
+  config <- configr::read.config(file = config_filepath)[[profile]]
+
+  if (is.null(host)) {
+    stopifnot("host" %in% attributes(config)$names)
+    host <- config$host
+  }
+
+  if (is.null(port)) {
+    if ("port" %in% attributes(config)$names) {
+      port <- config$port
+    } else {
+      port <- 5439
+    }
+  }
+
+  if (is.null(user)) {
+    stopifnot("user" %in% attributes(config)$names)
+    user <- config$user
+  }
+
+}
