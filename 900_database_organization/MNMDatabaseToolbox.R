@@ -39,55 +39,6 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 
 
 
-# TODO: option to drop; but mind cascading
-
-# this function loads the content of a table, and then uploads only
-# the new rows which are not already present (as judged by some
-# characteristic columns).
-append_tabledata <- function(
-    mnmdb,
-    table_id,
-    data_to_append,
-    characteristic_columns = NA
-  ) {
-
-  content <- DBI::dbReadTable(mnmdb$connection, table_id)
-  # head(content)
-
-  if (any(is.na(characteristic_columns))) {
-    # ... or just take all columns
-    characteristic_columns <- names(data_to_append)
-  }
-
-  # refcol <- enquo(characteristic_columns)
-  existing <- content %>% select(!!!characteristic_columns)
-  to_upload <- data_to_append %>%
-    anti_join(existing, join_by(!!!characteristic_columns)
-  )
-
-  rs <- DBI::dbWriteTable(
-    mnmdb$connection,
-    table_id,
-    to_upload,
-    overwrite = FALSE,
-    append = TRUE
-  )
-  # res <- DBI::dbFetch(rs)
-  # DBI::dbClearResult(rs)
-
-  message(sprintf(
-    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
-    toString(db_table),
-    nrow(to_upload),
-    nrow(existing),
-    nrow(data_to_append),
-    paste0(characteristic_columns, collapse = ", ")
-  ))
-  return(invisible(rs))
-
-} #/ append_tabledata
-
-
 upload_and_lookup <- function(
     mnmdb,
     table_label,
@@ -143,7 +94,7 @@ restore_location_id_by_grts <- function(
   target_namestring <- mnmdb$get_namestring(table_label)
 
   # query the status quo
-  location_lookup <- mnmdb$query_tbl("Locations") %>%
+  location_lookup <- mnmdb$query_table("Locations") %>%
     select(grts_address, location_id)
 
   # optional: store and retain "log_" columns
@@ -241,63 +192,48 @@ restore_location_id_by_grts <- function(
 #'        hint: use keyring::key_set("DBPassword", "db_user_password") to
 #'        store a connection password prior to execution.
 #'
-#' @param config_filepath the path to the config file
-#' @param working_dbname the target database name
+#' @param mnmdb an MNM database including DBI connection, structure, and
+#'        working functions. See `MNMDatabaseConnection.R` for details.
 #' @param table_key the table to be changed
 #' @param new_data a data frame or tibble with the new data
-#' @param profile config section header (configs with multiple connection
-#'        settings)
-#' @param dbstructure_folder the folder in which to find the
-#'        database structure csv collection
 #' @param characteristic_columns a subset of columns of the data table
 #'        by which old and new data can be uniquely identified and joined;
 #'        refers to the new data
 #' @param rename_characteristics link columns with different names by
 #'        renaming them in new_data
-#' @param db_connection an existing database connection, optionally passed
-#'        to prevent repeated connection in scripts
 #' @param verbose provides extra prose on the way, in case you need it
 #'
 #' @examples
 #' \dontrun{
-#'    working_dbname <- "monkey_business"
-#'    dbstructure_folder <- "db_structure"
-#'    connection_profile <- "monkey-connections"
-#'    config_filepath <- file.path("./monkey_server.conf")
-#'    # keyring::key_set("DBPassword", "db_user_password")
+#'   config_filepath <- file.path("./postgis_server.conf")
+#'   # keyring::key_set("DBPassword", "db_user_password") # <- for source database
+#'   source_db <- connect_mnm_database(
+#'     config_filepath,
+#'     database_mirror = "source-testing"
+#'   )
 #'
-#'    test_table <- "LocationCalendar"
-#'    new_data <- dplyr::tbl(
-#'        source_connection,
-#'        DBI::Id(schema = "outbound", table = test_table)
-#'      ) %>% collect(),
-#'    characteristic_columns = \
-#'      c("scheme", "stratum", "grts_address", "column_newname")
+#'   test_table <- "LocationCalendar"
+#'   new_data <- source_db$query_table(test_table)
+#'   characteristic_columns = \
+#'     c("scheme", "stratum", "grts_address", "column_newname")
 #'
-#'    update_datatable_and_dependent_keys(
-#'      config_filepath = config_filepath,
-#'      working_dbname = working_dbname,
-#'      table_key = test_table,
-#'      new_data = new_data,
-#'      profile = connection_profile,
-#'      dbstructure_folder = dbstructure_folder,
-#'      characteristic_columns = characteristic_columns,
-#'      rename_characteristics = c(column_oldname = "column_newname")
-#'      verbose = TRUE
-#'    )
+#'   update_datatable_and_dependent_keys(
+#'     mnmdb = source_db,
+#'     table_key = test_table,
+#'     new_data = new_data,
+#'     characteristic_columns = characteristic_columns,
+#'     rename_characteristics = c(column_oldname = "column_newname")
+#'     verbose = TRUE
+#'   )
 #' }
 #'
 # ### TODO!!! continue conversion
 update_datatable_and_dependent_keys <- function(
-    config_filepath,
-    working_dbname,
-    table_key,
+    mnmdb,
+    table_label,
     new_data,
-    profile = NULL,
-    dbstructure_folder = NULL,
     characteristic_columns = NULL,
     rename_characteristics = NULL,
-    db_connection = NULL,
     skip_sequence_reset = FALSE,
     verbose = TRUE
     ) {
@@ -307,96 +243,46 @@ update_datatable_and_dependent_keys <- function(
   stopifnot("RPostgres" = require("RPostgres"))
   stopifnot("glue" = require("glue"))
 
-  # establish a database connection
-  if (is.null(db_connection)) {
-    db_target <- connect_database_configfile(
-      config_filepath,
-      database = working_dbname,
-      profile = profile
-    )
-  } else {
-    # ... unless it is given for repeated use
-    db_target <- db_connection
-  }
-
-  if (is.null(dbstructure_folder)) {
-    dbstructure_folder <- "db_structure"
-  }
-
-  # schemas <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
-  #   select(table, schema, geometry, excluded)
-
-  # These are clumsy, temporary, provisional helpers.
-  # But, hey, there will be time later.
-  ## get_schema <- function(table_label) {
-  ##   return(schemas %>%
-  ##     filter(table == table_label) %>%
-  ##     pull(schema)
-  ##   )
-  ## }
-  # get_namestring <- function(table_label) glue::glue('"{get_schema(table_label)}"."{table_label}"')
-  # get_tableid <- function(table_label) DBI::Id(schema = get_schema(table_label), table = table_label)
-
+  # check if database connection is active
+  # TODO mnmdb$connection_is_active
 
   ### (1) dump all data, for safety
   now <- format(Sys.time(), "%Y%m%d%H%M")
-  dump_all(
+  mnmdb$dump_all(
     here::here("dumps", glue::glue("safedump_{working_dbname}_{now}.sql")),
-    config_filepath = config_filepath,
-    database = working_dbname,
-    profile = "dumpall",
-    user = "monkey",
     exclude_schema = c("tiger", "public")
   )
 
 
   ### (2) load current data
-  excluded_tables <- schemas %>%
-    filter(!is.na(excluded)) %>%
-    filter(excluded == 1) %>%
-    pull(table)
-
-  table_relations <- read_table_relations_config(
-    storage_filepath = here::here(dbstructure_folder, "table_relations.conf")
-    ) %>%
-    filter(relation_table == tolower(table_key),
-      !(dependent_table %in% excluded_tables)
+  table_relations <- mnmdb$table_relations %>%
+    filter(
+      tolower(relation_table) == tolower(table_lable),
+      !(dependent_table %in% mnmdb$excluded_tables)
     )
 
-  dependent_tables <- table_relations %>% pull(dependent_table)
-
-  # table_existing_data_list <- query_tables_data(
-  #   db_target,
-  #   database = working_dbname,
-  #   tables = lapply(c(table_key, dependent_tables), FUN = get_table_id)
-  # )
+  dependent_tables <- mnmdb$get_dependent_tables(table_label)
 
 
   ### (3) store key lookup of dependent table
-
-  # query_columns(db_connection, get_table_id(table_key), c("protocol_id", "description"))
-  # deptab_key <- "GroupedActivities"
-
   lookups <- lapply(
     dependent_tables,
-    FUN = function(deptab_key) mnmdb$lookup_dependent_columns(table_key, deptab_key)
+    FUN = function(deptab_label) mnmdb$lookup_dependent_columns(table_label, deptab_label)
   ) %>% setNames(dependent_tables)
+
 
   ### (4) retrieve old data
   pk <- mnmdb$get_primary_key(table_key)
 
   if (is.null(characteristic_columns)) {
-    characteristic_columns <- mnmdb$get_characteristic_columns(table_key)
-  } # TODO else: check that col really is a field in the table
+    characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
+  } # TODO else: check that col really is a field in the new_data table
 
   # TODO there must be more column match checks
   # prior to deletion
   # in connection with `characteristic_columns`
 
-  # TODO write function to restore key lookup table
-  # TODO allow rollback (of focal and dependent tables)
-
-  old_data <- dplyr::tbl(db_target, get_table_id(table_key)) %>% collect
+  old_data <- mnmdb$query_table(table_label)
 
 
   ### ERROR
@@ -404,10 +290,9 @@ update_datatable_and_dependent_keys <- function(
   # if there are no characteristic columns, depentent table lookups are dead
   # at the point of DELETE.
   # This happened with SSPSTapas on production already (20250825).
+  # TODO review this, see also `lookups` above.
 
-
-
-  ### (5) UPLOAD/replace the data
+  ### (5) adjust column names
 
   # use `rename_characteristics`
   # to rename cols in the new_data to the server data logic
@@ -419,37 +304,6 @@ update_datatable_and_dependent_keys <- function(
     names(new_data)[names(new_data) == new_colname] <- server_colname
   }
 
-  # ## NO: no appending needed here; appending happens in the wrapper.
-  # # per default, this function appends the table content,
-  # # which means that
-  # #   - all entries in `new_data` are uploaded anyways
-  # #   - `old_data` rows which do not match `new_data` in characteristic
-  # #     columns are also re-uploaded
-  # if (append_existing) {
-  #   # columns must either be non-index, or in the new data
-  #   # (to avoid case where existing indices are rowbound with NULL)
-  #   subset_columns <- names(old_data)
-  #   subset_columns <- subset_columns[
-  #     (!(subset_columns %in% index_columns))
-  #     || (subset_columns %in% names(new_data))
-  #   ]
-
-  #   # new and old data go together
-  #   new_data <- bind_rows(
-  #     old_data %>%
-  #       select(!!!subset_columns) %>%
-  #       anti_join(
-  #         new_data,
-  #         by = join_by(!!!characteristic_columns)
-  #       ),
-  #       new_data
-  #     ) %>%
-  #     distinct
-
-  # }
-
-  # this data is not lost yet, but will be checked against the `new_data` to upload.
-  # lostrow_data <- dplyr::tbl(db_target, mnmdb$get_table_id(table_key)) %>% collect()
 
   # what about `sf` data?
   # - R function overloading: no matter if sf or not
@@ -457,7 +311,7 @@ update_datatable_and_dependent_keys <- function(
   #       -> seems to work the same
 
 
-  ### store dependent table lookups
+  ### (6) store dependent table lookups
   # here I short-circuit the DELETE/CASCADE process.
   store_dependent_lookups <- function(deptab) {
 
@@ -480,60 +334,32 @@ update_datatable_and_dependent_keys <- function(
   ) %>% setNames(dependent_tables)
 
 
-  ### DELETE existing data -> DANGEROUS territory!
-  execute_sql(
-    db_target,
+  ### (7) DELETE existing data -> DANGEROUS territory!
+  mnmdb$execute_sql(
     glue::glue("DELETE  FROM {get_namestring(table_key)};"),
     verbose = verbose
   )
 
   # On the occasion, we reset the sequence counter
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
-
-    sequence_key <- glue::glue('"{get_schema(table_key)}".seq_{pk}')
-    nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
-    current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
-
-    # set to one because data is re-inserted
-    execute_sql(
-      db_target,
-      glue::glue('ALTER SEQUENCE {sequence_key} RESTART WITH 1;'),
-      verbose = verbose
-    )
+    mnmdb$reset_sequence_key(table_label)
   }
 
+  ### (8) INSERT new data
   # INSERT new data, appending the empty table
   #    (to make use of the "ON DELETE SET NULL" rule)
+  mnmdb$insert_data(table_label, new_data)
+
   # new_data %>%
   #   filter(grts_address == 871030, activity_group_id == 4) %>%
   #   knitr::kable()
-  rs <- DBI::dbWriteTable(
-    db_target,
-    mnmdb$get_table_id(table_key),
-    new_data,
-    row.names = FALSE,
-    overwrite = FALSE,
-    append = TRUE,
-    factorsAsCharacter = TRUE,
-    binary = TRUE
-  )
-
   # new_data %>% head() %>% knitr::kable()
 
 
   ## restore sequence
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
-    nextval <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
-    max_pk <- dplyr::tbl(db_target, mnmdb$get_table_id(table_key)) %>%
-      select(!!pk) %>% collect %>%
-      pull(!!pk) %>% max
-    nextval <- max(c(nextval, max_pk))
+    mnmdb$reset_sequence_key(table_label, "max")
 
-    execute_sql(
-      db_target,
-      glue::glue("SELECT setval('{sequence_key}', {nextval});"),
-      verbose = verbose
-    )
   }
 
 
@@ -544,19 +370,18 @@ update_datatable_and_dependent_keys <- function(
     cols_to_query <- c(characteristic_columns)
   }
 
-  new_redownload <- query_columns(
-    db_target,
-    mnmdb$get_table_id(table_key),
-    columns = cols_to_query
+  new_redownload <- mnmdb$query_columns(
+    table_label,
+    select_columns = cols_to_query
   )
 
   # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
   # entries which were not present prior to update are not in this lookup
-  new_redownload %>%
-    count(samplelocation_id, grts_address, activity_group_id,
-          date_start, fieldworkcalendar_id
-          ) %>%
-    arrange(desc(n))
+  # new_redownload %>%
+  #   count(samplelocation_id, grts_address, activity_group_id,
+  #         date_start, fieldworkcalendar_id
+  #         ) %>%
+  #   arrange(desc(n))
 
   pk_lookup <- old_data %>%
     left_join(
@@ -568,6 +393,7 @@ update_datatable_and_dependent_keys <- function(
     )
 
   if (FALSE) {
+    # TODO return here to inspect the repercussions of previous errors
     a <- old_data %>%
       select(!!c(pk, characteristic_columns))  %>%
       filter(grts_address == 23238)
@@ -622,9 +448,9 @@ update_datatable_and_dependent_keys <- function(
   for (deptab in dependent_tables) {
 
     # extract the associating columns
-    keycolumn_linkpair <- table_relations %>%
+    # get_dependent_tables
+    keycolumn_linkpair <- dependent_tables %>%
       filter(
-        relation_table == tolower(table_key),
         dependent_table == deptab
       ) %>%
       select(dependent_column, relation_column)
@@ -633,7 +459,8 @@ update_datatable_and_dependent_keys <- function(
 
     # the focus table, linking old and new pk values
     # copied in case multiple deptabs have same key diff name
-    pk_link <- pk_lookup
+    pk_link <- pk_lookup # copying for temporary renaming
+
     # ensure `_old` suffix for joining below
     # dependent_col_old <- glue::glue("{dependent_key}_old")
     reference_col_old <- glue::glue("{reference_key}_old")
@@ -649,13 +476,15 @@ update_datatable_and_dependent_keys <- function(
 
 
     # finally, combine the lookup table
-    lookup <- lookups[[deptab]]
+    lookup_deptab <- lookups[[deptab]]
 
     # swap the table-specific names
-    names(lookup)[names(lookup) == dependent_key] <- reference_col_old
+    names(lookup_deptab)[
+        names(lookup_deptab) == dependent_key
+      ] <- reference_col_old
     names(pk_link)[names(pk_link) == reference_key] <- dependent_key
 
-    key_replacement <- lookup %>%
+    key_replacement <- lookup_deptab %>%
       left_join(
         pk_link,
         by = reference_col_old,
@@ -691,11 +520,14 @@ update_datatable_and_dependent_keys <- function(
     # ... by looking up the dependent table pk
     dep_pk <- mnmdb$get_primary_key(deptab)
 
-    if (length(dep_pk) == 0) next # these is the LocationCells
+    if (length(dep_pk) == 0) next # special case, e.g. the LocationCells
 
+    # get the original foreign key values
     fk_table <- fk_lookups[[deptab]]
+
+    # prepare rowwise update
     # repl_rownr <- 1
-    get_update_row_string <- function(repl_rownr){
+    get_update_row_string <- function(repl_rownr) {
       dep_pk_val <- key_replacement[repl_rownr, dep_pk]
       val <- key_replacement[repl_rownr, dependent_key][[1]]
 
@@ -738,7 +570,7 @@ update_datatable_and_dependent_keys <- function(
     )
 
     for (cmd in update_command) {
-      execute_sql(db_target, cmd, verbose = FALSE)
+      mnmdb$execute_sql(cmd, verbose = FALSE)
     }
 
   } # /loop dependent tables
@@ -786,7 +618,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     to_upload <- new_data
 
     # existing content
-    prior_content <- mnmdb$query_tbl(table_label)
+    prior_content <- mnmdb$query_table(table_label)
     # head(prior_content)
     # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
@@ -888,7 +720,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     })
 
 
-    lookup <- mnmdb$query_columns(
+    lookup_deptab <- mnmdb$query_columns(
       table_key,
       c(characteristic_columns, index_columns)
       )
@@ -903,106 +735,10 @@ parametrize_cascaded_update <- function(mnmdb) {
       ))
     }
 
-    return(lookup)
+    return(lookup_deptab)
 
   } # /update_cascade_lookup
 
   return(ucl_function)
 } # /parametrize_cascaded_update
 
-
-
-#_______________________________________________________________________________
-# HANDLE BACKUPS
-
-### TODO CONTINUE move this to db$ // mnmdb$
-
-#' dump the database with a system call to `pg_dump` (linux)
-#'
-#' @details To apply this from scripts, password is not used. Make sure
-#' to configure your `~/.pgpass` file.
-#'
-#' @param target_filepath the path to store the dump
-#' @param config_filepath the path to the config file
-#' @param database the database to backup
-#' @param profile config section header (configs
-#'        with multiple connection settings; best define a `dumpall`)
-#' @param host the database server (usually an IP address)
-#' @param port the port on which the host serves postgreSQL, default 5439
-#' @param user the database username
-#'
-#' @examples
-#' \dontrun{
-#'   now <- format(Sys.time(), "%Y%m%d%H%M")
-#'   dump_all(
-#'     here::here(glue::glue("dumps/safedump_{now}.sql")),
-#'     config_filepath = config_filepath,
-#'     database = working_dbname,
-#'     profile = "dumpall",
-#'     user = "readonly_user",
-#'     exclude_schema = c("tiger", "public")
-#'   )
-#' }
-#'
-dump_all <- function(
-    target_filepath,
-    config_filepath,
-    database,
-    profile = NULL,
-    user = NULL,
-    host = NULL,
-    port = NULL,
-    exclude_schema = NULL
-    ) {
-
-  stopifnot(
-    "configr" = require("configr"),
-    "glue" = require("glue"),
-    "here" = require("here")
-  )
-
-  # profile (section within the config file)
-  if (is.null(profile)) {
-    profile <- 1 # use the first profile by default
-  }
-
-  # read connection info from a config file,
-  # unless user provided different credentials
-  config <- configr::read.config(file = config_filepath)[[profile]]
-
-  if (is.null(host)) {
-    stopifnot("host" %in% attributes(config)$names)
-    host <- config$host
-  }
-
-  if (is.null(port)) {
-    if ("port" %in% attributes(config)$names) {
-      port <- config$port
-    } else {
-      port <- 5439
-    }
-  }
-
-  if (is.null(user)) {
-    stopifnot("user" %in% attributes(config)$names)
-    user <- config$user
-  }
-
-  # exclude some schemas
-  if (!is.null(exclude_schema)) {
-
-    exschem_string <- c()
-    for (exschem in exclude_schema){
-      exschem_string <- c(exschem_string, glue::glue("-N {exschem}"))
-    }
-    exschem_string <- paste(exschem_string, collapse = " ")
-  }
-
-  # dump the database!
-  dump_string <- glue::glue('
-    pg_dump -U {user} -h {host} -p {port} -d {database} {exschem_string} --no-password > "{target_filepath}"
-    ')
-
-  system(dump_string)
-
-} # /dump_all
