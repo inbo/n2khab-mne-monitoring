@@ -20,9 +20,6 @@
 #_______________________________________________________________________________
 # MISC
 
-is.scalar.na <- function(checkvar) is.atomic(checkvar) && (length(checkvar) == 1) && is.na(checkvar)
-
-
 lookup_join <- function(.data, lookup_tbl, join_column){
   joined_tbl <- .data %>%
     left_join(
