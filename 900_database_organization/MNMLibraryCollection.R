@@ -68,7 +68,7 @@ load_inbo_libraries <- function(
 #_______________________________________________________________________________
 # POC DATA AND CODE
 
-load_poc_rdata <- function(data_basepath = "./data", reload = FALSE) {
+load_poc_rdata <- function(data_basepath = "./data", reload = FALSE, to_env = parent.frame()) {
 
   # Setup for googledrive authentication. Set the appropriate env vars in
   # .Renviron and make sure you ran drive_auth() interactively with these settings
@@ -99,10 +99,7 @@ load_poc_rdata <- function(data_basepath = "./data", reload = FALSE) {
       overwrite = reload
     )
   }
-  load(poc_rdata_path)
-
-  versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
-  verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+  load(poc_rdata_path, envir = to_env)
 
 } # /load_poc_rdata
 
@@ -119,13 +116,16 @@ load_poc_code_snippets <- function(base_path = NA) {
   invisible(capture.output(source("050_snippet_selection.R")))
   source("051_snippet_transformation_code.R")
 
-  verify_poc_object_existence()
 
 } # /load_poc_code_snippets
 
 
 
-verify_poc_object_existence <- function() {
+verify_poc_objects <- function() {
+
+  versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
+  verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+
 
   stopifnot(
     "NOT FOUND: snip snap >> `grts_mh_index`" = exists("grts_mh_index")
@@ -178,7 +178,11 @@ verify_poc_object_existence <- function() {
       exists("stratum_schemepstargetpanel_spsamples_terr_replacementcells")
   )
 
-} # /verify_poc_object_existence
+
+  # shout out success!
+  message("All expected environment objects were found.")
+
+} # /verify_poc_objects
 
 
 #_______________________________________________________________________________

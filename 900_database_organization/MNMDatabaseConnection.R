@@ -73,7 +73,7 @@
 #   - db$query_table(table_label) -> df
 #   - db$query_tables_data(tables) -> list(df)
 #   - db$lookup_dependent_columns(table_label, deptab_label) -> df(pk, fk)
-#   - db$set_sequence_key(table_label, sequence_label, new_key_value, verbose)
+#   - db$set_sequence_key(table_label, new_key_value, sequence_label, verbose)
 #   - db$store_table_deptree_in_memory(table_label) -> list("label", "data")
 #   - db$restore_table_data_from_memory(table_content_storage, verbose)
 #   - db$insert_data(table_label, new_data)
@@ -81,7 +81,16 @@
 #_______________________________________________________________________________
 ### SQL BASICS
 
-execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
+is.scalar.na <- function(checkvar) {
+  return(
+    is.atomic(checkvar) &&
+    (length(checkvar) == 1) &&
+    is.na(checkvar)
+  )
+}
+
+
+execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
   # a rather trivial wrapper for dbExecute
   # which doesn't even work for multi-commands :/
 
@@ -91,7 +100,7 @@ execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
 
   stopifnot("DBI" = require("DBI"))
 
-  rs <- DBI::dbExecute(mnmdb$connection, sql_command)
+  rs <- DBI::dbExecute(db_connection, sql_command)
 
   if (verbose) {
     message("done.")
@@ -104,7 +113,8 @@ execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
 #' dump the database with a system call to `pg_dump` (linux)
 #'
 #' @details To apply this from scripts, password is not used. Make sure
-#' to configure your `~/.pgpass` file.
+#' to configure your `~/.pgpass` file for a read only user, or configure
+#' a "dumpall" entry in your config.
 #'
 #' @param mnmdb an MNM database including DBI connection, structure, and
 #'        working functions. See `MNMDatabaseConnection.R` for details.
@@ -113,26 +123,23 @@ execute_sql <- function(mnmdb, sql_command, verbose = TRUE) {
 #'
 #' @examples
 #' \dontrun{
-#'   config_filepath <- file.path("./postgis_server.conf")
-#'   # keyring::key_set("DBPassword", "db_user_password") # <- for source database
-#'   db_to_dump <- connect_mnm_database(
-#'     config_filepath,
-#'     database_mirror = "mnmdb-testing",
-#'     user = "readonly_user"
-#'   )
 #'   now <- format(Sys.time(), "%Y%m%d%H%M")
 #'   dump_all(
-#'     mnmdb = db_to_dump,
+#'     config_filepath = file.path("./postgis_server.conf"),
+#'     database_to_dump = "mnmdb-testing",
 #'     here::here(glue::glue("dumps/safedump_{now}.sql")),
 #'     exclude_schema = c("tiger", "public")
 #'   )
 #' }
 #'
 dump_all <- function(
-    mnmdb,
+    config_filepath,
+    database_to_dump,
     target_filepath,
+    connection_profile = "dumpall",
     exclude_schema = NULL
   ) {
+  # database_to_dump <- "loceval_dev"
 
   stopifnot(
     "configr" = require("configr"),
@@ -140,7 +147,21 @@ dump_all <- function(
     "here" = require("here")
   )
 
+  config <- configr::read.config(file = config_filepath)[[connection_profile]]
+
+  dump_connection <- connect_database_configfile(
+    config_filepath <- config_filepath,
+    database = database_to_dump,
+    profile = connection_profile,
+    password = NA
+  )
+
+  shellstring <- glue::glue(
+    "-U {config$user} -h {config$host} -p {config$port} -d {database_to_dump}"
+    )
+
   # exclude some schemas
+  exschem_string <- " "
   if (!is.null(exclude_schema)) {
 
     exschem_string <- c()
@@ -150,9 +171,10 @@ dump_all <- function(
     exschem_string <- paste(exschem_string, collapse = " ")
   }
 
+
   # dump the database!
   dump_string <- glue::glue('
-    pg_dump {mnmdb$shellstring} {exschem_string} --no-password > "{target_filepath}"
+    pg_dump {shellstring} {exschem_string} --no-password -c > "{target_filepath}"
     ')
 
   system(dump_string)
@@ -294,6 +316,7 @@ read_table_relations_config <- function(storage_filepath) {
 #' Connect to a postgreSQL database (other dialects trivial).
 #' Connection settings are loaded from a config file, content such as
 #'     [profile-name]
+#'     folder = ./dbstructure
 #'     host = localhost
 #'     port = 5439
 #'     user = test
@@ -460,7 +483,7 @@ connect_mnm_database <- function(
     config_filepath,
     database_mirror = NA,
     skip_structure_assembly = FALSE,
-    ...
+    ... # -> connect_database_configfile
   ) {
   # database_mirror <- "mnmgwdb-staging"
 
@@ -470,7 +493,7 @@ connect_mnm_database <- function(
     "keyring" = require("keyring"),
     "configr" = require("configr")
   )
-  stopifnot("provide database mirror" = isFALSE(is.na(mirror)))
+  stopifnot("provide database mirror" = isFALSE(is.na(database_mirror)))
 
   # collect db connection
   db <- list()
@@ -488,11 +511,11 @@ connect_mnm_database <- function(
   db$shellstring <- glue::glue("-U {db$user} -h {db$host} -p {db$port} -d {db$database}")
 
   # connect
-  db$connection <- connect_database_configfile(
-    config_filepath,
-    profile = database_mirror,
-    database = config$database
-  )
+  # db$connection <- connect_database_configfile(
+  #   config_filepath,
+  #   profile = database_mirror,
+  #   database = config$database
+  # )
   if ("database" %in% attributes(config)$names) {
     db$connection <- connect_database_configfile(
       config_filepath,
@@ -510,7 +533,10 @@ connect_mnm_database <- function(
 
   # direct execution
   db$execute_sql <- function(...) {return(execute_sql(db$connection, ...))}
-  db$dump_all <- function(...) {return(dump_all(db, ...))}
+  # db$execute_sql('SELECT last_value FROM "metadata".seq_protocol_id;')
+
+  db$dump_all <- function(...) {return(dump_all(config_filepath, db$database, ...))}
+  # db$dump_all("dumps/test.sql", exclude_schema = c("tiger", "public"))
 
   # extend
   if (isFALSE(skip_structure_assembly)) {
@@ -528,47 +554,57 @@ mnmdb_assemble_structure_lookups <- function(db) {
   # tables and their relations
   db$tables <- read.csv(here::here(db$folder, "TABLES.csv")) %>%
     select(table, schema, geometry, excluded)
+  # db$tables %>% knitr::kable()
 
   # this one is created by python scripts
   db$table_relations <- read_table_relations_config(
     storage_filepath = here::here(db$folder, "table_relations.conf")
     )
+  # db$table_relations %>% knitr::kable()
 
   # some tables are excluded
   db$excluded_tables <- db$tables %>%
     filter(!is.na(excluded)) %>%
     filter(excluded == 1) %>%
     pull(table)
+  # db$excluded_tables %>% knitr::kable()
 
   # get schema for a table
   db$get_schema <- function(table_label) {
     return(
-      schemas %>%
+      db$tables %>%
         filter(table == table_label) %>%
         pull(schema)
     )
   }
+  # db$get_schema("GroupedActivities")
 
   # get namestring as used in direct SQL queries
   db$get_namestring <- function(table_label) glue::glue('"{db$get_schema(table_label)}"."{table_label}"')
+  # db$get_namestring("TeamMembers")
 
   # get table Id as used DBI/dbplyr queries
-  db$get_table_id <- function(table_label) DBI::Id(schema = db$get_schema(table_label), table = table_label)
+  db$get_table_id <- function(table_label) DBI::Id(
+    schema = db$get_schema(table_label),
+    table = table_label
+  )
+  # db$get_table_id("LocationCells")
 
   # same as above, but from lowercase table key
   db$get_table_id_lowercase <- function(table_key) {
     schema <- db$tables %>%
       filter(tolower(table) == tolower(table_key)) %>%
       pull(schema)
-    tkey_right <- schemas %>%
+    tkey_correct <- db$tables %>%
       filter(tolower(table) == tolower(table_key)) %>%
       pull(table)
-    return(DBI::Id(schema, tkey_right))
+    return(DBI::Id(schema, tkey_correct))
   }
+  # db$get_table_id_lowercase("locationcells")
 
 
   ### table dependency structure
-  db$get_dependent_tables <- function (table_key) {
+  db$get_dependent_tables <- function(table_key) {
     return(c(
       table_key,
       db$table_relations %>%
@@ -577,14 +613,19 @@ mnmdb_assemble_structure_lookups <- function(db) {
       ) %>% pull(dependent_table)
     ))
   }
+  # db$get_dependent_tables("Locations")
 
   # return table IDs for all dependent tables
   db$get_dependent_table_ids <- function(table_key) {
-    return(lapply(
-      db$get_dependent_tables(table_key),
-      FUN = db$get_table_id_lowercase
-    ))
+    deptabs <- db$get_dependent_tables(table_key)
+    lapply(
+        deptabs,
+        FUN = db$get_table_id_lowercase
+      ) %>%
+      setNames(deptabs) %>%
+      return()
   }
+  # db$get_dependent_table_ids("Locations")
 
   # specific table info
   db$load_table_info <- function(table_label) {
@@ -593,6 +634,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
     )
     return(table_info)
   }
+  # db$load_table_info("FreeFieldNotes")
 
 
   db$get_characteristic_columns <- function(table_label) {
@@ -615,6 +657,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
     return(characteristic_columns)
   }
+  # db$get_characteristic_columns("FreeFieldNotes")
 
 
   # or need a primary key?
@@ -625,6 +668,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
         pull(column)
     )
   }
+  # db$get_primary_key("FreeFieldNotes")
 
   # the result: a database object with more features
   return(db)
@@ -632,6 +676,11 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
 
 mnmdb_assemble_query_functions <- function(db) {
+  ## testing:
+  # table_label <- "Locations"
+  # table_key <- table_label
+  # select_column <- "location_id"
+  # select_columns <- c("grts_address", "location_id")
 
   db$query_columns <- function(table_label, select_columns) {
     dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
@@ -639,6 +688,8 @@ mnmdb_assemble_query_functions <- function(db) {
       dplyr::collect() %>%
       return()
   }
+  # db$query_columns(table_label, select_columns)
+  # db$query_columns("Protocols", c("protocol_id", "description"))
 
   db$pull_column <- function(table_label, select_column) {
     dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
@@ -647,34 +698,41 @@ mnmdb_assemble_query_functions <- function(db) {
       dplyr::pull(!!select_column) %>%
       return()
   }
+  # db$pull_column(table_label, db$get_primary_key(table_label)) %>% max()
 
   db$is_spatial <- function(table_key) {
-    check <- read.csv(here::here(dbstructure_folder, "TABLES.csv")) %>%
+    read.csv(here::here(db$folder, "TABLES.csv")) %>%
       select(table, geometry) %>%
       filter(tolower(table) == tolower(table_key)) %>%
-      pull(geometry) %>% is.na
+      pull(geometry) %>%
+      {is.na(.) || (. == "")} %>%
+      isFALSE() %>%
+      return()
     # attr(table_id, "name")[[2]] # would be the variant for a DBI::Id
-
-    return(check)
   }
+  # db$is_spatial("FreeFieldNotes")
+  # db$is_spatial("LocationInfos")
 
   db$query_table <- function(table_label) {
+    table_id <- db$get_table_id(table_label)
     if (db$is_spatial(table_label)) {
-      data <- sf::st_read(db_connection, table_id) %>% collect
+      data <- sf::st_read(db$connection, table_id) %>% collect
     } else {
-      data <- dplyr::tbl(db_connection, table_id) %>% collect
+      data <- dplyr::tbl(db$connection, table_id) %>% collect
     }
     return(data)
   }
+  # db$query_table("FreeFieldNotes") %>% head(2) %>% t() %>% knitr::kable()
 
-  # query_columns(db_connection, get_table_id(table_key), c("protocol_id", "description"))
   db$query_tables_data <- function(tables) {
-    contentlist <- lapply(
-      tables,
-      FUN = query_table
-    )
-    return(contentlist)
+    lapply(
+        tables,
+        FUN = db$query_table
+      ) %>%
+      setNames(tables) %>%
+      return()
   }
+  # db$query_tables_data(c("GroupedActivities", "Protocols", "TeamMembers"))
 
   # all dependent lookup columns
   db$lookup_dependent_columns <- function(table_label, deptab_label) {
@@ -698,13 +756,15 @@ mnmdb_assemble_query_functions <- function(db) {
 
     return(key_lookup)
   }
+  # db$lookup_dependent_columns("Protocols", "GroupedActivities")
 
 
-  # set table sequence key; defaults to "1" (=reset), can do "max" (current highest)
+  # Set table sequence key; defaults to "1" (=reset), can do "max" (current highest).
+  # No keys are harmed when executing this function.
   db$set_sequence_key <- function(
       table_label,
-      sequence_label = NULL,
       new_key_value = NULL,
+      sequence_label = NULL,
       verbose = FALSE
     ) {
 
@@ -721,7 +781,7 @@ mnmdb_assemble_query_functions <- function(db) {
     # check current value
     nextval_query <- glue::glue("SELECT last_value FROM {sequence_label};")
     current_highest <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
-    key_log$pre <- current_highest
+    key_log$pre <- as.integer(current_highest)
 
     if (is.null(new_key_value)) {
       new_key_value <- "1"
@@ -733,7 +793,7 @@ mnmdb_assemble_query_functions <- function(db) {
         verbose = verbose
       )
 
-      key_log$post <- new_key_value
+      key_log$post <- as.integer(new_key_value)
 
       return(invisible(key_log))
 
@@ -747,42 +807,44 @@ mnmdb_assemble_query_functions <- function(db) {
 
     # set the key, either to given value, or to current "max"
     db$execute_sql(
-      glue::glue("SELECT setval('{sequence_key}', {new_key_val});"),
+      glue::glue("SELECT setval('{sequence_label}', {new_key_value});"),
       verbose = verbose
     )
 
     # return log
-    key_log$post <- new_key_value
+    key_log$post <- as.integer(new_key_value)
     return(invisible(key_log))
 
   } # /set_sequence_key
-
+  # table_label <- "Protocols"
+  # db$set_sequence_key(table_label, verbose = TRUE)
+  # db$set_sequence_key("Protocols", "max", verbose = TRUE)
 
   # temporarily store table and dependencies in memory
   db$store_table_deptree_in_memory <- function(table_label) {
     # savetabs <- find_dependent_tables("mnmgwdb_db_structure", "Visits")
-    savetabs <- mnmdb$get_dependent_tables(table_label)
+    savetabs <- db$get_dependent_tables(table_label)
 
-    return(
-      lapply(
+    lapply(
         savetabs,
-        FUN = function(tablab) list(
-          "label" = tablab,
-          "data" = db$query_tbs(tablab)
-        )
-      )
-    )
+        FUN = function(tablab) db$query_table(tablab)
+      ) %>%
+      setNames(savetabs) %>%
+      return()
   }
+  # table_content_storage <- db$store_table_deptree_in_memory(table_label)
 
   # push table from memory back to the server
   #   involves key resetting
+  #   and the usual "delete / append" strategy
   db$restore_table_data_from_memory <- function(table_content_storage, verbose = TRUE) {
     restore_ <- function(tabledata_list) {
+      # tabledata_list <- table_content_storage[1]
 
-      table_label <- tabledata_list$label
+      table_label <- names(tabledata_list)
       schema <- db$get_schema(table_label)
       table_id <- db$get_table_id(table_label)
-      table_data <- tabledata_list$data
+      table_data <- tabledata_list[[table_label]]
 
       if (is.scalar.na(table_data) || (nrow(table_data) < 1)) {
         message("no data to restore.")
@@ -800,13 +862,13 @@ mnmdb_assemble_query_functions <- function(db) {
       )
 
       # reset the sequence
-      db$reset_sequence_key(table_label)
+      db$set_sequence_key(table_label)
 
       # append the table data
       append_tabledata(db$connection, table_id, table_data)
 
       # restore sequence
-      db$reset_sequence_key(table_label, "max")
+      db$set_sequence_key(table_label, "max")
 
       return(invisible(NULL))
     }
