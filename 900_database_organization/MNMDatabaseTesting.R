@@ -28,6 +28,8 @@ test_db <- connect_mnm_database(
 )
 
 
+update_cascade_loceval <- parametrize_cascaded_update(test_db)
+
 #_______________________________________________________________________________
 ### basic database connection functions in place?
 
@@ -37,7 +39,7 @@ connection_base_tests <- function(mnmdb) {
   # execute sql
   mnmdb$execute_sql(
     'SELECT last_value FROM "metadata".seq_protocol_id;',
-    verbose = TRUE
+    verbose = FALSE
   )
 
 
@@ -83,13 +85,74 @@ connection_base_tests <- function(mnmdb) {
     paste(mnmdb$load_table_info("Locations") %>% pull(column), collapse = ", ")
   ))
 
+  # characteristic columns
+  stopifnot(identical(
+    "location_id, grts_address, lambert_x, lambert_y, wgs84_x, wgs84_y",
+    paste(mnmdb$get_characteristic_columns("Coordinates"), collapse = ", ")
+  ))
 
-    mnmdb$get_characteristic_columns("FreeFieldNotes")
+  # primary key
+  stopifnot("coordinate_id" == mnmdb$get_primary_key("Coordinates"))
 
 
-}
+} # /connection_base_tests
 
+connection_base_tests(test_db)
 
+#_______________________________________________________________________________
+### Do queries work as intended?
 
+query_tests <- function(mnmdb) {
 
-update_cascade_loceval <- parametrize_cascaded_update(test_db)
+  # protocols are alphabetically sorted
+  stopifnot(
+    mnmdb$query_columns("Protocols", c("protocol_id", "protocol")) %>%
+      filter(grepl("sfp-001-nl", protocol)) %>%
+      pull(protocol_id) %>%
+      {. == 1}
+  )
+
+  # no new teammembers have started
+  stopifnot(
+    mnmdb$pull_column("TeamMembers", "teammember_id") %>%
+      length() %>%
+      {. == 11}
+  )
+
+  # FreeFieldNotes are spatial, but TeamMembers are not
+  stopifnot(
+    "FreeFieldNotes" = mnmdb$is_spatial("FreeFieldNotes"),
+    "TeamMembers" = isFALSE(mnmdb$is_spatial("TeamMembers"))
+  )
+
+  # we can query LocationInfos
+  mnmdb$query_table("LocationInfos") %>%
+    filter(!is.na(recovery_hints)) %>%
+    head(10) %>% tail(2) %>% t() %>% knitr::kable()
+
+  # we can retrieve multiple tables at once
+  mnmdb$query_tables_data(c("GroupedActivities", "Protocols", "TeamMembers"))
+
+  # ... and create lookup tables for dependent columns
+  mnmdb$lookup_dependent_columns("Protocols", "GroupedActivities")
+
+  # reset sequence keys:
+  # (a) restart at one
+  mnmdb$set_sequence_key("TeamMembers", verbose = TRUE)
+  # (b) set to arbitrary values
+  mnmdb$set_sequence_key("TeamMembers", 10, verbose = TRUE)
+  # (c) set to highest of actual value and current counter
+  mnmdb$set_sequence_key("TeamMembers", "max", verbose = TRUE)
+
+  # an in-memory backup procedure
+  store <- mnmdb$store_table_deptree_in_memory("Protocols")
+  mnmdb$restore_table_data_from_memory(store)
+
+} # /query_tests
+
+query_tests(test_db)
+
+#_______________________________________________________________________________
+
+# store <- mnmdb$store_table_deptree_in_memory("Locations")
+# mnmdb$restore_table_data_from_memory(store)
