@@ -1,189 +1,65 @@
 ## libraries----------------------------------------------------------------
-library("dplyr")
-library("tidyr")
-library("stringr")
-library("purrr")
-library("lubridate")
-library("sf")
-library("terra")
-library("n2khab")
-library("googledrive")
-library("readr")
-library("glue")
-library("rprojroot")
-library("keyring")
+# libraries
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+load_poc_common_libraries()
 
-library("configr")
-library("DBI")
-library("RPostgres")
-
-library("mapview")
-# mapviewOptions(platform = "mapdeck")
-
-projroot <- find_root(is_rstudio_project)
-config_filepath <- file.path("./inbopostgis_server.conf")
-if (TRUE){
-  # testing
-  working_dbname <- "loceval_testing"
-  connection_profile <- "loceval-testing"
-  dbstructure_folder <- "./loceval_db_structure"
-} else {
-  # dev
-  working_dbname <- "loceval_dev"
-  connection_profile <- "loceval-dev"
-  dbstructure_folder <- "./loceval_dev_structure"
-}
-
-
-# # you might want to run the following prior to sourcing or rendering this script:
-# keyring::key_set("DBPassword", "db_user_password")
-# working_dbname <- "loceval"
-# connection_profile <- "loceval"
-# dbstructure_folder <- "./loceval_db_structure"
-
-config <- configr::read.config(file = config_filepath)[[connection_profile]]
+source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
-# Load some custom GRTS functions
-# source(file.path(projroot, "R/grts.R"))
+
+## ----------loading-poc-data-----------------------------------
+
+tic <- function(toc) round(Sys.time() - toc, 1)
+toc <- Sys.time()
+load_poc_rdata(reload = FALSE, to_env = parent.frame())
+message(glue::glue("Good morning!
+  Loading the POC data took {tic(toc)} seconds today."
+))
+
+
+## ----------loading-snippets-----------------------------------
+
 # TODO: rebase once PR#5 gets merged
-source(
-  "/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R"
-)
+snippets_path <- "/data/git/n2khab-mne-monitoring_support"
 
-source(
-  "/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R"
-)
-
-
-## ----load-sample-rdata--------------------------------------------------------
-# Download and load R objects from the POC into global environment
-reload <- FALSE
-poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
-if (reload || !file.exists(poc_rdata_path)) {
-
-  # Setup for googledrive authentication. Set the appropriate env vars in
-  # .Renviron and make sure you ran drive_auth() interactively with these settings
-  # for the first run (or to renew an expired Oauth token).
-  # See ?gargle::gargle_options for more information.
-  if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
-    options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
-  }
-  if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
-    options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
-  }
-
-  # copy the old file
-  if (file.exists(poc_rdata_path)) {
-    this_date <- format(Sys.time(), "%Y%m%d")
-    backup_path <- file.path("./data", glue::glue("objects_panflpan5_{this_date}.bak"))
-    file.copy(from = poc_rdata_path, to = backup_path, overwrite = TRUE)
-  }
-
-  googledrive::drive_download(
-    as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
-    path = poc_rdata_path,
-    overwrite = reload
-  )
-}
-
-load(poc_rdata_path)
-
-versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
-verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+toc <- Sys.time()
+load_poc_code_snippets(snippets_path)
+message(glue::glue(
+  "... loading/executing the code snippets took {tic(toc)}s."
+))
 
 
-## ----check-loading-snippets-----------------------------------
-
-invisible(capture.output(source("050_snippet_selection.R")))
-source("051_snippet_transformation_code.R")
-
-stopifnot(
-  "NOT FOUND: snip snap >> `grts_mh_index`" = exists("grts_mh_index")
-)
-
-stopifnot(
-  "NOT FOUND: snip snap >> `scheme_moco_ps_stratum_targetpanel_spsamples`" =
-    exists("scheme_moco_ps_stratum_targetpanel_spsamples")
-)
-
-stopifnot(
-  "NOT FOUND: snip snap >> `stratum_schemepstargetpanel_spsamples`" =
-    exists("stratum_schemepstargetpanel_spsamples")
-)
-
-stopifnot(
-  "NOT FOUND: snip snap >> `units_cell_polygon`" =
-    exists("units_cell_polygon")
-)
-
-stopifnot(
-  "NOT FOUND: RData >> `activities`" =
-    exists("activities")
-)
-
-stopifnot(
-  "NOT FOUND: RData >> `activity_sequences`" =
-    exists("activity_sequences")
-)
-
-stopifnot(
-  "NOT FOUND: RData >> `n2khab_strata`" =
-    exists("n2khab_strata")
-)
-
-stopifnot(
-  "snip snap >> `orthophoto grts` not found" =
-    exists("orthophoto_2025_type_grts")
-)
+verify_poc_objects()
 
 
 ## ----establish-connection-config----------------------------------------------
-db_connection <- connect_database_configfile(
+config_filepath <- file.path("./inbopostgis_server.conf")
+
+# keyring::key_set("DBPassword", "db_user_password") # <- for source database
+
+loceval_db <- connect_mnm_database(
   config_filepath,
-  database = working_dbname,
-  profile = connection_profile
+  database_mirror = "loceval-dev"
 )
 
 
 ## ----update-propagate-lookup--------------------------------------------------
 # just a convenience function to pass arguments to recursive update
 
-update_cascade_lookup <- parametrize_cascaded_update(
-  config_filepath,
-  working_dbname,
-  connection_profile,
-  dbstructure_folder,
-  db_connection
-)
-
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+update_cascade_lookup <- parametrize_cascaded_update(loceval_db)
 
 
 ## ----upload-teammembers-------------------------------------------------------
 members <- read_csv(
-  here::here(dbstructure_folder, "data_TeamMembers.csv"),
+  here::here(loceval_db$folder, "data_TeamMembers.csv"),
   show_col_types = FALSE
 )
-# %>% filter(username != "Yglinga")
-
-
-
-## THIS can go WRONG!
-## ... because if members change, dependent table foreign keys are unaffected.
-# member_lookup <- upload_and_lookup(
-#   db_connection,
-#   DBI::Id(schema = "metadata", table = "TeamMembers"),
-#   members,
-#   ref_cols = "username",
-#   index_col = "teammember_id"
-# )
-
-# Testing:
-#    DELETE FROM "metadata"."TeamMembers" WHERE username LIKE 'all%';
 
 member_lookup <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "TeamMembers",
+  table_label = "TeamMembers",
   new_data = members,
   index_columns = c("teammember_id"),
   characteristic_columns = c("username"),
@@ -204,8 +80,7 @@ protocols <- activities %>%
   )
 
 protocol_lookup <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "Protocols",
+  table_label = "Protocols",
   new_data = protocols,
   index_columns = c("protocol_id"),
   characteristic_columns = c("protocol"),
@@ -325,8 +200,7 @@ grouped_activities_upload <- grouped_activities %>%
 # -> done manually to get multiple columns as unique lookup
 
 grouped_activity_lookup <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "GroupedActivities",
+  table_label = "GroupedActivities",
   new_data = grouped_activities_upload,
   index_columns = c("grouped_activity_id"),
   characteristic_columns = c("activity_group", "activity"),
@@ -367,8 +241,7 @@ n2khab_types_upload <- bind_rows(
 #   arrange(desc(n))
 
 n2khabtype_lookup <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "N2kHabTypes",
+  table_label = "N2kHabTypes",
   new_data = n2khab_types_upload,
   index_columns = c("n2khabtype_id"),
   characteristic_columns = c("type"),
@@ -395,8 +268,7 @@ n2khab_strata_upload <- bind_rows(
 
 
 n2khabstrata_lookup <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "N2kHabStrata",
+  table_label = "N2kHabStrata",
   new_data = n2khab_strata_upload,
   index_columns = c("n2khabstratum_id"),
   characteristic_columns = c("stratum"),
@@ -490,104 +362,76 @@ sample_units <-
 
 
 ## ----save-previous-location-infos----------------------------------------------
-table_str <- '"outbound"."LocationInfos"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE TRUE
-      AND log_user = ANY ({maintenance_users}::varchar[])
-      AND (accessibility_inaccessible IS NULL OR (NOT accessibility_inaccessible))
-      AND (accessibility_revisit IS NULL)
-  ;" # landowner will be script-updated (outbound)
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
-)
+table_label <- "LocationInfos"
+filter_unused <- "
+      ((accessibility_inaccessible IS NULL) OR (NOT accessibility_inaccessible))
+  AND (accessibility_revisit IS NULL)
+  AND (recovery_hints IS NULL)
+"
+loceval_db$delete_unused(table_label, filter_unused)
 
-previous_locationinfos <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationInfos"),
-  ) %>% collect()
+previous_locationinfos <- loceval_db$query_table(table_label)
 
 
 ## ----save-previous-location-assessments----------------------------------------------
 
-table_str <- '"outbound"."LocationAssessments"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE log_user = ANY ({maintenance_users}::varchar[])
-     AND NOT assessment_done;"
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
-)
+table_label <- "LocationAssessments"
+filter_unused <- "
+      ((cell_disapproved IS NULL) OR (cell_disapproved))
+  AND (revisit_disapproval IS NULL)
+  AND (disapproval_explanation IS NULL)
+  AND (type_suggested IS NULL)
+  AND ((implications_habitatmap IS NULL) OR (implications_habitatmap IS FALSE))
+  AND (feedback_habitatmap IS NULL)
+  AND (notes IS NULL)
+  AND NOT assessment_done
+"
+loceval_db$delete_unused(table_label, filter_unused)
 
-previous_location_assessments <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  ) %>% collect()
+previous_location_assessments <- loceval_db$query_table(table_label)
 # nrow(previous_location_assessments)
 
 
 ## ----save-previous-extra-visits----------------------------------------------
 # analogous: clean Visits
-table_str <- '"inbound"."Visits"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE log_user = ANY ({maintenance_users}::varchar[])
-     AND NOT visit_done;"
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
-)
+table_label <- "Visits"
+filter_unused <- "
+      (grouped_activity_id IS NULL)
+  AND (teammember_id IS NULL)
+  AND (date_visit IS NULL)
+  AND (type_assessed IS NULL)
+  AND (notes IS NULL)
+  AND (photo IS NULL)
+  AND NOT visit_done
+"
+loceval_db$delete_unused(table_label, filter_unused)
 
-previous_visits <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "inbound", table = "Visits"),
-  ) %>% collect()
+previous_visits <- loceval_db$query_table(table_label)
 
 
 ## ----save-previous-FACs----------------------------------------------
 
-table_str <- '"outbound"."FieldActivityCalendar"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE log_user = ANY ({maintenance_users}::varchar[])
-     AND (NOT done_planning)
-     AND (teammember_assigned IS NULL)
-     AND (date_visit_planned IS NULL)
-     AND (notes IS NULL)
-   ;"
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
-)
+table_label <- "FieldActivityCalendar"
+filter_unused <- "
+      (NOT excluded)
+  AND (excluded_reason IS NULL)
+  AND (teammember_assigned IS NULL)
+  AND (date_visit_planned IS NULL)
+  AND ((no_visit_planned IS NULL) OR (no_visit_planned IS FALSE))
+  AND (notes IS NULL)
+  AND NOT done_planning
+"
 
-previous_calendar_plans <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "FieldActivityCalendar"),
-  ) %>% collect()
+loceval_db$delete_unused(table_label, filter_unused)
+
+previous_calendar_plans <- loceval_db$query_table(table_label)
 
 
 ## ----replacement-archive-------------------------------------------
 
 # store replacement information of previous visits
 
-previous_sampleunits <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "SampleUnits"),
-  ) %>%
+previous_sampleunits <- loceval_db$query_table("SampleUnits") %>%
   select(
     sampleunit_id,
     grts_address,
@@ -600,42 +444,37 @@ previous_sampleunits <- dplyr::tbl(
     type,
     replacement_reason,
     replacement_permanence
-  ) %>%
-  collect()
+  )
 
 
-previous_replacements <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "Replacements"),
-  ) %>%
+previous_replacements <- loceval_db$query_table("Replacements") %>%
   select(-ogc_fid, -wkb_geometry) %>%
   filter(
     is_inappropriate
     | is_selected
     | !is.na(notes)
   ) %>%
-  collect() %>%
   left_join(
     previous_sampleunits,
     by = join_by(sampleunit_id)
   )
 
-
-replacement_archive_lookup <- update_cascade_lookup(
-  schema = "archive",
-  table_key = "ReplacementArchives",
-  new_data = previous_replacements,
-  index_columns = c("replacementarchive_id"),
-  characteristic_columns = c(
-    "scheme_ps_targetpanels",
-    "type",
-    "grts_address",
-    "grts_address_replacement",
-    "replacement_rank"
-  ),
-  tabula_rasa = FALSE,
-  verbose = TRUE
-)
+if (nrow(previous_replacements) > 0) {
+  replacement_archive_lookup <- update_cascade_lookup(
+    table_label = "ReplacementArchives",
+    new_data = previous_replacements,
+    index_columns = c("replacementarchive_id"),
+    characteristic_columns = c(
+      "scheme_ps_targetpanels",
+      "type",
+      "grts_address",
+      "grts_address_replacement",
+      "replacement_rank"
+    ),
+    tabula_rasa = FALSE,
+    verbose = TRUE
+  )
+}
 
 
 ## ----upload-locations----------------------------------------------
@@ -668,29 +507,10 @@ locations <- bind_rows(
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
-
-
-
-
-
-# OBSOLETE first, delete locations to prevent the `ogc_fid` duplicate error
-# rs <- DBI::dbExecute(
-#   db_connection,
-#   'DELETE FROM "metadata"."Locations";'
-#   )
-#
-# locations_lookup <- upload_and_lookup(
-#   db_connection,
-#   DBI::Id(schema = "metadata", table = "Locations"),
-#   locations,
-#   ref_cols = "grts_address",
-#   index_col = "location_id"
-# )
-
+### TODO continue
 
 locations_lookup <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "Locations",
+  table_label = "Locations",
   new_data = locations,
   index_columns = c("location_id"),
   characteristic_columns = c("grts_address"),
@@ -764,8 +584,7 @@ samuns_refcols <- c(
 
 # tabula rasa: might otherwise be duplicated due to missing fk and null constraint
 sample_units_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "SampleUnits",
+  table_label = "SampleUnits",
   new_data = sample_units,
   index_columns = c("sampleunit_id"),
   characteristic_columns = samuns_refcols,
@@ -779,7 +598,7 @@ sample_units_lookup <- update_cascade_lookup(
 #   db_connection,
 #   dbstructure_folder,
 #   target_schema = "outbound",
-#   table_key = "SampleUnits",
+#   table_label = "SampleUnits",
 #   retain_log = FALSE,
 #   verbose = TRUE
 # )
@@ -882,8 +701,7 @@ new_locinfos <- new_locinfos %>%
   )
 
 locationinfo_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "LocationInfos",
+  table_label = "LocationInfos",
   new_data = new_locinfos,
   index_columns = c("locationinfo_id"),
   characteristic_columns = c("grts_address"),
@@ -957,8 +775,7 @@ fieldwork_calendar <-
 # fieldwork_calendar %>% glimpse
 
 fieldwork_calendar_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "FieldActivityCalendar",
+  table_label = "FieldActivityCalendar",
   new_data = fieldwork_calendar,
   index_columns = c("fieldactivitycalendar_id"),
   characteristic_columns = NULL,
@@ -1017,8 +834,7 @@ sf::st_geometry(replacements_upload) <- "wkb_geometry"
 
 # upload new replacements, TABULA RASA
 replacements_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "Replacements",
+  table_label = "Replacements",
   new_data = replacements_upload,
   index_columns = c("replacement_id"),
   characteristic_columns = c("sampleunit_id", "grts_address_replacement"),
@@ -1127,8 +943,7 @@ new_location_assessments <- new_location_assessments %>%
 
 # append the LocationAssessments with empty lines for new sample units
 locationassessment_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "LocationAssessments",
+  table_label = "LocationAssessments",
   new_data = new_location_assessments,
   index_columns = c("locationassessment_id"),
   characteristic_columns = c("type", "grts_address"),
@@ -1188,8 +1003,7 @@ new_visits <- sample_units_lookup %>%
 
 # append the LocationAssessments with empty lines for new sample units
 visits_lookup <- update_cascade_lookup(
-  schema = "inbound",
-  table_key = "Visits",
+  table_label = "Visits",
   new_data = new_visits,
   index_columns = c("visit_id"),
   characteristic_columns = c("grts_address", "sampleunit_id"),

@@ -172,26 +172,25 @@ Getting the data is as simple as establishing a connection and querying the tabl
 # DO NOT MODIFY
 # this file is "tangled" automatically from `030_copy_database.org`.
 
-library("dplyr")
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
 
-migrating_table_key <- "Protocols"
-migrating_table <- DBI::Id(schema = "metadata", table = migrating_table_key)
+migrating_table_label <- "Protocols"
 
-source_db_connection <- connect_database_configfile(
-  config_filepath = file.path("./inbopostgis_server.conf"),
-  profile = "loceval-dev",
-  database = "loceval_dev"
+config_filepath <- file.path("./inbopostgis_server.conf")
+
+source_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = "loceval-dev"
 )
 
-protocols_data <- dplyr::tbl(
-    source_db_connection,
-    migrating_table
-  ) %>%
-  collect() # collecting is necessary to modify offline and to re-upload
+source_data <- source_db$query_table(migrating_table_label)
 
-dplyr::glimpse(protocols_data)
+dplyr::glimpse(source_data)
 
 #+end_src
 
@@ -212,9 +211,9 @@ sort_protocols <- function(prt) {
   prt <- prt %>% dplyr::arrange(dplyr::desc(protocol))
   return(prt)
 }
-protocols_data <- sort_protocols(protocols_data)
+source_data <- sort_protocols(source_data)
 
-protocols_data <- protocols_data %>%
+source_data <- source_data %>%
   select(-protocol_id)
 #_______________________________________________________________________________
 #+end_src
@@ -228,13 +227,10 @@ and the =MNMDatabaseToolbox.R= contains a convenient function for it.
 
 #+begin_src R :eval no :tangle 032_production_to_testing_example.R
 
-update_datatable_and_dependent_keys(
-  config_filepath = file.path("./inbopostgis_server.conf"),
-  working_dbname = "loceval_testing",
-  table_key = migrating_table_key,
-  new_data = protocols_data,
-  profile = "loceval-testing",
-  dbstructure_folder = "loceval_db_structure",
+upload_data_and_update_dependencies(
+  source_db,
+  table_label = migrating_table_label,
+  data_replacement = source_data,
   verbose = FALSE
 )
 #+end_src
@@ -254,32 +250,35 @@ This requires minimal preparations, modification catalogue, and a loop.
 # DO NOT MODIFY
 # this file is "tangled" automatically from `030_copy_database.org`.
 
-library("dplyr")
-source("MNMDatabaseToolbox.R")
-# keyring::key_set("DBPassword", "db_user_password") # <- for source database
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
 
-# database_label <- "mnmgwdb"
-database_label <- "loceval"
-target_mirror <- "testing"
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+# keyring::key_set("DBPassword", "db_user_password")
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
-dbstructure_folder <- glue::glue("{database_label}_dev_structure")
+
+# database_label <- "mnmgwdb"
+database_label <- "loceval"
+source_mirror <- glue::glue("{database_label}")
+target_mirror <- glue::glue("{database_label}-dev")
+
 
 # from source...
-source_db_connection <- connect_database_configfile(
-  config_filepath = config_filepath,
-  profile = database_label,
+source_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = source_mirror,
   user = "monkey",
   password = NA
 )
 
+
 # ... to target
-target_db_name <- glue::glue("{database_label}_{target_mirror}")
-target_connection_profile <- glue::glue("{database_label}-{target_mirror}")
-target_db_connection <- connect_database_configfile(
-  config_filepath = config_filepath,
-  profile = target_connection_profile
+target_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = target_mirror
 )
 
 #+end_src
@@ -326,19 +325,17 @@ Here we go.
 
 #+begin_src R :eval no :tangle 033_populate_testing_db.R
 
-copy_over_single_table <- function(table_key, new_data) {
+copy_over_single_table <- function(table_label, new_data, ...) {
+  # parametrization of the `upload_data_and_update_dependencies` functions
   # just to make the loop code below look a little less convoluted.
 
   # push the update
-  update_datatable_and_dependent_keys(
-    config_filepath = config_filepath,
-    working_dbname = target_db_name,
-    table_key = table_key,
-    new_data = new_data,
-    profile = target_connection_profile,
-    dbstructure_folder = dbstructure_folder,
-    db_connection = target_db_connection,
-    verbose = FALSE
+  upload_data_and_update_dependencies(
+    target_db,
+    table_label = table_label,
+    data_replacement = new_data,
+    verbose = FALSE,
+    ...
   )
 
 }
@@ -351,34 +348,30 @@ Here we find out.
 
 #+begin_src R :eval no :tangle 033_populate_testing_db.R
 
-table_list_file <- file.path(glue::glue("{dbstructure_folder}/TABLES.csv"))
+table_list_file <- file.path(glue::glue("{source_db$folder}/TABLES.csv"))
 table_list <- read.csv(table_list_file)
 
-process_db_table_copy <- function(table_idx){
+process_db_table_copy <- function(table_idx) {
 
   table_schema <- table_list[[table_idx, "schema"]]
-  table_key <- table_list[[table_idx, "table"]]
+  table_label <- table_list[[table_idx, "table"]]
   table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
 
-  print(table_list[[table_idx, "excluded"]])
+  # print(table_list[[table_idx, "excluded"]])
 
   if (table_exclusion) return()
 
-  print(glue::glue("processing {table_schema}.{table_key}"))
+  print(glue::glue("processing {table_schema}.{table_label}"))
 
   # download
-  source_data <- dplyr::tbl(
-      source_db_connection,
-      DBI::Id(schema = table_schema, table = table_key)
-    ) %>%
-    collect() # collecting is necessary to modify offline and to re-upload
+  source_data <- source_db$query_table(table_label)
 
   # modify
-  if (table_key %in% names(table_modification)){
-    source_data <- table_modification[[table_key]](source_data)
+  if (table_label %in% names(table_modification)){
+    source_data <- table_modification[[table_label]](source_data)
   }
 
-  copy_over_single_table(table_key, source_data)
+  copy_over_single_table(table_label, source_data)
 
 }
 
@@ -396,11 +389,10 @@ Apply to all the table (never tired of reminding: *order matters*):
 #      Updating would be cumbersome.
 constraints_mod <- function(do = c("DROP", "SET")){
 
-  toggle_null_constraint <- function(schema, table_key, column){
+  toggle_null_constraint <- function(schema, table_label, column){
     # {dis/en}able fk for these tables
-    execute_sql(
-      target_db_connection,
-      glue::glue('ALTER TABLE "{schema}"."{table_key}" ALTER COLUMN {column} {do} NOT NULL;'),
+    target_db$execute_sql(
+      glue::glue('ALTER TABLE "{schema}"."{table_label}" ALTER COLUMN {column} {do} NOT NULL;'),
       verbose = FALSE
     ) # /sql
   } # /toggle_mod
@@ -408,8 +400,8 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
   if (database_label == "loceval") {
     # To prevent failure, I temporarily remove the constraint.
-    for (table_key in c("LocationAssessments", "SampleUnits", "LocationInfos")){
-      toggle_null_constraint("outbound", table_key, "location_id")
+    for (table_label in c("LocationAssessments", "SampleUnits", "LocationInfos")){
+      toggle_null_constraint("outbound", table_label, "location_id")
     } # /loop
 
     toggle_null_constraint("inbound", "Visits", "location_id")
@@ -418,8 +410,8 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
   if (database_label == "mnmgwdb") {
     # To prevent failure, I temporarily remove the constraint.
-    for (table_key in c("SampleLocations", "LocationInfos")){
-      toggle_null_constraint("outbound", table_key, "location_id")
+    for (table_label in c("SampleLocations", "LocationInfos")){
+      toggle_null_constraint("outbound", table_label, "location_id")
     } # /loop
 
     toggle_null_constraint("inbound", "Visits", "location_id")
@@ -432,7 +424,7 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
 constraints_mod("DROP")
 
-invisible(lapply(1:nrow(table_list), FUN = process_db_table_copy))
+invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
 
 constraints_mod("SET")
 

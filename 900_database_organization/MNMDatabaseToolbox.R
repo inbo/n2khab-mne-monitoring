@@ -20,6 +20,42 @@
 #_______________________________________________________________________________
 # MISC
 
+# convert a spatial data frame to tibble df by cbinding coords
+sf_to_df <- function(spatial_df, coord_names = NA) {
+  # spatial_df <- prior_content
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("sf" = require("sf"))
+
+  if (is.na(coord_names)){
+    coord_names <- c("x", "y")
+  }
+
+  df <- cbind(
+    sf::st_drop_geometry(spatial_df),
+    sf::st_coordinates(spatial_df) %>%
+      as_tibble(.name_repair = "minimal") %>%
+      setNames(coord_names)
+   )
+
+  return(df)
+}
+
+# convert a dataframe to spatial, please provide coords and crs!
+df_to_sf <- function(df, ...) {
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("sf" = require("sf"))
+
+  spatial_df <- sf::st_as_sf(
+    df,
+    ... # coords, crs
+  )
+
+  return(spatial_df)
+}
+
+
 lookup_join <- function(.data, lookup_tbl, join_column){
   joined_tbl <- .data %>%
     left_join(
@@ -179,9 +215,10 @@ restore_location_id_by_grts <- function(
 #' Updates the content of a data table in a relatively safe manner
 #' by recursing the database structure and updating foreign keys in other
 #' tables which link to the changed data.
-#' Cascading changes is based on characteristic columns that serve as
-#' keys for joining old and new data.
-#' "Safe manner" means that dumps and backups are written to text files
+#' - Prior to the critical DELETE/INSERT, all pk/fk pairs of dependent
+#'   tables are stored.
+#' - After the critical step, an UPDATE will re-establish the new fk links.
+#' "Safe manner" also means that dumps and backups are written to text files
 #' along the way.
 #' The original intention of this function was to provide tooling for
 #' reloading backed up content of a previous data version, or for copying
@@ -191,43 +228,44 @@ restore_location_id_by_grts <- function(
 #'
 #' @param mnmdb an MNM database including DBI connection, structure, and
 #'        working functions. See `MNMDatabaseConnection.R` for details.
-#' @param table_key the table to be changed
-#' @param new_data a data frame or tibble with the new data
+#' @param table_label the table to be changed
+#' @param data_replacement a data frame or tibble with the new data
 #' @param characteristic_columns a subset of columns of the data table
 #'        by which old and new data can be uniquely identified and joined;
 #'        refers to the new data
 #' @param rename_characteristics link columns with different names by
-#'        renaming them in new_data
+#'        renaming them in data_replacement
 #' @param verbose provides extra prose on the way, in case you need it
 #'
 #' @examples
 #' \dontrun{
 #'   config_filepath <- file.path("./postgis_server.conf")
 #'   # keyring::key_set("DBPassword", "db_user_password") # <- for source database
+#'   source("MNMDatabaseConnection.R")
 #'   source_db <- connect_mnm_database(
 #'     config_filepath,
 #'     database_mirror = "source-testing"
 #'   )
 #'
 #'   test_table <- "LocationCalendar"
-#'   new_data <- source_db$query_table(test_table)
+#'   data_replacement <- source_db$query_table(test_table)
 #'   characteristic_columns = \
 #'     c("scheme", "stratum", "grts_address", "column_newname")
 #'
-#'   update_datatable_and_dependent_keys(
+#'   upload_data_and_update_dependencies(
 #'     mnmdb = source_db,
-#'     table_key = test_table,
-#'     new_data = new_data,
+#'     table_label = test_table,
+#'     data_replacement = data_replacement,
 #'     characteristic_columns = characteristic_columns,
 #'     rename_characteristics = c(column_oldname = "column_newname")
 #'     verbose = TRUE
 #'   )
 #' }
 #'
-update_datatable_and_dependent_keys <- function(
+upload_data_and_update_dependencies <- function(
     mnmdb,
     table_label,
-    new_data,
+    data_replacement,
     characteristic_columns = NULL,
     rename_characteristics = NULL,
     skip_sequence_reset = FALSE,
@@ -245,17 +283,17 @@ update_datatable_and_dependent_keys <- function(
   ### (1) dump all data, for safety
   now <- format(Sys.time(), "%Y%m%d%H%M")
   mnmdb$dump_all(
-    here::here("dumps", glue::glue("safedump_{working_dbname}_{now}.sql")),
+    target_filepath = here::here("dumps", glue::glue("safedump_{mnmdb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 
 
   ### (2) load current data
-  table_relations <- mnmdb$table_relations %>%
-    filter(
-      tolower(relation_table) == tolower(table_lable),
-      !(dependent_table %in% mnmdb$excluded_tables)
-    )
+  # table_relations <- mnmdb$table_relations %>%
+  #   filter(
+  #     tolower(relation_table) == tolower(table_label),
+  #     !(dependent_table %in% mnmdb$excluded_tables)
+  #   )
 
   dependent_tables <- mnmdb$get_dependent_tables(table_label)
 
@@ -268,18 +306,20 @@ update_datatable_and_dependent_keys <- function(
 
 
   ### (4) retrieve old data
-  pk <- mnmdb$get_primary_key(table_key)
+  pk <- mnmdb$get_primary_key(table_label)
 
   if (is.null(characteristic_columns)) {
     characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
-  } # TODO else: check that col really is a field in the new_data table
+  } # TODO else: check that col really is a field in the data_replacement table
 
   # TODO there must be more column match checks
   # prior to deletion
   # in connection with `characteristic_columns`
 
   old_data <- mnmdb$query_table(table_label)
-
+  if (mnmdb$is_spatial(table_label)){
+    old_data <- old_data %>% sf_to_df
+  }
 
   ### ERROR
   # the old data does not contain dependent table keys any more.
@@ -291,13 +331,13 @@ update_datatable_and_dependent_keys <- function(
   ### (5) adjust column names
 
   # use `rename_characteristics`
-  # to rename cols in the new_data to the server data logic
-  # new_data
+  # to rename cols in the data_replacement to the server data logic
+  # data_replacement
   # rename_characteristics
   for (rnc in seq_len(length(rename_characteristics))) {
     new_colname <- rename_characteristics[[rnc]]
     server_colname <- names(rename_characteristics)[rnc]
-    names(new_data)[names(new_data) == new_colname] <- server_colname
+    names(data_replacement)[names(data_replacement) == new_colname] <- server_colname
   }
 
 
@@ -308,59 +348,44 @@ update_datatable_and_dependent_keys <- function(
 
 
   ### (6) store dependent table lookups
-  # here I short-circuit the DELETE/CASCADE process.
-  store_dependent_lookups <- function(deptab) {
-
-    dep_pk <- mnmdb$get_primary_key(deptab)
-
-    # the pk is the fk in the dt
-    fk_lookup <- dplyr::tbl(
-      db_target,
-      mnmdb$get_table_id(deptab)
-    ) %>%
-    select(!!!c(dep_pk, pk)) %>%
-    collect
-
-    return(fk_lookup)
-  }
-
+  # short-circuit the DELETE/CASCADE process:
+  #   foreign keys are stored for later re-linking
   fk_lookups <- lapply(
     dependent_tables,
-    FUN = store_dependent_lookups
+    FUN = function(deptab) mnmdb$lookup_dependent_columns(table_label, deptab)
   ) %>% setNames(dependent_tables)
 
 
   ### (7) DELETE existing data -> DANGEROUS territory!
   mnmdb$execute_sql(
-    glue::glue("DELETE  FROM {get_namestring(table_key)};"),
+    glue::glue("DELETE  FROM {mnmdb$get_namestring(table_label)};"),
     verbose = verbose
   )
 
   # On the occasion, we reset the sequence counter
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
-    mnmdb$reset_sequence_key(table_label)
+    mnmdb$set_sequence_key(table_label)
   }
 
   ### (8) INSERT new data
   # INSERT new data, appending the empty table
   #    (to make use of the "ON DELETE SET NULL" rule)
-  mnmdb$insert_data(table_label, new_data)
+  mnmdb$insert_data(table_label, data_replacement)
 
-  # new_data %>%
+  # data_replacement %>%
   #   filter(grts_address == 871030, activity_group_id == 4) %>%
   #   knitr::kable()
-  # new_data %>% head() %>% knitr::kable()
+  # data_replacement %>% head() %>% knitr::kable()
 
 
   ## restore sequence
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
-    mnmdb$reset_sequence_key(table_label, "max")
-
+    mnmdb$set_sequence_key(table_label, "max")
   }
 
 
   if (length(pk) > 0) {
-    ### TODO !!! shouldn't this be *all* index_columns, instead just pk?
+    # pk should be unique enough: below, we relate existing characteristics to pk
     cols_to_query <- c(characteristic_columns, pk)
   } else {
     cols_to_query <- c(characteristic_columns)
@@ -429,7 +454,7 @@ update_datatable_and_dependent_keys <- function(
       knitr::kable(lost_rows)
       write.csv(
         lost_rows,
-        glue::glue("dumps/lostrows_{table_key}_{now}.csv"),
+        glue::glue("dumps/lostrows_{table_label}_{now}.csv"),
         row.names = FALSE
       )
     }
@@ -439,17 +464,23 @@ update_datatable_and_dependent_keys <- function(
   ## update dependent tables
   # "LocationCells"       "SampleLocations"     "LocationAssessments" "ExtraVisits"
   # deptab <- "LocationCells"
-  # deptab <- dependent_tables[[1]]
+  # deptab <- dependent_tables[[1]] # the table itself
+  # deptab <- dependent_tables[[2]]
+  # deptab <- dependent_tables[[3]]
 
   for (deptab in dependent_tables) {
 
     # extract the associating columns
     # get_dependent_tables
-    keycolumn_linkpair <- dependent_tables %>%
+    keycolumn_linkpair <- mnmdb$table_relations %>%
       filter(
-        dependent_table == deptab
+        tolower(relation_table) == tolower(table_label),
+        tolower(dependent_table) == tolower(deptab),
       ) %>%
       select(dependent_column, relation_column)
+
+    if (nrow(keycolumn_linkpair) == 0) next # the table itself
+
     dependent_key <- keycolumn_linkpair[["dependent_column"]]
     reference_key <- keycolumn_linkpair[["relation_column"]]
 
@@ -491,7 +522,7 @@ update_datatable_and_dependent_keys <- function(
     # dump-store look
     write.csv(
       key_replacement,
-      glue::glue("dumps/lookup_{now}_{table_key}_{deptab}.csv"),
+      glue::glue("dumps/lookup_{now}_{table_label}_{deptab}.csv"),
       row.names = FALSE
     )
 
@@ -530,11 +561,14 @@ update_datatable_and_dependent_keys <- function(
       # desparate attempt 1: check the previously saved data
       fk_vals <- fk_table %>% pull(!!dep_pk)
       if (is.na(val)) {
-        fk_val <- fk_table[fk_vals == dep_pk_val[[1]],] %>% pull(!!pk)
+        fk_val <- fk_table[fk_vals == dep_pk_val[[1]],] %>% pull(!!dependent_key)
 
         if (isFALSE(is.na(fk_val))) {
           old_vals <- pk_link %>% pull(!!reference_col_old)
-          val <- pk_link[old_vals == fk_val, 2][[1]]
+          find_val <- old_vals == fk_val
+          if (any(find_val)) {
+            val <- pk_link[find_val, 2][[1]]
+          }
         }
       }
 
@@ -544,7 +578,7 @@ update_datatable_and_dependent_keys <- function(
       }
 
       update_string <- glue::glue("
-        UPDATE {get_namestring(deptab)}
+        UPDATE {mnmdb$get_namestring(deptab)}
           SET {dependent_key} = {val}
         WHERE {dep_pk} = {dep_pk_val}
         ;
@@ -561,7 +595,7 @@ update_datatable_and_dependent_keys <- function(
     # execute the update commands.
     message(
       glue::glue(
-        "Updating {dependent_key} of {deptab} (N={length(update_command)})."
+        "Updating {dependent_key} to {pk} of {deptab} (N={length(update_command)})."
       )
     )
 
@@ -572,7 +606,7 @@ update_datatable_and_dependent_keys <- function(
   } # /loop dependent tables
 
 
-} #/update_datatable_and_dependent_keys
+} #/upload_data_and_update_dependencies
 
 
 
@@ -629,18 +663,28 @@ parametrize_cascaded_update <- function(mnmdb) {
 
     ## (0) check that characteristic columns are UNIQUE:
     # the char. columns of the data to upload
-    new_characteristics <- new_data %>%
+    new_characteristics <- new_data
+    if (mnmdb$is_spatial(table_label)) {
+      new_characteristics <- new_characteristics %>%
+        sf_to_df()
+    }
+
+    new_characteristics <- new_characteristics %>%
       select(!!!characteristic_columns) %>%
       distinct()
     stopifnot("Error: characteristic columns are not characteristic!" =
       nrow(new_data) == nrow(new_characteristics))
 
-
-    new_data_raw <- new_data
-
     # existing content
     prior_content <- mnmdb$query_table(table_label)
+    if (mnmdb$is_spatial(table_label)) {
+      prior_sf <- prior_content %>% sf_to_df
+      # prior_content <- prior_content %>% sf_to_df
+      # # (geometry columns should not be relevant for uniqueness)
+      prior_content <- sf::st_drop_geometry(prior_content)
+    }
     # head(prior_content)
+    # # TODO this just turned up a duplicate
     # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
 
@@ -653,20 +697,24 @@ parametrize_cascaded_update <- function(mnmdb) {
       subset_columns <- subset_columns[
         (!(subset_columns %in% index_columns))
         | (subset_columns %in% names(new_data))
+        & !(subset_columns %in% c("wkb_geometry", "geometry"))
       ]
 
-      existing_unchanged <- prior_content %>%
-        select(!!!subset_columns) %>%
+      prior_content <- prior_content %>%
+        select(!!!subset_columns)
+
+      # "untouched" means: content which is not affected by the update
+      #   (but, though unaffected, must be uploaded again).
+      existing_untouched <- prior_content %>%
         anti_join(
           new_characteristics,
           by = join_by(!!!characteristic_columns)
         )
       # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
       # new_characteristics %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
-      # existing_unchanged %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+      # existing_untouched %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
       existing_removed <- prior_content %>%
-        select(!!!subset_columns) %>%
         semi_join(
           new_characteristics,
           by = join_by(!!!characteristic_columns)
@@ -674,27 +722,43 @@ parametrize_cascaded_update <- function(mnmdb) {
       # existing_removed %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
       if (verbose) {
-        message(glue::glue("  {nrow(existing_unchanged)} rows will be retained."))
+        message(glue::glue("  N = {nrow(new_data)} rows provided for update."))
         if (nrow(existing_removed) > 0) {
-          message(glue::glue("  {nrow(existing_removed)} rows changed, potential info LOST."))
+          message(glue::glue(
+            "  {nrow(existing_removed)} were already present -> transient backup gets dumped."
+          ))
           now <- format(Sys.time(), "%Y%m%d%H%M")
           write.csv(
             existing_removed,
-            glue::glue("dumps/lost_changerows_{table_key}_{now}.csv"),
+            glue::glue("dumps/lost_changerows_{table_label}_{now}.csv"),
             row.names = FALSE
           )
         }
+        message(glue::glue("  {nrow(existing_untouched)} other rows will be retained."))
       }
+
+      # revert to spatial in case the data is spatial (need coords)
+      if (mnmdb$is_spatial(table_label)) {
+
+        existing_untouched <- prior_sf %>%
+          semi_join(existing_untouched) %>%
+          df_to_sf(coords = c("x", "y"), crs = 31370)
+
+        sf::st_geometry(existing_untouched) <- "wkb_geometry"
+      }
+
 
       # combine existing and new data
       new_data <- bind_rows(
-          existing_unchanged,
+          existing_untouched,
           new_data
         ) %>%
         distinct()
       # new_data %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
     } else {
-      message(glue::glue("  Tabula rasa: no rows will be retained."))
+      message(glue::glue(
+        "  Tabula rasa: no rows will be retained, then {nrow(new_data)} uploaded anew."
+      ))
     }
 
     ## do not upload index columns
@@ -709,10 +773,10 @@ parametrize_cascaded_update <- function(mnmdb) {
     tryCatch({
       ### update datatable, propagating/cascading new keys to other's fk
 
-      update_datatable_and_dependent_keys(
+      upload_data_and_update_dependencies(
         mnmdb,
         table_label = table_label,
-        new_data = new_data,
+        data_replacement = new_data,
         characteristic_columns = characteristic_columns,
         skip_sequence_reset = skip_sequence_reset,
         verbose = verbose
@@ -728,19 +792,20 @@ parametrize_cascaded_update <- function(mnmdb) {
       invisible(
         mnmdb$restore_table_data_from_memory(table_content_storage)
       )
-      return(NA)
-    })
+
+      stop("Stopping: something went wrong in cascaded update.")
+    }) # /tryCatch update
 
 
     lookup_deptab <- mnmdb$query_columns(
-      table_key,
+      table_label,
       c(characteristic_columns, index_columns)
       )
 
     if (verbose){
       message(sprintf(
         "%s: %i rows uploaded, were %i existing judging by '%s'.",
-        mnmdb$get_namestring,
+        mnmdb$get_namestring(table_label),
         nrow(new_data),
         nrow(prior_content),
         paste0(characteristic_columns, collapse = ", ")
@@ -749,7 +814,7 @@ parametrize_cascaded_update <- function(mnmdb) {
 
     return(lookup_deptab)
 
-  } # /update_cascade_lookup
+  } # /ucl_function
 
   return(ucl_function)
 } # /parametrize_cascaded_update
