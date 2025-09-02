@@ -738,7 +738,7 @@ parametrize_cascaded_update <- function(mnmdb) {
       }
 
       # revert to spatial in case the data is spatial (need coords)
-      if (mnmdb$is_spatial(table_label)) {
+      if (mnmdb$is_spatial(table_label) && (nrow(existing_untouched) > 0) ) {
 
         existing_untouched <- prior_sf %>%
           semi_join(existing_untouched) %>%
@@ -749,10 +749,13 @@ parametrize_cascaded_update <- function(mnmdb) {
 
 
       # combine existing and new data
+      if (nrow(existing_untouched) > 0) {
       new_data <- bind_rows(
           existing_untouched,
           new_data
-        ) %>%
+        )
+      }
+      new_data <- new_data %>%
         distinct()
       # new_data %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
     } else {
@@ -812,7 +815,7 @@ parametrize_cascaded_update <- function(mnmdb) {
       ))
     }
 
-    return(lookup_deptab)
+    return(invisible(lookup_deptab))
 
   } # /ucl_function
 
