@@ -28,6 +28,12 @@
 
 # SQL Basics
 # > execute_sql(mnmdb, sql_command, verbose = TRUE) -> invisible(result)
+# > dump_all <- function(
+#     config_filepath, database_to_dump, target_filepath,
+#     connection_profile = "dumpall", exclude_schema = NULL) -> [file]
+# > append_tabledata <- function(
+#     db_connection, table_id, data_to_append,
+#     characteristic_columns = NA, verbose = TRUE ) -> [sql]
 #
 # Database Structure
 # > read_table_relations_config(storage_filepath) -> relation_lookup
@@ -52,6 +58,8 @@
 #   - db$user
 #   - db$shellstring
 #   - db$connection
+#   - db$execute_sql(self, ...) -> [reparametrization]
+#   - db$dump_all(self, ...) -> [reparametrization]
 # > mnmdb_assemble_structure_lookups(db) -> db
 #   - db$tables
 #   - db$table_relations
@@ -59,14 +67,13 @@
 #   - db$get_schema(table_label) -> character
 #   - db$get_namestring(table_label) -> character
 #   - db$get_table_id(table_label) -> DBI::Id
-#   - db$get_dependent_tables(table_key) -> c(key, df)
 #   - db$get_table_id_lowercase(table_key) -> DBI::Id
+#   - db$get_dependent_tables(table_key) -> c(key, df)
 #   - db$get_dependent_table_ids(table_key) -> list(DBI::Id)
 #   - db$load_table_info(table_label) -> df(table info)
 #   - db$get_characteristic_columns(table_label) -> c(column names)
 #   - db$get_primary_key(table_label) -> character(pk)
 # > mnmdb_assemble_query_functions(db) -> db
-#   - db$execute_sql(...) -> rs
 #   - db$query_columns(table_label, select_columns) -> df(columns)
 #   - db$pull_column(table_label, select_column) -> c()
 #   - db$is_spatial(table_key) -> bool
@@ -580,7 +587,9 @@ mnmdb_assemble_structure_lookups <- function(db) {
   # db$get_schema("GroupedActivities")
 
   # get namestring as used in direct SQL queries
-  db$get_namestring <- function(table_label) glue::glue('"{db$get_schema(table_label)}"."{table_label}"')
+  db$get_namestring <- function(table_label) glue::glue(
+    '"{db$get_schema(table_label)}"."{table_label}"'
+  )
   # db$get_namestring("TeamMembers")
 
   # get table Id as used DBI/dbplyr queries
@@ -838,13 +847,15 @@ mnmdb_assemble_query_functions <- function(db) {
   #   involves key resetting
   #   and the usual "delete / append" strategy
   db$restore_table_data_from_memory <- function(table_content_storage, verbose = TRUE) {
-    restore_ <- function(tabledata_list) {
-      # tabledata_list <- table_content_storage[1]
+    # table_content_storage <- store
 
-      table_label <- names(tabledata_list)
+    restore_ <- function(idx) {
+      # idx <- 1
+
+      table_label <- names(table_content_storage)[[idx]]
       schema <- db$get_schema(table_label)
       table_id <- db$get_table_id(table_label)
-      table_data <- tabledata_list[[table_label]]
+      table_data <- table_content_storage[[idx]]
 
       if (is.scalar.na(table_data) || (nrow(table_data) < 1)) {
         message("no data to restore.")
@@ -857,7 +868,7 @@ mnmdb_assemble_query_functions <- function(db) {
       # Note that I neglect dependent table here, since they will be re-uploaded after
       # delete from table
       db$execute_sql(
-        glue::glue("DELETE FROM {table_label};"),
+        glue::glue("DELETE FROM {db$get_namestring(table_label)};"),
         verbose = verbose
       )
 
@@ -875,7 +886,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
     # list-restore
     invisible(
-      lapply(table_content_storage, FUN = restore_)
+      lapply(seq_len(length(table_content_storage)), FUN = restore_)
     )
 
     return(invisible(NULL))
