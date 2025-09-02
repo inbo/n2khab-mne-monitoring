@@ -84,6 +84,7 @@
 #   - db$store_table_deptree_in_memory(table_label) -> list("label", "data")
 #   - db$restore_table_data_from_memory(table_content_storage, verbose)
 #   - db$insert_data(table_label, new_data)
+#   - db$delete_unused(table_label, sql_filter_unused)
 
 #_______________________________________________________________________________
 ### SQL BASICS
@@ -157,7 +158,7 @@ dump_all <- function(
   config <- configr::read.config(file = config_filepath)[[connection_profile]]
 
   dump_connection <- connect_database_configfile(
-    config_filepath <- config_filepath,
+    config_filepath = config_filepath,
     database = database_to_dump,
     profile = connection_profile,
     password = NA
@@ -514,8 +515,12 @@ connect_mnm_database <- function(
     db[[cfg]] <- config[[cfg]]
   }
 
-  # shell string for psql use
-  db$shellstring <- glue::glue("-U {db$user} -h {db$host} -p {db$port} -d {db$database}")
+  # args can overwrite config and must be stored correctly
+  args <- list(...)
+  for (arg in names(args)) {
+    if (arg == "password") next
+    db[[arg]] <- args[[arg]]
+  }
 
   # connect
   # db$connection <- connect_database_configfile(
@@ -537,6 +542,9 @@ connect_mnm_database <- function(
       ...
     )
   }
+
+  # shell string for psql use
+  db$shellstring <- glue::glue("-U {db$user} -h {db$host} -p {db$port} -d {db$database}")
 
   # direct execution
   db$execute_sql <- function(...) {return(execute_sql(db$connection, ...))}
@@ -723,9 +731,13 @@ mnmdb_assemble_query_functions <- function(db) {
   # db$is_spatial("LocationInfos")
 
   db$query_table <- function(table_label) {
+
     table_id <- db$get_table_id(table_label)
     if (db$is_spatial(table_label)) {
-      data <- sf::st_read(db$connection, table_id) %>% collect
+      data <- sf::st_read(db$connection, layer = table_id) %>%
+        select(-ogc_fid) %>%
+        collect
+      sf::st_geometry(data) <- "wkb_geometry"
     } else {
       data <- dplyr::tbl(db$connection, table_id) %>% collect
     }
@@ -876,7 +888,8 @@ mnmdb_assemble_query_functions <- function(db) {
       db$set_sequence_key(table_label)
 
       # append the table data
-      append_tabledata(db$connection, table_id, table_data)
+      db$insert_data(table_label, table_data)
+      # append_tabledata(db$connection, table_id, table_data)
 
       # restore sequence
       db$set_sequence_key(table_label, "max")
@@ -895,17 +908,63 @@ mnmdb_assemble_query_functions <- function(db) {
 
   # insert table data
   db$insert_data <- function(table_label, new_data) {
-    rs <- DBI::dbWriteTable(
-      db$connection,
-      db$get_table_id(table_label),
-      new_data,
-      row.names = FALSE,
-      overwrite = FALSE,
-      append = TRUE,
-      factorsAsCharacter = TRUE,
-      binary = TRUE
-    )
+
+    # ? geometry // spatial data
+    if (db$is_spatial(table_label)) {
+      ## insert spatial data
+      sf::st_geometry(new_data) <- "wkb_geometry"
+      new_data <- sf::st_as_sf(new_data)
+
+      if ("ogc_fid" %in% names(new_data)) {
+        # do not upload this technical location key
+        new_data <- new_data %>% select(-ogc_fid)
+      }
+
+      rs <- sf::st_write(
+        new_data,
+        db$connection,
+        db$get_table_id(table_label),
+        row.names = FALSE,
+        delete_layer = FALSE, # "overwrite"
+        append = TRUE,
+        factorsAsCharacter = TRUE,
+        binary = TRUE
+      )
+
+    } else {
+
+      # regular, non-geometry data
+      rs <- DBI::dbWriteTable(
+        db$connection,
+        db$get_table_id(table_label),
+        new_data,
+        row.names = FALSE,
+        overwrite = FALSE,
+        append = TRUE,
+        factorsAsCharacter = TRUE,
+        binary = TRUE
+      )
+    }
+
     return(invisible(rs))
+  }
+
+  # remove all rows which have not noticably changed from their inception state
+  db$delete_unused <- function(table_label, sql_filter_unused) {
+
+    maintenance_users <- paste(
+      c("update", "maintenance", db$user),
+      collapse = "', '"
+    )
+
+    cleanup_query <- glue::glue(
+      "DELETE FROM {db$get_namestring(table_label)}
+        WHERE log_user IN ('{maintenance_users}')
+          AND {sql_filter_unused}
+      ;" # landowner will be script-updated (outbound)
+    )
+
+    db$execute_sql(cleanup_query, verbose = TRUE)
   }
 
 

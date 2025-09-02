@@ -1,26 +1,25 @@
 # DO NOT MODIFY
 # this file is "tangled" automatically from `030_copy_database.org`.
 
-library("dplyr")
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
 
-migrating_table_key <- "Protocols"
-migrating_table <- DBI::Id(schema = "metadata", table = migrating_table_key)
+migrating_table_label <- "Protocols"
 
-source_db_connection <- connect_database_configfile(
-  config_filepath = file.path("./inbopostgis_server.conf"),
-  profile = "loceval-dev",
-  database = "loceval_dev"
+config_filepath <- file.path("./inbopostgis_server.conf")
+
+source_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = "loceval-dev"
 )
 
-protocols_data <- dplyr::tbl(
-    source_db_connection,
-    migrating_table
-  ) %>%
-  collect() # collecting is necessary to modify offline and to re-upload
+source_data <- source_db$query_table(migrating_table_label)
 
-dplyr::glimpse(protocols_data)
+dplyr::glimpse(source_data)
 
 #_______________________________________________________________________________
 ### ENTER YOUR CODE here to modify the data!
@@ -29,18 +28,15 @@ sort_protocols <- function(prt) {
   prt <- prt %>% dplyr::arrange(dplyr::desc(protocol))
   return(prt)
 }
-protocols_data <- sort_protocols(protocols_data)
+source_data <- sort_protocols(source_data)
 
-protocols_data <- protocols_data %>%
+source_data <- source_data %>%
   select(-protocol_id)
 #_______________________________________________________________________________
 
-update_datatable_and_dependent_keys(
-  config_filepath = file.path("./inbopostgis_server.conf"),
-  working_dbname = "loceval_testing",
-  table_key = migrating_table_key,
-  new_data = protocols_data,
-  profile = "loceval-testing",
-  dbstructure_folder = "loceval_db_structure",
+upload_data_and_update_dependencies(
+  source_db,
+  table_label = migrating_table_label,
+  data_replacement = source_data,
   verbose = FALSE
 )

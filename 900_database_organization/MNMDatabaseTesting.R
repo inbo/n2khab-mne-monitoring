@@ -24,11 +24,16 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 
 test_db <- connect_mnm_database(
   config_filepath,
-  database_mirror = "loceval-dev"
+  database_mirror = "loceval-staging"
 )
+print(test_db$shellstring)
+
+update_cascade_testing <- parametrize_cascaded_update(test_db)
 
 
-update_cascade_loceval <- parametrize_cascaded_update(test_db)
+# SELECT * FROM "metadata"."Locations" WHERE grts_address = 871030;
+# SELECT * FROM "outbound"."SampleUnits" WHERE grts_address = 871030;
+# SELECT * FROM "outbound"."FieldActivityCalendar" WHERE grts_address = 871030;
 
 #_______________________________________________________________________________
 ### basic database connection functions in place?
@@ -154,5 +159,53 @@ query_tests(test_db)
 
 #_______________________________________________________________________________
 
-# store <- mnmdb$store_table_deptree_in_memory("Locations")
+## unclear whether this does not kill the ID links of
+#   indirectly dependent tables. -> tests
+# table_label <- "Locations"
+# store <- test_db$store_table_deptree_in_memory("Locations")
+tablab <- "Locations"
+tablab <- "LocationCells"
+tablab <- "Coordinates"
+tablab <- "LocationInfos"
+tablab <- "SampleUnits"
+tablab <- "MHQPolygons"
+tablab <- "LocationAssessments"
+tablab <- "Visits"
+test_db$query_table(tablab)
+
+ table_label <- tablab
+ table_id <- test_db$get_table_id(table_label)
+ dplyr::tbl(test_db$connection, table_id)
+
+#
 # mnmdb$restore_table_data_from_memory(store)
+
+#_______________________________________________________________________________
+### spatial tables
+test_spatial <- function(mnmdb) {
+  # mnmdb <- test_db
+  table_label <- "FreeFieldNotes"
+  spatial_data <- mnmdb$query_table(table_label)
+  # spatial_data %>% count(grts_address) %>% arrange(desc(n)) # different problem
+
+  update_cascade_testing(
+    table_label,
+    new_data = spatial_data,
+    index_columns = c("fieldnote_id"),
+    characteristic_columns = NULL,
+    tabula_rasa = FALSE,
+    skip_sequence_reset = FALSE,
+    verbose = TRUE
+  )
+}
+
+test_spatial(test_db)
+
+
+#_______________________________________________________________________________
+# cascaded update - TeamMember example
+
+# update_cascade_testing
+
+
+#_______________________________________________________________________________

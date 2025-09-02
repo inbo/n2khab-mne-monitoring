@@ -1,83 +1,35 @@
 # DO NOT MODIFY
 # this file is "tangled" automatically from `030_copy_database.org`.
-#
-#         350 | 6
-#            680 |
-#            667 |
-#            686 |
-#            669 |
-#            674 |
-#         243 | 5
-#            677 |
-#            683 |
-#            668 |
-#            672 |
-#         265 | 5
-#            681 |
-#            687 |
-#            670 |
-#            675 |
-#         325 | 4
-#            676 |
-#            682 |
-#            671 |
-#         647 | 4
-#            678 |
-#            684 |
-#            673 |
-#         469 | 3
-#            679 |
-#            685 |
 
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id =
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 667;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 668;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 669;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 670;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 671;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 672;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 673;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 674;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 675;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 676;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 677;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 678;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 679;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 680;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 681;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 682;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 683;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 684;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 685;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 686;
-#DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 687;
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
 
-library("dplyr")
+source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
-# keyring::key_set("DBPassword", "db_user_password") # <- for source database
-
-database_label <- "mnmgwdb"
-# database_label <- "loceval"
-target_mirror <- "testing"
+# keyring::key_set("DBPassword", "db_user_password")
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
-dbstructure_folder <- glue::glue("{database_label}_dev_structure")
+
+# database_label <- "mnmgwdb"
+database_label <- "loceval"
+source_mirror <- glue::glue("{database_label}")
+target_mirror <- glue::glue("{database_label}-dev")
+
 
 # from source...
-source_db_connection <- connect_database_configfile(
-  config_filepath = config_filepath,
-  profile = database_label,
+source_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = source_mirror,
   user = "monkey",
   password = NA
 )
 
+
 # ... to target
-target_db_name <- glue::glue("{database_label}_{target_mirror}")
-target_connection_profile <- glue::glue("{database_label}-{target_mirror}")
-target_db_connection <- connect_database_configfile(
-  config_filepath = config_filepath,
-  profile = target_connection_profile
+target_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = target_mirror
 )
 
 # TODO limitation: we should leave the primary and foreign keys unchanged!
@@ -107,51 +59,45 @@ table_modification <- c(
 
 #_______________________________________________________________________________
 
-copy_over_single_table <- function(table_key, new_data) {
+copy_over_single_table <- function(table_label, new_data, ...) {
+  # parametrization of the `upload_data_and_update_dependencies` functions
   # just to make the loop code below look a little less convoluted.
 
   # push the update
-  update_datatable_and_dependent_keys(
-    config_filepath = config_filepath,
-    working_dbname = target_db_name,
-    table_key = table_key,
-    new_data = new_data,
-    profile = target_connection_profile,
-    dbstructure_folder = dbstructure_folder,
-    db_connection = target_db_connection,
-    verbose = FALSE
+  upload_data_and_update_dependencies(
+    target_db,
+    table_label = table_label,
+    data_replacement = new_data,
+    verbose = FALSE,
+    ...
   )
 
 }
 
-table_list_file <- file.path(glue::glue("{dbstructure_folder}/TABLES.csv"))
+table_list_file <- file.path(glue::glue("{source_db$folder}/TABLES.csv"))
 table_list <- read.csv(table_list_file)
 
-process_db_table_copy <- function(table_idx){
+process_db_table_copy <- function(table_idx) {
 
   table_schema <- table_list[[table_idx, "schema"]]
-  table_key <- table_list[[table_idx, "table"]]
+  table_label <- table_list[[table_idx, "table"]]
   table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
 
-  print(table_list[[table_idx, "excluded"]])
+  # print(table_list[[table_idx, "excluded"]])
 
   if (table_exclusion) return()
 
-  print(glue::glue("processing {table_schema}.{table_key}"))
+  print(glue::glue("processing {table_schema}.{table_label}"))
 
   # download
-  source_data <- dplyr::tbl(
-      source_db_connection,
-      DBI::Id(schema = table_schema, table = table_key)
-    ) %>%
-    collect() # collecting is necessary to modify offline and to re-upload
+  source_data <- source_db$query_table(table_label)
 
   # modify
-  if (table_key %in% names(table_modification)){
-    source_data <- table_modification[[table_key]](source_data)
+  if (table_label %in% names(table_modification)){
+    source_data <- table_modification[[table_label]](source_data)
   }
 
-  copy_over_single_table(table_key, source_data)
+  copy_over_single_table(table_label, source_data)
 
 }
 
@@ -159,11 +105,10 @@ process_db_table_copy <- function(table_idx){
 #      Updating would be cumbersome.
 constraints_mod <- function(do = c("DROP", "SET")){
 
-  toggle_null_constraint <- function(schema, table_key, column){
+  toggle_null_constraint <- function(schema, table_label, column){
     # {dis/en}able fk for these tables
-    execute_sql(
-      target_db_connection,
-      glue::glue('ALTER TABLE "{schema}"."{table_key}" ALTER COLUMN {column} {do} NOT NULL;'),
+    target_db$execute_sql(
+      glue::glue('ALTER TABLE "{schema}"."{table_label}" ALTER COLUMN {column} {do} NOT NULL;'),
       verbose = FALSE
     ) # /sql
   } # /toggle_mod
@@ -171,8 +116,8 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
   if (database_label == "loceval") {
     # To prevent failure, I temporarily remove the constraint.
-    for (table_key in c("LocationAssessments", "SampleUnits", "LocationInfos")){
-      toggle_null_constraint("outbound", table_key, "location_id")
+    for (table_label in c("LocationAssessments", "SampleUnits", "LocationInfos")){
+      toggle_null_constraint("outbound", table_label, "location_id")
     } # /loop
 
     toggle_null_constraint("inbound", "Visits", "location_id")
@@ -181,8 +126,8 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
   if (database_label == "mnmgwdb") {
     # To prevent failure, I temporarily remove the constraint.
-    for (table_key in c("SampleLocations", "LocationInfos")){
-      toggle_null_constraint("outbound", table_key, "location_id")
+    for (table_label in c("SampleLocations", "LocationInfos")){
+      toggle_null_constraint("outbound", table_label, "location_id")
     } # /loop
 
     toggle_null_constraint("inbound", "Visits", "location_id")
@@ -195,6 +140,6 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
 constraints_mod("DROP")
 
-invisible(lapply(1:nrow(table_list), FUN = process_db_table_copy))
+invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
 
 constraints_mod("SET")
