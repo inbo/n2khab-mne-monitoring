@@ -741,6 +741,8 @@ mnmdb_assemble_query_functions <- function(db) {
     } else {
       data <- dplyr::tbl(db$connection, table_id) %>% collect
     }
+    data <- data %>% as_tibble
+
     return(data)
   }
   # db$query_table("FreeFieldNotes") %>% head(2) %>% t() %>% knitr::kable()
@@ -757,6 +759,10 @@ mnmdb_assemble_query_functions <- function(db) {
 
   # all dependent lookup columns
   db$lookup_dependent_columns <- function(table_label, deptab_label) {
+    # db <- mnmdb
+    # deptab_label <- dependent_tables[[1]]
+
+    if (table_label == deptab_label) return(NA)
 
     # with a little help from my Python
     deptab_pk <- db$get_primary_key(deptab_label)
@@ -903,22 +909,29 @@ mnmdb_assemble_query_functions <- function(db) {
     )
 
     return(invisible(NULL))
-  }
+  } # /restore_table_data_from_memory
 
 
   # insert table data
   db$insert_data <- function(table_label, new_data) {
 
+    if ("ogc_fid" %in% names(new_data)) {
+      # do not upload this technical location key
+      new_data <- new_data %>% select(-ogc_fid)
+    }
+
     # ? geometry // spatial data
+    # TODO maybe this is not even necessary if we have a tibble
     if (db$is_spatial(table_label)) {
       ## insert spatial data
-      sf::st_geometry(new_data) <- "wkb_geometry"
-      new_data <- sf::st_as_sf(new_data)
-
       if ("ogc_fid" %in% names(new_data)) {
         # do not upload this technical location key
         new_data <- new_data %>% select(-ogc_fid)
       }
+
+      new_data <- sf::st_as_sf(new_data)
+      sf::st_geometry(new_data) <- "wkb_geometry"
+
 
       rs <- sf::st_write(
         new_data,

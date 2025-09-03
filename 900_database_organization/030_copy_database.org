@@ -262,7 +262,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 
 # database_label <- "mnmgwdb"
 database_label <- "loceval"
-source_mirror <- glue::glue("{database_label}")
+source_mirror <- glue::glue("{database_label}-staging")
 target_mirror <- glue::glue("{database_label}-dev")
 
 
@@ -273,6 +273,7 @@ source_db <- connect_mnm_database(
   user = "monkey",
   password = NA
 )
+# source_db$shellstring
 
 
 # ... to target
@@ -280,6 +281,7 @@ target_db <- connect_mnm_database(
   config_filepath,
   database_mirror = target_mirror
 )
+# target_db$shellstring
 
 #+end_src
 
@@ -353,25 +355,27 @@ table_list <- read.csv(table_list_file)
 
 process_db_table_copy <- function(table_idx) {
 
-  table_schema <- table_list[[table_idx, "schema"]]
   table_label <- table_list[[table_idx, "table"]]
-  table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
+  # table_label <- "ReplacementCells"
 
   # print(table_list[[table_idx, "excluded"]])
-
+  table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
   if (table_exclusion) return()
 
-  print(glue::glue("processing {table_schema}.{table_label}"))
+  print(glue::glue("processing {target_db$get_namestring(table_label)}"))
 
   # download
   source_data <- source_db$query_table(table_label)
 
   # modify
   if (table_label %in% names(table_modification)){
-    source_data <- table_modification[[table_label]](source_data)
+    new_data <- table_modification[[table_label]](source_data)
+  } else {
+    # ... unless there is nothing to modify
+    new_data <- source_data
   }
 
-  copy_over_single_table(table_label, source_data)
+  copy_over_single_table(table_label, new_data)
 
 }
 
