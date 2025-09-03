@@ -1,98 +1,72 @@
 
-library("dplyr")
-library("tidyr")
-library("stringr")
-library("purrr")
-library("lubridate")
-library("sf")
-library("terra")
-library("n2khab")
-library("googledrive")
-library("readr")
-library("glue")
-library("rprojroot")
-library("keyring")
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
 
+source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
+# keyring::key_set("DBPassword", "db_user_password")
 
-projroot <- find_root(is_rstudio_project)
+# credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
+
+# TODO this does not yet work for `loceval` (based on SampleLocations)
+database_label <- "mnmgwdb"
 
 testing <- FALSE
 if (testing) {
-  suffix <- "staging" # "testing"
-  working_dbname <- glue::glue("mnmgwdb_{suffix}")
-  connection_profile <- glue::glue("mnmgwdb-{suffix}")
-  dbstructure_folder <- "./mnmgwdb_db_structure"
+  suffix <- "-staging" # "-testing"
 } else {
-  # source("094_replaced_LocationCells.R")
+  suffix <- ""
   keyring::key_set("DBPassword", "db_user_password") # <- for source database
-  working_dbname <- "mnmgwdb"
-  connection_profile <- "mnmgwdb"
-  dbstructure_folder <- "./mnmgwdb_db_structure"
+
 }
 
 
 ### connect to database
-config <- configr::read.config(file = config_filepath)[[connection_profile]]
-db_connection <- connect_database_configfile(
+mnmdb <- connect_mnm_database(
   config_filepath,
-  database = working_dbname,
-  profile = connection_profile
+  database_mirror = glue::glue("{database_label}{suffix}")
 )
+message(mnmdb$shellstring)
 
-
+## ----poc-data-----------------------------------------------------------------
 # re-load POC data
-poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
-load(poc_rdata_path)
+load_poc_common_libraries()
+load_poc_rdata(reload = FALSE, to_env = globalenv())
 
-# re-run code
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R")
-invisible(capture.output(source("050_snippet_selection.R")))
-source("051_snippet_transformation_code.R")
+# ... and code snippets.
+snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+load_poc_code_snippets(snippets_path)
+
+verify_poc_objects()
 
 
 ## ----update-propagate-lookup--------------------------------------------------
 # just a convenience function to pass arguments to recursive update
 
-update_cascade_lookup <- parametrize_cascaded_update(
-  config_filepath,
-  working_dbname,
-  connection_profile,
-  dbstructure_folder,
-  db_connection
-)
+update_cascade_lookup <- parametrize_cascaded_update(mnmdb)
 
 
 ### query true activity calendar
 
 # TODO anti-join to find missing slocs
-samplelocations_lookup <- dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "outbound", table = "SampleLocations")
-  ) %>%
-  select(samplelocation_id, grts_address) %>%
-  collect
+samplelocations_lookup <- mnmdb$query_columns(
+    table_label = "SampleLocations",
+    select_columns = c("samplelocation_id", "grts_address")
+  )
 
 
-grouped_activities <- dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "metadata", table = "GroupedActivities")
-  ) %>% collect
+grouped_activities <- mnmdb$query_table("GroupedActivities")
 
 
 gw_field_activities <- grouped_activities %>%
   filter(is_gw_activity, is_field_activity) %>%
   distinct(activity_group)
 
-activity_groupid_lookup <-
-  dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "metadata", table = "GroupedActivities"),
-  ) %>%
-  distinct(activity_group, activity_group_id) %>%
-  collect()
+activity_groupid_lookup <- mnmdb$query_columns(
+    table_label = "GroupedActivities",
+    select_columns = c("activity_group", "activity_group_id")
+  ) %>% distinct()
 
 
 # fieldwork_2025_prioritization_by_stratum %>%
@@ -168,10 +142,7 @@ if (FALSE) {
     ) %>%
     select(samplelocation_id, stratum_scheme_ps_targetpanels) %>%
     left_join(
-      dplyr::tbl(
-        db_connection,
-        DBI::Id(schema = "metadata", table = "SSPSTaPas")
-      ) %>% collect(),
+      mnmdb$query_table("SSPSTaPas"),
       by = join_by(stratum_scheme_ps_targetpanels)
     ) %>%
     distinct()
@@ -215,7 +186,7 @@ if (FALSE) {
 
 
 # check errors in the sample units
-if(FALSE){
+if(FALSE) {
 sample_units <-
   fag_stratum_grts_calendar %>%
   distinct(
@@ -248,35 +219,21 @@ sample_units %>% filter(grts_address == 23238)
 ### query previous calendar
 ## ----save-previous-FACs----------------------------------------------
 
-table_str <- '"outbound"."FieldworkCalendar"'
-# table_str_visits <- '"inbound"."Visits"'
-
-previous_calendar_plans <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "FieldworkCalendar"),
-  ) %>%
+previous_calendar_plans <- mnmdb$query_table("FieldworkCalendar") %>%
   left_join(
-    dplyr::tbl(db_connection,
-      DBI::Id(schema = "metadata", table = "SSPSTaPas")),
+    mnmdb$query_table("SSPSTaPas"),
     by = join_by(sspstapa_id)
   ) %>%
   relocate(stratum_scheme_ps_targetpanels, .after = sspstapa_id) %>%
-  select(-sspstapa_id) %>%
-  collect()
+  select(-sspstapa_id)
 
 # glimpse(previous_calendar_plans)
 
 # previous_calendar_plans %>% filter(grts_address == 871030, activity_group_id == 4) %>% t() %>% knitr::kable()
 
-# previous_calendar_plans %>% filter(grts_address == 871030, activity_group_id == 4) %>% t() %>% knitr::kable()
-
 ### select only replaced locations
-replacements <- dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "archive", table = "ReplacementData")
-  ) %>%
-  rename(c("stratum" = "type")) %>%
-  collect
+replacements <- mnmdb$query_table("ReplacementData") %>%
+  rename(c("stratum" = "type"))
 
 # replacements %>%
 #   filter(grts_address_replacement == 871030)
@@ -287,10 +244,6 @@ replacements <- dplyr::tbl(
 # replacements %>% filter(grts_address_replacement == 871030) %>% t() %>% knitr::kable()
 
 fieldwork_calendar <- fieldwork_calendar_raw %>%
-  semi_join(
-    replacements,
-    by = join_by(grts_address, stratum)
-  ) %>%
   inner_join(
     replacements %>%
       select(
@@ -314,7 +267,6 @@ fieldwork_calendar <- fieldwork_calendar_raw %>%
   ) %>%
   select(-new_samplelocation_id, grts_address_replacement)
 
-# --> NOT fine here -> coupled to wrong stratum
 
 ### find calendar entries which are not in the calendar any more
 # example *was*:
@@ -342,14 +294,15 @@ obsolete_nonplans <- previous_calendar_plans %>%
     )
   )
 
-message(glue::glue(">>> The following {nrow(obsolete_nonplans)} plans have become obsolete prior to execution; they will be deleted:"))
-obsolete_nonplans %>% t() %>% knitr::kable()
+if (nrow(obsolete_nonplans) > 0) {
+  message(glue::glue(">>> The following {nrow(obsolete_nonplans)} plans have become obsolete prior to execution; they will be deleted:"))
+  obsolete_nonplans %>% t() %>% knitr::kable()
+}
 
 # TODO remove `stratum_scheme_ps_targetpanels` on switch to SampleUnits
 
 sspstapas <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "SSPSTaPas",
+  table_label = "SSPSTaPas",
   new_data = fieldwork_calendar %>%
     distinct(stratum_scheme_ps_targetpanels) %>%
     arrange(stratum_scheme_ps_targetpanels),
@@ -397,7 +350,7 @@ previous_calendar_plans <- previous_calendar_plans %>%
 # find the ones where nothing has been planned
 previous_non_activities <- previous_calendar_plans %>%
   filter(
-    log_user %in% c("update", "maintenance", config$user),
+    log_user %in% c("update", "maintenance", mnmdb$user),
     !excluded,
     is.na(teammember_assigned),
     is.na(date_visit_planned),
@@ -425,13 +378,26 @@ samplelocations <- fieldwork_calendar %>%
   unique
 
 
-prior_visits <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "inbound", table = "Visits"),
-  ) %>%
+prior_visits <- mnmdb$query_table("Visits") %>%
   filter(visit_done) %>%
-  select(fieldworkcalendar_id) %>%
-  collect()
+  select(fieldworkcalendar_id)
+
+# prior_visits %>% filter(!is.na(fieldworkcalendar_id))
+
+# mnmdb$query_table("FieldworkCalendar") %>% head(2) %>% t() %>% knitr::kable()
+# mnmdb$query_table("FieldworkCalendar") %>%
+#   filter(is.na(samplelocation_id))
+# mnmdb$query_table("FieldworkCalendar") %>%
+#   filter(is.na(sspstapa_id))
+#
+# mnmdb$query_table("FieldworkCalendar") %>%
+#   filter(is.na(fieldworkcalendar_id)) %>%
+#   select(visit_id, samplelocation_id, fieldworkcalendar_id)
+# mnmdb$query_table("Visits") %>%
+#   filter(is.na(fieldworkcalendar_id)) %>%
+#   select(visit_id, samplelocation_id, fieldworkcalendar_id)
+
+
 # prior_visits %>% filter(fieldworkcalendar_id %in% c(1161, 1201))
 
 ### TODO loop
@@ -446,7 +412,7 @@ prior_visits <- dplyr::tbl(
 # sloc <- fieldwork_calendar %>% filter(grts_address == 871030) %>% pull(samplelocation_id) %>% unique
 # fieldwork_calendar %>% filter(grts_address == 871030, activity_group_id == 4) %>% t() %>% knitr::kable()
 
-sloc <- 857
+# sloc <- 857
 
 classify_calendar_events <- function(sloc) {
   calendar <- fieldwork_calendar %>%
@@ -634,8 +600,7 @@ update_fieldwork_calendar <- function(to_update) {
 
   # execute the update commands.
   for (rownr in seq_len(length(update_commands))) {
-    execute_sql(
-      db_connection,
+    mnmdb$execute_sql(
       update_commands[[rownr]],
       verbose = TRUE
     )
@@ -651,23 +616,29 @@ update_fieldwork_calendar(to_update)
 
 delete_obsolete_calendar_entries <- function(obsolete) {
   target_namestring <- '"outbound"."FieldworkCalendar"'
-  ids_to_delete <- paste0(obsolete %>% pull(fieldworkcalendar_id), collapse = ',')
+  ids_to_delete <- paste0(
+    obsolete %>%
+    pull(fieldworkcalendar_id),
+    collapse = ','
+  )
 
   # dependent tables must all be cleaned
-  for (target_namestring in
+  for (target_label in
        c(
-         '"inbound"."ChemicalSamplingActivities"',
-         '"inbound"."WellInstallationActivities"',
-         '"inbound"."Visits"',
-         '"outbound"."FieldworkCalendar"'
+         "ChemicalSamplingActivities",
+         "WellInstallationActivities",
+         "Visits",
+         "FieldworkCalendar"
       )) {
 
     message(ids_to_delete)
     if ((length(ids_to_delete) == 0) || (ids_to_delete == "")) next
 
-    execute_sql(
-      db_connection,
-      glue::glue("DELETE FROM {target_namestring} WHERE fieldworkcalendar_id IN ({ids_to_delete});"),
+    mnmdb$execute_sql(
+      glue::glue("
+        DELETE FROM {mnmdb$get_namestring(target_label)}
+        WHERE fieldworkcalendar_id IN ({ids_to_delete});
+        "),
       verbose = TRUE
     )
   }
@@ -693,10 +664,7 @@ insert_new_fieldwork <- function(to_upload) {
   # new_fieldwork_upload %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
 
-  sspstapas <- dplyr::tbl(
-      db_connection,
-      DBI::Id(schema = "metadata", table = "SSPSTaPas")
-    ) %>% collect
+  sspstapas <- mnmdb$query_table("SSPSTaPas")
 
   replace_sspstapa_by_lookup <- function(df) {
     df_new <- df %>%
@@ -729,8 +697,7 @@ insert_new_fieldwork <- function(to_upload) {
 
   if (nrow(fieldwork_calendar_upload) > 0) {
     fieldwork_calendar_lookup <- update_cascade_lookup(
-      schema = "outbound",
-      table_key = "FieldworkCalendar",
+      table_label = "FieldworkCalendar",
       new_data = fieldwork_calendar_upload,
       index_columns = c("fieldworkcalendar_id"),
       characteristic_columns = fieldcalendar_characols,
@@ -743,11 +710,10 @@ insert_new_fieldwork <- function(to_upload) {
 
   ## append new visits
 
-  locations_lookup <- dplyr::tbl(
-      db_connection, DBI::Id("metadata", "Locations")
-    ) %>%
-    select(grts_address, location_id) %>%
-    collect
+  locations_lookup <- mnmdb$query_columns(
+      table_label = "Locations",
+      select_columns = c("grts_address", "location_id")
+    )
 
   new_visits <- fieldwork_calendar_lookup %>%
     select(
@@ -777,73 +743,13 @@ insert_new_fieldwork <- function(to_upload) {
   # visits_upload %>% count(fieldworkcalendar_id)
 
 
-  # RECOVER / correct missing fieldworkcalendar_ids in "Visits"
-  if (FALSE) {
-
-    fieldwork_calendar_lookup <- dplyr::tbl(
-        db_connection,
-        DBI::Id(schema = "outbound", table = "FieldworkCalendar")
-      ) %>%
-      select(
-        !!!c(fieldcalendar_characols, "fieldworkcalendar_id")
-      ) %>%
-      collect
-
-
-    visits_existing <- dplyr::tbl(
-      db_connection,
-      DBI::Id(schema = "inbound", table = "Visits")
-      ) %>% collect
-
-    visits_to_recover <- visits_existing %>%
-      filter(is.na(fieldworkcalendar_id)) %>%
-      select(-fieldworkcalendar_id)
-
-    recovered_visits <- visits_to_recover %>%
-      left_join(
-        fieldwork_calendar_lookup %>%
-          select(samplelocation_id, activity_group_id, date_start, fieldworkcalendar_id),
-        by = join_by(samplelocation_id, activity_group_id, date_start)
-      ) %>%
-      relocate(fieldworkcalendar_id) %>%
-      select(-log_user, -log_update, -visit_id) %>%
-      distinct()
-      # %>% write.csv(glue::glue("dumps/recovering_visits.csv"), row.names = FALSE)
-
-      execute_sql(
-        db_connection,
-        glue::glue('DELETE FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;'),
-        verbose = verbose
-      )
-
-      rs <- DBI::dbWriteTable(
-        db_connection,
-        DBI::Id(schema = "inbound", table = "Visits"),
-        recovered_visits,
-        overwrite = FALSE,
-        append = TRUE
-      )
-
-     visits_upload <- visits_upload %>%
-       anti_join(
-          recovered_visits,
-          by = join_by(
-            fieldworkcalendar_id,
-            samplelocation_id,
-            grts_address,
-            activity_group_id,
-            date_start
-          )
-       )
-  } # /RECOVER visits
 
   # NOTE 20250826 that the "new" visits to upload here already have
   # rows in the Visits table, which somehow lost link to FwCal
 
   if (nrow(visits_upload) > 0) {
     visits_lookup <- update_cascade_lookup(
-      schema = "inbound",
-      table_key = "Visits",
+      table_label = "Visits",
       new_data = visits_upload,
       index_columns = c("visit_id"), # "fieldworkcalendar_id",
       characteristic_columns = visits_characols,
@@ -851,14 +757,10 @@ insert_new_fieldwork <- function(to_upload) {
       verbose = TRUE
     )
   } else {
-    visits_lookup <- dplyr::tbl(
-        db_connection,
-        DBI::Id(schema = "inbound", table = "Visits")
-      ) %>%
-      select(
-        !!!c(visits_characols, "fieldworkcalendar_id", "visit_id")
-      ) %>%
-      collect
+    visits_lookup <- mnmdb$query_columns(
+        table_label = "Visits",
+        select_columns = c(visits_characols, "fieldworkcalendar_id", "visit_id")
+      )
 
   }
 
@@ -904,8 +806,7 @@ insert_new_fieldwork <- function(to_upload) {
 
   if (nrow(wellinstallations_upload) > 0) {
     wellinstallation_lookup <- update_cascade_lookup(
-      schema = "inbound",
-      table_key = "WellInstallationActivities",
+      table_label = "WellInstallationActivities",
       new_data = wellinstallations_upload,
       index_columns = c("fieldwork_id"),
       characteristic_columns = fieldwork_charcols,
@@ -939,9 +840,8 @@ insert_new_fieldwork <- function(to_upload) {
 
 
   if (nrow(chemicalsampling_upload) > 0) {
-    chemicalsampling_lookup <- update_cascade_lookup(
-      schema = "inbound",
-      table_key = "ChemicalSamplingActivities",
+      chemicalsampling_lookup <- update_cascade_lookup(
+      table_label = "ChemicalSamplingActivities",
       new_data = chemicalsampling_upload,
       index_columns = c("fieldwork_id"),
       characteristic_columns = fieldwork_charcols,
@@ -955,7 +855,8 @@ insert_new_fieldwork <- function(to_upload) {
 to_upload %>% filter(grts_address == 871030) %>% knitr::kable()
 
 glimpse(to_upload)
-insert_new_fieldwork(to_upload)
+# insert_new_fieldwork(to_upload)
+insert_new_fieldwork(to_upload %>% select(-domain_part))
 
 
 # SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address IN (1818369, 769793);
@@ -963,3 +864,41 @@ insert_new_fieldwork(to_upload)
 message("________________________________________________________________")
 message("  Finished. Make sure to inspect the log.  ")
 message("________________________________________________________________")
+
+
+# RECOVER / correct missing fieldworkcalendar_ids in "Visits"
+if (FALSE) {
+
+  fieldwork_calendar_lookup <- mnmdb$query_columns(
+    table_label = "FieldworkCalendar",
+    select_columns = c(fieldcalendar_characols, "fieldworkcalendar_id")
+    )
+
+  visits_existing <- mnmdb$query_table("Visits")
+
+  visits_to_recover <- visits_existing %>%
+    filter(is.na(fieldworkcalendar_id)) %>%
+    select(-fieldworkcalendar_id)
+
+  recovered_visits <- visits_to_recover %>%
+    left_join(
+      fieldwork_calendar_lookup %>%
+        select(samplelocation_id, activity_group_id, date_start, fieldworkcalendar_id),
+      by = join_by(samplelocation_id, activity_group_id, date_start)
+    ) %>%
+    relocate(fieldworkcalendar_id) %>%
+    select(-log_user, -log_update, -visit_id) %>%
+    distinct()
+    # %>% write.csv(glue::glue("dumps/recovering_visits.csv"), row.names = FALSE)
+
+    mnmdb$execute_sql(
+      glue::glue('DELETE FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;'),
+      verbose = TRUE
+    )
+
+    mnmdb$insert_data(
+      table_label = "Visits",
+      upload_data = recovered_visits
+    )
+
+} # /RECOVER visits
