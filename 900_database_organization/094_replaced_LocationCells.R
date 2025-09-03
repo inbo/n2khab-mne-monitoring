@@ -1,81 +1,68 @@
 
-library("dplyr")
-library("tidyr")
-library("stringr")
-library("purrr")
-library("lubridate")
-library("sf")
-library("terra")
-library("n2khab")
-library("googledrive")
-library("readr")
-library("glue")
-library("rprojroot")
-library("keyring")
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
 
+source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
+# keyring::key_set("DBPassword", "db_user_password")
 
-projroot <- find_root(is_rstudio_project)
+# credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-testing <- FALSE
+# NOTE: this is not relevant for `loceval`
+database_label <- "mnmgwdb"
+
+testing <- TRUE
 if (testing) {
-  suffix <- "staging" # "testing"
-  working_dbname <- glue::glue("mnmgwdb_{suffix}")
-  connection_profile <- glue::glue("mnmgwdb-{suffix}")
-  dbstructure_folder <- "./mnmgwdb_db_structure"
+  suffix <- "-staging" # "-testing"
 } else {
-  # source("094_replaced_LocationCells.R")
+  suffix <- ""
   keyring::key_set("DBPassword", "db_user_password") # <- for source database
-  working_dbname <- "mnmgwdb"
-  connection_profile <- "mnmgwdb"
-  dbstructure_folder <- "./mnmgwdb_db_structure"
+
 }
 
 
-### connect to databases
-db_connection <- connect_database_configfile(
-  config_filepath,
-  database = working_dbname,
-  profile = connection_profile
+### connect to database
+mnmgwdb <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database_mirror = glue::glue("{database_label}{suffix}")
 )
+message(mnmgwdb$shellstring)
 
-loceval_connection <- connect_database_configfile(
-  config_filepath,
+### connect to databases
+loceval_connection <- connect_mnm_database(
+  config_filepath = config_filepath,
   database = "loceval",
-  profile = "dumpall",
   user = "monkey",
   password = NA
 )
+# message(loceval_connection$shellstring)
 
 
+# replacements <- mnmgwdb$query_columns(
+#   table_label = "ReplacementData",
+#   select_columns = c("grts_address", "grts_address_replacement")
+#   )
 
-# replacements <- dplyr::tbl(
-#     db_connection,
-#     DBI::Id("archive", "ReplacementData")
-#   ) %>%
-#   select(grts_address, grts_address_replacement) %>%
-#   collect
-
-locations_grts <- dplyr::tbl(
-    db_connection,
-    DBI::Id("metadata", "Locations")
-  ) %>%
-  select(grts_address, location_id) %>%
-  collect
+locations_grts <- mnmgwdb$query_columns(
+    table_label = "Locations",
+    select_columns = c("grts_address", "location_id")
+  )
 
 # locations_grts %>% filter(location_id == 527)
 
+## ----poc-data-----------------------------------------------------------------
 # re-load POC data
-poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
-load(poc_rdata_path)
+load_poc_common_libraries()
+load_poc_rdata(reload = FALSE, to_env = globalenv())
 
-# re-run code
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R")
-invisible(capture.output(source("050_snippet_selection.R")))
+# ... and code snippets.
+snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+load_poc_code_snippets(snippets_path)
 
+verify_poc_objects()
 
+## ----location-cells-----------------------------------------------------------------
 
 units_cell_polygon[["grts_address_final"]] <-
   as.integer(units_cell_polygon[["grts_address_final"]])
@@ -101,30 +88,21 @@ location_cells %>%
 message("________________________________________________________________")
 message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
 
-execute_sql(
-  db_connection,
+mnmgwdb$execute_sql(
   glue::glue('DELETE  FROM "metadata"."LocationCells";'),
   verbose = TRUE
 )
 
-append_tabledata(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "LocationCells"),
-  location_cells,
-  reference_columns = "location_id"
+mnmgwdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = location_cells
 )
 
 
-extra_cells <- sf::st_read(
-    loceval_connection,
-    DBI::Id("outbound", "ReplacementCells")
-  ) %>%
-  collect %>%
+extra_cells <- loceval_connection$query_table("ReplacementCells") %>%
   left_join(
-    dplyr::tbl(
-        loceval_connection,
-        DBI::Id("outbound", "Replacements")
-      ) %>% collect %>% select(-ogc_fid, -wkb_geometry),
+    loceval_connection$query_table("Replacements") %>%
+      select(-wkb_geometry),
     by = join_by(replacement_id)
   ) %>%
   rename(grts_address = grts_address_replacement) %>%
@@ -132,14 +110,12 @@ extra_cells <- sf::st_read(
     locations_grts,
     by = join_by(grts_address)
   ) %>%
-  select(location_id) %>%
+  select(location_id, wkb_geometry) %>%
   distinct
 
-append_tabledata(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "LocationCells"),
-  extra_cells,
-  reference_columns = "location_id"
+mnmgwdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = extra_cells
 )
 
 
@@ -151,18 +127,8 @@ append_tabledata(
 # ;
 
 if (FALSE) {
-sample_locations <- dplyr::tbl(
-    db_connection,
-    DBI::Id("outbound", "SampleLocations")
-  ) %>%
-  collect
-
-location_cells <- sf::st_read(
-    db_connection,
-    DBI::Id("metadata", "LocationCells")
-  ) %>%
-  select(-ogc_fid) %>%
-  collect
+sample_locations <- mnmgwdb$query_table("SampleLocations")
+location_cells <- mnmgwdb$query_table("LocationCells") %>% sf::st_as_sf()
 
 mapview::mapview(
   location_cells %>%
