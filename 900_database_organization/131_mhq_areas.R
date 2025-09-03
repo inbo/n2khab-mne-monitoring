@@ -1,57 +1,56 @@
 
-library("dplyr")
-library("tidyr")
-library("stringr")
-library("purrr")
-library("lubridate")
-library("sf")
-library("terra")
-library("n2khab")
-library("googledrive")
-library("readr")
-library("glue")
-library("rprojroot")
-library("keyring")
-library("spbal")
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
 
-library("configr")
-library("DBI")
-library("RPostgres")
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+# keyring::key_set("DBPassword", "db_user_password")
 
-library("mapview")
-# mapviewOptions(platform = "mapdeck")
-
-projroot <- find_root(is_rstudio_project)
+# credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-# testing
-working_dbname <- "loceval"
-connection_profile <- "loceval"
+database_label <- "loceval"
+db_using_locations <- grep("mnmgwdb", database_label)
 
-db_using_locations <- grepl("mnmgwdb", working_dbname)
+testing <- FALSE
+if (testing) {
+  suffix <- "-staging" # "-testing"
+} else {
+  suffix <- ""
+  keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
-config <- configr::read.config(file = config_filepath)[[connection_profile]]
-source("MNMDatabaseToolbox.R")
+}
 
-# database connection
-db_connection <- connect_database_configfile(
+### connect to database
+mnmdb <- connect_mnm_database(
   config_filepath = config_filepath,
-  profile = connection_profile,
-  database = working_dbname
+  database_mirror = glue::glue("{database_label}{suffix}")
 )
+message(mnmdb$shellstring)
+
+### connect to databases
+loceval_connection <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database = "loceval",
+  user = "monkey",
+  password = NA
+)
+# message(loceval_connection$shellstring)
 
 
 if (TRUE){
 ### info from POC
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R")
+load_poc_common_libraries()
+load_poc_rdata(reload = FALSE, to_env = globalenv())
 
-poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
-load(poc_rdata_path)
+# ... and code snippets.
+snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+load_poc_code_snippets(snippets_path)
 
-invisible(capture.output(source("050_snippet_selection.R")))
-source("051_snippet_transformation_code.R")
+verify_poc_objects()
+
 }
+
 
 assessment_lookup <- bind_rows(
   fag_stratum_grts_calendar %>%
@@ -61,6 +60,7 @@ assessment_lookup <- bind_rows(
     distinct(grts_address_final, last_type_assessment_in_field) %>%
     setNames(c("grts_address", "assessed"))
 )
+
 
 
 make_a_point <- function (x, y) t(as.matrix(c(x, y), byrows = TRUE, ncol = 2, nrow = 1))
@@ -83,38 +83,18 @@ make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
 
 ## load SampleLocations
 
-locations_sf <- sf::st_read(
-  db_connection,
-  DBI::Id("metadata", "Locations")
-  ) %>%
-  select(-ogc_fid) %>%
-  collect
+locations_sf <- mnmdb$query_table("Locations") %>%
+  sf::st_as_sf()
 
-if (db_using_locations){
-sample_locations <- dplyr::tbl(
-  db_connection,
-  DBI::Id("outbound", "SampleLocations")
-  ) %>%
-  collect
-
-## load cell maps and join them with nearest locations
-
-
-locations_all <- locations_sf %>%
-  inner_join(
-    sample_locations %>% select(-grts_address),
-    by = join_by(location_id)
-  ) %>%
-  mutate(
-    is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
-  )
+if (db_using_locations) {
+  sample_locations <- mnmdb$query_table("SampleLocations")
+  type_col <- "strata"
 
 } else {
-sample_locations <- dplyr::tbl(
-  db_connection,
-  DBI::Id("outbound", "SampleUnits")
-  ) %>%
-  collect
+  sample_locations <- mnmdb$query_table("SampleUnits")
+  type_col <- "type"
+
+}
 
 ## load cell maps and join them with nearest locations
 locations_all <- locations_sf %>%
@@ -123,10 +103,8 @@ locations_all <- locations_sf %>%
     by = join_by(location_id)
   ) %>%
   mutate(
-    is_forest = stringr::str_detect(type, "^9|^2180|^rbbppm")
+    is_forest = stringr::str_detect(!!!type_col, "^9|^2180|^rbbppm")
   )
-}
-
 
 
 # TODO: work with a subset for testing
@@ -230,7 +208,7 @@ mhq_locationwise <- function(location_row) {
 
 
 mhq_polygons <- lapply(
-  1:nrow(locations),
+  seq_len(nrow(locations)),
   FUN = mhq_locationwise
 )
 close(pb) # close the progress bar
@@ -241,7 +219,7 @@ mhq_polygons <- bind_rows(mhq_polygons)
 ## TODO northing - correct to magnetic north
 mhq_polygons <- mhq_polygons %>%
   mutate(
-    mhqpolygon_id = 1:nrow(mhq_polygons)
+    mhqpolygon_id = seq_len(nrow(mhq_polygons))
   )
 
 mhq_polygons <- mhq_polygons %>% sf::st_cast("POLYGON")
@@ -253,17 +231,14 @@ message("________________________________________________________________")
 message(glue::glue("DELETE/INSERT of outbound.MHQPolygons"))
 
 if (TRUE) {
-  execute_sql(
-    db_connection,
+  mnmdb$execute_sql(
     glue::glue('DELETE FROM "outbound"."MHQPolygons";'),
     verbose = TRUE
   )
 
-  append_tabledata(
-    db_connection,
-    DBI::Id(schema = "outbound", table = "MHQPolygons"),
-    mhq_polygons,
-    reference_columns = "mhqpolygon_id"
+  mnmdb$insert_data(
+    table_label = "MHQPolygons",
+    upload_data = mhq_polygons
   )
 
 }
