@@ -22,6 +22,7 @@ if major updates:
 
 * mainline
 
++ [ ] continue =20250903_missing_871030.sql=
 + [ ] delete =loceval::"outbound"."FieldActivityCalendar".landowner=
 + [ ] there is a duplicate location in loceval: 871030, of course.
 + see chat and mails by placement team for manual adjustments
