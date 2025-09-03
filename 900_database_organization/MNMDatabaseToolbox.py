@@ -706,11 +706,14 @@ class Database(dict):
                     "Recreating BLANK, i.e. without data recovery.",
                     f"Type '{conf_string}' to confirm: \n"
                 ]))
-            if (input_string != conf_string) and (input_string != 'Shut up, just do it.'):
+
+            shutup_check = (input_string.lower() == 'shut up, just do it.') \
+               or (input_string.lower() == 'shut up, just do it!')
+
+            if (input_string != conf_string) and not shutup_check:
                 raise(IOError("Confirmation failed, will not tablua rasa the database."))
 
-            if (input_string == 'Shut up, just do it.') \
-               or (input_string == 'Shut up, just do it!'):
+            if shutup_check:
                 print("Okay, okay. You asked for it.")
                 TI.sleep(2)
                 return
