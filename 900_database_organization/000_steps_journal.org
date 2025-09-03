@@ -1525,6 +1525,36 @@ as well as several recipes to delete missing connections
 yet they return by means of =093_*=
 
 
+* Major R Code Overhaul (202508)
+** Code File Organization
+SCHEDULED: <2025-08-31 Sun>
+
+The former =MNMDatabaseToolbox= has been split into multiple files:
+
++ =MNMLibraryCollection.R=: list of and import functions for common libraries
++ =MNMDatabaseConnection.R= a "sqiss army knife" with tools for databank interaction
++ =MNMDatabaseTesting.R=: collection of tests of the database connection
++ =MNMDatabaseToolbox.R=: scripts for easier upload
++ =MNMCodeCementary.R=: functions which are obsolete, but too good to throw away
+
+** Database Connection
+SCHEDULED: <2025-09-01 Mon>
+
+The database connection starts as a list with all the connection attributes which were there before.
+Then, functions are added for easier database interaction.
+
+Please refer to the "table of contents" in this file.
+
+
+
+** Handling Spatial Tables
+SCHEDULED: <2025-09-03 Wed>
+
+It turns out that handling of spatial data can be simplified by converting
+=sf= objects into =as_tibble=.
+They retain the spatial info but work exactly as tibbles in the conversion.
+
+
 * learning the hard way
 
 ** =dbWriteTable(..., overwrite = TRUE, ...)= is a bad idea!
