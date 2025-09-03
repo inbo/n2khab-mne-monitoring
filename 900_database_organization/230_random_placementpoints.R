@@ -1,67 +1,56 @@
 
-library("dplyr")
-library("tidyr")
-library("stringr")
-library("purrr")
-library("lubridate")
-library("sf")
-library("terra")
-library("n2khab")
-library("googledrive")
-library("readr")
-library("glue")
-library("rprojroot")
-library("keyring")
-library("spbal")
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+library("cimir") %>% suppressPackageStartupMessages()
 
-library("configr")
-library("DBI")
-library("RPostgres")
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+# keyring::key_set("DBPassword", "db_user_password")
 
-library("mapview")
-# mapviewOptions(platform = "mapdeck")
-
-projroot <- find_root(is_rstudio_project)
+# credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-# testing
-working_dbname <- "mnmgwdb"
-connection_profile <- "mnmgwdb"
-# working_dbname <- "mnmgwdb_testing"
-# connection_profile <- "mnmgwdb-testing"
+database_label <- "mnmgwdb"
 
+testing <- FALSE
+if (testing) {
+  suffix <- "-staging" # "-testing"
+} else {
+  suffix <- ""
+  keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
-config <- configr::read.config(file = config_filepath)[[connection_profile]]
-source("MNMDatabaseToolbox.R")
+}
 
-# database connection
-db_connection <- connect_database_configfile(
+### connect to database
+mnmgwdb <- connect_mnm_database(
   config_filepath = config_filepath,
-  profile = connection_profile,
-  database = working_dbname
+  database_mirror = glue::glue("{database_label}{suffix}")
 )
+message(mnmgwdb$shellstring)
 
-# to query latest data from loceval
-# (in this case, CellMaps)
-loceval_connection <- connect_database_configfile(
-  config_filepath,
+### connect to databases
+loceval_connection <- connect_mnm_database(
+  config_filepath = config_filepath,
   database = "loceval",
-  profile = "dumpall",
+  user = "monkey",
   password = NA
 )
+# message(loceval_connection$shellstring)
 
 
 if (TRUE){
 ### info from POC
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
-source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/misc.R")
+load_poc_common_libraries()
+load_poc_rdata(reload = FALSE, to_env = globalenv())
 
-poc_rdata_path <- file.path("./data", "objects_panflpan5.RData")
-load(poc_rdata_path)
+# ... and code snippets.
+snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+load_poc_code_snippets(snippets_path)
 
-invisible(capture.output(source("050_snippet_selection.R")))
-source("051_snippet_transformation_code.R")
+verify_poc_objects()
+
 }
+
 
 assessment_lookup <- bind_rows(
   fag_stratum_grts_calendar %>%
@@ -142,29 +131,16 @@ generate_random_sampling <- function(
 
 ## load SampleLocations
 
-locations_sf <- sf::st_read(
-  db_connection,
-  DBI::Id("metadata", "Locations")
-  ) %>%
-  select(-ogc_fid) %>%
-  collect
+locations_sf <- mnmgwdb$query_table("Locations") %>%
+  sf::st_as_sf()
 
-
-sample_locations <- dplyr::tbl(
-  db_connection,
-  DBI::Id("outbound", "SampleLocations")
-  ) %>%
-  collect
+sample_locations <- mnmgwdb$query_table("SampleLocations")
 
 
 ## load cell maps and join them with nearest locations
 
-cellmaps_sf <- sf::st_read(
-  loceval_connection,
-  DBI::Id("inbound", "CellMaps")
-  ) %>%
-  select(-ogc_fid) %>%
-  collect
+cellmaps_sf <- loceval_connection$query_table("CellMaps") %>%
+  sf::st_as_sf()
 
 nearest <- cellmaps_sf %>%
   sf::st_nearest_feature(locations_sf)
@@ -246,20 +222,32 @@ generate_random_points <- function(
       target_radius = target_radius,
       n_samples = n_samples,
       location_seed = location_seed
-    ) + do.call(rbind, replicate(n_samples, c(cell_center, 0, 0), simplify=FALSE))
-  random_points_sf <- sf::st_as_sf(random_points, coords = c("X", "Y"), crs = 31370)
+    ) +
+    do.call(
+      rbind,
+      replicate(n_samples, c(cell_center, 0, 0), simplify = FALSE)
+    )
+  random_points_sf <- sf::st_as_sf(
+    random_points,
+    coords = c("X", "Y"),
+    crs = 31370
+  )
 
   inside_cell <- random_points_sf[
-      st_intersects(random_points_sf, target_area, sparse = FALSE),
-      ]
+    sf::st_intersects(random_points_sf, target_area, sparse = FALSE),
+    ]
 
-  if ( is_forest && !is_assessed ) {
+  if (is_forest && isFALSE(is_assessed)) {
     outside_mhq <- inside_cell
   } else {
-    outside_mhq <- inside_cell[st_disjoint(inside_cell, mhq_safety, sparse = FALSE), ]
+    outside_mhq <- inside_cell[
+      sf::st_disjoint(inside_cell, mhq_safety, sparse = FALSE)
+      , ]
   }
-  points_in_habitat <- outside_mhq[st_intersects(outside_mhq, cellmap_polygons, sparse = FALSE),]
-  points_in_habitat <- points_in_habitat[1:n_points,]
+  points_in_habitat <- outside_mhq[
+    sf::st_intersects(outside_mhq, cellmap_polygons, sparse = FALSE)
+    , ]
+  points_in_habitat <- points_in_habitat[1:n_points, ]
 
   if (FALSE) {
     mapview(target_area, col.regions = "white") +
@@ -299,7 +287,8 @@ randompoints_locationwise <- function(location_row) {
   one_location <- locations[location_row, ]
   location_seed <- as.integer(one_location$grts_address)
 
-  target_radius <- sqrt(2*16^2) # m
+  target_radius <- sqrt(2 * 16^2) # m
+    # NOTE: r>16 because we include points in the whole cell
   n_samples <- 128
   n_points <- 20
   is_forest <- one_location$is_forest
@@ -346,34 +335,36 @@ randompoints_locationwise <- function(location_row) {
 
 
 all_points <- lapply(
-  1:nrow(locations),
+  seq_len(nrow(locations)),
   FUN = randompoints_locationwise
 )
 close(pb) # close the progress bar
 all_points <- bind_rows(all_points)
 
 
-example_location <- all_points %>%
-  filter(grts_address == 23238)
 
-library("cimir")
-example_location <- example_location %>%
-  mutate(phi2 = -phi + 180, # center right, clockwise 0-360
-         phi3 = (phi2 - 90) %% 360, # center DOWN, clockwise 0-360
-         phi4 = phi3 - 180, # center DOWN, clockwise 0-360
-         phi5 = -(phi+90) %% 360,
-         compass = cimir::cimis_degrees_to_compass(phi5)
-         )
+if (FALSE) {
+  example_location <- all_points %>%
+    filter(grts_address == 23238)
 
-rndpt <- sf::st_coordinates(example_location)
-plot(rndpt)
-text(
-  rndpt[, 1],
-  rndpt[, 2],
-  #example_location %>% pull(phi5), # 1:nrow(rndpt)
-  example_location %>% pull(compass), # 1:nrow(rndpt)
-  pos = 3
-)
+  example_location <- example_location %>%
+    mutate(phi2 = -phi + 180, # center right, clockwise 0-360
+           phi3 = (phi2 - 90) %% 360, # center DOWN, clockwise 0-360
+           phi4 = phi3 - 180, # center DOWN, clockwise 0-360
+           phi5 = -(phi+90) %% 360,
+           compass = cimir::cimis_degrees_to_compass(phi5)
+           )
+
+  rndpt <- sf::st_coordinates(example_location)
+  plot(rndpt)
+  text(
+    rndpt[, 1],
+    rndpt[, 2],
+    #example_location %>% pull(phi5), # 1:nrow(rndpt)
+    example_location %>% pull(compass), # 1:nrow(rndpt)
+    pos = 3
+  )
+}
 
 # https://en.wikipedia.org/wiki/Points_of_the_compass#/media/File:Compass-rose-32-pt.svg
 
@@ -412,17 +403,14 @@ message("________________________________________________________________")
 message(glue::glue("DELETE/INSERT of outbound.RandomPoints"))
 
 if (TRUE) {
-  execute_sql(
-    db_connection,
+  mnmgwdb$execute_sql(
     glue::glue('DELETE FROM "outbound"."RandomPoints";'),
     verbose = TRUE
   )
 
-  append_tabledata(
-    db_connection,
-    DBI::Id(schema = "outbound", table = "RandomPoints"),
-    all_points %>% select(-r, -phi),
-    reference_columns = "randompoint_id"
+  mnmgwdb$insert_data(
+    table_label = "RandomPoints",
+    upload_data = all_points %>% select(-r, -phi)
   )
 
 }
