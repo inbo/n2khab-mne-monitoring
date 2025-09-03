@@ -39,6 +39,8 @@ database_interaction_libraries <- c(
   "DBI",
   "RPostgres",
   "dplyr",
+  "sf",
+  "here",
   "glue"
 )
 load_database_interaction_libraries <- function(

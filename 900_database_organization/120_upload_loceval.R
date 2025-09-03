@@ -12,7 +12,7 @@ source("MNMDatabaseToolbox.R")
 
 tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_poc_rdata(reload = FALSE, to_env = parent.frame())
+load_poc_rdata(reload = FALSE, to_env = globalenv())#parent.frame())
 message(glue::glue("Good morning!
   Loading the POC data took {tic(toc)} seconds today."
 ))
@@ -453,17 +453,21 @@ previous_replacements <- loceval_db$query_table("Replacements") %>%
     | (implications_habitatmap)
     | (!is.na(notes))
   ) %>%
+  filter(!is.na(sampleunit_id)) %>%
   left_join(
     previous_sampleunits,
     by = join_by(sampleunit_id)
   )
 
 if (nrow(previous_replacements) > 0) {
+  # previous_replacements %>% select(starts_with("grts_address"))
+
   replacement_archive_lookup <- update_cascade_lookup(
     table_label = "ReplacementArchives",
     new_data = previous_replacements,
     index_columns = c("replacementarchive_id"),
     characteristic_columns = c(
+      "replacement_id",
       "scheme_ps_targetpanels",
       "type",
       "grts_address",
@@ -546,9 +550,9 @@ loceval_db$execute_sql(
   verbose = TRUE
 )
 
-loceval_db$insert(
- table_label = "LocationCells",
- new_data = location_cells
+loceval_db$insert_data(
+  table_label = "LocationCells",
+  new_data = location_cells
 )
 
 # SELECT LC.ogc_fid, LC.location_id, LOC.grts_address
@@ -663,7 +667,7 @@ loceval_db$execute_sql(
   verbose = TRUE
 )
 
-loceval_db$insert(
+loceval_db$insert_data(
   table_label = "SampleUnitPolygons",
   new_data = sample_polygons
 )
@@ -888,7 +892,7 @@ loceval_db$execute_sql(
   verbose = TRUE
 )
 
-loceval_db$insert(
+loceval_db$insert_data(
   table_label = "ReplacementCells",
   new_data = replacement_cells
 )

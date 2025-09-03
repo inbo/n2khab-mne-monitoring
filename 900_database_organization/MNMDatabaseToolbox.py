@@ -709,7 +709,8 @@ class Database(dict):
             if (input_string != conf_string) and (input_string != 'Shut up, just do it.'):
                 raise(IOError("Confirmation failed, will not tablua rasa the database."))
 
-            if (input_string == 'Shut up, just do it.'):
+            if (input_string == 'Shut up, just do it.') \
+               or (input_string == 'Shut up, just do it!'):
                 print("Okay, okay. You asked for it.")
                 TI.sleep(2)
                 return

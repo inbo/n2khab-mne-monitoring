@@ -20,41 +20,6 @@
 #_______________________________________________________________________________
 # MISC
 
-# convert a spatial data frame to tibble df by cbinding coords
-sf_to_df <- function(spatial_df, coord_names = NA) {
-  # spatial_df <- prior_content
-
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("sf" = require("sf"))
-
-  if (is.na(coord_names)){
-    coord_names <- c("x", "y")
-  }
-
-  df <- cbind(
-    sf::st_drop_geometry(spatial_df),
-    sf::st_coordinates(spatial_df) %>%
-      as_tibble(.name_repair = "minimal") %>%
-      setNames(coord_names)
-   )
-
-  return(df)
-}
-
-# convert a dataframe to spatial, please provide coords and crs!
-df_to_sf <- function(df, ...) {
-
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("sf" = require("sf"))
-
-  spatial_df <- sf::st_as_sf(
-    df,
-    ... # coords, crs
-  )
-
-  return(spatial_df)
-}
-
 
 lookup_join <- function(.data, lookup_tbl, join_column){
   joined_tbl <- .data %>%
@@ -272,6 +237,9 @@ upload_data_and_update_dependencies <- function(
     verbose = TRUE
     ) {
 
+  # mnmdb <- target_db
+  # data_replacement <- new_data
+
   stopifnot("dplyr" = require("dplyr"))
   stopifnot("DBI" = require("DBI"))
   stopifnot("RPostgres" = require("RPostgres"))
@@ -295,6 +263,8 @@ upload_data_and_update_dependencies <- function(
   #     !(dependent_table %in% mnmdb$excluded_tables)
   #   )
 
+  # table_label <- "LocationCells"
+  # table_label <- "Locations"
   dependent_tables <- mnmdb$get_dependent_tables(table_label)
 
 
@@ -317,9 +287,6 @@ upload_data_and_update_dependencies <- function(
   # in connection with `characteristic_columns`
 
   old_data <- mnmdb$query_table(table_label)
-  if (mnmdb$is_spatial(table_label)){
-    old_data <- old_data %>% sf_to_df
-  }
 
   ### ERROR
   # the old data does not contain dependent table keys any more.
@@ -664,10 +631,6 @@ parametrize_cascaded_update <- function(mnmdb) {
     ## (0) check that characteristic columns are UNIQUE:
     # the char. columns of the data to upload
     new_characteristics <- new_data
-    if (mnmdb$is_spatial(table_label)) {
-      new_characteristics <- new_characteristics %>%
-        sf_to_df()
-    }
 
     new_characteristics <- new_characteristics %>%
       select(!!!characteristic_columns) %>%
@@ -677,12 +640,6 @@ parametrize_cascaded_update <- function(mnmdb) {
 
     # existing content
     prior_content <- mnmdb$query_table(table_label)
-    if (mnmdb$is_spatial(table_label)) {
-      prior_sf <- prior_content %>% sf_to_df
-      # prior_content <- prior_content %>% sf_to_df
-      # # (geometry columns should not be relevant for uniqueness)
-      prior_content <- sf::st_drop_geometry(prior_content)
-    }
     # head(prior_content)
     # # TODO this just turned up a duplicate
     # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
@@ -738,14 +695,14 @@ parametrize_cascaded_update <- function(mnmdb) {
       }
 
       # revert to spatial in case the data is spatial (need coords)
-      if (mnmdb$is_spatial(table_label) && (nrow(existing_untouched) > 0) ) {
+      # if (mnmdb$is_spatial(table_label) && (nrow(existing_untouched) > 0) ) {
 
-        existing_untouched <- prior_sf %>%
-          semi_join(existing_untouched) %>%
-          df_to_sf(coords = c("x", "y"), crs = 31370)
+      #   existing_untouched <- prior_sf %>%
+      #     semi_join(existing_untouched) %>%
+      #     df_to_sf(coords = c("x", "y"), crs = 31370)
 
-        sf::st_geometry(existing_untouched) <- "wkb_geometry"
-      }
+      #   sf::st_geometry(existing_untouched) <- "wkb_geometry"
+      # }
 
 
       # combine existing and new data

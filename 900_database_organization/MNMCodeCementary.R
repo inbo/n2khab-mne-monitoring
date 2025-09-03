@@ -2,6 +2,47 @@
 
 # Too good to be thrown away. Yet.
 
+
+#_______________________________________________________________________________
+# SPATIAL DATA EXCEPTION
+
+# convert a spatial data frame to tibble df by cbinding coords
+sf_to_df_obsolete <- function(spatial_df, coord_names = NA) {
+  # spatial_df <- prior_content
+  # spatial_df <- old_data
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("sf" = require("sf"))
+
+  if (is.na(coord_names)){
+    coord_names <- c("x", "y")
+  }
+
+  df <- cbind(
+    sf::st_drop_geometry(spatial_df),
+    sf::st_coordinates(spatial_df) %>%
+      as_tibble(.name_repair = "minimal") %>%
+      setNames(coord_names)
+   )
+
+  return(df)
+}
+
+# convert a dataframe to spatial, please provide coords and crs!
+df_to_sf_obsolete <- function(df, ...) {
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("sf" = require("sf"))
+
+  spatial_df <- sf::st_as_sf(
+    df,
+    ... # coords, crs
+  )
+
+  return(spatial_df)
+}
+
+
 #_______________________________________________________________________________
 # DATABASE STRUCTURE
 
