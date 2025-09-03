@@ -1,29 +1,29 @@
 
 # Table of Contents
 
-1.  [Purpose](#org1070e97)
-2.  [Target Database](#org1e4fefd)
-    1.  [create](#org788c4c9)
-    2.  [extend](#org4e6d53c)
-    3.  [automate](#org7778437)
-3.  [Use Case 0: *tabula rasa*](#org28606e5)
-    1.  [re-create empty](#org0146965)
-    2.  [limitation](#orgf89d649)
-4.  [Use Case 1: *tabula plena*](#org080f3ba)
-    1.  [dump-reload](#org09d6982)
-    2.  [limitation](#org015c406)
-5.  [Use Case 2: *tabula semi-replenta*](#orgbb7b466)
-    1.  [purpose](#org7355e35)
-    2.  [source](#orgd97dc50)
-    3.  [modify](#org53eeae5)
-    4.  [target](#org3567f5e)
-6.  [Generalization](#org4f16395)
-7.  [Brief Data Inspection](#org8a6dccf)
-8.  [Summary](#org47bd141)
+1.  [Purpose](#org6aed2bb)
+2.  [Target Database](#org0922d5f)
+    1.  [create](#orgbf327ae)
+    2.  [extend](#org249668e)
+    3.  [automate](#orgbd6f7ce)
+3.  [Use Case 0: *tabula rasa*](#orgaee67ec)
+    1.  [re-create empty](#org05ce9d5)
+    2.  [limitation](#orgcbbd5e1)
+4.  [Use Case 1: *tabula plena*](#org6a37c33)
+    1.  [dump-reload](#org06846d2)
+    2.  [limitation](#org209bb1f)
+5.  [Use Case 2: *tabula semi-replenta*](#org556e156)
+    1.  [purpose](#org0227c06)
+    2.  [source](#orgf9fd99f)
+    3.  [modify](#org3974810)
+    4.  [target](#org21f4cee)
+6.  [Generalization](#orga997ae3)
+7.  [Brief Data Inspection](#org221eefc)
+8.  [Summary](#org3eaad8e)
 
 
 
-<a id="org1070e97"></a>
+<a id="org6aed2bb"></a>
 
 # Purpose
 
@@ -41,12 +41,12 @@ This document is an [orgmode](https://orgmode.org) document because, like the wh
 Orgmode allows me to &ldquo;tangle&rdquo; codeblocks to subsidiary files in the push of a button.
 
 
-<a id="org1e4fefd"></a>
+<a id="org0922d5f"></a>
 
 # Target Database
 
 
-<a id="org788c4c9"></a>
+<a id="orgbf327ae"></a>
 
 ## create
 
@@ -63,7 +63,7 @@ Assuming you `ssh` into the server and switch to the `postgres` user.
     createdb <database> -O <owner> -p <port>
 
 
-<a id="org4e6d53c"></a>
+<a id="org249668e"></a>
 
 ## extend
 
@@ -84,7 +84,7 @@ Next, we require the **postgis extension**:
     CREATE EXTENSION postgis_tiger_geocoder;
 
 
-<a id="org7778437"></a>
+<a id="orgbd6f7ce"></a>
 
 ## automate
 
@@ -100,12 +100,12 @@ If the *target* is of permanent relevance, consider setting up a backup cronjob.
 For now, that procedure remains documented in `000_steps_journal.org` >>> "`database daily diffs"`.
 
 
-<a id="org28606e5"></a>
+<a id="orgaee67ec"></a>
 
 # Use Case 0: *tabula rasa*
 
 
-<a id="org0146965"></a>
+<a id="org05ce9d5"></a>
 
 ## re-create empty
 
@@ -135,7 +135,7 @@ Trivially, you can just create the new database as you created the original one.
         )
 
 
-<a id="orgf89d649"></a>
+<a id="orgcbbd5e1"></a>
 
 ## limitation
 
@@ -143,15 +143,15 @@ Obviously, this misses the point:
 no database content is copied here, only the skeleton of the database is mirrored.
 
 I can imagine certain situations in which you would like to restart empty.
-And this might be a preliminary step for [the second use case, below](#orgbb7b466).
+And this might be a preliminary step for [the second use case, below](#org556e156).
 
 
-<a id="org080f3ba"></a>
+<a id="org6a37c33"></a>
 
 # Use Case 1: *tabula plena*
 
 
-<a id="org09d6982"></a>
+<a id="org06846d2"></a>
 
 ## dump-reload
 
@@ -164,7 +164,7 @@ Now, it turns out that you can achieve the result we attempt below by a simple *
         < $(date +"%Y%m%d")_migration_dump.sql
 
 
-<a id="org015c406"></a>
+<a id="org209bb1f"></a>
 
 ## limitation
 
@@ -175,12 +175,12 @@ The dump-reload strategy might be a bit too drastic in certain situations, e.g.:
 -   if user/role permissions differ on the two databases
 
 
-<a id="orgbb7b466"></a>
+<a id="org556e156"></a>
 
 # Use Case 2: *tabula semi-replenta*
 
 
-<a id="org7355e35"></a>
+<a id="org0227c06"></a>
 
 ## purpose
 
@@ -195,7 +195,7 @@ Imagine you would like to copy over the `Protocols` table.
 3.  Then, move it over.
 
 
-<a id="orgd97dc50"></a>
+<a id="orgf9fd99f"></a>
 
 ## source
 
@@ -228,7 +228,7 @@ Getting the data is as simple as establishing a connection and querying the tabl
     dplyr::glimpse(source_data)
 
 
-<a id="org53eeae5"></a>
+<a id="org3974810"></a>
 
 ## modify
 
@@ -251,7 +251,7 @@ In the example case, we will just sort the protocols.
     #_______________________________________________________________________________
 
 
-<a id="org3567f5e"></a>
+<a id="org21f4cee"></a>
 
 ## target
 
@@ -267,7 +267,7 @@ and the `MNMDatabaseToolbox.R` contains a convenient function for it.
     )
 
 
-<a id="org4f16395"></a>
+<a id="orga997ae3"></a>
 
 # Generalization
 
@@ -293,7 +293,7 @@ This requires minimal preparations, modification catalogue, and a loop.
     
     # database_label <- "mnmgwdb"
     database_label <- "loceval"
-    source_mirror <- glue::glue("{database_label}")
+    source_mirror <- glue::glue("{database_label}-staging")
     target_mirror <- glue::glue("{database_label}-dev")
     
     
@@ -304,6 +304,7 @@ This requires minimal preparations, modification catalogue, and a loop.
       user = "monkey",
       password = NA
     )
+    # source_db$shellstring
     
     
     # ... to target
@@ -311,6 +312,7 @@ This requires minimal preparations, modification catalogue, and a loop.
       config_filepath,
       database_mirror = target_mirror
     )
+    # target_db$shellstring
 
 We certainly need to modify some tables.
 
@@ -371,25 +373,27 @@ Here we find out.
     
     process_db_table_copy <- function(table_idx) {
     
-      table_schema <- table_list[[table_idx, "schema"]]
       table_label <- table_list[[table_idx, "table"]]
-      table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
+      # table_label <- "ReplacementCells"
     
       # print(table_list[[table_idx, "excluded"]])
-    
+      table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
       if (table_exclusion) return()
     
-      print(glue::glue("processing {table_schema}.{table_label}"))
+      print(glue::glue("processing {table_idx} / {nrow(table_list)}: {target_db$get_namestring(table_label)}"))
     
       # download
       source_data <- source_db$query_table(table_label)
     
       # modify
       if (table_label %in% names(table_modification)){
-        source_data <- table_modification[[table_label]](source_data)
+        new_data <- table_modification[[table_label]](source_data)
+      } else {
+        # ... unless there is nothing to modify
+        new_data <- source_data
       }
     
-      copy_over_single_table(table_label, source_data)
+      copy_over_single_table(table_label, new_data)
     
     }
 
@@ -450,7 +454,7 @@ You might want to modify permissions for certain users on the target database.
     GRANT SELECT ON ALL TABLES IN SCHEMA "metadata" TO tester;
 
 
-<a id="org8a6dccf"></a>
+<a id="org221eefc"></a>
 
 # Brief Data Inspection
 
@@ -464,7 +468,7 @@ Some code snippets to check on relevant data (specific to `loceval`):
     SELECT * FROM "archive"."ReplacementArchives";
 
 
-<a id="org47bd141"></a>
+<a id="org3eaad8e"></a>
 
 # Summary
 

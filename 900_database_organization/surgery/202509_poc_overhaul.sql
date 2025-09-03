@@ -7,4 +7,6 @@ COMMENT ON COLUMN "outbound"."FieldActivityCalendar".domain_part IS E'domain par
 -- there is a problem with grts_address = 871030
 -- it disappeared, except from LocationInfos, Coordinates, and Locations
 SELECT * FROM "metadata"."Coordinates" WHERE grts_address = 871030;
+SELECT * FROM "outbound"."LocationInfos" WHERE grts_address = 871030;
+SELECT * FROM "metadata"."Locations" WHERE grts_address = 871030;
 -- temporarily deleted on "staging"

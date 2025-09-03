@@ -82,13 +82,13 @@ table_list <- read.csv(table_list_file)
 process_db_table_copy <- function(table_idx) {
 
   table_label <- table_list[[table_idx, "table"]]
-  # table_label <- "Locations"
+  # table_label <- "ReplacementCells"
 
   # print(table_list[[table_idx, "excluded"]])
   table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
   if (table_exclusion) return()
 
-  print(glue::glue("processing {target_db$get_namestring(table_label)}"))
+  print(glue::glue("processing {table_idx} / {nrow(table_list)}: {target_db$get_namestring(table_label)}"))
 
   # download
   source_data <- source_db$query_table(table_label)

@@ -552,7 +552,7 @@ loceval_db$execute_sql(
 
 loceval_db$insert_data(
   table_label = "LocationCells",
-  new_data = location_cells
+  upload_data = location_cells
 )
 
 # SELECT LC.ogc_fid, LC.location_id, LOC.grts_address
@@ -669,7 +669,7 @@ loceval_db$execute_sql(
 
 loceval_db$insert_data(
   table_label = "SampleUnitPolygons",
-  new_data = sample_polygons
+  upload_data = sample_polygons
 )
 
 
@@ -894,7 +894,7 @@ loceval_db$execute_sql(
 
 loceval_db$insert_data(
   table_label = "ReplacementCells",
-  new_data = replacement_cells
+  upload_data = replacement_cells
 )
 
 

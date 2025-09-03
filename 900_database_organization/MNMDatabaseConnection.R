@@ -794,6 +794,8 @@ mnmdb_assemble_query_functions <- function(db) {
       sequence_label = NULL,
       verbose = FALSE
     ) {
+    # db <- mnmdb
+    # sequence_label <- "seq_replacementarchive_id"
 
     # primary key -> related to sequence label
     pk <- db$get_primary_key(table_label)
@@ -808,7 +810,7 @@ mnmdb_assemble_query_functions <- function(db) {
     # check current value
     nextval_query <- glue::glue("SELECT last_value FROM {sequence_label};")
     current_highest <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
-    key_log$pre <- as.integer(current_highest)
+    key_log$pre <- current_highest
 
     if (is.null(new_key_value)) {
       new_key_value <- "1"
@@ -820,7 +822,7 @@ mnmdb_assemble_query_functions <- function(db) {
         verbose = verbose
       )
 
-      key_log$post <- as.integer(new_key_value)
+      key_log$post <- new_key_value
 
       return(invisible(key_log))
 
@@ -832,6 +834,8 @@ mnmdb_assemble_query_functions <- function(db) {
 
     }
 
+    if (is.na(new_key_value)) new_key_value <- "1"
+
     # set the key, either to given value, or to current "max"
     db$execute_sql(
       glue::glue("SELECT setval('{sequence_label}', {new_key_value});"),
@@ -839,7 +843,7 @@ mnmdb_assemble_query_functions <- function(db) {
     )
 
     # return log
-    key_log$post <- as.integer(new_key_value)
+    key_log$post <- new_key_value
     return(invisible(key_log))
 
   } # /set_sequence_key
@@ -913,28 +917,35 @@ mnmdb_assemble_query_functions <- function(db) {
 
 
   # insert table data
-  db$insert_data <- function(table_label, new_data) {
+  db$insert_data <- function(table_label, upload_data) {
+    # db <- mnmdb
+    # upload_data <- data_replacement
 
-    if ("ogc_fid" %in% names(new_data)) {
+    if ("ogc_fid" %in% names(upload_data)) {
       # do not upload this technical location key
-      new_data <- new_data %>% select(-ogc_fid)
+      upload_data <- upload_data %>% select(-ogc_fid)
     }
 
     # ? geometry // spatial data
-    # TODO maybe this is not even necessary if we have a tibble
     if (db$is_spatial(table_label)) {
       ## insert spatial data
-      if ("ogc_fid" %in% names(new_data)) {
-        # do not upload this technical location key
-        new_data <- new_data %>% select(-ogc_fid)
+
+      upload_data <- sf::st_as_sf(upload_data)
+      type_count <- as_tibble(sf::st_geometry_type(upload_data)) %>%
+        count(value)
+
+      if (nrow(type_count) > 1) {
+        type_most <- type_count %>%
+          arrange(desc(n)) %>%
+          head(1) %>%
+          pull(value)
+        upload_data <- sf::st_cast(upload_data, as.character(type_most))
       }
 
-      new_data <- sf::st_as_sf(new_data)
-      sf::st_geometry(new_data) <- "wkb_geometry"
-
+      sf::st_geometry(upload_data) <- "wkb_geometry"
 
       rs <- sf::st_write(
-        new_data,
+        upload_data,
         db$connection,
         db$get_table_id(table_label),
         row.names = FALSE,
@@ -950,7 +961,7 @@ mnmdb_assemble_query_functions <- function(db) {
       rs <- DBI::dbWriteTable(
         db$connection,
         db$get_table_id(table_label),
-        new_data,
+        upload_data,
         row.names = FALSE,
         overwrite = FALSE,
         append = TRUE,
