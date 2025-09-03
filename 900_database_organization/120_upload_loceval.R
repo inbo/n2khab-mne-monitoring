@@ -47,8 +47,6 @@ loceval_db <- connect_mnm_database(
 ## ----update-propagate-lookup--------------------------------------------------
 # just a convenience function to pass arguments to recursive update
 
-source("MNMDatabaseConnection.R")
-source("MNMDatabaseToolbox.R")
 update_cascade_lookup <- parametrize_cascaded_update(loceval_db)
 
 
@@ -448,11 +446,12 @@ previous_sampleunits <- loceval_db$query_table("SampleUnits") %>%
 
 
 previous_replacements <- loceval_db$query_table("Replacements") %>%
-  select(-ogc_fid, -wkb_geometry) %>%
+  select(-wkb_geometry) %>%
   filter(
     is_inappropriate
     | is_selected
-    | !is.na(notes)
+    | (implications_habitatmap)
+    | (!is.na(notes))
   ) %>%
   left_join(
     previous_sampleunits,
@@ -507,7 +506,6 @@ locations <- bind_rows(
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
-### TODO continue
 
 locations_lookup <- update_cascade_lookup(
   table_label = "Locations",
@@ -543,18 +541,20 @@ sf::st_geometry(location_cells) <- "wkb_geometry"
 message("________________________________________________________________")
 message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
 
-execute_sql(
-  db_connection,
+loceval_db$execute_sql(
   glue::glue('DELETE  FROM "metadata"."LocationCells";'),
   verbose = TRUE
 )
 
-append_tabledata(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "LocationCells"),
-  location_cells,
-  reference_columns = "location_id"
+loceval_db$insert(
+ table_label = "LocationCells",
+ new_data = location_cells
 )
+
+# SELECT LC.ogc_fid, LC.location_id, LOC.grts_address
+# FROM "metadata"."LocationCells" AS LC
+# LEFT JOIN "metadata"."Locations" AS LOC ON LOC.location_id = LC.location_id
+# WHERE grts_address IS NULL;
 
 
 ## ----upload-sample-locations----------------------------------------------
@@ -595,9 +595,7 @@ sample_units_lookup <- update_cascade_lookup(
 
 # restore location_id's
 # restore_location_id_by_grts(
-#   db_connection,
-#   dbstructure_folder,
-#   target_schema = "outbound",
+#   loceval_db,
 #   table_label = "SampleUnits",
 #   retain_log = FALSE,
 #   verbose = TRUE
@@ -660,17 +658,14 @@ sf::st_geometry(sample_polygons) <- "wkb_geometry"
 message("________________________________________________________________")
 message(glue::glue("DELETE/INSERT of outbound.SampleUnitPolygons"))
 
-execute_sql(
-  db_connection,
+loceval_db$execute_sql(
   glue::glue('DELETE  FROM "outbound"."SampleUnitPolygons";'),
   verbose = TRUE
 )
 
-append_tabledata(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "SampleUnitPolygons"),
-  sample_polygons,
-  reference_columns = "sampleunit_id"
+loceval_db$insert(
+  table_label = "SampleUnitPolygons",
+  new_data = sample_polygons
 )
 
 
@@ -688,11 +683,11 @@ new_locinfos <- sample_units %>%
     log_update = as.POSIXct(Sys.time())
   )
 
-# previous_locinfos %>% write.csv("data/20250704_Wards_LocationAssessments.csv")
+# previous_locationinfos %>% write.csv("data/20250704_Wards_LocationAssessments.csv")
 
 new_locinfos <- new_locinfos %>%
   anti_join(
-    previous_locinfos,
+    previous_locationinfos,
     by = join_by(grts_address)
   ) %>%
   left_join(
@@ -715,13 +710,11 @@ locationinfo_lookup <- update_cascade_lookup(
 # grouped_activities %>% distinct(activity_group, activity_group_id) %>% count(activity_group) %>% print(n=Inf)
 
 
-activity_groupid_lookup <-
-  dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "metadata", table = "GroupedActivities"),
-  ) %>%
-  distinct(activity_group, activity_group_id) %>%
-  collect()
+activity_groupid_lookup <- loceval_db$query_columns(
+    table_label = "GroupedActivities",
+    select_columns = c("activity_group", "activity_group_id")
+    ) %>%
+  distinct()
 
 # activity_groupid_lookup %>% distinct(activity_group, activity_group_id) %>% count(activity_group) %>% print(n=Inf)
 
@@ -759,7 +752,8 @@ fieldwork_calendar <-
     across(c(
         stratum,
         grts_join_method,
-        date_interval
+        date_interval,
+        domain_part
       ),
       as.character
     )
@@ -778,7 +772,16 @@ fieldwork_calendar_lookup <- update_cascade_lookup(
   table_label = "FieldActivityCalendar",
   new_data = fieldwork_calendar,
   index_columns = c("fieldactivitycalendar_id"),
-  characteristic_columns = NULL,
+  characteristic_columns = c(
+    "sampleunit_id",
+    "stratum",
+    "grts_address",
+    "priority",
+    "date_start",
+    "grts_join_method",
+    "activity_group_id",
+    "activity_rank"
+  ),
   tabula_rasa = FALSE,
   verbose = TRUE
 )
@@ -791,7 +794,8 @@ fieldwork_calendar_lookup <- update_cascade_lookup(
 
 # (DONE: store previous replacement info to another table)
 
-replacements <- stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+replacements <-
+  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   select(stratum, grts_address, replacement_cells) %>%
   unnest(replacement_cells) %>%
   filter(!is.na(cellnr_replac)) %>%
@@ -879,17 +883,14 @@ sf::st_geometry(replacement_cells) <- "wkb_geometry"
 message("________________________________________________________________")
 message(glue::glue("DELETE/INSERT of outbound.ReplacementCells"))
 
-execute_sql(
-  db_connection,
+loceval_db$execute_sql(
   glue::glue('DELETE  FROM "outbound"."ReplacementCells";'),
   verbose = TRUE
 )
 
-append_tabledata(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "ReplacementCells"),
-  replacement_cells,
-  reference_columns = "replacement_id"
+loceval_db$insert(
+  table_label = "ReplacementCells",
+  new_data = replacement_cells
 )
 
 
@@ -924,7 +925,7 @@ new_location_assessments <- new_location_assessments %>%
     previous_location_assessments,
     by = join_by(type, grts_address)
   ) %>%
-  select(-location_id) %>%
+  # select(-location_id) %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
@@ -962,10 +963,8 @@ locationassessment_lookup <- update_cascade_lookup(
 
 # restore location_id's
 restore_location_id_by_grts(
-  db_connection,
-  dbstructure_folder,
-  target_schema = "outbound",
-  table_key = "LocationAssessments",
+  loceval_db,
+  table_label = "LocationAssessments",
   retain_log = TRUE,
   verbose = TRUE
 )
@@ -1013,10 +1012,8 @@ visits_lookup <- update_cascade_lookup(
 
 # restore location_id's
 restore_location_id_by_grts(
-  db_connection,
-  dbstructure_folder,
-  target_schema = "inbound",
-  table_key = "Visits",
+  loceval_db,
+  table_label = "Visits",
   retain_log = TRUE,
   verbose = TRUE
 )
@@ -1070,12 +1067,8 @@ landinfo <- landuse %>%
     landuse
   ) %>%
   semi_join(
-    dplyr::tbl(
-      db_connection,
-      DBI::Id("outbound", "SampleUnits")
-    ) %>%
-    distinct(grts_address) %>%
-    collect,
+    loceval_db$query_columns("SampleUnits", c("grts_address")) %>%
+    distinct(),
     by = join_by(grts_address)
   )
 
@@ -1116,36 +1109,31 @@ pb <- txtProgressBar(
 )
 
 # execute the update commands.
-for (landinfo_rownr in 1:nrow(landinfo)) {
+for (landinfo_rownr in seq_len(nrow(landinfo))) {
   setTxtProgressBar(pb, landinfo_rownr)
-  cmd <- update_command[[landinfo_rownr]]
-  execute_sql(db_connection, cmd, verbose = FALSE)
+  loceval_db$execute_sql(update_command[[landinfo_rownr]], verbose = FALSE)
 }
 
 close(pb) # close the progress bar
 
 
-landuse_reload <- dplyr::tbl(
-    db_connection,
-    DBI::Id("outbound", "FieldActivityCalendar")
+landuse_reload <- loceval_db$query_columns(
+  "FieldActivityCalendar",
+  c("grts_address", "landowner")
   ) %>%
-  distinct(grts_address, landowner) %>%
-  collect
+  distinct()
 landuse_reload %>% write.csv("dumps/LocationInfos.csv")
+
+# TODO some have an empty string, find source.
+
 
 ## ----done--time-for-some-checks!-------------------------------------------------
 
 ### check upload
 
-samuns <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "SampleUnits"),
-  ) %>% collect()
+samuns <- loceval_db$query_table(table_label = "SampleUnits")
 
-locs <- sf::st_read(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "Locations"),
-  ) %>% collect()
+locs <- loceval_db$query_table(table_label = "Locations")
 
 locs %>% anti_join(
   samuns,
@@ -1153,10 +1141,7 @@ locs %>% anti_join(
   )
 
 
-locass <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationAssessments"),
-  ) %>% collect()
+locass <- loceval_db$query_table(table_label = "LocationAssessments")
 
 samuns %>% left_join(
     locs,
