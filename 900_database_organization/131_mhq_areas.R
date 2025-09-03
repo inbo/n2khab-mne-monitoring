@@ -10,7 +10,7 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./inbopostgis_server.conf")
 
 database_label <- "loceval"
-db_using_locations <- grep("mnmgwdb", database_label)
+db_using_locations <- FALSE
 
 testing <- FALSE
 if (testing) {

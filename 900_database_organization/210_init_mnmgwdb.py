@@ -6,7 +6,7 @@ import MNMDatabaseToolbox as DTB
 # SET search_path TO public,"metadata","outbound","inbound","archive";
 
 restore_dev = False
-restore_staging = True
+restore_staging = False
 restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
 base_folder = DTB.PL.Path(".")

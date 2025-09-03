@@ -11,10 +11,10 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-# database_label <- "mnmgwdb"
-database_label <- "loceval"
-source_mirror <- glue::glue("{database_label}-staging")
-target_mirror <- glue::glue("{database_label}-dev")
+database_label <- "mnmgwdb"
+# database_label <- "loceval"
+source_mirror <- glue::glue("{database_label}")
+target_mirror <- glue::glue("{database_label}-testing")
 
 
 # from source...
