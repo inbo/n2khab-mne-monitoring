@@ -1,6 +1,6 @@
 ---
 title: "POC Data Re-Upload"
-date: "2025-06-27"
+date: "2025-06-27, 2025-09-04"
 format:
   html:
     toc: true
@@ -80,6 +80,8 @@ source("MNMDatabaseToolbox.R")
 
 ## info stream from POC
 
+First, there is the `.RData` file.
+
 ```{r load-sample-rdata}
 tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
@@ -89,9 +91,6 @@ message(glue::glue("Good morning!
 ))
 
 ```
-
-
-### snippets!
 
 Some code snippets, possibly modified on the way, were provided by Floris.
 
@@ -112,11 +111,10 @@ message(glue::glue(
 ))
 ```
 
-### Checks!
 
 Finally, check that everything was loaded correctly.
 
-```{r poc_checks}
+```{r poc-checks}
 verify_poc_objects()
 ```
 
@@ -130,9 +128,11 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 
 keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
+loceval_mirror <- "loceval-staging"
+
 loceval <- connect_mnm_database(
   config_filepath,
-  database_mirror = "loceval-staging"
+  database_mirror = loceval_mirror
 ) 
 
 ```

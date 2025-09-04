@@ -66,16 +66,26 @@ member_lookup <- update_cascade_lookup(
 
 
 ## ----upload-protocols---------------------------------------------------------
-protocols <- activities %>%
+##
+protocols_raw <- read_csv(
+  here::here(loceval_db$folder, "data_Protocols.csv"),
+  show_col_types = FALSE
+)
+protocols_raw %>% print(n = Inf)
+
+activities <- activities %>%
+  mutate(protocol = tolower(str_remove_all(protocol, ", (.)+")))
+
+protocols_used <- activities %>%
   select(protocol) %>%
   distinct() %>%
-  arrange(protocol) %>%
   filter(!is.na(protocol)) %>%
-  mutate(
-    protocol_id = 1:n(),
-    protocol = as.character(protocol),
-    description = NA
-  )
+  mutate(protocol = as.character(protocol)) %>%
+  rename(protocol_code = protocol) %>%
+  arrange(protocol_code)
+
+
+
 
 protocol_lookup <- update_cascade_lookup(
   table_label = "Protocols",
