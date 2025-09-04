@@ -370,6 +370,7 @@ upload_data_and_update_dependencies <- function(
   #         date_start, fieldworkcalendar_id
   #         ) %>%
   #   arrange(desc(n))
+  # old_data %>% count(location_id) %>% arrange(desc(n))
 
   pk_lookup <- old_data %>%
     left_join(
