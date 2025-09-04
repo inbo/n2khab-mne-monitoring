@@ -50,6 +50,7 @@ locations_grts <- mnmgwdb$query_columns(
   )
 
 # locations_grts %>% filter(location_id == 527)
+# locations_grts %>% filter(location_id == 42)
 
 ## ----poc-data-----------------------------------------------------------------
 # re-load POC data
@@ -66,6 +67,7 @@ verify_poc_objects()
 
 units_cell_polygon[["grts_address_final"]] <-
   as.integer(units_cell_polygon[["grts_address_final"]])
+# units_cell_polygon %>% filter(grts_address_final == 922230)
 
 # unit geometries (cells):
 location_cells <-
@@ -81,8 +83,11 @@ location_cells <-
 
 sf::st_geometry(location_cells) <- "wkb_geometry"
 # glimpse(location_cells)
-location_cells %>%
-  filter(location_id == 527)
+
+# location_cells %>%
+#   filter(location_id == 409)
+# location_cells %>%
+#   filter(location_id == 527)
 
 
 message("________________________________________________________________")
@@ -111,7 +116,11 @@ extra_cells <- loceval_connection$query_table("ReplacementCells") %>%
     by = join_by(grts_address)
   ) %>%
   select(location_id, wkb_geometry) %>%
-  distinct
+  distinct %>%
+  anti_join(
+    location_cells,
+    by = join_by(location_id)
+  )
 
 mnmgwdb$insert_data(
   table_label = "LocationCells",

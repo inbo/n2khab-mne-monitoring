@@ -34,12 +34,17 @@ In all brevity, I collect steps here to get a new POC to the database.
   - bring files home with `scp`
 
 2. Mirrors: try everything on `testing` and then `staging`, first.
-  - The `testing` mirror (data sync with `033_populate_testing_db.R`) is open for play and can taken even rough rides, though note that user permissions differ on there.
-  - On `staging`, everything is exactly identical to the production server, because it gets synced with the commands below.
+  - The `testing` mirror (data sync with `033_populate_testing_db.R`) is open for play and can taken even rough rides, and for that user permissions differ on there. No guarantee that the data is correct.
+  - On `staging`, everything is exactly identical to the production server (even permissions and user roles), because it gets synced with the dump/restore commands below.
   - use the `suffix` to control database connections below.
   
   
 Syncing the `*_staging` database mirrors:
+
+  - has to be done for `loceval` and `mnmgwdb` 
+  - if necessary, re-instantiate the mirror prior to data upload via `postgres`/`dropdb`+`createdb` intervention on the host system (and then run `110_*` and `210_*`, if necessary)
+  - Finally, use the `pg_dump | psql` commands as follows:
+
   
 ```{sh sync-staging}
 #| eval: false
@@ -47,11 +52,6 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
         && psql -U <database_user> -h <host> -p <port> -d <database>_staging -W < /tmp/<database>_db_dump.txt \
         && rm /tmp/<database>_db_dump.txt
 ```
-
-  - has to be done for `loceval` and `mnmgwdb` 
-  - if necessary, re-instantiate the mirror prior to data upload via `postgres`/`dropdb`+`createdb` intervention on the host system (and then run `110_*` and `210_*`, if necessary)
-  - Finally, use the `pg_dump | psql` command chain above.
-
 
 ## libraries and variables
 
