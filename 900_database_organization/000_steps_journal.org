@@ -1546,7 +1546,6 @@ Then, functions are added for easier database interaction.
 Please refer to the "table of contents" in this file.
 
 
-
 ** Handling Spatial Tables
 SCHEDULED: <2025-09-03 Wed>
 
@@ -1554,6 +1553,23 @@ It turns out that handling of spatial data can be simplified by converting
 =sf= objects into =as_tibble=.
 They retain the spatial info but work exactly as tibbles in the conversion.
 
+
+** major overhaul
+SCHEDULED: <2025-09-02 Tue>-<2025-09-03 Tue>
+
+Incorporating the new logic into the old scripts.
++ [ ] =030_copy_database.org=
++ [ ] =070_update_POC.qmd=
++ [X] =093_update_facalendar.R=
++ [X] =094_replaced_LocationCells.R=
++ [X] =096_update_wgs84_coordinates.R=
++ [X] =120_upload_loceval.R=
++ [X] =131_mhq_areas.R=
++ [ ] =220_upload_mnmgwdb.R=
++ [X] =230_random_placementpoints.R=
++ [X] =231_mhq_areas.R=
+
+** run POC update
 
 * learning the hard way
 

@@ -1,6 +1,8 @@
 
-library("dplyr")
-library("sf")
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
@@ -10,35 +12,37 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 
 
 update_location_coordinates <- function(database_label, testing = TRUE) {
-  # db_name <- glue::glue("{database_label}_testing")
   # database_label <- "mnmgwdb"
 
   if (testing) {
-    connection_profile <- glue::glue("{database_label}-testing")
+    database_mirror <- glue::glue("{database_label}-staging")
   } else {
-    connection_profile <- glue::glue("{database_label}")
+    database_mirror <- glue::glue("{database_label}")
   }
 
+  message("________________________________________________________________")
+  message(glue::glue("restoring of {database_mirror} Coordinates"))
+
   # database connection
-  db_connection <- connect_database_configfile(
+  mnmdb <- connect_mnm_database(
     config_filepath = config_filepath,
-    profile = connection_profile
+    database_mirror = database_mirror
   )
 
   ### load locations
-  locations_sf <- sf::st_read(
-    db_connection,
-    DBI::Id("metadata", "Locations")
-    ) %>%
-    select(-ogc_fid) %>%
-    collect
+  locations_sf <- mnmdb$query_table("Locations") %>%
+    distinct() %>%
+    sf::st_as_sf()
 
-  locations_bd72 <- cbind(locations_sf, sf::st_coordinates(locations_sf)) %>%
+  locations_bd72 <- cbind(
+      locations_sf,
+      sf::st_coordinates(locations_sf)
+    ) %>%
     rename(lambert_x = X, lambert_y = Y)
 
   locations_wgs84 <- sf::st_transform(locations_bd72, "EPSG:4326")
 
-  locations <- cbind(
+  all_coordinates <- cbind(
       sf::st_drop_geometry(locations_wgs84),
       sf::st_coordinates(locations_wgs84)
     ) %>%
@@ -54,18 +58,22 @@ update_location_coordinates <- function(database_label, testing = TRUE) {
         wgs84_x,
         wgs84_y,
       ), function (x) round(x, 6)
-    )
+    ) %>%
+    distinct
+  # all_coordinates %>% count(location_id) %>% arrange(desc(n)) %>% head
 
-  # DELETE FROM "metadata"."Coordinates";
-  append_tabledata(
-    db_connection,
-    DBI::Id(schema = "metadata", table = "Coordinates"),
-    locations,
-    reference_columns = "location_id"
-  )
+  update_cascade_lookup <- parametrize_cascaded_update(mnmdb)
+  invisible(update_cascade_lookup(
+    table_label = "Coordinates",
+    new_data = all_coordinates,
+    index_columns = c("coordinate_id"),
+    characteristic_columns = c("location_id"),
+    tabula_rasa = TRUE,
+    verbose = TRUE
+  ))
 
 }
 
 
-update_location_coordinates("mnmgwdb", testing = FALSE)
-update_location_coordinates("loceval", testing = FALSE)
+update_location_coordinates(database_label = "mnmgwdb", testing = FALSE)
+update_location_coordinates(database_label = "loceval", testing = FALSE)
