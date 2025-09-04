@@ -1524,6 +1524,11 @@ script =901_*= for temporary re-link
 as well as several recipes to delete missing connections
 yet they return by means of =093_*=
 
+** multi-polygon cell maps
+SCHEDULED: <2025-09-04 Thu>
+
+... now all get random points, by means of a simple =%>% sf::st_union()=.
+
 
 * Major R Code Overhaul (202508)
 ** Code File Organization
@@ -1568,6 +1573,45 @@ Incorporating the new logic into the old scripts.
 + [ ] =220_upload_mnmgwdb.R=
 + [X] =230_random_placementpoints.R=
 + [X] =231_mhq_areas.R=
+
+** some issues on the way
+*** 871030
++ double replacement by =loceval= (same cell, same target, two types)
++ replaced for =mnmgwdb=
++ gets fed back to =loceval= as two =LocationInfos=
+
+==> need to un-replace cells
+==> postponed: another overhaul is coming.
+
+manually removed; see [[file:surgery/20250903_missing_871030.sql]]
+
+*** DONE duplicate LocationCells
+SCHEDULED: <2025-09-04 Thu>
+
+Those were regular =LocationCells= which also turned in for a second time due to the =extra_cells= and replacement procedure.
+Solved by an extra extra-cell anti-join.
+
+#+begin_src sql :eval no
+SELECT * FROM "metadata"."LocationCells" WHERE location_id IN (42, 181, 219, 409, 431, 468, 471, 476, 478);
+#+end_src
+
+*** DONE Disconnected Visits
+CLOSED: [2025-09-04 Thu]
+none any more.
+
+#+begin_src sql :eval no
+SELECT * FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;
+#+end_src
+
+
+*** DONE Double Field Work
+CLOSED: [2025-09-04 Thu]
+gone.
+
+#+begin_src sql :eval no
+SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
+#+end_src
+
 
 ** run POC update
 

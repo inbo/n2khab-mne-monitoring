@@ -38,8 +38,8 @@ loceval_connection <- connect_mnm_database(
 # message(loceval_connection$shellstring)
 
 
-if (TRUE){
 ### info from POC
+if (TRUE){
 load_poc_common_libraries()
 load_poc_rdata(reload = FALSE, to_env = globalenv())
 
@@ -51,7 +51,8 @@ verify_poc_objects()
 
 }
 
-
+### MHQ input
+# check which cells are subject to MHQ assessment
 assessment_lookup <- bind_rows(
   fag_stratum_grts_calendar %>%
     distinct(grts_address_final, assessed_in_field) %>%
@@ -62,6 +63,7 @@ assessment_lookup <- bind_rows(
 )
 
 
+### Geometry helpers
 make_a_point <- function (x, y) t(as.matrix(c(x, y), byrows = TRUE, ncol = 2, nrow = 1))
 
 make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
@@ -159,7 +161,8 @@ locations_all <- locations_sf %>%
 
 # TODO: work with a subset for testing
 locations <- locations_all # %>%
-  # filter(grts_address %in% c(23238, 23091910, 6314694))
+#  filter(grts_address %in% c(48897, 1818369))
+#  filter(grts_address %in% c(23238, 23091910, 6314694))
 
 ## random sampling procedure
 
@@ -215,7 +218,8 @@ generate_random_points <- function(
 
 
   cellmap_polygons <- cellmaps_sf %>%
-    filter(location_id == one_location$location_id)
+    filter(location_id == one_location$location_id) %>%
+    sf::st_union() # often
 
 
   random_points <- generate_random_sampling(
@@ -250,6 +254,7 @@ generate_random_points <- function(
   points_in_habitat <- points_in_habitat[1:n_points, ]
 
   if (FALSE) {
+    require("mapview")
     mapview(target_area, col.regions = "white") +
       mapview(cellmap_polygons, col.regions = "yellow") +
       mapview(mhq_safety, col.regions = "orange") +
@@ -279,7 +284,7 @@ pb <- txtProgressBar(
   initial = 0, style = 1
 )
 
-# location_row <- 234
+# location_row <- 1 #234
 randompoints_locationwise <- function(location_row) {
 
   setTxtProgressBar(pb, location_row)
