@@ -344,11 +344,10 @@ read_table_relations_config <- function(storage_filepath) {
 #' @param port the port on which the host serves postgreSQL, default 5439
 #' @param user the database username
 #' @param password the users database password,
-#'        hint1: use keyring::key_set("DBPassword", "db_user_password")
+#'        will create and populate a temporary keyring otherwise.
 #'
 #' @examples
 #' \dontrun{
-#'     keyring::key_set("DBPassword", "db_user_password") # prompt/store password
 #'     config_filepath <- file.path("./server.conf")
 #'     db_source <- connect_database_configfile(
 #'       config_filepath, # sort of provides default settings
@@ -413,14 +412,15 @@ connect_database_configfile <- function(
   # (3) user input
   if (is.null(password)) {
     if (is.null(config[["password"]])){
-      if (keyring::key_get("DBPassword", "db_user_password") == "") {
-        keyring::key_set("DBPassword", "db_user_password")
-      }
-      password <- keyring::key_get("DBPassword", "db_user_password")
+      password <- get_mnm_password(
+        username = config$user,
+        keyring_label = "mnmdb_temp"
+      )
     } else {
       password <- config$password
     }
   }
+
 
   # connect to database
   #
@@ -445,11 +445,8 @@ connect_database_configfile <- function(
     }
     },
     error = function(wrnmsg) {
-      message(
-        sprintf(
-          'no password provided for connection %s. \n Try `keyring::key_set("DBPassword", "db_user_password")`.',
-          db_label)
-      )
+      message(glue::glue('error in connecting {db_label}:'))
+      message(wrnmsg)
     }
   )
 
@@ -542,6 +539,7 @@ connect_mnm_database <- function(
       ...
     )
   }
+
 
   # shell string for psql use
   db$shellstring <- glue::glue("-U {db$user} -h {db$host} -p {db$port} -d {db$database}")
@@ -997,3 +995,202 @@ mnmdb_assemble_query_functions <- function(db) {
 } # /mnmdb_assemble_query_functions
 
 
+
+#_______________________________________________________________________________
+# KEYRING
+
+# terminate and clean up this keyring
+terminate_keyring <- function(keyring_label = "mnmdb_postgis") {
+
+  stopifnot("glue" = require("glue"))
+  stopifnot("keyring" = require("keyring"))
+
+  # repeatedly execute
+  while (keyring_label %in% keyring::keyring_list()$keyring) {
+    # find all keys
+    keys <- keyring::key_list(keyring = keyring_label)
+
+    if (nrow(keys) > 0) {
+      # ... and delete them
+      for (k in nrow(keys)) {
+        # k <- 1
+        keyring::key_delete(
+          service = keys[[k, "service"]],
+          username = keys[[k, "username"]],
+          keyring = keyring_label
+        )
+      }
+    }
+
+    # finally, delete the keyring
+    keyring::keyring_delete(keyring = keyring_label)
+  }
+
+  return(invisible(NULL))
+
+} # /terminate_keyring
+
+
+# lock the keyring after a delay
+lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 300) {
+
+  stopifnot("glue" = require("glue"))
+  stopifnot("keyring" = require("keyring"))
+
+  # string building blocks
+  l <- glue::glue('\"{keyring_label}\"')
+  k <- 'keyring::keyring_'
+  x <- glue::glue('({l} %in% keyring::keyring_list()$keyring)')
+
+  # this only works on linux
+  if (isFALSE(.Platform$OS.type == "unix")) {
+    message(glue::glue("(keyring will not lock with delay; invoke 'keyring::keyring_lock({l})')"))
+    return(invisible(NULL))
+  }
+
+  # build the core script
+  cmd <- glue::glue(
+    "Rscript -e 'if ({x} && isFALSE({k}is_locked({l}))) {k}lock({l})'" #  && echo 'slam!'
+  )
+
+  # background-execute the script with a delay
+  system(glue::glue("sleep {delay} && {cmd} &", wait = FALSE))
+
+} # /lock_keyring_delayed
+
+
+# unlock a keyring, and schedule locking for when the R session ends
+unlock_keyring <- function(keyring_label = "mnmdb_postgis", ...) {
+
+  stopifnot("keyring" = require("keyring"))
+
+  # unlock the keyring
+  keyring::keyring_unlock(keyring = keyring_label, ...)
+
+  # launch a process to lock it after a delay
+  lock_keyring_delayed(keyring_label)
+
+  return(invisible(NULL))
+} # /keyring_unlock
+
+
+# initialize the keyring
+init_keyring <- function(keyring_label = "mnmdb_postgis") {
+
+  stopifnot("glue" = require("glue"))
+  stopifnot("keyring" = require("keyring"))
+
+  # note that you can create two keyrings of the same name! (shadowing)
+  # avoid stacking keyrings with the same name
+  if (keyring_label %in% keyring::keyring_list()$keyring) {
+    stop(glue::glue("Keyring Conflict: `{keyring_label}` already exists."))
+  }
+
+  # silent, single-prompt creation
+  suppressWarnings(keyring::keyring_create(keyring_label, password = ""))
+
+  # unlock it to schedule lock
+  unlock_keyring(keyring_label = keyring_label)
+
+
+  # Jedem Ende wohnt ein Anfang inne, oder so.
+  reg.finalizer(
+    .GlobalEnv,
+    function(e) terminate_keyring(keyring = keyring_label),
+    onexit = TRUE
+  )
+
+  return(invisible(NULL))
+
+} # /init_keyring
+
+
+# setting keys in a scripted environment
+# takes the arguments `service`, `username` and `keyring`
+set_password <- function(..., keyring = "mnmdb_postgis") {
+
+  stopifnot("glue" = require("glue"))
+  stopifnot("keyring" = require("keyring"))
+  stopifnot("getPass" = require("getPass"))
+
+  params <- toString(list(...))
+
+  # ensure keyring is unlocked
+  ask_password <- function() {
+    if (keyring::keyring_is_locked(keyring)) unlock_keyring(keyring_label = keyring)
+    return(invisible(
+      getPass::getPass(glue::glue("Password, please ({params}): "))
+    ))
+  }
+
+  keyring::key_set_with_value(
+    ...,
+    keyring = keyring,
+    password = ask_password()
+  )
+
+  rm(ask_password)
+
+} # /set_password
+
+
+# get a password; or query one, if it does not exist
+get_mnm_password <- function(
+    username,
+    service = "db_credentials",
+    keyring_label = "mnmdb_postgis",
+    ...
+  ) {
+
+  stopifnot("glue" = require("glue"))
+  stopifnot("keyring" = require("keyring"))
+  stopifnot("dplyr" = require("dplyr"))
+
+  # does the keyring exist? otherwise initialize it
+  if (!(keyring_label %in% keyring::keyring_list()$keyring)) {
+    init_keyring(keyring_label)
+  }
+
+
+  # are credentials already stored?
+  credentials <- as_tibble(list("service" = service, "username" = username))
+  existing <- keyring::key_list(keyring = keyring_label) %>%
+    select(service, username)
+
+  found_credentials <- credentials %>%
+    semi_join(
+      existing,
+      by = join_by(service, username)
+    ) %>%
+    nrow() %>%
+    as.logical()
+
+  # ... if not, ask user for password
+  if (isFALSE(found_credentials)) {
+    set_password(
+      username = username,
+      service = service,
+      keyring = keyring_label
+    )
+  }
+
+  # unlock, if it is lock (and lock with a scheduled delay)
+  if (keyring::keyring_is_locked(keyring = keyring_label)) {
+    unlock_keyring(keyring_label)
+  }
+
+  # finally, retrieve the password.
+  return(invisible(
+    keyring::key_get(
+      username = username,
+      service = service,
+      keyring = keyring_label
+    )
+  ))
+
+} # /get_mnm_password
+
+
+#_______________________________________________________________________________
+# end of file.
+#_______________________________________________________________________________

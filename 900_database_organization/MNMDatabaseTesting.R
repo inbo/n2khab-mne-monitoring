@@ -104,6 +104,19 @@ connection_base_tests <- function(mnmdb) {
 
 connection_base_tests(test_db)
 
+
+#_______________________________________________________________________________
+### keyring tests
+
+keyring_tests <- function() {
+  keyring::keyring_create("test", password = "")
+  print(get_mnm_password(username = "mickey", keyring_label = "test"))
+  keyring::keyring_list()
+  keyring::keyring_lock("test")
+  keyring::keyring_delete("test")
+  terminate_keyring("test")
+}
+
 #_______________________________________________________________________________
 ### Do queries work as intended?
 
