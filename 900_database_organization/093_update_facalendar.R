@@ -12,7 +12,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 # TODO this does not yet work for `loceval` (based on SampleLocations)
 database_label <- "mnmgwdb"
 
-testing <- FALSE
+testing <- TRUE
 if (testing) {
   suffix <- "-staging" # "-testing"
 } else {
@@ -867,7 +867,7 @@ message("________________________________________________________________")
 
 
 # RECOVER / correct missing fieldworkcalendar_ids in "Visits"
-if (FALSE) {
+if (TRUE) {
 
   fieldwork_calendar_lookup <- mnmdb$query_columns(
     table_label = "FieldworkCalendar",
@@ -900,5 +900,7 @@ if (FALSE) {
       table_label = "Visits",
       upload_data = recovered_visits
     )
+
+# SELECT * FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;
 
 } # /RECOVER visits
