@@ -115,6 +115,15 @@ SHOW search_path;
 #+end_src
 
 
+** database authentification
+
+*** proper use of keyring
+SCHEDULED: <2025-09-05 Fri>
+
+was using it wrong
+wrote a tutorial about it
+https://github.com/inbo/tutorials/pull/365
+
 
 * Biotieker, outbound
 
@@ -1528,6 +1537,8 @@ yet they return by means of =093_*=
 SCHEDULED: <2025-09-04 Thu>
 
 ... now all get random points, by means of a simple =%>% sf::st_union()=.
+
+
 
 
 * Major R Code Overhaul (202508)

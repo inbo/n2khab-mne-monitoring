@@ -126,8 +126,6 @@ verify_poc_objects()
 
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-keyring::key_set("DBPassword", "db_user_password") # <- for source database
-
 loceval_mirror <- "loceval-staging"
 
 loceval <- connect_mnm_database(
