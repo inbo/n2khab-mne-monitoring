@@ -1137,14 +1137,19 @@ fieldwork_2025_prioritization_by_stratum <-
     ),
     wait_watersurface = str_detect(stratum, "^31|^2190_a"),
     wait_3260 = stratum == "3260",
-    wait_7220 = str_detect(stratum, "^7220")
+    wait_7220 = str_detect(stratum, "^7220"),
+    wait_floating = stratum == "7140_mrd",
+    wait_any = if_any(starts_with("wait"))
   ) %>%
+  relocate(wait_any, .before = wait_watersurface) %>%
   arrange(
     date_end,
     priority,
     wait_watersurface,
     wait_3260,
     wait_7220,
+    wait_floating,
+    wait_any,
     stratum,
     grts_address,
     rank,
@@ -1157,12 +1162,10 @@ fieldwork_2025_targetpanels_prioritization_count <-
   count(
     scheme_ps_targetpanels,
     priority,
-    wait_watersurface,
-    wait_3260,
-    wait_7220,
+    pick(starts_with("wait"), -wait_any),
     field_activity_group
   ) %>%
-  arrange(priority, wait_watersurface, wait_3260, wait_7220) %>%
+  arrange(priority, pick(starts_with("wait"))) %>%
   pivot_wider(
     names_from = field_activity_group,
     names_sort = TRUE,
@@ -1188,12 +1191,10 @@ fieldwork_2025_dates_prioritization_count <-
     date_interval,
     date_end,
     priority,
-    wait_watersurface,
-    wait_3260,
-    wait_7220,
+    pick(starts_with("wait"), -wait_any),
     field_activity_group
   ) %>%
-  arrange(date_end, priority, wait_watersurface, wait_3260, wait_7220) %>%
+  arrange(date_end, priority, pick(starts_with("wait"))) %>%
   select(-date_end) %>%
   pivot_wider(
     names_from = field_activity_group,
