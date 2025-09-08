@@ -33,6 +33,7 @@ if major updates:
   -> instantiate archiving system which stores info from FwCal and Visits
   SELECT * FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;
 + [ ] new table // view: *Wells*
++ [ ] unify keyring python and R
 
 
 + [ ] write a function to restore all =seq_keys= to the last used value (special: shared =fieldwork_id=).

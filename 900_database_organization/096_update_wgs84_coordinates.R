@@ -4,7 +4,6 @@ load_database_interaction_libraries()
 
 source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
-# keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
 config_filepath <- file.path("./inbopostgis_server.conf")
 

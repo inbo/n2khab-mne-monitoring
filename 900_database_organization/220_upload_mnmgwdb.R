@@ -1228,7 +1228,7 @@ get_update_row_string_landuse <- function(landinfo_rownr){
 
 # concatenate update rows
 update_command <- lapply(
-  1:nrow(landinfo),
+  seq_len(nrow(landinfo)),
   FUN = get_update_row_string_landuse
 )
 
