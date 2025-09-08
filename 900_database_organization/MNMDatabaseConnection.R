@@ -220,7 +220,7 @@ append_tabledata <- function(
   content <- DBI::dbReadTable(db_connection, table_id)
   # head(content)
 
-  if (any(is.na(characteristic_columns))) {
+  if (is.scalar.na(characteristic_columns)) {
     # ... or just take all columns
     characteristic_columns <- names(data_to_append)
   }
@@ -569,6 +569,9 @@ mnmdb_assemble_structure_lookups <- function(db) {
     select(table, schema, geometry, excluded)
   # db$tables %>% knitr::kable()
 
+  # check if a table exists
+  db$has_table <- function(table_label) table_label %in% (db$tables %>% pull(table))
+
   # this one is created by python scripts
   db$table_relations <- read_table_relations_config(
     storage_filepath = here::here(db$folder, "table_relations.conf")
@@ -849,6 +852,69 @@ mnmdb_assemble_query_functions <- function(db) {
   # db$set_sequence_key(table_label, verbose = TRUE)
   # db$set_sequence_key("Protocols", "max", verbose = TRUE)
 
+
+  # insert table data
+  db$insert_data <- function(table_label, upload_data) {
+    # db <- mnmdb
+    # upload_data <- data_replacement
+
+    if (isFALSE(db$has_table(table_label))) {
+      stop(glue::glue("There is no table called {table_label}"))
+    }
+
+    if ("ogc_fid" %in% names(upload_data)) {
+      # do not upload this technical location key
+      upload_data <- upload_data %>% select(-ogc_fid)
+    }
+
+    # ? geometry // spatial data
+    if (db$is_spatial(table_label)) {
+      ## insert spatial data
+
+      upload_data <- sf::st_as_sf(upload_data)
+      type_count <- as_tibble(sf::st_geometry_type(upload_data)) %>%
+        count(value)
+
+      if (nrow(type_count) > 1) {
+        type_most <- type_count %>%
+          arrange(desc(n)) %>%
+          head(1) %>%
+          pull(value)
+        upload_data <- sf::st_cast(upload_data, as.character(type_most))
+      }
+
+      sf::st_geometry(upload_data) <- "wkb_geometry"
+
+      rs <- sf::st_write(
+        upload_data,
+        db$connection,
+        db$get_table_id(table_label),
+        row.names = FALSE,
+        delete_layer = FALSE, # "overwrite"
+        append = TRUE,
+        factorsAsCharacter = TRUE,
+        binary = TRUE
+      )
+
+    } else {
+
+      # regular, non-geometry data
+      rs <- DBI::dbWriteTable(
+        db$connection,
+        db$get_table_id(table_label),
+        upload_data,
+        row.names = FALSE,
+        overwrite = FALSE,
+        append = TRUE,
+        factorsAsCharacter = TRUE,
+        binary = TRUE
+      )
+    }
+
+    return(invisible(rs))
+  } # /insert_data
+
+
   # temporarily store table and dependencies in memory
   db$store_table_deptree_in_memory <- function(table_label) {
     # savetabs <- find_dependent_tables("mnmgwdb_db_structure", "Visits")
@@ -913,63 +979,6 @@ mnmdb_assemble_query_functions <- function(db) {
     return(invisible(NULL))
   } # /restore_table_data_from_memory
 
-
-  # insert table data
-  db$insert_data <- function(table_label, upload_data) {
-    # db <- mnmdb
-    # upload_data <- data_replacement
-
-    if ("ogc_fid" %in% names(upload_data)) {
-      # do not upload this technical location key
-      upload_data <- upload_data %>% select(-ogc_fid)
-    }
-
-    # ? geometry // spatial data
-    if (db$is_spatial(table_label)) {
-      ## insert spatial data
-
-      upload_data <- sf::st_as_sf(upload_data)
-      type_count <- as_tibble(sf::st_geometry_type(upload_data)) %>%
-        count(value)
-
-      if (nrow(type_count) > 1) {
-        type_most <- type_count %>%
-          arrange(desc(n)) %>%
-          head(1) %>%
-          pull(value)
-        upload_data <- sf::st_cast(upload_data, as.character(type_most))
-      }
-
-      sf::st_geometry(upload_data) <- "wkb_geometry"
-
-      rs <- sf::st_write(
-        upload_data,
-        db$connection,
-        db$get_table_id(table_label),
-        row.names = FALSE,
-        delete_layer = FALSE, # "overwrite"
-        append = TRUE,
-        factorsAsCharacter = TRUE,
-        binary = TRUE
-      )
-
-    } else {
-
-      # regular, non-geometry data
-      rs <- DBI::dbWriteTable(
-        db$connection,
-        db$get_table_id(table_label),
-        upload_data,
-        row.names = FALSE,
-        overwrite = FALSE,
-        append = TRUE,
-        factorsAsCharacter = TRUE,
-        binary = TRUE
-      )
-    }
-
-    return(invisible(rs))
-  }
 
   # remove all rows which have not noticably changed from their inception state
   db$delete_unused <- function(table_label, sql_filter_unused) {

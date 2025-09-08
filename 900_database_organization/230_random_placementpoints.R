@@ -5,7 +5,6 @@ library("cimir") %>% suppressPackageStartupMessages()
 
 source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
-# keyring::key_set("DBPassword", "db_user_password")
 
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
@@ -17,7 +16,6 @@ if (testing) {
   suffix <- "-staging" # "-testing"
 } else {
   suffix <- ""
-  keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
 }
 

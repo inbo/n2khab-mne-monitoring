@@ -62,7 +62,7 @@ LEFT JOIN (
     activity_group,
     is_field_activity,
     is_gw_activity,
-    string_agg('' || protocol, E',') AS protocols
+    string_agg(DISTINCT('' || protocol_code || '/v' || protocol_version), E',') AS protocols
   FROM "metadata"."GroupedActivities" AS GACT
   LEFT JOIN "metadata"."Protocols" AS PRT
     ON PRT.protocol_id = GACT.protocol_id

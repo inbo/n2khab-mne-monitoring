@@ -35,5 +35,58 @@ ALTER TABLE "metadata"."Protocols" ADD CONSTRAINT uq_protocol UNIQUE (protocol_c
 - [ ] remove ",..." in vivo and in POC
 - [ ] tolower in vivo
 
--- !!! TODO:
+
+-- change existing version and protocol code
+
+-- https://docs.google.com/spreadsheets/d/1gJb2nY-Cs-SCNMpz0sGFslb0j69mzNx5BJu9tQXpHfc/edit?gid=1617790174#gid=1617790174
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'spp-002-nl', protocol_version = '2025.-2'
+WHERE protocol_code = 'sfp-001-nl, ...';
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'sfp-403-nl', protocol_version = '2023.05'
+WHERE protocol_code = 'sfp-403-nl, ...';
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'sfp-105-nl', protocol_version = '2023.09'
+WHERE protocol_code = 'sfp-105-nl';
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'sfp-201-nl', protocol_version = '2024.01'
+WHERE protocol_code = 'sfp-201-nl';
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'spp-003-nl', protocol_version = '2025.-1'
+WHERE protocol_code = 'sfp-104-nl';
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'spp-116-nl', protocol_version = '2024.05'
+WHERE protocol_code = 'spp-116-nl';
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'spp-117-nl', protocol_version = '2024.06'
+WHERE protocol_code = 'spp-117-nl';
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'spp-116-nl', protocol_version = '2024.05'
+WHERE protocol_code = 'sfp-116-nl';
+UPDATE "metadata"."Protocols"
+SET protocol_code = 'spp-117-nl', protocol_version = '2024.06'
+WHERE protocol_code = 'sfp-117-nl';
+
+-- codes which do not exist
+DELETE FROM "metadata"."Protocols"
+WHERE protocol_code = 'SVP-014';
+DELETE FROM "metadata"."Protocols"
+WHERE protocol_code = 'SVP-110';
+DELETE FROM "metadata"."Protocols"
+WHERE protocol_code = 'SVP-119';
+DELETE FROM "metadata"."Protocols"
+WHERE protocol_code = 'sfp-116-nl';
+DELETE FROM "metadata"."Protocols"
+WHERE protocol_code = 'sfp-117-nl';
+
+
+-- add constraint
 ALTER TABLE "metadata"."Protocols" ALTER COLUMN protocol_version SET NOT NULL;
+
+-- update view
+!!! update FieldWork view of mnmgwdb
+
+-- create the metadata.Versions table
+
+-- !!! TODO:
+-- link GroupedActivities (by activity / group code)
