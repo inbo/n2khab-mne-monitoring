@@ -27,4 +27,10 @@ subprocedure: Protocols
 -> MANUALLY update the Protocols table once.
 
 
+* FieldworkCalendar Needs `stratum`
+
+subprocedure: Strata
+>>> [[file:./20250909_FieldworkCalendar_Strata.R]]
+
+
 * POC update =v0.9.0_poc0.13.0=
