@@ -124,7 +124,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 mirror <- "-staging"
 
 # loceval
-loceval_mirror <- glue::glue("loceval{mirror}")
+# loceval_mirror <- glue::glue("loceval{mirror}")
 # 
 # loceval <- connect_mnm_database(
 #   config_filepath,
@@ -139,6 +139,9 @@ mnmgwdb <- connect_mnm_database(
   config_filepath,
   database_mirror = mnmgwdb_mirror
 ) 
+
+
+update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 ```
 
 
@@ -147,12 +150,12 @@ mnmgwdb <- connect_mnm_database(
 ```{r step1-safety-dump}
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
-if (isFALSE(grepl("-staging", loceval_mirror))) {
-  loceval$dump_all(
-    here::here("dumps", glue::glue("safedump_{loceval$database}_{now}.sql")),
-    exclude_schema = c("tiger", "public")
-  )
-}
+# if (isFALSE(grepl("-staging", loceval_mirror))) {
+#   loceval$dump_all(
+#     here::here("dumps", glue::glue("safedump_{loceval$database}_{now}.sql")),
+#     exclude_schema = c("tiger", "public")
+#   )
+# }
 
 if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
   mnmgwdb$dump_all(
@@ -216,11 +219,6 @@ characteristic_columns <- c("protocol_code", "protocol_version")
 # the index column
 index_column <- "protocol_id" # mnmgwdb$get_primary_key("Protocols")
 
-# for some columns, existing data may not be overwritten
-# (i.e. the database is the one and only reference)
-precedence_columns <- list(
-  "Protocols" = c("subtitle")
-)
 
 # # columns which indicate a change from default state; used to decide whether to archive or remove
 # data_columns <- list() # format: "column_label" = "unchanged state"
@@ -313,5 +311,364 @@ reactivate_archived_data(
 
 # Prune Unused Rows
 
-I would tend to delete unused calendar entries;
+I would tend to delete unused calendar entries.
+However, these should be regarded by the distribution procedure itself.
 
+Even more important, the `precedence_columns` keep input fields from being considered.
+
+
+# Let's Do This
+
+## prerequisite_lookups
+
+```{r gather-lookups}
+grouped_activity_lookup <- mnmgwdb$query_lookup(
+  "GroupedActivities",
+  characteristic_columns = c("activity_group", "activity")
+)
+
+n2khabstrata_lookup <- mnmgwdb$query_lookup(
+  "N2kHabStrata",
+  characteristic_columns = c("stratum")
+)
+
+```
+
+
+```{r}
+
+activity_groupid_lookup <- mnmgwdb$query_columns(
+    "GroupedActivities",
+    c("activity_group", "activity_group_id")
+  ) %>%
+  distinct()
+
+gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
+  filter(is_gw_activity, is_field_activity) %>%
+  distinct(activity_group)
+
+```
+
+## Sample Units
+
+```{r}
+
+sample_units <-
+  fag_stratum_grts_calendar %>%
+  common_current_calenderfilters() %>%
+  distinct(
+    scheme_moco_ps,
+    stratum,
+    grts_address
+  ) %>%
+  unnest(scheme_moco_ps) %>%
+  # adding location attributes
+  inner_join(
+    scheme_moco_ps_stratum_targetpanel_spsamples %>%
+      distinct( # <- deduplicating 7220
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        grts_join_method,
+        grts_address,
+        grts_address_final,
+        targetpanel
+      ),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  common_current_samplefilters() %>%
+  # also join the spatial poststratum, since we need this in setting
+  # GRTS-address based priorities
+  inner_join(
+    scheme_moco_ps_stratum_sppost_spsamples %>%
+      unnest(sp_poststr_samples) %>%
+      select(-sample_status),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  select(-module_combo_code) %>%
+  nest_scheme_ps_targetpanel() %>%
+  # add MHQ assessment metadata
+  inner_join(
+    stratum_grts_n2khab_phabcorrected_no_replacements %>%
+      select(stratum, grts_address, assessed_in_field, assessment_date),
+    join_by(stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  distinct() %>%
+  # convert_stratum_to_type() %>%
+  rename_grts_address_final_to_grts_address() %>%
+  rename(
+    assessment = assessed_in_field,
+    assessment_date = assessment_date # triv.
+  ) %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  mutate(
+    previous_notes = NA # FUTURE TODO
+  ) %>%
+  mutate(
+    across(c(
+        grts_join_method,
+        scheme_ps_targetpanels,
+        sp_poststratum,
+        stratum
+      ),
+      as.character
+    )
+  )
+```
+
+## sample_locations
+
+```{r}
+
+sample_locations <- sample_units %>%
+  summarize(
+    scheme_ps_targetpanels = str_flatten(
+      sort(unique(scheme_ps_targetpanels)),
+      collapse = " | "
+    ) %>% as.character(),
+    schemes = str_flatten(
+      sort(unique(scheme)),
+      collapse = ", "
+    ) %>% as.character(),
+    strata = str_flatten(
+      sort(unique(stratum)),
+      collapse = ", "
+    ) %>% as.character(),
+    .by = c(
+      grts_address,
+    )
+  )
+
+
+```
+
+## Locations
+
+```{r}
+
+locations <- bind_rows(
+    mnmgwdb$query_columns("Locations", c("grts_address")),
+    sample_locations %>% select(grts_address),
+  ) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
+  distinct() %>%
+  # count(grts_address) %>%
+  # arrange(desc(n))
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(locations) <- "wkb_geometry"
+
+
+table_label <- "Locations"
+data_future <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+index_column <- mnmgwdb$get_primary_key(table_label)
+characteristic_columns <- c("grts_address")
+
+distribution <- categorize_data_update(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_future,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = characteristic_columns,
+  exclude_columns = c("wkb_geometry")
+)
+print_category_count(distribution, table_label)
+
+locations_lookup <- just_do_it(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
+)
+
+
+```
+
+
+## Sample Locations
+
+```{r}
+
+if ("location_id" %in% names(sample_locations)) {
+  # should not be the case in a continuous script;
+  # this is extra safety for debugging and de-serial execution
+  sample_locations <- sample_locations %>%
+    select(-location_id)#, -location_id.x, -location_id.y)
+}
+sample_locations <- sample_locations %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+    relationship = "many-to-one"
+  ) %>% distinct 
+
+table_label <- "SampleLocations"
+data_future <- sample_locations
+characteristic_columns <- c("grts_address", "location_id", "strata")
+index_column <- mnmgwdb$get_primary_key(table_label)
+
+distribution <- categorize_data_update(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_future,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = characteristic_columns,
+)
+print_category_count(distribution, table_label)
+
+distribution$to_upload <- distribution$to_upload %>% 
+  mutate(
+    # log_user = "maintenance",
+    # log_update = as.POSIXct(Sys.time()),
+    is_replacement = FALSE
+  ) 
+
+
+samplelocations_lookup <- just_do_it(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
+)
+
+
+```
+
+
+## FieldActivityCalendar
+
+TODO continue here
+
+- not "shorter" any more
+- should I not add "replacements" above?
+
+```{r}
+
+fieldwork_calendar <-
+  fieldwork_2025_prioritization_by_stratum %>%
+  common_current_calenderfilters() %>% 
+  rename(strata = stratum) %>% 
+  rename_grts_address_final_to_grts_address() %>%
+  relocate(grts_address) %>%
+  inner_join(
+    samplelocations_lookup,
+    by = join_by(grts_address, strata),
+    relationship = "many-to-one"
+  ) %>%
+  relocate(samplelocation_id) %>%
+  rename(
+    activity_rank = rank,
+    activity_group = field_activity_group
+  ) %>%
+  semi_join(gw_field_activities, by = join_by(activity_group)) %>%
+  left_join(
+    activity_groupid_lookup,
+    by = join_by(activity_group),
+    relationship = "many-to-one"
+  ) %>%
+  select(-activity_group) %>%
+  mutate(
+    across(c(
+        date_interval,
+        domain_part
+      ),
+      as.character
+    )
+  ) %>%
+  rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% 
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  ) 
+
+
+# TODO this is obsolete and fake
+sspstapas <- update_cascade_lookup(
+  table_label = "SSPSTaPas",
+  new_data = fieldwork_calendar %>%
+    distinct(stratum_scheme_ps_targetpanels) %>%
+    arrange(stratum_scheme_ps_targetpanels),
+  index_columns = c("sspstapa_id"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+
+replace_sspstapa_by_lookup <- function(df) {
+  df_new <- df %>%
+    left_join(
+      sspstapas,
+      by = join_by(stratum_scheme_ps_targetpanels),
+      relationship = "many-to-one"
+    ) %>%
+    relocate(
+      sspstapa_id,
+      .after = stratum_scheme_ps_targetpanels
+    ) %>%
+    select(-stratum_scheme_ps_targetpanels)
+
+  return(df_new)
+}
+
+fieldcalendar_characols <- c(
+    "samplelocation_id",
+    "sspstapa_id",
+    "grts_address",
+    "activity_group_id",
+    "date_start"
+  )
+
+
+```
+
+
+```{r}
+
+table_label <- "FieldworkCalendar"
+data_future <- fieldwork_calendar
+characteristic_columns <- fieldcalendar_characols
+index_column <- mnmgwdb$get_primary_key(table_label)
+
+distribution <- categorize_data_update(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_future,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = characteristic_columns,
+)
+print_category_count(distribution, table_label)
+
+```
+
+## TODO
+
+
+- LocationCells
+- LocationInfos
+
+First Round: as is
+
+Second Round:
+- adjust `common_current_calenderfilters()` -> 2026 data
+
+Third Round
+- then re-download RData
+- -> add new `wait_*` column

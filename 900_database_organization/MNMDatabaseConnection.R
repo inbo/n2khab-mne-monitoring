@@ -630,9 +630,9 @@ mnmdb_assemble_structure_lookups <- function(db) {
   db$get_dependent_tables <- function(table_key) {
     return(c(
       table_key,
-      db$table_relations %>%
+      mnmdb$table_relations %>%
       filter(tolower(relation_table) == tolower(table_key),
-        !(dependent_table %in% db$excluded_tables)
+        !(dependent_table %in% mnmdb$excluded_tables)
       ) %>% pull(dependent_table)
     ))
   }
@@ -713,24 +713,27 @@ mnmdb_assemble_query_functions <- function(db) {
   # select_column <- "location_id"
   # select_columns <- c("grts_address", "location_id")
 
-  db$uery_columns <- function(table_label, select_columns) {
+  # load many columns
+  db$query_columns <- function(table_label, select_columns) {
     dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
       dplyr::select(!!!rlang::syms(select_columns)) %>%
       dplyr::collect() %>%
       return()
-  }
+  } # /query_columns
   # db$query_columns(table_label, select_columns)
   # db$query_columns("Protocols", c("protocol_id", "description"))
 
+  # load one column
   db$pull_column <- function(table_label, select_column) {
     dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
       dplyr::select(!!select_column) %>%
       dplyr::collect() %>%
       dplyr::pull(!!select_column) %>%
       return()
-  }
+  } # /pull_column
   # db$pull_column(table_label, db$get_primary_key(table_label)) %>% max()
 
+  # check whether a table is spatial, i.e. contains `wkb_geometry`
   db$is_spatial <- function(table_key) {
     read.csv(here::here(db$folder, "TABLES.csv")) %>%
       select(table, geometry) %>%
@@ -740,10 +743,11 @@ mnmdb_assemble_query_functions <- function(db) {
       isFALSE() %>%
       return()
     # attr(table_id, "name")[[2]] # would be the variant for a DBI::Id
-  }
+  } # /is_spatial
   # db$is_spatial("FreeFieldNotes")
   # db$is_spatial("LocationInfos")
 
+  # load all table data
   db$query_table <- function(table_label) {
 
     table_id <- db$get_table_id(table_label)
@@ -758,9 +762,27 @@ mnmdb_assemble_query_functions <- function(db) {
     data <- data %>% as_tibble
 
     return(data)
-  }
+  } # /query_table
   # db$query_table("FreeFieldNotes") %>% head(2) %>% t() %>% knitr::kable()
 
+  # load lookup of a table (characteristics -> pk)
+  db$query_lookup <- function(table_label, characteristic_columns = NA) {
+
+    if (is.scalar.na(characteristic_columns)) {
+      characteristic_columns <- db$get_characteristic_columns(table_label)
+    }
+
+    pk <- db$get_primary_key(table_label)
+
+    return(
+      db$query_columns(
+        table_label,
+        select_columns = c(characteristic_columns, pk)
+      )
+    )
+  } # /query_lookup
+
+  # load data from many, many tables
   db$query_tables_data <- function(tables) {
     lapply(
         tables,

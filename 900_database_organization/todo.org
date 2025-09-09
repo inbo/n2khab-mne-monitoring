@@ -22,6 +22,12 @@ if major updates:
 
 * mainline
 
++ [ ] !!! re-think =SampleLocations= dependency!
+  + was made implicit
+  + this cuts ties upon update
+  + =samplelocation_id= must be manually re-linked everywhere
+  + shortcut alternative: retry setting foreign key everywhere
+
 + [ ] continue =20250903_missing_871030.sql=
 + [ ] delete =loceval::"outbound"."FieldActivityCalendar".landowner=
 + [ ] there is a duplicate location in loceval: 871030, of course.

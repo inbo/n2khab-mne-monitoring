@@ -12,17 +12,19 @@ COMMENT ON COLUMN "outbound"."FieldActivityCalendar".domain_part IS E'domain par
 
 #+end_src
 
+* Versions
+we now store the POC versions
+
+subprocedure: Versions
+>>> [[file:./20250908_Versions.sql]]
+
 
 * Protocols
 
 subprocedure: Protocols
 >>> [[file:./20250904_Protocols.sql]]
 
-* Versions
-we now store the POC versions
-
-subprocedure: Versions
->>> [[file:./20250908_Versions.sql]]
+-> MANUALLY update the Protocols table once.
 
 
 * POC update =v0.9.0_poc0.13.0=
