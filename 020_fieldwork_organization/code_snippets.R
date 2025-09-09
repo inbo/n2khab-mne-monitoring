@@ -1257,9 +1257,9 @@ fag_stratum_grts_calendar %>%
   )
 
 
-## Checking how many forest locations have temporarily been misjudged as not
-## being part of MHQ samples (because the in_mhq_samples column was not yet
-## present at the time)
+# Checking how many forest locations have temporarily been misjudged as not
+# being part of MHQ samples (because the in_mhq_samples column was not yet
+# present at the time)
 
 stratum_schemepstargetpanel_spsamples %>%
   filter(is_forest) %>%
