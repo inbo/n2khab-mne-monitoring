@@ -614,6 +614,13 @@ parametrize_cascaded_update <- function(mnmdb) {
       verbose = TRUE
     ) {
 
+    stopifnot("glue" = require("glue"))
+
+    if (nrow(new_data) == 0) {
+      message(glue::glue("No data provided to update {table_label}."))
+      return(invisible(NULL))
+    }
+
     schema <- mnmdb$get_schema(table_label)
     # this is a rather abstract construct; hope R will work it.
 
@@ -780,3 +787,463 @@ parametrize_cascaded_update <- function(mnmdb) {
   return(ucl_function)
 } # /parametrize_cascaded_update
 
+
+
+
+#_______________________________________________________________________________
+# POC APPEND
+
+### categorize data
+# categorize potentially new ("future") content for a given table
+# into three groups, by matching with the existing table on the
+# basis of given characteristic columns.
+# `input_precedence_columns` may not cause a data update.
+#
+# Hence, we split the data based on the following decision tree:
+# (MATCH?) do data match by characteristic columns,
+#  |       i.e. present in past and future?
+#  |
+#  |_> (1. YES) matching
+#  |   (1.?) Were data archived previously?
+#  |   |_> *[1.1] YES ==> "re-activate"
+#  |   |
+#  |   (2.) do they differ in other, non-characteristic values?
+#  |   |_> *[2.1] YES ==> "changed"
+#  |   |_> *[2.0] NO  ==> "unchanged"
+#  |
+#  |_> (0. NO) data mismatch
+#      (0.?) is data present in previous data, but now not any more?
+#      |_> (0.1) YES
+#      |   (0.1.?) Were data archived previously?
+#      |   |_> *[0.1.1] YES ==> "unchanged"
+#      |   |_> *[0.1.0] NO  ==> "to_archive" new-old archive rows
+#      |
+#      |_> *[0.0] NO ==> "to_upload" (new data will find its place)
+#
+# The outcome completely contains all rows of the input data:
+# - "changed"    [2.1]        are rows which were there, but changed,
+# - "unchanged"  [2.0, 0.1.1] can safely be ignored (no change),
+# - "to_archive" [0.1.0]      are rows which have disappeared,
+# - "to_upload"  [0.0]        are those not found yet in the data.
+# - "reactivate" [1.1]        outgroup:  re-activated archive
+#                             (potential overlab with "changed"/"unchanged")
+#
+# Returns a list with subsets of the original data.
+# Receiver must decide wisely what to do with them!
+categorize_data_update <- function(
+    mnmdb,
+    table_label,
+    data_future,
+    input_precedence_columns,
+    characteristic_columns = NA,
+    archive_flag_column = NA
+  ) {
+
+  ## general checks
+  stopifnot("dplyr" = require("dplyr"))
+
+  if (is.scalar.na(characteristic_columns)) {
+    # ... or just take all characteristic columns
+    characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
+  }
+
+  # archiving logic
+  if (is.na(archive_flag_column)) {
+    archive_flag_column <- "archive_version_id"
+  }
+
+  skip_archive <- isFALSE(
+    mnmdb$table_has_column(table_label, archive_flag_column)
+  )
+
+  ## load database status
+  data_previous <- mnmdb$query_table(table_label)
+
+  ## ignore input precedence columns
+  if (!is.null(input_precedence_columns)) {
+    cols <- names(data_future)
+    cols <- cols[!(cols %in% input_precedence_columns)]
+    data_future <- data_future %>% select(!!!cols)
+
+    cols <- names(data_previous)
+    cols <- cols[!(cols %in% input_precedence_columns)]
+    data_previous <- data_previous %>% select(!!!cols)
+
+  }
+
+  # if there is no archive column, then there can be no archive
+  if (skip_archive) {
+    data_previous_archive <- data_previous %>% filter(TRUE == FALSE)
+  } else {
+    data_previous_archive <- data_previous[!is.na(data_previous[archive_flag_column]), ]
+  }
+
+  ## categorize: match-and-mix
+  # please refresh your knowledge on "filtering joins"
+  # -> https://dplyr.tidyverse.org/reference/filter-joins.html
+  # tip: filtering is not joining; these are actually set operations.
+
+  # (1.?) some rows are present in pre and post
+  data_match <- data_future %>%
+    semi_join(
+      data_previous,
+      join_by(!!!characteristic_columns)
+    )
+
+  # [1.1] data re-activated: matched again though archived before
+  data_reactivate <- data_previous_archive %>%
+    semi_join(
+      data_match,
+      join_by(!!!characteristic_columns)
+    )
+
+  # (2.) of those matching, some will need to be updated
+  # [2.1] changed data
+  data_changed <- data_match %>%
+    anti_join(
+      data_previous,
+      join_by(!!!names(data_future))
+    )
+
+  # ... but others will not.
+  # [2.2] unchanged data
+  data_unchanged <- data_match %>%
+    semi_join(
+      data_previous,
+      join_by(!!!names(data_future))
+    )
+
+  ## (0.?) is data present in previous data, but now not any more?
+  # some data are not relevant any more, and could be archived
+  data_potential_archive <- data_previous %>%
+    anti_join(
+      data_future,
+      join_by(!!!characteristic_columns)
+    )
+
+  # (0.1.?) Were data archived previously?
+  # [0.1.1] stay archived; no change
+  data_unchanged <- bind_rows(
+    data_unchanged,
+    data_potential_archive %>% semi_join(
+      data_previous_archive,
+      join_by(!!!characteristic_columns)
+    )
+  )
+
+  # [0.1.0] NO  ==> "to_archive"
+  data_to_archive <- data_potential_archive %>%
+    anti_join(
+      data_previous_archive,
+      join_by(!!!characteristic_columns)
+    )
+
+  # [0.0] new data is ready for upload
+  data_to_upload <- data_future %>%
+    anti_join(
+      data_previous,
+      join_by(!!!characteristic_columns)
+    )
+
+  ## return a list
+  return(list(
+    "changed" = data_changed,
+    "unchanged" = data_unchanged,
+    "to_archive" = data_to_archive,
+    "to_upload" = data_to_upload,
+    "reactivate" = data_reactivate
+  ))
+} # /categorize_data_update
+
+print_category_count <- function(cats, table_label = NA) {
+  # *meow*
+  dogs <- "Distributed as follows:"
+  if (!is.na(table_label)) {
+    dogs <- glue::glue("Distributed {table_label} as follows:")
+  }
+  dogs <- c(
+    dogs,
+    unlist(lapply(
+      seq_len(length(cats)),
+      FUN = function(i) {
+        nr <- sprintf("% 6.0f", i)
+        label <- names(cats)[i]
+        glue::glue("{nr}: N = {nrow(cats[[i]])} {label}")
+      }
+    ))
+  )
+  message(
+    paste(dogs, collapse = "\n")
+  )
+  return(invisible(NULL))
+}
+
+
+### Safely append a data table.
+#   > "As safe as a hedgehog in a condom factory."
+#   (I think I have implemented this before.)
+upload_additional_data <- function(mnmdb, ...) {
+  # parametrize and execute upload function
+  update_cascade_lookup <- parametrize_cascaded_update(mnmdb)
+  return(update_cascade_lookup(...))
+} # /upload_additional_data
+
+
+### Update Machinery
+
+# ## check all data types
+# dtypes <- bind_rows(lapply(
+#   mnmdb$tables %>% pull(table),
+#   FUN = function(tablab) mnmdb$load_table_info(tablab) %>% select(datatype)
+# )) %>% distinct()
+
+
+logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
+validate_sql_text <- function (txt) gsub("'", "", txt)
+datatype_conversion_catalogue <- c(
+  "bool" = function(val) toString(val),
+  "boolean" = function(val) toString(val),
+  "varchar" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
+  "varchar(3)" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
+  "varchar(16)" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
+  "text" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
+  "int" = function(val) sprintf("%.0f", val),
+  "integer" = function(val) sprintf("%.0f", val),
+  "smallint" = function(val) sprintf("%.0f", val),
+  "bigint" = function(val) sprintf("%.0f", val),
+  "double precision" = function(val) sprintf("%.8f", val),
+  "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M"),
+  "date" = function(val) format(val, "%Y%m%d")
+)
+
+catch_nans <- function(fcn) function(val) if (is.na(val)) "NULL" else fcn(val)
+datatype_conversion_catalogue <- sapply(
+  datatype_conversion_catalogue,
+  FUN = catch_nans
+)
+
+
+# convert a whole data frame to SQL-ready characters, based on its data types
+convert_data_to_sql_input_str <- function(dtypes, data) {
+
+  for (i in seq_len(nrow(dtypes))) {
+    col <- dtypes[[i, "column"]]
+    dtype <- dtypes[[i, "datatype"]]
+
+    if (isFALSE(dtype %in% names(datatype_conversion_catalogue))) {
+      stop(glue::glue(
+        "Datatype `{dtype}` not found in conversion catalogue.
+         Probably you mispelled that, didn't you?"
+      ))
+    }
+
+    data[[col]] <-
+      unlist(lapply(
+        data %>% pull(!!col),
+        FUN = datatype_conversion_catalogue[[dtype]]
+      ))
+  }
+
+  return(data)
+} # /convert_data_to_sql_input_str
+
+
+### update data rows
+# which are already present, identified by reference columns
+# (by default the characteristic columns)
+# index columns and reference columns themselves are never updated
+# `data_input_precedence_columns` are columns for which the existing
+# data takes precedence over the upload data
+update_existing_data <- function(
+    mnmdb,
+    table_label,
+    changed_data,
+    input_precedence_columns,
+    index_columns = NA,
+    reference_columns = NA
+  ) {
+
+  stopifnot("glue" = require("glue"))
+
+  if (nrow(changed_data) == 0) {
+    message(glue::glue("No data provided to update {table_label}."))
+    return(invisible(NULL))
+  }
+
+  if (is.scalar.na(reference_columns)) {
+    # ... or just take all characteristic columns
+    reference_columns <- mnmdb$get_characteristic_columns(table_label)
+
+  }
+
+  # check for conflicts
+  conflict_columns <- reference_columns %in% input_precedence_columns
+  if(isFALSE(any(conflict_columns))) {
+
+    conflict_columns <- paste0(
+      reference_columns[conflict_columns],
+      collapse = ", "
+    )
+
+    stop(glue::glue(
+      "Input precedence column cannot be a characteristic column (here: {conflict_columns})."
+      )
+    )
+  }
+
+
+  # start with all the columns
+  update_columns <- names(changed_data)
+
+  # as always, be extra safe:
+  update_columns <- update_columns[
+    !(update_columns %in% input_precedence_columns)
+  ]
+
+  # confirm that reference columns are actually included
+  if (isFALSE(all(reference_columns %in% update_columns))) {
+    missing_refcol <- reference_columns[!(reference_columns %in% update_columns)]
+    missing_refcol <- paste0(missing_refcol, collapse = ", ")
+    stop(glue::glue(
+      "reference columns not found in the upload data: {missing_refcol}"
+    ))
+  }
+
+  # in case we need an index column
+  if (is.scalar.na(index_columns)) {
+    # ... or just take the primary key
+    index_columns <- c(mnmdb$get_primary_key(table_label))
+  }
+
+  # get info (column name, datatype) about the existing columns
+  table_columns <- mnmdb$load_table_info(table_label) %>%
+    select(column, datatype)
+  existing_columns <- table_columns %>% pull(column)
+
+  ## restrict to the columns to update:
+  # - only existing columns apply, naturally.
+  update_columns <- update_columns[update_columns %in% existing_columns]
+  # - never update index columns.
+  update_columns <- update_columns[!(update_columns %in% index_columns)]
+  # - the reference columns are included anyways.
+  update_columns <- update_columns[!(update_columns %in% reference_columns)]
+  # - logging columns stay untouched, unless used for reference
+  logging_nonrefs <- logging_columns[!(logging_columns %in% reference_columns)]
+  update_columns <- update_columns[!(update_columns %in% logging_nonrefs)]
+
+  # prepare the data by converting all to string
+  prepared_update_data <- convert_data_to_sql_input_str(
+    table_columns %>% filter(column %in% c(reference_columns, update_columns)),
+    changed_data
+  )
+
+
+  # sewing the update string
+  create_update_string_ <- function(row_nr) {
+
+    row <- prepared_update_data[row_nr,]
+
+    # the "SET" block of update data
+    udata <- paste(lapply(
+      update_columns,
+      FUN = function(col) glue::glue("{col} = {row[[col]]}")
+    ), collapse = ", \n\t")
+
+    # the filter block by reference columns
+    where_filter <- paste(lapply(
+      reference_columns,
+      FUN = function(col) glue::glue("{col} = {row[[col]]}")
+    ), collapse = ") \n AND (")
+
+    # combined update command
+    update_cmd <- glue::glue("
+      UPDATE {mnmdb$get_namestring(table_label)}
+      SET {udata}
+      WHERE ({where_filter})
+    ;")
+
+    return(update_cmd)
+
+  } # /create_update_string_
+
+  # rowwise apply the update command
+  update_commands <- lapply(
+    seq_len(nrow(prepared_update_data)),
+    FUN = create_update_string_
+  )
+
+  invisible(lapply(
+    update_commands,
+    FUN = function(update_cmd) mnmdb$execute_sql(update_cmd, verbose = TRUE)
+  ))
+
+  return(invisible(NULL))
+
+} # /update_existing_data
+
+
+### flag data as archived
+# `version_id = NULL` will un-archive (i.e. reactivate) the rows
+archive_ancient_data <- function(
+    mnmdb,
+    table_label,
+    data_to_archive,
+    version_id = NA,
+    reference_columns = NA,
+    archive_flag_column = "archive_version_id"
+  ) {
+
+  stopifnot("glue" = require("glue"))
+
+  if (isFALSE(mnmdb$table_has_column(table_label, archive_flag_column))) {
+    stop(glue::glue(
+      "Table {table_label} does not have the `{archive_flag_column}` column.
+       Skipping archiving step."
+    ))
+  }
+
+  if (nrow(data_to_archive) == 0) {
+    message(glue::glue("No data provided to archive in {table_label}."))
+    return(invisible(NULL))
+  }
+
+  # Default: get latest version as archive version
+  if (is.null(version_id)) {
+    version_id <- NA
+  } else if (is.na(version_id)) {
+    version_id <- mnmdb$load_latest_version_id()
+  }
+
+  # Default: use primary key for archive reference
+  if (is.na(reference_columns)) {
+    reference_columns <- c(mnmdb$get_primary_key(table_label))
+  }
+
+  # subset data
+  archive_data <- data_to_archive %>%
+    select(!!!c(reference_columns))
+
+  archive_data[archive_flag_column] <- version_id
+
+
+  # pass thru to update
+  update_existing_data(
+    mnmdb = mnmdb,
+    table_label = table_label,
+    changed_data = archive_data,
+    reference_columns = reference_columns
+  )
+
+  return(invisible(NULL))
+
+} # /archive_ancient_data
+
+reactivate_archived_data <- function(...) {
+
+  archive_ancient_data(..., version_id = NULL)
+
+  return(invisible(NULL))
+}
+
+#_______________________________________________________________________________
+# / (end of file)

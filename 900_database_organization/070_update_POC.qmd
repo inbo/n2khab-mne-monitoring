@@ -71,10 +71,6 @@ source("MNMDatabaseToolbox.R")
 # library("mapview") # debugging only
 # mapviewOptions(platform = "mapdeck")
 
-
-# you might want to run the following prior to sourcing or rendering this script:
-# keyring::key_set("DBPassword", "db_user_password")
-
 ```
 
 
@@ -129,11 +125,11 @@ mirror <- "-staging"
 
 # loceval
 loceval_mirror <- glue::glue("loceval{mirror}")
-
-loceval <- connect_mnm_database(
-  config_filepath,
-  database_mirror = loceval_mirror
-) 
+# 
+# loceval <- connect_mnm_database(
+#   config_filepath,
+#   database_mirror = loceval_mirror
+# ) 
 
 
 # ... and mnmgwdb
@@ -143,19 +139,6 @@ mnmgwdb <- connect_mnm_database(
   config_filepath,
   database_mirror = mnmgwdb_mirror
 ) 
-```
-
-
-## Update, Cascade, Propagate, and Lookup!
-
-Just a convenience function to pass arguments to recursive update,
-using higher order function generation to simplify the signature.
-
-```{r cascaded-update-function}
-
-# update_cascade_loceval <- parametrize_cascaded_update(loceval)
-# update_cascade_mnmgwdb <- parametrize_cascaded_update(mnmgwdb)
-
 ```
 
 
@@ -183,242 +166,73 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 
 # Gather and Upload - mnmgwdb
 
-```{r choose-database}
-mnmdb <- mnmgwdb
-update_cascade_lookup <- parametrize_cascaded_update(mnmdb)
-```
-
 ## database versioning
 
 ```{r version}
-version_tag <- "≤v0.9.0_poc0.13.0"
-version_notes <- ""
-date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
-
-versions <- mnmdb$query_table("Versions")
-data_iteration <- versions %>%
-  filter(version_tag == version_tag) %>%
-  pull(data_iteration)
-
-if (length(data_iteration) == 0) {
-  data_iteration <- 0
-} else {
-  data_iteration <- data_iteration + 1
-}
-
-version_upload <- as_tibble(list(
-  "version_tag" = version_tag,
-  "data_iteration" = data_iteration,
-  "date_applied" = date_applied,
-  "notes" = version_notes
-))
-
-# DO NOT update_cascade_lookup(table_label = "Versions")
-# this would ruin version_ids
-# ==> on "Archive", prefer direct insert
-mnmdb$insert_data(
-  table_label = "Versions",
-  upload_data = version_upload
-)
-
-version_id <- mnmdb$query_table("Versions") %>%
-  filter(
-    version_tag == version_tag,
-    data_iteration == data_iteration
-  ) %>%
-  pull(version_id)
-
 
 if (FALSE) {
-  table_label = "Versions"
+  # manually set a new version
+  version_tag <- "≤v0.9.0_poc0.13.0"
+  version_notes <- ""
+  date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+
+  version_id <- mnmgwdb$tag_new_version(
+    version_tag,
+    version_notes,
+    date_applied = NA
+  )
+} else {
+  # per default, the latest version is taken
+  version_id <- mnmgwdb$load_latest_version_id()
+}
+
+if (FALSE) {
+  # ... ad hoc / testing: delete version again
+  table_label <- "Versions"
   glue::glue("
-  DELETE FROM {mnmdb$get_namestring(table_label)}
+  DELETE FROM {mnmgwdb$get_namestring(table_label)}
   WHERE version_tag = '{version_tag}'
     AND data_iteration = {data_iteration}
   ;
   ")
 }
 
+
+# TODO: I still have to make up my mind whether to archive everything.
+#       For now, I will preliminarily keep it with an "archive_id" column.
 ```
 
 
-## data assembly
+# Test Case 1: Protocols
 
-```{r split-data}
-
-categorize_data_update <- function(
-    mnmdb,
-    table_label,
-    data_future,
-    characteristic_columns = NA
-  ) {
-
-  ## (1) general checks
-  stopifnot("dplyr" = require("dplyr"))
-    
-  if (is.scalar.na(characteristic_columns)) {
-    # ... or just take all characteristic columns
-    characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
-  }
-
-  ## (2) load database status
-  data_previous <- mnmdb$query_table(table_label)
-    
-  ## (3) match-and-mix
-  # some rows are present in pre and post
-  data_match <- data_future %>%
-    semi_join(
-      data_previous,
-      join_by(!!!characteristic_columns)
-    )
-  
-  # ... but of those, some will need to be updated
-  data_changed <- data_match %>%
-    anti_join(
-      data_previous,
-      join_by(!!!names(data_future))
-    )
-  
-  # some data are not relevant any more, and could be archived
-  data_for_archive <- data_previous %>% 
-    anti_join(
-      data_future,
-      join_by(!!!characteristic_columns)
-    )
-  
-  # new data is ready for upload
-  data_to_upload <- data_future %>% 
-    anti_join(
-      data_previous,
-      join_by(!!!characteristic_columns)
-    )
-
-  return(list(
-    "changed" = data_changed,
-    "to_archive" = data_for_archive,
-    "to_upload" = data_to_upload 
-  ))
-} # /categorize_data_update
-
-
-upload_additional_data <- function(mnmdb, ...) {
-  # parametrize and execute upload function
-  update_cascade_lookup <- parametrize_cascaded_update(mnmdb)
-  return(update_cascade_lookup(...))
-} # /upload_additional_data
-
-
-
-# dtypes <- bind_rows(lapply(
-#   mnmdb$tables %>% pull(table),
-#   FUN = function(tablab) mnmdb$load_table_info(tablab) %>% select(datatype)
-# )) %>% distinct()
-
-logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
-sql_text <- function (txt) gsub("'", "", txt)
-datatype_conversion_catalogue <- c(
-  "bool" = function(val) toString(val),
-  "boolean" = function(val) toString(val),
-  "varchar" = function(val) glue::glue("E'{sql_text(val)}'"),
-  "varchar(3)" = function(val) glue::glue("E'{sql_text(val)}'"),
-  "varchar(16)" = function(val) glue::glue("E'{sql_text(val)}'"),
-  "text" = function(val) glue::glue("E'{sql_text(val)}'"),
-  "int" = function(val) sprintf("%.0f", val),
-  "integer" = function(val) sprintf("%.0f", val),
-  "smallint" = function(val) sprintf("%.0f", val),
-  "bigint" = function(val) sprintf("%.0f", val),
-  "double precision" = function(val) sprintf("%.8f", val),
-  "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M"),
-  "date" = function(val) format(val, "%Y%m%d")
-)
-
-catch_nans <- function(fcn) function(val) if (is.na(val)) "NULL" else fcn(val)
-datatype_conversion_catalogue <- sapply(
-  datatype_conversion_catalogue,
-  FUN = catch_nans
-)
-
-update_existing_data <- function(
-    mnmdb,
-    table_label,
-    changed_data,
-    index_columns = NA,
-    reference_columns = NA
-  ) {
-
-  stopifnot("glue" = require("glue"))
-
-    
-  if (is.scalar.na(reference_columns)) {
-    # ... or just take all characteristic columns
-    reference_columns <- mnmdb$get_characteristic_columns(table_label)
-  }
-
-  update_columns <- names(changed_data)
-  if (!all(reference_columns %in% update_columns)) {
-    missing_refcol <- reference_columns[!(reference_columns %in% update_columns)]
-    missing_refcol <- paste0(missing_refcol, collapse = ", ")
-    stop(glue::glue(
-      "reference columns not found in the upload data: {missing_refcol}"
-    ))
-  }
-
-  if (is.scalar.na(index_columns)) {
-    # ... or just take the primary key
-    index_columns <- c(mnmdb$get_primary_key(table_label))
-  }
-
-  table_columns <- mnmdb$load_table_info(table_label) %>%
-    select(column, datatype)
-  existing_columns <- table_columns %>% pull(column)
-
-  # find the columns to update
-  update_columns <- update_columns[update_columns %in% existing_columns]
-  update_columns <- update_columns[!(update_columns %in% index_columns)]
-  update_columns <- update_columns[!(update_columns %in% reference_columns)]
-    
-  create_update_string <- function(row_nr) {
-
-    update_md <- glue::glue(
-        )
-
-    datatype_conversion_catalogue[[]]
-  }
-
-    
-} # /update_existing_data
-
-
-mnmdb <- mnmgwdb
-table_label <- "Protocols"
-changed_data <- protocols_distribution$changed 
-index_columns <- c("protocol_id")
-reference_columns <- c("protocol_code", "protocol_version")
-
-```
-
-
-## test case - protocols
+## diff
 
 ```{r db-diff-protocols}
+#| eval: false
 
-## (0) relevant columns
+## relevant structural columns
 # columns which uniquely identify a table entry
 characteristic_columns <- c("protocol_code", "protocol_version")
 # the index column
-index_column <- "protocol_id" # mnmdb$get_primary_key("Protocols")
+index_column <- "protocol_id" # mnmgwdb$get_primary_key("Protocols")
 
-# columns which indicate a change from default state; used to decide whether to archive or remove
-data_columns <- list() # format: "column_label" = "unchanged state"
+# for some columns, existing data may not be overwritten
+# (i.e. the database is the one and only reference)
+precedence_columns <- list(
+  "Protocols" = c("subtitle")
+)
 
-# # TESTING
+# # columns which indicate a change from default state; used to decide whether to archive or remove
+# data_columns <- list() # format: "column_label" = "unchanged state"
+
+# # FOR TESTING
 # INSERT INTO "metadata"."Protocols" (protocol_code, protocol_version, title, language, theme, manager)
 # VALUES ('fmp-000-de', '2025.00', 'a test protocol to archive', 'de', 'testing', 'Falk Mielke')
 # ;
 
 ## get updated raw data
 protocols_raw <- read_csv(
-  here::here(mnmdb$folder, "data_Protocols.csv"),
+  here::here(mnmgwdb$folder, "data_Protocols.csv"),
   show_col_types = FALSE
 )
 
@@ -431,25 +245,73 @@ protocols_distribution <- categorize_data_update(
   mnmdb = mnmgwdb,
   table_label = "Protocols",
   data_future = protocols_raw,
-  characteristic_columns = c("protocol_code", "protocol_version")
+  input_precedence_columns = precedence_columns[["Protocols"]],
+  characteristic_columns = characteristic_columns
 )
 
+print_category_count(protocols_distribution, "Protocols")
 ```
 
-# take action
+## update
+
+```{r update-existing}
+#| eval: false
+
+update_existing_data(
+  mnmdb = mnmgwdb,
+  table_label = "Protocols",
+  changed_data = protocols_distribution$changed,
+  input_precedence_columns = precedence_columns[["Protocols"]],
+  index_columns = c(index_column),
+  reference_columns = characteristic_columns
+)
+```
 
 ## upload
 
 ```{r upload-data}
+#| eval: false
+
 upload_additional_data(
-  mnmgwdb,
+  mnmdb = mnmgwdb,
   table_label = "Protocols",
   new_data = protocols_distribution$to_upload,
-  index_columns = c("protocol_id"),
+  index_columns = c(index_column),
   tabula_rasa = FALSE,
-  characteristic_columns = c("protocol_code", "protocol_version"),
+  characteristic_columns = characteristic_columns,
   skip_sequence_reset = FALSE,
   verbose = TRUE
 )
 ```
+
+## rows to archive
+
+```{r archive-data}
+#| eval: false
+
+archive_ancient_data(
+  mnmdb = mnmgwdb,
+  table_label = "Protocols",
+  data_to_archive = protocols_distribution$to_archive,
+  version_id = version_id,
+  reference_columns = c(index_column)
+)
+
+# ... and un-archive = reactivate
+reactivate_archived_data(
+  mnmdb = mnmgwdb,
+  table_label = "Protocols",
+  data_to_archive = protocols_distribution$reactivate,
+  reference_columns = c(index_column)
+)
+
+
+# NOTE: un-archived rows are not subject to UPDATE
+#       if in doubt, run this again.
+```
+
+
+# Prune Unused Rows
+
+I would tend to delete unused calendar entries;
 

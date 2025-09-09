@@ -4,7 +4,7 @@
 # supposed to be loaded prior to "DatabaseToolbox"
 
 #_______________________________________________________________________________
-### TABLE OF CONTENTS
+### TABLE OF CONTENTS / CATALOGUE
 #
 # Conventions:
 # - `table_namestring` is the SQL table reference including quotes,
@@ -50,41 +50,45 @@
 #     skip_structure_assembly = FALSE,
 #     [... -> connection_database_configfile]
 #   ) -> mnmdb
-#   - db$connection_profile
-#   - db$folder
-#   - db$host
-#   - db$port
-#   - db$database
-#   - db$user
-#   - db$shellstring
-#   - db$connection
-#   - db$execute_sql(self, ...) -> [reparametrization]
-#   - db$dump_all(self, ...) -> [reparametrization]
+#   - connection_profile
+#   - folder
+#   - host
+#   - port
+#   - database
+#   - user
+#   - shellstring
+#   - connection
+#   - execute_sql(self, ...) -> [reparametrization]
+#   - dump_all(self, ...) -> [reparametrization]
 # > mnmdb_assemble_structure_lookups(db) -> db
-#   - db$tables
-#   - db$table_relations
-#   - db$excluded_tables
-#   - db$get_schema(table_label) -> character
-#   - db$get_namestring(table_label) -> character
-#   - db$get_table_id(table_label) -> DBI::Id
-#   - db$get_table_id_lowercase(table_key) -> DBI::Id
-#   - db$get_dependent_tables(table_key) -> c(key, df)
-#   - db$get_dependent_table_ids(table_key) -> list(DBI::Id)
-#   - db$load_table_info(table_label) -> df(table info)
-#   - db$get_characteristic_columns(table_label) -> c(column names)
-#   - db$get_primary_key(table_label) -> character(pk)
+#   - tables
+#   - has_table(table_label) -> bool
+#   - table_relations
+#   - excluded_tables
+#   - get_schema(table_label) -> character
+#   - get_namestring(table_label) -> character
+#   - get_table_id(table_label) -> DBI::Id
+#   - get_table_id_lowercase(table_key) -> DBI::Id
+#   - get_dependent_tables(table_key) -> c(key, df)
+#   - get_dependent_table_ids(table_key) -> list(DBI::Id)
+#   - load_table_info(table_label) -> df(table info)
+#   - get_characteristic_columns(table_label) -> c(column names)
+#   - get_primary_key(table_label) -> character(pk)
 # > mnmdb_assemble_query_functions(db) -> db
-#   - db$query_columns(table_label, select_columns) -> df(columns)
-#   - db$pull_column(table_label, select_column) -> c()
-#   - db$is_spatial(table_key) -> bool
-#   - db$query_table(table_label) -> df
-#   - db$query_tables_data(tables) -> list(df)
-#   - db$lookup_dependent_columns(table_label, deptab_label) -> df(pk, fk)
-#   - db$set_sequence_key(table_label, new_key_value, sequence_label, verbose)
-#   - db$store_table_deptree_in_memory(table_label) -> list("label", "data")
-#   - db$restore_table_data_from_memory(table_content_storage, verbose)
-#   - db$insert_data(table_label, new_data)
-#   - db$delete_unused(table_label, sql_filter_unused)
+#   - query_columns(table_label, select_columns) -> df(columns)
+#   - pull_column(table_label, select_column) -> c()
+#   - is_spatial(table_key) -> bool
+#   - query_table(table_label) -> df
+#   - query_tables_data(tables) -> list(df)
+#   - lookup_dependent_columns(table_label, deptab_label) -> df(pk, fk)
+#   - set_sequence_key(table_label, new_key_value, sequence_label, verbose)
+#   - insert_data(table_label, new_data)
+#   - store_table_deptree_in_memory(table_label) -> list("label", "data")
+#   - restore_table_data_from_memory(table_content_storage, verbose)
+#   - delete_unused(table_label, sql_filter_unused)
+# > mnmdb_versions_and_archiving(db) -> db
+#   - load_latest_version_id(version_tag, data_iteration) -> version_id
+#   - tag_new_version(version_tag, version_notes, date_applied) -> version_id
 
 #_______________________________________________________________________________
 ### SQL BASICS
@@ -555,6 +559,7 @@ connect_mnm_database <- function(
   if (isFALSE(skip_structure_assembly)) {
     db <- mnmdb_assemble_structure_lookups(db)
     db <- mnmdb_assemble_query_functions(db)
+    db <- mnmdb_versions_and_archiving(db)
   }
 
   return(db)
@@ -654,6 +659,14 @@ mnmdb_assemble_structure_lookups <- function(db) {
   }
   # db$load_table_info("FreeFieldNotes")
 
+  # check that a table has a column
+  db$table_has_column <- function(table_label, column) {
+    existing_columns <- db$load_table_info(table_label) %>%
+      pull(column)
+    return(column %in% existing_columns)
+  }
+  # db$load_table_info("FreeFieldNotes")
+
 
   db$get_characteristic_columns <- function(table_label) {
 
@@ -700,7 +713,7 @@ mnmdb_assemble_query_functions <- function(db) {
   # select_column <- "location_id"
   # select_columns <- c("grts_address", "location_id")
 
-  db$query_columns <- function(table_label, select_columns) {
+  db$uery_columns <- function(table_label, select_columns) {
     dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
       dplyr::select(!!!rlang::syms(select_columns)) %>%
       dplyr::collect() %>%
@@ -983,26 +996,118 @@ mnmdb_assemble_query_functions <- function(db) {
   # remove all rows which have not noticably changed from their inception state
   db$delete_unused <- function(table_label, sql_filter_unused) {
 
+    # NOTE: the current user counts as maintenance user
     maintenance_users <- paste(
       c("update", "maintenance", db$user),
       collapse = "', '"
     )
 
+    # prepare query to delete all unused rows
     cleanup_query <- glue::glue(
       "DELETE FROM {db$get_namestring(table_label)}
         WHERE log_user IN ('{maintenance_users}')
           AND {sql_filter_unused}
-      ;" # landowner will be script-updated (outbound)
+      ;"
     )
 
+    # execution
     db$execute_sql(cleanup_query, verbose = TRUE)
-  }
+
+  } # /delete_unused
 
 
   return(db)
 
 } # /mnmdb_assemble_query_functions
 
+
+# handle database data versions and archiving
+mnmdb_versions_and_archiving <- function(db) {
+
+  # retrieve the latest version ID (optionally for a tag)
+  db$load_latest_version_id <- function(
+      version_tag = NA,
+      data_iteration = NA
+    ) {
+
+    # I dreamt that one day, every database will have this meta table!
+    version_ids <- db$query_table("Versions")
+
+    # optionally filter version tag
+    if (isFALSE(is.na(version_tag))) {
+      version_ids <- version_ids %>%
+        filter(
+          version_tag == version_tag,
+        )
+    }
+
+    # optionally filter data iteration
+    if (isFALSE(is.na(data_iteration))) {
+      version_ids <- version_ids %>%
+        filter(
+          data_iteration == data_iteration
+        )
+    }
+
+    # sort versions (ascending, i.e. oldest first)
+    version_ids <- version_ids %>%
+      arrange(date_applied, data_iteration)
+
+    # return the latest version
+    return(
+      version_ids %>%
+        tail(1) %>%
+        pull(version_id)
+    )
+
+  } # /load_latest_version_id
+
+  # start a new chapter in the great book of MNM data
+  db$tag_new_version <- function(
+      version_tag,
+      version_notes,
+      date_applied = NA
+    ) {
+
+    # determine the next counter
+    versions <- db$query_table("Versions")
+    data_iteration <- versions %>%
+      filter(version_tag == version_tag) %>%
+      pull(data_iteration)
+
+    if (length(data_iteration) == 0) {
+      data_iteration <- 1
+    } else {
+      data_iteration <- data_iteration + 1
+    }
+
+    version_upload <- as_tibble(list(
+      "version_tag" = version_tag,
+      "data_iteration" = data_iteration,
+      "date_applied" = date_applied,
+      "notes" = version_notes
+    ))
+
+    # DO NOT update_cascade_lookup(table_label = "Versions")
+    # this would ruin version_ids
+    # ==> on "Archive", prefer direct insert
+    db$insert_data(
+      table_label = "Versions",
+      upload_data = version_upload
+    )
+
+    # return id of the latest version
+    version_id <- db$load_latest_version_id(
+      db,
+      version_tag,
+      data_iteration
+    )
+
+    return(version_id)
+  } # /tag_new_version
+
+  return(db)
+} # /mnmdb_versions_and_archiving
 
 
 #_______________________________________________________________________________
