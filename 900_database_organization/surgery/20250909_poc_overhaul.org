@@ -1,0 +1,28 @@
+
+
+* POC changes
+** domain partition
+
+introduced by Floris
+
+#+begin_src sql
+-- add domain part to loceval
+ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN domain_part varchar;
+COMMENT ON COLUMN "outbound"."FieldActivityCalendar".domain_part IS E'domain partition';
+
+#+end_src
+
+
+* Protocols
+
+subprocedure: Protocols
+>>> [[file:./20250904_Protocols.sql]]
+
+* Versions
+we now store the POC versions
+
+subprocedure: Versions
+>>> [[file:./20250908_Versions.sql]]
+
+
+* POC update =v0.9.0_poc0.13.0=
