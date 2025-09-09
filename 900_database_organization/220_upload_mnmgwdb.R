@@ -965,7 +965,7 @@ fieldwork_calendar <-
     excluded = FALSE,
     no_visit_planned = FALSE,
     done_planning = FALSE
-  ) %>% glimpse
+  ) # ?! %>% glimpse
 
 # fieldwork_calendar %>% glimpse
 

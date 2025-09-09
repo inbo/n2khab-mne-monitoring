@@ -312,6 +312,7 @@ upload_data_and_update_dependencies <- function(
   # - R function overloading: no matter if sf or not
   # - because geometry columns are skipped for `characteristic_columns`
   #       -> seems to work the same
+  # - update (202509): sf will work now (see MNMDatabaseConnection.R)
 
 
   ### (6) store dependent table lookups
@@ -372,6 +373,7 @@ upload_data_and_update_dependencies <- function(
   #   arrange(desc(n))
   # old_data %>% count(location_id) %>% arrange(desc(n))
 
+  #  new_redownload %>% count(grts_address, location_id) %>% arrange(desc(n))
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,
@@ -836,7 +838,8 @@ categorize_data_update <- function(
     data_future,
     input_precedence_columns,
     characteristic_columns = NA,
-    archive_flag_column = NA
+    archive_flag_column = NA,
+    exclude_columns = NA
   ) {
 
   ## general checks
@@ -867,6 +870,18 @@ categorize_data_update <- function(
 
     cols <- names(data_previous)
     cols <- cols[!(cols %in% input_precedence_columns)]
+    data_previous <- data_previous %>% select(!!!cols)
+
+  }
+
+  ## ignore excluded columns
+  if (!is.null(exclude_columns)) {
+    cols <- names(data_future)
+    cols <- cols[!(cols %in% exclude_columns)]
+    data_future <- data_future %>% select(!!!cols)
+
+    cols <- names(data_previous)
+    cols <- cols[!(cols %in% exclude_columns)]
     data_previous <- data_previous %>% select(!!!cols)
 
   }
@@ -1078,7 +1093,7 @@ update_existing_data <- function(
 
   # check for conflicts
   conflict_columns <- reference_columns %in% input_precedence_columns
-  if(isFALSE(any(conflict_columns))) {
+  if (any(conflict_columns)) {
 
     conflict_columns <- paste0(
       reference_columns[conflict_columns],
@@ -1231,6 +1246,7 @@ archive_ancient_data <- function(
     mnmdb = mnmdb,
     table_label = table_label,
     changed_data = archive_data,
+    input_precedence_columns = precedence_columns[[table_label]],
     reference_columns = reference_columns
   )
 
@@ -1238,12 +1254,140 @@ archive_ancient_data <- function(
 
 } # /archive_ancient_data
 
+
+# the opposite of archiving
 reactivate_archived_data <- function(...) {
 
   archive_ancient_data(..., version_id = NULL)
 
   return(invisible(NULL))
-}
+} # /reactivate_archived_data
+
+
+# for some columns, existing data may not be overwritten
+# (i.e. the database is the one and only reference)
+# TODO: This is incredibly hacky and embarassing, but it will
+# eventually get better.
+precedence_columns <- list(
+  "SampleLocations" = c(
+    "is_replacement"
+  ),
+  "FieldworkCalendar" = c(
+    "excluded",
+    "excluded_reason",
+    "teammember_assigned",
+    "date_visit_planned",
+    "no_visit_planned",
+    "notes",
+    "done_planning"
+  ),
+  "Visits" = c(
+    "teammember_id",
+    "date_visit",
+    "notes",
+    "photo",
+    "lims_code",
+    "issues",
+    "visit_done"
+  ),
+  "WellInstallationActivities" = c(
+    "teammember_id",
+    "date_visit",
+    "visit_done",
+    "photo_soil_1_peilbuis",
+    "photo_soil_2_piezometer",
+    "photo_well",
+    "watina_code_used_1_peilbuis",
+    "watina_code_used_2_piezometer",
+    "soilprofile_notes",
+    "soilprofile_unclear",
+    "random_point_number",
+    "no_diver",
+    "diver_id",
+    "free_diver"
+  ),
+  "ChemicalSamplingActivities" = c(
+    "teammember_id",
+    "date_visit",
+    "visit_done",
+    "project_code",
+    "recipient_code"
+  ),
+  "LocationInfos" = c(
+    "landowner",
+    "accessibility_inaccessible",
+    "accessibility_revisit",
+    "recovery_hints",
+    "watina_code_1",
+    "watina_code_2"
+  )
+)
+
+
+just_do_it <- function(
+    mnmdb,
+    table_label,
+    distribution,
+    index_columns,
+    characteristic_columns,
+    skip = NA
+  ) {
+
+  if (is.scalar.na(skip)) {
+    skip <- list(
+      "update" = FALSE,
+      "upload" = FALSE,
+      "archive" = FALSE
+    )
+  }
+
+  if (isFALSE(skip[["update"]])) {
+    update_existing_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      changed_data = distribution$changed,
+      input_precedence_columns = precedence_columns[[table_label]],
+      index_columns = index_columns,
+      reference_columns = characteristic_columns
+    )
+  }
+
+  if (isFALSE(skip[["upload"]])) {
+    upload_additional_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      new_data = distribution$to_upload,
+      index_columns = index_columns,
+      tabula_rasa = FALSE,
+      characteristic_columns = characteristic_columns,
+      skip_sequence_reset = FALSE,
+      verbose = TRUE
+    )
+  }
+
+  if (isFALSE(skip[["archive"]])) {
+    archive_ancient_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      data_to_archive = distribution$to_archive,
+      version_id = version_id,
+      reference_columns = c(index_column)
+    )
+
+    # ... and un-archive = reactivate
+    reactivate_archived_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      data_to_archive = distribution$reactivate,
+      reference_columns = c(index_column)
+    )
+  }
+
+  return(mnmdb$query_lookup(
+    table_label,
+    characteristic_columns = characteristic_columns
+  ))
+} # /just_do_it
 
 #_______________________________________________________________________________
 # / (end of file)
