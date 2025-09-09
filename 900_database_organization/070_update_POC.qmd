@@ -428,6 +428,9 @@ sample_units <-
 
 ```{r}
 
+TODO stop here!!!
+              ... and check
+
 sample_locations <- sample_units %>%
   summarize(
     scheme_ps_targetpanels = str_flatten(
@@ -438,12 +441,9 @@ sample_locations <- sample_units %>%
       sort(unique(scheme)),
       collapse = ", "
     ) %>% as.character(),
-    strata = str_flatten(
-      sort(unique(stratum)),
-      collapse = ", "
-    ) %>% as.character(),
     .by = c(
       grts_address,
+      stratum
     )
   )
 
@@ -628,14 +628,22 @@ replace_sspstapa_by_lookup <- function(df) {
   return(df_new)
 }
 
+fieldwork_calendar_new <- fieldwork_calendar %>%
+  replace_sspstapa_by_lookup() %>%
+  select(
+    -location_id,
+    -grts_join_method
+  )
+
 fieldcalendar_characols <- c(
-    "samplelocation_id",
-    "sspstapa_id",
     "grts_address",
     "activity_group_id",
     "date_start"
   )
 
+    "strata", 
+# "samplelocation_id",
+# "sspstapa_id",
 
 ```
 
@@ -643,7 +651,11 @@ fieldcalendar_characols <- c(
 ```{r}
 
 table_label <- "FieldworkCalendar"
-data_future <- fieldwork_calendar
+data_future <- fieldwork_calendar_new %>%
+  select(
+    -strata,
+    -domain_part
+  )
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
 
@@ -660,9 +672,14 @@ print_category_count(distribution, table_label)
 
 ## TODO
 
+- `strata` in "SampleLocations" need to be split.
+- !!! FieldworkCalendar need `strata` -> `stratum`
+>>> [[file:./20250909_FieldworkCalendar_Strata.R]]
+
 
 - LocationCells
 - LocationInfos
+
 
 First Round: as is
 
