@@ -40,7 +40,9 @@ SELECT
   FWCAL.notes,
   FWCAL.done_planning,
   LOCEVAL.has_loceval,
-  LOCEVAL.latest_visit
+  LOCEVAL.latest_visit,
+  ACT.date_visit,
+  ACT.has_installation
 FROM "outbound"."FieldworkCalendar" AS FWCAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON FWCAL.samplelocation_id = SLOC.samplelocation_id
@@ -61,6 +63,22 @@ LEFT JOIN (
     GROUP BY samplelocation_id, eval_source
   ) AS LOCEVAL
     ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
+LEFT JOIN (
+  SELECT DISTINCT
+    VISIT.samplelocation_id,
+    VISIT.date_visit,
+    (WIA.fieldwork_id IS NOT NULL) AS has_installation
+  FROM "inbound"."Visits" AS VISIT
+  LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
+    ON VISIT.visit_id = WIA.visit_id
+  WHERE VISIT.visit_done
+    AND VISIT.activity_group_id IN (
+    SELECT DISTINCT activity_group_id
+    FROM "metadata"."GroupedActivities"
+    WHERE activity_group LIKE 'GWINST%'
+  )
+) AS ACT
+  ON FWCAL.samplelocation_id = ACT.samplelocation_id
 ORDER BY
   FWCAL.date_end,
   FWCAL.priority,
@@ -71,6 +89,7 @@ ORDER BY
   FWCAL.activity_group_id
 ;
 
+-- SELECT DISTINCT visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done;
 
 -- DROP RULE IF EXISTS FieldworkPlanning_upd0 ON "outbound"."FieldworkPlanning";
 -- CREATE RULE FieldworkPlanning_upd0 AS
@@ -111,10 +130,11 @@ GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  lise;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  wouter;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  floris;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  karen;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  ward;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  monkey;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  floris;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  karen;
+
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester;

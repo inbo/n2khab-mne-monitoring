@@ -36,6 +36,91 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 }
 
 
+stitch_table_connection <- function(
+    mnmdb,
+    table_label,
+    reference_table,
+    link_key_column = NA,
+    lookup_columns = NA,
+    reference_mod = NA
+  ) {
+
+  if (is.scalar.na(link_key_column)) {
+    link_key_column <- mnmdb$get_primary_key(reference_table)
+  }
+
+  data <- mnmdb$query_table(table_label)
+  reference <- mnmdb$query_table(reference_table)
+
+  if (isFALSE(is.scalar.na(reference_mod))) {
+    reference <- reference_mod(reference)
+  }
+
+  if (is.scalar.na(lookup_columns)) {
+    lookup_columns <- names(data)
+    lookup_columns <- lookup_columns[lookup_columns %in% names(reference)]
+    lookup_columns <- lookup_columns[!(lookup_columns %in% c(link_key_column))]
+    lookup_columns <- lookup_columns[!(lookup_columns %in% c(link_key_column, logging_columns))]
+    # archive_version_id might still be in here!
+  }
+
+  # # cols <- names(data)
+  # # cols <- cols[!(cols %in% c(link_key_column, logging_columns))]
+  # lookup <- data %>%
+  #   select(!!!rlang::syms(lookup_columns)) %>%
+  #   left_join(
+  #     reference %>%
+  #       select(!!!c(lookup_columns, link_key_column)),
+  #     by = join_by(!!!rlang::syms(lookup_columns))
+  #   )
+
+  lookup <- reference %>%
+     select(!!!c(lookup_columns, link_key_column)) %>%
+     distinct()
+
+  table_columns <- mnmdb$load_table_info(table_label) %>%
+    select(column, datatype) %>%
+    filter(column %in% names(lookup))
+
+  prepared_lookup <- convert_data_to_sql_input_str(
+    table_columns,
+    lookup
+  )
+
+  # row_nr <- 1
+  create_update_string_ <- function(row_nr) {
+    row <- prepared_lookup[row_nr, lookup_columns]
+    where_filter <- paste(lapply(
+      lookup_columns,
+      FUN = function(col) glue::glue("{col} = {row[[col]]}")
+    ), collapse = ") \n AND (")
+
+    val <- prepared_lookup[[row_nr, link_key_column]]
+
+    update_string <- glue::glue("
+       UPDATE {mnmdb$get_namestring(table_label)}
+         SET {link_key_column} = {val}
+       WHERE ({where_filter})
+       ;
+     ")
+    return(update_string)
+  }
+
+  # rowwise apply the update command
+  update_commands <- lapply(
+    seq_len(nrow(prepared_lookup)),
+    FUN = create_update_string_
+  )
+
+  invisible(lapply(
+    update_commands,
+    FUN = function(update_cmd) mnmdb$execute_sql(update_cmd, verbose = TRUE)
+  ))
+
+  return(invisible(NULL))
+
+} # /stitch_table_connection
+
 
 upload_and_lookup <- function(
     mnmdb,
@@ -250,10 +335,10 @@ upload_data_and_update_dependencies <- function(
 
   ### (1) dump all data, for safety
   now <- format(Sys.time(), "%Y%m%d%H%M")
-  mnmdb$dump_all(
-    target_filepath = here::here("dumps", glue::glue("safedump_{mnmdb$database}_{now}.sql")),
-    exclude_schema = c("tiger", "public")
-  )
+  # mnmdb$dump_all(
+  #   target_filepath = here::here("dumps", glue::glue("safedump_{mnmdb$database}_{now}.sql")),
+  #   exclude_schema = c("tiger", "public")
+  # )
 
 
   ### (2) load current data
@@ -373,7 +458,9 @@ upload_data_and_update_dependencies <- function(
   #   arrange(desc(n))
   # old_data %>% count(location_id) %>% arrange(desc(n))
 
-  #  new_redownload %>% count(grts_address, location_id) %>% arrange(desc(n))
+  # cols <- c("grts_address", "stratum", "activity_group_id", "date_start")
+  #  new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n))
+  #  old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n))
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,
@@ -615,6 +702,7 @@ parametrize_cascaded_update <- function(mnmdb) {
       skip_sequence_reset = FALSE,
       verbose = TRUE
     ) {
+    # mnmdb <- mnmgwdb
 
     stopifnot("glue" = require("glue"))
 
@@ -862,6 +950,11 @@ categorize_data_update <- function(
   ## load database status
   data_previous <- mnmdb$query_table(table_label)
 
+
+  cols <- names(data_future)
+  cols <- cols[!(cols %in% logging_columns)]
+  data_future <- data_future %>% select(!!!cols)
+
   ## ignore input precedence columns
   if (!is.null(input_precedence_columns)) {
     cols <- names(data_future)
@@ -1028,7 +1121,7 @@ datatype_conversion_catalogue <- c(
   "bigint" = function(val) sprintf("%.0f", val),
   "double precision" = function(val) sprintf("%.8f", val),
   "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M"),
-  "date" = function(val) format(val, "%Y%m%d")
+  "date" = function(val) format(val, "'%Y-%m-%d'")
 )
 
 catch_nans <- function(fcn) function(val) if (is.na(val)) "NULL" else fcn(val)
@@ -1341,16 +1434,6 @@ just_do_it <- function(
     )
   }
 
-  if (isFALSE(skip[["update"]])) {
-    update_existing_data(
-      mnmdb = mnmdb,
-      table_label = table_label,
-      changed_data = distribution$changed,
-      input_precedence_columns = precedence_columns[[table_label]],
-      index_columns = index_columns,
-      reference_columns = characteristic_columns
-    )
-  }
 
   if (isFALSE(skip[["upload"]])) {
     upload_additional_data(
@@ -1362,6 +1445,17 @@ just_do_it <- function(
       characteristic_columns = characteristic_columns,
       skip_sequence_reset = FALSE,
       verbose = TRUE
+    )
+  }
+
+  if (isFALSE(skip[["update"]])) {
+    update_existing_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      changed_data = distribution$changed,
+      input_precedence_columns = precedence_columns[[table_label]],
+      index_columns = index_columns,
+      reference_columns = characteristic_columns
     )
   }
 

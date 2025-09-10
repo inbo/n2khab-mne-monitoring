@@ -5,6 +5,7 @@ common_current_calenderfilters <- function(.data) {
     .data %>%
       filter(
         year(date_start) < 2026,
+        # +++ new filter
       )
   )
 }

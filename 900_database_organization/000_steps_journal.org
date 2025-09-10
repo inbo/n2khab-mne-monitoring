@@ -1539,6 +1539,10 @@ SCHEDULED: <2025-09-04 Thu>
 ... now all get random points, by means of a simple =%>% sf::st_union()=.
 
 
+** Fieldwork Planning ++ has_installation
+SCHEDULED: <2025-09-10 Wed>
+
+quick request by Tom
 
 
 * Major R Code Overhaul (202508)

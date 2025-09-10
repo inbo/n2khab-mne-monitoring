@@ -102,6 +102,16 @@ is.scalar.na <- function(checkvar) {
 }
 
 
+grts_datatype_to_integer <- function(data) {
+
+  if ("grts_address" %in% colnames(data)) {
+    data <- data %>%
+      dplyr::mutate(grts_address = as.integer(grts_address))
+  }
+  return(data)
+}
+
+
 execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
   # a rather trivial wrapper for dbExecute
   # which doesn't even work for multi-commands :/
@@ -630,9 +640,9 @@ mnmdb_assemble_structure_lookups <- function(db) {
   db$get_dependent_tables <- function(table_key) {
     return(c(
       table_key,
-      mnmdb$table_relations %>%
+      db$table_relations %>%
       filter(tolower(relation_table) == tolower(table_key),
-        !(dependent_table %in% mnmdb$excluded_tables)
+        !(dependent_table %in% db$excluded_tables)
       ) %>% pull(dependent_table)
     ))
   }
@@ -728,6 +738,7 @@ mnmdb_assemble_query_functions <- function(db) {
     dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
       dplyr::select(!!select_column) %>%
       dplyr::collect() %>%
+      grts_datatype_to_integer() %>%
       dplyr::pull(!!select_column) %>%
       return()
   } # /pull_column
@@ -754,10 +765,13 @@ mnmdb_assemble_query_functions <- function(db) {
     if (db$is_spatial(table_label)) {
       data <- sf::st_read(db$connection, layer = table_id) %>%
         select(-ogc_fid) %>%
+        grts_datatype_to_integer() %>%
         collect
       sf::st_geometry(data) <- "wkb_geometry"
     } else {
-      data <- dplyr::tbl(db$connection, table_id) %>% collect
+      data <- dplyr::tbl(db$connection, table_id) %>%
+        grts_datatype_to_integer() %>%
+        collect
     }
     data <- data %>% as_tibble
 
@@ -778,7 +792,8 @@ mnmdb_assemble_query_functions <- function(db) {
       db$query_columns(
         table_label,
         select_columns = c(characteristic_columns, pk)
-      )
+      ) %>%
+      grts_datatype_to_integer()
     )
   } # /query_lookup
 
@@ -1120,7 +1135,6 @@ mnmdb_versions_and_archiving <- function(db) {
 
     # return id of the latest version
     version_id <- db$load_latest_version_id(
-      db,
       version_tag,
       data_iteration
     )
