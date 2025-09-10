@@ -7,10 +7,37 @@ introduced by Floris
 
 #+begin_src sql
 -- add domain part to loceval
-ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN domain_part varchar;
-COMMENT ON COLUMN "outbound"."FieldActivityCalendar".domain_part IS E'domain partition';
+-- ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN domain_part varchar;
+-- COMMENT ON COLUMN "outbound"."FieldActivityCalendar".domain_part IS E'domain partition';
+-- TODO is this an attribute of SampleUnits?
+
+
+-- add domain part to mnmgwdb
+ALTER TABLE "outbound"."SampleLocations" ADD COLUMN domain_part varchar;
+COMMENT ON COLUMN "outbound"."SampleLocations".domain_part IS E'domain partition';
 
 #+end_src
+
+** TODO wait_<more>
+
+more to wait
+
+* FieldworkCalendar Needs `stratum`
+
+finally, stratum comes to the gw database.
+
+#+begin_src sql
+ALTER TABLE "outbound"."FieldworkCalendar" ADD COLUMN stratum varchar DEFAULT NULL;
+ALTER TABLE "inbound"."Visits" ADD COLUMN stratum varchar DEFAULT NULL;
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN stratum varchar DEFAULT NULL;
+ALTER TABLE "inbound"."ChemicalSamplingActivities" ADD COLUMN stratum varchar DEFAULT NULL;
+#+end_src
+
+
+subprocedure: Stratum
+>>> [[file:./20250909_FieldworkCalendar_Strata.R]]
+
+
 
 * Versions
 we now store the POC versions
@@ -23,14 +50,24 @@ subprocedure: Versions
 
 subprocedure: Protocols
 >>> [[file:./20250904_Protocols.sql]]
+>>> [[file:../query_drafts/gw_FieldWork.sql]]
 
 -> MANUALLY update the Protocols table once.
-
-
-* FieldworkCalendar Needs `stratum`
-
-subprocedure: Strata
->>> [[file:./20250909_FieldworkCalendar_Strata.R]]
+>>> [[file:../070_update_POC.qmd]]
 
 
 * POC update =v0.9.0_poc0.13.0=
+
+# DELETE FROM "inbound"."Visits" WHERE grts_address = 871030 AND samplelocation_id = 857;
+
+>>> [[file:../070_update_POC.qmd]]
+
+
+* TODO
++ adjust views
++ test =09*= update procedures
++ test qgis
+
++ rename SampleLocations -> SampleUnits
+- sspstapas to SampleLocations?
+- grts_join_method to SampleLocations?

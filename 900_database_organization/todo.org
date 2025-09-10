@@ -22,6 +22,8 @@ if major updates:
 
 * mainline
 
++ [ ] 6092977 did they visit already?
+
 + [ ] !!! re-think =SampleLocations= dependency!
   + was made implicit
   + this cuts ties upon update

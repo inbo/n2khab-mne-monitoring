@@ -118,7 +118,7 @@ verify_poc_objects()
 ## database connection
 
 
-```{r load-config}
+```{r connect-databases}
 
 config_filepath <- file.path("./inbopostgis_server.conf")
 mirror <- "-staging"
@@ -174,6 +174,8 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 ```{r version}
 
 if (FALSE) {
+  # SELECT * FROM "metadata"."Versions";
+
   # manually set a new version
   version_tag <- "≤v0.9.0_poc0.13.0"
   version_notes <- ""
@@ -287,21 +289,24 @@ upload_additional_data(
 ```{r archive-data}
 #| eval: false
 
-archive_ancient_data(
-  mnmdb = mnmgwdb,
-  table_label = "Protocols",
-  data_to_archive = protocols_distribution$to_archive,
-  version_id = version_id,
-  reference_columns = c(index_column)
-)
+## this was used for testing, previously.
 
-# ... and un-archive = reactivate
-reactivate_archived_data(
-  mnmdb = mnmgwdb,
-  table_label = "Protocols",
-  data_to_archive = protocols_distribution$reactivate,
-  reference_columns = c(index_column)
-)
+# # archive # -> not applicable for protocols
+# archive_ancient_data(
+#   mnmdb = mnmgwdb,
+#   table_label = "Protocols",
+#   data_to_archive = protocols_distribution$to_archive,
+#   version_id = version_id,
+#   reference_columns = c(index_column)
+# )
+
+# # ... and un-archive = reactivate # -> not applicable for protocols
+# reactivate_archived_data(
+#   mnmdb = mnmgwdb,
+#   table_label = "Protocols",
+#   data_to_archive = protocols_distribution$reactivate,
+#   reference_columns = c(index_column)
+# )
 
 
 # NOTE: un-archived rows are not subject to UPDATE
@@ -309,7 +314,7 @@ reactivate_archived_data(
 ```
 
 
-# Prune Unused Rows
+# Discarded Consideration: Prune Unused Rows
 
 I would tend to delete unused calendar entries.
 However, these should be regarded by the distribution procedure itself.
@@ -370,6 +375,7 @@ sample_units <-
         module_combo_code,
         panel_set,
         stratum,
+        domain_part,
         grts_join_method,
         grts_address,
         grts_address_final,
@@ -417,19 +423,19 @@ sample_units <-
         grts_join_method,
         scheme_ps_targetpanels,
         sp_poststratum,
-        stratum
+        stratum,
+        domain_part,
+        scheme
       ),
       as.character
     )
   )
+
 ```
 
 ## sample_locations
 
 ```{r}
-
-TODO stop here!!!
-              ... and check
 
 sample_locations <- sample_units %>%
   summarize(
@@ -443,7 +449,8 @@ sample_locations <- sample_units %>%
     ) %>% as.character(),
     .by = c(
       grts_address,
-      stratum
+      stratum,
+      domain_part
     )
   )
 
@@ -517,7 +524,8 @@ sample_locations <- sample_locations %>%
   ) %>% distinct 
 
 table_label <- "SampleLocations"
-data_future <- sample_locations
+data_future <- sample_locations %>%
+  rename(strata = stratum)
 characteristic_columns <- c("grts_address", "location_id", "strata")
 index_column <- mnmgwdb$get_primary_key(table_label)
 
@@ -537,6 +545,12 @@ distribution$to_upload <- distribution$to_upload %>%
     is_replacement = FALSE
   ) 
 
+# distribution$changed %>% t() %>% knitr::kable()
+mnmgwdb$query_table("SampleLocations") %>%
+  semi_join(
+    distribution$changed,
+    by = join_by(grts_address)
+  ) %>% knitr::kable()
 
 samplelocations_lookup <- just_do_it(
   mnmdb = mnmgwdb,
@@ -553,22 +567,17 @@ samplelocations_lookup <- just_do_it(
 
 ## FieldActivityCalendar
 
-TODO continue here
-
-- not "shorter" any more
-- should I not add "replacements" above?
 
 ```{r}
 
 fieldwork_calendar <-
   fieldwork_2025_prioritization_by_stratum %>%
   common_current_calenderfilters() %>% 
-  rename(strata = stratum) %>% 
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
   inner_join(
-    samplelocations_lookup,
-    by = join_by(grts_address, strata),
+    samplelocations_lookup %>% rename(stratum = strata),
+    by = join_by(grts_address, stratum),
     relationship = "many-to-one"
   ) %>%
   relocate(samplelocation_id) %>%
@@ -585,8 +594,7 @@ fieldwork_calendar <-
   select(-activity_group) %>%
   mutate(
     across(c(
-        date_interval,
-        domain_part
+        date_interval
       ),
       as.character
     )
@@ -632,18 +640,48 @@ fieldwork_calendar_new <- fieldwork_calendar %>%
   replace_sspstapa_by_lookup() %>%
   select(
     -location_id,
-    -grts_join_method
+    -grts_join_method,
+    -domain_part
   )
 
 fieldcalendar_characols <- c(
     "grts_address",
+    "stratum", 
     "activity_group_id",
     "date_start"
   )
 
-    "strata", 
 # "samplelocation_id",
 # "sspstapa_id",
+
+```
+
+
+SPECIAL OPERATION: 871030
+(will be archived anyways)
+```{sql}
+#| eval: false
+fieldwork_calendar_new %>% filter(grts_address == 871030)
+
+DELETE FROM "outbound"."SampleLocations" 
+WHERE samplelocation_id IN (
+SELECT DISTINCT SLOC.samplelocation_id
+FROM "outbound"."SampleLocations" AS SLOC
+LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
+  ON (SLOC.grts_address = FWCAL.grts_address)
+  AND (SLOC.strata = FWCAL.stratum)
+WHERE SLOC.grts_address = 871030
+  AND FWCAL.fieldworkcalendar_id IS NULL
+);
+
+
+SELECT *
+FROM "outbound"."SampleLocations" AS SLOC
+LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
+  ON (SLOC.grts_address = FWCAL.grts_address)
+  AND (SLOC.strata = FWCAL.stratum)
+WHERE SLOC.grts_address = 871030
+;
 
 ```
 
@@ -651,11 +689,7 @@ fieldcalendar_characols <- c(
 ```{r}
 
 table_label <- "FieldworkCalendar"
-data_future <- fieldwork_calendar_new %>%
-  select(
-    -strata,
-    -domain_part
-  )
+data_future <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
 
@@ -670,21 +704,202 @@ print_category_count(distribution, table_label)
 
 ```
 
+
+```{r}
+
+distribution$to_upload <- distribution$to_upload %>% 
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  ) 
+
+
+fieldworkcalendar_lookup <- just_do_it(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
+)
+
+
+```
+
+
+stitch samplelocation_id
+
+```{r reconnect-fieldworkcalendar}
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "FieldworkCalendar",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(ref) ref %>% rename(stratum = strata)
+)
+
+
+mnmgwdb$query_table("FieldworkCalendar") %>% 
+  count(is.na(samplelocation_id)) %>%
+  knitr::kable()
+
+```
+
+
+## Visits
+
+
+```{r visits}
+
+new_visits <- fieldworkcalendar_lookup %>%
+  select(
+    fieldworkcalendar_id,
+    !!!fieldcalendar_characols
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address)
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    issues = FALSE,
+    visit_done = FALSE
+  )
+
+
+visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
+
+visits_upload <- new_visits %>%
+  anti_join(
+    mnmgwdb$query_table("Visits"),
+    by = join_by(!!!fieldcalendar_characols)
+  )
+
+visits_lookup <- update_cascade_lookup(
+  table_label = "Visits",
+  new_data = visits_upload,
+  index_columns = c("visit_id"),
+  characteristic_columns = visits_characols,
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+mnmgwdb$query_table("Visits") %>% 
+  count(is.na(fieldworkcalendar_id)) %>%
+  knitr::kable()
+
+```
+
+
+```{r reconnect-visits}
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "Visits",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "stratum"), 
+  reference_mod = function(ref) ref %>% rename(stratum = strata)
+)
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "Visits",
+  reference_table = "FieldworkCalendar",
+  link_key_column = "fieldworkcalendar_id",
+  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+)
+
+
+mnmgwdb$query_table("Visits") %>% 
+  count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+  knitr::kable()
+
+
+```
+
+
+archive visits of archived FWCals
+
+```{r}
+table_label <- "Visits"
+visits_redownload <- mnmgwdb$query_table(table_label) %>% 
+  filter(is.na(archive_version_id)) %>%
+  select(-archive_version_id)
+
+fwcal_lookup <- mnmgwdb$query_table("FieldworkCalendar") %>% 
+  filter(!is.na(archive_version_id)) %>%
+  select(fieldworkcalendar_id, archive_version_id)
+
+visits_archive <- visits_redownload %>%
+  left_join(fwcal_lookup, by = join_by(fieldworkcalendar_id)) %>%
+  select(visit_id, archive_version_id) %>%
+  filter(!is.na(archive_version_id))
+
+update_existing_data(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  changed_data = visits_archive,
+  input_precedence_columns = precedence_columns[[table_label]],
+  reference_columns = c(mnmgwdb$get_primary_key(table_label))
+)
+
+```
+
+
+## Fieldwork Activity Tables
+
+
+```{r}
+
+for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "SampleLocations",
+    link_key_column = "samplelocation_id",
+    lookup_columns = c("grts_address", "stratum"), 
+    reference_mod = function(ref) ref %>% rename(stratum = strata)
+  )
+
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "FieldworkCalendar",
+    link_key_column = "fieldworkcalendar_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+
+}
+
+```
+
+
 ## TODO
 
-- `strata` in "SampleLocations" need to be split.
-- !!! FieldworkCalendar need `strata` -> `stratum`
->>> [[file:./20250909_FieldworkCalendar_Strata.R]]
+- re-run the procedure.
+- WIA and CSA seem unlinked or visit_done is wrong?
+  -> drop visit_done from WIA/CSA
 
+- test daily maintenance scripts
 
 - LocationCells
 - LocationInfos
 
+- should I not add "replacements" above?
 
-First Round: as is
+First Round: 
+- as is
 
 Second Round:
-- adjust `common_current_calenderfilters()` -> 2026 data
+- adjust `common_current_calenderfilters()` -> 2026 data of certain activities
 
 Third Round
 - then re-download RData
