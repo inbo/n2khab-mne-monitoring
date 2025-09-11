@@ -1,0 +1,291 @@
+---
+title: "Sample Unit Overview"
+date: today
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+  pdf:
+    toc: false
+    margin-left: 1cm
+    margin-top: 1cm
+    margin-rechts: 1cm
+    margin-bottom: 1cm
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+
+```{r libraries}
+
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+```
+
+
+```{r database-connection}
+# credentials are stored for easy access
+config_filepath <- file.path("./inbopostgis_server.conf")
+database_label <- "mnmgwdb"
+suffix <- "-staging" # "-testing"
+
+
+### connect to database
+mnmdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = glue::glue("{database_label}{suffix}")
+)
+message(mnmdb$shellstring)
+
+```
+
+
+# choose a GRTS
+
+```{r choose-grts}
+grts <- 871030
+
+```
+
+
+# helpers
+
+```{r helper-join-activity-groups}
+
+join_activity_groups <- function(df) {
+  df %>% dplyr::left_join(
+      mnmdb$query_columns(
+        "GroupedActivities",
+        c(
+          "activity_group_id",
+          "activity_group"
+        )
+      ) %>% dplyr::distinct(),
+      by = dplyr::join_by(activity_group_id)
+    ) %>%
+  return()
+}
+
+```
+
+
+```{r helper-query-special_activities}
+
+query_special_activity <- function(shorthand) {
+
+  if (shorthand == "WIA") {
+    table_label <- "WellInstallationActivities"
+  } else if (shorthand == "CSA") {
+    table_label <- "ChemicalSamplingActivities"
+  }
+
+  mnmdb$query_columns(
+    table_label,
+    c(
+      "fieldwork_id",
+      "samplelocation_id",
+      "fieldworkcalendar_id",
+      "visit_id",
+      "grts_address",
+      "stratum",
+      "activity_group_id",
+      "date_start",
+      "visit_done"
+    )
+  ) %>%
+  dplyr::mutate(act = shorthand) %>%
+  return()
+}
+
+```
+
+# The Backbone: Sample Unit // Sample Location
+
+```{r sample-locations}
+
+slocs <- mnmdb$query_table("SampleLocations") %>%
+  filter(grts_address == grts)
+
+
+loc_ids <- mnmdb$pull_column("Locations", "location_id")
+loc_cells <- mnmdb$pull_column("LocationCells", "location_id")
+
+slocs <- slocs %>%
+  mutate(
+    has_loc = location_id %in% loc_ids,
+    has_cell = location_id %in% loc_cells,
+    archived = isFALSE(is.na(archive_version_id))
+  )
+
+print_slocs <- function() {
+  slocs %>%
+    dplyr::rename(
+      slid = samplelocation_id,
+      lid = location_id,
+      replaced = is_replacement,
+    ) %>%
+    dplyr::select(
+      grts_address,
+      strata,
+      domain_part,
+      schemes,
+      lid,
+      slid,
+      replaced,
+      has_loc,
+      has_cell,
+      archived
+    ) %>%
+    t() %>% 
+    knitr::kable()
+}
+
+```
+
+
+# The Work: Calendar and Visits
+
+```{r fieldwork-calendar}
+
+fwcal <- mnmdb$query_table("FieldworkCalendar") %>%
+  filter(grts_address == grts) %>%
+  join_activity_groups() # %>%
+  # left_join(
+  #   mnmdb$query_table("Visits"),
+  #   by = join_by(fieldworkcalendar_id),
+  #   suffix = c("", "_vis")
+  # )
+
+print_fwcal <- function() {
+  fwcal %>%
+    dplyr::rename(
+      fcid = fieldworkcalendar_id,
+      slid = samplelocation_id,
+      agid = activity_group_id,
+    ) %>%
+    dplyr::select(
+      stratum,
+      slid,
+      fcid,
+      agid,
+      activity_group,
+      date_start,
+      # teammember_assigned,
+      # date_visit_planned,
+      done_planning
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+```{r visits}
+
+visits <- mnmdb$query_table("Visits") %>%
+  filter(grts_address == grts) %>%
+  join_activity_groups()
+
+print_visits <- function() {
+  visits %>%
+    dplyr::rename(
+      grts = grts_address,
+      lid = location_id,
+      slid = samplelocation_id,
+      agid = activity_group_id,
+      fcid = fieldworkcalendar_id,
+      vid = visit_id,
+      tid = teammember_id
+    ) %>%
+    dplyr::select(
+      grts,
+      stratum,
+      lid,
+      slid,
+      fcid,
+      vid,
+      agid,
+      date_start,
+      tid,
+      date_visit
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+
+```{r special-activities}
+
+activities <- bind_rows(
+    query_special_activity("WIA"),
+    query_special_activity("CSA")
+  ) %>%
+  filter(grts_address == grts) %>%
+  join_activity_groups()
+
+print_special_activities <- function() {
+  activities %>%
+    dplyr::rename(
+      grts = grts_address,
+      slid = samplelocation_id,
+      agid = activity_group_id,
+      fcid = fieldworkcalendar_id,
+      fwid = fieldwork_id,
+      vid = visit_id,
+    ) %>%
+    dplyr::select(
+      act,
+      fwid,
+      grts,
+      stratum,
+      fcid,
+      vid,
+      agid,
+      date_start,
+      visit_done
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+```{=latex} 
+\pagebreak 
+```
+
+# Overview: `r grts`
+
+```{r}
+#| eval: false
+#| echo: false
+# source('080_connected_by_GRTS.R')
+```
+
+```{r print-sloc}
+#| echo: false
+print_slocs()
+```
+
+```{r print-fwcal}
+#| echo: false
+print_fwcal()
+```
+
+```{r print-visit}
+#| echo: false
+print_visits()
+```
+
+```{r print-special-activities}
+#| echo: false
+print_special_activities()
+```
