@@ -141,7 +141,6 @@ mnmgwdb <- connect_mnm_database(
 ) 
 
 
-update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 ```
 
 
@@ -159,7 +158,7 @@ now <- format(Sys.time(), "%Y%m%d%H%M")
 
 if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
   mnmgwdb$dump_all(
-    here::here("dumps", glue::glue("safedump_{mnmgwdb$database}_{now}.sql")),
+    here::here("dumps", glue::glue("poc_pre_update_{mnmgwdb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }
@@ -322,6 +321,9 @@ However, these should be regarded by the distribution procedure itself.
 Even more important, the `precedence_columns` keep input fields from being considered.
 
 
+
+
+
 # Let's Do This
 
 ## prerequisite_lookups
@@ -350,13 +352,64 @@ activity_groupid_lookup <- mnmgwdb$query_columns(
 
 gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
   filter(is_gw_activity, is_field_activity) %>%
-  distinct(activity_group)
+  distinct(activity_group, activity)
 
 ```
+
+## Replacements
+
+```{r refresh-replacements}
+system("source .dbinit/bin/activate && python 092_push_loceval_to_mnmgwdb.py")
+```
+
+```{r load-replacement-lookup}
+replacement_lookup <- mnmgwdb$query_columns(
+    "ReplacementData",
+    c(
+      "grts_address",
+      "type",
+      "grts_address_replacement"
+    )
+  ) %>% 
+  rename(stratum = type)
+
+replace_grts_local <- function(df, typecolumn = "stratum") {
+  lookup <- replacement_lookup
+  names(lookup)[names(lookup) == "stratum"] <- typecolumn 
+
+  df %>%
+    dplyr::left_join(
+      lookup,
+      by = dplyr::join_by(!!!c("grts_address", typecolumn))
+    ) %>%
+    mutate(
+      grts_address = dplyr::coalesce(grts_address_replacement, grts_address)
+    ) %>% 
+    select(-grts_address_replacement) %>%
+    return()
+}
+```
+
 
 ## Sample Units
 
 ```{r}
+# TODO I have to anticipate REPLACEMENT here!
+
+# fag_stratum_grts_calendar %>%
+#   filter(grts_address_final == 656798,
+#          field_activity_group == 'GWINSTPIEZWELL',
+#          date_start < as.Date('2027-01-01')
+#          ) %>%
+#   select(stratum, date_start, field_activity_group, rank)
+
+# fag_stratum_grts_calendar %>%
+#   filter(grts_address_final == 50988446,
+#          field_activity_group == 'GWINSTPIEZWELL',
+#          date_start < as.Date('2027-01-01')
+#          ) %>%
+#   select(stratum, date_start, field_activity_group, rank)
+
 
 sample_units <-
   fag_stratum_grts_calendar %>%
@@ -429,7 +482,8 @@ sample_units <-
       ),
       as.character
     )
-  )
+  ) %>%
+  replace_grts_local()
 
 ```
 
@@ -493,6 +547,10 @@ distribution <- categorize_data_update(
 )
 print_category_count(distribution, table_label)
 
+```
+
+```{r}
+
 locations_lookup <- just_do_it(
   mnmdb = mnmgwdb,
   table_label = table_label,
@@ -537,6 +595,10 @@ distribution <- categorize_data_update(
   characteristic_columns = characteristic_columns,
 )
 print_category_count(distribution, table_label)
+```
+
+
+```{r}
 
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
@@ -574,6 +636,7 @@ fieldwork_calendar <-
   fieldwork_2025_prioritization_by_stratum %>%
   common_current_calenderfilters() %>% 
   rename_grts_address_final_to_grts_address() %>%
+  replace_grts_local() %>% 
   relocate(grts_address) %>%
   inner_join(
     samplelocations_lookup %>% rename(stratum = strata),
@@ -609,24 +672,27 @@ fieldwork_calendar <-
   ) 
 
 
-# TODO this is obsolete and fake
-sspstapas <- update_cascade_lookup(
-  table_label = "SSPSTaPas",
-  new_data = fieldwork_calendar %>%
-    distinct(stratum_scheme_ps_targetpanels) %>%
-    arrange(stratum_scheme_ps_targetpanels),
-  index_columns = c("sspstapa_id"),
-  tabula_rasa = TRUE,
-  verbose = TRUE
-)
+update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
+
+# # TODO this is obsolete and fake
+# sspstapas <- update_cascade_lookup(
+#   table_label = "SSPSTaPas",
+#   new_data = fieldwork_calendar %>%
+#     distinct(stratum_scheme_ps_targetpanels) %>%
+#     arrange(stratum_scheme_ps_targetpanels),
+#   index_columns = c("sspstapa_id"),
+#   tabula_rasa = TRUE,
+#   verbose = TRUE
+# )
 
 replace_sspstapa_by_lookup <- function(df) {
   df_new <- df %>%
-    left_join(
-      sspstapas,
-      by = join_by(stratum_scheme_ps_targetpanels),
-      relationship = "many-to-one"
-    ) %>%
+    mutate(sspstapa_id = NA) %>% 
+    # left_join(
+    #   sspstapas,
+    #   by = join_by(stratum_scheme_ps_targetpanels),
+    #   relationship = "many-to-one"
+    # ) %>%
     relocate(
       sspstapa_id,
       .after = stratum_scheme_ps_targetpanels
@@ -856,8 +922,131 @@ update_existing_data(
 
 ## Fieldwork Activity Tables
 
+```{r select-activities}
 
-```{r}
+selection_of_activities <- list(
+  "WellInstallationActivities" = function(df) df %>% filter(grepl("^GWINST", activity_group))
+, # /WIA
+  "ChemicalSamplingActivities" = function(df) df %>% 
+    filter(activity_group %in%
+      c(gw_field_activities %>%
+        filter(grepl("^GW.*SAMP", activity)) %>%
+        pull(activity_group))
+      )
+ # /CSA
+)
+
+empty_init <- list(
+  "WellInstallationActivities" = function(df) df %>%
+    mutate(
+      no_diver = FALSE,
+      soilprofile_unclear = FALSE,
+      log_user = "maintenance",
+      log_update = as.POSIXct(Sys.time())
+    ), # /WIA
+  "ChemicalSamplingActivities" = function(df) df %>% 
+    mutate(
+      log_user = "maintenance",
+      log_update = as.POSIXct(Sys.time())
+    )
+ # /CSA
+)
+
+
+visits_redownload <- mnmgwdb$query_table("Visits") %>% 
+  filter(is.na(archive_version_id)) %>%
+  select(-archive_version_id)
+
+visits_redownload <- visits_redownload %>%
+  left_join(
+    mnmgwdb$query_columns(
+        "GroupedActivities",
+        c("activity_group_id", "activity_group")) %>%
+      distinct(),
+    by = join_by(activity_group_id)
+  )
+
+
+speciact_characols <- c(
+  "samplelocation_id",
+  "fieldworkcalendar_id",
+  "visit_id",
+  "grts_address",
+  "stratum",
+  "activity_group_id",
+  "date_start"
+)
+
+# table_label <- "WellInstallationActivities"
+# table_label <- "ChemicalSamplingActivities"
+
+# uniqueness
+mnmgwdb$query_table("WellInstallationActivities") %>%
+  count(!!!rlang::syms(speciact_characols)) %>%
+  arrange(desc(n)) %>%
+  filter(n>1) %>% 
+  knitr::kable()
+mnmgwdb$query_table("ChemicalSamplingActivities") %>%
+  count(!!!rlang::syms(speciact_characols)) %>%
+  arrange(desc(n)) %>%
+  filter(n>1) %>% 
+  knitr::kable()
+
+
+# missing links
+mnmgwdb$query_table("WellInstallationActivities") %>%
+  filter(is.na(visit_id)) %>% 
+  knitr::kable()
+mnmgwdb$query_table("ChemicalSamplingActivities") %>%
+  filter(is.na(visit_id)) %>% 
+  knitr::kable()
+
+```
+
+
+```{sql}
+-- SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5449;
+-- SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5675;
+```
+
+```{r upload-special-activities}
+
+for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
+
+  special_activities <- visits_redownload %>% 
+    selection_of_activities[[table_label]]()
+
+  existing <- mnmgwdb$query_table(table_label)
+
+  # no archiving necessary on these - they 1:1 depend on Visits
+  novel <- special_activities %>% 
+    anti_join(
+      existing,
+      by = join_by(
+        grts_address,
+        stratum,
+        activity_group_id,
+        date_start
+      )
+    ) %>%
+    select(!!!speciact_characols) %>%
+    empty_init[[table_label]]()
+
+  lookup <- update_cascade_lookup(
+    table_label = table_label,
+    new_data = novel,
+    index_columns = c("fieldwork_id"),
+    characteristic_columns = speciact_characols,
+    tabula_rasa = FALSE,
+    verbose = TRUE
+  )
+    
+}
+
+```
+
+
+```{r reconnect-special-activities}
 
 for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
   stitch_table_connection(
@@ -877,10 +1066,149 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
   )
 
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "Visits",
+    link_key_column = "visit_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+
+
 }
 
 ```
 
+
+## LocationInfos
+
+```{r update-locationinfos}
+
+new_locinfos <- sample_locations %>%
+  distinct(
+    grts_address
+  ) %>%
+  mutate(
+    log_creator = "maintenance",
+    log_creation = as.POSIXct(Sys.time()),
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time())
+  )
+
+new_locinfos <- new_locinfos %>%
+  anti_join(
+    mnmgwdb$get_table("LocationInfos"),
+    by = join_by(grts_address)
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+  )
+
+locationinfo_lookup <- update_cascade_lookup(
+  table_label = "LocationInfos",
+  new_data = new_locinfos,
+  index_columns = c("locationinfo_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+
+```
+
+
+```{r update-landuse}
+
+landuse <- readRDS("data/landuse_export.rds")
+
+# forestry_area, # bosbeheerregio
+# fores_naam, # bosbeheer
+# np_type, # natuurpunt
+# lila_statuut,
+# durme_reservaat,
+# perc_rbh, # percelen // rbh
+# perc_naameig, # naam eigenaar
+# nbhp_type, # natuurbeheerplan
+# gewasgroep, # landbouw
+# lblhfdtlt # landbouw
+
+landinfo <- landuse %>%
+  mutate(anb = stringr::str_c("ANB: ", anb_rights)) %>%
+  mutate(mil = stringr::str_c("MIL: ", mdbd_naam, " (", mdbd_inbo, ")")) %>%
+  mutate(bos = stringr::str_c("BOS: ", forestry_area, " (", fores_naam, ")")) %>%
+  mutate(np = stringr::str_c("NP: ", np_type)) %>%
+  mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
+  mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
+  mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
+  mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
+  mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
+  tidyr::unite(landuse, c(
+      anb, mil, bos,
+      np, lila, durme,
+      perc, nbhp, lb
+    ),
+    sep = ", ",
+    na.rm = TRUE
+  ) %>%
+  distinct(
+    # schemegroup,
+    # stratum,
+    grts_address,
+    landuse
+  ) %>%
+  semi_join(
+    mnmgwdb$query_columns("LocationInfos", c("grts_address")) %>%
+    distinct(),
+    by = join_by(grts_address)
+  )
+
+glimpse(landinfo)
+
+
+get_update_row_string_landuse <- function(landinfo_rownr){
+
+  grts <- landinfo[landinfo_rownr, "grts_address"]
+  info <- landinfo[landinfo_rownr, "landuse"]
+  if (is.na(info)) {
+    info <- "NULL"
+  }
+
+  info <- glue::glue("'{info}'")
+
+  target_namestring <- '"outbound"."LocationInfos"'
+  update_string <- glue::glue("
+    UPDATE {target_namestring}
+      SET landowner = {info}
+    WHERE grts_address = {grts}
+    ;
+  ")
+
+  return(update_string)
+}
+
+# concatenate update rows
+update_command <- lapply(
+  seq_len(nrow(landinfo)),
+  FUN = get_update_row_string_landuse
+)
+
+# spin up a progress bar
+pb <- txtProgressBar(
+  min = 0, max = nrow(landinfo),
+  initial = 0, style = 1
+)
+
+# execute the update commands.
+for (landinfo_rownr in 1:nrow(landinfo)) {
+  setTxtProgressBar(pb, landinfo_rownr)
+  cmd <- update_command[[landinfo_rownr]]
+  execute_sql(db_connection, cmd, verbose = FALSE)
+}
+
+close(pb) # close the progress bar
+```
 
 ## TODO
 
@@ -888,7 +1216,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 - WIA and CSA seem unlinked or visit_done is wrong?
   -> drop visit_done from WIA/CSA
 
-- test daily maintenance scripts
+- processing scripts: replacement!! -> test daily maintenance scripts
 
 - LocationCells
 - LocationInfos

@@ -22,6 +22,12 @@ if major updates:
 
 * mainline
 
+Falk, is het eventueel mogelijk om bij een vervangcel in de planning ook het orginele GRTS-adres op te geven? Momenteel is het voor mij moeilijk om uit te zoeken of een vervangcel gekoppeld is aan een cel van de nieuwe planningslaag (voorlopig geopackage van Floris)
+
++ [ ] =SELECT * FROM "inbound"."WellInstallationActivities" WHERE visit_id IS NULL;=
++ [ ] =SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE visit_id IS NULL;=
++ [ ] 871030 restore 4010
++ [ ] 20250916 why can FW's not write "veldwerk voor iedereen"?
 + [ ] 6092977 did they visit already?
 
 + [ ] !!! re-think =SampleLocations= dependency!

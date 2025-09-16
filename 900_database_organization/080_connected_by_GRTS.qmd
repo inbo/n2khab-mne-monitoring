@@ -50,7 +50,7 @@ message(mnmdb$shellstring)
 # choose a GRTS
 
 ```{r choose-grts}
-grts <- 871030
+grts <- 219694
 
 ```
 
@@ -96,8 +96,7 @@ query_special_activity <- function(shorthand) {
       "grts_address",
       "stratum",
       "activity_group_id",
-      "date_start",
-      "visit_done"
+      "date_start"
     )
   ) %>%
   dplyr::mutate(act = shorthand) %>%
@@ -116,6 +115,7 @@ slocs <- mnmdb$query_table("SampleLocations") %>%
 
 loc_ids <- mnmdb$pull_column("Locations", "location_id")
 loc_cells <- mnmdb$pull_column("LocationCells", "location_id")
+loc_cells <- mnmdb$pull_column("LocationInfos", "location_id")
 
 slocs <- slocs %>%
   mutate(
@@ -251,14 +251,45 @@ print_special_activities <- function() {
       fcid,
       vid,
       agid,
-      date_start,
-      visit_done
+      date_start
     ) %>%
     arrange(date_start, agid) %>% 
     knitr::kable()
 }
 
 ```
+
+
+```{r}
+
+infos <- mnmdb$query_table("LocationInfos") %>%
+  filter(grts_address == grts)
+
+print_infos <- function() {
+  infos %>%
+    dplyr::rename(
+      grts = grts_address,
+      liid = locationinfo_id,
+      lid = location_id,
+      inaccess = accessibility_inaccessible,
+      hints = recovery_hints,
+      tina1 = watina_code_1,
+      tina2 = watina_code_2
+    ) %>%
+    dplyr::select(
+      liid,
+      grts,
+      lid,
+      inaccess,
+      hints,
+      tina1,
+      tina2
+    ) %>%
+    knitr::kable()
+}
+
+```
+
 
 
 ```{=latex} 
@@ -292,3 +323,9 @@ print_visits()
 #| echo: false
 print_special_activities()
 ```
+
+```{r print-infos}
+#| echo: false
+print_infos()
+```
+
