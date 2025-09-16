@@ -26,7 +26,7 @@ more to wait
 
 finally, stratum comes to the gw database.
 
-#+begin_src sql
+#+begin_src sql :eval no
 ALTER TABLE "outbound"."FieldworkCalendar" ADD COLUMN stratum varchar DEFAULT NULL;
 ALTER TABLE "inbound"."Visits" ADD COLUMN stratum varchar DEFAULT NULL;
 ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN stratum varchar DEFAULT NULL;
@@ -55,6 +55,31 @@ subprocedure: Protocols
 -> MANUALLY update the Protocols table once.
 >>> [[file:../070_update_POC.qmd]]
 
+* column adjustments
+
+teammember_id
+date_visit
+visit_done
+
+#+begin_src sql :eval no
+DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
+ALTER TABLE "inbound"."WellInstallationActivities" DROP COLUMN teammember_id;
+ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN teammember_id;
+ALTER TABLE "inbound"."WellInstallationActivities" DROP COLUMN date_visit;
+ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN date_visit;
+ALTER TABLE "inbound"."WellInstallationActivities" DROP COLUMN visit_done;
+ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
+#+end_src
+
++ + restore view!
+  SELECT * FROM "inbound"."FieldWork" WHERE visit_done;
+
+* Stitch Lookups
+
+... to reduce off-focus updates during POC update
+
+>>> [[file:../071_re_link_foreign_keys.R]]
+
 
 * POC update =v0.9.0_poc0.13.0=
 
@@ -64,10 +89,20 @@ subprocedure: Protocols
 
 
 * TODO
+
++ special activities upload
++ ++LocationInfos for new Locations
++ adjust filter 2026 locations
 + adjust views
 + test =09*= update procedures
 + test qgis
 
+
+* TODO Later
+
++ common reset =fieldwork_id=
++ what to do with "Visits".lims_code? (planning -> rename =_planned=?)
++ remove "LocationEvaluations".recovery_hints -> in =loceval=, link view to LocationInfos
 + rename SampleLocations -> SampleUnits
-- sspstapas to SampleLocations?
+- sspstapas removed (NA) what to do with it?
 - grts_join_method to SampleLocations?

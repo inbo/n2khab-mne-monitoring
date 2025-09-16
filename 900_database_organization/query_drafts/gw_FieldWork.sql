@@ -125,8 +125,6 @@ ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
  UPDATE "inbound"."WellInstallationActivities"
  SET
-  teammember_id = NEW.teammember_id,
-  date_visit = NEW.date_visit,
   photo_soil_1_peilbuis = NEW.photo_soil_1_peilbuis,
   photo_soil_2_piezometer = NEW.photo_soil_2_piezometer,
   soilprofile_notes = NEW.soilprofile_notes,
@@ -147,8 +145,6 @@ ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
  UPDATE "inbound"."ChemicalSamplingActivities"
  SET
-  teammember_id = NEW.teammember_id,
-  date_visit = NEW.date_visit,
   project_code = NEW.project_code,
   recipient_code = NEW.recipient_code
  WHERE fieldwork_id = OLD.fieldwork_id
