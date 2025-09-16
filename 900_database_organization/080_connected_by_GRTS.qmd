@@ -181,6 +181,7 @@ print_fwcal <- function() {
       # date_visit_planned,
       done_planning
     ) %>%
+    arrange(date_start, agid) %>% 
     knitr::kable()
 }
 
@@ -215,6 +216,7 @@ print_visits <- function() {
       tid,
       date_visit
     ) %>%
+    arrange(date_start, agid) %>% 
     knitr::kable()
 }
 
@@ -252,6 +254,7 @@ print_special_activities <- function() {
       date_start,
       visit_done
     ) %>%
+    arrange(date_start, agid) %>% 
     knitr::kable()
 }
 

@@ -14,9 +14,11 @@ import pandas as PD
 import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
-suffix = ""
+to_remove = {871030: {"grts": 84598, "stratum": "4010"}} # TODO
+
+# suffix = ""
 # suffix = "-testing"
-# suffix = "-staging"
+suffix = "-staging"
 
 print("|"*64)
 print(f"going to transfer data from *loceval{suffix}* to *mnmgwdb{suffix}*. \n")
@@ -100,6 +102,13 @@ replacement_data = GPD.read_postgis( \
 replacement_data.loc[
     replacement_data["grts_address"].values == 84598 # 23238 253621
     , :].T
+
+for remo in to_remove.values():
+    removements = NP.logical_and(
+        replacement_data["grts_address"].values == remo["grts"],
+        replacement_data["type"].values == remo["stratum"]
+        )
+    replacement_data = replacement_data.loc[NP.logical_not(removements), :]
 
 
 # compare to the locations in `mnmgwdb`
@@ -238,19 +247,31 @@ replacement_data["to_duplicate"] = False
 missing = []
 # idx = int(replacement_data.loc[replacement_data["grts_address_replacement"].values == 4447925, :].index.values[0])
 # idx = int(replacement_data.loc[replacement_data["grts_address_replacement"].values == 871030, :].index.values[0])
+# idx = int(replacement_data.loc[replacement_data["grts_address"].values == 84598, :].index.values[0])
 # row = replacement_data.iloc[idx, :]
+# existing_samplelocations["grts_address"].values == int(row["grts_address_replacement"])
+#
 for idx, row in replacement_data.iterrows():
     # first, check the grts_address_replacement
+    grts_r = int(row["grts_address_replacement"])
     found_existing = NP.logical_and( \
         existing_samplelocations["grts_address"].values \
-            == int(row["grts_address_replacement"]),
+            == grts_r,
         NP.array([row["type"] in val
             for val in existing_samplelocations["strata"].values], \
             dtype = bool)
         )
 
+    # existing_samplelocations.loc[ \
+    #     existing_samplelocations["grts_address"] == grts_r,
+    #     ["grts_address", "strata"]
+    #     ]
+
+    # print(sum(found_existing) > 1)
+    # print(existing_samplelocations.loc[found_existing, :])
+
     if sum(found_existing) > 1:
-        raise(IOError(f"""found more than one replacement for grts/r {int(row["grts_address_replacement"])}."""))
+        raise(IOError(f"""found more than one replacement for grts/r {grts_r}."""))
 
     if any(found_existing):
         replacement_data.loc[idx, "samplelocation_id"] = \
@@ -261,9 +282,12 @@ for idx, row in replacement_data.iterrows():
     # if that is not found, check whether instead the location appears in original grts
     # # !!! NO this should not be done because then link is not set to new grts
     # # !!! BUT if I do not set the link here, will not find the original
-    found_original = \
+    found_original = NP.logical_and( \
         existing_samplelocations["grts_address"].values \
-            == int(row["grts_address"])
+            == int(row["grts_address"]), \
+        existing_samplelocations["strata"].values \
+            == int(row["type"]), \
+        )
 
     if sum(found_original) > 1:
         raise(IOError(f"""found more than one original for grts {int(row["grts_address"])}."""))
@@ -288,13 +312,14 @@ replacement_data.loc[
 # existing_samplelocations.loc[existing_samplelocations["grts_address"].values == 23091910, :]
 
 ## some of the sample location ids are recovered from the other replacements
-missing_lookup = replacement_data.loc[:, ["grts_address", "samplelocation_id"]].drop_duplicates().dropna()
-missing_lookup.set_index("grts_address", inplace = True)
+missing_lookup = replacement_data.loc[:, ["grts_address", "type", "samplelocation_id"]].drop_duplicates().dropna()
+missing_lookup.set_index(["grts_address", "type"], inplace = True)
 
 for miss in missing:
-    grts = replacement_data.loc[miss, "grts_address"]
+    grts = int(replacement_data.loc[miss, "grts_address"])
+    stratum = replacement_data.loc[miss, "type"]
     replacement_data.loc[miss, "samplelocation_id"] = \
-        missing_lookup.loc[grts, "samplelocation_id"]
+        missing_lookup.loc[(grts, stratum), "samplelocation_id"]
 
 # (that data type issue again)
 replacement_data["samplelocation_id"] = replacement_data["samplelocation_id"].astype(int)
