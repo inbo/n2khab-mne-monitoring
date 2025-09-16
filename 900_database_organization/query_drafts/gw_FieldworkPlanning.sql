@@ -1,6 +1,6 @@
 -- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldworkcalendar_id = 3;
 
-DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" ;
+DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
@@ -8,6 +8,7 @@ SELECT
   SSPSTP.stratum_scheme_ps_targetpanels,
   SLOC.schemes,
   SLOC.strata,
+  REP.grts_address_poc,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
@@ -79,6 +80,16 @@ LEFT JOIN (
   )
 ) AS ACT
   ON FWCAL.samplelocation_id = ACT.samplelocation_id
+LEFT JOIN (
+  SELECT DISTINCT
+    type,
+    grts_address AS grts_address_poc,
+    grts_address_replacement AS grts_address
+  FROM "archive"."ReplacementData"
+  GROUP BY type, grts_address, grts_address_replacement
+) AS REP
+  ON ((REP.grts_address = SLOC.grts_address)
+  AND (SLOC.strata = REP.type))
 ORDER BY
   FWCAL.date_end,
   FWCAL.priority,
