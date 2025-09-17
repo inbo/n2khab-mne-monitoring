@@ -9,6 +9,7 @@
 # TODO there are duplicates.
 
 
+import sys as SYS
 import numpy as NP
 import pandas as PD
 import MNMDatabaseToolbox as DTB
@@ -16,9 +17,14 @@ import geopandas as GPD
 
 to_remove = {871030: {"grts": 84598, "stratum": "4010"}} # TODO
 
-# suffix = ""
-# suffix = "-testing"
-suffix = "-staging"
+commandline_args = SYS.argv
+if len(commandline_args) > 1:
+    suffix = commandline_args[1]
+else:
+  # suffix = ""
+  # suffix = "-testing"
+  suffix = "-staging"
+
 
 print("|"*64)
 print(f"going to transfer data from *loceval{suffix}* to *mnmgwdb{suffix}*. \n")

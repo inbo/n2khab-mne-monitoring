@@ -74,5 +74,5 @@ update_location_coordinates <- function(database_label, testing = TRUE) {
 }
 
 
-update_location_coordinates(database_label = "mnmgwdb", testing = FALSE)
-update_location_coordinates(database_label = "loceval", testing = FALSE)
+update_location_coordinates(database_label = "mnmgwdb", testing = TRUE)
+update_location_coordinates(database_label = "loceval", testing = TRUE)
