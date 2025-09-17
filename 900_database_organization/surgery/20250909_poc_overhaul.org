@@ -95,10 +95,10 @@ ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
 
 + [✓] special activities upload
 + [✓] ++LocationInfos for new Locations
-+ adjust filter 2026 locations
-+ adjust views
-+ test =09*= update procedures
-+ test qgis
++ [✓] test =09*= update procedures
++ [ ] adjust filter 2026 locations
++ [ ] adjust views
++ [ ] test qgis
 
 
 * TODO Later
@@ -107,5 +107,5 @@ ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
 + what to do with "Visits".lims_code? (planning -> rename =_planned=?)
 + remove "LocationEvaluations".recovery_hints -> in =loceval=, link view to LocationInfos
 + rename SampleLocations -> SampleUnits
-- sspstapas removed (NA) what to do with it?
+- sspstapas removed (NA) what to do with it? extend or drop?
 - grts_join_method to SampleLocations?

@@ -440,7 +440,6 @@ sample_units <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
-  common_current_samplefilters() %>%
   # also join the spatial poststratum, since we need this in setting
   # GRTS-address based priorities
   inner_join(
