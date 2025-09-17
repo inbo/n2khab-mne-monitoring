@@ -11,7 +11,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 database_label <- "mnmgwdb"
 db_using_locations <- grep("mnmgwdb", database_label)
 
-testing <- FALSE
+testing <- TRUE
 if (testing) {
   suffix <- "-staging" # "-testing"
 } else {

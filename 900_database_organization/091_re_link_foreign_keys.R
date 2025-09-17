@@ -13,6 +13,8 @@ source("MNMDatabaseToolbox.R")
 
 
 config_filepath <- file.path("./inbopostgis_server.conf")
+
+# mirror <- ""
 mirror <- "-staging"
 
 # ... and mnmgwdb
@@ -23,6 +25,7 @@ mnmgwdb <- connect_mnm_database(
   database_mirror = mnmgwdb_mirror
 )
 
+mnmgwdb$shellstring
 
 
 
@@ -108,3 +111,6 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
 
 }
+
+
+# TODO there are `new_location_id` and `new_samplelocation_id` in "archive"."ReplacementData"
