@@ -140,6 +140,7 @@ mnmgwdb <- connect_mnm_database(
   database_mirror = mnmgwdb_mirror
 ) 
 
+message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
 
 ```
 
@@ -342,7 +343,7 @@ n2khabstrata_lookup <- mnmgwdb$query_lookup(
 ```
 
 
-```{r}
+```{r load-activities}
 
 activity_groupid_lookup <- mnmgwdb$query_columns(
     "GroupedActivities",
@@ -360,7 +361,7 @@ gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
 
 ```{r refresh-replacements}
 system(glue::glue(
-  "source .dbinit/bin/activate && python 092_push_loceval_to_mnmgwdb.py {mirror}"
+  "source .dbinit/bin/activate && python 091_push_loceval_to_mnmgwdb.py {mirror}"
   ))
 ```
 
@@ -395,7 +396,7 @@ replace_grts_local <- function(df, typecolumn = "stratum") {
 
 ## Sample Units
 
-```{r}
+```{r assemble-sample-units}
 # TODO I have to anticipate REPLACEMENT here!
 
 # fag_stratum_grts_calendar %>%
@@ -488,9 +489,9 @@ sample_units <-
 
 ```
 
-## sample_locations
+## Sample Locations
 
-```{r}
+```{r assemble-sample-locations}
 
 sample_locations <- sample_units %>%
   summarize(
@@ -514,7 +515,7 @@ sample_locations <- sample_units %>%
 
 ## Locations
 
-```{r}
+```{r assemble-locations}
 
 locations <- bind_rows(
     mnmgwdb$query_columns("Locations", c("grts_address")),
@@ -550,7 +551,7 @@ print_category_count(distribution, table_label)
 
 ```
 
-```{r}
+```{r update-locations}
 
 locations_lookup <- just_do_it(
   mnmdb = mnmgwdb,
@@ -567,7 +568,7 @@ locations_lookup <- just_do_it(
 
 ## Sample Locations
 
-```{r}
+```{r porcess-sample-locations}
 
 if ("location_id" %in% names(sample_locations)) {
   # should not be the case in a continuous script;
@@ -599,7 +600,7 @@ print_category_count(distribution, table_label)
 ```
 
 
-```{r}
+```{r update-sample-locations}
 
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
@@ -624,18 +625,32 @@ samplelocations_lookup <- just_do_it(
   skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
 )
 
+# OBSERVATION: samplelocation_id changed afterwards (?!)
+
 
 ```
 
 
 ## FieldActivityCalendar
 
-
 ```{r}
+#| eval: false
+# 84598 -> 871030
+fieldwork_2025_prioritization_by_stratum %>%
+  filter(grts_address == 84598, field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+    
+fieldwork_calendar %>% 
+  filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+  filter(grts_address %in% c(84598, 871030), field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+
+```
+
+
+```{r assemble-field-activity-calendar}
 
 fieldwork_calendar <-
   fieldwork_2025_prioritization_by_stratum %>%
-  common_current_calenderfilters() %>% 
+  common_current_calenderfilters() %>% # should be filtered already!
   rename_grts_address_final_to_grts_address() %>%
   replace_grts_local() %>% 
   relocate(grts_address) %>%
@@ -672,8 +687,8 @@ fieldwork_calendar <-
     done_planning = FALSE
   ) 
 
-
-update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
+fieldwork_calendar %>% 
+  filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
 
 # # TODO this is obsolete and fake
 # sspstapas <- update_cascade_lookup(
@@ -724,13 +739,31 @@ fieldcalendar_characols <- c(
 ```
 
 
+```{r stitch-fwcal-to-slocs}
+
+# link FieldworkCalender back to SampleLocations
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "FieldworkCalendar",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(ref) ref %>% rename(stratum = strata)
+)
+
+```
+
+
 SPECIAL OPERATION: 871030
 (will be archived anyways)
-```{sql}
+NO better not do this.
+```{sql delete-one-871030}
 #| eval: false
-fieldwork_calendar_new %>% filter(grts_address == 871030)
 
-DELETE FROM "outbound"."SampleLocations" 
+-- fieldwork_calendar_new %>% filter(grts_address == 871030)
+
+-- DELETE
+SELECT * FROM "outbound"."SampleLocations" 
 WHERE samplelocation_id IN (
 SELECT DISTINCT SLOC.samplelocation_id
 FROM "outbound"."SampleLocations" AS SLOC
@@ -772,6 +805,33 @@ print_category_count(distribution, table_label)
 ```
 
 
+```{r check-the-news}
+#| eval: false
+
+status_quo <- mnmgwdb$query_table("FieldworkCalendar") %>%
+  select(!!!rlang::syms(names(distribution$unchanged)))
+
+samplelocations_lookup %>% 
+  filter(grts_address == 50042033) %>% knitr::kable()
+status_quo %>%
+  filter(grts_address == 50042033) %>% knitr::kable()
+distribution$changed %>% 
+  filter(grts_address == 50042033) %>% knitr::kable()
+
+distribution$unchanged
+distribution$to_archive
+
+# it is 871030 again
+distribution$to_upload
+status_quo %>%
+  filter(grts_address == 871030, activity_group_id == 9) %>% knitr::kable()
+distribution$to_upload %>% 
+  filter(grts_address == 871030, activity_group_id == 9) %>% knitr::kable()
+
+distribution$reactivate
+```
+
+
 ```{r sync-fieldworkcalendar}
 
 distribution$to_upload <- distribution$to_upload %>% 
@@ -801,19 +861,27 @@ stitch samplelocation_id
 
 ```{r reconnect-fieldworkcalendar}
 
-stitch_table_connection(
-  mnmdb = mnmgwdb,
-  table_label = "FieldworkCalendar",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
-  lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(ref) ref %>% rename(stratum = strata)
-)
+# stitch_table_connection(
+#   mnmdb = mnmgwdb,
+#   table_label = "FieldworkCalendar",
+#   reference_table = "SampleLocations",
+#   link_key_column = "samplelocation_id",
+#   lookup_columns = c("grts_address", "stratum"),
+#   reference_mod = function(ref) ref %>% rename(stratum = strata)
+# )
 
 
 mnmgwdb$query_table("FieldworkCalendar") %>% 
   count(is.na(samplelocation_id)) %>%
   knitr::kable()
+
+# compare stored to true sample location
+mnmgwdb$query_table("FieldworkCalendar") %>%
+  left_join(
+    mnmgwdb$query_table("SampleLocations") %>% rename(stratum = strata),
+    by = join_by(grts_address, stratum)
+  ) %>%
+  filter(samplelocation_id.x != samplelocation_id.y)
 
 ```
 
@@ -821,7 +889,10 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 ## Visits
 
 
-```{r visits}
+```{r assemble-new-visits}
+
+update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
+
 
 new_visits <- fieldworkcalendar_lookup %>%
   select(
@@ -1005,7 +1076,8 @@ mnmgwdb$query_table("ChemicalSamplingActivities") %>%
 ```
 
 
-```{sql}
+```{sql check-special-activities}
+#| eval: false
 -- SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5449;
 -- SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5675;
 ```

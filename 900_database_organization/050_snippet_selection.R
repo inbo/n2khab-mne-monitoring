@@ -1057,29 +1057,29 @@ fieldwork_2025_prioritization_by_stratum <-
 
 # prioritization of fieldwork 2025 with stratum collapsed (preferred for
 # planning of non-biotic FAGs)
-fieldwork_2025_prioritization_shorter <-
-  fieldwork_2025_prioritization_by_stratum %>%
-  unite_stratum_and_schemepstargetpanels() %>%
-  summarize(
-    stratum_scheme_ps_targetpanels =
-      str_flatten(
-        unique(stratum_scheme_ps_targetpanels),
-        collapse = " \u2588 "
-      ) %>%
-      factor(),
-    priority = min(priority),
-    wait_watersurface = all(wait_watersurface),
-    wait_3260 = all(wait_3260),
-    wait_7220 = all(wait_7220),
-    .by = !c(
-      stratum_scheme_ps_targetpanels,
-      priority,
-      wait_watersurface,
-      wait_3260,
-      wait_7220
-    )
-  ) %>%
-  relocate(stratum_scheme_ps_targetpanels)
+# fieldwork_2025_prioritization_shorter <-
+#   fieldwork_2025_prioritization_by_stratum %>%
+#   unite_stratum_and_schemepstargetpanels() %>%
+#   summarize(
+#     stratum_scheme_ps_targetpanels =
+#       str_flatten(
+#         unique(stratum_scheme_ps_targetpanels),
+#         collapse = " \u2588 "
+#       ) %>%
+#       factor(),
+#     priority = min(priority),
+#     wait_watersurface = all(wait_watersurface),
+#     wait_3260 = all(wait_3260),
+#     wait_7220 = all(wait_7220),
+#     .by = !c(
+#       stratum_scheme_ps_targetpanels,
+#       priority,
+#       wait_watersurface,
+#       wait_3260,
+#       wait_7220
+#     )
+#   ) %>%
+#   relocate(stratum_scheme_ps_targetpanels)
 
 # overview fieldwork prioritization 2025 according to schemes & panels:
 fieldwork_2025_targetpanels_prioritization_count <-
