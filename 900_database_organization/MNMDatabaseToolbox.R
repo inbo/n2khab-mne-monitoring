@@ -1435,7 +1435,20 @@ just_do_it <- function(
   }
 
 
+  if (isFALSE(skip[["update"]])) {
+    message(glue::glue("\tupdating N={nrow(distribution$changed)}:"))
+    update_existing_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      changed_data = distribution$changed,
+      input_precedence_columns = precedence_columns[[table_label]],
+      index_columns = index_columns,
+      reference_columns = characteristic_columns
+    )
+  }
+
   if (isFALSE(skip[["upload"]])) {
+    message(glue::glue("\tuploading N={nrow(distribution$to_upload)}:"))
     upload_additional_data(
       mnmdb = mnmdb,
       table_label = table_label,
@@ -1448,18 +1461,9 @@ just_do_it <- function(
     )
   }
 
-  if (isFALSE(skip[["update"]])) {
-    update_existing_data(
-      mnmdb = mnmdb,
-      table_label = table_label,
-      changed_data = distribution$changed,
-      input_precedence_columns = precedence_columns[[table_label]],
-      index_columns = index_columns,
-      reference_columns = characteristic_columns
-    )
-  }
 
   if (isFALSE(skip[["archive"]])) {
+    message(glue::glue("\tarchiving N={nrow(distribution$to_archive)}:"))
     archive_ancient_data(
       mnmdb = mnmdb,
       table_label = table_label,
@@ -1469,6 +1473,7 @@ just_do_it <- function(
     )
 
     # ... and un-archive = reactivate
+    message(glue::glue("\tre-activating N={nrow(distribution$reactivate)}:"))
     reactivate_archived_data(
       mnmdb = mnmdb,
       table_label = table_label,

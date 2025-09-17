@@ -50,7 +50,7 @@ subprocedure: Versions
 
 subprocedure: Protocols
 >>> [[file:./20250904_Protocols.sql]]
->>> [[file:../query_drafts/gw_FieldWork.sql]]
+>>> [[file:../views/gw_FieldWork.sql]]
 
 -> MANUALLY update the Protocols table once.
 >>> [[file:../070_update_POC.qmd]]
@@ -78,7 +78,7 @@ ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
 
 ... to reduce off-focus updates during POC update
 
->>> [[file:../071_re_link_foreign_keys.R]]
+>>> [[file:../095_re_link_foreign_keys_optional.R]]
 
 
 * POC update =v0.9.0_poc0.13.0=
@@ -97,6 +97,8 @@ ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
 + [✓] ++LocationInfos for new Locations
 + [✓] test =09*= update procedures
 + [ ] adjust filter 2026 locations
+  + [ ] re-run all and check 871030
+    SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address = 871030 AND activity_group_id = 9 AND date_start = '2026-10-01';
 + [ ] adjust views
 + [ ] test qgis
 

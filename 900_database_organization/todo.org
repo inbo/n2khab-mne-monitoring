@@ -22,8 +22,11 @@ if major updates:
 
 * mainline
 
-Falk, is het eventueel mogelijk om bij een vervangcel in de planning ook het orginele GRTS-adres op te geven? Momenteel is het voor mij moeilijk om uit te zoeken of een vervangcel gekoppeld is aan een cel van de nieuwe planningslaag (voorlopig geopackage van Floris)
++ 20250916 Falk, is het eventueel mogelijk om bij een vervangcel in de planning ook het orginele GRTS-adres op te geven? Momenteel is het voor mij moeilijk om uit te zoeken of een vervangcel gekoppeld is aan een cel van de nieuwe planningslaag (voorlopig geopackage van Floris)
+  + [X] via "archive"."ReplacementData"
+  + [ ] better store another "grts_original"
 
++ [ ] manual entries from fieldwork
 + [ ] =SELECT * FROM "inbound"."WellInstallationActivities" WHERE visit_id IS NULL;=
 + [ ] =SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE visit_id IS NULL;=
 + [ ] 871030 restore 4010
