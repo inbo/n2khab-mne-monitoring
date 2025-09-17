@@ -88,10 +88,13 @@ ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
 >>> [[file:../070_update_POC.qmd]]
 
 
+* auxiliary maintenance scripts
+
+
 * TODO
 
-+ special activities upload
-+ ++LocationInfos for new Locations
++ [✓] special activities upload
++ [✓] ++LocationInfos for new Locations
 + adjust filter 2026 locations
 + adjust views
 + test =09*= update procedures

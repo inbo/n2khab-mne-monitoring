@@ -1214,16 +1214,16 @@ close(pb) # close the progress bar
 
 ## TODO
 
-- re-run the procedure.
-- WIA and CSA seem unlinked or visit_done is wrong?
+- [✓] re-run the procedure.
+- [✓] WIA and CSA seem unlinked or visit_done is wrong?
   -> drop visit_done from WIA/CSA
 
-- processing scripts: replacement!! -> test daily maintenance scripts
+- [✓] processing scripts: replacement!! -> test daily maintenance scripts
 
-- LocationCells
-- LocationInfos
+- [✓] LocationCells
+- [✓] LocationInfos
 
-- should I not add "replacements" above?
+- [✓] should I not add "replacements" above?
 
 First Round: 
 - as is
