@@ -50,7 +50,7 @@ message(mnmdb$shellstring)
 # choose a GRTS
 
 ```{r choose-grts}
-grts <- 219694
+grts <- 871030
 
 ```
 

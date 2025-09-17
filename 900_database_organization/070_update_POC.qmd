@@ -36,7 +36,7 @@ In all brevity, I collect steps here to get a new POC to the database.
 2. Mirrors: try everything on `testing` and then `staging`, first.
   - The `testing` mirror (data sync with `033_populate_testing_db.R`) is open for play and can taken even rough rides, and for that user permissions differ on there. No guarantee that the data is correct.
   - On `staging`, everything is exactly identical to the production server (even permissions and user roles), because it gets synced with the dump/restore commands below.
-  - use the `suffix` to control database connections below.
+  - use the `mirror` to control database connections below.
   
   
 Syncing the `*_staging` database mirrors:
@@ -359,7 +359,9 @@ gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
 ## Replacements
 
 ```{r refresh-replacements}
-system("source .dbinit/bin/activate && python 092_push_loceval_to_mnmgwdb.py")
+system(glue::glue(
+  "source .dbinit/bin/activate && python 092_push_loceval_to_mnmgwdb.py {mirror}"
+  ))
 ```
 
 ```{r load-replacement-lookup}
@@ -752,7 +754,7 @@ WHERE SLOC.grts_address = 871030
 ```
 
 
-```{r}
+```{r categorize-fieldworkcalendar}
 
 table_label <- "FieldworkCalendar"
 data_future <- fieldwork_calendar_new
@@ -771,7 +773,7 @@ print_category_count(distribution, table_label)
 ```
 
 
-```{r}
+```{r sync-fieldworkcalendar}
 
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
@@ -894,7 +896,7 @@ mnmgwdb$query_table("Visits") %>%
 
 archive visits of archived FWCals
 
-```{r}
+```{r archive-visits-fwcal}
 table_label <- "Visits"
 visits_redownload <- mnmgwdb$query_table(table_label) %>% 
   filter(is.na(archive_version_id)) %>%
@@ -1097,13 +1099,14 @@ new_locinfos <- sample_locations %>%
 
 new_locinfos <- new_locinfos %>%
   anti_join(
-    mnmgwdb$get_table("LocationInfos"),
+    mnmgwdb$query_table("LocationInfos"),
     by = join_by(grts_address)
   ) %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
   )
+
 
 locationinfo_lookup <- update_cascade_lookup(
   table_label = "LocationInfos",
@@ -1113,7 +1116,6 @@ locationinfo_lookup <- update_cascade_lookup(
   tabula_rasa = FALSE,
   verbose = TRUE
 )
-
 
 
 ```
@@ -1204,7 +1206,7 @@ pb <- txtProgressBar(
 for (landinfo_rownr in 1:nrow(landinfo)) {
   setTxtProgressBar(pb, landinfo_rownr)
   cmd <- update_command[[landinfo_rownr]]
-  execute_sql(db_connection, cmd, verbose = FALSE)
+  mnmgwdb$execute_sql(cmd, verbose = FALSE)
 }
 
 close(pb) # close the progress bar

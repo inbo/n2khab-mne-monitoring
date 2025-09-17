@@ -2,14 +2,21 @@
 
 # TODO This is rough and edgy, but works for now. Will generalize later.
 
+import sys as SYS
 import numpy as NP
 import pandas as PD
 import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
-suffix = ""
-# suffix = "-testing"
-# suffix = "-staging"
+
+commandline_args = SYS.argv
+if len(commandline_args) > 1:
+    suffix = commandline_args[1]
+else:
+  # suffix = ""
+  # suffix = "-testing"
+  suffix = "-staging"
+
 
 base_folder = DTB.PL.Path(".")
 
