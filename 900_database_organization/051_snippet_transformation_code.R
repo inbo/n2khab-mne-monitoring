@@ -1,13 +1,26 @@
 
 
 common_current_calenderfilters <- function(.data) {
-  return(
-    .data %>%
-      filter(
-        year(date_start) < 2026,
-        # +++ new filter
+  .data %>%
+  mutate(has_gw = purrr::map_lgl(
+    scheme_moco_ps,
+    \(df) any(stringr::str_detect(df$scheme, "^GW"))
+  )) %>%
+  filter(
+    lubridate::year(date_start) < 2026 |
+      # already allow GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from 2026 to be
+      # executed in 2025:
+      (
+        (lubridate::year(date_start) < 2027) &
+          has_gw &
+          str_detect(
+            field_activity_group,
+            "INST|LEVREAD|SPATPOSIT"
+          )
       )
-  )
+  ) %>%
+  select(-has_gw) %>%
+  return()
 }
 
 common_current_samplefilters <- function(.data) {
