@@ -255,8 +255,8 @@ mnmgwdb$query_table("Visits") %>%
   knitr::kable()
 
 
-# TODO update scheme_ps_targetpanels, schemes, sspstapa_id
-# TODO new visits?
+# DONE update scheme_ps_targetpanels, schemes, sspstapa_id
+# DONE new visits?
 
 
 
