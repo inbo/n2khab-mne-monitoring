@@ -51,6 +51,7 @@ subprocedure: Versions
 subprocedure: Protocols
 >>> [[file:./20250904_Protocols.sql]]
 >>> [[file:../views/gw_FieldWork.sql]]
+>>> [[file:../views/gw_MyFieldWork.sql]]
 
 -> MANUALLY update the Protocols table once.
 >>> [[file:../070_update_POC.qmd]]
@@ -73,12 +74,23 @@ ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
 
 + + restore view!
   SELECT * FROM "inbound"."FieldWork" WHERE visit_done;
+>>> [[file:../views/gw_FieldWork.sql]]
+>>> [[file:../views/gw_MyFieldWork.sql]]
 
 * Stitch Lookups
 
 ... to reduce off-focus updates during POC update
 
 >>> [[file:../095_re_link_foreign_keys_optional.R]]
+
+
+* 871030 manual correction
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address = 871030 AND activity_group_id = 9 AND date_start = '2026-10-01';
+SELECT * FROM "metadata"."SSPSTaPas" WHERE sspstapa_id IN (201, 221);
+UPDATE "outbound"."FieldworkCalendar" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
+UPDATE "inbound"."Visits" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
+UPDATE "inbound"."WellInstallationActivities" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
+UPDATE "inbound"."ChemicalSamplingActivities" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
 
 
 * POC update =v0.9.0_poc0.13.0=

@@ -174,7 +174,6 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 ```{r version}
 
 if (FALSE) {
-  # SELECT * FROM "metadata"."Versions";
 
   # manually set a new version
   version_tag <- "≤v0.9.0_poc0.13.0"
@@ -186,6 +185,9 @@ if (FALSE) {
     version_notes,
     date_applied = NA
   )
+
+  # SELECT * FROM "metadata"."Versions";
+
 } else {
   # per default, the latest version is taken
   version_id <- mnmgwdb$load_latest_version_id()
@@ -311,6 +313,14 @@ upload_additional_data(
 
 # NOTE: un-archived rows are not subject to UPDATE
 #       if in doubt, run this again.
+```
+
+
+## check
+
+```{sql}
+#| eval: false
+SELECT * FROM "metadata"."Protocols";
 ```
 
 
@@ -564,6 +574,11 @@ locations_lookup <- just_do_it(
 
 
 ```
+
+
+... and wait.
+... and wait.
+... and wait.
 
 
 ## Sample Locations
@@ -1064,6 +1079,45 @@ mnmgwdb$query_table("ChemicalSamplingActivities") %>%
   filter(n>1) %>% 
   knitr::kable()
 
+```
+
+
+```{r}
+
+for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
+
+  # link WIA/CSA back to SampleLocations
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "SampleLocations",
+    link_key_column = "samplelocation_id",
+    lookup_columns = c("grts_address", "stratum"),
+    reference_mod = function(ref) ref %>% rename(stratum = strata)
+  )
+
+  # link WIA/CSA back to FieldworkCalendar
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "FieldworkCalendar",
+    link_key_column = "fieldworkcalendar_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+
+  # link WIA/CSA back to Visits
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "Visits",
+    link_key_column = "visit_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+
+
+}
+
+
 
 # missing links
 mnmgwdb$query_table("WellInstallationActivities") %>%
@@ -1073,14 +1127,17 @@ mnmgwdb$query_table("ChemicalSamplingActivities") %>%
   filter(is.na(visit_id)) %>% 
   knitr::kable()
 
+
 ```
 
 
 ```{sql check-special-activities}
 #| eval: false
--- SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5449;
--- SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5675;
+-- SELECT * FROM "inbound"."FieldWork" WHERE grts_address = 219694 AND fieldwork_id IS NOT NULL;
+-- SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 202;
+-- SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5567;
 ```
+
 
 ```{r upload-special-activities}
 
@@ -1148,7 +1205,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
   )
 
 
-}
+} # /loop-stitch special activity
 
 ```
 
@@ -1297,10 +1354,10 @@ close(pb) # close the progress bar
 - [✓] should I not add "replacements" above?
 
 First Round: 
-- as is
+- [✓] as is
 
 Second Round:
-- adjust `common_current_calenderfilters()` -> 2026 data of certain activities
+- [✓] adjust `common_current_calenderfilters()` -> 2026 data of certain activities
 
 Third Round
 - then re-download RData
