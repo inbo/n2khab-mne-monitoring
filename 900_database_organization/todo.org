@@ -26,6 +26,28 @@ if major updates:
   + [X] via "archive"."ReplacementData"
   + [ ] better store another "grts_original"
 
++ [X] Vraag Tom 20250918: zou je aan de FieldworkPlanning in outbound nog een attribuut kunnen toevoegen voor het inplannen van de waterstalen? : count_days_ws:  day(to_date(now())-to_date( "date_vis_1"))
+
+
+from POC Update:
++ [ ] a "consistency dashboard" with checks for NA's and correct links
++ [ ] common reset =fieldwork_id=
++ [ ] what to do with "Visits".lims_code? (planning -> rename =_planned=?)
++ [ ] remove "LocationEvaluations".recovery_hints -> in =loceval=, link view to LocationInfos
++ [ ] rename SampleLocations -> SampleUnits
++ [ ] sspstapas removed (NA) what to do with it? extend or drop?
++ [ ] grts_join_method to SampleLocations?
++ [ ] more consistent =UNIQUE()= rules on all characteristic columns
+
+from last fieldwork meeting:
++ [ ] see chat and mails by placement team for manual adjustments
++ [ ] qfield visibility of fieldwork todo's
++ [ ] extra activities: ad-hoc tasks, replacement/repair, possibly/partly related to WIA
++ [ ] consistent color codes (use Tom's style files)
++ [ ] regions with special protection amphibia
++ [ ] data types logger read-outs
+
+
 + [ ] manual entries from fieldwork
 + [ ] =SELECT * FROM "inbound"."WellInstallationActivities" WHERE visit_id IS NULL;=
 + [ ] =SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE visit_id IS NULL;=
@@ -39,10 +61,10 @@ if major updates:
   + =samplelocation_id= must be manually re-linked everywhere
   + shortcut alternative: retry setting foreign key everywhere
 
-+ [ ] continue =20250903_missing_871030.sql=
++ [X] continue =20250903_missing_871030.sql=
 + [ ] delete =loceval::"outbound"."FieldActivityCalendar".landowner=
-+ [ ] there is a duplicate location in loceval: 871030, of course.
-+ see chat and mails by placement team for manual adjustments
++ [X] there is a duplicate location in loceval: 871030, of course.
++ [ ] there is a duplicate location in loceval: 219694, of course.
 + [X] free fieldnote counter issue in =090_*=: =SELECT setval('seq_fieldnote_id', (SELECT MAX(fieldnote_id) FROM "inbound"."FreeFieldNotes"));=
 + [ ] 093 still cuts links to WIA and CSA (temporarily using 901)
   also check LocationInfos

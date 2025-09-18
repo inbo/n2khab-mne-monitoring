@@ -11,7 +11,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 # TODO this does not yet work for `loceval` (based on SampleLocations)
 database_label <- "mnmgwdb"
 
-testing <- TRUE
+testing <- FALSE
 if (testing) {
   suffix <- "-staging" # "-testing"
 } else {

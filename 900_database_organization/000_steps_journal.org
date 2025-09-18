@@ -1579,7 +1579,7 @@ SCHEDULED: <2025-09-02 Tue>-<2025-09-03 Tue>
 
 Incorporating the new logic into the old scripts.
 + [ ] =030_copy_database.org=
-+ [ ] =070_update_POC.qmd=
++ [X] =070_update_POC.qmd=
 + [X] =093_update_facalendar.R=
 + [X] =094_replaced_LocationCells.R=
 + [X] =096_update_wgs84_coordinates.R=
@@ -1628,7 +1628,18 @@ SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visi
 #+end_src
 
 
-** run POC update
+** MILESTONE ran POC update for =mnmgwdb=
+SCHEDULED: <2025-09-18 Thu>
+
+Done. With some bumps.
+
++ We now have a bunch of new field activities. I begin to think that, long term, a testing mirror with just a subset of the data would be good to have.
++ 871030 required manual adjustment of the stratum, because stratum initiation lookup faulted. Should be good now and forever.
++ 219694 produced duplicates in FieldWork by duplicate WIA/CSA; more trouble expected
++ tables lost links repeatedly; will have to double check the =update_cascade_lookup=; but we can live with that given there now is a script to link them back
++ some new sf::geometry issue crashes the MHQ Polygons and random points. Because why not.
++ merge back dbinit_pocupdate
+
 
 * learning the hard way
 
@@ -1664,13 +1675,14 @@ Time to use it.
 
 + [X] defined =update_cascade_lookup= to bring the procedures together and handle reference columns.
 
-** TODO update rule avoidance
-SCHEDULED: <2025-07-08 Tue>
+** KILL update rule avoidance
+CLOSED: [2025-09-18 Thu 11:11] SCHEDULED: <2025-07-08 Tue>
 
 Update rules are nice,
 but for some technical tasks, it is better to circumvent them.
 
-+ [ ] implement (de-)activating update rules
++ implement (de-)activating update rules
+  no better not
 
 
 ** TODO Polygon Memory Size

@@ -1,7 +1,8 @@
 
 
 * POC changes
-** domain partition
+** DONE domain partition
+CLOSED: [2025-09-18 Thu 08:00]
 
 introduced by Floris
 
@@ -22,7 +23,8 @@ COMMENT ON COLUMN "outbound"."SampleLocations".domain_part IS E'domain partition
 
 more to wait
 
-* FieldworkCalendar Needs `stratum`
+* DONE FieldworkCalendar Needs `stratum`
+CLOSED: [2025-09-18 Thu 08:01]
 
 finally, stratum comes to the gw database.
 
@@ -39,14 +41,16 @@ subprocedure: Stratum
 
 
 
-* Versions
+* DONE Versions
+CLOSED: [2025-09-18 Thu 08:03]
 we now store the POC versions
 
 subprocedure: Versions
 >>> [[file:./20250908_Versions.sql]]
 
 
-* Protocols
+* DONE Protocols
+CLOSED: [2025-09-18 Thu 08:06]
 
 subprocedure: Protocols
 >>> [[file:./20250904_Protocols.sql]]
@@ -56,7 +60,8 @@ subprocedure: Protocols
 -> MANUALLY update the Protocols table once.
 >>> [[file:../070_update_POC.qmd]]
 
-* column adjustments
+* DONE column adjustments
+CLOSED: [2025-09-18 Thu 08:09]
 
 teammember_id
 date_visit
@@ -77,49 +82,57 @@ ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
 >>> [[file:../views/gw_FieldWork.sql]]
 >>> [[file:../views/gw_MyFieldWork.sql]]
 
-* Stitch Lookups
+* DONE Stitch Lookups
+CLOSED: [2025-09-18 Thu 08:22]
 
 ... to reduce off-focus updates during POC update
 
 >>> [[file:../095_re_link_foreign_keys_optional.R]]
 
 
-* 871030 manual correction
-SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address = 871030 AND activity_group_id = 9 AND date_start = '2026-10-01';
+* DONE 871030 manual correction
+CLOSED: [2025-09-18 Thu 08:22]
 SELECT * FROM "metadata"."SSPSTaPas" WHERE sspstapa_id IN (201, 221);
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address = 871030 AND activity_group_id = 9 AND date_start = '2026-10-01';
+
+
 UPDATE "outbound"."FieldworkCalendar" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
 UPDATE "inbound"."Visits" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
 UPDATE "inbound"."WellInstallationActivities" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
 UPDATE "inbound"."ChemicalSamplingActivities" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
 
 
-* POC update =v0.9.0_poc0.13.0=
+* DONE POC update =v0.9.0_poc0.13.0=
+CLOSED: [2025-09-18 Thu 09:11]
 
 # DELETE FROM "inbound"."Visits" WHERE grts_address = 871030 AND samplelocation_id = 857;
 
 >>> [[file:../070_update_POC.qmd]]
 
 
+
 * auxiliary maintenance scripts
+... all of them, just to make sure.
 
-
-* TODO
+* +TODO+ DONE
 
 + [✓] special activities upload
 + [✓] ++LocationInfos for new Locations
 + [✓] test =09*= update procedures
-+ [ ] adjust filter 2026 locations
-  + [ ] re-run all and check 871030
++ [✓] adjust filter 2026 locations
+  + [✓] re-run all and check 871030
     SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address = 871030 AND activity_group_id = 9 AND date_start = '2026-10-01';
-+ [ ] adjust views
-+ [ ] test qgis
++ [✓] adjust views
++ [✓] test qgis
 
 
-* TODO Later
+* TODOs for Later
 
++ a "consistency dashboard" with checks for NA's and correct links
 + common reset =fieldwork_id=
 + what to do with "Visits".lims_code? (planning -> rename =_planned=?)
 + remove "LocationEvaluations".recovery_hints -> in =loceval=, link view to LocationInfos
 + rename SampleLocations -> SampleUnits
 - sspstapas removed (NA) what to do with it? extend or drop?
 - grts_join_method to SampleLocations?
++ more consistent =UNIQUE()= rules on all characteristic columns
