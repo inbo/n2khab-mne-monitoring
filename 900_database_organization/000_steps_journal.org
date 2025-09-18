@@ -1539,10 +1539,13 @@ SCHEDULED: <2025-09-04 Thu>
 ... now all get random points, by means of a simple =%>% sf::st_union()=.
 
 
-** Fieldwork Planning ++ has_installation
+** Fieldwork Planning ++ =has_installation= and =count_days_ws=
+SCHEDULED: <2025-09-10 Wed>
 SCHEDULED: <2025-09-10 Wed>
 
-quick request by Tom
+quick and welcome request by TDD
+then extra request to count days.
+
 
 
 * Major R Code Overhaul (202508)
@@ -1639,6 +1642,7 @@ Done. With some bumps.
 + tables lost links repeatedly; will have to double check the =update_cascade_lookup=; but we can live with that given there now is a script to link them back
 + some new sf::geometry issue crashes the MHQ Polygons and random points. Because why not.
 + merge back dbinit_pocupdate
+
 
 
 * learning the hard way

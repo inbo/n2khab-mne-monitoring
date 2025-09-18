@@ -28,19 +28,32 @@ if major updates:
 
 + [X] Vraag Tom 20250918: zou je aan de FieldworkPlanning in outbound nog een attribuut kunnen toevoegen voor het inplannen van de waterstalen? : count_days_ws:  day(to_date(now())-to_date( "date_vis_1"))
 
+prio:
++ [ ] postgresql update 20250925
+  + [X] announced
+  + [ ] local testing
+  + [ ] ... and action!
++ [ ] !!! re-think =SampleLocations= dependency!
+  + was made implicit
+  + this cuts ties upon update
+  + =samplelocation_id= must be manually re-linked everywhere
+  + shortcut alternative: retry setting foreign key everywhere
+  ==> better explicit `fk` with cascade-NULL
++ [ ] see chat and mails by placement team for manual adjustments
+
 
 from POC Update:
++ [ ] also update =loceval=
++ [ ] more consistent =UNIQUE()= rules on all characteristic columns
 + [ ] a "consistency dashboard" with checks for NA's and correct links
-+ [ ] common reset =fieldwork_id=
++ [ ] script for common reset =fieldwork_id=
 + [ ] what to do with "Visits".lims_code? (planning -> rename =_planned=?)
 + [ ] remove "LocationEvaluations".recovery_hints -> in =loceval=, link view to LocationInfos
 + [ ] rename SampleLocations -> SampleUnits
 + [ ] sspstapas removed (NA) what to do with it? extend or drop?
 + [ ] grts_join_method to SampleLocations?
-+ [ ] more consistent =UNIQUE()= rules on all characteristic columns
 
 from last fieldwork meeting:
-+ [ ] see chat and mails by placement team for manual adjustments
 + [ ] qfield visibility of fieldwork todo's
 + [ ] extra activities: ad-hoc tasks, replacement/repair, possibly/partly related to WIA
 + [ ] consistent color codes (use Tom's style files)
@@ -54,12 +67,6 @@ from last fieldwork meeting:
 + [ ] 871030 restore 4010
 + [ ] 20250916 why can FW's not write "veldwerk voor iedereen"?
 + [ ] 6092977 did they visit already?
-
-+ [ ] !!! re-think =SampleLocations= dependency!
-  + was made implicit
-  + this cuts ties upon update
-  + =samplelocation_id= must be manually re-linked everywhere
-  + shortcut alternative: retry setting foreign key everywhere
 
 + [X] continue =20250903_missing_871030.sql=
 + [ ] delete =loceval::"outbound"."FieldActivityCalendar".landowner=
