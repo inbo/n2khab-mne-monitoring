@@ -11,7 +11,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 
 database_label <- "mnmgwdb"
 
-testing <- TRUE
+testing <- FALSE
 if (testing) {
   suffix <- "-staging" # "-testing"
 } else {
@@ -26,7 +26,7 @@ mnmgwdb <- connect_mnm_database(
 )
 message(mnmgwdb$shellstring)
 
-### connect to databases
+# connect loceval, for cellmaps
 loceval_connection <- connect_mnm_database(
   config_filepath = config_filepath,
   database = "loceval",

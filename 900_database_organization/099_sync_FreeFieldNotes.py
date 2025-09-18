@@ -13,9 +13,9 @@ commandline_args = SYS.argv
 if len(commandline_args) > 1:
     suffix = commandline_args[1]
 else:
-  # suffix = ""
+  suffix = ""
   # suffix = "-testing"
-  suffix = "-staging"
+  # suffix = "-staging"
 
 
 base_folder = DTB.PL.Path(".")

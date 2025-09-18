@@ -40,10 +40,13 @@ SELECT
   FWCAL.no_visit_planned,
   FWCAL.notes,
   FWCAL.done_planning,
-  LOCEVAL.has_loceval,
-  LOCEVAL.latest_visit,
   ACT.date_visit,
-  ACT.has_installation
+  ACT.has_installation,
+  CASE WHEN ACT.date_visit IS NULL THEN NULL
+       ELSE current_date - ACT.date_visit
+  END AS count_days_ws,
+  LOCEVAL.has_loceval,
+  LOCEVAL.latest_visit
 FROM "outbound"."FieldworkCalendar" AS FWCAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON FWCAL.samplelocation_id = SLOC.samplelocation_id
@@ -74,10 +77,11 @@ LEFT JOIN (
     ON VISIT.visit_id = WIA.visit_id
   WHERE VISIT.visit_done
     AND VISIT.activity_group_id IN (
-    SELECT DISTINCT activity_group_id
-    FROM "metadata"."GroupedActivities"
-    WHERE activity_group LIKE 'GWINST%'
-  )
+      SELECT DISTINCT activity_group_id
+      FROM "metadata"."GroupedActivities"
+      WHERE activity_group LIKE 'GWINST%'
+    )
+    AND VISIT.archive_version_id IS NULL
 ) AS ACT
   ON FWCAL.samplelocation_id = ACT.samplelocation_id
 LEFT JOIN (
@@ -90,6 +94,8 @@ LEFT JOIN (
 ) AS REP
   ON ((REP.grts_address = SLOC.grts_address)
   AND (SLOC.strata = REP.type))
+WHERE TRUE
+  AND FWCAL.archive_version_id IS NULL
 ORDER BY
   FWCAL.date_end,
   FWCAL.priority,

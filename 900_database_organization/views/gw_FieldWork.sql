@@ -87,6 +87,8 @@ WHERE TRUE
   AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
   AND NOT FwCAL.excluded
   AND GAP.is_gw_activity
+  AND FwCAL.archive_version_id IS NULL
+  AND VISIT.archive_version_id IS NULL
 ;
 
 

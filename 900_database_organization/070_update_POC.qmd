@@ -121,7 +121,8 @@ verify_poc_objects()
 ```{r connect-databases}
 
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- "-staging"
+# mirror <- "-staging"
+mirror <- ""
 
 # loceval
 # loceval_mirror <- glue::glue("loceval{mirror}")
@@ -770,8 +771,7 @@ stitch_table_connection(
 
 
 SPECIAL OPERATION: 871030
-(will be archived anyways)
-NO better not do this.
+OBSOLETE was solved by correcting the stratum.
 ```{sql delete-one-871030}
 #| eval: false
 
@@ -1131,22 +1131,39 @@ mnmgwdb$query_table("ChemicalSamplingActivities") %>%
 ```
 
 
+special operation: 219694 
 ```{sql check-special-activities}
 #| eval: false
 -- SELECT * FROM "inbound"."FieldWork" WHERE grts_address = 219694 AND fieldwork_id IS NOT NULL;
--- SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 202;
--- SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5567;
+-- yielded 5451 and 5192
+-- SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5451;
+-- SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5192;
+--
+-- DELETE FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5192;
+-- DELETE FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5567;
+--
+mnmgwdb=# SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 ;
+ fieldwork_id | log_user |         log_update         | samplelocation_id | fieldworkcalendar_id | visit_id | grts_address | activity_group_id | date_start | recipient_code | project_code | stratum
+--------------+----------+----------------------------+-------------------+----------------------+----------+--------------+-------------------+------------+----------------+--------------+---------
+         5675 | falk     | 2025-09-18 06:53:46.336174 |               598 |                 1324 |     1166 |       219694 |                13 | 2025-10-01 |                |              | 91E0_vo
+         5567 | falk     | 2025-09-18 06:53:46.336174 |               598 |                 1324 |     1166 |       219694 |                13 | 2025-10-01 |                |              | 91E0_vo
+(2 rows)
 ```
+
+
 
 
 ```{r upload-special-activities}
 
+# table_label <- "WellInstallationActivities"
 for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
 
   special_activities <- visits_redownload %>% 
     selection_of_activities[[table_label]]()
 
   existing <- mnmgwdb$query_table(table_label)
+
+  # existing %>% filter(grts_address == 219694) %>% knitr::kable()
 
   # no archiving necessary on these - they 1:1 depend on Visits
   novel <- special_activities %>% 
@@ -1161,6 +1178,10 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     ) %>%
     select(!!!speciact_characols) %>%
     empty_init[[table_label]]()
+
+  # novel %>% filter(grts_address == 219694) %>% knitr::kable()
+
+    
 
   lookup <- update_cascade_lookup(
     table_label = table_label,

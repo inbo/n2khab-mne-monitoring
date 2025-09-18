@@ -32,8 +32,8 @@ ALTER TABLE "metadata"."Protocols" ADD CONSTRAINT uq_protocol UNIQUE (protocol_c
 -- upload with POC update
 ./loceval_dev_structure/data_Protocols.csv
 
-- [ ] remove ",..." in vivo and in POC
-- [ ] tolower in vivo
+- [X] remove ",..." in vivo and in POC
+- [X] tolower in vivo
 
 
 -- change existing version and protocol code
