@@ -1,5 +1,4 @@
 schema,table,owner,read_access,write_access,geometry,constraint,freesql,persistent,excluded,comment
-metadata,Versions,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,1,,storing the POC versions which caused the archived data
 metadata,Protocols,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,protocols (preliminary version)
 metadata,GroupedActivities,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
 metadata,TeamMembers,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,1,,list of team members
@@ -7,7 +6,7 @@ metadata,N2kHabStrata,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,war
 metadata,SSPSTaPas,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,1,,lookup for stratum_scheme_ps_targetpanels
 metadata,Locations,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
 metadata,LocationCells,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
-metadata,Coordinates,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,Locations coordinates of the grts points (in other CRS)
+metadata,Coordinates,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,coordinates of the grts points (in other CRS)
 outbound,LocationInfos,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
 outbound,SampleLocations,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
 outbound,LocationEvaluations,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
