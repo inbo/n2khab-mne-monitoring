@@ -10,4 +10,3 @@ BEGIN;COMMIT;,"-- ALTER TABLE ""outbound"".""fieldworkcalendar"" ADD CONSTRAINT 
 "ALTER TABLE ""inbound"".""ChemicalSamplingActivities"" ALTER COLUMN fieldwork_id SET DEFAULT nextval('inbound.seq_fieldwork_id'::regclass);",
 BEGIN;COMMIT;,"-- ALTER TABLE ""outbound"".""FieldworkCalendar"" DROP CONSTRAINT ""FieldworkCalendar_pkey"" CASCADE;"
 BEGIN;COMMIT;,"-- ALTER TABLE ""inbound"".""Visits"" DROP CONSTRAINT ""Visits_pkey"" CASCADE;"
-"ALTER TABLE ""metadata"".""Protocols"" ADD CONSTRAINT uq_protocol UNIQUE (protocol_code, protocol_version);",-- unique protocol version
