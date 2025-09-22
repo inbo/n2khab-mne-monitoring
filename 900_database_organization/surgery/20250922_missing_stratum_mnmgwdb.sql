@@ -490,6 +490,7 @@ WHERE grts_address = 60185305 AND stratum = '91E0_va'
 --------------------------------------------------------------------------------
 
 SELECT DISTINCT
+<<<<<<< HEAD
   FWCAL.grts_address,
   FWCAL.stratum,
   FWCAL.archive_version_id,
@@ -562,4 +563,28 @@ FROM "inbound"."WellInstallationActivities"
 
 SELECT * FROM "outbound"."LocationInfos" WHERE grts_address = 10119474;
 SELECT * FROM "metadata"."Coordinates" WHERE grts_address = 10119474;
+=======
+  grts_address,
+  stratum,
+  archive_version_id
+FROM "outbound"."FieldworkCalendar"
+WHERE archive_version_id IS NOT NULL
+GROUP BY grts_address, stratum, archive_version_id
+ORDER BY stratum, grts_address, archive_version_id
+;
+
+
+ grts_address | stratum  | archive_version_id
+--------------+----------+--------------------
+     19914421 | 1310_pol |                  1
+     10152242 | 4010     |                  1
+     14543154 | 7140_oli |                  1
+      9478930 | 91E0_vm  |                  1
+(4 rows)
+
+
+Confirmed: none of these are still in the POC/calendar.
+
+
+>>>>>>> b4b58bd (dbinit: raiders of the archived locations)
 -- DONE

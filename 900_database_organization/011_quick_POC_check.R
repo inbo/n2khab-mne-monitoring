@@ -17,6 +17,7 @@ message(glue::glue("Good morning!
 fag_stratum_grts_calendar %>%
   filter(lubridate::year(date_start) < 2027) %>%
   # filter(grts_address_final == 1999406) %>%
+<<<<<<< HEAD
   filter(grts_address_final %in% c(10119474)) %>%
   # filter(grts_address_final %in% c(41746, 9478930)) %>%
   # filter(field_activity_group == "GWINSTPIEZWELL") %>%
@@ -25,6 +26,12 @@ fag_stratum_grts_calendar %>%
 fag_stratum_grts_calendar %>%
   unnest(scheme_moco_ps) %>%
   count(scheme)
+=======
+  filter(grts_address_final == 9478930) %>%
+  # filter(field_activity_group == "GWINSTPIEZWELL") %>%
+  knitr::kable()
+
+>>>>>>> b4b58bd (dbinit: raiders of the archived locations)
 
 # snippets_path <- "/data/git/n2khab-mne-monitoring_support"
 #

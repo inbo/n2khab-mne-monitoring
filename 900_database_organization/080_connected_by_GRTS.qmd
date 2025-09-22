@@ -110,6 +110,7 @@ message(mnmdb$shellstring)
 
 
 
+<<<<<<< HEAD
 ```{r helper-join-activity-groups-loceval}
 
 join_activity_groups <- function(df) {
@@ -125,6 +126,14 @@ join_activity_groups <- function(df) {
     ) %>%
   return()
 }
+=======
+```{r choose-grts}
+grts <- c(1202926, 10640110)
+    # c(219694, 9525806) # was partially replaced and therefore archived
+    # c(1999406, 6417454) # was falsely archived
+    # c(219694)
+    # c(871030)
+>>>>>>> b4b58bd (dbinit: raiders of the archived locations)
 
 ```
 
@@ -680,7 +689,17 @@ gw_print_replacement <- function() {
 \pagebreak 
 ```
 
+<<<<<<< HEAD
 ## sample location
+=======
+# Overview: `r as.character(grts)`
+
+```{r noop}
+#| eval: false
+#| echo: false
+# source('080_connected_by_GRTS.R')
+```
+>>>>>>> b4b58bd (dbinit: raiders of the archived locations)
 
 ```{r print-sloc}
 #| echo: false
