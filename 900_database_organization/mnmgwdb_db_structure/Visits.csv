@@ -16,4 +16,11 @@ notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
 issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
 visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
+<<<<<<< HEAD
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived visits
+=======
+<<<<<<< HEAD
+=======
+archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived visits
+>>>>>>> fbb2d78 (dbinit: dashboard ++ archive, counts)
+>>>>>>> 916978f (dbinit: dashboard ++ archive, counts)

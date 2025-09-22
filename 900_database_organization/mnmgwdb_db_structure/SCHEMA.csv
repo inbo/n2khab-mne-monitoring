@@ -1,6 +1,14 @@
 schema,owner,usage
+<<<<<<< HEAD
 outbound,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
 inbound,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
 metadata,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
 archive,salamandra,"tester,monkey"
 analysis,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
+=======
+outbound,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey"
+inbound,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey"
+metadata,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey"
+archive,falk,"tester,monkey"
+analysis,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey"
+>>>>>>> 916978f (dbinit: dashboard ++ archive, counts)

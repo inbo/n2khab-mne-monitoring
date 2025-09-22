@@ -24,4 +24,11 @@ date_visit_planned,date,False,NULL,False,False,,,,planned date of visit
 no_visit_planned,boolean,True,0,False,False,,,,whether or not a visit is planned
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 done_planning,boolean,True,0,False,False,,,,flag to indicate preparation status
+<<<<<<< HEAD
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived calendar entries
+=======
+<<<<<<< HEAD
+=======
+archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived calendar entries
+>>>>>>> fbb2d78 (dbinit: dashboard ++ archive, counts)
+>>>>>>> 916978f (dbinit: dashboard ++ archive, counts)

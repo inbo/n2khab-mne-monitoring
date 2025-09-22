@@ -5,9 +5,16 @@ grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`fi
 scheme_ps_targetpanels,varchar,False,,False,False,,,,"nested concatenation of scheme, poststratum, and target panels"
 schemes,varchar,True,,False,False,,,,schemes for which this location is sampled
 strata,varchar,True,,False,False,,,,strata for which the cell is eligible
+<<<<<<< HEAD
 domain_part,varchar,False,NULL,False,False,,,,domain partition
 is_forest,bool,True,0,False,False,,,,flag forest type sample locatione
 in_mhq_samples,bool,True,0,False,False,,,,flag sites used for MHQ
 has_mhq_assessment,bool,True,0,False,False,,,,(temporary) column to filter MHQ polygons
+=======
+<<<<<<< HEAD
+=======
+domain_part,varchar,False,NULL,False,False,,,,domain partition
+>>>>>>> fbb2d78 (dbinit: dashboard ++ archive, counts)
+>>>>>>> 916978f (dbinit: dashboard ++ archive, counts)
 is_replacement,bool,True,0,False,False,,,,whether or not this is a repalcement cell
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,archived SampleLocations are retained but flagged
