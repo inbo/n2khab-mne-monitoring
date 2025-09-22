@@ -21,7 +21,6 @@ knitr:
 
 # libraries
 source("MNMLibraryCollection.R")
-load_poc_common_libraries()
 load_database_interaction_libraries()
 
 # the database connection object
@@ -368,5 +367,74 @@ check_foreignkey_connection(
 
 ## count loose tables
 
-- FreeFieldNotes
-- FieldFollowUps
+```{r count-notes}
+lapply(
+    mnmgwdb$query_tables_data(c(
+        "FreeFieldNotes",
+        "FieldFollowUps"
+      )),
+    FUN = nrow
+  ) %>%
+  as_tibble() %>%
+  t() %>% 
+  knitr::kable(format = "markdown") %>%
+  print()
+
+```
+
+## archived
+
+```{r consistent-archive}
+#| eval: true
+#| echo: false
+
+archives <- mnmgwdb$query_table("SampleLocations") %>%
+  rename(stratum = strata) %>% 
+  left_join(
+    mnmgwdb$query_table("FieldworkCalendar"),
+    by = join_by(grts_address, stratum),
+    suffix = c("", "_fwcal")
+  ) %>% 
+  left_join(
+    mnmgwdb$query_table("Visits"),
+    by = join_by(grts_address, stratum, activity_group_id, date_start),
+    suffix = c("", "_visits")
+  )
+
+archives <- archives %>%
+  distinct(
+    grts_address, stratum,
+    archive_version_id,
+    archive_version_id_fwcal,
+    archive_version_id_visits
+  ) %>%
+  mutate(has_archive = !is.na(coalesce(
+      archive_version_id,
+      archive_version_id_fwcal,
+      archive_version_id_visits
+    ))
+  ) %>% 
+  arrange(grts_address, stratum)
+
+```
+
+
+```{r distinct-archives}
+#| eval: true
+#| echo: false
+
+archives %>% 
+  filter(has_archive) %>% 
+  left_join(
+    mnmgwdb$query_columns(
+        "ReplacementData",
+        c("grts_address", "grts_address_replacement")
+      ) %>%
+      rename(
+        grts_address_poc = grts_address,
+        grts_address = grts_address_replacement,
+      ),
+    by = join_by(grts_address)
+  ) %>% 
+  knitr::kable()
+```

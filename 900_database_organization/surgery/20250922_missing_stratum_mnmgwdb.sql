@@ -490,26 +490,76 @@ WHERE grts_address = 60185305 AND stratum = '91E0_va'
 --------------------------------------------------------------------------------
 
 SELECT DISTINCT
-  grts_address,
-  stratum,
-  archive_version_id
-FROM "outbound"."FieldworkCalendar"
+  FWCAL.grts_address,
+  FWCAL.stratum,
+  FWCAL.archive_version_id,
+  REP.grts_address_poc
+FROM "outbound"."FieldworkCalendar" AS FWCAL
+LEFT JOIN (
+  SELECT DISTINCT
+    grts_address AS grts_address_poc,
+    type AS stratum,
+    grts_address_replacement AS grts_address
+  FROM "archive"."ReplacementData"
+) AS REP
+  ON REP.grts_address = FWCAL.grts_address
 WHERE archive_version_id IS NOT NULL
-GROUP BY grts_address, stratum, archive_version_id
-ORDER BY stratum, grts_address, archive_version_id
+GROUP BY FWCAL.grts_address, FWCAL.stratum, archive_version_id, grts_address_poc
+ORDER BY FWCAL.stratum, FWCAL.grts_address, archive_version_id, grts_address_poc
 ;
 
 
- grts_address | stratum  | archive_version_id
---------------+----------+--------------------
-     19914421 | 1310_pol |                  1
-     10152242 | 4010     |                  1
-     14543154 | 7140_oli |                  1
-      9478930 | 91E0_vm  |                  1
+ grts_address | stratum  | archive_version_id | grts_address_poc
+--------------+----------+--------------------+------------------
+     19914421 | 1310_pol |                  1 |          5234357
+     10152242 | 4010     |                  1 |           649522
+     14543154 | 7140_oli |                  1 |          9300274
+      9478930 | 91E0_vm  |                  1 |            41746
 (4 rows)
 
 
-Confirmed: none of these are still in the POC/calendar.
+Confirmed: these are still in the POC/calendar.
+
+SELECT * FROM "outbound"."FieldworkCalendar"
+"outbound"."FieldworkCalendar"
+"inbound"."Visits"
+UPDATE
+SET archive_version_id = NULL
+WHERE FALSE
+   OR (grts_address = 19914421 AND stratum = '1310_pol')
+   OR (grts_address = 10152242 AND stratum = '4010' )
+   OR (grts_address = 14543154 AND stratum = '7140_oli')
+   OR (grts_address =  9478930 AND stratum = '91E0_vm')
+;
+
+--------------------------------------------------------------------------------
+-- more found when continuing the consistency dashboard
 
 
+mnmgwdb=> SELECT grts_address, *
+FROM "outbound"."SampleLocations"
+WHERE grts_address IN (10119474)
+;
+ grts_address | samplelocation_id | location_id | grts_address |   scheme_ps_targetpanels    |     schemes      |  strata  | is_replacement | domain_part | archive_version_id
+--------------+-------------------+-------------+--------------+-----------------------------+------------------+----------+----------------+-------------+--------------------
+     10119474 |               776 |         795 |     10119474 | SURF_03.4_lentic:PS1PANEL03 | SURF_03.4_lentic | 3150_0_1 | f              | BE2200028   |                  1
+(1 row)
+
+this is the wrong scheme; well archived!
+
+-- DELETE
+SELECT *
+FROM "metadata"."LocationCells"
+WHERE grts_address = 10119474;
+
+FROM "metadata"."Locations"
+FROM "metadata"."LocationCells"
+FROM "outbound"."SampleLocations"
+FROM "outbound"."FieldworkCalendar"
+FROM "inbound"."Visits"
+FROM "inbound"."ChemicalSamplingActivities"
+FROM "inbound"."WellInstallationActivities"
+
+SELECT * FROM "outbound"."LocationInfos" WHERE grts_address = 10119474;
+SELECT * FROM "metadata"."Coordinates" WHERE grts_address = 10119474;
 -- DONE

@@ -1,6 +1,6 @@
 schema,owner,usage
-outbound,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey"
-inbound,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey"
-metadata,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey"
-archive,yoda,"tester,monkey"
-analysis,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey"
+outbound,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey"
+inbound,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey"
+metadata,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey"
+archive,falk,"tester,monkey"
+analysis,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey"
