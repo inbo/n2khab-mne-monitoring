@@ -1,0 +1,172 @@
+---
+title: "Consistency Dashboard"
+date: last-modified
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+```{r libraries}
+#| eval: true
+#| echo: false
+
+.libPaths("/data/R/library") # TODO
+
+# libraries
+source("MNMLibraryCollection.R")
+load_poc_common_libraries()
+load_database_interaction_libraries()
+
+# the database connection object
+source("MNMDatabaseConnection.R")
+
+# more specific database tools
+source("MNMDatabaseToolbox.R")
+
+
+# library("mapview") # debugging only
+# mapviewOptions(platform = "mapdeck")
+```
+
+
+```{r connect-databases}
+#| eval: true
+#| echo: false
+
+config_filepath <- file.path("./inbopostgis_server.conf")
+mirror <- "-staging"
+# mirror <- ""
+
+# connect mnmgwdb
+mnmgwdb_database <- glue::glue("mnmgwdb{mirror}")
+
+mnmgwdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmgwdb_database,
+  user = "monkey",
+  password = NA
+) 
+
+message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
+
+```
+
+
+```{r check-function}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection <- function(
+    table_label,
+    fk,
+    characteristic_columns,
+    ref_table,
+    pk = NA,
+    rename_ref = NA
+  ) {
+
+  stopifnot("glue" = require("glue"))
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("rlang" = require("rlang"))
+
+  if (is.na(pk)) {
+    pk <- fk
+  }
+    
+  message(glue::glue("#### {table_label}.{fk} -> {ref_table}.{pk} ####"))
+  nans <- mnmgwdb$query_table(table_label) %>% 
+    dplyr::count(is.na(!!!fk)) %>%
+    setNames(c("row", "N"))  %>%
+    mutate_at(vars(row), as.character)
+
+  total_count <- sum(nans %>% pull("N"))
+  nans <- bind_rows(
+    nans,
+    data.frame("label" = c("TOTAL"), "N" = c(total_count)) %>% 
+      setNames(names(nans)) 
+    ) %>% 
+    setNames(c(glue::glue("is.na({table_label}.{fk})"), "N")) %>% 
+    mutate("%" = sprintf("%.0f %%", 100 * N / total_count))
+    
+  
+  message("NANs / N:")
+  print(nans %>% knitr::kable(format = "markdown") )
+
+  message("mismatches:")
+
+  ref_data <- mnmgwdb$query_table(ref_table)
+  if (!is.na(rename_ref)) {
+    names(ref_data)[names(ref_data) == names(rename_ref)] <- rename_ref
+  }
+    
+  # compare stored to true sample location
+  mismatch <- mnmgwdb$query_table(table_label) %>%
+    dplyr::left_join(
+      ref_data,
+      by = dplyr::join_by(!!!characteristic_columns),
+      suffix = c("_fk", "")
+    )
+
+  fk_col <- glue::glue("{fk}_fk")
+  if (fk != pk) fk_col = fk
+    
+  mismatch <- mismatch[mismatch[[fk_col]] != mismatch[[pk]], ]
+  message(mismatch %>% nrow())
+
+  return(invisible(NULL))
+
+}
+
+
+```
+
+## foreign key matches
+
+```{r location-infos}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "LocationInfos", fk = "location_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Locations", pk = "location_id"
+  )
+
+```
+
+
+
+```{r sample-locations}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SampleLocations", fk = "location_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Locations", pk = "location_id"
+  )
+
+```
+
+
+
+```{r fieldwork-calendar}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "FieldworkCalendar", fk = "samplelocation_id",
+  characteristic_columns = c("grts_address", "stratum"),
+  ref_table = "SampleLocations", pk = "samplelocation_id",
+  rename_ref = c("strata" = "stratum")
+  )
+
+```
+
