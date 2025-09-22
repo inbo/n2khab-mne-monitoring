@@ -52,7 +52,9 @@ message(mnmdb$shellstring)
 # choose a GRTS
 
 ```{r choose-grts}
-grts <- c(1202926, 10640110)
+grts <- c(10119474)
+
+    # c(1202926, 10640110) more missed archives
     # c(219694, 9525806) # was partially replaced and therefore archived
     # c(1999406, 6417454) # was falsely archived
     # c(219694)
