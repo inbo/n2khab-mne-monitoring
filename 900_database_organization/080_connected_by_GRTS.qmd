@@ -15,7 +15,7 @@ format:
     margin-bottom: 1cm
 knitr:
   opts_chunk:
-    echo: true
+    echo: false
 ---
 
 
@@ -40,7 +40,9 @@ suffix <- "-staging" # "-testing"
 ### connect to database
 mnmdb <- connect_mnm_database(
   config_filepath,
-  database_mirror = glue::glue("{database_label}{suffix}")
+  database_mirror = glue::glue("{database_label}{suffix}"),
+  user = "monkey",
+  password = NA
 )
 message(mnmdb$shellstring)
 
@@ -50,8 +52,11 @@ message(mnmdb$shellstring)
 # choose a GRTS
 
 ```{r choose-grts}
-grts <- 219694
-    # 871030
+grts <- c(1202926, 10640110)
+    # c(219694, 9525806) # was partially replaced and therefore archived
+    # c(1999406, 6417454) # was falsely archived
+    # c(219694)
+    # c(871030)
 
 ```
 
@@ -111,7 +116,7 @@ query_special_activity <- function(shorthand) {
 ```{r sample-locations}
 
 slocs <- mnmdb$query_table("SampleLocations") %>%
-  filter(grts_address == grts)
+  filter(grts_address %in% grts)
 
 
 loc_ids <- mnmdb$pull_column("Locations", "location_id")
@@ -156,7 +161,7 @@ print_slocs <- function() {
 ```{r fieldwork-calendar}
 
 fwcal <- mnmdb$query_table("FieldworkCalendar") %>%
-  filter(grts_address == grts) %>%
+  filter(grts_address %in% grts) %>%
   join_activity_groups() # %>%
   # left_join(
   #   mnmdb$query_table("Visits"),
@@ -191,7 +196,7 @@ print_fwcal <- function() {
 ```{r visits}
 
 visits <- mnmdb$query_table("Visits") %>%
-  filter(grts_address == grts) %>%
+  filter(grts_address %in% grts) %>%
   join_activity_groups()
 
 print_visits <- function() {
@@ -231,7 +236,7 @@ activities <- bind_rows(
     query_special_activity("WIA"),
     query_special_activity("CSA")
   ) %>%
-  filter(grts_address == grts) %>%
+  filter(grts_address %in% grts) %>%
   join_activity_groups()
 
 print_special_activities <- function() {
@@ -261,10 +266,10 @@ print_special_activities <- function() {
 ```
 
 
-```{r}
+```{r location-infos}
 
 infos <- mnmdb$query_table("LocationInfos") %>%
-  filter(grts_address == grts)
+  filter(grts_address %in% grts)
 
 print_infos <- function() {
   infos %>%
@@ -297,9 +302,9 @@ print_infos <- function() {
 \pagebreak 
 ```
 
-# Overview: `r grts`
+# Overview: `r as.character(grts)`
 
-```{r}
+```{r noop}
 #| eval: false
 #| echo: false
 # source('080_connected_by_GRTS.R')
