@@ -1088,6 +1088,7 @@ mnmdb_versions_and_archiving <- function(db) {
 
     # sort versions (ascending, i.e. oldest first)
     version_ids <- version_ids %>%
+      filter(!is.na(date_applied)) %>%
       arrange(date_applied, data_iteration)
 
     # return the latest version
@@ -1101,15 +1102,16 @@ mnmdb_versions_and_archiving <- function(db) {
 
   # start a new chapter in the great book of MNM data
   db$tag_new_version <- function(
-      version_tag,
-      version_notes,
-      date_applied = NA
+      new_version_tag,
+      new_version_notes,
+      new_date_applied = NA
     ) {
 
     # determine the next counter
     versions <- db$query_table("Versions")
+
     data_iteration <- versions %>%
-      filter(version_tag == version_tag) %>%
+      filter(version_tag == new_version_tag) %>%
       pull(data_iteration)
 
     if (length(data_iteration) == 0) {
@@ -1119,10 +1121,10 @@ mnmdb_versions_and_archiving <- function(db) {
     }
 
     version_upload <- as_tibble(list(
-      "version_tag" = version_tag,
+      "version_tag" = new_version_tag,
       "data_iteration" = data_iteration,
-      "date_applied" = date_applied,
-      "notes" = version_notes
+      "date_applied" = new_date_applied,
+      "notes" = new_version_notes
     ))
 
     # DO NOT update_cascade_lookup(table_label = "Versions")

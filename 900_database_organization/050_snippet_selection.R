@@ -41,6 +41,16 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
   mutate(
     is_forest = str_detect(type, "^9|^2180|^rbbppm")
   ) %>%
+  left_join(
+    mhq_samples %>%
+      mutate(in_mhq_samples = TRUE),
+    join_by(grts_address, stratum),
+    relationship = "many-to-one",
+    unmatched = "drop"
+  ) %>%
+  mutate(
+    in_mhq_samples = ifelse(is.na(in_mhq_samples), FALSE, in_mhq_samples)
+  ) %>%
   distinct(
     scheme,
     module_combo_code,
@@ -56,6 +66,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
     grts_address_final,
     domain_part,
     targetpanel,
+    in_mhq_samples,
     last_type_assessment = assessment_date,
     last_type_assessment_in_field = assessed_in_field,
     last_inaccessible = inaccessible
@@ -104,6 +115,39 @@ stratum_schemepstargetpanel_spsamples <-
 scheme_moco_ps_stratum_targetpanel_spsamples %>%
   filter(grts_address != grts_address_final) %>%
   glimpse
+
+
+
+
+
+
+
+
+
+## Inspecting VBI locations that overlap sampling units --------------------------
+
+# vbi_overlaps represents the VBI plot centers that overlap MNE sampling units.
+# For privacy reasons, the full list of VBI locations is not stored publicly.
+
+vbi_overlaps %>%
+  inner_join(
+    stratum_schemepstargetpanel_spsamples %>%
+      filter(is_forest) %>%
+      select(
+        stratum,
+        grts_address_final,
+        scheme_ps_targetpanels
+      ),
+    join_by(grts_address == grts_address_final),
+    relationship = "one-to-one",
+    unmatched = c("error", "drop")
+  )
+
+# representing as points object
+vbi_overlaps_sf <-
+  vbi_overlaps %>%
+  st_as_sf(coords = c("x", "y"), crs = 31370)
+
 
 
 
@@ -479,6 +523,7 @@ stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
     scheme_ps_targetpanels,
     grts_address,
     grts_address_final,
+    in_mhq_samples,
     last_type_assessment,
     last_type_assessment_in_field,
     last_inaccessible,
@@ -941,6 +986,10 @@ fag_stratum_grts_calendar_2025_attribs <-
         grts_join_method,
         grts_address,
         grts_address_final,
+        # retaining 3 cols that drive subsampling location(s) in the unit:
+        is_forest,
+        in_mhq_samples,
+        last_type_assessment_in_field,
         domain_part,
         targetpanel
       ) %>%
@@ -950,7 +999,7 @@ fag_stratum_grts_calendar_2025_attribs <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
-  relocate(grts_address_final, domain_part, .after = grts_address) %>%
+  relocate(grts_address_final:domain_part, .after = grts_address) %>%
   select(-module_combo_code) %>%
   # flatten scheme x panel set x targetpanel to unique strings per stratum x
   # location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
@@ -978,9 +1027,8 @@ fag_stratum_grts_calendar_2025_attribs <-
 
 # Derive an object where stratum x scheme_ps_targetpanels is flattened per
 # location x FAG occasion. Beware that in reality, more locations will emerge
-# due to local replacement, so this is misleading for counting & LOCEVAL
-# planning (but useful in spatial visualization). However, we prefer to use this
-# for planning of non-biotic FAGs!
+# due to local replacement, so this is misleading for counting & planning (but
+# useful in spatial visualization).
 #
 # First defining a reusable function before creating the object
 unite_stratum_and_schemepstargetpanels <- function(df) {
@@ -1041,14 +1089,19 @@ fieldwork_2025_prioritization_by_stratum <-
     ),
     wait_watersurface = str_detect(stratum, "^31|^2190_a"),
     wait_3260 = stratum == "3260",
-    wait_7220 = str_detect(stratum, "^7220")
+    wait_7220 = str_detect(stratum, "^7220"),
+    wait_floating = stratum == "7140_mrd",
+    wait_any = if_any(starts_with("wait"))
   ) %>%
+  relocate(wait_any, .before = wait_watersurface) %>%
   arrange(
     date_end,
     priority,
     wait_watersurface,
     wait_3260,
     wait_7220,
+    wait_floating,
+    wait_any,
     stratum,
     grts_address,
     rank,
@@ -1087,12 +1140,10 @@ fieldwork_2025_targetpanels_prioritization_count <-
   count(
     scheme_ps_targetpanels,
     priority,
-    wait_watersurface,
-    wait_3260,
-    wait_7220,
+    pick(starts_with("wait"), -wait_any),
     field_activity_group
   ) %>%
-  arrange(priority, wait_watersurface, wait_3260, wait_7220) %>%
+  arrange(priority, pick(starts_with("wait"))) %>%
   pivot_wider(
     names_from = field_activity_group,
     names_sort = TRUE,
@@ -1118,12 +1169,10 @@ fieldwork_2025_dates_prioritization_count <-
     date_interval,
     date_end,
     priority,
-    wait_watersurface,
-    wait_3260,
-    wait_7220,
+    pick(starts_with("wait"), -wait_any),
     field_activity_group
   ) %>%
-  arrange(date_end, priority, wait_watersurface, wait_3260, wait_7220) %>%
+  arrange(date_end, priority, pick(starts_with("wait"))) %>%
   select(-date_end) %>%
   pivot_wider(
     names_from = field_activity_group,
@@ -1185,6 +1234,19 @@ fag_stratum_grts_calendar %>%
     )
   )
 
+
+# Checking how many forest locations have temporarily been misjudged as not
+# being part of MHQ samples (because the in_mhq_samples column was not yet
+# present at the time)
+
+stratum_schemepstargetpanel_spsamples %>%
+  filter(is_forest) %>%
+  semi_join(
+    fag_stratum_grts_calendar_2025_attribs,
+    join_by(grts_address, stratum)
+  ) %>%
+  filter(!last_type_assessment_in_field, in_mhq_samples) %>%
+  count(stratum)
 
 
 

@@ -1,0 +1,133 @@
+---
+title: "Data Update: Protocols"
+date: "2025-06-27, 2025-09-04"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+(outsourced from `070_poc_update` on 20250923)
+
+
+
+# Test Case 1: Protocols
+
+## diff
+
+```{r db-diff-protocols}
+#| eval: false
+
+## relevant structural columns
+# columns which uniquely identify a table entry
+characteristic_columns <- c("protocol_code", "protocol_version")
+# the index column
+index_column <- "protocol_id" # mnmgwdb$get_primary_key("Protocols")
+
+
+# # columns which indicate a change from default state; used to decide whether to archive or remove
+# data_columns <- list() # format: "column_label" = "unchanged state"
+
+# # FOR TESTING
+# INSERT INTO "metadata"."Protocols" (protocol_code, protocol_version, title, language, theme, manager)
+# VALUES ('fmp-000-de', '2025.00', 'a test protocol to archive', 'de', 'testing', 'Falk Mielke')
+# ;
+
+## get updated raw data
+protocols_raw <- read_csv(
+  here::here(mnmgwdb$folder, "data_Protocols.csv"),
+  show_col_types = FALSE
+)
+
+protocols_raw <- protocols_raw %>%
+  arrange(protocol_version, protocol_code)
+
+protocols_raw %>% print(n = Inf)
+
+protocols_distribution <- categorize_data_update(
+  mnmdb = mnmgwdb,
+  table_label = "Protocols",
+  data_future = protocols_raw,
+  input_precedence_columns = precedence_columns[["Protocols"]],
+  characteristic_columns = characteristic_columns
+)
+
+print_category_count(protocols_distribution, "Protocols")
+```
+
+## update
+
+```{r update-existing}
+#| eval: false
+
+update_existing_data(
+  mnmdb = mnmgwdb,
+  table_label = "Protocols",
+  changed_data = protocols_distribution$changed,
+  input_precedence_columns = precedence_columns[["Protocols"]],
+  index_columns = c(index_column),
+  reference_columns = characteristic_columns
+)
+```
+
+## upload
+
+```{r upload-data}
+#| eval: false
+
+upload_additional_data(
+  mnmdb = mnmgwdb,
+  table_label = "Protocols",
+  new_data = protocols_distribution$to_upload,
+  index_columns = c(index_column),
+  tabula_rasa = FALSE,
+  characteristic_columns = characteristic_columns,
+  skip_sequence_reset = FALSE,
+  verbose = TRUE
+)
+```
+
+## rows to archive
+
+```{r archive-data}
+#| eval: false
+
+## this was used for testing, previously.
+
+# # archive # -> not applicable for protocols
+# archive_ancient_data(
+#   mnmdb = mnmgwdb,
+#   table_label = "Protocols",
+#   data_to_archive = protocols_distribution$to_archive,
+#   version_id = version_id,
+#   reference_columns = c(index_column)
+# )
+
+# # ... and un-archive = reactivate # -> not applicable for protocols
+# reactivate_archived_data(
+#   mnmdb = mnmgwdb,
+#   table_label = "Protocols",
+#   data_to_archive = protocols_distribution$reactivate,
+#   reference_columns = c(index_column)
+# )
+
+
+# NOTE: un-archived rows are not subject to UPDATE
+#       if in doubt, run this again.
+```
+
+
+## check
+
+```{sql}
+#| eval: false
+SELECT * FROM "metadata"."Protocols";
+```
+
+

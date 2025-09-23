@@ -159,8 +159,6 @@ locations_all <- locations_sf %>%
     is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
   )
 
-xy <- sf::st_coordinates(locations_all)
-
 # TODO: work with a subset for testing
 locations <- locations_all %>%
   filter(!sf::st_is_empty(wkb_geometry)) # %>%

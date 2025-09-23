@@ -106,7 +106,8 @@ locations_all <- locations_sf %>%
 
 
 # TODO: work with a subset for testing
-locations <- locations_all # %>%
+locations <- locations_all %>%
+  filter(!sf::st_is_empty(wkb_geometry)) # %>%
   # filter(grts_address %in% c(23238, 23091910, 6314694))
 
 ## random sampling procedure

@@ -81,6 +81,9 @@ replacement_lookup <- mnmgwdb$query_columns(
   rename(stratum = type)
 
 replace_grts_local <- function(df, typecolumn = "stratum") {
+
+  stopifnot("dplyr" = require("dplyr"))
+
   lookup <- replacement_lookup
   names(lookup)[names(lookup) == "stratum"] <- typecolumn
 
@@ -89,10 +92,10 @@ replace_grts_local <- function(df, typecolumn = "stratum") {
       lookup,
       by = dplyr::join_by(!!!c("grts_address", typecolumn))
     ) %>%
-    mutate(
+    dplyr::mutate(
       grts_address = dplyr::coalesce(grts_address_replacement, grts_address)
     ) %>%
-    select(-grts_address_replacement) %>%
+    dplyr::select(-grts_address_replacement) %>%
     return()
 }
 
@@ -209,8 +212,57 @@ distribution <- categorize_data_update(
   data_future = data_future,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
+  archive_flag_column = "archive_version_id"
 )
 print_category_count(distribution, table_label)
+
+
+if (FALSE) {
+
+distribution$to_archive %>%
+  count(grts_address, stratum) %>%
+  print(n = Inf)
+
+select_grts <- 32213266
+select_stratum <- "7140_mrd"
+
+
+check <- function(df, ...) {
+  df %>%
+    filter(...) %>%
+    select(
+      samplelocation_id,
+      grts_address,
+      stratum,
+      date_start,
+      activity_group_id,
+      priority
+    ) %>%
+    arrange(grts_address, stratum, date_start, activity_group_id) %>%
+    return()
+}
+
+data_previous %>%
+  check(grts_address == select_grts, stratum == select_stratum) %>%
+  t() %>% knitr::kable()
+
+
+data_future %>%
+  check(grts_address == select_grts, stratum == select_stratum) %>%
+  t() %>% knitr::kable()
+
+
+message("##### ARCHIVE ####")
+distribution$to_archive %>%
+  check(grts_address == select_grts, stratum == select_stratum) %>%
+  t() %>% knitr::kable()
+
+message("##### UNCHANGED ####")
+distribution$unchanged %>%
+  check(grts_address == select_grts, stratum == select_stratum) %>%
+  t() %>% knitr::kable()
+
+} # /checking intervention
 
 
 fieldworkcalendar_lookup <- just_do_it(
@@ -231,10 +283,12 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 
 #_______________________________________________________________________________
 
+
+visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
+
 new_visits <- fieldworkcalendar_lookup %>%
   select(
-    fieldworkcalendar_id,
-    !!!fieldcalendar_characols
+    !!!visits_characols
   ) %>%
   left_join(
     locations_lookup,
@@ -247,8 +301,6 @@ new_visits <- fieldworkcalendar_lookup %>%
     visit_done = FALSE
   )
 
-
-visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
 
 visits_upload <- new_visits %>%
   anti_join(
@@ -300,15 +352,14 @@ update_existing_data(
 # Fieldwork Activity Tables
 
 selection_of_activities <- list(
-  "WellInstallationActivities" = function(df) df %>% filter(grepl("^GWINST", activity_group))
-, # /WIA
+  "WellInstallationActivities" = function(df) df %>%
+    filter(grepl("^GWINST", activity_group)), # /WIA
   "ChemicalSamplingActivities" = function(df) df %>%
     filter(activity_group %in%
       c(gw_field_activities %>%
         filter(grepl("^GW.*SAMP", activity)) %>%
         pull(activity_group))
-      )
- # /CSA
+      ) # /CSA
 )
 
 empty_init <- list(

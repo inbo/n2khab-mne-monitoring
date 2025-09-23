@@ -30,6 +30,12 @@ if major updates:
 
 + [X] 219694 and 4447925: no activities? (Tom 20250919)
 
+20250923:
++ [X] re-run maintenance tasks (carefully)
++ [ ] yet another pocupdate =mnmgwdb=
++ [ ] also update =loceval=
++ [ ] map layer with "placed wells"
+
 prio:
 + [ ] postgresql update 20250925
   + [X] announced

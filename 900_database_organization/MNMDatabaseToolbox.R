@@ -1423,7 +1423,8 @@ just_do_it <- function(
     distribution,
     index_columns,
     characteristic_columns,
-    skip = NA
+    skip = NA,
+    version_id = NA
   ) {
 
   if (is.scalar.na(skip)) {
@@ -1434,6 +1435,9 @@ just_do_it <- function(
     )
   }
 
+  if (is.scalar.na(version_id)) {
+    version_id <- mnmdb$load_latest_version_id()
+  }
 
   if (isFALSE(skip[["update"]])) {
     message(glue::glue("\tupdating N={nrow(distribution$changed)}:"))

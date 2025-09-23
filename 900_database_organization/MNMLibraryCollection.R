@@ -41,6 +41,7 @@ database_interaction_libraries <- c(
   "dplyr",
   "sf",
   "here",
+  "getPass",
   "glue"
 )
 load_database_interaction_libraries <- function(
