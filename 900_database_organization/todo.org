@@ -28,7 +28,7 @@ if major updates:
 
 + [X] Vraag Tom 20250918: zou je aan de FieldworkPlanning in outbound nog een attribuut kunnen toevoegen voor het inplannen van de waterstalen? : count_days_ws:  day(to_date(now())-to_date( "date_vis_1"))
 
-+ 219694 and 4447925: no activities? (Tom 20250919)
++ [X] 219694 and 4447925: no activities? (Tom 20250919)
 
 prio:
 + [ ] postgresql update 20250925
@@ -36,7 +36,7 @@ prio:
   + [ ] local testing
   + [ ] ... and action!
 + [ ] !!! re-think =SampleLocations= dependency!
-  + was made implicit
+  + was made implicit: no direct fk linkage of tables
   + this cuts ties upon update
   + =samplelocation_id= must be manually re-linked everywhere
   + shortcut alternative: retry setting foreign key everywhere
@@ -48,7 +48,7 @@ prio:
 from POC Update:
 + [ ] also update =loceval=
 + [ ] more consistent =UNIQUE()= rules on all characteristic columns
-+ [ ] a "consistency dashboard" with checks for NA's and correct links
++ [X] a "consistency dashboard" with checks for NA's and correct links
 + [ ] script for common reset =fieldwork_id=
 + [ ] what to do with "Visits".lims_code? (planning -> rename =_planned=?)
 + [ ] remove "LocationEvaluations".recovery_hints -> in =loceval=, link view to LocationInfos

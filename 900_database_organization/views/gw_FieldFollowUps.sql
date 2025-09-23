@@ -6,7 +6,7 @@ FOR EACH ROW EXECUTE PROCEDURE sync_mod();
 
 -- no view: should be filtered in qgis
 
--- view did not work / ogc_fid not found!
+-- view DID NOT WORK / ogc_fid not found!
 
 DROP VIEW IF EXISTS  "inbound"."FollowUp" ;
 CREATE VIEW "inbound"."FollowUp" AS

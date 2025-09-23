@@ -1547,6 +1547,13 @@ quick and welcome request by TDD
 then extra request to count days.
 
 
+** data consistency dashboard -> improved consistency
+SCHEDULED: <2025-09-22 Mon>
+
++ [[file:./040_consistency_dashboard.qmd]]
++ used immediately to re-link several disconnected entries [[file:./surgery/20250922_missing_stratum_mnmgwdb.sql]]
+
+
 
 * Major R Code Overhaul (202508)
 ** Code File Organization
