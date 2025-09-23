@@ -70,6 +70,8 @@ make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
     coord_cols <- c("x", "y")
   }
 
+  # print(point_matrix)
+
   spatial_df <- as.data.frame(point_matrix) %>%
     setNames(coord_cols) %>%
     sf::st_as_sf(coords = coord_cols, crs = crs)
@@ -157,8 +159,11 @@ locations_all <- locations_sf %>%
     is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
   )
 
+xy <- sf::st_coordinates(locations_all)
+
 # TODO: work with a subset for testing
-locations <- locations_all # %>%
+locations <- locations_all %>%
+  filter(!sf::st_is_empty(wkb_geometry)) # %>%
 #  filter(grts_address %in% c(48897, 1818369))
 #  filter(grts_address %in% c(23238, 23091910, 6314694))
 
@@ -288,6 +293,7 @@ randompoints_locationwise <- function(location_row) {
   setTxtProgressBar(pb, location_row)
 
   one_location <- locations[location_row, ]
+  # print(one_location$grts_address)
   location_seed <- as.integer(one_location$grts_address)
 
   target_radius <- sqrt(2 * 16^2) # m
