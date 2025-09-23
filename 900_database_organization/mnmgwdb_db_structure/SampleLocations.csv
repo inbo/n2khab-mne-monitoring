@@ -5,4 +5,5 @@ grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`fi
 scheme_ps_targetpanels,varchar,False,,False,False,,,,"nested concatenation of scheme, poststratum, and target panels"
 schemes,varchar,True,,False,False,,,,schemes for which this location is sampled
 strata,varchar,True,,False,False,,,,strata for which the cell is eligible
+domain_part,varchar,False,NULL,False,False,,,,domain partition
 is_replacement,bool,True,0,False,False,,,,whether or not this is a repalcement cell

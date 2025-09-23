@@ -7,6 +7,7 @@ samplelocation_id,int,False,,False,False,,,,sample location index (technical) or
 location_id,int,False,,False,False,,,,"the technical sequence of all locations, put here for quick join"
 sspstapa_id,smallint,False,NULL,False,False,metadata.SSPSTaPas.sspstapa_id,,,a lookup for one of those long concatenated text columns
 grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements) needed for retainer lookup"
+stratum,varchar,True,,False,False,,,,strata for which the cell is eligible
 activity_group_id,smallint,True,,False,False,,,,"a link to the activity metadata, brought here via fieldworkcalendar for convenience"
 date_start,date,True,,False,False,,,,start of the panel activity sequence (included to keep recurrent visits unique)
 teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
@@ -16,3 +17,4 @@ photo,varchar,False,NULL,False,False,,,,an optional photo of the site or notewor
 lims_code,varchar,False,NULL,False,False,,,,link to the LIMS system via recipient code
 issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
 visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
+archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived visits
