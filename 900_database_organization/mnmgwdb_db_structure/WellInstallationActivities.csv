@@ -8,9 +8,6 @@ visit_id,int,False,,False,False,inbound.Visits.visit_id,,,link to the `Visits`
 grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements) needed for retainer lookup"
 activity_group_id,smallint,True,,False,False,,,,"a link to the activity metadata, brought here via fieldworkcalendar for convenience"
 date_start,date,True,,False,False,,,,start of the panel activity sequence (included to keep recurrent visits unique)
-teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
-date_visit,date,False,NULL,False,False,,,,date of the field activity
-visit_done,boolean,True,0,False,False,,,,double check that the activity was complete
 photo_soil_1_peilbuis,varchar,False,NULL,False,False,,,,photo of the soil drill profile: peilbuis
 photo_soil_2_piezometer,varchar,False,NULL,False,False,,,,photo of the soil drill profile: piezometer
 photo_well,varchar,False,NULL,False,False,,,,photo of the placed well/pair
