@@ -49,22 +49,26 @@ message(mnmdb$shellstring)
 ```
 
 
-# choose a GRTS
+-- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(10119474)
+grts <- c(871030)
 
+    # c(1280278)
+    # c(23238, 23091910, 6314694) # Hellebos
+    # c(4761777)
+    # c(23238)
+    # c(10119474) # this is only LOCEVAL <- SURF_03.4_lentic
     # c(1202926, 10640110) more missed archives
     # c(219694, 9525806) # was partially replaced and therefore archived
     # c(1999406, 6417454) # was falsely archived
     # c(31496054)
     # c(219694)
-    # c(871030)
 
 ```
 
 
-# helpers
+-- helpers
 
 ```{r helper-join-activity-groups}
 
@@ -114,7 +118,7 @@ query_special_activity <- function(shorthand) {
 
 ```
 
-# The Backbone: Sample Unit // Sample Location
+-- The Backbone: Sample Unit // Sample Location
 
 ```{r sample-locations}
 
@@ -159,7 +163,7 @@ print_slocs <- function() {
 ```
 
 
-# The Work: Calendar and Visits
+-- The Work: Calendar and Visits
 
 ```{r fieldwork-calendar}
 
@@ -178,6 +182,7 @@ print_fwcal <- function() {
       fcid = fieldworkcalendar_id,
       slid = samplelocation_id,
       agid = activity_group_id,
+      archv = archive_version_id
     ) %>%
     dplyr::select(
       stratum,
@@ -186,11 +191,12 @@ print_fwcal <- function() {
       agid,
       activity_group,
       date_start,
+      archv,
       # teammember_assigned,
       # date_visit_planned,
       done_planning
     ) %>%
-    arrange(date_start, agid) %>% 
+    arrange(stratum, date_start, agid) %>% 
     knitr::kable()
 }
 
@@ -210,6 +216,7 @@ print_visits <- function() {
       slid = samplelocation_id,
       agid = activity_group_id,
       fcid = fieldworkcalendar_id,
+      archv = archive_version_id,
       vid = visit_id,
       tid = teammember_id
     ) %>%
@@ -222,10 +229,11 @@ print_visits <- function() {
       vid,
       agid,
       date_start,
+      archv,
       tid,
       date_visit
     ) %>%
-    arrange(date_start, agid) %>% 
+    arrange(stratum, date_start, agid) %>% 
     knitr::kable()
 }
 
@@ -262,7 +270,7 @@ print_special_activities <- function() {
       agid,
       date_start
     ) %>%
-    arrange(date_start, agid) %>% 
+    arrange(stratum, date_start, agid) %>% 
     knitr::kable()
 }
 
@@ -313,25 +321,37 @@ print_infos <- function() {
 # source('080_connected_by_GRTS.R')
 ```
 
+## sample location
+
 ```{r print-sloc}
 #| echo: false
 print_slocs()
 ```
+
+
+## calendar
 
 ```{r print-fwcal}
 #| echo: false
 print_fwcal()
 ```
 
+
+## visits
+
 ```{r print-visit}
 #| echo: false
 print_visits()
 ```
 
+special activities (well installation, chem sampling)
+
 ```{r print-special-activities}
 #| echo: false
 print_special_activities()
 ```
+
+## location infos
 
 ```{r print-infos}
 #| echo: false
