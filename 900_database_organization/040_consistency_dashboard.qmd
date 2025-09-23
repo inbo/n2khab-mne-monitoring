@@ -58,6 +58,98 @@ message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
 ```
 
 
+
+# Count Table Rows
+
+```{r count-table-content}
+#| eval: true
+#| echo: false
+
+count_table_content <- function(table_list) {
+  lapply(
+      mnmgwdb$query_tables_data(table_list),
+      FUN = nrow
+    ) %>%
+    as_tibble() %>%
+    t() %>% 
+    knitr::kable(format = "markdown") %>%
+    print()
+  return(invisible(NULL))
+}
+
+```
+
+```{r count-metadata}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "Versions",
+    "TeamMembers",
+    "Protocols",
+    "GroupedActivities",
+    "N2kHabStrata"
+  ))
+
+```
+
+```{r count-location-tables}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "Locations",
+    "LocationInfos",
+    "LocationCells",
+    "Coordinates",
+    "LocationEvaluations",
+    "CellMaps"
+  ))
+
+```
+
+```{r count-fieldwork-orga}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "SampleLocations",
+    "FieldworkCalendar",
+    "Visits",
+    "WellInstallationActivities",
+    "ChemicalSamplingActivities"
+  ))
+
+```
+
+
+```{r count-loose-tables}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "ReplacementData",
+    "FreeFieldNotes",
+    "FieldFollowUps"
+  ))
+
+```
+
+```{r count-ad-libitum-data}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "RandomPoints",
+    "MHQPolygons",
+    "Divers"
+  ))
+
+```
+
+
+# Foreign Key Connectivity
+
 ```{r check-function}
 #| eval: true
 #| echo: false
@@ -163,7 +255,6 @@ check_foreignkey_connection <- function(
 
 
 ```
-
 
 ## Location, Location, Location
 
@@ -365,24 +456,46 @@ check_foreignkey_connection(
 
 ```
 
-## count loose tables
 
-```{r count-notes}
-lapply(
-    mnmgwdb$query_tables_data(c(
-        "FreeFieldNotes",
-        "FieldFollowUps"
-      )),
-    FUN = nrow
+# Archive
+
+## Count
+
+```{r count-archived}
+#| eval: true
+#| echo: false
+
+count_archived_content <- function(table_list) {
+  archivecount <- lapply(
+      mnmgwdb$query_tables_data(table_list),
+      FUN = function(df) df %>% count(archive_version_id)
+    )
+  bind_rows(
+    lapply(
+      seq_len(length(archivecount)),
+      FUN = function(i) {
+        archivecount[[i]] %>%
+          mutate(table = names(archivecount)[[i]]) %>%
+          relocate(table) %>%
+          return()
+      }
+    )
   ) %>%
-  as_tibble() %>%
-  t() %>% 
-  knitr::kable(format = "markdown") %>%
-  print()
+  return()
+}
+
+
+count_archived_content(
+    table_list = c("SampleLocations", "FieldworkCalendar", "Visits")
+  ) %>%
+  knitr::kable()
 
 ```
 
-## archived
+
+## Consistency
+
+("archive" tag set along the line of `SampleLocation` -> `FieldworkCalendar` -> `Visits`)
 
 ```{r consistent-archive}
 #| eval: true
