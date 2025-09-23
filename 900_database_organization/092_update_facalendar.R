@@ -337,6 +337,7 @@ distribution <- categorize_data_update(
 print_category_count(distribution, table_label)
 
 
+<<<<<<< HEAD
 
 if (FALSE) {
 # manual checks
@@ -353,15 +354,23 @@ current_calendar_db <- mnmgwdb$query_table("FieldworkCalendar") %>%
 distribution$reactivate %>%
   count(grts_address, stratum) %>%
   print(n = Inf)
+=======
+if (FALSE) {
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 distribution$to_archive %>%
   count(grts_address, stratum) %>%
   print(n = Inf)
 
+<<<<<<< HEAD
 # select_grts <- 871030
 # select_stratum <- "4010"
 select_grts <- 9262
 select_stratum <- "9120"
+=======
+select_grts <- 32213266
+select_stratum <- "7140_mrd"
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 
 check <- function(df, ...) {
@@ -379,7 +388,11 @@ check <- function(df, ...) {
     return()
 }
 
+<<<<<<< HEAD
 current_calendar_db %>%
+=======
+data_previous %>%
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   check(grts_address == select_grts, stratum == select_stratum) %>%
   t() %>% knitr::kable()
 
@@ -399,6 +412,7 @@ distribution$unchanged %>%
   check(grts_address == select_grts, stratum == select_stratum) %>%
   t() %>% knitr::kable()
 
+<<<<<<< HEAD
 message("##### REACTIVATE ####")
 distribution$reactivate %>%
   check(grts_address == select_grts, stratum == select_stratum) %>%
@@ -444,6 +458,12 @@ distribution$to_upload <- distribution$to_upload %>%
 
 
 fieldworkcalendar_lookup <- redistribute_calendar_data(
+=======
+} # /checking intervention
+
+
+fieldworkcalendar_lookup <- just_do_it(
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   mnmdb = mnmgwdb,
   table_label = table_label,
   distribution = distribution,

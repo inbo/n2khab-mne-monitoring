@@ -159,10 +159,15 @@ locations_all <- locations_sf %>%
     by = join_by(location_id)
   ) %>%
   mutate(
+<<<<<<< HEAD
     is_forest_previously_for_comparison = stringr::str_detect(strata, "^9|^2180|^rbbppm")
     # is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
   ) %>%
   rename(stratum = strata)
+=======
+    is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
+  )
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 # TODO: work with a subset for testing
 locations <- locations_all %>%

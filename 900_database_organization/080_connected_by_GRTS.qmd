@@ -109,6 +109,10 @@ message(mnmdb$shellstring)
 ```
 
 
+<<<<<<< HEAD
+=======
+-- choose a GRTS
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 <<<<<<< HEAD
 ```{r helper-join-activity-groups-loceval}
@@ -128,18 +132,27 @@ join_activity_groups <- function(df) {
 }
 =======
 ```{r choose-grts}
-grts <- c(10119474)
+grts <- c(871030)
 
+    # c(1280278)
+    # c(23238, 23091910, 6314694) # Hellebos
+    # c(4761777)
+    # c(23238)
+    # c(10119474) # this is only LOCEVAL <- SURF_03.4_lentic
     # c(1202926, 10640110) more missed archives
     # c(219694, 9525806) # was partially replaced and therefore archived
     # c(1999406, 6417454) # was falsely archived
     # c(219694)
+<<<<<<< HEAD
     # c(871030)
 >>>>>>> b4b58bd (dbinit: raiders of the archived locations)
+=======
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 ```
 
 
+<<<<<<< HEAD
 ```{r sample-units}
 
 sunit <- mnmdb$query_table("SampleUnits") %>%
@@ -414,6 +427,8 @@ message(mnmdb$shellstring)
 
 ```
 
+=======
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 -- helpers
 
 ```{r helper-join-activity-groups}
@@ -464,7 +479,10 @@ query_special_activity <- function(shorthand) {
 
 ```
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 -- The Backbone: Sample Unit // Sample Location
 
 ```{r sample-locations}
@@ -531,8 +549,12 @@ gw_print_fwcal <- function() {
       fcid = fieldworkcalendar_id,
       slid = samplelocation_id,
       agid = activity_group_id,
+<<<<<<< HEAD
       archv = archive_version_id,
       done_p = done_planning
+=======
+      archv = archive_version_id
+>>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
     ) %>%
     dplyr::select(
       stratum,
@@ -702,6 +724,8 @@ gw_print_replacement <- function() {
 # source('080_connected_by_GRTS.R')
 ```
 >>>>>>> b4b58bd (dbinit: raiders of the archived locations)
+
+## sample location
 
 ```{r print-sloc}
 #| echo: false
