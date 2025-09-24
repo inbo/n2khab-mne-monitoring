@@ -24,6 +24,7 @@ mnmdb <- connect_mnm_database(
   config_filepath = config_filepath,
   database_mirror = glue::glue("{database_label}{suffix}")
 )
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 message(mnmdb$shellstring)
 
 ### connect to databases
@@ -50,14 +51,14 @@ verify_poc_objects()
 }
 
 
-assessment_lookup <- bind_rows(
-  fag_stratum_grts_calendar %>%
-    distinct(grts_address_final, assessed_in_field) %>%
-    setNames(c("grts_address", "assessed")),
-  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
-    distinct(grts_address_final, last_type_assessment_in_field) %>%
-    setNames(c("grts_address", "assessed"))
-)
+# assessment_lookup <- bind_rows(
+#   fag_stratum_grts_calendar %>%
+#     distinct(grts_address_final, assessed_in_field) %>%
+#     setNames(c("grts_address", "assessed")),
+#   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+#     distinct(grts_address_final, last_type_assessment_in_field) %>%
+#     setNames(c("grts_address", "assessed"))
+# )
 
 
 
@@ -101,7 +102,7 @@ locations_all <- locations_sf %>%
     by = join_by(location_id)
   ) %>%
   mutate(
-    is_forest = stringr::str_detect(!!!type_col, "^9|^2180|^rbbppm")
+    is_forest_previously_for_comparison = stringr::str_detect(!!!type_col, "^9|^2180|^rbbppm")
   )
 
 
@@ -113,13 +114,15 @@ locations <- locations_all %>%
 ## random sampling procedure
 
 generate_mhq_polygon <- function(
-    one_location,
-    is_forest = FALSE,
-    is_assessed = FALSE
+    one_location #,
+    # is_forest = FALSE,
+    # is_assessed = FALSE
   ) {
 
 
   cell_center <- sf::st_coordinates(one_location)
+  is_forest <- one_location$is_forest
+  is_assessed <- one_location$has_mhq_assessment
 
   if (is_forest) {
     mhq_zone <- make_polygon(
@@ -171,16 +174,17 @@ mhq_locationwise <- function(location_row) {
 
   one_location <- locations[location_row, ]
 
-  is_forest <- one_location$is_forest
-  is_assessed <- assessment_lookup %>%
-    filter(grts_address == one_location$grts_address) %>%
-    pull(assessed) %>%
-    any
+  # is_forest <- one_location$is_forest
+  # is_assessed <- one_location$is_assessed
+  # is_assessed <- assessment_lookup %>%
+  #   filter(grts_address == one_location$grts_address) %>%
+  #   pull(assessed) %>%
+  #   any
 
   mhq_safety <- generate_mhq_polygon(
-    one_location,
-    is_forest = is_forest,
-    is_assessed = is_assessed
+    one_location #,
+    # is_forest = is_forest,
+    # is_assessed = is_assessed
   )
   if (is.na(mhq_safety)) return(NULL)
 
@@ -242,5 +246,5 @@ if (TRUE) {
 
 }
 
-
+# mapview::mapview(mhq_polygons)
 # source('230_random_placementpoints.R')

@@ -292,7 +292,7 @@ for idx, row in replacement_data.iterrows():
         existing_samplelocations["grts_address"].values \
             == int(row["grts_address"]), \
         existing_samplelocations["strata"].values \
-            == int(row["type"]), \
+            == row["type"], \
         )
 
     if sum(found_original) > 1:

@@ -121,8 +121,8 @@ verify_poc_objects()
 ```{r connect-databases}
 
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- "-staging"
-# mirror <- ""
+# mirror <- "-staging"
+mirror <- ""
 
 # loceval
 # loceval_mirror <- glue::glue("loceval{mirror}")
@@ -148,7 +148,7 @@ message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
 
 ## dump all data, for safety
 
-```{r step1-safety-dump}
+```{r step-1-safety-dump}
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
 # if (isFALSE(grepl("-staging", loceval_mirror))) {
@@ -689,36 +689,6 @@ stitch_table_connection(
 ```
 
 
-SPECIAL OPERATION: 871030
-OBSOLETE was solved by correcting the stratum.
-```{sql delete-one-871030}
-#| eval: false
-
--- fieldwork_calendar_new %>% filter(grts_address == 871030)
-
--- DELETE
-SELECT * FROM "outbound"."SampleLocations" 
-WHERE samplelocation_id IN (
-SELECT DISTINCT SLOC.samplelocation_id
-FROM "outbound"."SampleLocations" AS SLOC
-LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
-  ON (SLOC.grts_address = FWCAL.grts_address)
-  AND (SLOC.strata = FWCAL.stratum)
-WHERE SLOC.grts_address = 871030
-  AND FWCAL.fieldworkcalendar_id IS NULL
-);
-
-
-SELECT *
-FROM "outbound"."SampleLocations" AS SLOC
-LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
-  ON (SLOC.grts_address = FWCAL.grts_address)
-  AND (SLOC.strata = FWCAL.stratum)
-WHERE SLOC.grts_address = 871030
-;
-
-```
-
 
 ```{r categorize-fieldworkcalendar}
 
@@ -793,7 +763,7 @@ fieldworkcalendar_lookup <- just_do_it(
 
 stitch samplelocation_id
 
-```{r reconnect-fieldworkcalendar}
+```{r re-inspect-fieldworkcalendar}
 
 # stitch_table_connection(
 #   mnmdb = mnmgwdb,
@@ -1048,28 +1018,6 @@ mnmgwdb$query_table("ChemicalSamplingActivities") %>%
 ```
 
 
-special operation: 219694 
-```{sql check-special-activities}
-#| eval: false
--- SELECT * FROM "inbound"."FieldWork" WHERE grts_address = 219694 AND fieldwork_id IS NOT NULL;
--- yielded 5451 and 5192
--- SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5451;
--- SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5192;
---
--- DELETE FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5192;
--- DELETE FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5567;
---
-mnmgwdb=# SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 ;
- fieldwork_id | log_user |         log_update         | samplelocation_id | fieldworkcalendar_id | visit_id | grts_address | activity_group_id | date_start | recipient_code | project_code | stratum
---------------+----------+----------------------------+-------------------+----------------------+----------+--------------+-------------------+------------+----------------+--------------+---------
-         5675 | falk     | 2025-09-18 06:53:46.336174 |               598 |                 1324 |     1166 |       219694 |                13 | 2025-10-01 |                |              | 91E0_vo
-         5567 | falk     | 2025-09-18 06:53:46.336174 |               598 |                 1324 |     1166 |       219694 |                13 | 2025-10-01 |                |              | 91E0_vo
-(2 rows)
-```
-
-
-
-
 ```{r upload-special-activities}
 
 # table_label <- "WellInstallationActivities"
@@ -1277,6 +1225,33 @@ for (landinfo_rownr in 1:nrow(landinfo)) {
 
 close(pb) # close the progress bar
 ```
+
+
+
+```{r step-n-safety-dump}
+
+now <- format(Sys.time(), "%Y%m%d%H%M")
+# if (isFALSE(grepl("-staging", loceval_mirror))) {
+#   loceval$dump_all(
+#     here::here("dumps", glue::glue("safedump_{loceval$database}_{now}.sql")),
+#     exclude_schema = c("tiger", "public")
+#   )
+# }
+
+if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
+  mnmgwdb$dump_all(
+    here::here("dumps", glue::glue("poc_post_update_{mnmgwdb$database}_{now}.sql")),
+    exclude_schema = c("tiger", "public")
+  )
+}
+
+```
+
+
+```{r launch-consistency-dashboard}
+system("quarto render 040_consistency_dashboard.qmd --to html")
+```
+
 
 ## TODO
 
