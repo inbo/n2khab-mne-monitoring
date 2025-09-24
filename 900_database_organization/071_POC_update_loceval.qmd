@@ -1,6 +1,6 @@
 ---
-title: "POC Data Re-Upload"
-date: "2025-06-27, 2025-09-04"
+title: "POC Data Re-Upload - loceval"
+date: "2025-09-24"
 format:
   html:
     toc: true
@@ -14,36 +14,6 @@ knitr:
 
 
 
-:::{.callout-note title="Purpose"}
-Let's bring the sample to the field - again!
-
-(... and again, and again, and again...)
-:::
-
-
-In all brevity, I collect steps here to get a new POC to the database.
-
-
-# preparation
-
-## backup
-
-1. Make sure to manually trigger backups.
-  - `ssh` to the server
-  - execute scripts in `~/backups`
-  - bring files home with `scp`
-
-2. Mirrors: try everything on `testing` and then `staging`, first.
-  - The `testing` mirror (data sync with `033_populate_testing_db.R`) is open for play and can taken even rough rides, and for that user permissions differ on there. No guarantee that the data is correct.
-  - On `staging`, everything is exactly identical to the production server (even permissions and user roles), because it gets synced with the dump/restore commands below.
-  - use the `mirror` to control database connections below.
-  
-  
-Syncing the `*_staging` database mirrors:
-
-  - has to be done for `loceval` and `mnmgwdb` 
-  - if necessary, re-instantiate the mirror prior to data upload via `postgres`/`dropdb`+`createdb` intervention on the host system (and then run `110_*` and `210_*`, if necessary)
-  - Finally, use the `pg_dump | psql` commands as follows:
 
   
 ```{sh sync-staging}
@@ -140,7 +110,6 @@ mnmgwdb <- connect_mnm_database(
   config_filepath,
   database_mirror = mnmgwdb_mirror
 ) 
-# keyring::keyring_delete(keyring = "mnmdb_temp")
 
 message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
 

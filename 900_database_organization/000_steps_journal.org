@@ -1554,6 +1554,17 @@ SCHEDULED: <2025-09-22 Mon>
 + used immediately to re-link several disconnected entries [[file:./surgery/20250922_missing_stratum_mnmgwdb.sql]]
 
 
+** TODO [#A] fieldwork_id conflict
+SCHEDULED: <2025-09-24 Wed>
+
+For some reason, CSA and WIA got the same IDs.
+This should not have happened.
+I temporarily increased the CSA ID's by 10000;
+For a more permanent fix:
+
++ [ ] implement a check for fieldwork_id uniqueness (check view =FieldWork=)
++ [ ] find the error, putatively in poc update procedure
+
 
 * Major R Code Overhaul (202508)
 ** Code File Organization

@@ -93,11 +93,16 @@ WHERE TRUE
 
 
 -- https://stackoverflow.com/q/44005446
-
 DROP RULE IF EXISTS FieldWork_upd0 ON "inbound"."FieldWork";
 CREATE RULE FieldWork_upd0 AS
 ON UPDATE TO "inbound"."FieldWork"
-DO INSTEAD
+DO INSTEAD NOTHING
+;
+
+DROP RULE IF EXISTS FieldWork_upd_VIS ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_VIS AS
+ON UPDATE TO "inbound"."FieldWork"
+DO ALSO
  UPDATE "inbound"."Visits"
  SET
   teammember_id = NEW.teammember_id,
@@ -109,8 +114,8 @@ DO INSTEAD
  WHERE visit_id = OLD.visit_id
 ;
 
-DROP RULE IF EXISTS FieldWork_upd1 ON "inbound"."FieldWork";
-CREATE RULE FieldWork_upd1 AS
+DROP RULE IF EXISTS FieldWork_upd_INFO ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_INFO AS
 ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
@@ -121,8 +126,8 @@ DO ALSO
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
-DROP RULE IF EXISTS FieldWork_upd2 ON "inbound"."FieldWork";
-CREATE RULE FieldWork_upd2 AS
+DROP RULE IF EXISTS FieldWork_upd_WIA ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_WIA AS
 ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
  UPDATE "inbound"."WellInstallationActivities"
@@ -141,8 +146,8 @@ DO ALSO
  WHERE fieldwork_id = OLD.fieldwork_id
 ;
 
-DROP RULE IF EXISTS FieldWork_upd3 ON "inbound"."FieldWork";
-CREATE RULE FieldWork_upd3 AS
+DROP RULE IF EXISTS FieldWork_upd_CSA ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_CSA AS
 ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
  UPDATE "inbound"."ChemicalSamplingActivities"
