@@ -44,6 +44,7 @@ mnmdb <- connect_mnm_database(
   user = "monkey",
   password = NA
 )
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 message(mnmdb$shellstring)
 
 ```

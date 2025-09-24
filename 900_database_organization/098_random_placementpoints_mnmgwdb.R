@@ -24,6 +24,7 @@ mnmgwdb <- connect_mnm_database(
   config_filepath = config_filepath,
   database_mirror = glue::glue("{database_label}{suffix}")
 )
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 message(mnmgwdb$shellstring)
 
 # connect loceval, for cellmaps
@@ -51,14 +52,15 @@ verify_poc_objects()
 
 ### MHQ input
 # check which cells are subject to MHQ assessment
-assessment_lookup <- bind_rows(
-  fag_stratum_grts_calendar %>%
-    distinct(grts_address_final, assessed_in_field) %>%
-    setNames(c("grts_address", "assessed")),
-  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
-    distinct(grts_address_final, last_type_assessment_in_field) %>%
-    setNames(c("grts_address", "assessed"))
-)
+## not necessary: now stored in SampleLocations
+# assessment_lookup <- bind_rows(
+#   fag_stratum_grts_calendar %>%
+#     distinct(grts_address_final, assessed_in_field) %>%
+#     setNames(c("grts_address", "assessed")),
+#   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+#     distinct(grts_address_final, last_type_assessment_in_field) %>%
+#     setNames(c("grts_address", "assessed"))
+# )
 
 
 ### Geometry helpers
@@ -156,7 +158,8 @@ locations_all <- locations_sf %>%
     by = join_by(location_id)
   ) %>%
   mutate(
-    is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
+    is_forest_previously_for_comparison = stringr::str_detect(strata, "^9|^2180|^rbbppm")
+    # is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
   )
 
 # TODO: work with a subset for testing
@@ -172,13 +175,15 @@ generate_random_points <- function(
     n_points = 20,
     target_radius = 10,
     n_samples = 256,
-    is_forest = FALSE,
-    is_assessed = FALSE,
+    # is_forest = FALSE,
+    # is_assessed = FALSE,
     location_seed = 42
   ) {
 
 
   cell_center <- sf::st_coordinates(one_location)
+  is_forest <- one_location$is_forest
+  is_assessed <- one_location$has_mhq_assessment
 
   # target_area <- sf::st_buffer(one_location, target_radius)
   target_area <- make_polygon(
@@ -298,11 +303,11 @@ randompoints_locationwise <- function(location_row) {
     # NOTE: r>16 because we include points in the whole cell
   n_samples <- 128
   n_points <- 20
-  is_forest <- one_location$is_forest
-  is_assessed <- assessment_lookup %>%
-    filter(grts_address == one_location$grts_address) %>%
-    pull(assessed) %>%
-    any
+  # is_forest <- one_location$is_forest
+  # is_assessed <- assessment_lookup %>%
+  #   filter(grts_address == one_location$grts_address) %>%
+  #   pull(assessed) %>%
+  #   any
 
   # if (is_forest) {
   #     target_radius <- 16 # NOT: 18 m # BUT: 10 is too little
@@ -317,8 +322,6 @@ randompoints_locationwise <- function(location_row) {
       n_points = n_points,
       target_radius = target_radius,
       n_samples = n_samples,
-      is_forest = is_forest,
-      is_assessed = is_assessed,
       location_seed = location_seed
     )
 
