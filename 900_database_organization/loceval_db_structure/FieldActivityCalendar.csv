@@ -4,6 +4,7 @@ log_user,varchar,True,current_user,False,False,,,,(technical) user who modified 
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
 sampleunit_id,int,False,,False,False,,,,optional link to sample locations
 stratum,varchar,True,,False,False,,,,"stratum, as planned in the sampling procedure"
+domain_part,varchar,False,NULL,False,False,,,,domain partition
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after corrections)"
 priority,smallint,True,,False,False,,,,"priority, based on scheme, panel, and stratum"
 date_start,date,True,,False,False,,,,start of the panel activity sequence
@@ -12,14 +13,16 @@ date_interval,varchar,False,NULL,False,False,,,,experimenting with date interval
 activity_group_id,smallint,True,,False,False,,,,a link to the activity metadata
 activity_rank,smallint,False,,False,False,,CHECK (activity_rank > 0),,execution order of the field activities
 grts_join_method,varchar,False,,False,False,,,,relation of grts address and sampling unit geometry
+wait_any,boolean,False,,False,False,,,,"must I always be waiting, waiting on you? *whistle*"
 wait_watersurface,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
 wait_3260,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
 wait_7220,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
+wait_floating,boolean,False,,False,False,,,,filter field for convenient floating type (de)selection
 excluded,boolean,True,0,False,False,,,,activity obsolete due to sample updates or prior activities
 excluded_reason,text,False,NULL,False,False,,,,reason for exclusion (e.g. loceval type not found)
-landowner,varchar,False,NULL,False,False,,,,reference to the land owner
 teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee
 date_visit_planned,date,False,NULL,False,False,,,,planned date of visit
 no_visit_planned,boolean,True,0,False,False,,,,whether or not a visit is planned
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 done_planning,boolean,True,0,False,False,,,,flag to indicate preparation status
+archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived calendar entries

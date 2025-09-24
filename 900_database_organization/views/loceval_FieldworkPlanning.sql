@@ -37,13 +37,14 @@ SELECT
   FAC.date_end,
   FAC.date_interval,
   FAC.date_end - current_date AS days_to_deadline,
+  FAC.wait_any,
   FAC.wait_watersurface,
   FAC.wait_3260,
   FAC.wait_7220,
+  FAC.wait_floating,
   (FAC.wait_watersurface OR FAC.wait_3260 OR FAC.wait_7220) AS is_waiting,
   FAC.excluded,
   FAC.excluded_reason,
-  INFO.landowner,
   FAC.teammember_assigned,
   FAC.date_visit_planned,
   FAC.no_visit_planned,
@@ -60,9 +61,11 @@ SELECT
   UNIT.assessment_date,
   UNIT.previous_notes,
   INFO.locationinfo_id,
+  INFO.landowner,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
   INFO.recovery_hints,
+  UNIT.type_is_absent,
   UNIT.is_replaced,
   LOCASS.cell_disapproved,
   LOCASS.assessment_done
@@ -85,6 +88,9 @@ LEFT JOIN (
     assessment_done
   ) AS LOCASS
   ON UNIT.location_id = LOCASS.location_id
+WHERE TRUE
+  AND (UNIT.archive_version_id IS NULL)
+  AND (FAC.archive_version_id IS NULL)
 ORDER BY
   FAC.date_end,
   FAC.priority,
@@ -103,8 +109,8 @@ DO INSTEAD NOTHING
 ;
 
 
-DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
-CREATE RULE FieldworkPlanning_upd1 AS
+DROP RULE IF EXISTS FieldworkPlanning_upd_fac ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd_fac AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
  UPDATE "outbound"."FieldActivityCalendar"
@@ -120,25 +126,18 @@ DO ALSO
 ;
 
 
-DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
-CREATE RULE FieldworkPlanning_upd2 AS
+DROP RULE IF EXISTS FieldworkPlanning_upd_infos ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd_infos AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit,
-  landowner = NEW.landowner,
+  --landowner = NEW.landowner,
   recovery_hints = NEW.recovery_hints
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO ward;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO karen;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO floris;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO ward;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO karen;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO floris;
-
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO tom;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO tom;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO floris, karen, ward, tom, monkey;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO floris, karen, ward;

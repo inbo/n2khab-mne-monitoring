@@ -1,12 +1,13 @@
 schema,table,owner,read_access,write_access,geometry,constraint,freesql,persistent,excluded,comment
-metadata,Protocols,falk,"tom,ward,floris,karen,monkey",,,,,,,protocols (preliminary version)
+metadata,Versions,falk,"tom,ward,floris,karen,monkey",,,,,1,,storing the POC versions which caused the data
+metadata,Protocols,falk,"tom,ward,floris,karen,monkey",,,,,,,"protocols, linked to protocols.inbo.be"
 metadata,GroupedActivities,falk,"tom,ward,floris,karen,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
 metadata,TeamMembers,falk,"tom,ward,floris,karen,monkey",,,,,1,,list of team members
 metadata,N2kHabTypes,falk,"tom,ward,floris,karen,monkey",,,,,,,habitat type
 metadata,N2kHabStrata,falk,"tom,ward,floris,karen,monkey",,,,,,,lookup table n2khab type to stratum
 metadata,Locations,falk,"tom,ward,floris,karen,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
 metadata,LocationCells,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
-metadata,Coordinates,falk,"tom,ward,floris,karen,monkey",,,,,,,coordinates of the grts points (in other CRS)
+metadata,Coordinates,falk,"tom,ward,floris,karen,monkey",,,,,,,Locations coordinates of the grts points (in other CRS)
 outbound,LocationInfos,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
 outbound,SampleUnits,falk,"tom,ward,floris,karen,monkey","tom,ward,floris,karen",,,,,,list of locations currently sampled
 outbound,SampleUnitPolygons,falk,"tom,ward,floris,karen,monkey",,POLYGON,,,,,habitat map polygons of the current sample locations

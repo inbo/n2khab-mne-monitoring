@@ -28,8 +28,8 @@ source("MNMDatabaseToolbox.R")
 connection:
 #+begin_src R
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- "-staging"
-# mirror <- ""
+# mirror <- "-staging"
+mirror <- ""
 
 # loceval database
 locevaldb_mirror <- glue::glue("loceval{mirror}")
@@ -45,8 +45,16 @@ message(glue::glue("connected: psql {locevaldb$shellstring}"))
 
 
 #+begin_src sql
-ALTER TABLE "inbound"."Visits" ADD COLUMN fieldactivitycalendar_id varchar DEFAULT NULL;
+-- ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id TYPE int USING fieldactivitycalendar_id::integer;
+ALTER TABLE "inbound"."Visits" ADD COLUMN fieldactivitycalendar_id int DEFAULT NULL;
 COMMENT ON COLUMN "inbound"."Visits".fieldactivitycalendar_id IS E'link to calendar index (technical)';
+-- foreign key fieldactivitycalendar_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldActivityCalendar_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_FieldActivityCalendar_Visits FOREIGN KEY (fieldactivitycalendar_id)
+REFERENCES "outbound"."FieldActivityCalendar" (fieldactivitycalendar_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
 
 ALTER TABLE "inbound"."Visits" ADD COLUMN stratum varchar DEFAULT NULL;
 COMMENT ON COLUMN "inbound"."Visits".stratum IS E'stratum, as planned in the sampling procedure';
@@ -72,9 +80,16 @@ facal <- locevaldb$query_table("FieldActivityCalendar") %>%
 visits %>% count(grts_address, sampleunit_id) %>% arrange(desc(n))
 facal %>% count(grts_address, sampleunit_id) %>% arrange(desc(n))
 
+facal <- facal %>% filter(!is.na(stratum))
+
 visits_filled <- visits %>%
-  select(-stratum, -activity_group_id, -date_start) %>%
-  left_join(
+  select(
+      -fieldactivitycalendar_id,
+      -stratum,
+      -activity_group_id,
+      -date_start
+         ) %>%
+  inner_join(
     facal %>%
     select(
       grts_address,
@@ -86,12 +101,24 @@ visits_filled <- visits %>%
     ),
     by = join_by(grts_address, sampleunit_id),
     relationship = "one-to-one"
+  ) %>%
+  select(
+    visit_id,
+    grts_address,
+    sampleunit_id,
+    fieldactivitycalendar_id,
+    stratum,
+    activity_group_id,
+    date_start
   )
 
+visits_filled %>%
+  filter(is.na(stratum)) %>%
+  knitr::kable()
 
 update_existing_data(
     mnmdb = locevaldb,
-    table_label = visits,
+    table_label = "Visits",
     changed_data = visits_filled,
     input_precedence_columns = c(
       "teammember_id",
@@ -108,9 +135,46 @@ update_existing_data(
 #+end_src
 
 
-!!! set NOT NULL
+#+begin_src R
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "FieldActivityCalendar",
+  link_key_column = "fieldactivitycalendar_id",
+  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+)
+
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(ref) ref %>% rename(stratum = type)
+)
+
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "FieldActivityCalendar",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(ref) ref %>% rename(stratum = type)
+)
+#+end_src
+
+
+--  DELETE FROM "inbound"."Visits" WHERE fieldactivitycalendar_id IS NULL;
+set NOT NULL:
+#+begin_src sql
+ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id SET NOT NULL;
+#+end_src
 
 * views
 
+adjust LocationEvaluation
 
 * fill column

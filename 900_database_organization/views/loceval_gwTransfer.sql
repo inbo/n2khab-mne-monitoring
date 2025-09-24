@@ -7,6 +7,7 @@ SELECT
   UNIT.panel_set,
   UNIT.targetpanel,
   UNIT.type,
+  UNIT.type_is_absent,
   UNIT.grts_address AS grts_address_original,
   CASE WHEN LOREP.grts_address_replacement IS NULL
     THEN UNIT.grts_address
@@ -43,6 +44,7 @@ SELECT
   UNIT.panel_set,
   UNIT.targetpanel,
   UNIT.type,
+  UNIT.type_is_absent,
   UNIT.grts_address AS grts_address_original,
   CASE WHEN LOREP.grts_address_replacement IS NULL
     THEN UNIT.grts_address
@@ -75,5 +77,6 @@ WHERE TRUE
 
 
 GRANT SELECT ON  "outbound"."gwTransfer"  TO  monkey;
+
 GRANT SELECT ON  "outbound"."gwTransfer"  TO  yoda;
 

@@ -9,6 +9,10 @@ targetpanel,varchar,False,,False,False,,,,panel reference
 scheme_ps_targetpanels,varchar,False,,False,False,,,,"nested concatenation of scheme, poststratum, and target panels"
 sp_poststratum,varchar,False,,False,False,,,,spatial poststratum
 type,varchar,True,,False,False,,,,"type (code), our latest best assessment"
+domain_part,varchar,False,NULL,False,False,,,,domain partition
+is_forest,bool,True,0,False,False,,,,flag forest type sample locatione
+in_mhq_samples,bool,True,0,False,False,,,,flag sites used for MHQ
+has_mhq_assessment,bool,True,0,False,False,,,,(temporary) column to filter MHQ polygons
 assessment,boolean,True,0,False,False,,,,biotics previously assessed (`assessment_in_field`)
 assessment_date,date,False,,False,False,,,,date of previous assessment
 previous_notes,text,False,,False,False,,,,collecting any notes which we took previously
@@ -17,3 +21,5 @@ replacement_id,int,False,NULL,False,False,,,,link to the replacement location
 replacement_reason,text,False,NULL,False,False,,,,"explanation for replacement choice, e.g. inaccessibility"
 replacement_permanence,text,False,NULL,False,False,,,,whether or not the location is permanently unavailable
 is_replaced,boolean,True,0,False,False,,,,indicator whether we used a replacement location
+type_is_absent,boolean,True,0,False,False,,,,unsuccessful local replacement / target type not found
+archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived sample units
