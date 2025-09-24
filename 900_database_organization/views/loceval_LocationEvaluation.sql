@@ -23,6 +23,7 @@ SELECT
   UNIT.replacement_ongoing,
   UNIT.replacement_reason,
   UNIT.replacement_permanence,
+  UNIT.type_is_absent,
   INFO.locationinfo_id,
   INFO.recovery_hints,
   INFO.landowner,
@@ -48,6 +49,7 @@ LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
   SELECT
+    fieldactivitycalendar_id,
     sampleunit_id,
     activity_group_id,
     date_start,
@@ -56,16 +58,17 @@ LEFT JOIN (
     teammember_assigned,
     date_visit_planned,
     no_visit_planned,
-    notes
+    notes,
+    archive_version_id
   FROM "outbound"."FieldActivityCalendar" AS CAL
   ) AS FAC
-  ON (FAC.sampleunit_id = UNIT.sampleunit_id)
+  ON FAC.fieldactivitycalendar_id = VISIT.fieldactivitycalendar_id
 LEFT JOIN (
   SELECT DISTINCT
     location_id,
     cell_disapproved,
     assessment_done,
-    notes
+    CONCAT(notes || ' ') AS notes
   FROM "outbound"."LocationAssessments"
   GROUP BY
     location_id,
@@ -75,6 +78,9 @@ LEFT JOIN (
   ) AS LOCASS
   ON VISIT.location_id = LOCASS.location_id
 WHERE TRUE
+  AND (UNIT.archive_version_id IS NULL)
+  AND (FAC.archive_version_id IS NULL)
+  AND (VISIT.archive_version_id IS NULL)
   AND ((LOCASS.cell_disapproved IS NULL) OR (NOT LOCASS.cell_disapproved))
   AND ((FAC.no_visit_planned IS NULL) OR (NOT FAC.no_visit_planned))
   AND (FAC.activity_group_id IN
@@ -117,7 +123,8 @@ DO ALSO
   is_replaced = NEW.is_replaced,
   replacement_ongoing = NEW.replacement_ongoing,
   replacement_reason = NEW.replacement_reason,
-  replacement_permanence = NEW.replacement_permanence
+  replacement_permanence = NEW.replacement_permanence,
+  type_is_absent = NEW.type_is_absent
  WHERE sampleunit_id = OLD.sampleunit_id
 ;
 
@@ -135,11 +142,5 @@ DO ALSO
 
 
 
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris;
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO karen;
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO tom;
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO ward;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO karen;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO tom;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO ward;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris, karen, tom, ward, monkey;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris, karen, ward;
