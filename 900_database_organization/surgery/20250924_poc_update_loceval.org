@@ -1,0 +1,85 @@
+
+I have neglected =loceval= for a while.
+
+* POC changes
+** domain partition
+
+introduced by Floris
+
+#+begin_src sql
+-- add domain part to loceval
+-- ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN domain_part varchar;
+-- COMMENT ON COLUMN "outbound"."FieldActivityCalendar".domain_part IS E'domain partition';
+-- TODO is this an attribute of SampleUnits?
+
+
+-- add domain part to mnmgwdb
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN domain_part varchar;
+COMMENT ON COLUMN "outbound"."SampleUnits".domain_part IS E'domain partition';
+
+#+end_src
+
+** extra SampleUnit Info
+
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN is_forest bool NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "outbound"."SampleUnits".is_forest IS E'flag forest type sample units';
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN in_mhq_samples bool NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "outbound"."SampleUnits".in_mhq_samples IS E'flag sites used for MHQ';
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN has_mhq_assessment bool NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "outbound"."SampleUnits".has_mhq_assessment IS E'(temporary) column to filter MHQ polygons';
+
+#+end_src
+
+** wait_<more>
+
+
+#+begin_src sql :eval no
+
+ALTER TABLE "outbound"."FieldworkCalendar" ADD COLUMN wait_any boolean;
+COMMENT ON COLUMN "outbound"."FieldworkCalendar".wait_any IS E'must I always be waiting, waiting on you? *whistle*';
+
+ALTER TABLE "outbound"."FieldworkCalendar" ADD COLUMN wait_floating boolean;
+COMMENT ON COLUMN "outbound"."FieldworkCalendar".wait_floating IS E'filter field for convenient floating type (de)selection';
+
+#+end_src
+
+
+
+* Versions
+we now store the POC versions
+
+subprocedure: Versions
+>>> [[file:./20250908_Versions.sql]]
+
+
+* Protocols
+
+subprocedure: Protocols
+>>> [[file:./20250904_Protocols.sql]]
+
+-> MANUALLY update the Protocols table once.
+>>> [[file:../078_update_protocols.qmd]]
+
+* column adjustments
+
+* Stitch Lookups
+
+... to reduce off-focus updates during POC update
+
+>>> [[file:../095_re_link_foreign_keys_optional.R]]
+
+
+* POC update =v0.9.0_poc0.13.1=
+
+>>> [[file:../071_POC_update_loceval.qmd]]
+
+
+
+* auxiliary maintenance scripts
+... all of them, just to make sure.
+
+* TODO
+

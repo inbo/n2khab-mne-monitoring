@@ -1,0 +1,116 @@
+#+title: Loceval ++ Type Absent
+#+date: 20250924
+
+
+request by Tom / Ward to mark loceval where no local replacement cell was found.
+
+* new column
+
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN type_is_absent boolean NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "outbound"."SampleUnits".type_is_absent IS E'unsuccessful local replacement / target type not found';
+
+#+end_src
+
+* hard-connect visits
+
+tooling:
+#+begin_src R
+
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+#+end_src
+
+
+connection:
+#+begin_src R
+config_filepath <- file.path("./inbopostgis_server.conf")
+mirror <- "-staging"
+# mirror <- ""
+
+# loceval database
+locevaldb_mirror <- glue::glue("loceval{mirror}")
+
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(glue::glue("connected: psql {locevaldb$shellstring}"))
+#+end_src
+
+
+#+begin_src sql
+ALTER TABLE "inbound"."Visits" ADD COLUMN fieldactivitycalendar_id varchar DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".fieldactivitycalendar_id IS E'link to calendar index (technical)';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN stratum varchar DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".stratum IS E'stratum, as planned in the sampling procedure';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN activity_group_id smallint DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".activity_group_id IS E'a link to the activity metadata';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN date_start date DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".date_start IS E'start of the panel activity sequence';
+
+#+end_src
+
+
+
+#+begin_src R
+visits <- locevaldb$query_table("Visits")
+gact_id <- locevaldb$query_table("GroupedActivities") %>%
+  filter(activity_group == "LOCEVALTERR") %>%
+  pull(activity_group_id)
+facal <- locevaldb$query_table("FieldActivityCalendar") %>%
+  filter(activity_group_id == gact_id)
+
+visits %>% count(grts_address, sampleunit_id) %>% arrange(desc(n))
+facal %>% count(grts_address, sampleunit_id) %>% arrange(desc(n))
+
+visits_filled <- visits %>%
+  select(-stratum, -activity_group_id, -date_start) %>%
+  left_join(
+    facal %>%
+    select(
+      grts_address,
+      sampleunit_id,
+      fieldactivitycalendar_id,
+      stratum,
+      activity_group_id,
+      date_start
+    ),
+    by = join_by(grts_address, sampleunit_id),
+    relationship = "one-to-one"
+  )
+
+
+update_existing_data(
+    mnmdb = locevaldb,
+    table_label = visits,
+    changed_data = visits_filled,
+    input_precedence_columns = c(
+      "teammember_id",
+      "date_visit",
+      "type_assessed",
+      "notes",
+      "photo",
+      "visit_done"
+    ),
+    index_columns = c("visit_id"),
+    reference_columns = c("grts_address", "sampleunit_id")
+  )
+
+#+end_src
+
+
+!!! set NOT NULL
+
+* views
+
+
+* fill column

@@ -58,7 +58,7 @@ subprocedure: Protocols
 >>> [[file:../views/gw_MyFieldWork.sql]]
 
 -> MANUALLY update the Protocols table once.
->>> [[file:../070_update_POC.qmd]]
+>>> [[file:../078_update_protocols.qmd]]
 
 * DONE column adjustments
 CLOSED: [2025-09-18 Thu 08:09]
