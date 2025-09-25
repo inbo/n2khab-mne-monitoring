@@ -12,6 +12,15 @@ COMMENT ON COLUMN "outbound"."SampleUnits".type_is_absent IS E'unsuccessful loca
 
 #+end_src
 
+
+and on mnmgwdb:
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."LocationEvaluations" ADD COLUMN type_is_absent bool;
+COMMENT ON COLUMN "outbound"."LocationEvaluations".type_is_absent IS E'target type not found in field assessment';
+#+end_src
+
+
+
 * hard-connect visits
 
 tooling:
@@ -231,3 +240,6 @@ loceval_db <- connect_mnm_database(
 
 loceval_db$query_table("SampleUnits") %>%
   filter(type_is_absent)
+
+* Data Flow
+also adjust 091 and 092
