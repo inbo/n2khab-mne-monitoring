@@ -32,9 +32,11 @@ if major updates:
 
 20250923:
 + [X] re-run maintenance tasks (carefully)
-+ [ ] yet another pocupdate =mnmgwdb=
++ [X] yet another pocupdate =mnmgwdb=
 + [ ] also update =loceval=
 + [ ] map layer with "placed wells"
+
++ [ ] data consistency dashboard -> loceval
 
 prio:
 + [ ] postgresql update 20250925

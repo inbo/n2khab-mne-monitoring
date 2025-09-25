@@ -1051,7 +1051,7 @@ table_modification <- c(
 #+end_src
 
 
-** TODO [#A] accessibility across locations
+** accessibility across locations -> LocationInfos
 
 + accessibility is +now stored on SampleUnits+ THIS was a bad idea.
 + but it is informative for all locations on a GRTS
@@ -1066,14 +1066,15 @@ table_modification <- c(
 also moved =recovery_hints= to =LocationInfos=
 
 
-** TODO rtkgps accuracy
+** KILL rtkgps accuracy
 
 + extra field
 
 
-** TODO replacement notes to sample unit
+** replacement notes to sample unit
 
 Ward is storing notes about the SampleUnits in Replacements.
+Now there is an extra field which is fed back to the unit (via view).
 
 
 ** activity or activity_group?
@@ -1084,11 +1085,22 @@ What to filter for in the grouped_activity table?
 also confirmed with loceval tasks that there was none forgotten
 
 
-** TODO data type issues in sync FreeFieldNotes
+** data type issues in sync FreeFieldNotes
 SCHEDULED: <2025-07-22 Tue>
 
 see =090_sync_FreeFieldNotes.py= -> refinement necessary
 
+
+** type_is_absent
+SCHEDULED: <2025-09-25 Thu>
+
+Locations where target type was not found are now flaggable.
+Questions by Floris ongoing.
+
+** TODO major overhaul: poc update
+
+framing observations:
+[...]
 
 
 * mnmgwdb
@@ -1565,6 +1577,12 @@ For a more permanent fix:
 + [ ] implement a check for fieldwork_id uniqueness (check view =FieldWork=)
 + [ ] find the error, putatively in poc update procedure
 
+** type_is_absent -> excluded
+SCHEDULED: <2025-09-25 Thu>
+
+sample units where biotics could not find the target type are marked;
+those are now flagged as "excluded" in fieldwork planning
+
 
 * Major R Code Overhaul (202508)
 ** Code File Organization
@@ -1737,6 +1755,13 @@ SCHEDULED: <2025-07-31 Thu>
 
 + wrong IF clause (just switched arguments) on forest/assessment MHQ determination
 + replacement procedure: obob <= instead of < 1 cell (was originally only for duplication)
+
+** TODO [#A] fieldwork_id conflict
+some script updates WIA and CSA,
+but neglects uniqueness of the =fieldwork_id=.
+Temporarily solved by increasing the fieldwork_id
+
+see [[file:./surgery/20250924_fieldwork_id_conflict.sql]]
 
 
 * General
