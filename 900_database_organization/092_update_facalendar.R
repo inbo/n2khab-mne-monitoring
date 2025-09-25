@@ -115,7 +115,7 @@ replace_grts_local <- function(df, typecolumn = "stratum") {
 
 fieldwork_calendar <-
   fieldwork_2025_prioritization_by_stratum %>%
-  common_current_calenderfilters() %>%
+  common_current_calenderfilters() %>% # should be filtered already!
   rename_grts_address_final_to_grts_address() %>%
   replace_grts_local() %>%
   relocate(grts_address) %>%
@@ -143,7 +143,7 @@ fieldwork_calendar <-
       as.character
     )
   ) %>%
-  rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% # TODO
+  rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>%
   mutate(
     log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
@@ -190,7 +190,10 @@ fieldwork_calendar_new <- fieldwork_calendar %>%
   select(
     # -location_id,
     -grts_join_method,
-    -domain_part
+    -domain_part,
+    -is_forest,
+    -in_mhq_samples,
+    -last_type_assessment_in_field
   )
 
 fieldcalendar_characols <- c(
@@ -438,6 +441,39 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
   )
 
 }
+
+
+#-------------------------------------------------------------------------------
+# exclude those where type was absent
+
+absent_type_fwcals <- mnmgwdb$query_table("LocationEvaluations") %>%
+  filter(
+    eval_source == "loceval",
+    type_is_absent
+  ) %>%
+  select(
+    grts_address, type
+  ) %>%
+  rename(stratum = type) %>%
+  left_join(
+    mnmgwdb$query_columns(
+      "FieldworkCalendar",
+      c("grts_address", "stratum", "fieldworkcalendar_id")
+    ) %>% distinct(),
+    by = join_by(grts_address, stratum)
+  ) %>%
+  pull(fieldworkcalendar_id)
+
+absent_type_fwcals <- paste0(absent_type_fwcals, collapse = ", ")
+
+mnmgwdb$execute_sql(
+  glue::glue("
+    UPDATE {mnmgwdb$get_namestring('FieldworkCalendar')}
+    SET excluded = TRUE, excluded_reason = 'loceval: type_is_absent'
+    WHERE fieldworkcalendar_id IN ({absent_type_fwcals})
+    ;
+  ")
+)
 
 
 message("________________________________________________________________")

@@ -7,13 +7,13 @@ SELECT
   UNIT.panel_set,
   UNIT.targetpanel,
   UNIT.type,
-  UNIT.type_is_absent,
   UNIT.grts_address AS grts_address_original,
   CASE WHEN LOREP.grts_address_replacement IS NULL
     THEN UNIT.grts_address
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
   VISIT.type_assessed,
+  UNIT.type_is_absent,
   'loceval' AS eval_source,
   LOWER(TEAM.username) AS eval_name,
   VISIT.date_visit AS eval_date,
@@ -35,7 +35,7 @@ LEFT JOIN (
   ) AS LOREP
   ON UNIT.sampleunit_id = LOREP.sampleunit_id
 WHERE TRUE
-  AND (VISIT.visit_done)
+  AND VISIT.visit_done
 UNION
 SELECT
   LOCASS.log_user,
@@ -44,13 +44,13 @@ SELECT
   UNIT.panel_set,
   UNIT.targetpanel,
   UNIT.type,
-  UNIT.type_is_absent,
   UNIT.grts_address AS grts_address_original,
   CASE WHEN LOREP.grts_address_replacement IS NULL
     THEN UNIT.grts_address
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
   LOCASS.type_suggested AS type_assessed,
+  UNIT.type_is_absent,
   'orthophotos' AS eval_source,
   LOWER(LOCASS.log_user) AS eval_name,
   CAST(LOCASS.log_update AS DATE) AS eval_date,
@@ -71,7 +71,7 @@ LEFT JOIN (
   ) AS LOREP
   ON UNIT.sampleunit_id = LOREP.sampleunit_id
 WHERE TRUE
-  AND (LOCASS.assessment_done)
+  AND LOCASS.assessment_done
   AND (UNIT.location_id IS NOT NULL)
 ;
 

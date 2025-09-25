@@ -671,11 +671,11 @@ transfer_data = PD.read_sql_table( \
         schema = "outbound", \
         con = loceval.connection \
     ).astype({"grts_address": int, "grts_address_original": int})
-transfer_data.loc[
-    NP.logical_and(
-        transfer_data["grts_address_original"].values == 23238,
-        transfer_data["eval_source"].values == "loceval"
-    ), :].T
+# transfer_data.loc[
+#     NP.logical_and(
+#         transfer_data["grts_address_original"].values == 23238,
+#         transfer_data["eval_source"].values == "loceval"
+#     ), :].T
 
 # for replacements, correct sample location ids must be linked
 samplelocations_lookup = PD.read_sql_table( \
@@ -684,7 +684,8 @@ samplelocations_lookup = PD.read_sql_table( \
         con = mnmgwdb.connection \
     ).loc[:, ["grts_address", "samplelocation_id", "strata"]] \
     .astype({"grts_address": int, "samplelocation_id": int}) \
-    .set_index("grts_address", inplace = False)
+    .rename(columns = {"strata": "type"}, inplace = False) \
+    .set_index(["grts_address", "type"], inplace = False)
 
 # samplelocations_lookup.loc[[23238, 6314694, 23091910], :].T
 # samplelocations_lookup.loc[[253621], :].T
@@ -695,12 +696,12 @@ loceval_joined = transfer_data \
     .join(
         samplelocations_lookup, \
         how = "left", \
-        on = "grts_address"
+        on = ["grts_address", "type"]
     )
 
 loceval_upload = loceval_joined.loc[
     NP.logical_not(PD.isna(loceval_joined["samplelocation_id"].values)),
-    [col for col in loceval_joined.columns if col not in ["strata", "grts_address_original"]]] \
+    [col for col in loceval_joined.columns if col not in ["grts_address_original"]]] \
     .astype({"grts_address": int, "samplelocation_id": int})
 
 print(loceval_upload.sample(3).T)
