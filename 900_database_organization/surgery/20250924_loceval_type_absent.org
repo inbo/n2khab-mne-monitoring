@@ -28,8 +28,8 @@ source("MNMDatabaseToolbox.R")
 connection:
 #+begin_src R
 config_filepath <- file.path("./inbopostgis_server.conf")
-# mirror <- "-staging"
-mirror <- ""
+mirror <- "-staging"
+# mirror <- ""
 
 # loceval database
 locevaldb_mirror <- glue::glue("loceval{mirror}")
@@ -173,8 +173,61 @@ set NOT NULL:
 ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id SET NOT NULL;
 #+end_src
 
+
 * views
 
-adjust LocationEvaluation
+adjusted LocationEvaluation and others
 
 * fill column
+
+#+begin_src sh
+psql -U <user> -h <host> -p <port> -d loceval -c "SELECT * FROM \"inbound\".\"Visits\" WHERE visit_done AND ((type_assessed is NULL) OR (type_assessed = 'gh') OR NOT (type_assessed = stratum));" -o type_niet_gevonden.txt
+
+
+#+end_src
+
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 455349) AND (type = '1330_hpr');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 511273) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 1646894) AND (type = '6230_hmo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 1576233) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 52170025) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 1838377) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 38187350) AND (type = '6410_ve');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 114454) AND (type = '6430_hf');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 47517086) AND (type = '6510_hus');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 845889) AND (type = '6410_mo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 4163858) AND (type = '7140_mrd');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 31910194) AND (type = '7150');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 51330817) AND (type = '6230_hmo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 7805714) AND (type = '6410_ve');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 289250) AND (type = '91E0_sf');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 5527750) AND (type = '9130_fm');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 46172434) AND (type = '7210');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 868790) AND (type = '6410_mo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 868790) AND (type = '6230_hmo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 24774) AND (type = '9160');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 253621) AND (type = '1330_hpr');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 790918) AND (type = '6410_mo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 51707433) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 6360757) AND (type = '1310_pol');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 8827222) AND (type = '6410_ve');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 613362) AND (type = '9190');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 51420278) AND (type = '6230_hmo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 22726) AND (type = '9160');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 13688242) AND (type = '9130_fm');
+
+
+
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+
+loceval_db <- connect_mnm_database(
+  config_filepath = file.path("./inbopostgis_server.conf"),
+  database_mirror = "loceval",
+  user = "monkey",
+  password = NA
+)
+
+loceval_db$query_table("SampleUnits") %>%
+  filter(type_is_absent)
