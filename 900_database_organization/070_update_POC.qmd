@@ -212,6 +212,14 @@ if (FALSE) {
 ```
 
 
+# Protocols, Activities, TeamMembers
+
+:::{callout-warning}
+Any news?
+Now is the time!
+:::
+
+
 
 # Discarded Consideration: Prune Unused Rows
 
@@ -250,7 +258,7 @@ activity_groupid_lookup <- mnmgwdb$query_columns(
   ) %>%
   distinct()
 
-gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
+field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
   filter(is_gw_activity, is_field_activity) %>%
   distinct(activity_group, activity)
 
@@ -597,7 +605,7 @@ fieldwork_calendar <-
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(gw_field_activities, by = join_by(activity_group)) %>%
+  semi_join(field_activities, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
@@ -904,7 +912,7 @@ selection_of_activities <- list(
 , # /WIA
   "ChemicalSamplingActivities" = function(df) df %>% 
     filter(activity_group %in%
-      c(gw_field_activities %>%
+      c(field_activities %>%
         filter(grepl("^GW.*SAMP", activity)) %>%
         pull(activity_group))
       )

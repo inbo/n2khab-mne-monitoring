@@ -14,6 +14,10 @@ knitr:
 
 
 
+# TODO
+
+- `is_gw_activity` / `is_loceval_activity`
+- `091_push_loceval_to_mnmgwdb.py` only on 070
 
   
 ```{sh sync-staging}
@@ -89,29 +93,21 @@ verify_poc_objects()
 
 
 ```{r connect-databases}
-
+database <- "loceval"
 config_filepath <- file.path("./inbopostgis_server.conf")
-# mirror <- "-staging"
-mirror <- ""
-
-# loceval
-# loceval_mirror <- glue::glue("loceval{mirror}")
-# 
-# loceval <- connect_mnm_database(
-#   config_filepath,
-#   database_mirror = loceval_mirror
-# ) 
+mirror <- "-staging"
+# mirror <- ""
 
 
-# ... and mnmgwdb
-mnmgwdb_mirror <- glue::glue("mnmgwdb{mirror}")
+# connect loceval
+locevaldb_mirror <- glue::glue("{database}{mirror}")
 
-mnmgwdb <- connect_mnm_database(
+locevaldb <- connect_mnm_database(
   config_filepath,
-  database_mirror = mnmgwdb_mirror
+  database_mirror = locevaldb_mirror
 ) 
 
-message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
+message(glue::glue("connected: psql {locevaldb$shellstring}"))
 
 ```
 
@@ -128,9 +124,9 @@ now <- format(Sys.time(), "%Y%m%d%H%M")
 #   )
 # }
 
-if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
-  mnmgwdb$dump_all(
-    here::here("dumps", glue::glue("poc_pre_update_{mnmgwdb$database}_{now}.sql")),
+if (isFALSE(grepl("-staging", locevaldb_mirror))) {
+  locevaldb$dump_all(
+    here::here("dumps", glue::glue("poc_pre_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }
@@ -138,7 +134,7 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 ```
 
 
-# Gather and Upload - mnmgwdb
+# Gather and Upload - locevaldb
 
 ## database versioning
 
@@ -147,11 +143,12 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 if (FALSE) {
 
   # manually set a new version
-  version_tag <- "v0.11.0_poc0.13.1"
+  version_tag <- "≤v0.11.0_poc0.13.1"
+  # version_tag <- "v0.11.0_poc0.13.1"
   version_notes <- ""
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
-  version_id <- mnmgwdb$tag_new_version(
+  version_id <- locevaldb$tag_new_version(
     new_version_tag = version_tag,
     new_version_notes =  version_notes,
     new_date_applied = date_applied
@@ -161,14 +158,14 @@ if (FALSE) {
 
 } else {
   # per default, the latest version is taken
-  version_id <- mnmgwdb$load_latest_version_id()
+  version_id <- locevaldb$load_latest_version_id()
 }
 
 if (FALSE) {
   # ... ad hoc / testing: delete version again
   table_label <- "Versions"
   glue::glue("
-  DELETE FROM {mnmgwdb$get_namestring(table_label)}
+  DELETE FROM {locevaldb$get_namestring(table_label)}
   WHERE version_tag = '{version_tag}'
     AND data_iteration = {data_iteration}
   ;
@@ -182,14 +179,12 @@ if (FALSE) {
 
 
 
-# Discarded Consideration: Prune Unused Rows
+# Protocols, Activities, TeamMembers
 
-I would tend to delete unused calendar entries.
-However, these should be regarded by the distribution procedure itself.
-
-Even more important, the `precedence_columns` keep input fields from being considered.
-
-
+:::{callout-warning}
+Any news?
+Now is the time!
+:::
 
 
 
@@ -198,12 +193,12 @@ Even more important, the `precedence_columns` keep input fields from being consi
 ## prerequisite_lookups
 
 ```{r gather-lookups}
-grouped_activity_lookup <- mnmgwdb$query_lookup(
+grouped_activity_lookup <- locevaldb$query_lookup(
   "GroupedActivities",
   characteristic_columns = c("activity_group", "activity")
 )
 
-n2khabstrata_lookup <- mnmgwdb$query_lookup(
+n2khabstrata_lookup <- locevaldb$query_lookup(
   "N2kHabStrata",
   characteristic_columns = c("stratum")
 )
@@ -213,57 +208,25 @@ n2khabstrata_lookup <- mnmgwdb$query_lookup(
 
 ```{r load-activities}
 
-activity_groupid_lookup <- mnmgwdb$query_columns(
+activity_groupid_lookup <- locevaldb$query_columns(
     "GroupedActivities",
     c("activity_group", "activity_group_id")
   ) %>%
   distinct()
 
-gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
-  filter(is_gw_activity, is_field_activity) %>%
+field_activities <- locevaldb$query_table("GroupedActivities") %>%
+  filter(is_loceval_activity, is_field_activity) %>%
   distinct(activity_group, activity)
 
 ```
 
 ## Replacements
 
-```{r refresh-replacements}
-system(glue::glue(
-  "source .dbinit/bin/activate && python 091_push_loceval_to_mnmgwdb.py {mirror}"
-  ))
-```
-
-```{r load-replacement-lookup}
-replacement_lookup <- mnmgwdb$query_columns(
-    "ReplacementData",
-    c(
-      "grts_address",
-      "type",
-      "grts_address_replacement"
-    )
-  ) %>% 
-  rename(stratum = type)
-
-replace_grts_local <- function(df, typecolumn = "stratum") {
-  lookup <- replacement_lookup
-  names(lookup)[names(lookup) == "stratum"] <- typecolumn 
-
-  df %>%
-    dplyr::left_join(
-      lookup,
-      by = dplyr::join_by(!!!c("grts_address", typecolumn))
-    ) %>%
-    mutate(
-      grts_address = dplyr::coalesce(grts_address_replacement, grts_address)
-    ) %>% 
-    select(-grts_address_replacement) %>%
-    return()
-}
-```
+TODO: consider temporarily reflecting replacements in locevaldb
 
 
 ## Sample Units
-
+  
 ```{r assemble-sample-units}
 # TODO I have to anticipate REPLACEMENT here!
 
@@ -372,9 +335,7 @@ sample_units <-
       ),
       as.character
     )
-  ) %>%
-  replace_grts_local()
-
+  ) 
 
 ```
 
@@ -410,7 +371,7 @@ sample_locations <- sample_units %>%
 ```{r assemble-locations}
 
 locations <- bind_rows(
-    mnmgwdb$query_columns("Locations", c("grts_address")),
+    locevaldb$query_columns("Locations", c("grts_address")),
     sample_locations %>% select(grts_address),
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
@@ -428,11 +389,11 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 table_label <- "Locations"
 data_future <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
-index_column <- mnmgwdb$get_primary_key(table_label)
+index_column <- locevaldb$get_primary_key(table_label)
 characteristic_columns <- c("grts_address")
 
 distribution <- categorize_data_update(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = table_label,
   data_future = data_future,
   input_precedence_columns = precedence_columns[[table_label]],
@@ -443,10 +404,12 @@ print_category_count(distribution, table_label)
 
 ```
 
+
 ```{r update-locations}
 
+# TODO careful steps here
 locations_lookup <- just_do_it(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = table_label,
   distribution = distribution,
   index_columns = c(index_column),
@@ -484,10 +447,10 @@ table_label <- "SampleLocations"
 data_future <- sample_locations %>%
   rename(strata = stratum)
 characteristic_columns <- c("grts_address", "location_id", "strata")
-index_column <- mnmgwdb$get_primary_key(table_label)
+index_column <- locevaldb$get_primary_key(table_label)
 
 distribution <- categorize_data_update(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = table_label,
   data_future = data_future,
   input_precedence_columns = precedence_columns[[table_label]],
@@ -512,14 +475,14 @@ distribution$to_upload <- distribution$to_upload %>%
   ) 
 
 # distribution$changed %>% t() %>% knitr::kable()
-# mnmgwdb$query_table("SampleLocations") %>%
+# locevaldb$query_table("SampleLocations") %>%
 #   semi_join(
 #     distribution$changed,
 #     by = join_by(grts_address)
 #   ) %>% knitr::kable()
 
 samplelocations_lookup <- just_do_it(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = table_label,
   distribution = distribution,
   index_columns = c(index_column),
@@ -554,7 +517,6 @@ fieldwork_calendar <-
   fieldwork_2025_prioritization_by_stratum %>%
   common_current_calenderfilters() %>% # should be filtered already!
   rename_grts_address_final_to_grts_address() %>%
-  replace_grts_local() %>% 
   relocate(grts_address) %>%
   inner_join(
     samplelocations_lookup %>% rename(stratum = strata),
@@ -566,7 +528,7 @@ fieldwork_calendar <-
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(gw_field_activities, by = join_by(activity_group)) %>%
+  semi_join(field_activities, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
@@ -648,7 +610,7 @@ fieldcalendar_characols <- c(
 
 # link FieldworkCalender back to SampleLocations
 stitch_table_connection(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = "FieldworkCalendar",
   reference_table = "SampleLocations",
   link_key_column = "samplelocation_id",
@@ -665,10 +627,10 @@ stitch_table_connection(
 table_label <- "FieldworkCalendar"
 data_future <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
-index_column <- mnmgwdb$get_primary_key(table_label)
+index_column <- locevaldb$get_primary_key(table_label)
 
 distribution <- categorize_data_update(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = table_label,
   data_future = data_future,
   input_precedence_columns = precedence_columns[[table_label]],
@@ -682,7 +644,7 @@ print_category_count(distribution, table_label)
 ```{r check-the-news}
 #| eval: false
 
-status_quo <- mnmgwdb$query_table("FieldworkCalendar") %>%
+status_quo <- locevaldb$query_table("FieldworkCalendar") %>%
   select(!!!rlang::syms(names(distribution$unchanged)))
 
 samplelocations_lookup %>% 
@@ -719,7 +681,7 @@ distribution$to_upload <- distribution$to_upload %>%
 
 
 fieldworkcalendar_lookup <- just_do_it(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = table_label,
   distribution = distribution,
   index_columns = c(index_column),
@@ -736,7 +698,7 @@ stitch samplelocation_id
 ```{r re-inspect-fieldworkcalendar}
 
 # stitch_table_connection(
-#   mnmdb = mnmgwdb,
+#   mnmdb = locevaldb,
 #   table_label = "FieldworkCalendar",
 #   reference_table = "SampleLocations",
 #   link_key_column = "samplelocation_id",
@@ -745,14 +707,14 @@ stitch samplelocation_id
 # )
 
 
-mnmgwdb$query_table("FieldworkCalendar") %>% 
+locevaldb$query_table("FieldworkCalendar") %>% 
   count(is.na(samplelocation_id)) %>%
   knitr::kable()
 
 # compare stored to true sample location
-mnmgwdb$query_table("FieldworkCalendar") %>%
+locevaldb$query_table("FieldworkCalendar") %>%
   left_join(
-    mnmgwdb$query_table("SampleLocations") %>% rename(stratum = strata),
+    locevaldb$query_table("SampleLocations") %>% rename(stratum = strata),
     by = join_by(grts_address, stratum)
   ) %>%
   filter(samplelocation_id.x != samplelocation_id.y)
@@ -765,7 +727,7 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 
 ```{r assemble-new-visits}
 
-update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
+update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
 
 visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
 
@@ -787,7 +749,7 @@ new_visits <- fieldworkcalendar_lookup %>%
 
 visits_upload <- new_visits %>%
   anti_join(
-    mnmgwdb$query_table("Visits"),
+    locevaldb$query_table("Visits"),
     by = join_by(!!!fieldcalendar_characols)
   )
 
@@ -801,7 +763,7 @@ visits_lookup <- update_cascade_lookup(
 )
 
 
-mnmgwdb$query_table("Visits") %>% 
+locevaldb$query_table("Visits") %>% 
   count(is.na(fieldworkcalendar_id)) %>%
   knitr::kable()
 
@@ -811,7 +773,7 @@ mnmgwdb$query_table("Visits") %>%
 ```{r reconnect-visits}
 
 stitch_table_connection(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = "Visits",
   reference_table = "SampleLocations",
   link_key_column = "samplelocation_id",
@@ -820,7 +782,7 @@ stitch_table_connection(
 )
 
 stitch_table_connection(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = "Visits",
   reference_table = "FieldworkCalendar",
   link_key_column = "fieldworkcalendar_id",
@@ -828,7 +790,7 @@ stitch_table_connection(
 )
 
 
-mnmgwdb$query_table("Visits") %>% 
+locevaldb$query_table("Visits") %>% 
   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
   knitr::kable()
 
@@ -840,11 +802,11 @@ archive visits of archived FWCals
 
 ```{r archive-visits-fwcal}
 table_label <- "Visits"
-visits_redownload <- mnmgwdb$query_table(table_label) %>% 
+visits_redownload <- locevaldb$query_table(table_label) %>% 
   filter(is.na(archive_version_id)) %>%
   select(-archive_version_id)
 
-fwcal_lookup <- mnmgwdb$query_table("FieldworkCalendar") %>% 
+fwcal_lookup <- locevaldb$query_table("FieldworkCalendar") %>% 
   filter(!is.na(archive_version_id)) %>%
   select(fieldworkcalendar_id, archive_version_id)
 
@@ -854,11 +816,11 @@ visits_archive <- visits_redownload %>%
   filter(!is.na(archive_version_id))
 
 update_existing_data(
-  mnmdb = mnmgwdb,
+  mnmdb = locevaldb,
   table_label = table_label,
   changed_data = visits_archive,
   input_precedence_columns = precedence_columns[[table_label]],
-  reference_columns = c(mnmgwdb$get_primary_key(table_label))
+  reference_columns = c(locevaldb$get_primary_key(table_label))
 )
 
 ```
@@ -873,7 +835,7 @@ selection_of_activities <- list(
 , # /WIA
   "ChemicalSamplingActivities" = function(df) df %>% 
     filter(activity_group %in%
-      c(gw_field_activities %>%
+      c(field_activities %>%
         filter(grepl("^GW.*SAMP", activity)) %>%
         pull(activity_group))
       )
@@ -897,13 +859,13 @@ empty_init <- list(
 )
 
 
-visits_redownload <- mnmgwdb$query_table("Visits") %>% 
+visits_redownload <- locevaldb$query_table("Visits") %>% 
   filter(is.na(archive_version_id)) %>%
   select(-archive_version_id)
 
 visits_redownload <- visits_redownload %>%
   left_join(
-    mnmgwdb$query_columns(
+    locevaldb$query_columns(
         "GroupedActivities",
         c("activity_group_id", "activity_group")) %>%
       distinct(),
@@ -925,12 +887,12 @@ speciact_characols <- c(
 # table_label <- "ChemicalSamplingActivities"
 
 # uniqueness
-mnmgwdb$query_table("WellInstallationActivities") %>%
+locevaldb$query_table("WellInstallationActivities") %>%
   count(!!!rlang::syms(speciact_characols)) %>%
   arrange(desc(n)) %>%
   filter(n>1) %>% 
   knitr::kable()
-mnmgwdb$query_table("ChemicalSamplingActivities") %>%
+locevaldb$query_table("ChemicalSamplingActivities") %>%
   count(!!!rlang::syms(speciact_characols)) %>%
   arrange(desc(n)) %>%
   filter(n>1) %>% 
@@ -945,7 +907,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
   # link WIA/CSA back to SampleLocations
   stitch_table_connection(
-    mnmdb = mnmgwdb,
+    mnmdb = locevaldb,
     table_label = table_label,
     reference_table = "SampleLocations",
     link_key_column = "samplelocation_id",
@@ -955,7 +917,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
   # link WIA/CSA back to FieldworkCalendar
   stitch_table_connection(
-    mnmdb = mnmgwdb,
+    mnmdb = locevaldb,
     table_label = table_label,
     reference_table = "FieldworkCalendar",
     link_key_column = "fieldworkcalendar_id",
@@ -964,7 +926,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
   # link WIA/CSA back to Visits
   stitch_table_connection(
-    mnmdb = mnmgwdb,
+    mnmdb = locevaldb,
     table_label = table_label,
     reference_table = "Visits",
     link_key_column = "visit_id",
@@ -977,10 +939,10 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
 
 # missing links
-mnmgwdb$query_table("WellInstallationActivities") %>%
+locevaldb$query_table("WellInstallationActivities") %>%
   filter(is.na(visit_id)) %>% 
   knitr::kable()
-mnmgwdb$query_table("ChemicalSamplingActivities") %>%
+locevaldb$query_table("ChemicalSamplingActivities") %>%
   filter(is.na(visit_id)) %>% 
   knitr::kable()
 
@@ -996,7 +958,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
   special_activities <- visits_redownload %>% 
     selection_of_activities[[table_label]]()
 
-  existing <- mnmgwdb$query_table(table_label)
+  existing <- locevaldb$query_table(table_label)
 
   # existing %>% filter(grts_address == 219694) %>% knitr::kable()
 
@@ -1036,7 +998,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
 for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
   stitch_table_connection(
-    mnmdb = mnmgwdb,
+    mnmdb = locevaldb,
     table_label = table_label,
     reference_table = "SampleLocations",
     link_key_column = "samplelocation_id",
@@ -1045,7 +1007,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
   )
 
   stitch_table_connection(
-    mnmdb = mnmgwdb,
+    mnmdb = locevaldb,
     table_label = table_label,
     reference_table = "FieldworkCalendar",
     link_key_column = "fieldworkcalendar_id",
@@ -1053,7 +1015,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
   )
 
   stitch_table_connection(
-    mnmdb = mnmgwdb,
+    mnmdb = locevaldb,
     table_label = table_label,
     reference_table = "Visits",
     link_key_column = "visit_id",
@@ -1083,7 +1045,7 @@ new_locinfos <- sample_locations %>%
 
 new_locinfos <- new_locinfos %>%
   anti_join(
-    mnmgwdb$query_table("LocationInfos"),
+    locevaldb$query_table("LocationInfos"),
     by = join_by(grts_address)
   ) %>%
   left_join(
@@ -1145,7 +1107,7 @@ landinfo <- landuse %>%
     landuse
   ) %>%
   semi_join(
-    mnmgwdb$query_columns("LocationInfos", c("grts_address")) %>%
+    locevaldb$query_columns("LocationInfos", c("grts_address")) %>%
     distinct(),
     by = join_by(grts_address)
   )
@@ -1190,7 +1152,7 @@ pb <- txtProgressBar(
 for (landinfo_rownr in 1:nrow(landinfo)) {
   setTxtProgressBar(pb, landinfo_rownr)
   cmd <- update_command[[landinfo_rownr]]
-  mnmgwdb$execute_sql(cmd, verbose = FALSE)
+  locevaldb$execute_sql(cmd, verbose = FALSE)
 }
 
 close(pb) # close the progress bar
@@ -1208,9 +1170,9 @@ now <- format(Sys.time(), "%Y%m%d%H%M")
 #   )
 # }
 
-if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
-  mnmgwdb$dump_all(
-    here::here("dumps", glue::glue("poc_post_update_{mnmgwdb$database}_{now}.sql")),
+if (isFALSE(grepl("-staging", locevaldb_mirror))) {
+  locevaldb$dump_all(
+    here::here("dumps", glue::glue("poc_post_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }
