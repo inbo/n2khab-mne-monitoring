@@ -1583,6 +1583,11 @@ SCHEDULED: <2025-09-25 Thu>
 sample units where biotics could not find the target type are marked;
 those are now flagged as "excluded" in fieldwork planning
 
+** type_is_not_absent_anymore -> unexcluded
+SCHEDULED: <2025-09-29 Mon>
+
+forgot to restore those that received a type in ex post correction.
+
 
 * Major R Code Overhaul (202508)
 ** Code File Organization

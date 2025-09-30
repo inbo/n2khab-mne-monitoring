@@ -80,6 +80,7 @@ replacement_lookup <- mnmgwdb$query_columns(
   ) %>%
   rename(stratum = type)
 
+
 replace_grts_local <- function(df, typecolumn = "stratum") {
 
   stopifnot("dplyr" = require("dplyr"))
@@ -464,7 +465,19 @@ absent_type_fwcals <- mnmgwdb$query_table("LocationEvaluations") %>%
   ) %>%
   pull(fieldworkcalendar_id)
 
+
+present_type_fwcals <- mnmgwdb$query_table("FieldworkCalendar") %>%
+  filter(
+    excluded,
+    grepl("type_is_absent", excluded_reason),
+    !(fieldworkcalendar_id %in% absent_type_fwcals)
+  ) %>%
+  select(fieldworkcalendar_id, grts_address, excluded_reason)
+
+
+# exclude cells where the expected type was not found
 absent_type_fwcals <- paste0(absent_type_fwcals, collapse = ", ")
+message(glue::glue("excluding: fwcal ⊆ {absent_type_fwcals}"))
 
 mnmgwdb$execute_sql(
   glue::glue("
@@ -474,6 +487,30 @@ mnmgwdb$execute_sql(
     ;
   ")
 )
+
+
+
+if (nrow(present_type_fwcals) > 0) {
+  restore_type_fwcals <- paste0(present_type_fwcals$fieldworkcalendar_id, collapse = ", ")
+  message(glue::glue("reverting exclusion: fwcal ⊆ {restore_type_fwcals}"))
+
+  # restore "non-absent type" cells
+  for (row_nr in seq_len(nrow(present_type_fwcals))) {
+    fwcal_id <- present_type_fwcals[row_nr, ][["fieldworkcalendar_id"]]
+    excluded_reason <- present_type_fwcals[row_nr, ][["excluded_reason"]]
+    excluded_reason <- gsub("loceval: type_is_absent", "", excluded_reason)
+
+    mnmgwdb$execute_sql(
+      glue::glue("
+        UPDATE {mnmgwdb$get_namestring('FieldworkCalendar')}
+        SET excluded = FALSE, excluded_reason = '{excluded_reason}'
+        WHERE fieldworkcalendar_id = {fwcal_id}
+        ;
+      ")
+    )
+
+  }
+}
 
 
 message("________________________________________________________________")
