@@ -40,8 +40,8 @@ source("MNMDatabaseToolbox.R")
 #| echo: false
 
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- "-staging"
-# mirror <- ""
+# mirror <- "-staging"
+mirror <- ""
 
 # connect mnmgwdb
 mnmgwdb_database <- glue::glue("mnmgwdb{mirror}")
@@ -377,6 +377,29 @@ check_foreignkey_connection(
 
 
 
+```{sql}
+#| eval: false
+#| echo: false
+-- FROM "inbound"."WellInstallationActivities" AS SACT
+-- FROM "inbound"."ChemicalSamplingActivities" AS SACT
+
+SELECT *
+FROM "inbound"."ChemicalSamplingActivities" AS SACT
+LEFT JOIN "outbound"."SampleLocations" AS SLOC
+  ON (SLOC.grts_address = SACT.grts_address)
+  AND (SLOC.strata = SACT.stratum)
+WHERE SACT.grts_address = 437685;
+
+NOT(SLOC.samplelocation_id = SACT.samplelocation_id)
+;
+
+SELECT * FROM "outbound"."SampleLocations" WHERE grts_address = 437685;
+SELECT * FROM "outbound"."ChemicalSamplingActivities" WHERE grts_address = 437685;
+
+vervanging  437685 -> 8826293
+```
+
+
 ```{r csa-sloc}
 #| eval: true
 #| echo: false
@@ -552,3 +575,4 @@ archives %>%
   ) %>% 
   knitr::kable()
 ```
+

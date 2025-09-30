@@ -35,6 +35,7 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./inbopostgis_server.conf")
 database_label <- "mnmgwdb"
 suffix <- "-staging" # "-testing"
+suffix <- ""
 
 
 ### connect to database
@@ -53,8 +54,10 @@ message(mnmdb$shellstring)
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(871030)
-
+grts <- c(53438326, 57632630)
+    # c(437685, 8826293)
+    # c(24774)
+    # c(871030)
     # c(1280278)
     # c(23238, 23091910, 6314694) # Hellebos
     # c(4761777)
@@ -183,7 +186,8 @@ print_fwcal <- function() {
       fcid = fieldworkcalendar_id,
       slid = samplelocation_id,
       agid = activity_group_id,
-      archv = archive_version_id
+      archv = archive_version_id,
+      done_p = done_planning
     ) %>%
     dplyr::select(
       stratum,
@@ -195,7 +199,7 @@ print_fwcal <- function() {
       archv,
       # teammember_assigned,
       # date_visit_planned,
-      done_planning
+      done_p
     ) %>%
     arrange(stratum, date_start, agid) %>% 
     knitr::kable()

@@ -19,9 +19,9 @@ commandline_args = SYS.argv
 if len(commandline_args) > 1:
     suffix = commandline_args[1]
 else:
-  suffix = ""
-  # suffix = "-testing"
-  # suffix = "-staging"
+    suffix = ""
+    # suffix = "-testing"
+    # suffix = "-staging"
 
 print("|"*64)
 print(f"going to sync LocationInfos between *loceval{suffix}* and *mnmgwdb{suffix}*. \n")
