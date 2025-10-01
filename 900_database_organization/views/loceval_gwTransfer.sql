@@ -3,9 +3,7 @@ CREATE VIEW "outbound"."gwTransfer" AS
 SELECT
   VISIT.log_user,
   VISIT.log_update,
-  UNIT.scheme,
-  UNIT.panel_set,
-  UNIT.targetpanel,
+  UNIT.schemes,
   UNIT.type,
   UNIT.grts_address AS grts_address_original,
   CASE WHEN LOREP.grts_address_replacement IS NULL
@@ -40,9 +38,7 @@ UNION
 SELECT
   LOCASS.log_user,
   LOCASS.log_update,
-  UNIT.scheme,
-  UNIT.panel_set,
-  UNIT.targetpanel,
+  UNIT.schemes,
   UNIT.type,
   UNIT.grts_address AS grts_address_original,
   CASE WHEN LOREP.grts_address_replacement IS NULL
@@ -78,5 +74,5 @@ WHERE TRUE
 
 GRANT SELECT ON  "outbound"."gwTransfer"  TO  monkey;
 
-GRANT SELECT ON  "outbound"."gwTransfer"  TO  yoda;
+-- GRANT SELECT ON  "outbound"."gwTransfer"  TO  yoda;
 

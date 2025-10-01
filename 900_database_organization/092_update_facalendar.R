@@ -438,6 +438,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     index_columns = c("fieldwork_id"),
     characteristic_columns = speciact_characols,
     tabula_rasa = FALSE,
+    skip_sequence_reset = TRUE, # fieldwork_id is tricky
     verbose = TRUE
   )
 

@@ -2,7 +2,67 @@
 I have neglected =loceval= for a while.
 
 * POC changes
-** domain partition
+** MISC changes
+
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."FieldActivityCalendar" RENAME COLUMN stratum TO type;
+ALTER TABLE "inbound"."Visits" RENAME COLUMN stratum TO type;
+
+
+UPDATE "outbound"."FieldActivityCalendar" AS REP
+SET sampleunit_id = UNIT.sampleunit_id
+FROM "outbound"."SampleUnits" AS UNIT
+WHERE (REP.grts_address = UNIT.grts_address)
+  AND (REP.type = UNIT.type)
+;
+
+
+ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id SET NOT NULL;
+
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN grts_join_method;
+-- ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN domain_part;
+
+ALTER TABLE "inbound"."Visits" DROP COLUMN grouped_activity_id CASCADE;
+
+
+
+#+end_src
+
+THEN restore view ReplacementOngoing!
+
+
+** DONE urgent: grts_address to replacements
+CLOSED: [2025-10-01 Wed 14:28]
+
+#+begin_src sql :eval no
+SELECT * FROM "outbound"."Replacements" WHERE sampleunit_id IS NOT NULL;
+
+ALTER TABLE "outbound"."Replacements" ADD COLUMN grts_address integer DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."Replacements".grts_address IS E'GRTS address (`final`, i.e. after prior replacements)';
+
+ALTER TABLE "outbound"."Replacements" ADD COLUMN type varchar DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."Replacements".type IS E'type according to sample/POC';
+
+UPDATE "outbound"."Replacements" AS REP
+SET
+  grts_address = UNIT.grts_address,
+  type = UNIT.type
+FROM "outbound"."SampleUnits" AS UNIT
+WHERE REP.sampleunit_id = UNIT.sampleunit_id
+;
+
+
+ALTER TABLE "outbound"."Replacements" ALTER COLUMN grts_address SET NOT NULL;
+ALTER TABLE "outbound"."Replacements" ALTER COLUMN type SET NOT NULL;
+-- ALTER TABLE "outbound"."Replacements" RENAME COLUMN type_anticipated TO type;
+
+
+ALTER TABLE "outbound"."Replacements" ADD COLUMN type_suggested varchar DEFAULT NULL;
+#+end_src
+
+
+** DONE domain partition
+CLOSED: [2025-10-01 Wed 14:30]
 
 introduced by Floris
 
@@ -19,9 +79,10 @@ COMMENT ON COLUMN "outbound"."SampleUnits".domain_part IS E'domain partition';
 
 #+end_src
 
-** extra SampleUnit Info
-
+** more AND less SampleUnit Info
+*** new /renamed columns:
 #+begin_src sql :eval no
+
 ALTER TABLE "outbound"."SampleUnits" ADD COLUMN is_forest bool NOT NULL DEFAULT FALSE;
 COMMENT ON COLUMN "outbound"."SampleUnits".is_forest IS E'flag forest type sample units';
 
@@ -31,9 +92,131 @@ COMMENT ON COLUMN "outbound"."SampleUnits".in_mhq_samples IS E'flag sites used f
 ALTER TABLE "outbound"."SampleUnits" ADD COLUMN has_mhq_assessment bool NOT NULL DEFAULT FALSE;
 COMMENT ON COLUMN "outbound"."SampleUnits".has_mhq_assessment IS E'(temporary) column to filter MHQ polygons';
 
+
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN mhq_assessment_date date; 
+COMMENT ON COLUMN "outbound"."SampleUnits".mhq_assessment_date IS E'date of previous mhq assessment';
+
+ALTER TABLE "outbound"."SampleUnits" RENAME COLUMN scheme TO schemes;
 #+end_src
 
-** wait_<more>
+*** removed columns:
+FIRST UPDATE:
++ view outbound."gwTransfer"
++ view outbound."OrthophotoAssessment"
++ view outbound."FieldworkPlanning"
++ view inbound."LocationEvaluation"
+
+THEN:
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN panel_set;
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN targetpanel;
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN assessment;
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN assessment_date;
+
+
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN sp_poststratum;
+#+end_src
+
+
+#+begin_src R :eval no
+
+# libraries
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+database <- "loceval"
+config_filepath <- file.path("./inbopostgis_server.conf")
+mirror <- "-staging"
+# mirror <- ""
+
+# connect loceval
+locevaldb_mirror <- glue::glue("{database}{mirror}")
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+) 
+
+message(glue::glue("connected: psql {locevaldb$shellstring}"))
+
+
+
+existing_units <- locevaldb$query_table("SampleUnits")
+characteristic_columns <- c("grts_address", "type") # , "location_id"
+dupli_units <- existing_units %>%
+  count(!!!rlang::syms(characteristic_columns)) %>%
+  filter(n>1)
+
+dupli_distinct <- dupli_units %>% distinct(grts_address, type) 
+
+# loop grts with unit duplicates
+for (unit_row in seq_len(nrow(dupli_distinct))) {
+  subset_unit <- dupli_distinct[unit_row,]
+  subset_grts_address <- subset_unit[["grts_address"]]
+  subset_type <- subset_unit[["type"]]
+    
+  these_units <- existing_units %>%
+    filter(
+      grts_address == subset_grts_address,
+      type == subset_type
+    )
+  print(these_units)
+
+  first_su <- these_units[[1, "sampleunit_id"]]
+  other_su <- these_units %>% filter(sampleunit_id != first_su) %>% pull(sampleunit_id)
+
+  other_su <- paste(other_su, collapse = ", ")
+
+  for (tablab in c("Replacements", "FieldActivityCalendar", "Visits", "MHQPolygons")){
+    table_namestr <- locevaldb$get_namestring(tablab)
+    locevaldb$execute_sql(glue::glue("
+      UPDATE {table_namestr}
+      SET sampleunit_id = {first_su}
+      WHERE sampleunit_id IN ({other_su});
+    "), verbose = TRUE)
+  }
+
+  table_namestr <- locevaldb$get_namestring("SampleUnits")
+  locevaldb$execute_sql(glue::glue("
+    DELETE FROM {table_namestr}
+    WHERE sampleunit_id IN ({other_su});
+  "), verbose = TRUE)
+  
+}
+
+
+#+end_src
+
+
+#+begin_src sql :eval no
+SELECT * FROM (
+  SELECT DISTINCT grts_address, type, COUNT(*) AS n
+  FROM "outbound"."SampleUnits"
+  GROUP BY grts_address, type
+)
+WHERE n > 1
+;
+
+SELECT
+  sampleunit_id,
+  location_id,
+  grts_address,
+  type,
+  schemes,
+  scheme_ps_targetpanels
+FROM "outbound"."SampleUnits"
+WHERE grts_address = 22107438
+;
+
+#+end_src
+
+
+
+
+** DONE wait_<more>
+CLOSED: [2025-10-01 Wed 14:33]
 
 
 #+begin_src sql :eval no
@@ -45,11 +228,78 @@ COMMENT ON COLUMN "outbound"."FieldActivityCalendar".wait_any IS E'must I always
 ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN wait_floating boolean;
 COMMENT ON COLUMN "outbound"."FieldActivityCalendar".wait_floating IS E'filter field for convenient floating type (de)selection';
 
-
-
 #+end_src
 
 
+* Foreign Keys
+#+begin_src sql
+
+ALTER TABLE "metadata"."LocationCells" ALTER COLUMN location_id DROP NOT NULL;
+ALTER TABLE "outbound"."LocationInfos" ALTER COLUMN location_id DROP NOT NULL;
+ALTER TABLE "outbound"."SampleUnits" ALTER COLUMN location_id DROP NOT NULL;
+
+ALTER TABLE "outbound"."SampleUnitPolygons" ALTER COLUMN sampleunit_id DROP NOT NULL;
+ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id DROP NOT NULL;
+
+
+-- foreign key location_id
+ALTER TABLE "metadata"."LocationCells" DROP CONSTRAINT IF EXISTS fk_Locations_LocationCells CASCADE;
+ALTER TABLE "metadata"."LocationCells" ADD CONSTRAINT fk_Locations_LocationCells FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "outbound"."LocationInfos" DROP CONSTRAINT IF EXISTS fk_Locations_LocationInfos CASCADE;
+ALTER TABLE "outbound"."LocationInfos" ADD CONSTRAINT fk_Locations_LocationInfos FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "outbound"."SampleUnits" DROP CONSTRAINT IF EXISTS fk_Locations_SampleUnits CASCADE;
+ALTER TABLE "outbound"."SampleUnits" ADD CONSTRAINT fk_Locations_SampleUnits FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."SampleUnitPolygons" DROP CONSTRAINT IF EXISTS fk_SampleUnits_SampleUnitPolygons CASCADE;
+ALTER TABLE "outbound"."SampleUnitPolygons" ADD CONSTRAINT fk_SampleUnits_SampleUnitPolygons FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."Replacements" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Replacements CASCADE;
+ALTER TABLE "outbound"."Replacements" ADD CONSTRAINT fk_SampleUnits_Replacements FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP CONSTRAINT IF EXISTS fk_SampleUnits_FieldActivityCalendar CASCADE;
+ALTER TABLE "outbound"."FieldActivityCalendar" ADD CONSTRAINT fk_SampleUnits_FieldActivityCalendar FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key fieldactivitycalendar_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldActivityCalendar_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_FieldActivityCalendar_Visits FOREIGN KEY (fieldactivitycalendar_id)
+REFERENCES "outbound"."FieldActivityCalendar" (fieldactivitycalendar_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_SampleUnits_Visits FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_Locations_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_Locations_Visits FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+
+#+end_src
 
 * Versions
 we now store the POC versions
@@ -163,6 +413,8 @@ subprocedure: Protocols
 >>> [[file:../071_POC_update_loceval.qmd]]
 
 
+* MISC cleanup
+ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id SET NOT NULL;
 
 * auxiliary maintenance scripts
 ... all of them, just to make sure.

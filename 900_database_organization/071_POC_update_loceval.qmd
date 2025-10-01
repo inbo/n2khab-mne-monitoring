@@ -183,7 +183,7 @@ if (FALSE) {
 
 :::{callout-warning}
 Any news?
-Now is the time!
+Now is the chance!
 :::
 
 
@@ -228,33 +228,6 @@ TODO: consider temporarily reflecting replacements in locevaldb
 ## Sample Units
   
 ```{r assemble-sample-units}
-# TODO I have to anticipate REPLACEMENT here!
-
-# fag_stratum_grts_calendar %>%
-#   common_current_calenderfilters() %>%
-#   filter(grts_address_final == 10119474,
-#          # field_activity_group == 'SPATPOSITGAUGE',
-#          # field_activity_group == 'SURFLENTLOCEVALSAMPLPOINT',
-#          date_start < as.Date('2027-01-01')
-#          ) %>%
-#   unnest(scheme_moco_ps) %>% 
-#   glimpse()
-# this one enters for the `loceval`, which is okay (sync location info etc.)
-# but it should not produce any calendar items.
-
-# fag_stratum_grts_calendar %>%
-#   filter(grts_address_final == 656798,
-#          field_activity_group == 'GWINSTPIEZWELL',
-#          date_start < as.Date('2027-01-01')
-#          ) %>%
-#   select(stratum, date_start, field_activity_group, rank)
-
-# fag_stratum_grts_calendar %>%
-#   filter(grts_address_final == 50988446,
-#          field_activity_group == 'GWINSTPIEZWELL',
-#          date_start < as.Date('2027-01-01')
-#          ) %>%
-#   select(stratum, date_start, field_activity_group, rank)
 
 sample_units <-
   fag_stratum_grts_calendar %>%
@@ -289,7 +262,7 @@ sample_units <-
     join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
     relationship = "many-to-one",
     unmatched = c("error", "drop")
-  ) %>%
+  ) %>% 
   # also join the spatial poststratum, since we need this in setting
   # GRTS-address based priorities
   inner_join(
@@ -300,7 +273,7 @@ sample_units <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
-  select(-module_combo_code) %>%
+  select(-module_combo_code, -sp_poststratum) %>%
   nest_scheme_ps_targetpanel() %>%
   # # add MHQ assessment metadata
   # inner_join(
@@ -327,44 +300,25 @@ sample_units <-
     across(c(
         grts_join_method,
         scheme_ps_targetpanels,
-        targetpanel,
-        sp_poststratum,
+        # sp_poststratum,
         stratum,
         domain_part,
-        scheme
+        previous_notes
       ),
       as.character
     )
   ) 
 
-```
+sample_units %>%
+  filter(grts_address == 22107438) %>%
+  t() %>% knitr::kable()
 
-## Sample Locations
-
-```{r assemble-sample-locations}
-
-sample_locations <- sample_units %>%
-  summarize(
-    scheme_ps_targetpanels = str_flatten(
-      sort(unique(scheme_ps_targetpanels)),
-      collapse = " | "
-    ) %>% as.character(),
-    schemes = str_flatten(
-      sort(unique(scheme)),
-      collapse = ", "
-    ) %>% as.character(),
-    .by = c(
-      grts_address,
-      stratum,
-      domain_part,
-      is_forest,
-      in_mhq_samples,
-      has_mhq_assessment
-    )
-  )
-
+sample_units %>%
+  filter(grts_address == 47764190) %>%
+  t() %>% knitr::kable()
 
 ```
+
 
 ## Locations
 
@@ -372,7 +326,15 @@ sample_locations <- sample_units %>%
 
 locations <- bind_rows(
     locevaldb$query_columns("Locations", c("grts_address")),
-    sample_locations %>% select(grts_address),
+    sample_units %>% select(grts_address),
+    locevaldb$query_columns("LocationInfos", c("grts_address")),
+    locevaldb$query_columns("LocationAssessments", c("grts_address")),
+    locevaldb$query_columns("FieldActivityCalendar", c("grts_address")),
+    locevaldb$query_columns("Visits", c("grts_address")),
+    locevaldb$query_columns("Replacements", c("grts_address_replacement", "is_selected")) %>% 
+      filter(is_selected) %>%
+      select(-is_selected) %>% 
+      rename(grts_address = grts_address_replacement)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
@@ -407,7 +369,6 @@ print_category_count(distribution, table_label)
 
 ```{r update-locations}
 
-# TODO careful steps here
 locations_lookup <- just_do_it(
   mnmdb = locevaldb,
   table_label = table_label,
@@ -430,24 +391,30 @@ locations_lookup <- just_do_it(
 
 ```{r porcess-sample-locations}
 
-if ("location_id" %in% names(sample_locations)) {
+if ("location_id" %in% names(sample_units)) {
   # should not be the case in a continuous script;
   # this is extra safety for debugging and de-serial execution
-  sample_locations <- sample_locations %>%
+  sample_units <- sample_units %>%
     select(-location_id)#, -location_id.x, -location_id.y)
 }
-sample_locations <- sample_locations %>%
+sample_units <- sample_units %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
     relationship = "many-to-one"
-  ) %>% distinct 
+  ) %>%
+  distinct()
 
-table_label <- "SampleLocations"
-data_future <- sample_locations %>%
-  rename(strata = stratum)
-characteristic_columns <- c("grts_address", "location_id", "strata")
+# sample_units %>%
+#   filter(grts_address == 22107438) %>%
+#   t() %>% knitr::kable()
+
+table_label <- "SampleUnits"
+data_future <- sample_units %>%
+  rename(type = stratum)
+characteristic_columns <- c("grts_address", "type") # , "location_id"
 index_column <- locevaldb$get_primary_key(table_label)
+# locevaldb$query_columns(table_label, characteristic_columns)
 
 distribution <- categorize_data_update(
   mnmdb = locevaldb,
@@ -471,17 +438,21 @@ distribution$to_upload <- distribution$to_upload %>%
   mutate(
     # log_user = "maintenance",
     # log_update = as.POSIXct(Sys.time()),
-    is_replacement = FALSE
+    replacement_ongoing = FALSE,
+    is_replaced = FALSE,
+    type_is_absent = FALSE
   ) 
 
 # distribution$changed %>% t() %>% knitr::kable()
-# locevaldb$query_table("SampleLocations") %>%
+distribution$to_upload %>% select(!!!characteristic_columns) %>% knitr::kable()
+distribution$to_upload %>% filter(grts_address == 47764190) %>% t() %>% knitr::kable()
+# locevaldb$query_table("SampleUnits") %>%
 #   semi_join(
 #     distribution$changed,
 #     by = join_by(grts_address)
 #   ) %>% knitr::kable()
 
-samplelocations_lookup <- just_do_it(
+sampleunits_lookup <- just_do_it(
   mnmdb = locevaldb,
   table_label = table_label,
   distribution = distribution,
@@ -490,26 +461,15 @@ samplelocations_lookup <- just_do_it(
   skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
 )
 
-# OBSERVATION: samplelocation_id changed afterwards (?!)
+# OBSERVATION: sampleunit_id changed afterwards (?!)
 
 
 ```
+
+
 
 
 ## FieldActivityCalendar
-
-```{r ad-hoc-checks-fwcal}
-#| eval: false
-# 84598 -> 871030
-fieldwork_2025_prioritization_by_stratum %>%
-  filter(grts_address == 84598, field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
-    
-fieldwork_calendar %>% 
-  filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
-  filter(grts_address %in% c(84598, 871030), field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
-
-```
-
 
 ```{r assemble-field-activity-calendar}
 
@@ -518,12 +478,13 @@ fieldwork_calendar <-
   common_current_calenderfilters() %>% # should be filtered already!
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
+  rename(type = stratum) %>%
   inner_join(
-    samplelocations_lookup %>% rename(stratum = strata),
-    by = join_by(grts_address, stratum),
+    sampleunits_lookup,
+    by = join_by(grts_address, type),
     relationship = "many-to-one"
   ) %>%
-  relocate(samplelocation_id) %>%
+  relocate(sampleunit_id) %>%
   rename(
     activity_rank = rank,
     activity_group = field_activity_group
@@ -537,12 +498,16 @@ fieldwork_calendar <-
   select(-activity_group) %>%
   mutate(
     across(c(
+        type,
+        grts_join_method,
+        date_interval,
+        domain_part,
         date_interval
       ),
       as.character
     )
   ) %>%
-  rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% 
+  # rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% 
   mutate(
     log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
@@ -551,42 +516,14 @@ fieldwork_calendar <-
     done_planning = FALSE
   ) 
 
-# fieldwork_calendar %>% 
-#   filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+fieldwork_calendar %>% 
+  head(3) %>% t() %>% knitr::kable()
 
-# # TODO this is obsolete and fake
-# sspstapas <- update_cascade_lookup(
-#   table_label = "SSPSTaPas",
-#   new_data = fieldwork_calendar %>%
-#     distinct(stratum_scheme_ps_targetpanels) %>%
-#     arrange(stratum_scheme_ps_targetpanels),
-#   index_columns = c("sspstapa_id"),
-#   tabula_rasa = TRUE,
-#   verbose = TRUE
-# )
-
-replace_sspstapa_by_lookup <- function(df) {
-  df_new <- df %>%
-    mutate(sspstapa_id = NA) %>% 
-    # left_join(
-    #   sspstapas,
-    #   by = join_by(stratum_scheme_ps_targetpanels),
-    #   relationship = "many-to-one"
-    # ) %>%
-    relocate(
-      sspstapa_id,
-      .after = stratum_scheme_ps_targetpanels
-    ) %>%
-    select(-stratum_scheme_ps_targetpanels)
-
-  return(df_new)
-}
 
 fieldwork_calendar_new <- fieldwork_calendar %>%
-  replace_sspstapa_by_lookup() %>%
   select(
-    -location_id,
     -grts_join_method,
+    -scheme_ps_targetpanels,
     -domain_part,
     -is_forest,
     -in_mhq_samples,
@@ -595,12 +532,12 @@ fieldwork_calendar_new <- fieldwork_calendar %>%
 
 fieldcalendar_characols <- c(
     "grts_address",
-    "stratum", 
+    "type", 
     "activity_group_id",
     "date_start"
   )
 
-# "samplelocation_id",
+# "sampleunit_id",
 # "sspstapa_id",
 
 ```
@@ -608,14 +545,15 @@ fieldcalendar_characols <- c(
 
 ```{r stitch-fwcal-to-slocs}
 
-# link FieldworkCalender back to SampleLocations
+# TODO !!!!! continue here
+
+# link FieldworkCalender back to SampleUnits
 stitch_table_connection(
   mnmdb = locevaldb,
-  table_label = "FieldworkCalendar",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
-  lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(ref) ref %>% rename(stratum = strata)
+  table_label = "FieldActivityCalendar",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type"),
 )
 
 ```
@@ -624,7 +562,7 @@ stitch_table_connection(
 
 ```{r categorize-fieldworkcalendar}
 
-table_label <- "FieldworkCalendar"
+table_label <- "FieldActivityCalendar"
 data_future <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
@@ -644,10 +582,10 @@ print_category_count(distribution, table_label)
 ```{r check-the-news}
 #| eval: false
 
-status_quo <- locevaldb$query_table("FieldworkCalendar") %>%
+status_quo <- locevaldb$query_table("FieldActivityCalendar") %>%
   select(!!!rlang::syms(names(distribution$unchanged)))
 
-samplelocations_lookup %>% 
+sampleunits_lookup %>% 
   filter(grts_address == 50042033) %>% knitr::kable()
 status_quo %>%
   filter(grts_address == 50042033) %>% knitr::kable()
@@ -693,31 +631,31 @@ fieldworkcalendar_lookup <- just_do_it(
 ```
 
 
-stitch samplelocation_id
+stitch sampleunit_id
 
 ```{r re-inspect-fieldworkcalendar}
 
 # stitch_table_connection(
 #   mnmdb = locevaldb,
-#   table_label = "FieldworkCalendar",
-#   reference_table = "SampleLocations",
-#   link_key_column = "samplelocation_id",
+#   table_label = "FieldActivityCalendar",
+#   reference_table = "SampleUnits",
+#   link_key_column = "sampleunit_id",
 #   lookup_columns = c("grts_address", "stratum"),
 #   reference_mod = function(ref) ref %>% rename(stratum = strata)
 # )
 
 
-locevaldb$query_table("FieldworkCalendar") %>% 
-  count(is.na(samplelocation_id)) %>%
+locevaldb$query_table("FieldActivityCalendar") %>% 
+  count(is.na(sampleunit_id)) %>%
   knitr::kable()
 
 # compare stored to true sample location
-locevaldb$query_table("FieldworkCalendar") %>%
+locevaldb$query_table("FieldActivityCalendar") %>%
   left_join(
-    locevaldb$query_table("SampleLocations") %>% rename(stratum = strata),
+    locevaldb$query_table("SampleUnits") %>% rename(stratum = strata),
     by = join_by(grts_address, stratum)
   ) %>%
-  filter(samplelocation_id.x != samplelocation_id.y)
+  filter(sampleunit_id.x != sampleunit_id.y)
 
 ```
 
@@ -729,7 +667,7 @@ locevaldb$query_table("FieldworkCalendar") %>%
 
 update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
 
-visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
+visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
 
 new_visits <- fieldworkcalendar_lookup %>%
   select(
@@ -764,7 +702,7 @@ visits_lookup <- update_cascade_lookup(
 
 
 locevaldb$query_table("Visits") %>% 
-  count(is.na(fieldworkcalendar_id)) %>%
+  count(is.na(fieldactivitycalendar_id)) %>%
   knitr::kable()
 
 ```
@@ -775,8 +713,8 @@ locevaldb$query_table("Visits") %>%
 stitch_table_connection(
   mnmdb = locevaldb,
   table_label = "Visits",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address", "stratum"), 
   reference_mod = function(ref) ref %>% rename(stratum = strata)
 )
@@ -784,14 +722,14 @@ stitch_table_connection(
 stitch_table_connection(
   mnmdb = locevaldb,
   table_label = "Visits",
-  reference_table = "FieldworkCalendar",
-  link_key_column = "fieldworkcalendar_id",
+  reference_table = "FieldActivityCalendar",
+  link_key_column = "fieldactivitycalendar_id",
   lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
 )
 
 
 locevaldb$query_table("Visits") %>% 
-  count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+  count(is.na(sampleunit_id), is.na(fieldactivitycalendar_id)) %>%
   knitr::kable()
 
 
@@ -806,12 +744,12 @@ visits_redownload <- locevaldb$query_table(table_label) %>%
   filter(is.na(archive_version_id)) %>%
   select(-archive_version_id)
 
-fwcal_lookup <- locevaldb$query_table("FieldworkCalendar") %>% 
+fwcal_lookup <- locevaldb$query_table("FieldActivityCalendar") %>% 
   filter(!is.na(archive_version_id)) %>%
-  select(fieldworkcalendar_id, archive_version_id)
+  select(fieldactivitycalendar_id, archive_version_id)
 
 visits_archive <- visits_redownload %>%
-  left_join(fwcal_lookup, by = join_by(fieldworkcalendar_id)) %>%
+  left_join(fwcal_lookup, by = join_by(fieldactivitycalendar_id)) %>%
   select(visit_id, archive_version_id) %>%
   filter(!is.na(archive_version_id))
 
@@ -874,8 +812,8 @@ visits_redownload <- visits_redownload %>%
 
 
 speciact_characols <- c(
-  "samplelocation_id",
-  "fieldworkcalendar_id",
+  "sampleunit_id",
+  "fieldactivitycalendar_id",
   "visit_id",
   "grts_address",
   "stratum",
@@ -905,22 +843,22 @@ locevaldb$query_table("ChemicalSamplingActivities") %>%
 
 for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
 
-  # link WIA/CSA back to SampleLocations
+  # link WIA/CSA back to SampleUnits
   stitch_table_connection(
     mnmdb = locevaldb,
     table_label = table_label,
-    reference_table = "SampleLocations",
-    link_key_column = "samplelocation_id",
+    reference_table = "SampleUnits",
+    link_key_column = "sampleunit_id",
     lookup_columns = c("grts_address", "stratum"),
     reference_mod = function(ref) ref %>% rename(stratum = strata)
   )
 
-  # link WIA/CSA back to FieldworkCalendar
+  # link WIA/CSA back to FieldActivityCalendar
   stitch_table_connection(
     mnmdb = locevaldb,
     table_label = table_label,
-    reference_table = "FieldworkCalendar",
-    link_key_column = "fieldworkcalendar_id",
+    reference_table = "FieldActivityCalendar",
+    link_key_column = "fieldactivitycalendar_id",
     lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
   )
 
@@ -986,6 +924,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     index_columns = c("fieldwork_id"),
     characteristic_columns = speciact_characols,
     tabula_rasa = FALSE,
+    skip_sequence_reset = TRUE,
     verbose = TRUE
   )
     
@@ -1000,8 +939,8 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
   stitch_table_connection(
     mnmdb = locevaldb,
     table_label = table_label,
-    reference_table = "SampleLocations",
-    link_key_column = "samplelocation_id",
+    reference_table = "SampleUnits",
+    link_key_column = "sampleunit_id",
     lookup_columns = c("grts_address", "stratum"), 
     reference_mod = function(ref) ref %>% rename(stratum = strata)
   )
@@ -1009,8 +948,8 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
   stitch_table_connection(
     mnmdb = locevaldb,
     table_label = table_label,
-    reference_table = "FieldworkCalendar",
-    link_key_column = "fieldworkcalendar_id",
+    reference_table = "FieldActivityCalendar",
+    link_key_column = "fieldactivitycalendar_id",
     lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
   )
 
@@ -1032,7 +971,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
 ```{r update-locationinfos}
 
-new_locinfos <- sample_locations %>%
+new_locinfos <- sample_units %>%
   distinct(
     grts_address
   ) %>%

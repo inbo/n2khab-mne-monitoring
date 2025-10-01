@@ -5,10 +5,10 @@ SELECT
   LOCASS.locationassessment_id,
   (UNIT.location_id IS NULL) AS sample_location_obsolete,
   UNIT.grts_join_method,
-  UNIT.sp_poststratum,
+  UNIT.schemes,
   UNIT.scheme_ps_targetpanels,
-  UNIT.assessment,
-  UNIT.assessment_date,
+  UNIT.has_mhq_assessment AS assessment,
+  UNIT.mhq_assessment_date AS assessment_date,
   LOCASS.type,
   LOCASS.cell_disapproved,
   LOCASS.revisit_disapproval,
@@ -47,9 +47,5 @@ DO INSTEAD
 ;
 
 
-GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO ward;
-GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO ward;
-GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO karen;
-GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO karen;
-GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO floris;
-GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO floris;
+GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO ward, karen, floris;
+GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO ward, karen, floris;

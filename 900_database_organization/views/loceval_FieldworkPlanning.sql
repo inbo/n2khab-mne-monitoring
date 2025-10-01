@@ -51,14 +51,11 @@ SELECT
   FAC.notes,
   FAC.done_planning,
   UNIT.grts_join_method,
-  UNIT.scheme,
-  UNIT.panel_set,
-  UNIT.targetpanel,
+  UNIT.schemes,
   UNIT.scheme_ps_targetpanels,
-  UNIT.sp_poststratum,
   UNIT.type,
-  UNIT.assessment,
-  UNIT.assessment_date,
+  UNIT.has_mhq_assessment,
+  UNIT.mhq_assessment_date,
   UNIT.previous_notes,
   INFO.locationinfo_id,
   INFO.landowner,
@@ -95,7 +92,7 @@ ORDER BY
   FAC.date_end,
   FAC.priority,
   is_waiting,
-  FAC.stratum,
+  FAC.type,
   FAC.grts_address,
   FAC.activity_rank,
   FAC.activity_group_id
@@ -134,7 +131,6 @@ DO ALSO
  SET
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit,
-  --landowner = NEW.landowner,
   recovery_hints = NEW.recovery_hints
  WHERE locationinfo_id = OLD.locationinfo_id
 ;

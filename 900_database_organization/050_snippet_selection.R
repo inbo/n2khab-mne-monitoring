@@ -1025,6 +1025,11 @@ fag_stratum_grts_calendar_2025_attribs <-
   ) %>%
   relocate(scheme_ps_targetpanels)
 
+fag_stratum_grts_calendar_2025_attribs  %>%
+  filter(grts_address == 22107438) %>%
+  knitr::kable()
+
+
 # Derive an object where stratum x scheme_ps_targetpanels is flattened per
 # location x FAG occasion. Beware that in reality, more locations will emerge
 # due to local replacement, so this is misleading for counting & planning (but

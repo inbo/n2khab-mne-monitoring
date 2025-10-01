@@ -319,6 +319,7 @@ upload_data_and_update_dependencies <- function(
     characteristic_columns = NULL,
     rename_characteristics = NULL,
     skip_sequence_reset = FALSE,
+    sort_data_by_characteristics = TRUE,
     verbose = TRUE
     ) {
 
@@ -366,6 +367,13 @@ upload_data_and_update_dependencies <- function(
   if (is.null(characteristic_columns)) {
     characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
   } # TODO else: check that col really is a field in the data_replacement table
+
+
+  # attempt of sorting the data for better temporal ID consistency
+  if (sort_data_by_characteristics) {
+    data_replacement <- data_replacement %>%
+      arrange(!!!rlang::syms(characteristic_columns))
+  }
 
   # TODO there must be more column match checks
   # prior to deletion
@@ -524,6 +532,7 @@ upload_data_and_update_dependencies <- function(
   # deptab <- dependent_tables[[1]] # the table itself
   # deptab <- dependent_tables[[2]]
   # deptab <- dependent_tables[[3]]
+  # deptab <- "Visits"
 
   for (deptab in dependent_tables) {
 
@@ -604,7 +613,15 @@ upload_data_and_update_dependencies <- function(
     # ... by looking up the dependent table pk
     dep_pk <- mnmdb$get_primary_key(deptab)
 
+
     if (length(dep_pk) == 0) next # special case, e.g. the LocationCells
+
+    if (!(length(dep_pk) == 1)) {
+      message(glue::glue(
+        "Table {deptab} registers more than one primary key?! {paste0(dep_pk, collapse = ', ')}"
+        ) )
+      stop()
+    }
 
     # get the original foreign key values
     fk_table <- fk_lookups[[deptab]]
@@ -1365,7 +1382,25 @@ precedence_columns <- list(
   "SampleLocations" = c(
     "is_replacement"
   ),
+  "SampleUnits" = c(
+    "previous_notes",
+    "replacement_ongoing",
+    "replacement_id",
+    "replacement_reason",
+    "replacement_permanence",
+    "is_replaced",
+    "type_is_absent"
+  ),
   "FieldworkCalendar" = c(
+    "excluded",
+    "excluded_reason",
+    "teammember_assigned",
+    "date_visit_planned",
+    "no_visit_planned",
+    "notes",
+    "done_planning"
+  ),
+  "FieldActivityCalendar" = c(
     "excluded",
     "excluded_reason",
     "teammember_assigned",
@@ -1381,7 +1416,8 @@ precedence_columns <- list(
     "photo",
     "lims_code",
     "issues",
-    "visit_done"
+    "visit_done",
+    "type_assessed"
   ),
   "WellInstallationActivities" = c(
     "teammember_id",
