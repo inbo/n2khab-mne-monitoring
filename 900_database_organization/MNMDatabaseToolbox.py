@@ -856,6 +856,8 @@ class Database(dict):
             # primary_key = self[table_name].GetPrimaryKey()
 
             links = {}
+            print(table_name)
+            print(self[table_name].ListDependencies())
             for field, dependency in self[table_name].ListDependencies():
                 link = dependency.split(".")
                 links[link[-2]] = (field, link[-1])

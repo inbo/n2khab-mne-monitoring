@@ -113,23 +113,31 @@ nest_scheme_ps_targetpanel <- function(.data) {
   # location attribute. So it says specifically which schemes x panel sets x
   # targetpanels are served by the specific fieldwork at a specific date
   # interval.
-  return(
   .data %>%
     mutate(scheme_ps_targetpanel = str_glue(
       "{ scheme }:PS{ panel_set }{ targetpanel }"
     )) %>%
-    nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
+    select(-panel_set, -targetpanel) %>%
+    nest(
+      schemes = scheme,
+      # panel_sets = panel_set,
+      # targetpanels = targetpanel,
+      scheme_ps_targetpanels = scheme_ps_targetpanel
+    ) %>%
     mutate(
+      schemes = map_chr(schemes, \(df) {
+          str_flatten(unique(df$scheme), collapse = " | ")
+        }),
       scheme_ps_targetpanels = map_chr(scheme_ps_targetpanels, \(df) {
-        str_flatten(
-          unique(df$scheme_ps_targetpanel),
-          collapse = " | "
-        )
-      }) %>%
+          str_flatten(
+            unique(df$scheme_ps_targetpanel),
+            collapse = " | "
+          )
+        }) %>%
         factor()
     ) %>%
-    relocate(scheme_ps_targetpanels)
-  )
+    relocate(scheme_ps_targetpanels, schemes) %>%
+    return()
 }
 
 convert_stratum_to_type <- function(.data) {
