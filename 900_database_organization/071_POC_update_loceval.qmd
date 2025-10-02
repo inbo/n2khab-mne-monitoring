@@ -511,29 +511,42 @@ GROUP BY grts_address, type, activity_group_id, date_start
 ) WHERE n > 1;
 
 
+
+FROM "outbound"."FieldActivityCalendar"
 FROM "inbound"."Visits"
 
-SELECT * 
+
+SELECT *
 FROM "outbound"."FieldActivityCalendar"
-WHERE (CAST(fieldactivitycalendar_id AS VARCHAR) IN (
-  SELECT DISTINCT fieldactivitycalendar_id FROM (
-    SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
-    FROM (
-    SELECT DISTINCT
-      grts_address, type, activity_group_id, date_start,
-      STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
-      -- MAX(fieldactivitycalendar_id) AS max_id,
-      COUNT(*) AS n
-    FROM "outbound"."FieldActivityCalendar"
-    GROUP BY grts_address, type, activity_group_id, date_start
-    )
-    WHERE n > 1
-  ) GROUP BY fieldactivitycalendar_id
-))
-AND NOT done_planning
-ORDER BY fieldactivitycalendar_id ASC
+WHERE fieldactivitycalendar_id IN (
+  SELECT DISTINCT CAL.fieldactivitycalendar_id 
+  FROM "outbound"."FieldActivityCalendar" AS CAL
+  LEFT JOIN (
+    SELECT fieldactivitycalendar_id, visit_done, date_visit, notes
+    FROM "inbound"."Visits"
+  ) AS VIS
+    ON VIS.fieldactivitycalendar_id = CAL.fieldactivitycalendar_id
+  WHERE (CAST(CAL.fieldactivitycalendar_id AS VARCHAR) IN (
+    SELECT DISTINCT fieldactivitycalendar_id FROM (
+      SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
+      FROM (
+      SELECT DISTINCT
+        grts_address, type, activity_group_id, date_start,
+        STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
+        COUNT(*) AS n
+      FROM "outbound"."FieldActivityCalendar"
+      GROUP BY grts_address, type, activity_group_id, date_start
+      )
+      WHERE n > 1
+    ) GROUP BY fieldactivitycalendar_id
+  ))
+  AND VIS.fieldactivitycalendar_id IS NULL
+  ORDER BY CAL.fieldactivitycalendar_id ASC
+)
 ;
 
+
+AND NOT done_planning
 - 914
 
 
@@ -972,99 +985,35 @@ locationinfo_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
+if (FALSE) {
+'
+SELECT * FROM (
+SELECT DISTINCT
+  grts_address, 
+  COUNT(DISTINCT locationinfo_id) AS n
+FROM "outbound"."LocationInfos"
+GROUP BY grts_address 
+) WHERE n > 1;
+
+SELECT MAX(locationinfo_id)  
+FROM "outbound"."LocationInfos"
+WHERE grts_address = 871030;
+
+SELECT *
+FROM "outbound"."LocationInfos"
+WHERE locationinfo_id IN (
+  SELECT MAX(locationinfo_id)  
+  FROM "outbound"."LocationInfos"
+  WHERE grts_address = 871030
+);
+
+'
+}
 
 ```
 
-
 ```{r update-landuse}
-
-landuse <- readRDS("data/landuse_export.rds")
-
-# forestry_area, # bosbeheerregio
-# fores_naam, # bosbeheer
-# np_type, # natuurpunt
-# lila_statuut,
-# durme_reservaat,
-# perc_rbh, # percelen // rbh
-# perc_naameig, # naam eigenaar
-# nbhp_type, # natuurbeheerplan
-# gewasgroep, # landbouw
-# lblhfdtlt # landbouw
-
-landinfo <- landuse %>%
-  mutate(anb = stringr::str_c("ANB: ", anb_rights)) %>%
-  mutate(mil = stringr::str_c("MIL: ", mdbd_naam, " (", mdbd_inbo, ")")) %>%
-  mutate(bos = stringr::str_c("BOS: ", forestry_area, " (", fores_naam, ")")) %>%
-  mutate(np = stringr::str_c("NP: ", np_type)) %>%
-  mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
-  mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
-  mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
-  mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
-  mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
-  tidyr::unite(landuse, c(
-      anb, mil, bos,
-      np, lila, durme,
-      perc, nbhp, lb
-    ),
-    sep = ", ",
-    na.rm = TRUE
-  ) %>%
-  distinct(
-    # schemegroup,
-    # stratum,
-    grts_address,
-    landuse
-  ) %>%
-  semi_join(
-    locevaldb$query_columns("LocationInfos", c("grts_address")) %>%
-    distinct(),
-    by = join_by(grts_address)
-  )
-
-glimpse(landinfo)
-
-
-get_update_row_string_landuse <- function(landinfo_rownr){
-
-  grts <- landinfo[landinfo_rownr, "grts_address"]
-  info <- landinfo[landinfo_rownr, "landuse"]
-  if (is.na(info)) {
-    info <- "NULL"
-  }
-
-  info <- glue::glue("'{info}'")
-
-  target_namestring <- '"outbound"."LocationInfos"'
-  update_string <- glue::glue("
-    UPDATE {target_namestring}
-      SET landowner = {info}
-    WHERE grts_address = {grts}
-    ;
-  ")
-
-  return(update_string)
-}
-
-# concatenate update rows
-update_command <- lapply(
-  seq_len(nrow(landinfo)),
-  FUN = get_update_row_string_landuse
-)
-
-# spin up a progress bar
-pb <- txtProgressBar(
-  min = 0, max = nrow(landinfo),
-  initial = 0, style = 1
-)
-
-# execute the update commands.
-for (landinfo_rownr in 1:nrow(landinfo)) {
-  setTxtProgressBar(pb, landinfo_rownr)
-  cmd <- update_command[[landinfo_rownr]]
-  locevaldb$execute_sql(cmd, verbose = FALSE)
-}
-
-close(pb) # close the progress bar
+update_landuse_in_locationinfos(locevaldb)
 ```
 
 
@@ -1090,29 +1039,12 @@ if (isFALSE(grepl("-staging", locevaldb_mirror))) {
 
 
 ```{r launch-consistency-dashboard}
-system("quarto render 040_consistency_dashboard.qmd --to html")
+system("quarto render 040l_loceval_consistency_dashboard.qmd --to html")
 ```
 
 
 ## TODO
 
-- [✓] re-run the procedure.
-- [✓] WIA and CSA seem unlinked or visit_done is wrong?
-  -> drop visit_done from WIA/CSA
+- [ ] re-run the procedure.
+- [ ] apply to production server.
 
-- [✓] processing scripts: replacement!! -> test daily maintenance scripts
-
-- [✓] LocationCells
-- [✓] LocationInfos
-
-- [✓] should I not add "replacements" above?
-
-First Round: 
-- [✓] as is
-
-Second Round:
-- [✓] adjust `common_current_calenderfilters()` -> 2026 data of certain activities
-
-Third Round
-- then re-download RData
-- -> add new `wait_*` column

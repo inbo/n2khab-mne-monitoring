@@ -299,6 +299,98 @@ restore_location_id_by_grts <- function(
 #_______________________________________________________________________________
 # UPDATE - CASCADE
 
+update_landuse_in_locationinfos <- function(mnmdb) {
+  # mnmdb <- locevaldb
+
+  landuse <- readRDS("data/landuse_export.rds")
+
+  # forestry_area, # bosbeheerregio
+  # fores_naam, # bosbeheer
+  # np_type, # natuurpunt
+  # lila_statuut,
+  # durme_reservaat,
+  # perc_rbh, # percelen // rbh
+  # perc_naameig, # naam eigenaar
+  # nbhp_type, # natuurbeheerplan
+  # gewasgroep, # landbouw
+  # lblhfdtlt # landbouw
+
+  landinfo <- landuse %>%
+    mutate(anb = stringr::str_c("ANB: ", anb_rights)) %>%
+    mutate(mil = stringr::str_c("MIL: ", mdbd_naam, " (", mdbd_inbo, ")")) %>%
+    mutate(bos = stringr::str_c("BOS: ", forestry_area, " (", fores_naam, ")")) %>%
+    mutate(np = stringr::str_c("NP: ", np_type)) %>%
+    mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
+    mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
+    mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
+    mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
+    mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
+    tidyr::unite(landuse, c(
+        anb, mil, bos,
+        np, lila, durme,
+        perc, nbhp, lb
+      ),
+      sep = ", ",
+      na.rm = TRUE
+    ) %>%
+    distinct(
+      # schemegroup,
+      # stratum,
+      grts_address,
+      landuse
+    ) %>%
+    semi_join(
+      mnmdb$query_columns("LocationInfos", c("grts_address")) %>%
+      distinct(),
+      by = join_by(grts_address)
+    ) %>%
+    rename(landowner = landuse)
+
+  ## testing
+  # landinfo <- landinfo %>%
+  #   filter(grts_address == 3202741) %>%
+  #   mutate(landowner = "<insert your name here>")
+
+  glimpse(landinfo)
+
+
+  # create temp table
+  DBI::dbWriteTable(
+    mnmdb$connection,
+    name = "temp_landinfo",
+    value = landinfo,
+    overwrite = TRUE,
+    temporary = TRUE
+  )
+
+  # dplyr::tbl(
+  #   mnmdb$connection,
+  #   "temp_landinfo"
+  # )
+
+  trgtab <- mnmdb$get_namestring("LocationInfos")
+  srctab <- "temp_landinfo"
+  link_column <- "landowner"
+  lookup_criteria <- c("TRGTAB.grts_address = SRCTAB.grts_address")
+
+  update_string <- glue::glue("
+    UPDATE {trgtab} AS TRGTAB
+      SET
+        {link_column} = SRCTAB.{link_column}
+      FROM {srctab} AS SRCTAB
+      WHERE
+       ({paste0(lookup_criteria, collapse = ') AND (')})
+    ;")
+
+  mnmdb$execute_sql(update_string, verbose = TRUE)
+
+
+}
+
+
+#_______________________________________________________________________________
+# UPDATE - CASCADE
+
 #' Update table content and cascade all key changes to dependent tables
 #'
 #' Updates the content of a data table in a relatively safe manner
