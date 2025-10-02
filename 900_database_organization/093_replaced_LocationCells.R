@@ -108,6 +108,7 @@ extra_cells <- loceval_connection$query_table("ReplacementCells") %>%
       select(-wkb_geometry),
     by = join_by(replacement_id)
   ) %>%
+  select(-grts_address) %>%
   rename(grts_address = grts_address_replacement) %>%
   inner_join(
     locations_grts,

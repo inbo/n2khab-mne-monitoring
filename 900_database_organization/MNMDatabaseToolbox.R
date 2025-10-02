@@ -39,7 +39,7 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 
 #' @param reference_mod function to modify column names of the reference column, e.g.
 #'   reference_mod <- function(x) gsub("mhq_", "test_", x)
-#'   reference_mod <- function(x) if (x == "type") {"stratum"} else {x}
+#'   reference_mod <- function(x) if (x == "type") {"stratum"} else {x} # to rename `stratum` to `type`
 stitch_table_connection <- function(
     mnmdb,
     table_label,
