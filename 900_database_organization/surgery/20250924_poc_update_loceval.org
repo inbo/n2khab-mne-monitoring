@@ -187,6 +187,40 @@ for (unit_row in seq_len(nrow(dupli_distinct))) {
 }
 
 
+## ----save-previous-extra-visits----------------------------------------------
+# analogous: clean Visits
+table_label <- "Visits"
+filter_unused <- "
+      (teammember_id IS NULL)
+  AND (date_visit IS NULL)
+  AND (type_assessed IS NULL)
+  AND (notes IS NULL)
+  AND (photo IS NULL)
+  AND NOT visit_done
+"
+locevaldb$delete_unused(table_label, filter_unused)
+
+
+## ----save-previous-FACs----------------------------------------------
+
+table_label <- "FieldActivityCalendar"
+filter_unused <- '
+      (NOT excluded)
+  AND (excluded_reason IS NULL)
+  AND (teammember_assigned IS NULL)
+  AND (date_visit_planned IS NULL)
+  AND ((no_visit_planned IS NULL) OR (no_visit_planned IS FALSE))
+  AND (notes IS NULL)
+  AND NOT done_planning
+  AND fieldactivitycalendar_id NOT IN (
+    SELECT DISTINCT fieldactivitycalendar_id
+    FROM "inbound"."Visits"
+    GROUP BY fieldactivitycalendar_id
+  )
+'
+
+locevaldb$delete_unused(table_label, filter_unused)
+
 #+end_src
 
 
@@ -213,7 +247,82 @@ WHERE grts_address = 22107438
 #+end_src
 
 
+#+begin_src sql :eval no
+SELECT * FROM (
+SELECT DISTINCT
+  grts_address, type,
+  COUNT(DISTINCT sampleunit_id) AS n
+FROM "outbound"."FieldActivityCalendar"
+GROUP BY grts_address, type
+) WHERE n > 1;
 
+
+SELECT * 
+FROM "outbound"."FieldActivityCalendar"
+WHERE (CAST(fieldactivitycalendar_id AS VARCHAR) IN (
+  SELECT DISTINCT fieldactivitycalendar_id FROM (
+    SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
+    FROM (
+    SELECT DISTINCT
+      grts_address, type, activity_group_id, date_start,
+      STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
+      -- MAX(fieldactivitycalendar_id) AS max_id,
+      COUNT(*) AS n
+    FROM "outbound"."FieldActivityCalendar"
+    GROUP BY grts_address, type, activity_group_id, date_start
+    )
+    WHERE n > 1
+  ) GROUP BY fieldactivitycalendar_id
+))
+AND NOT done_planning
+ORDER BY fieldactivitycalendar_id ASC
+;
+
+
+#+end_src
+
+
+#+begin_src sql :eval no
+
+
+SELECT * 
+FROM "inbound"."Visits"
+WHERE (CAST(fieldactivitycalendar_id AS VARCHAR) IN (
+  SELECT DISTINCT fieldactivitycalendar_id FROM (
+    SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
+    FROM (
+    SELECT DISTINCT
+      grts_address, stratum, activity_group_id, date_start,
+      STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
+      -- MAX(fieldactivitycalendar_id) AS max_id,
+      COUNT(*) AS n
+    FROM "outbound"."FieldActivityCalendar"
+    GROUP BY grts_address, stratum, activity_group_id, date_start
+    )
+    WHERE n > 1
+  ) GROUP BY fieldactivitycalendar_id
+))
+AND NOT visit_done
+AND (grts_address = 743982 OR grts_address = 1022766)
+ORDER BY fieldactivitycalendar_id ASC
+;
+
+SELECT * 
+FROM "inbound"."Visits"
+WHERE fieldactivitycalendar_id IN (914, 639)
+AND NOT visit_done;
+
+
+SELECT *
+FROM "outbound"."FieldActivityCalendar" AS CAL
+LEFT JOIN "inbound"."Visits" AS VIS
+  ON VIS.fieldactivitycalendar_id = CAL.fieldactivitycalendar_id
+WHERE
+  (CAL.grts_address = 743982 OR CAL.grts_address = 1022766)
+  AND done_planning
+;
+
+#+end_src
 
 ** DONE wait_<more>
 CLOSED: [2025-10-01 Wed 14:33]
@@ -241,6 +350,7 @@ ALTER TABLE "outbound"."SampleUnits" ALTER COLUMN location_id DROP NOT NULL;
 ALTER TABLE "outbound"."SampleUnitPolygons" ALTER COLUMN sampleunit_id DROP NOT NULL;
 ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id DROP NOT NULL;
 
+ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id DROP NOT NULL;
 
 -- foreign key location_id
 ALTER TABLE "metadata"."LocationCells" DROP CONSTRAINT IF EXISTS fk_Locations_LocationCells CASCADE;

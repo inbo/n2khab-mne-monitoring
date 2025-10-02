@@ -36,6 +36,10 @@ lookup_join <- function(.data, lookup_tbl, join_column){
 }
 
 
+
+#' @param reference_mod function to modify column names of the reference column, e.g.
+#'   reference_mod <- function(x) gsub("mhq_", "test_", x)
+#'   reference_mod <- function(x) if (x == "type") {"stratum"} else {x}
 stitch_table_connection <- function(
     mnmdb,
     table_label,
@@ -49,20 +53,51 @@ stitch_table_connection <- function(
     link_key_column <- mnmdb$get_primary_key(reference_table)
   }
 
-  data <- mnmdb$query_table(table_label)
-  reference <- mnmdb$query_table(reference_table)
+
+  data_cols <- mnmdb$load_table_info(table_label) %>% pull(column)
+  reference_cols <- mnmdb$load_table_info(reference_table) %>% pull(column)
 
   if (isFALSE(is.scalar.na(reference_mod))) {
-    reference <- reference_mod(reference)
+    reference_cols <- unlist(lapply(reference_cols, FUN = reference_mod))
+  } else {
+    reference_mod <- function(x) x
   }
 
   if (is.scalar.na(lookup_columns)) {
-    lookup_columns <- names(data)
-    lookup_columns <- lookup_columns[lookup_columns %in% names(reference)]
+    lookup_columns <- data_cols
+    lookup_columns <- lookup_columns[lookup_columns %in% reference_cols]
     lookup_columns <- lookup_columns[!(lookup_columns %in% c(link_key_column))]
     lookup_columns <- lookup_columns[!(lookup_columns %in% c(link_key_column, logging_columns))]
     # archive_version_id might still be in here!
   }
+
+  # UPDATE... FROM method
+  stopifnot("glue" = require("glue"))
+
+  trgtab <- mnmdb$get_namestring(table_label)
+  srctab <- mnmdb$get_namestring(reference_table)
+
+  lookup_criteria <- unlist(lapply(
+    lookup_columns,
+    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{reference_mod(col)}")
+  ))
+
+
+  update_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      {link_key_column} = SRCTAB.{link_key_column}
+    FROM {srctab} AS SRCTAB
+    WHERE
+     ({paste0(lookup_criteria, collapse = ') AND (')})
+  ;")
+
+  mnmdb$execute_sql(update_string, verbose = TRUE)
+
+  return(invisible(NULL))
+
+  # inefficient: the R method
+  if (FALSE) {
 
   # # cols <- names(data)
   # # cols <- cols[!(cols %in% c(link_key_column, logging_columns))]
@@ -117,9 +152,13 @@ stitch_table_connection <- function(
     FUN = function(update_cmd) mnmdb$execute_sql(update_cmd, verbose = TRUE)
   ))
 
+  } # previous, inefficient command
+
   return(invisible(NULL))
 
 } # /stitch_table_connection
+
+
 
 
 upload_and_lookup <- function(
@@ -467,8 +506,9 @@ upload_data_and_update_dependencies <- function(
   # old_data %>% count(location_id) %>% arrange(desc(n))
 
   # cols <- c("grts_address", "stratum", "activity_group_id", "date_start")
+  # cols <- characteristic_columns
   #  new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n))
-  #  old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n))
+  #  old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,

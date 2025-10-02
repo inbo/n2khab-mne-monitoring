@@ -512,6 +512,7 @@ if ("location_id" %in% names(sample_locations)) {
   sample_locations <- sample_locations %>%
     select(-location_id)#, -location_id.x, -location_id.y)
 }
+
 sample_locations <- sample_locations %>%
   left_join(
     locations_lookup,
@@ -808,9 +809,9 @@ update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 
 visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
 
-new_visits <- fieldworkcalendar_lookup %>%
+potential_visits <- fieldworkcalendar_lookup %>%
   select(
-    !!!visits_characols
+    !!!rlang::syms(visits_characols)
   ) %>%
   left_join(
     locations_lookup,
@@ -824,11 +825,24 @@ new_visits <- fieldworkcalendar_lookup %>%
   )
 
 
-visits_upload <- new_visits %>%
+visits_upload <- potential_visits %>%
   anti_join(
     mnmgwdb$query_table("Visits"),
     by = join_by(!!!fieldcalendar_characols)
+  ) %>%
+  left_join(
+    samplelocations_lookup,
+    by = join_by(grts_address, type)
+  ) %>%
+  left_join(
+    locevaldb$query_columns(
+      "SampleLocations",
+      c("grts_address", "type", "samplelocation_id", "location_id")
+    ),
+    by = join_by(grts_address, type)
   )
+
+
 
 visits_lookup <- update_cascade_lookup(
   table_label = "Visits",
