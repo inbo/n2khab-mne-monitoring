@@ -11,7 +11,7 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 # TODO this does not yet work for `loceval` (based on SampleLocations)
 database_label <- "mnmgwdb"
 
-testing <- TRUE
+testing <- FALSE
 if (testing) {
   suffix <- "-staging" # "-testing"
 } else {
@@ -227,8 +227,8 @@ distribution$to_archive %>%
   count(grts_address, stratum) %>%
   print(n = Inf)
 
-select_grts <- 32213266
-select_stratum <- "7140_mrd"
+select_grts <- 871030
+select_stratum <- "4010"
 
 
 check <- function(df, ...) {
@@ -246,7 +246,7 @@ check <- function(df, ...) {
     return()
 }
 
-data_previous %>%
+previous_calendar_plans %>%
   check(grts_address == select_grts, stratum == select_stratum) %>%
   t() %>% knitr::kable()
 
@@ -267,6 +267,17 @@ distribution$unchanged %>%
   t() %>% knitr::kable()
 
 } # /checking intervention
+
+
+
+distribution$to_upload <- distribution$to_upload %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  )
 
 
 fieldworkcalendar_lookup <- just_do_it(
@@ -329,27 +340,28 @@ mnmgwdb$query_table("Visits") %>%
 
 # archive visits of archived FWCals
 
-table_label <- "Visits"
-visits_redownload <- mnmgwdb$query_table(table_label) %>%
-  filter(is.na(archive_version_id)) %>%
-  select(-archive_version_id)
+trgtab <- mnmgwdb$get_namestring("Visits")
+srctab <- mnmgwdb$get_namestring("FieldworkCalendar")
+link_key_column <- "archive_version_id"
+lookup_criteria <- c("TRGTAB.fieldworkcalendar_id = SRCTAB.fieldworkcalendar_id")
 
-fwcal_lookup <- mnmgwdb$query_table("FieldworkCalendar") %>%
-  filter(!is.na(archive_version_id)) %>%
-  select(fieldworkcalendar_id, archive_version_id)
+update_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      {link_key_column} = SRCTAB.{link_key_column}
+    FROM {srctab} AS SRCTAB
+    WHERE
+     ({paste0(lookup_criteria, collapse = ') AND (')})
+  ;")
 
-visits_archive <- visits_redownload %>%
-  left_join(fwcal_lookup, by = join_by(fieldworkcalendar_id)) %>%
-  select(visit_id, archive_version_id) %>%
-  filter(!is.na(archive_version_id))
+mnmgwdb$execute_sql(update_string)
 
-update_existing_data(
-  mnmdb = mnmgwdb,
-  table_label = table_label,
-  changed_data = visits_archive,
-  input_precedence_columns = precedence_columns[[table_label]],
-  reference_columns = c(mnmgwdb$get_primary_key(table_label))
-)
+mnmgwdb$query_table("FieldworkCalendar") %>%
+  anti_join(
+    mnmgwdb$query_table("Visits"),
+    by = join_by(fieldworkcalendar_id, archive_version_id)
+  ) %>% nrow()
+
 
 
 #_______________________________________________________________________________

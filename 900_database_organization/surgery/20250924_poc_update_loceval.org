@@ -611,3 +611,9 @@ ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id SET NO
 
 + [ ] cascaded updates via temp tables
 + [ ] to_archive / to_update via temp table
++ [X] =mnmgwdb= adjustment: 
+  =ALTER TABLE "outbound"."LocationEvaluations" RENAME COLUMN scheme TO schemes;=
++ [ ] adjust maintenance scripts
++ [ ] =mhq areas= new logic!
++ [?!] 900_database_organization/.dbinit/lib/python3.13/site-packages/pandas/io/sql.py:1737: SAWarning: Did not recognize type 'geometry' of column 'wkb_geometry'
+  self.meta.reflect(bind=self.con, only=[table_name], views=True)

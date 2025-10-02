@@ -140,7 +140,7 @@ stitch_table_connection(
   reference_table = "SampleLocations",
   link_key_column = "samplelocation_id",
   lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(ref) ref %>% rename(stratum = strata)
+  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
 
@@ -162,7 +162,7 @@ stitch_table_connection(
   reference_table = "SampleLocations",
   link_key_column = "samplelocation_id",
   lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(ref) ref %>% rename(stratum = strata)
+  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
 
@@ -192,7 +192,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     reference_table = "SampleLocations",
     link_key_column = "samplelocation_id",
     lookup_columns = c("grts_address", "stratum"),
-    reference_mod = function(ref) ref %>% rename(stratum = strata)
+    reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
   )
 
   # link WIA/CSA back to FieldworkCalendar
