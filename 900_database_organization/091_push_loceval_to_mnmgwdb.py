@@ -15,7 +15,8 @@ import pandas as PD
 import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
-to_remove = {871030: {"grts": 84598, "stratum": "4010"}} # TODO
+# to_remove = {871030: {"grts": 84598, "type": "4010"}} # TODO
+to_remove = {} # TODO
 
 commandline_args = SYS.argv
 if len(commandline_args) > 1:
@@ -89,10 +90,8 @@ LEFT JOIN (
   ) AS LOREP
   ON UNIT.sampleunit_id = LOREP.sampleunit_id
 WHERE UNIT.grts_address IN (
-  SELECT DISTINCT grts_address
+  SELECT DISTINCT RP.grts_address
   FROM "outbound"."Replacements" AS RP
-  LEFT JOIN "outbound"."SampleUnits" AS SU
-  ON SU.sampleunit_id = RP.sampleunit_id
   WHERE is_selected
   AND NOT is_inappropriate
   )
@@ -112,7 +111,7 @@ replacement_data.loc[
 for remo in to_remove.values():
     removements = NP.logical_and(
         replacement_data["grts_address"].values == remo["grts"],
-        replacement_data["type"].values == remo["stratum"]
+        replacement_data["type"].values == remo["type"]
         )
     replacement_data = replacement_data.loc[NP.logical_not(removements), :]
 

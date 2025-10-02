@@ -61,12 +61,6 @@ UPDATE "metadata"."Protocols"
 SET protocol_code = 'spp-117-nl', protocol_version = '2024.06'
 WHERE protocol_code = 'spp-117-nl';
 
-UPDATE "metadata"."Protocols"
-SET protocol_code = 'spp-116-nl', protocol_version = '2024.05'
-WHERE protocol_code = 'sfp-116-nl';
-UPDATE "metadata"."Protocols"
-SET protocol_code = 'spp-117-nl', protocol_version = '2024.06'
-WHERE protocol_code = 'sfp-117-nl';
 
 -- codes which do not exist
 DELETE FROM "metadata"."Protocols"

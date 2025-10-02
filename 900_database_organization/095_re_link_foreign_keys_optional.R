@@ -13,8 +13,112 @@ source("MNMDatabaseToolbox.R")
 
 
 config_filepath <- file.path("./inbopostgis_server.conf")
+# mirror <- ""
+mirror <- "-staging"
 
-mirror <- ""
+
+
+#_______________________________________________________________________________
+#### LOCEVAL
+
+# ... and mnmgwdb
+locevaldb_mirror <- glue::glue("loceval{mirror}")
+
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+)
+
+locevaldb$shellstring
+
+
+# Locations
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "LocationInfos",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "SampleUnits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "LocationAssessments",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+# SampleUnits
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Replacements",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type"),
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "FieldActivityCalendar",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "LocationAssessments",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+# Calendar
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "FieldActivityCalendar",
+  link_key_column = "fieldactivitycalendar_id",
+  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+)
+
+
+
+#_______________________________________________________________________________
+#### MNMGWDB
+
+# mirror from above
+# mirror <- ""
 # mirror <- "-staging"
 
 # ... and mnmgwdb

@@ -95,8 +95,8 @@ verify_poc_objects()
 ```{r connect-databases}
 database <- "loceval"
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- "-staging"
-# mirror <- ""
+# mirror <- "-staging"
+mirror <- ""
 
 
 # connect loceval
@@ -438,6 +438,7 @@ print_category_count(distribution, table_label)
 
 # distribution$to_archive
 # distribution$reactivate
+# distribution$to_archive
 # distribution$to_upload
 
 ```
@@ -455,8 +456,8 @@ distribution$to_upload <- distribution$to_upload %>%
   ) 
 
 # distribution$changed %>% t() %>% knitr::kable()
-distribution$to_upload %>% select(!!!characteristic_columns) %>% knitr::kable()
-distribution$to_upload %>% filter(grts_address == 47764190) %>% t() %>% knitr::kable()
+# distribution$to_upload %>% select(!!!characteristic_columns) %>% knitr::kable()
+# distribution$to_upload %>% filter(grts_address == 47764190) %>% t() %>% knitr::kable()
 # locevaldb$query_table("SampleUnits") %>%
 #   semi_join(
 #     distribution$changed,
@@ -632,7 +633,7 @@ fieldcalendar_characols <- c(
 ```
 
 
-```{r stitch-fwcal-to-slocs}
+```{r stitch-fwcal-to-sunits}
 
 # link FieldworkCalender back to SampleUnits
 stitch_table_connection(
@@ -653,6 +654,7 @@ table_label <- "FieldActivityCalendar"
 data_future <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
+# data_future %>% head(3) %>% t() %>% knitr::kable()
 
 distribution <- categorize_data_update(
   mnmdb = locevaldb,
@@ -705,7 +707,6 @@ fieldworkcalendar_lookup <- just_do_it(
 ```
 
 
-stitch sampleunit_id
 
 ```{r re-inspect-fieldworkcalendar}
 
@@ -792,7 +793,7 @@ FROM "outbound"."FieldActivityCalendar"
 SELECT *
 FROM "inbound"."Visits"
 WHERE (grts_address = 2349833)
-AND (stratum = '6430_mr')
+AND (type = '6430_mr')
 AND (activity_group_id = 18)
 AND (date_start = '2025-05-01')
 ;
@@ -875,8 +876,7 @@ stitch_table_connection(
   table_label = "Visits",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type"), 
-  reference_mod = function(ref) ref %>% rename(stratum = strata)
+  lookup_columns = c("grts_address", "type") 
 )
 
 stitch_table_connection(
@@ -921,30 +921,6 @@ locevaldb$query_table("FieldActivityCalendar") %>%
     by = join_by(fieldactivitycalendar_id, archive_version_id)
   ) %>% nrow()
 
-
-if (FALSE) {
-  table_label <- "Visits"
-  visits_redownload <- locevaldb$query_table(table_label) %>% 
-    filter(is.na(archive_version_id)) %>%
-    select(-archive_version_id)
-  
-  fwcal_lookup <- locevaldb$query_table("FieldActivityCalendar") %>% 
-    filter(!is.na(archive_version_id)) %>%
-    select(fieldactivitycalendar_id, archive_version_id)
-  
-  visits_archive <- visits_redownload %>%
-    left_join(fwcal_lookup, by = join_by(fieldactivitycalendar_id)) %>%
-    select(visit_id, archive_version_id) %>%
-    filter(!is.na(archive_version_id))
-  
-  update_existing_data(
-    mnmdb = locevaldb,
-    table_label = table_label,
-    changed_data = visits_archive,
-    input_precedence_columns = precedence_columns[[table_label]],
-    reference_columns = c(locevaldb$get_primary_key(table_label))
-  )
-}
 
 ```
 
@@ -995,7 +971,7 @@ FROM "outbound"."LocationInfos"
 GROUP BY grts_address 
 ) WHERE n > 1;
 
-SELECT MAX(locationinfo_id)  
+SELECT *
 FROM "outbound"."LocationInfos"
 WHERE grts_address = 871030;
 
@@ -1045,6 +1021,7 @@ system("quarto render 040l_loceval_consistency_dashboard.qmd --to html")
 
 ## TODO
 
-- [ ] re-run the procedure.
-- [ ] apply to production server.
+- [X] re-run the procedure.
+- [X] apply to production server.
+- [ ] daily scripts
 

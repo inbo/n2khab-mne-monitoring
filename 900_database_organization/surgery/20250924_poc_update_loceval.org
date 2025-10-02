@@ -2,7 +2,8 @@
 I have neglected =loceval= for a while.
 
 * structural changes
-** MISC changes
+** DONE MISC changes
+CLOSED: [2025-10-02 Thu 13:45]
 
 #+begin_src sql :eval no
 ALTER TABLE "outbound"."FieldActivityCalendar" RENAME COLUMN stratum TO type;
@@ -38,7 +39,9 @@ ALTER TABLE "inbound"."Visits" DROP COLUMN grouped_activity_id CASCADE;
 
 THEN restore view ReplacementOngoing!
 
-** Foreign Keys
+** DONE Foreign Keys
+CLOSED: [2025-10-02 Thu 13:46]
+
 #+begin_src sql
 
 
@@ -99,6 +102,36 @@ ON DELETE SET NULL ON UPDATE CASCADE;
 
 
 
+
+ALTER TABLE "outbound"."LocationAssessments" ADD CONSTRAINT fk_Locations_LocationAssessments FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+ALTER TABLE "outbound"."LocationAssessments" ADD COLUMN sampleunit_id integer DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."LocationAssessments".sampleunit_id IS E'reference to sample unit';
+
+
+ALTER TABLE "outbound"."LocationAssessments" ADD CONSTRAINT fk_SampleUnits_LocationAssessments FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+UPDATE "outbound"."LocationAssessments" AS ASS
+SET
+  sampleunit_id = UNIT.sampleunit_id
+FROM "outbound"."SampleUnits" AS UNIT
+WHERE (ASS.grts_address = UNIT.grts_address)
+  AND (ASS.type = UNIT.type)
+;
+
+
+UPDATE "outbound"."LocationAssessments" AS ASS
+SET
+  location_id = LOC.location_id
+FROM "metadata"."Locations" AS LOC
+WHERE (ASS.grts_address = LOC.grts_address)
+;
+
 #+end_src
 
 
@@ -151,7 +184,8 @@ COMMENT ON COLUMN "outbound"."SampleUnits".domain_part IS E'domain partition';
 #+end_src
 
 ** more AND less SampleUnit Info
-*** new /renamed columns:
+*** DONE new /renamed columns:
+CLOSED: [2025-10-02 Thu 13:47]
 #+begin_src sql :eval no
 
 ALTER TABLE "outbound"."SampleUnits" ADD COLUMN is_forest bool NOT NULL DEFAULT FALSE;
@@ -171,7 +205,8 @@ COMMENT ON COLUMN "outbound"."SampleUnits".mhq_assessment_date IS E'date of prev
 ALTER TABLE "outbound"."SampleUnits" RENAME COLUMN scheme TO schemes;
 #+end_src
 
-*** removed columns:
+*** DONE removed columns:
+CLOSED: [2025-10-02 Thu 13:52]
 FIRST UPDATE:
 + view outbound."gwTransfer"
 + view outbound."OrthophotoAssessment"
@@ -200,8 +235,8 @@ source("MNMDatabaseToolbox.R")
 
 database <- "loceval"
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- "-staging"
-# mirror <- ""
+# mirror <- "-staging"
+mirror <- ""
 
 # connect loceval
 locevaldb_mirror <- glue::glue("{database}{mirror}")
@@ -294,6 +329,8 @@ locevaldb$delete_unused(table_label, filter_unused)
 
 #+end_src
 
+** DONE duplicates
+CLOSED: [2025-10-02 Thu 13:52]
 
 #+begin_src sql :eval no
 SELECT * FROM (
@@ -450,7 +487,8 @@ COMMENT ON COLUMN "outbound"."FieldActivityCalendar".wait_floating IS E'filter f
 #+end_src
 
 
-* Versions
+* DONE Versions
+CLOSED: [2025-10-02 Thu 13:53]
 we now store the POC versions
 
 subprocedure: Versions
@@ -540,7 +578,8 @@ ON DELETE SET NULL ON UPDATE CASCADE;
 #+end_src
 
 
-* Protocols
+* DONE Protocols
+CLOSED: [2025-10-02 Thu 13:57]
 
 subprocedure: Protocols
 >>> [[file:./20250904_Protocols.sql]]
@@ -549,7 +588,8 @@ subprocedure: Protocols
 >>> [[file:../078_update_protocols.qmd]]
 
 
-* Stitch Lookups
+* DONE Stitch Lookups
+CLOSED: [2025-10-02 Thu 14:16]
 
 ... to reduce off-focus updates during POC update
 
@@ -569,3 +609,5 @@ ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id SET NO
 
 * TODO
 
++ [ ] cascaded updates via temp tables
++ [ ] to_archive / to_update via temp table
