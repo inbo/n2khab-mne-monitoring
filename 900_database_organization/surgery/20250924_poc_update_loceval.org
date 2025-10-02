@@ -1,12 +1,22 @@
 
 I have neglected =loceval= for a while.
 
-* POC changes
+* structural changes
 ** MISC changes
 
 #+begin_src sql :eval no
 ALTER TABLE "outbound"."FieldActivityCalendar" RENAME COLUMN stratum TO type;
 ALTER TABLE "inbound"."Visits" RENAME COLUMN stratum TO type;
+
+
+ALTER TABLE "metadata"."LocationCells" ALTER COLUMN location_id DROP NOT NULL;
+ALTER TABLE "outbound"."LocationInfos" ALTER COLUMN location_id DROP NOT NULL;
+ALTER TABLE "outbound"."SampleUnits" ALTER COLUMN location_id DROP NOT NULL;
+
+ALTER TABLE "outbound"."SampleUnitPolygons" ALTER COLUMN sampleunit_id DROP NOT NULL;
+ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id DROP NOT NULL;
+
+ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id DROP NOT NULL;
 
 
 UPDATE "outbound"."FieldActivityCalendar" AS REP
@@ -16,8 +26,6 @@ WHERE (REP.grts_address = UNIT.grts_address)
   AND (REP.type = UNIT.type)
 ;
 
-
-ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id SET NOT NULL;
 
 ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN grts_join_method;
 -- ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN domain_part;
@@ -29,6 +37,69 @@ ALTER TABLE "inbound"."Visits" DROP COLUMN grouped_activity_id CASCADE;
 #+end_src
 
 THEN restore view ReplacementOngoing!
+
+** Foreign Keys
+#+begin_src sql
+
+
+-- foreign key location_id
+ALTER TABLE "metadata"."LocationCells" DROP CONSTRAINT IF EXISTS fk_Locations_LocationCells CASCADE;
+ALTER TABLE "metadata"."LocationCells" ADD CONSTRAINT fk_Locations_LocationCells FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "outbound"."LocationInfos" DROP CONSTRAINT IF EXISTS fk_Locations_LocationInfos CASCADE;
+ALTER TABLE "outbound"."LocationInfos" ADD CONSTRAINT fk_Locations_LocationInfos FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "outbound"."SampleUnits" DROP CONSTRAINT IF EXISTS fk_Locations_SampleUnits CASCADE;
+ALTER TABLE "outbound"."SampleUnits" ADD CONSTRAINT fk_Locations_SampleUnits FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."SampleUnitPolygons" DROP CONSTRAINT IF EXISTS fk_SampleUnits_SampleUnitPolygons CASCADE;
+ALTER TABLE "outbound"."SampleUnitPolygons" ADD CONSTRAINT fk_SampleUnits_SampleUnitPolygons FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."Replacements" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Replacements CASCADE;
+ALTER TABLE "outbound"."Replacements" ADD CONSTRAINT fk_SampleUnits_Replacements FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP CONSTRAINT IF EXISTS fk_SampleUnits_FieldActivityCalendar CASCADE;
+ALTER TABLE "outbound"."FieldActivityCalendar" ADD CONSTRAINT fk_SampleUnits_FieldActivityCalendar FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key fieldactivitycalendar_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldActivityCalendar_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_FieldActivityCalendar_Visits FOREIGN KEY (fieldactivitycalendar_id)
+REFERENCES "outbound"."FieldActivityCalendar" (fieldactivitycalendar_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_SampleUnits_Visits FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_Locations_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_Locations_Visits FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+
+#+end_src
 
 
 ** DONE urgent: grts_address to replacements
@@ -257,6 +328,7 @@ GROUP BY grts_address, type
 ) WHERE n > 1;
 
 
+-- DELETE!
 SELECT * 
 FROM "outbound"."FieldActivityCalendar"
 WHERE (CAST(fieldactivitycalendar_id AS VARCHAR) IN (
@@ -275,6 +347,11 @@ WHERE (CAST(fieldactivitycalendar_id AS VARCHAR) IN (
   ) GROUP BY fieldactivitycalendar_id
 ))
 AND NOT done_planning
+AND fieldactivitycalendar_id NOT IN (
+  SELECT DISTINCT fieldactivitycalendar_id
+  FROM "inbound"."Visits"
+  WHERE visit_done
+)
 ORDER BY fieldactivitycalendar_id ASC
 ;
 
@@ -292,12 +369,12 @@ WHERE (CAST(fieldactivitycalendar_id AS VARCHAR) IN (
     SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
     FROM (
     SELECT DISTINCT
-      grts_address, stratum, activity_group_id, date_start,
+      grts_address, type, activity_group_id, date_start,
       STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
       -- MAX(fieldactivitycalendar_id) AS max_id,
       COUNT(*) AS n
     FROM "outbound"."FieldActivityCalendar"
-    GROUP BY grts_address, stratum, activity_group_id, date_start
+    GROUP BY grts_address, type, activity_group_id, date_start
     )
     WHERE n > 1
   ) GROUP BY fieldactivitycalendar_id
@@ -314,6 +391,37 @@ AND NOT visit_done;
 
 
 SELECT *
+FROM "outbound"."FieldActivityCalendar"
+WHERE fieldactivitycalendar_id IN (
+  SELECT DISTINCT CAL.fieldactivitycalendar_id 
+  FROM "outbound"."FieldActivityCalendar" AS CAL
+  LEFT JOIN (
+    SELECT fieldactivitycalendar_id, visit_done, date_visit, notes
+    FROM "inbound"."Visits"
+  ) AS VIS
+    ON VIS.fieldactivitycalendar_id = CAL.fieldactivitycalendar_id
+  WHERE (CAST(CAL.fieldactivitycalendar_id AS VARCHAR) IN (
+    SELECT DISTINCT fieldactivitycalendar_id FROM (
+      SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
+      FROM (
+      SELECT DISTINCT
+        grts_address, type, activity_group_id, date_start,
+        STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
+        COUNT(*) AS n
+      FROM "outbound"."FieldActivityCalendar"
+      GROUP BY grts_address, type, activity_group_id, date_start
+      )
+      WHERE n > 1
+    ) GROUP BY fieldactivitycalendar_id
+  ))
+  AND VIS.fieldactivitycalendar_id IS NULL
+  ORDER BY CAL.fieldactivitycalendar_id ASC
+)
+;
+
+
+
+SELECT *
 FROM "outbound"."FieldActivityCalendar" AS CAL
 LEFT JOIN "inbound"."Visits" AS VIS
   ON VIS.fieldactivitycalendar_id = CAL.fieldactivitycalendar_id
@@ -321,6 +429,8 @@ WHERE
   (CAL.grts_address = 743982 OR CAL.grts_address = 1022766)
   AND done_planning
 ;
+
+
 
 #+end_src
 
@@ -339,77 +449,6 @@ COMMENT ON COLUMN "outbound"."FieldActivityCalendar".wait_floating IS E'filter f
 
 #+end_src
 
-
-* Foreign Keys
-#+begin_src sql
-
-ALTER TABLE "metadata"."LocationCells" ALTER COLUMN location_id DROP NOT NULL;
-ALTER TABLE "outbound"."LocationInfos" ALTER COLUMN location_id DROP NOT NULL;
-ALTER TABLE "outbound"."SampleUnits" ALTER COLUMN location_id DROP NOT NULL;
-
-ALTER TABLE "outbound"."SampleUnitPolygons" ALTER COLUMN sampleunit_id DROP NOT NULL;
-ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id DROP NOT NULL;
-
-ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id DROP NOT NULL;
-
--- foreign key location_id
-ALTER TABLE "metadata"."LocationCells" DROP CONSTRAINT IF EXISTS fk_Locations_LocationCells CASCADE;
-ALTER TABLE "metadata"."LocationCells" ADD CONSTRAINT fk_Locations_LocationCells FOREIGN KEY (location_id)
-REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
--- foreign key location_id
-ALTER TABLE "outbound"."LocationInfos" DROP CONSTRAINT IF EXISTS fk_Locations_LocationInfos CASCADE;
-ALTER TABLE "outbound"."LocationInfos" ADD CONSTRAINT fk_Locations_LocationInfos FOREIGN KEY (location_id)
-REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
--- foreign key location_id
-ALTER TABLE "outbound"."SampleUnits" DROP CONSTRAINT IF EXISTS fk_Locations_SampleUnits CASCADE;
-ALTER TABLE "outbound"."SampleUnits" ADD CONSTRAINT fk_Locations_SampleUnits FOREIGN KEY (location_id)
-REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
--- foreign key sampleunit_id
-ALTER TABLE "outbound"."SampleUnitPolygons" DROP CONSTRAINT IF EXISTS fk_SampleUnits_SampleUnitPolygons CASCADE;
-ALTER TABLE "outbound"."SampleUnitPolygons" ADD CONSTRAINT fk_SampleUnits_SampleUnitPolygons FOREIGN KEY (sampleunit_id)
-REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
-
--- foreign key sampleunit_id
-ALTER TABLE "outbound"."Replacements" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Replacements CASCADE;
-ALTER TABLE "outbound"."Replacements" ADD CONSTRAINT fk_SampleUnits_Replacements FOREIGN KEY (sampleunit_id)
-REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
--- foreign key sampleunit_id
-ALTER TABLE "outbound"."FieldActivityCalendar" DROP CONSTRAINT IF EXISTS fk_SampleUnits_FieldActivityCalendar CASCADE;
-ALTER TABLE "outbound"."FieldActivityCalendar" ADD CONSTRAINT fk_SampleUnits_FieldActivityCalendar FOREIGN KEY (sampleunit_id)
-REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
--- foreign key fieldactivitycalendar_id
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldActivityCalendar_Visits CASCADE;
-ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_FieldActivityCalendar_Visits FOREIGN KEY (fieldactivitycalendar_id)
-REFERENCES "outbound"."FieldActivityCalendar" (fieldactivitycalendar_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
--- foreign key sampleunit_id
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Visits CASCADE;
-ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_SampleUnits_Visits FOREIGN KEY (sampleunit_id)
-REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
--- foreign key location_id
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_Locations_Visits CASCADE;
-ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_Locations_Visits FOREIGN KEY (location_id)
-REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
-
-
-#+end_src
 
 * Versions
 we now store the POC versions
@@ -509,7 +548,6 @@ subprocedure: Protocols
 -> MANUALLY update the Protocols table once.
 >>> [[file:../078_update_protocols.qmd]]
 
-* column adjustments
 
 * Stitch Lookups
 
