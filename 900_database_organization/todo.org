@@ -22,10 +22,11 @@ if major updates:
 
 * mainline
 
-+ UPDATE... FROM
++ [X] UPDATE... FROM
   e.g. =UPDATE "outbound"."Replacements" AS REP SET grts_address = UNIT.grts_address FROM "outbound"."SampleUnits" AS UNIT WHERE REP.sampleunit_id = UNIT.sampleunit_id;=
 + ... in combination with TEMP TABLES for cascaded update  
-+ ... and for stitching
+  use =temporary= in https://dbi.r-dbi.org/reference/dbWriteTable.html
++ [X] ... and for stitching
 
 
 + 20250916 Falk, is het eventueel mogelijk om bij een vervangcel in de planning ook het orginele GRTS-adres op te geven? Momenteel is het voor mij moeilijk om uit te zoeken of een vervangcel gekoppeld is aan een cel van de nieuwe planningslaag (voorlopig geopackage van Floris)
