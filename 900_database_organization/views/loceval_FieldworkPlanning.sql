@@ -54,6 +54,7 @@ SELECT
   UNIT.schemes,
   UNIT.scheme_ps_targetpanels,
   UNIT.type,
+  UNIT.is_forest,
   UNIT.has_mhq_assessment,
   UNIT.mhq_assessment_date,
   UNIT.previous_notes,

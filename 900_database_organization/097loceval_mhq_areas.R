@@ -112,6 +112,8 @@ locations <- locations_all %>%
   # filter(grts_address %in% c(23238, 23091910, 6314694))
 
 ## random sampling procedure
+# location_row <- 42
+# one_location <- locations[location_row, ]
 
 generate_mhq_polygon <- function(
     one_location #,
@@ -168,6 +170,7 @@ pb <- txtProgressBar(
 )
 
 # location_row <- 234
+# one_location <- locations[location_row, ]
 mhq_locationwise <- function(location_row) {
 
   setTxtProgressBar(pb, location_row)

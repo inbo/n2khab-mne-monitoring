@@ -8,6 +8,10 @@ SELECT
   SSPSTP.stratum_scheme_ps_targetpanels,
   SLOC.schemes,
   SLOC.strata,
+  SLOC.is_forest,
+  SLOC.in_mhq_samples,
+  SLOC.has_mhq_assessment,
+  SLOC.is_replacement,
   REP.grts_address_poc,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
@@ -42,10 +46,12 @@ SELECT
   FWCAL.done_planning,
   ACT.date_visit,
   ACT.has_installation,
+  ACT.photo,
   CASE WHEN ACT.date_visit IS NULL THEN NULL
        ELSE current_date - ACT.date_visit
   END AS count_days_ws,
   LOCEVAL.has_loceval,
+  LOCEVAL.loceval_photo,
   LOCEVAL.latest_visit
 FROM "outbound"."FieldworkCalendar" AS FWCAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
@@ -61,16 +67,18 @@ LEFT JOIN (
       samplelocation_id,
       eval_source,
       MAX(eval_date) AS latest_visit,
+      photo AS loceval_photo,
       TRUE AS has_loceval
     FROM "outbound"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
-    GROUP BY samplelocation_id, eval_source
+    GROUP BY samplelocation_id, eval_source, photo
   ) AS LOCEVAL
     ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
 LEFT JOIN (
   SELECT DISTINCT
     VISIT.samplelocation_id,
     VISIT.date_visit,
+    VISIT.photo,
     (WIA.fieldwork_id IS NOT NULL) AS has_installation
   FROM "inbound"."Visits" AS VISIT
   LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
