@@ -26,6 +26,7 @@ FROM (
     REP.is_selected,
     REP.is_inappropriate,
     REP.implications_habitatmap,
+    REP.type_suggested,
     UNIT.is_replaced,
     REP.notes AS rep_notes,
     INFO.locationinfo_id,
@@ -39,7 +40,7 @@ FROM (
    ON UNIT.location_id = INFO.location_id
   WHERE UNIT.replacement_ongoing
     AND (NOT UNIT.is_replaced OR REP.is_selected)
-) AS REPU
+  ) AS REPU
 LEFT JOIN (
   SELECT *
   FROM "inbound"."Visits"
@@ -68,6 +69,7 @@ DO ALSO
   is_selected = NEW.is_selected,
   is_inappropriate = NEW.is_inappropriate,
   implications_habitatmap = NEW.implications_habitatmap,
+  type_suggested = NEW.type_suggested,
   notes = NEW.rep_notes
  WHERE replacement_id = OLD.replacement_id
 ;

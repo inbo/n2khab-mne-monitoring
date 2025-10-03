@@ -1153,6 +1153,7 @@ categorize_data_update <- function(
       data_match,
       join_by(!!!characteristic_columns)
     )
+  # data_reactivate %>% arrange(!!!rlang::syms(characteristic_columns))
 
   # (2.) of those matching, some will need to be updated
   # [2.1] changed data
@@ -1177,6 +1178,7 @@ categorize_data_update <- function(
       data_future,
       join_by(!!!characteristic_columns)
     )
+  # data_potential_archive %>% arrange(!!!rlang::syms(characteristic_columns))
 
   # (0.1.?) Were data archived previously?
   # [0.1.1] stay archived; no change

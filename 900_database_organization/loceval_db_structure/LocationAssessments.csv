@@ -1,6 +1,7 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 locationassessment_id,int,True,,True,True,,,,calendar index (technical)
-location_id,int,False,,False,False,,,,the technical sequence of all locations
+sampleunit_id,int,False,,False,False,SampleUnits.sampleunit_id,,,reference to sample unit
+location_id,int,False,,False,False,metadata.Locations.location_id,,,the technical sequence of all locations
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
 grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"

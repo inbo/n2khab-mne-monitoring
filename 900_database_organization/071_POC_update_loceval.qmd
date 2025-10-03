@@ -95,8 +95,8 @@ verify_poc_objects()
 ```{r connect-databases}
 database <- "loceval"
 config_filepath <- file.path("./inbopostgis_server.conf")
-# mirror <- "-staging"
 mirror <- ""
+# mirror <- "-staging"
 
 
 # connect loceval
@@ -108,6 +108,7 @@ locevaldb <- connect_mnm_database(
 ) 
 
 message(glue::glue("connected: psql {locevaldb$shellstring}"))
+update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
 
 ```
 
@@ -220,9 +221,6 @@ field_activities <- locevaldb$query_table("GroupedActivities") %>%
 
 ```
 
-## Replacements
-
-TODO: consider temporarily reflecting replacements in locevaldb
 
 
 ## Sample Units
@@ -476,6 +474,42 @@ sampleunits_lookup <- just_do_it(
 
 ```
 
+## location cells
+
+```{r new-location-cells}
+
+units_cell_polygon[["grts_address_final"]] <-
+  as.integer(units_cell_polygon[["grts_address_final"]])
+
+# unit geometries (cells):
+location_cells <-
+  units_cell_polygon %>%
+  inner_join(
+    locations_lookup,
+    by = join_by(grts_address_final == grts_address),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(-grts_address_final) %>%
+  relocate(geometry, .after = last_col())
+
+sf::st_geometry(location_cells) <- "wkb_geometry"
+# glimpse(location_cells)
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
+
+locevaldb$execute_sql(
+  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
+  verbose = TRUE
+)
+
+locevaldb$insert_data(
+  table_label = "LocationCells",
+  upload_data = location_cells
+)
+
+```
 
 
 
@@ -824,7 +858,6 @@ locevaldb$query_table("FieldActivityCalendar") %>%
 
 ```{r assemble-new-visits}
 
-update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
 
 visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
 
@@ -994,6 +1027,261 @@ update_landuse_in_locationinfos(locevaldb)
 
 
 
+# Replacements
+
+## prepare
+```{r stitch-replacements}
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Replacements",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+
+replacement_characols = c(
+    "grts_address",
+    "type",
+    "grts_address_replacement",
+    "replacement_rank"
+  )
+
+```
+
+
+## replacements archive
+
+```{r archive-previous_replacements}
+
+previous_replacements <- locevaldb$query_table("Replacements") %>%
+  select(-wkb_geometry) %>%
+  filter(
+    is_inappropriate
+    | is_selected
+    | (!is.na(type_suggested))
+    | (implications_habitatmap)
+    | (!is.na(notes))
+  )
+
+replacement_archives <- previous_replacements %>%
+  inner_join(
+    locevaldb$query_columns(
+      "SampleUnits",
+      c(
+        "sampleunit_id",
+        "replacement_reason",
+        "replacement_permanence",
+        "type_is_absent"
+        )
+      ),
+    by = join_by(sampleunit_id)
+  ) %>%
+  select(-replacement_id, -sampleunit_id) %>% 
+  mutate(version_id = version_id)
+ 
+glimpse(replacement_archives)
+
+
+if (nrow(replacement_archives) > 0) {
+  # previous_replacements %>% select(starts_with("grts_address"))
+
+  replacement_archive_lookup <- update_cascade_lookup(
+    table_label = "ReplacementArchives",
+    new_data = replacement_archives,
+    index_columns = c("replacementarchive_id"),
+    characteristic_columns = c(
+      "grts_address",
+      "grts_address_replacement",
+      "type",
+      "replacement_rank",
+      "version_id"
+    ),
+    tabula_rasa = FALSE,
+    verbose = TRUE
+  )
+}
+```
+
+
+## restore
+
+```{r new-replacements}
+
+replacements <-
+  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+  select(stratum, grts_address, replacement_cells) %>%
+  unnest(replacement_cells) %>%
+  filter(!is.na(cellnr_replac)) %>%
+  left_join(
+    n2khab_strata,
+    by = join_by(stratum),
+    relationship = "many-to-many" # TODO
+  ) %>%
+  select(-stratum) %>%
+  rename(
+    cellnr_replacement = cellnr_replac,
+    grts_address_replacement = grts_address_replac,
+    replacement_rank = ranknr
+  ) %>%
+  inner_join(
+    sampleunits_lookup %>%
+      select(type, grts_address, sampleunit_id),
+    by = join_by(type, grts_address),
+    relationship = "many-to-many", # TODO
+    unmatched = "drop"
+  )
+
+
+
+replacements_new <- replacements %>%
+  left_join(
+    previous_replacements,
+    by = join_by(!!!rlang::syms(replacement_characols)),
+    suffix = c("", "_prev")
+  ) %>%
+  select(-replacement_id, -sampleunit_id_prev, -cellnr_replacement) %>%
+  arrange(!!!rlang::syms(replacement_characols)) %>% 
+  # mutate(replacement_id = seq_len(n())) %>%
+  # relocate(replacement_id)
+  mutate(
+    is_inappropriate = coalesce(is_inappropriate, FALSE),
+    is_selected = coalesce(is_selected, FALSE),
+    implications_habitatmap = coalesce(implications_habitatmap, FALSE)
+  )
+
+glimpse(replacements_new %>% filter(is_selected))
+
+replacements_upload <- replacements_new %>%
+  add_point_coords_grts(
+    grts_var = "grts_address_replacement",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(replacements_upload) <- "wkb_geometry"
+
+# glimpse(replacements_upload)
+
+
+# upload new replacements, TABULA RASA
+replacements_lookup <- update_cascade_lookup(
+  table_label = "Replacements",
+  new_data = replacements_upload,
+  index_columns = c("replacement_id"),
+  characteristic_columns = replacement_characols,
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+
+# if it fails: DELETE FROM "outbound"."Replacements";
+
+```
+
+
+## connect
+
+```{r stitch-previous-replacements}
+
+trgtab <- locevaldb$get_namestring("SampleUnits")
+srctab <- locevaldb$get_namestring("Replacements")
+lookup_columns <- c("grts_address", "type")
+link_key_column <- "replacement_id"
+
+lookup_criteria <- unlist(lapply(
+  lookup_columns,
+  FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
+))
+
+srctab_query <- glue::glue("
+  SELECT {paste0(lookup_columns, collapse = ', ')}, {link_key_column}
+  FROM {srctab}
+  WHERE is_selected
+")
+
+# reset reference
+mnmdb$execute_sql(
+ glue::glue("
+   UPDATE {trgtab} AS TRGTAB
+     SET
+       {link_key_column} = NULL;
+   "),
+ verbose = TRUE
+)
+
+update_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      {link_key_column} = SRCTAB.{link_key_column}
+    FROM ({srctab_query}) AS SRCTAB
+    WHERE
+     ({paste0(lookup_criteria, collapse = ') AND (')})
+  ;"
+)
+
+mnmdb$execute_sql(update_string, verbose = TRUE)
+
+
+# to check: SELECT * FROM "outbound"."SampleUnits" WHERE replacement_id IS NOT NULL;
+```
+
+## replacement cells
+
+```{r new-replacement-cells}
+
+replacement_cell_rast <-
+  locevaldb$pull_column(
+    "Replacements",
+    "grts_address_replacement"
+  ) %>%
+  filter_grtsraster_by_address(spatrast = grts_mh, spatrast_index = grts_mh_index)
+
+set.names(replacement_cell_rast, "grts_address_replacement")
+
+replacement_cell_polygons <-
+  replacement_cell_rast %>%
+  as.polygons(aggregate = FALSE) %>%
+  sf::st_as_sf()
+
+replacement_cells <- replacement_cell_polygons %>%
+  # to prefer the tibble approach in sf, we need to convert forth and back
+  as_tibble() %>%
+  mutate(grts_address_replacement = as.integer(grts_address_replacement)) %>%
+  # it appears that the CRS is actually retrieved from the tibble, but I don't
+  # understand how (so the crs argument below isn't needed)
+  st_as_sf(crs = "EPSG:31370")
+
+replacement_cells <-
+  replacement_cells %>%
+  inner_join(
+    replacements_lookup,
+    by = join_by(grts_address_replacement),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(replacement_id)
+
+sf::st_geometry(replacement_cells) <- "wkb_geometry"
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of outbound.ReplacementCells"))
+
+locevaldb$execute_sql(
+  glue::glue('DELETE  FROM "outbound"."ReplacementCells";'),
+  verbose = TRUE
+)
+
+locevaldb$insert_data(
+  table_label = "ReplacementCells",
+  upload_data = replacement_cells
+)
+
+```
+
+# TODO
+
+
 ```{r step-n-safety-dump}
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
@@ -1017,9 +1305,6 @@ if (isFALSE(grepl("-staging", locevaldb_mirror))) {
 ```{r launch-consistency-dashboard}
 system("quarto render 040l_loceval_consistency_dashboard.qmd --to html")
 ```
-
-
-## TODO
 
 - [X] re-run the procedure.
 - [X] apply to production server.

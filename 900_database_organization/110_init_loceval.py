@@ -25,7 +25,7 @@ if restore_dev:
         connection_config = "loceval-dev",
         )
     db = DTB.Database( \
-        structure_folder = base_folder/"loceval_dev_structure", \
+        structure_folder = base_folder/"loceval_db_structure", \
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
         db_connection = db_connection, \

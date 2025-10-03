@@ -4,7 +4,7 @@ log_user,varchar,True,current_user,False,False,,,,(technical) user who modified 
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after corrections)"
 type,varchar,True,,False,False,,,,"type, as planned in the sampling procedure"
-sampleunit_id,int,True,,False,False,outbound.SampleUnits.sampleunit_id,,,optional link to sample locations
+sampleunit_id,int,False,,False,False,outbound.SampleUnits.sampleunit_id,,,optional link to sample locations
 activity_group_id,smallint,True,,False,False,,,,a link to the activity metadata
 activity_rank,smallint,False,,False,False,,CHECK (activity_rank > 0),,execution order of the field activities
 date_start,date,True,,False,False,,,,start of the panel activity sequence
