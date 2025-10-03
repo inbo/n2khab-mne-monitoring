@@ -13,8 +13,8 @@ source("MNMDatabaseToolbox.R")
 
 
 config_filepath <- file.path("./inbopostgis_server.conf")
-# mirror <- ""
-mirror <- "-staging"
+mirror <- ""
+# mirror <- "-staging"
 
 
 

@@ -26,6 +26,7 @@ SELECT
   INFO.landowner,
   INFO.watina_code_1,
   INFO.watina_code_2,
+  LOCEVAL.loceval_photo,
   GAP.activity_group_id,
   GAP.is_field_activity,
   GAP.is_gw_activity,
@@ -83,6 +84,20 @@ LEFT JOIN (
   FROM "inbound"."ChemicalSamplingActivities"
 ) AS CSA
   ON VISIT.visit_id = CSA.visit_id
+LEFT JOIN (
+  SELECT samplelocation_id, loceval_photo
+  FROM (
+    SELECT DISTINCT
+      samplelocation_id,
+      MAX(eval_date) AS latest_visit,
+      eval_date,
+      photo AS loceval_photo
+    FROM "outbound"."LocationEvaluations" AS LE
+    WHERE eval_source = 'loceval'
+    GROUP BY samplelocation_id, eval_date, photo
+  ) WHERE eval_date = latest_visit AND loceval_photo IS NOT NULL
+) AS LOCEVAL
+  ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
 WHERE TRUE
   AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
   AND NOT FwCAL.excluded
@@ -158,25 +173,8 @@ DO ALSO
 ;
 
 
-GRANT SELECT ON  "inbound"."FieldWork"  TO  tom;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  yglinga;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  jens;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  lise;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  wouter;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  floris;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  karen;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  falk;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  ward;
-GRANT SELECT ON  "inbound"."FieldWork"  TO  monkey;
-
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  tom;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  yglinga;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  jens;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  lise;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  wouter;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  floris;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  karen;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  falk;
+GRANT SELECT ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk, ward, monkey;
+GRANT UPDATE ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk;
 
 GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
