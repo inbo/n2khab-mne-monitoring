@@ -1311,5 +1311,5 @@ system("quarto render 040l_loceval_consistency_dashboard.qmd --to html")
 
 - [X] re-run the procedure.
 - [X] apply to production server.
-- [ ] daily scripts
+- [X] daily scripts
 

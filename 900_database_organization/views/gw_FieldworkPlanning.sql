@@ -52,6 +52,7 @@ SELECT
   END AS count_days_ws,
   LOCEVAL.has_loceval,
   LOCEVAL.loceval_photo,
+  LOCEVAL.loceval_notes,
   LOCEVAL.latest_visit
 FROM "outbound"."FieldworkCalendar" AS FWCAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
@@ -63,15 +64,24 @@ LEFT JOIN "outbound"."LocationInfos" AS INFO
 LEFT JOIN "metadata"."SSPSTaPas" AS SSPSTP
   ON SSPSTP.sspstapa_id = FWCAL.sspstapa_id
 LEFT JOIN (
+  SELECT
+    samplelocation_id,
+    latest_visit,
+    loceval_photo,
+    loceval_notes,
+    TRUE AS has_loceval
+  FROM (
     SELECT DISTINCT
       samplelocation_id,
       eval_source,
       MAX(eval_date) AS latest_visit,
+      eval_date,
       photo AS loceval_photo,
-      TRUE AS has_loceval
+      notes AS loceval_notes
     FROM "outbound"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
-    GROUP BY samplelocation_id, eval_source, photo
+    GROUP BY samplelocation_id, eval_source, photo, notes, eval_date
+  ) WHERE eval_date = latest_visit 
   ) AS LOCEVAL
     ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
 LEFT JOIN (
