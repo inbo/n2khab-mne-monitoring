@@ -1,0 +1,14 @@
+#+title: 005 Photos
+
+#+begin_src python
+find ./photos_highres -iname '*.jpg' -exec convert \{\} -verbose -set filename:base "%[basename]" -resize 640x640^ -quality 80% \> "DCIM/%[filename:base].JPG" \;
+
+
+find ./photos_highres -iname '*.jpg' -exec convert \{\} -verbose -set filename "%[basename].%[extension]" -resize 640x640^ -quality 80% \> "./DCIM/%[filename]" \;
+find ./photos_highres -iname '*.png' -exec convert \{\} -verbose -set filename "%[basename].%[extension]" -resize 640x640^ -quality 15 \> "./DCIM/%[filename]" \;
+#+end_src
+
+
+#+begin_src python
+
+#+end_src
