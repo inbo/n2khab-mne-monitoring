@@ -1144,14 +1144,14 @@ categorize_data_update <- function(
   data_match <- data_future %>%
     semi_join(
       data_previous,
-      join_by(!!!characteristic_columns)
+      join_by(!!!rlang::syms(characteristic_columns))
     )
 
   # [1.1] data re-activated: matched again though archived before
   data_reactivate <- data_previous_archive %>%
     semi_join(
       data_match,
-      join_by(!!!characteristic_columns)
+      join_by(!!!rlang::syms(characteristic_columns))
     )
   # data_reactivate %>% arrange(!!!rlang::syms(characteristic_columns))
 
@@ -1160,7 +1160,7 @@ categorize_data_update <- function(
   data_changed <- data_match %>%
     anti_join(
       data_previous,
-      join_by(!!!names(data_future))
+      by = join_by(!!!rlang::syms(names(data_future)))
     )
 
   # ... but others will not.
@@ -1168,7 +1168,7 @@ categorize_data_update <- function(
   data_unchanged <- data_match %>%
     semi_join(
       data_previous,
-      join_by(!!!names(data_future))
+      by = join_by(!!!rlang::syms(names(data_future)))
     )
 
   ## (0.?) is data present in previous data, but now not any more?
@@ -1176,7 +1176,7 @@ categorize_data_update <- function(
   data_potential_archive <- data_previous %>%
     anti_join(
       data_future,
-      join_by(!!!characteristic_columns)
+      by = join_by(!!!rlang::syms(characteristic_columns))
     )
   # data_potential_archive %>% arrange(!!!rlang::syms(characteristic_columns))
 
@@ -1186,7 +1186,7 @@ categorize_data_update <- function(
     data_unchanged,
     data_potential_archive %>% semi_join(
       data_previous_archive,
-      join_by(!!!characteristic_columns)
+      by = join_by(!!!rlang::syms(characteristic_columns))
     )
   )
 
@@ -1194,14 +1194,14 @@ categorize_data_update <- function(
   data_to_archive <- data_potential_archive %>%
     anti_join(
       data_previous_archive,
-      join_by(!!!characteristic_columns)
+      by = join_by(!!!rlang::syms(characteristic_columns))
     )
 
   # [0.0] new data is ready for upload
   data_to_upload <- data_future %>%
     anti_join(
       data_previous,
-      join_by(!!!characteristic_columns)
+      by = join_by(!!!rlang::syms(characteristic_columns))
     )
 
   ## return a list
