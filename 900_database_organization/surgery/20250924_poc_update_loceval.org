@@ -604,6 +604,10 @@ CLOSED: [2025-10-02 Thu 14:16]
 * MISC cleanup
 ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id SET NOT NULL;
 
+* /post mortem:/ replacements
+
+[[file:./20251003_Replacements_Archive.org]]
+
 * auxiliary maintenance scripts
 ... all of them, just to make sure.
 
@@ -617,3 +621,9 @@ ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id SET NO
 + [ ] =mhq areas= new logic!
 + [?!] 900_database_organization/.dbinit/lib/python3.13/site-packages/pandas/io/sql.py:1737: SAWarning: Did not recognize type 'geometry' of column 'wkb_geometry'
   self.meta.reflect(bind=self.con, only=[table_name], views=True)
++ [X] Replacements
++ [X] LocationCells and ReplacementCells
++ [ ] ?? Habitatmap Polygons
++ [ ] ?? LocationAssessments (ofo's)
+
++ [ ] restore =testing= project

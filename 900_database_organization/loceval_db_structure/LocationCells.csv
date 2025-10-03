@@ -1,3 +1,3 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-location_id,int,True,,False,False,metadata.Locations.location_id,,,location index (technical)
+location_id,int,False,,False,False,metadata.Locations.location_id,,,location index (technical)
 wkb_geometry,,False,,False,False,,,,polygon geometry (31370 / Lambert 72): target location
