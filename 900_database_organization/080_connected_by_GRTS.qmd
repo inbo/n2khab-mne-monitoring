@@ -54,7 +54,8 @@ message(mnmdb$shellstring)
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(53438326, 57632630)
+grts <- c(2136622, 1677870)
+    # c(53438326, 57632630)
     # c(437685, 8826293)
     # c(24774)
     # c(871030)
@@ -363,3 +364,21 @@ print_special_activities()
 print_infos()
 ```
 
+
+\pagebreak 
+# loceval
+
+```{r connect-loceval}
+database_label <- "loceval"
+
+### connect to database
+mnmdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = glue::glue("{database_label}{suffix}"),
+  user = "monkey",
+  password = NA
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+message(mnmdb$shellstring)
+
+```

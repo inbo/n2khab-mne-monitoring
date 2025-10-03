@@ -642,7 +642,7 @@ fieldwork_calendar <-
     no_visit_planned = FALSE,
     done_planning = FALSE
   ) 
-
+fieldwork_calendar %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
 
 fieldwork_calendar_new <- fieldwork_calendar %>%
   select(
@@ -689,6 +689,7 @@ data_future <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
 # data_future %>% head(3) %>% t() %>% knitr::kable()
+# data_future %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
 
 distribution <- categorize_data_update(
   mnmdb = locevaldb,
@@ -699,6 +700,8 @@ distribution <- categorize_data_update(
 )
 print_category_count(distribution, table_label)
 
+# distribution$to_archive %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
+# distribution$reactivate %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
 ```
 
 
