@@ -132,8 +132,18 @@ join_activity_groups <- function(df) {
 }
 =======
 ```{r choose-grts}
+<<<<<<< HEAD
 grts <- c(871030)
 
+=======
+grts <- c(23257, 60185305) # visit by Wouter 20/8
+    # c(1920534) # cell lost upon update loceval
+    # c(2136622, 1677870)
+    # c(53438326, 57632630)
+    # c(437685, 8826293)
+    # c(24774)
+    # c(871030)
+>>>>>>> 218d101 (dbinit: copy to testing)
     # c(1280278)
     # c(23238, 23091910, 6314694) # Hellebos
     # c(4761777)

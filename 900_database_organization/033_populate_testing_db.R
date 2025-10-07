@@ -11,6 +11,7 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
+<<<<<<< HEAD
 # choose database via the command line
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {
@@ -21,6 +22,10 @@ if (length(commandline_args) > 0) {
 # database_label <- "loceval"
 # database_label <- "mnmgwdb"
 stopifnot(database_label %in% c("loceval", "mnmgwdb"))
+=======
+# database_label <- "loceval"
+database_label <- "mnmgwdb"
+>>>>>>> 218d101 (dbinit: copy to testing)
 
 source_mirror <- glue::glue("{database_label}") # -staging
 target_mirror <- glue::glue("{database_label}-testing")
