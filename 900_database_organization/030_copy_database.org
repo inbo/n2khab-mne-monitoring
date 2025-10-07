@@ -61,7 +61,7 @@ CREATE EXTENSION postgis_tiger_geocoder;
 #+end_src
 
 
-** automate
+** login automation
 Some procedures, such as database backups, might need to be instantiated for the novel /target/.
 
 
@@ -260,10 +260,11 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-# database_label <- "mnmgwdb"
 database_label <- "loceval"
-source_mirror <- glue::glue("{database_label}-staging")
-target_mirror <- glue::glue("{database_label}-dev")
+# database_label <- "mnmgwdb"
+
+source_mirror <- glue::glue("{database_label}") # -staging
+target_mirror <- glue::glue("{database_label}-testing")
 
 
 # from source...
@@ -298,7 +299,7 @@ We certainly need to modify some tables.
 #   each of these functions should receive exactly one data frame,
 #   just to give exactly one back.
 sort_protocols <- function(prt) {
-  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol))
+  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code), dplyr::desc(protocol_version))
   return(prt)
 }
 
@@ -389,11 +390,37 @@ Apply to all the table (never tired of reminding: *order matters*):
 
 #+begin_src R :eval no :tangle 033_populate_testing_db.R
 
+#_______________________________________________________________________________
+# Finally, COPY ALL DATA
+
+
+invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
+
+#+end_src
+
+
+This is tested by comparing =pg_dump= of both databases after copying.
+
+
+You might want to modify permissions for certain users on the target database.
+
+#+begin_src sql :eval no :tangle no
+
+SET search_path TO public,"metadata","outbound","inbound","archive","analysis";
+
+GRANT USAGE ON SCHEMA "metadata" TO tester;
+GRANT SELECT ON ALL TABLES IN SCHEMA "metadata" TO tester;
+
+#+end_src
+
+
+#+begin_src python :eval no :tangle no :echo no
+
 # TODO due to ON DELETE SET NULL from "Locations", location_id's temporarily become NULL.
 #      Updating would be cumbersome.
-constraints_mod <- function(do = c("DROP", "SET")){
+constraints_mod_OBSOLETE <- function(do = c("DROP", "SET")) {
 
-  toggle_null_constraint <- function(schema, table_label, column){
+  toggle_null_constraint <- function(schema, table_label, column) {
     # {dis/en}able fk for these tables
     target_db$execute_sql(
       glue::glue('ALTER TABLE "{schema}"."{table_label}" ALTER COLUMN {column} {do} NOT NULL;'),
@@ -423,32 +450,10 @@ constraints_mod <- function(do = c("DROP", "SET")){
 
 } #/constraints_mod
 
-#_______________________________________________________________________________
-# Finally, COPY ALL DATA
-
-constraints_mod("DROP")
-
-invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
-
-constraints_mod("SET")
+# constraints_mod("DROP")
+# constraints_mod("SET")
 
 #+end_src
-
-
-This is tested by comparing =pg_dump= of both databases after copying.
-
-
-You might want to modify permissions for certain users on the target database.
-
-#+begin_src sql :eval no :tangle no
-
-SET search_path TO public,"metadata","outbound","inbound","archive","analysis";
-
-GRANT USAGE ON SCHEMA "metadata" TO tester;
-GRANT SELECT ON ALL TABLES IN SCHEMA "metadata" TO tester;
-
-#+end_src
-
 
 * Brief Data Inspection
 

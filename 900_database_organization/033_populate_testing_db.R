@@ -11,9 +11,10 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-database_label <- "mnmgwdb"
 # database_label <- "loceval"
-source_mirror <- glue::glue("{database_label}")
+database_label <- "mnmgwdb"
+
+source_mirror <- glue::glue("{database_label}") # -staging
 target_mirror <- glue::glue("{database_label}-testing")
 
 
@@ -42,7 +43,7 @@ target_db <- connect_mnm_database(
 #   each of these functions should receive exactly one data frame,
 #   just to give exactly one back.
 sort_protocols <- function(prt) {
-  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol))
+  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code), dplyr::desc(protocol_version))
   return(prt)
 }
 
@@ -105,45 +106,8 @@ process_db_table_copy <- function(table_idx) {
 
 }
 
-# TODO due to ON DELETE SET NULL from "Locations", location_id's temporarily become NULL.
-#      Updating would be cumbersome.
-constraints_mod <- function(do = c("DROP", "SET")){
-
-  toggle_null_constraint <- function(schema, table_label, column){
-    # {dis/en}able fk for these tables
-    target_db$execute_sql(
-      glue::glue('ALTER TABLE "{schema}"."{table_label}" ALTER COLUMN {column} {do} NOT NULL;'),
-      verbose = FALSE
-    ) # /sql
-  } # /toggle_mod
-
-
-  if (database_label == "loceval") {
-    # To prevent failure, I temporarily remove the constraint.
-    for (table_label in c("LocationAssessments", "SampleUnits", "LocationInfos")){
-      toggle_null_constraint("outbound", table_label, "location_id")
-    } # /loop
-
-    toggle_null_constraint("inbound", "Visits", "location_id")
-    toggle_null_constraint("outbound", "ReplacementCells", "replacement_id")
-  }
-
-  if (database_label == "mnmgwdb") {
-    # To prevent failure, I temporarily remove the constraint.
-    for (table_label in c("SampleLocations", "LocationInfos")){
-      toggle_null_constraint("outbound", table_label, "location_id")
-    } # /loop
-
-    toggle_null_constraint("inbound", "Visits", "location_id")
-  }
-
-} #/constraints_mod
-
 #_______________________________________________________________________________
 # Finally, COPY ALL DATA
 
-constraints_mod("DROP")
 
 invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
-
-constraints_mod("SET")
