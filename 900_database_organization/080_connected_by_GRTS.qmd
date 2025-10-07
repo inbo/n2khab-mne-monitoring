@@ -54,7 +54,8 @@ message(mnmdb$shellstring)
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(1920534) # cell lost upon update loceval
+grts <- c(23257, 60185305) # visit by Wouter 20/8
+    # c(1920534) # cell lost upon update loceval
     # c(2136622, 1677870)
     # c(53438326, 57632630)
     # c(437685, 8826293)

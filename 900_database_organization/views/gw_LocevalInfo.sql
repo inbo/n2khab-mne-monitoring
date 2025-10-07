@@ -4,7 +4,7 @@ CREATE VIEW "outbound"."LocevalInfo" AS
 SELECT
   LOC.*,
   LOCEVAL.locationevaluation_id,
-  LOCEVAL.scheme,
+  LOCEVAL.schemes,
   LOCEVAL.type,
   LOCEVAL.type_assessed,
   LOCEVAL.eval_source,
