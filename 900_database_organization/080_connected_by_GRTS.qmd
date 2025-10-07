@@ -54,7 +54,8 @@ message(mnmdb$shellstring)
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(2136622, 1677870)
+grts <- c(1920534) # cell lost upon update loceval
+    # c(2136622, 1677870)
     # c(53438326, 57632630)
     # c(437685, 8826293)
     # c(24774)
@@ -133,12 +134,13 @@ slocs <- mnmdb$query_table("SampleLocations") %>%
 
 loc_ids <- mnmdb$pull_column("Locations", "location_id")
 loc_cells <- mnmdb$pull_column("LocationCells", "location_id")
-loc_cells <- mnmdb$pull_column("LocationInfos", "location_id")
+loc_infos <- mnmdb$pull_column("LocationInfos", "location_id")
 
 slocs <- slocs %>%
   mutate(
     has_loc = location_id %in% loc_ids,
     has_cell = location_id %in% loc_cells,
+    has_infos = location_id %in% loc_infos,
     archived = isFALSE(is.na(archive_version_id))
   )
 
@@ -159,6 +161,7 @@ print_slocs <- function() {
       replaced,
       has_loc,
       has_cell,
+      has_infos,
       archived
     ) %>%
     t() %>% 
@@ -381,4 +384,189 @@ mnmdb <- connect_mnm_database(
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 message(mnmdb$shellstring)
 
+```
+
+```{r helper-join-activity-groups-loceval}
+
+join_activity_groups <- function(df) {
+  df %>% dplyr::left_join(
+      mnmdb$query_columns(
+        "GroupedActivities",
+        c(
+          "activity_group_id",
+          "activity_group"
+        )
+      ) %>% dplyr::distinct(),
+      by = dplyr::join_by(activity_group_id)
+    ) %>%
+  return()
+}
+
+```
+
+
+```{r sample-units}
+
+sunit <- mnmdb$query_table("SampleUnits") %>%
+  filter(grts_address %in% grts)
+
+
+loc_ids <- mnmdb$pull_column("Locations", "location_id")
+loc_cells <- mnmdb$pull_column("LocationCells", "location_id")
+loc_infos <- mnmdb$pull_column("LocationInfos", "location_id")
+
+sunit <- sunit %>%
+  mutate(
+    has_loc = location_id %in% loc_ids,
+    has_cell = location_id %in% loc_cells,
+    has_infos = location_id %in% loc_infos,
+    archived = isFALSE(is.na(archive_version_id))
+  )
+
+print_sunit <- function() {
+  sunit %>%
+    dplyr::rename(
+      suid = sampleunit_id,
+      lid = location_id,
+      replaced = is_replaced,
+      mhq = in_mhq_samples,
+      forest = is_forest,
+      grts = grts_address
+    ) %>%
+    dplyr::select(
+      grts,
+      type,
+      domain_part,
+      schemes,
+      lid,
+      suid,
+      replaced,
+      has_loc,
+      has_cell,
+      has_infos,
+      mhq,
+      forest,
+      archived
+    ) %>%
+    t() %>% 
+    knitr::kable()
+}
+
+```
+
+
+```{r loceval-calendar}
+
+facal <- mnmdb$query_table("FieldActivityCalendar") %>%
+  filter(grts_address %in% grts) %>%
+  join_activity_groups() # %>%
+
+print_facal <- function() {
+  facal %>%
+    dplyr::rename(
+      fcid = fieldactivitycalendar_id,
+      suid = sampleunit_id,
+      agid = activity_group_id,
+      archv = archive_version_id,
+      done_p = done_planning,
+      no_vis = no_visit_planned
+    ) %>%
+    dplyr::select(
+      type,
+      suid,
+      fcid,
+      agid,
+      activity_group,
+      date_start,
+      archv,
+      no_vis,
+      done_p
+    ) %>%
+    arrange(type, date_start, agid) %>% 
+    knitr::kable()
+}
+
+```
+
+```{r loceval-visits}
+
+visits <- mnmdb$query_table("Visits") %>%
+  filter(grts_address %in% grts) %>%
+  join_activity_groups()
+
+print_visits <- function() {
+  visits %>%
+    dplyr::rename(
+      grts = grts_address,
+      lid = location_id,
+      suid = sampleunit_id,
+      agid = activity_group_id,
+      fcid = fieldactivitycalendar_id,
+      archv = archive_version_id,
+      vid = visit_id
+    ) %>%
+    dplyr::select(
+      grts,
+      type,
+      lid,
+      suid,
+      fcid,
+      vid,
+      agid,
+      date_start,
+      archv,
+      date_visit
+    ) %>%
+    arrange(type, date_start, agid) %>% 
+    knitr::kable()
+}
+
+```
+
+
+```{r loceval-infos}
+
+infos <- mnmdb$query_table("LocationInfos") %>%
+  filter(grts_address %in% grts)
+
+print_infos <- function() {
+  infos %>%
+    dplyr::rename(
+      grts = grts_address,
+      liid = locationinfo_id,
+      lid = location_id,
+      inaccess = accessibility_inaccessible,
+      hints = recovery_hints
+    ) %>%
+    dplyr::select(
+      liid,
+      grts,
+      lid,
+      inaccess,
+      hints
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+
+```{=latex} 
+\pagebreak 
+```
+
+# Loceval
+
+```{r todo}
+# ofo's
+# replacements
+```
+
+
+```{r print-loceval}
+print_sunit()
+print_facal()
+print_visits()
+print_infos()
 ```
