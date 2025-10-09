@@ -28,6 +28,7 @@ FROM (
     REP.implications_habitatmap,
     REP.type_suggested,
     UNIT.is_replaced,
+    UNIT.type_is_absent,
     REP.notes AS rep_notes,
     INFO.locationinfo_id,
     INFO.accessibility_inaccessible,
@@ -39,7 +40,10 @@ FROM (
   LEFT JOIN "outbound"."LocationInfos" AS INFO
    ON UNIT.location_id = INFO.location_id
   WHERE UNIT.replacement_ongoing
-    AND (NOT UNIT.is_replaced OR REP.is_selected)
+    AND (
+      REP.is_selected
+      OR NOT (UNIT.is_replaced OR UNIT.type_is_absent)
+    )
   ) AS REPU
 LEFT JOIN (
   SELECT *
@@ -110,14 +114,8 @@ DO ALSO
 ;
 
 
-GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO ward;
-GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO karen;
-GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO floris;
-GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO ward;
-GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO karen;
-GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO floris;
-GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO tom;
-GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO tom;
+GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO ward, karen, floris, tom, monkey;
+GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO ward, karen, floris, tom;
 
 GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO tester;
 GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO tester;
