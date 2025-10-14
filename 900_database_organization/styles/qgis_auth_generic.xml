@@ -1,0 +1,8 @@
+<!DOCTYPE qgis_authentication>
+<qgis_authentication>
+  <configurations>
+    <AuthMethodConfig method="Basic" name="me@mnmdb" id="mnmuser" version="2" uri="">
+      <Config password="my_password" realm="" username="my_username"/>
+    </AuthMethodConfig>
+  </configurations>
+</qgis_authentication>
