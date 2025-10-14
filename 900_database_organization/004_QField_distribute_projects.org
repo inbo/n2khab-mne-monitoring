@@ -1,0 +1,36 @@
+#+title: 004 Q Field Distribute Projects
+
+
+
+#+begin_src sh :eval no :tangle qfield_zip_projects.sh
+#!/usr/bin/env sh
+
+declare -a projects=(
+  "loceval_fieldwork"
+  "loceval_preassessment"
+  "mnmgwdb_fieldwork"
+  "mnmgwdb_fieldwork_planning"
+  "testing_loceval_fieldwork"
+  "testing_mnmgwdb_fieldwork"
+  "testing_mnmgwdb_fieldwork_planning"
+)
+
+for prj in "${projects[@]}"
+do
+  echo "### $prj" 
+  echo "  - retrieving photos" 
+  rm -rf "$prj/DCIM"
+  cp -R -p "/data/qgis_projects/DCIM" "$prj/"
+
+  echo "  - zipping project" 
+  cd $prj
+  rm -f '*.qgs~'
+  rm "../$prj.zip"
+  zip -ruq "../$prj.zip" . -i '*'
+  cd ..
+
+  echo "  - distributing" 
+  cp "$prj.zip" "/data/qgis_projects/distribute/"
+done
+
+#+end_src
