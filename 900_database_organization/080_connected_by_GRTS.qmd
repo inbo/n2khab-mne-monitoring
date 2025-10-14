@@ -27,16 +27,43 @@ load_database_interaction_libraries()
 
 source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
+
+# credentials are stored for easy access
+config_filepath <- file.path("./inbopostgis_server.conf")
+
+suffix <- "-staging" # "-testing"
+suffix <- ""
 ```
 
 
-```{r database-connection}
-# credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
-database_label <- "mnmgwdb"
-suffix <- "-staging" # "-testing"
-suffix <- ""
+-- choose a GRTS
 
+```{r choose-grts}
+grts <- c(84598, 871030) # dual replacement
+    # c(23257, 60185305) # visit by Wouter 20/8
+    # c(1920534) # cell lost upon update loceval
+    # c(2136622, 1677870)
+    # c(53438326, 57632630)
+    # c(437685, 8826293)
+    # c(24774)
+    # c(1280278)
+    # c(23238, 23091910, 6314694) # Hellebos
+    # c(4761777)
+    # c(23238)
+    # c(10119474) # this is only LOCEVAL <- SURF_03.4_lentic
+    # c(1202926, 10640110) more missed archives
+    # c(219694, 9525806) # was partially replaced and therefore archived
+    # c(1999406, 6417454) # was falsely archived
+    # c(31496054)
+    # c(219694)
+
+```
+
+
+# LOCEVAL: `r as.character(grts)`
+
+```{r connect-loceval}
+database_label <- "loceval"
 
 ### connect to database
 mnmdb <- connect_mnm_database(
@@ -51,29 +78,295 @@ message(mnmdb$shellstring)
 ```
 
 
--- choose a GRTS
 
-```{r choose-grts}
-grts <- c(23257, 60185305) # visit by Wouter 20/8
-    # c(1920534) # cell lost upon update loceval
-    # c(2136622, 1677870)
-    # c(53438326, 57632630)
-    # c(437685, 8826293)
-    # c(24774)
-    # c(871030)
-    # c(1280278)
-    # c(23238, 23091910, 6314694) # Hellebos
-    # c(4761777)
-    # c(23238)
-    # c(10119474) # this is only LOCEVAL <- SURF_03.4_lentic
-    # c(1202926, 10640110) more missed archives
-    # c(219694, 9525806) # was partially replaced and therefore archived
-    # c(1999406, 6417454) # was falsely archived
-    # c(31496054)
-    # c(219694)
+```{r helper-join-activity-groups-loceval}
+
+join_activity_groups <- function(df) {
+  df %>% dplyr::left_join(
+      mnmdb$query_columns(
+        "GroupedActivities",
+        c(
+          "activity_group_id",
+          "activity_group"
+        )
+      ) %>% dplyr::distinct(),
+      by = dplyr::join_by(activity_group_id)
+    ) %>%
+  return()
+}
 
 ```
 
+
+```{r sample-units}
+
+sunit <- mnmdb$query_table("SampleUnits") %>%
+  filter(grts_address %in% grts)
+
+
+loc_ids <- mnmdb$pull_column("Locations", "location_id")
+loc_cells <- mnmdb$pull_column("LocationCells", "location_id")
+loc_infos <- mnmdb$pull_column("LocationInfos", "location_id")
+
+sunit <- sunit %>%
+  mutate(
+    has_loc = location_id %in% loc_ids,
+    has_cell = location_id %in% loc_cells,
+    has_infos = location_id %in% loc_infos,
+    archived = isFALSE(is.na(archive_version_id))
+  )
+
+eva_print_sunit <- function() {
+  sunit %>%
+    dplyr::rename(
+      suid = sampleunit_id,
+      lid = location_id,
+      replaced = is_replaced,
+      mhq = in_mhq_samples,
+      forest = is_forest,
+      grts = grts_address
+    ) %>%
+    dplyr::select(
+      grts,
+      type,
+      domain_part,
+      schemes,
+      lid,
+      suid,
+      replaced,
+      has_loc,
+      has_cell,
+      has_infos,
+      mhq,
+      forest,
+      archived
+    ) %>%
+    t() %>% 
+    knitr::kable()
+}
+
+```
+
+
+```{r loceval-ofos}
+
+ofos <- mnmdb$query_table("LocationAssessments") %>%
+  filter(grts_address %in% grts)
+
+eva_print_ofos <- function() {
+  ofos %>%
+    dplyr::rename(
+      lid = location_id,
+      suid = sampleunit_id,
+      grts = grts_address,
+      dis = cell_disapproved,
+      done_a = assessment_done
+    ) %>%
+    arrange(type, dis, done_a) %>% 
+    dplyr::select(
+      suid,
+      grts,
+      type,
+      dis,
+      done_a
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+```{r loceval-calendar}
+
+facal <- mnmdb$query_table("FieldActivityCalendar") %>%
+  filter(grts_address %in% grts) %>%
+  join_activity_groups() # %>%
+
+eva_print_facal <- function() {
+  facal %>%
+    dplyr::rename(
+      fcid = fieldactivitycalendar_id,
+      suid = sampleunit_id,
+      agid = activity_group_id,
+      archv = archive_version_id,
+      done_p = done_planning,
+      no_vis = no_visit_planned
+    ) %>%
+    dplyr::select(
+      type,
+      suid,
+      fcid,
+      agid,
+      activity_group,
+      date_start,
+      archv,
+      no_vis,
+      done_p
+    ) %>%
+    arrange(type, date_start, agid) %>% 
+    knitr::kable()
+}
+
+```
+
+```{r loceval-visits}
+
+visits <- mnmdb$query_table("Visits") %>%
+  filter(grts_address %in% grts) %>%
+  join_activity_groups()
+
+eva_print_visits <- function() {
+  visits %>%
+    dplyr::rename(
+      grts = grts_address,
+      lid = location_id,
+      suid = sampleunit_id,
+      agid = activity_group_id,
+      fcid = fieldactivitycalendar_id,
+      archv = archive_version_id,
+      vid = visit_id
+    ) %>%
+    dplyr::select(
+      grts,
+      type,
+      lid,
+      suid,
+      fcid,
+      vid,
+      agid,
+      date_start,
+      archv,
+      date_visit
+    ) %>%
+    arrange(type, date_start, agid) %>% 
+    knitr::kable()
+}
+
+```
+
+
+```{r loceval-infos}
+
+infos <- mnmdb$query_table("LocationInfos") %>%
+  filter(grts_address %in% grts)
+
+eva_print_infos <- function() {
+  infos %>%
+    dplyr::rename(
+      grts = grts_address,
+      liid = locationinfo_id,
+      lid = location_id,
+      inaccess = accessibility_inaccessible,
+      hints = recovery_hints
+    ) %>%
+    dplyr::select(
+      liid,
+      grts,
+      lid,
+      inaccess,
+      hints
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+```{r loceval-replacements}
+
+replacements <- mnmdb$query_table("Replacements") %>%
+  filter(grts_address %in% grts)
+
+eva_print_replacements <- function() {
+  replacements %>%
+    dplyr::rename(
+      grts = grts_address,
+      suid = sampleunit_id,
+      rep = grts_address_replacement,
+      rank = replacement_rank,
+      sel = is_selected,
+      tsug = type_suggested
+    ) %>%
+    dplyr::select(
+      grts,
+      rank,
+      rep,
+      sel,
+      tsug
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+
+```{=latex} 
+\pagebreak 
+```
+
+## sample units
+```{r eva-print-sunit}
+#| echo: false
+eva_print_sunit()
+```
+
+## ofos
+```{r eva-print-ofos}
+#| echo: false
+eva_print_ofos()
+```
+
+## field activities
+```{r eva-print-cal}
+#| echo: false
+eva_print_facal()
+```
+
+```{r eva-print-visits}
+#| echo: false
+eva_print_visits()
+```
+
+## infos
+```{r eva-print-infos}
+#| echo: false
+eva_print_infos()
+```
+
+## replacements
+```{r eva-print-replacements}
+#| echo: false
+eva_print_replacements()
+```
+
+
+```{=latex} 
+\pagebreak 
+```
+
+# MNMGWDB: `r as.character(grts)`
+
+```{r noop}
+#| eval: false
+#| echo: false
+# source('080_connected_by_GRTS.R')
+```
+
+```{r database-connection}
+database_label <- "mnmgwdb"
+
+### connect to database
+mnmdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = glue::glue("{database_label}{suffix}"),
+  user = "monkey",
+  password = NA
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+message(mnmdb$shellstring)
+
+```
 
 -- helpers
 
@@ -125,6 +418,7 @@ query_special_activity <- function(shorthand) {
 
 ```
 
+
 -- The Backbone: Sample Unit // Sample Location
 
 ```{r sample-locations}
@@ -145,7 +439,7 @@ slocs <- slocs %>%
     archived = isFALSE(is.na(archive_version_id))
   )
 
-print_slocs <- function() {
+gw_print_slocs <- function() {
   slocs %>%
     dplyr::rename(
       slid = samplelocation_id,
@@ -185,7 +479,7 @@ fwcal <- mnmdb$query_table("FieldworkCalendar") %>%
   #   suffix = c("", "_vis")
   # )
 
-print_fwcal <- function() {
+gw_print_fwcal <- function() {
   fwcal %>%
     dplyr::rename(
       fcid = fieldworkcalendar_id,
@@ -218,7 +512,7 @@ visits <- mnmdb$query_table("Visits") %>%
   filter(grts_address %in% grts) %>%
   join_activity_groups()
 
-print_visits <- function() {
+gw_print_visits <- function() {
   visits %>%
     dplyr::rename(
       grts = grts_address,
@@ -260,7 +554,7 @@ activities <- bind_rows(
   filter(grts_address %in% grts) %>%
   join_activity_groups()
 
-print_special_activities <- function() {
+gw_print_special_activities <- function() {
   activities %>%
     dplyr::rename(
       grts = grts_address,
@@ -292,7 +586,7 @@ print_special_activities <- function() {
 infos <- mnmdb$query_table("LocationInfos") %>%
   filter(grts_address %in% grts)
 
-print_infos <- function() {
+gw_print_infos <- function() {
   infos %>%
     dplyr::rename(
       grts = grts_address,
@@ -314,6 +608,32 @@ print_infos <- function() {
     ) %>%
     knitr::kable()
 }
+```
+
+
+
+```{r gw-replacements}
+
+
+repdat <- mnmdb$query_table("ReplacementData") %>%
+  filter((grts_address %in% grts) | (grts_address_replacement %in% grts))
+
+gw_print_replacement <- function() {
+  repdat %>%
+    dplyr::rename(
+      grts = grts_address,
+      rep = grts_address_replacement,
+      slid = new_samplelocation_id,
+      sel = is_replaced
+    ) %>%
+    dplyr::select(
+      grts,
+      rep,
+      slid,
+      sel
+    ) %>%
+    knitr::kable()
+}
 
 ```
 
@@ -323,19 +643,11 @@ print_infos <- function() {
 \pagebreak 
 ```
 
-# Overview: `r as.character(grts)`
-
-```{r noop}
-#| eval: false
-#| echo: false
-# source('080_connected_by_GRTS.R')
-```
-
 ## sample location
 
 ```{r print-sloc}
 #| echo: false
-print_slocs()
+gw_print_slocs()
 ```
 
 
@@ -343,7 +655,7 @@ print_slocs()
 
 ```{r print-fwcal}
 #| echo: false
-print_fwcal()
+gw_print_fwcal()
 ```
 
 
@@ -351,223 +663,26 @@ print_fwcal()
 
 ```{r print-visit}
 #| echo: false
-print_visits()
+gw_print_visits()
 ```
 
 special activities (well installation, chem sampling)
 
 ```{r print-special-activities}
 #| echo: false
-print_special_activities()
+gw_print_special_activities()
 ```
 
 ## location infos
 
 ```{r print-infos}
 #| echo: false
-print_infos()
+gw_print_infos()
 ```
 
-
-\pagebreak 
-# loceval
-
-```{r connect-loceval}
-database_label <- "loceval"
-
-### connect to database
-mnmdb <- connect_mnm_database(
-  config_filepath,
-  database_mirror = glue::glue("{database_label}{suffix}"),
-  user = "monkey",
-  password = NA
-)
-# keyring::keyring_delete(keyring = "mnmdb_temp")
-message(mnmdb$shellstring)
-
+## replacement
+```{r print-replacements}
+#| echo: false
+gw_print_replacement()
 ```
 
-```{r helper-join-activity-groups-loceval}
-
-join_activity_groups <- function(df) {
-  df %>% dplyr::left_join(
-      mnmdb$query_columns(
-        "GroupedActivities",
-        c(
-          "activity_group_id",
-          "activity_group"
-        )
-      ) %>% dplyr::distinct(),
-      by = dplyr::join_by(activity_group_id)
-    ) %>%
-  return()
-}
-
-```
-
-
-```{r sample-units}
-
-sunit <- mnmdb$query_table("SampleUnits") %>%
-  filter(grts_address %in% grts)
-
-
-loc_ids <- mnmdb$pull_column("Locations", "location_id")
-loc_cells <- mnmdb$pull_column("LocationCells", "location_id")
-loc_infos <- mnmdb$pull_column("LocationInfos", "location_id")
-
-sunit <- sunit %>%
-  mutate(
-    has_loc = location_id %in% loc_ids,
-    has_cell = location_id %in% loc_cells,
-    has_infos = location_id %in% loc_infos,
-    archived = isFALSE(is.na(archive_version_id))
-  )
-
-print_sunit <- function() {
-  sunit %>%
-    dplyr::rename(
-      suid = sampleunit_id,
-      lid = location_id,
-      replaced = is_replaced,
-      mhq = in_mhq_samples,
-      forest = is_forest,
-      grts = grts_address
-    ) %>%
-    dplyr::select(
-      grts,
-      type,
-      domain_part,
-      schemes,
-      lid,
-      suid,
-      replaced,
-      has_loc,
-      has_cell,
-      has_infos,
-      mhq,
-      forest,
-      archived
-    ) %>%
-    t() %>% 
-    knitr::kable()
-}
-
-```
-
-
-```{r loceval-calendar}
-
-facal <- mnmdb$query_table("FieldActivityCalendar") %>%
-  filter(grts_address %in% grts) %>%
-  join_activity_groups() # %>%
-
-print_facal <- function() {
-  facal %>%
-    dplyr::rename(
-      fcid = fieldactivitycalendar_id,
-      suid = sampleunit_id,
-      agid = activity_group_id,
-      archv = archive_version_id,
-      done_p = done_planning,
-      no_vis = no_visit_planned
-    ) %>%
-    dplyr::select(
-      type,
-      suid,
-      fcid,
-      agid,
-      activity_group,
-      date_start,
-      archv,
-      no_vis,
-      done_p
-    ) %>%
-    arrange(type, date_start, agid) %>% 
-    knitr::kable()
-}
-
-```
-
-```{r loceval-visits}
-
-visits <- mnmdb$query_table("Visits") %>%
-  filter(grts_address %in% grts) %>%
-  join_activity_groups()
-
-print_visits <- function() {
-  visits %>%
-    dplyr::rename(
-      grts = grts_address,
-      lid = location_id,
-      suid = sampleunit_id,
-      agid = activity_group_id,
-      fcid = fieldactivitycalendar_id,
-      archv = archive_version_id,
-      vid = visit_id
-    ) %>%
-    dplyr::select(
-      grts,
-      type,
-      lid,
-      suid,
-      fcid,
-      vid,
-      agid,
-      date_start,
-      archv,
-      date_visit
-    ) %>%
-    arrange(type, date_start, agid) %>% 
-    knitr::kable()
-}
-
-```
-
-
-```{r loceval-infos}
-
-infos <- mnmdb$query_table("LocationInfos") %>%
-  filter(grts_address %in% grts)
-
-print_infos <- function() {
-  infos %>%
-    dplyr::rename(
-      grts = grts_address,
-      liid = locationinfo_id,
-      lid = location_id,
-      inaccess = accessibility_inaccessible,
-      hints = recovery_hints
-    ) %>%
-    dplyr::select(
-      liid,
-      grts,
-      lid,
-      inaccess,
-      hints
-    ) %>%
-    knitr::kable()
-}
-
-```
-
-
-
-```{=latex} 
-\pagebreak 
-```
-
-# Loceval
-
-```{r todo}
-# ofo's
-# replacements
-```
-
-
-```{r print-loceval}
-print_sunit()
-print_facal()
-print_visits()
-print_infos()
-```
