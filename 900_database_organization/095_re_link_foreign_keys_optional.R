@@ -13,8 +13,13 @@ source("MNMDatabaseToolbox.R")
 
 
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- ""
-# mirror <- "-staging"
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  mirror <- commandline_args[1]
+} else {
+  mirror <- ""
+  # mirror <- "-staging" # "-testing"
+}
 
 
 

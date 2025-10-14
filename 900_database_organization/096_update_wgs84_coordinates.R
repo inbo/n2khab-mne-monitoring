@@ -10,14 +10,20 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 # TODO also give coords for FreeFieldNotes
 
 
-update_location_coordinates <- function(database_label, testing = TRUE) {
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  suffix <- commandline_args[1]
+} else {
+  suffix <- ""
+  # suffix <- "-staging" # "-testing"
+}
+
+
+
+update_location_coordinates <- function(database_label) {
   # database_label <- "mnmgwdb"
 
-  if (testing) {
-    database_mirror <- glue::glue("{database_label}-staging")
-  } else {
-    database_mirror <- glue::glue("{database_label}")
-  }
+  database_mirror <- glue::glue("{database_label}{suffix}")
 
   message("________________________________________________________________")
   message(glue::glue("restoring of {database_mirror} Coordinates"))
@@ -74,5 +80,5 @@ update_location_coordinates <- function(database_label, testing = TRUE) {
 }
 
 
-update_location_coordinates(database_label = "mnmgwdb", testing = FALSE)
-update_location_coordinates(database_label = "loceval", testing = FALSE)
+update_location_coordinates(database_label = "mnmgwdb")
+update_location_coordinates(database_label = "loceval")

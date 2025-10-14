@@ -219,3 +219,5 @@ upload(source_to_target, to_connection = mnmgwdb)
 print("\\"*64)
 print(f"Uploading from **{mnmgwdb.config['database']}** to **{loceval.config['database']}**:")
 upload(target_to_source, to_connection = loceval)
+
+print("_"*80)
