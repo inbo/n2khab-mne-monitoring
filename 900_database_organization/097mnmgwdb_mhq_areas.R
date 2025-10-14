@@ -248,3 +248,5 @@ if (TRUE) {
 
 # mapview::mapview(mhq_polygons)
 # source('230_random_placementpoints.R')
+
+message("________________________________________________________________")

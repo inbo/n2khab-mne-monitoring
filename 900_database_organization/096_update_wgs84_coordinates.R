@@ -33,6 +33,7 @@ update_location_coordinates <- function(database_label) {
     config_filepath = config_filepath,
     database_mirror = database_mirror
   )
+  # keyring::keyring_delete(keyring = "mnmdb_temp")
 
   ### load locations
   locations_sf <- mnmdb$query_table("Locations") %>%
@@ -82,3 +83,5 @@ update_location_coordinates <- function(database_label) {
 
 update_location_coordinates(database_label = "mnmgwdb")
 update_location_coordinates(database_label = "loceval")
+
+message("________________________________________________________________")
