@@ -14,7 +14,20 @@ yad --form \
     --center \
     --text-align="left" \
     --text="<span font_weight='bold' font='14' color='#78c6dd'>Please select a maintenance task.</span> (mirror: $MIRROR)" \
-    --columns=1 --align-buttons \
+    --columns=2 --align-buttons \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="":CHK FALSE \
+    --field="  render consistency dashboard [loceval]":fbtn "quarto render 040l_loceval_consistency_dashboard.qmd --to html" \
+    --field="  render consistency dashboard [mnmgwdb]":fbtn "quarto render 040m_mnmgwdb_consistency_dashboard.qmd --to html" \
     --field="  mirror":fbtn "echo $MIRROR" \
     --field="  [loceval] -> [mnmgwdb]":fbtn            "python 091_push_loceval_to_mnmgwdb.py $MIRROR " \
     --field="  update FA-Calendar [mnmgwdb]":fbtn      "Rscript 092_update_facalendar.R $MIRROR " \
@@ -26,4 +39,6 @@ yad --form \
     --field="  mhq areas [mnmgwdb]":fbtn               "Rscript 097mnmgwdb_mhq_areas.R $MIRROR " \
     --field="  random placement points [mnmgwdb]":fbtn "Rscript 098_random_placementpoints_mnmgwdb.R $MIRROR " \
     --field="  sync FreeFieldNotes":fbtn               "python 099_sync_FreeFieldNotes.py $MIRROR " \
+    --field="  open dashboard [mnmgwdb]":fbtn "qutebrowser 040m_mnmgwdb_consistency_dashboard.html" \
+    --field="  open dashboard [loceval]":fbtn "qutebrowser 040l_loceval_consistency_dashboard.html" \
     --button="Exit!gtk-cancel:1"

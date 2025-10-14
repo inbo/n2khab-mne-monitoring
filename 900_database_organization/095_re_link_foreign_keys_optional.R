@@ -33,6 +33,7 @@ locevaldb <- connect_mnm_database(
   config_filepath,
   database_mirror = locevaldb_mirror
 )
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 
 locevaldb$shellstring
 
@@ -223,3 +224,5 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
 
 # TODO there are `new_location_id` and `new_samplelocation_id` in "archive"."ReplacementData"
+
+message("________________________________________________________________")

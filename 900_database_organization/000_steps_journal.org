@@ -124,8 +124,28 @@ was using it wrong
 wrote a tutorial about it
 https://github.com/inbo/tutorials/pull/365
 
+*** qfield authentification
+SCHEDULED: <2025-10-13 Mon>
 
-* Biotieker, outbound
+see PRJ_MNM/160/educational
+
+** photo capture
+SCHEDULED: <2025-10-13 Mon>
+
++ copy whole folders from devices
++ using "biggest" file -> store as raw; convert to =DCIM/= with reduced resolution
++ script [[file:./005_photos.org]] to collect photos
++ distribution via google drive and project zips 
++ project zipping was automated [[file:./004_QField_distribute_projects.org]]
+  
+  
+** YAD menu for maintenance scripts
+SCHEDULED: <2025-10-14 Tue>
+
+there is now a menu to click-work through maintenance scripts.
++ [[file:./090_all_maintenence_menu.sh]]
+
+* loceval
 
 ** setup database
 SCHEDULED: <2025-06-05 Thu>
@@ -1098,11 +1118,34 @@ Locations where target type was not found are now flaggable.
 Questions by Floris ongoing.
 
 ** TODO major overhaul: poc update
+SCHEDULED: <2025-10-09 Thu>
 
-framing observations:
-[...]
+[[file:./surgery/20250924_poc_update_loceval.org]]
 
 
+/post mortem/:
+
++ [ ] cascaded updates via temp tables
++ [ ] to_archive / to_update via temp table
++ [X] =mnmgwdb= adjustment: 
+  =ALTER TABLE "outbound"."LocationEvaluations" RENAME COLUMN scheme TO schemes;=
++ [ ] adjust maintenance scripts
++ [ ] =mhq areas= new logic!
++ [?!] 900_database_organization/.dbinit/lib/python3.13/site-packages/pandas/io/sql.py:1737: SAWarning: Did not recognize type 'geometry' of column 'wkb_geometry'
+  self.meta.reflect(bind=self.con, only=[table_name], views=True)
++ [X] Replacements
++ [X] LocationCells and ReplacementCells
++ [ ] ?? Habitatmap Polygons
++ [ ] ?? LocationAssessments (ofo's)
+
++ [ ] restore =testing= project
+
++ TODO: new subprocess: copy RandomPoints to google sheet upon update 
++ TODO: there is still an issue with orphaned SpecialActivities; e.g. WHERE grts_address = 437685 -> 8826293;
+
++ TODO: location_infos don't get replaced; re-work 094 in R?
+  
+  
 * mnmgwdb
 
 ** the next database
@@ -1772,12 +1815,15 @@ see [[file:./surgery/20250924_fieldwork_id_conflict.sql]]
 
 * General
 
-** TODO fk columns which allow NULL
-SCHEDULED: <2025-07-17 Thu>
+** REMINDER fk columns which allow NULL
+SCHEDULED: <2025-10-14 Thu>
 
-e.g. FieldworkCalendar.sspstapa_id
+by default, all fk are allowed to take NULL value
 required because they are set NULL on cascaded update during re-upload
-should rather deactivate/activate the constraint
+general concept:
++ there are "characteristic columns" which define unique entry
++ these are used to keep keys up to date; consistency check is valuable
++ key is used for quick joins
 
 
 ** DONE Replacement Unit logic
