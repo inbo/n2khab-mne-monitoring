@@ -11,12 +11,12 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 database_label <- "mnmgwdb"
 db_using_locations <- grep("mnmgwdb", database_label)
 
-testing <- FALSE
-if (testing) {
-  suffix <- "-staging" # "-testing"
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  suffix <- commandline_args[1]
 } else {
   suffix <- ""
-
+  # suffix <- "-staging" # "-testing"
 }
 
 ### connect to database

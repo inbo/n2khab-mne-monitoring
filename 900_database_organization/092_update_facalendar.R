@@ -11,12 +11,12 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 # TODO this does not yet work for `loceval` (based on SampleLocations)
 database_label <- "mnmgwdb"
 
-testing <- TRUE
-if (testing) {
-  suffix <- "-staging" # "-testing"
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  suffix <- commandline_args[1]
 } else {
   suffix <- ""
-
+  # suffix <- "-staging" # "-testing"
 }
 
 
@@ -526,6 +526,7 @@ if (nrow(present_type_fwcals) > 0) {
 }
 
 
-message("________________________________________________________________")
+message("")
 message("  Finished. Make sure to inspect the log.  ")
 message("________________________________________________________________")
+

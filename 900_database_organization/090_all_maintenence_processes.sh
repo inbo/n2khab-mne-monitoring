@@ -3,6 +3,8 @@
 
 source .dbinit/bin/activate.fish
 
+
+
 [ ] python 091_push_loceval_to_mnmgwdb.py -staging
 [ ] ??? Rscript 092_update_facalendar.R
 [ ] Rscript 093_replaced_LocationCells.R
