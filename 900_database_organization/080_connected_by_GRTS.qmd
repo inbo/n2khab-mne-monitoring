@@ -32,13 +32,18 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./inbopostgis_server.conf")
 
 suffix <- "-staging" # "-testing"
+<<<<<<< HEAD
 # suffix <- ""
+=======
+suffix <- ""
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
 ```
 
 
 -- choose a GRTS
 
 ```{r choose-grts}
+<<<<<<< HEAD
 grts <- c(1205598, 41313630) # replacement cell missing from updated plans
     # c(49896893, 21323197) # first sideload: visit with issues must be repeated
     # c(908981)#, 59629237) # dismissed -> no replacements
@@ -71,6 +76,9 @@ grts <- c(1205598, 41313630) # replacement cell missing from updated plans
     # c(3554997, 29769397)
     # c(51221550, 16470006) # WIA/CSA mismatch 20251016 -> special activities seem missed on replacement processing (091_)
     # c(120110) # dual replacement
+=======
+grts <- c(84598, 871030) # dual replacement
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
     # c(23257, 60185305) # visit by Wouter 20/8
     # c(1920534) # cell lost upon update loceval
     # c(2136622, 1677870)
@@ -110,9 +118,12 @@ message(mnmdb$shellstring)
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 -- choose a GRTS
 >>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
 
 <<<<<<< HEAD
 ```{r helper-join-activity-groups-loceval}
@@ -154,15 +165,38 @@ grts <- c(23257, 60185305) # visit by Wouter 20/8
     # c(1999406, 6417454) # was falsely archived
     # c(219694)
 <<<<<<< HEAD
+<<<<<<< HEAD
     # c(871030)
 >>>>>>> b4b58bd (dbinit: raiders of the archived locations)
 =======
 >>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
+=======
+```
+
+```{r helper-join-activity-groups-loceval}
+
+join_activity_groups <- function(df) {
+  df %>% dplyr::left_join(
+      mnmdb$query_columns(
+        "GroupedActivities",
+        c(
+          "activity_group_id",
+          "activity_group"
+        )
+      ) %>% dplyr::distinct(),
+      by = dplyr::join_by(activity_group_id)
+    ) %>%
+  return()
+}
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
 
 ```
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
 ```{r sample-units}
 
 sunit <- mnmdb$query_table("SampleUnits") %>%
@@ -189,7 +223,10 @@ eva_print_sunit <- function() {
       replaced = is_replaced,
       mhq = in_mhq_samples,
       forest = is_forest,
+<<<<<<< HEAD
       typ_weg = type_is_absent,
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
       grts = grts_address
     ) %>%
     dplyr::select(
@@ -205,7 +242,10 @@ eva_print_sunit <- function() {
       has_infos,
       mhq,
       forest,
+<<<<<<< HEAD
       typ_weg,
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
       archived
     ) %>%
     t() %>% 
@@ -348,7 +388,10 @@ eva_print_replacements <- function() {
   replacements %>%
     dplyr::rename(
       grts = grts_address,
+<<<<<<< HEAD
       typ = type,
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
       suid = sampleunit_id,
       rep = grts_address_replacement,
       rank = replacement_rank,
@@ -357,7 +400,10 @@ eva_print_replacements <- function() {
     ) %>%
     dplyr::select(
       grts,
+<<<<<<< HEAD
       typ,
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
       rank,
       rep,
       sel,
@@ -437,8 +483,11 @@ message(mnmdb$shellstring)
 
 ```
 
+<<<<<<< HEAD
 =======
 >>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
 -- helpers
 
 ```{r helper-join-activity-groups}
@@ -490,9 +539,13 @@ query_special_activity <- function(shorthand) {
 ```
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
+=======
+
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
 -- The Backbone: Sample Unit // Sample Location
 
 ```{r sample-locations}
@@ -707,7 +760,10 @@ gw_print_replacement <- function() {
     ) %>%
     dplyr::select(
       grts,
+<<<<<<< HEAD
       type,
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
       rep,
       slid,
       sel
@@ -724,6 +780,7 @@ gw_print_replacement <- function() {
 ```
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## sample location
 =======
 # Overview: `r as.character(grts)`
@@ -735,6 +792,8 @@ gw_print_replacement <- function() {
 ```
 >>>>>>> b4b58bd (dbinit: raiders of the archived locations)
 
+=======
+>>>>>>> 878d889 (dbinit: loceval to grts dashboard)
 ## sample location
 
 ```{r print-sloc}
