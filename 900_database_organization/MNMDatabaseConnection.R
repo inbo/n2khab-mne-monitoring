@@ -395,6 +395,7 @@ connect_database_configfile <- function(
   config <- configr::read.config(file = config_filepath)[[profile]]
 
   if (is.null(host)) {
+    # the chosen hostname is not defined in the connection config
     stopifnot("host" %in% attributes(config)$names)
     host <- config$host
   }
