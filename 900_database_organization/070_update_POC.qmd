@@ -1277,6 +1277,33 @@ system("quarto render 040_consistency_dashboard.qmd --to html")
 ```
 
 
+# Random Points
+
+```{sql}
+#| eval: false
+#| echo: true
+
+-- to https://docs.google.com/spreadsheets/d/11_0sACvkvX_teOO_nJmTxYSV4-EzOWtxJYE1QNkStAc/edit
+\COPY (
+    SELECT samplelocation_id,
+      location_id,
+      grts_address,
+      random_point_rank,
+      compass,
+      angle,
+      angle_look,
+      distance_m,
+      lambert_lon,
+      lambert_lat
+    FROM "outbound"."RandomPoints"
+    WHERE angle IS NOT NULL
+    ORDER BY grts_address ASC, random_point_rank ASC
+) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
+;
+
+```
+
+
 ## TODO
 
 - [✓] re-run the procedure.

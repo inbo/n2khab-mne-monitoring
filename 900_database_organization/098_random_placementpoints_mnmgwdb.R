@@ -161,7 +161,8 @@ locations_all <- locations_sf %>%
   mutate(
     is_forest_previously_for_comparison = stringr::str_detect(strata, "^9|^2180|^rbbppm")
     # is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
-  )
+  ) %>%
+  rename(stratum = strata)
 
 # TODO: work with a subset for testing
 locations <- locations_all %>%
@@ -225,8 +226,11 @@ generate_random_points <- function(
 
 
   cellmap_polygons <- cellmaps_sf %>%
-    filter(location_id == one_location$location_id) %>%
-    sf::st_union() # often
+    filter(
+      location_id == one_location$location_id,
+      type == one_location$stratum
+    ) %>%
+    sf::st_union() # often multiple subparts are chosen
 
 
   random_points <- generate_random_sampling(
@@ -249,8 +253,10 @@ generate_random_points <- function(
     ]
 
   if (is_forest && isFALSE(is_assessed)) {
+    # cell not assessed / not part of MHQ
     outside_mhq <- inside_cell
   } else {
+    # cell assessed or assessment planned
     outside_mhq <- inside_cell[
       sf::st_disjoint(inside_cell, mhq_safety, sparse = FALSE)
       , ]
@@ -297,6 +303,7 @@ randompoints_locationwise <- function(location_row) {
   setTxtProgressBar(pb, location_row)
 
   one_location <- locations[location_row, ]
+  # TODO convert stratum to type
   # print(one_location$grts_address)
   location_seed <- as.integer(one_location$grts_address)
 
