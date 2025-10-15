@@ -106,6 +106,7 @@ locevaldb <- connect_mnm_database(
   config_filepath,
   database_mirror = locevaldb_mirror
 ) 
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 
 message(glue::glue("connected: psql {locevaldb$shellstring}"))
 update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
@@ -1281,6 +1282,84 @@ locevaldb$insert_data(
 )
 
 ```
+
+# Habitat Map Polygons aka SampleUnitPolygons
+
+```{r update-habitatmap-polygons}
+
+sampleunits_for_polygons <- locevaldb$query_columns(
+    "SampleUnits",
+    c("grts_address", "type", "sampleunit_id")
+  )
+
+sampleunit_grts_cellcenters_for_polygons <- sampleunits_for_polygons %>%
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+habmap_filepath <- file.path(
+    "/data/sources/bwk_2025/"
+  ) # actually, using the folder path is better
+# terra::vect(habmap_filepath)
+
+habmap_unique_polygons <- terra::vect(habmap_filepath) %>%
+  .[terra::vect(sampleunit_grts_cellcenters_for_polygons)] %>%
+  as.polygons() %>%
+  sf::st_as_sf() %>%
+  st_transform(31370) %>% 
+  select(geometry)
+
+# note that polygons are multiplicated with this method if
+# they contain multiple sample units.
+sampleunit_polygons <- cbind(
+  sampleunit_grts_cellcenters_for_polygons %>%
+    sf::st_drop_geometry(),
+  habmap_unique_polygons[
+  sampleunit_grts_cellcenters_for_polygons %>%
+    sf::st_nearest_feature(habmap_unique_polygons)
+  , ]
+  ) %>%
+  # (FM just copied this from FV)
+  # to prefer the tibble approach in sf, we need to convert forth and back
+  as_tibble() %>%
+  # it appears that the CRS is actually retrieved from the tibble, but I don't
+  # understand how (so the crs argument below isn't needed)
+  st_as_sf(crs = "EPSG:31370") %>%
+  select(sampleunit_id) %>%
+  anti_join(
+    # filter "waiting" types
+    locevaldb$query_columns(
+      "FieldActivityCalendar",
+      c("sampleunit_id", "wait_any")
+    ) %>%
+    distinct() %>% 
+    filter(wait_any),
+    by = join_by(sampleunit_id)
+  )
+
+
+sf::st_geometry(sampleunit_polygons) <- "wkb_geometry"
+# mapview::mapview(sampleunit_polygons)
+
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of outbound.SampleUnitPolygons"))
+
+locevaldb$execute_sql(
+  glue::glue('DELETE  FROM "outbound"."SampleUnitPolygons";'),
+  verbose = TRUE
+)
+
+locevaldb$insert_data(
+  table_label = "SampleUnitPolygons",
+  upload_data = sampleunit_polygons
+)
+
+
+```
+
 
 # TODO
 

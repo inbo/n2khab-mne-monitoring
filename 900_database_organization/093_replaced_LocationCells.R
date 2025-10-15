@@ -25,6 +25,7 @@ mnmgwdb <- connect_mnm_database(
   config_filepath = config_filepath,
   database_mirror = glue::glue("{database_label}{suffix}")
 )
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 message(mnmgwdb$shellstring)
 
 ### connect to databases
