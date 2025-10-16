@@ -469,6 +469,7 @@ connect_database_configfile <- function(
   # remove the config: we do not want to expose credentials further
   # down in this notebook
   rm(config)
+  rm(password)
 
   # register disconnect for finalization
   # https://stackoverflow.com/a/41179916
