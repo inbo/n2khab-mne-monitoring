@@ -39,7 +39,8 @@ suffix <- ""
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(120110) # dual replacement
+grts <- c(51221550, 16470006) # WIA/CSA mismatch 20251016 -> special activities seem missed on replacement processing (091_)
+    # c(120110) # dual replacement
     # c(23257, 60185305) # visit by Wouter 20/8
     # c(1920534) # cell lost upon update loceval
     # c(2136622, 1677870)
