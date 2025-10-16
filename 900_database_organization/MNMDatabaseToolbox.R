@@ -666,6 +666,8 @@ upload_data_and_update_dependencies <- function(
   # deptab <- dependent_tables[[3]]
   # deptab <- "Visits"
 
+  source('095_re_link_foreign_keys_optional.R')
+  return(invisible(NULL))
   for (deptab in dependent_tables) {
 
     # extract the associating columns

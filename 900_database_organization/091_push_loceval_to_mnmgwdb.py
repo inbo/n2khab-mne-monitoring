@@ -103,7 +103,9 @@ replacement_data = GPD.read_postgis( \
     query, \
     con = loceval.connection, \
     geom_col = "wkb_geometry" \
-    ).astype({"grts_address": int, "grts_address_replacement": int})
+    ) \
+    .dropna(subset=['grts_address', 'grts_address_replacement']) \
+    .astype({"grts_address": int, "grts_address_replacement": int})
 replacement_data.loc[
     replacement_data["grts_address"].values == 84598 # 23238 253621
     , :].T
@@ -323,10 +325,15 @@ missing_lookup.set_index(["grts_address", "type"], inplace = True)
 for miss in missing:
     grts = int(replacement_data.loc[miss, "grts_address"])
     stratum = replacement_data.loc[miss, "type"]
-    replacement_data.loc[miss, "samplelocation_id"] = \
-        missing_lookup.loc[(grts, stratum), "samplelocation_id"]
+    try:
+        replacement_data.loc[miss, "samplelocation_id"] = \
+            missing_lookup.loc[(grts, stratum), "samplelocation_id"]
+    except KeyError as e:
+        pass
 
 # (that data type issue again)
+#
+replacement_data = replacement_data.dropna(subset=['samplelocation_id'])
 replacement_data["samplelocation_id"] = replacement_data["samplelocation_id"].astype(int)
 
 
