@@ -10,16 +10,17 @@ common_current_calenderfilters <- function(.data) {
       )) %>%
     filter(
       lubridate::year(date_start) < 2026 |
-        # already allow GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from 2026 to be
-        # executed in 2025:
+        # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
+        # next years to be executed:
         (
-          (lubridate::year(date_start) < 2027) &
-            has_gw &
+          has_gw &
             str_detect(
               field_activity_group,
               "INST|LEVREAD|SPATPOSIT"
-            )
-        )
+            ) &
+            date_start == min(date_start)
+        ),
+      .by = c(stratum, grts_address, field_activity_group)
     ) %>%
     select(-has_gw) %>%
     return()
