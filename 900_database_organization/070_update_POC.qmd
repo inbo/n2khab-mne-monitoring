@@ -121,8 +121,8 @@ verify_poc_objects()
 ```{r connect-databases}
 
 config_filepath <- file.path("./inbopostgis_server.conf")
-# mirror <- "-staging"
-mirror <- ""
+mirror <- "-staging"
+# mirror <- ""
 
 # loceval
 # loceval_mirror <- glue::glue("loceval{mirror}")
@@ -534,10 +534,14 @@ sample_locations <- sample_locations %>%
     relationship = "many-to-one"
   ) %>% distinct 
 
+```
+
+
+```{r prepare-slocs}
 table_label <- "SampleLocations"
 data_future <- sample_locations %>%
   rename(strata = stratum)
-characteristic_columns <- c("grts_address", "location_id", "strata")
+characteristic_columns <- c("grts_address", "strata") # ERROR location_id was in here ☠
 index_column <- mnmgwdb$get_primary_key(table_label)
 
 distribution <- categorize_data_update(
@@ -583,8 +587,11 @@ samplelocations_lookup <- just_do_it(
 
 # OBSERVATION: samplelocation_id changed afterwards (?!)
 
+# TODO: return to `replacements` if necessary (091_push_loceval_to_mnmgwdb.py)
 
 ```
+
+
 
 
 ## FieldActivityCalendar
@@ -677,7 +684,7 @@ replace_sspstapa_by_lookup <- function(df) {
 fieldwork_calendar_new <- fieldwork_calendar %>%
   replace_sspstapa_by_lookup() %>%
   select(
-    -location_id,
+    # -location_id,
     -grts_join_method,
     -domain_part,
     -is_forest,
@@ -733,13 +740,32 @@ print_category_count(distribution, table_label)
 # distribution$reactivate
 # distribution$to_upload
 
-distribution$to_archive %>%
-  select(activity_group_id) %>%
-  count(activity_group_id) %>%
-  left_join(
-    activity_groupid_lookup,
-    by = join_by(activity_group_id)
+# distribution$to_archive %>%
+#   select(activity_group_id) %>%
+#   count(activity_group_id) %>%
+#   left_join(
+#     activity_groupid_lookup,
+#     by = join_by(activity_group_id)
+#   )
+```
+
+```{r compare-old-new-fwcal}
+
+ex_data <- mnmgwdb$query_table(table_label)
+new_comparison <- data_future %>%
+  semi_join(
+    ex_data,
+    by = join_by(grts_address, stratum)
   )
+
+ex_data %>%
+  arrange(grts_address, stratum, activity_group_id) %>%
+  write_csv2("dumps/compare_existing.csv")
+new_comparison %>% 
+  arrange(grts_address, stratum, activity_group_id) %>%
+  write_csv2("dumps/compare_new.csv")
+
+# TODO dump to csv and compare
 ```
 
 
