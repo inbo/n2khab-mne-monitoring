@@ -178,8 +178,10 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 if (FALSE) {
 
   # manually set a new version
-  version_tag <- "v0.11.0_poc0.13.1"
-  version_notes <- ""
+  #    v1 <- "≤v0.9.0_poc0.13.0"
+  #    v2 <- "v0.11.0_poc0.13.1"
+  version_tag <- "v0.12.0_poc0.14.0"
+  version_notes <- "dolle dromedaris: aanpassing van steekproefgroottes op typeniveau (verkleiningen resp vergrotingen)"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- mnmgwdb$tag_new_version(
@@ -403,11 +405,11 @@ sample_units <-
     across(c(
         grts_join_method,
         scheme_ps_targetpanels,
-        targetpanel,
+        # targetpanel,
         sp_poststratum,
         stratum,
         domain_part,
-        scheme
+        schemes
       ),
       as.character
     )
@@ -428,7 +430,7 @@ sample_locations <- sample_units %>%
       collapse = " | "
     ) %>% as.character(),
     schemes = str_flatten(
-      sort(unique(scheme)),
+      sort(unique(schemes)),
       collapse = ", "
     ) %>% as.character(),
     .by = c(
@@ -500,6 +502,18 @@ locations_lookup <- just_do_it(
 ... and wait.
 ... and wait.
 ... and wait.
+
+... and stitch
+```{r stitch}
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "SampleLocations",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+```
 
 
 ## Sample Locations
@@ -693,7 +707,7 @@ stitch_table_connection(
   reference_table = "SampleLocations",
   link_key_column = "samplelocation_id",
   lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(ref) ref %>% rename(stratum = strata)
+  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
 ```
@@ -715,7 +729,17 @@ distribution <- categorize_data_update(
   characteristic_columns = characteristic_columns,
 )
 print_category_count(distribution, table_label)
+# distribution$to_archive
+# distribution$reactivate
+# distribution$to_upload
 
+distribution$to_archive %>%
+  select(activity_group_id) %>%
+  count(activity_group_id) %>%
+  left_join(
+    activity_groupid_lookup,
+    by = join_by(activity_group_id)
+  )
 ```
 
 
@@ -771,18 +795,9 @@ fieldworkcalendar_lookup <- just_do_it(
 ```
 
 
-stitch samplelocation_id
+intermediate check
 
 ```{r re-inspect-fieldworkcalendar}
-
-# stitch_table_connection(
-#   mnmdb = mnmgwdb,
-#   table_label = "FieldworkCalendar",
-#   reference_table = "SampleLocations",
-#   link_key_column = "samplelocation_id",
-#   lookup_columns = c("grts_address", "stratum"),
-#   reference_mod = function(ref) ref %>% rename(stratum = strata)
-# )
 
 
 mnmgwdb$query_table("FieldworkCalendar") %>% 
@@ -831,16 +846,9 @@ visits_upload <- potential_visits %>%
     by = join_by(!!!fieldcalendar_characols)
   ) %>%
   left_join(
-    samplelocations_lookup,
-    by = join_by(grts_address, type)
-  ) %>%
-  left_join(
-    locevaldb$query_columns(
-      "SampleLocations",
-      c("grts_address", "type", "samplelocation_id", "location_id")
-    ),
-    by = join_by(grts_address, type)
-  )
+    samplelocations_lookup %>% rename(stratum = strata) %>% select(-location_id),
+    by = join_by(grts_address, stratum)
+  ) 
 
 
 
@@ -869,7 +877,7 @@ stitch_table_connection(
   reference_table = "SampleLocations",
   link_key_column = "samplelocation_id",
   lookup_columns = c("grts_address", "stratum"), 
-  reference_mod = function(ref) ref %>% rename(stratum = strata)
+  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
 stitch_table_connection(
@@ -992,7 +1000,7 @@ mnmgwdb$query_table("ChemicalSamplingActivities") %>%
 ```
 
 
-```{r}
+```{r link-special-activities}
 
 for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
 
@@ -1003,7 +1011,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     reference_table = "SampleLocations",
     link_key_column = "samplelocation_id",
     lookup_columns = c("grts_address", "stratum"),
-    reference_mod = function(ref) ref %>% rename(stratum = strata)
+    reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
   )
 
   # link WIA/CSA back to FieldworkCalendar
@@ -1095,7 +1103,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     reference_table = "SampleLocations",
     link_key_column = "samplelocation_id",
     lookup_columns = c("grts_address", "stratum"), 
-    reference_mod = function(ref) ref %>% rename(stratum = strata)
+    reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
   )
 
   stitch_table_connection(
@@ -1119,6 +1127,84 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
 ```
 
+## LocationCells
+```{r update-location-cells}
+
+locations_grts <- mnmgwdb$query_columns(
+    table_label = "Locations",
+    select_columns = c("grts_address", "location_id")
+  )
+
+units_cell_polygon[["grts_address_final"]] <-
+  as.integer(units_cell_polygon[["grts_address_final"]])
+# units_cell_polygon %>% filter(grts_address_final == 922230)
+
+# unit geometries (cells):
+location_cells <-
+  units_cell_polygon %>%
+  inner_join(
+    locations_grts %>% distinct,
+    by = join_by(grts_address_final == grts_address),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(-grts_address_final) %>%
+  relocate(geometry, .after = last_col())
+
+sf::st_geometry(location_cells) <- "wkb_geometry"
+# glimpse(location_cells)
+
+# location_cells %>%
+#   filter(location_id == 409)
+# location_cells %>%
+#   filter(location_id == 527)
+
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
+
+mnmgwdb$execute_sql(
+  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
+  verbose = TRUE
+)
+
+mnmgwdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = location_cells
+)
+
+
+loceval_connection <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database = "loceval",
+  user = "monkey",
+  password = NA
+)
+
+extra_cells <- loceval_connection$query_table("ReplacementCells") %>%
+  left_join(
+    loceval_connection$query_table("Replacements") %>%
+      select(-wkb_geometry),
+    by = join_by(replacement_id)
+  ) %>%
+  select(-grts_address) %>%
+  rename(grts_address = grts_address_replacement) %>%
+  inner_join(
+    locations_grts,
+    by = join_by(grts_address)
+  ) %>%
+  select(location_id, wkb_geometry) %>%
+  distinct %>%
+  anti_join(
+    location_cells,
+    by = join_by(location_id)
+  )
+
+mnmgwdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = extra_cells
+)
+```
 
 ## LocationInfos
 
@@ -1160,94 +1246,7 @@ locationinfo_lookup <- update_cascade_lookup(
 
 
 ```{r update-landuse}
-
-landuse <- readRDS("data/landuse_export.rds")
-
-# forestry_area, # bosbeheerregio
-# fores_naam, # bosbeheer
-# np_type, # natuurpunt
-# lila_statuut,
-# durme_reservaat,
-# perc_rbh, # percelen // rbh
-# perc_naameig, # naam eigenaar
-# nbhp_type, # natuurbeheerplan
-# gewasgroep, # landbouw
-# lblhfdtlt # landbouw
-
-landinfo <- landuse %>%
-  mutate(anb = stringr::str_c("ANB: ", anb_rights)) %>%
-  mutate(mil = stringr::str_c("MIL: ", mdbd_naam, " (", mdbd_inbo, ")")) %>%
-  mutate(bos = stringr::str_c("BOS: ", forestry_area, " (", fores_naam, ")")) %>%
-  mutate(np = stringr::str_c("NP: ", np_type)) %>%
-  mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
-  mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
-  mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
-  mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
-  mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
-  tidyr::unite(landuse, c(
-      anb, mil, bos,
-      np, lila, durme,
-      perc, nbhp, lb
-    ),
-    sep = ", ",
-    na.rm = TRUE
-  ) %>%
-  distinct(
-    # schemegroup,
-    # stratum,
-    grts_address,
-    landuse
-  ) %>%
-  semi_join(
-    mnmgwdb$query_columns("LocationInfos", c("grts_address")) %>%
-    distinct(),
-    by = join_by(grts_address)
-  )
-
-glimpse(landinfo)
-
-
-get_update_row_string_landuse <- function(landinfo_rownr){
-
-  grts <- landinfo[landinfo_rownr, "grts_address"]
-  info <- landinfo[landinfo_rownr, "landuse"]
-  if (is.na(info)) {
-    info <- "NULL"
-  }
-
-  info <- glue::glue("'{info}'")
-
-  target_namestring <- '"outbound"."LocationInfos"'
-  update_string <- glue::glue("
-    UPDATE {target_namestring}
-      SET landowner = {info}
-    WHERE grts_address = {grts}
-    ;
-  ")
-
-  return(update_string)
-}
-
-# concatenate update rows
-update_command <- lapply(
-  seq_len(nrow(landinfo)),
-  FUN = get_update_row_string_landuse
-)
-
-# spin up a progress bar
-pb <- txtProgressBar(
-  min = 0, max = nrow(landinfo),
-  initial = 0, style = 1
-)
-
-# execute the update commands.
-for (landinfo_rownr in 1:nrow(landinfo)) {
-  setTxtProgressBar(pb, landinfo_rownr)
-  cmd <- update_command[[landinfo_rownr]]
-  mnmgwdb$execute_sql(cmd, verbose = FALSE)
-}
-
-close(pb) # close the progress bar
+update_landuse_in_locationinfos(mnmgwdb)
 ```
 
 
@@ -1273,7 +1272,7 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 
 
 ```{r launch-consistency-dashboard}
-system("quarto render 040_consistency_dashboard.qmd --to html")
+system("quarto render 040m_mnmgwdb_consistency_dashboard.qmd --to html")
 ```
 
 

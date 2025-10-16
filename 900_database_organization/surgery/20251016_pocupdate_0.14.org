@@ -76,9 +76,37 @@ Distributed FieldActivityCalendar as follows:
      
 * mnmgwdb
 
+** TODO ISSUE:
++ [ ] we got replacements in places that have no samplelocation_id!
+  -> run again after SampleLocation upload
+  -> this should be an exception
+
++ [X] Where did targetpanel and scheme go? 
+  -> because of adjusted =nest_scheme_ps_targetpanel()=
+  -> hope it works now
+
++ should empty "RandomPoints" beforehend, but okay.
+
++ [X] change in stitching mechanism -> now reflected
+
++ [ ] still few unmatched SpecialActivities.
+
++ seems fine for the rest.
+
++ [!] on production, there was an issue with the archiving;
+  then on a second run:
+  Distributed FieldworkCalendar as follows:
+     1: N = 0 changed
+     2: N = 3265 unchanged
+     3: N = 1100 to_archive
+     4: N = 0 to_upload
+     5: N = 1068 reactivate
+
+-> restored!
+
 
 * TODO
 
-+ [ ] temp table in =$changed= part of =just_do_it=
++ [ ] temp table in =$changed= part of =just_do_it= (function =update_existing_data=)
 + [ ] rename =just_do_it=
 + [ ] temptable-less cascade in cascaded update
