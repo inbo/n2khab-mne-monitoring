@@ -408,7 +408,6 @@ missing_polygons <-
   vect()
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
-# extract(grts_mh, missing_polygons, small = FALSE, driver = "MEM") %>% head()
 missing_pol_grts <-
   extract(grts_mh, missing_polygons, small = FALSE) %>%
   as_tibble() %>%
@@ -950,16 +949,17 @@ fag_stratum_grts_calendar_2025_attribs <-
   )) %>%
   filter(
     year(date_start) < 2026 |
-      # already allow GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from 2026 to be
-      # executed in 2025:
+      # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
+      # next years to be executed:
       (
-        year(date_start) < 2027 &
-          has_gw &
+        has_gw &
           str_detect(
             field_activity_group,
             "INST|LEVREAD|SPATPOSIT"
-          )
-      )
+          ) &
+          date_start == min(date_start)
+      ),
+    .by = c(stratum, grts_address, field_activity_group)
   ) %>%
   select(-has_gw) %>%
   # count(date_start, date_end, date_interval) %>%
@@ -1005,7 +1005,7 @@ fag_stratum_grts_calendar_2025_attribs <-
   # location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
   # shrinked version of the one at the level of the whole sample (see sampling
   # unit attributes in the beginning), since we limited the activities to those
-  # planned before 2026 (sometimes 2027), and then generate
+  # planned before 2026 (sometimes later), and then generate
   # stratum_scheme_ps_targetpanels as a location attribute. So it says
   # specifically which schemes x panel sets x targetpanels are served by the
   # specific fieldwork at a specific date interval.
@@ -1024,11 +1024,6 @@ fag_stratum_grts_calendar_2025_attribs <-
       factor()
   ) %>%
   relocate(scheme_ps_targetpanels)
-
-fag_stratum_grts_calendar_2025_attribs  %>%
-  filter(grts_address == 22107438) %>%
-  knitr::kable()
-
 
 # Derive an object where stratum x scheme_ps_targetpanels is flattened per
 # location x FAG occasion. Beware that in reality, more locations will emerge
@@ -1112,32 +1107,6 @@ fieldwork_2025_prioritization_by_stratum <-
     rank,
     field_activity_group
   )
-
-# prioritization of fieldwork 2025 with stratum collapsed (preferred for
-# planning of non-biotic FAGs)
-# fieldwork_2025_prioritization_shorter <-
-#   fieldwork_2025_prioritization_by_stratum %>%
-#   unite_stratum_and_schemepstargetpanels() %>%
-#   summarize(
-#     stratum_scheme_ps_targetpanels =
-#       str_flatten(
-#         unique(stratum_scheme_ps_targetpanels),
-#         collapse = " \u2588 "
-#       ) %>%
-#       factor(),
-#     priority = min(priority),
-#     wait_watersurface = all(wait_watersurface),
-#     wait_3260 = all(wait_3260),
-#     wait_7220 = all(wait_7220),
-#     .by = !c(
-#       stratum_scheme_ps_targetpanels,
-#       priority,
-#       wait_watersurface,
-#       wait_3260,
-#       wait_7220
-#     )
-#   ) %>%
-#   relocate(stratum_scheme_ps_targetpanels)
 
 # overview fieldwork prioritization 2025 according to schemes & panels:
 fieldwork_2025_targetpanels_prioritization_count <-

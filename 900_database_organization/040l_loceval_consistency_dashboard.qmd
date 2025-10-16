@@ -448,13 +448,14 @@ archives %>%
   left_join(
     locevaldb$query_columns(
         "Replacements",
-        c("grts_address", "grts_address_replacement", "is_selected")
+        c("grts_address", "type", "grts_address_replacement", "is_selected")
       ) %>%
       filter(is_selected) %>% 
       rename(replaced_by = grts_address_replacement),
-    by = join_by(grts_address)
+    by = join_by(grts_address, type)
   ) %>% 
   select(-is_selected) %>% 
   knitr::kable()
+
 ```
 

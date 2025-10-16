@@ -145,9 +145,9 @@ if (isFALSE(grepl("-staging", locevaldb_mirror))) {
 if (FALSE) {
 
   # manually set a new version
-  version_tag <- "≤v0.11.0_poc0.13.1"
-  # version_tag <- "v0.11.0_poc0.13.1"
-  version_notes <- ""
+  # version_tag <- "≤v0.11.0_poc0.13.1"
+  version_tag <- "v0.12.0_poc0.14.0"
+  version_notes <- "dolle dromedaris: aanpassing van steekproefgroottes op typeniveau (verkleiningen resp vergrotingen)"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- locevaldb$tag_new_version(
@@ -172,6 +172,16 @@ if (FALSE) {
     AND data_iteration = {data_iteration}
   ;
   ")
+  glue::glue("
+  UPDATE {locevaldb$get_namestring(table_label)}
+  SET notes = E'{version_notes}'
+  WHERE version_tag = {version_tag}
+    AND data_iteration = {data_iteration}
+  ;
+  ")
+
+  # 'SELECT * FROM "metadata"."Versions";'
+    
 }
 
 
@@ -308,13 +318,13 @@ sample_units <-
     )
   ) 
 
-sample_units %>%
-  filter(grts_address == 22107438) %>%
-  t() %>% knitr::kable()
-
-sample_units %>%
-  filter(grts_address == 47764190) %>%
-  t() %>% knitr::kable()
+# sample_units %>%
+#   filter(grts_address == 22107438) %>%
+#   t() %>% knitr::kable()
+# 
+# sample_units %>%
+#   filter(grts_address == 47764190) %>%
+#   t() %>% knitr::kable()
 
 ```
 
@@ -439,7 +449,7 @@ print_category_count(distribution, table_label)
 # distribution$reactivate
 # distribution$to_archive
 # distribution$to_upload
-
+# data_future %>% filter(grts_address == 48043282)
 ```
 
 
@@ -471,7 +481,6 @@ sampleunits_lookup <- just_do_it(
   characteristic_columns = characteristic_columns,
   skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
 )
-
 
 ```
 
@@ -1179,7 +1188,7 @@ replacements_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
-# if it fails: DELETE FROM "outbound"."Replacements";
+# 'if it fails: DELETE FROM "outbound"."Replacements";'
 
 ```
 
@@ -1205,7 +1214,7 @@ srctab_query <- glue::glue("
 ")
 
 # reset reference
-mnmdb$execute_sql(
+locevaldb$execute_sql(
  glue::glue("
    UPDATE {trgtab} AS TRGTAB
      SET
@@ -1224,7 +1233,7 @@ update_string <- glue::glue("
   ;"
 )
 
-mnmdb$execute_sql(update_string, verbose = TRUE)
+locevaldb$execute_sql(update_string, verbose = TRUE)
 
 
 # to check: SELECT * FROM "outbound"."SampleUnits" WHERE replacement_id IS NOT NULL;
