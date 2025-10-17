@@ -95,8 +95,8 @@ verify_poc_objects()
 ```{r connect-databases}
 database <- "loceval"
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- ""
-# mirror <- "-staging"
+# mirror <- ""
+mirror <- "-staging"
 
 
 # connect loceval
@@ -419,7 +419,7 @@ if ("location_id" %in% names(sample_units)) {
 }
 sample_units <- sample_units %>%
   left_join(
-    locations_lookup,
+    locevaldb$query_columns("Locations", c("grts_address", "location_id")),
     by = join_by(grts_address),
     relationship = "many-to-one"
   ) %>%
@@ -450,6 +450,9 @@ print_category_count(distribution, table_label)
 # distribution$to_archive
 # distribution$to_upload
 # data_future %>% filter(grts_address == 48043282)
+distribution$to_archive %>% arrange(grts_address) %>% knitr::kable()
+distribution$reactivate %>% arrange(grts_address) %>% knitr::kable()
+
 ```
 
 
@@ -707,11 +710,12 @@ distribution <- categorize_data_update(
   data_future = data_future,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
+  exclude_columns = c("sampleunit_id", "fieldactivitycalendar_id", "archive_version_id")
 )
 print_category_count(distribution, table_label)
 
-# distribution$to_archive %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
-# distribution$reactivate %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
+# distribution$to_archive %>% filter(grts_address == 3202741) %>% t() %>% knitr::kable()
+# distribution$reactivate %>% filter(grts_address == 3202741) %>% t() %>% knitr::kable()
 ```
 
 

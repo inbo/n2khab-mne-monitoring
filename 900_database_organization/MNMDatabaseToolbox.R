@@ -447,7 +447,7 @@ upload_data_and_update_dependencies <- function(
     mnmdb,
     table_label,
     data_replacement,
-    characteristic_columns = NULL,
+    characteristic_columns = NA,
     rename_characteristics = NULL,
     skip_sequence_reset = FALSE,
     sort_data_by_characteristics = TRUE,
@@ -495,7 +495,7 @@ upload_data_and_update_dependencies <- function(
   ### (4) retrieve old data
   pk <- mnmdb$get_primary_key(table_label)
 
-  if (is.null(characteristic_columns)) {
+  if (is.scalar.na(characteristic_columns)) {
     characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
   } # TODO else: check that col really is a field in the data_replacement table
 
@@ -849,7 +849,7 @@ parametrize_cascaded_update <- function(mnmdb) {
       new_data,
       index_columns,
       tabula_rasa = FALSE,
-      characteristic_columns = NULL,
+      characteristic_columns = NA,
       skip_sequence_reset = FALSE,
       verbose = TRUE
     ) {
@@ -872,7 +872,7 @@ parametrize_cascaded_update <- function(mnmdb) {
 
     # characteristic columns := columns which uniquely define a data row,
     # but which are not the primary key.
-    if (is.null(characteristic_columns)) {
+    if (is.scalar.na(characteristic_columns)) {
       # in case no char. cols provided, just take all columns.
       characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
     }
@@ -1107,7 +1107,7 @@ categorize_data_update <- function(
   data_future <- data_future %>% select(!!!cols)
 
   ## ignore input precedence columns
-  if (!is.null(input_precedence_columns)) {
+  if (!is.scalar.na(input_precedence_columns)) {
     cols <- names(data_future)
     cols <- cols[!(cols %in% input_precedence_columns)]
     data_future <- data_future %>% select(!!!cols)
@@ -1119,13 +1119,13 @@ categorize_data_update <- function(
   }
 
   ## ignore excluded columns
-  if (!is.null(exclude_columns)) {
+  if (!is.scalar.na(exclude_columns)) {
     cols <- names(data_future)
     cols <- cols[!(cols %in% exclude_columns)]
     data_future <- data_future %>% select(!!!cols)
 
     cols <- names(data_previous)
-    cols <- cols[!(cols %in% exclude_columns)]
+    cols <- cols[!(cols %in% c(logging_columns, exclude_columns))]
     data_previous <- data_previous %>% select(!!!cols)
 
   }
@@ -1155,7 +1155,7 @@ categorize_data_update <- function(
       data_match,
       join_by(!!!rlang::syms(characteristic_columns))
     )
-  # data_reactivate %>% arrange(!!!rlang::syms(characteristic_columns))
+  # data_reactivate  %>% filter(grts_address == 3202741) %>% arrange(!!!rlang::syms(characteristic_columns))
 
   # (2.) of those matching, some will need to be updated
   # [2.1] changed data
