@@ -189,6 +189,7 @@ mnmgwdb$query_table("Visits") %>%
 
 
 
+
 for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
 
   # link WIA/CSA back to SampleLocations
