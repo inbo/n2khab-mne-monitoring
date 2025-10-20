@@ -51,11 +51,23 @@ message(glue::glue("connected: psql {locevaldb$shellstring}"))
 
 * BUG FOUND??!!
 
+** sampleunit_id triggers data change
 In [[file:../MNMDatabaseToolbox.R]], =categorize_data_update(...)=
 does include columns which are dynamic identifiers (e.g. =sampleunit_id=).
 Those should NOT be considered a reason of change.
 
 I am testing this in 071/upd fieldactivitycalendar
+
+** sprintf does not convert int64
+=convert_data_to_sql_input_str= parsed grts_addresses to "0"
+because they came out the db as int64
+
+though R by default carries 32 bit (signed) integers, which gives 2.147.483.647 addresses and is totally fine for Flanders (actual grts currently <= 65.133.237 in locevaldb).
+#+begin_src 
+as.integer(c(
+  2^31-1, 2^31 + 1
+))
+#+end_src
 
 
 * missing planned points
@@ -161,4 +173,5 @@ locations_lookup <- update_cascade_lookup(
 )
 
 #+end_src
+
 

@@ -17,8 +17,8 @@ common_current_calenderfilters <- function(.data) {
             str_detect(
               field_activity_group,
               "INST|LEVREAD|SPATPOSIT"
-            ) &
-            date_start == min(date_start)
+            )
+            # & date_start == min(date_start)
         ),
       .by = c(stratum, grts_address, field_activity_group)
     ) %>%

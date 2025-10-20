@@ -38,8 +38,8 @@ source("MNMDatabaseToolbox.R")
 #| echo: false
 
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- "-staging"
-# mirror <- ""
+# mirror <- "-staging"
+mirror <- ""
 
 # connect locevaldb
 locevaldb_database <- glue::glue("loceval{mirror}")

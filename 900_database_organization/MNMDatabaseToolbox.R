@@ -1253,7 +1253,7 @@ upload_additional_data <- function(mnmdb, ...) {
 ### Update Machinery
 
 # ## check all data types
-# dtypes <- bind_rows(lapply(
+# datatypes <- bind_rows(lapply(
 #   mnmdb$tables %>% pull(table),
 #   FUN = function(tablab) mnmdb$load_table_info(tablab) %>% select(datatype)
 # )) %>% distinct()
@@ -1268,10 +1268,12 @@ datatype_conversion_catalogue <- c(
   "varchar(3)" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
   "varchar(16)" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
   "text" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
-  "int" = function(val) sprintf("%.0f", val),
-  "integer" = function(val) sprintf("%.0f", val),
-  "smallint" = function(val) sprintf("%.0f", val),
-  "bigint" = function(val) sprintf("%.0f", val),
+  "int"       = as.character, #function(val) sprintf("%.0f", val),
+  "int64"     = as.character, #function(val) sprintf("%.0f", val),
+  "integer"   = as.character, #function(val) sprintf("%.0f", val),
+  "integer64" = as.character, #function(val) sprintf("%.0f", val),
+  "smallint"  = as.character, #function(val) sprintf("%.0f", val),
+  "bigint"    = as.character, #function(val) sprintf("%.0f", val),
   "double precision" = function(val) sprintf("%.8f", val),
   "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M"),
   "date" = function(val) format(val, "'%Y-%m-%d'")
@@ -1285,11 +1287,12 @@ datatype_conversion_catalogue <- sapply(
 
 
 # convert a whole data frame to SQL-ready characters, based on its data types
-convert_data_to_sql_input_str <- function(dtypes, data) {
+# i <- 2
+convert_data_to_sql_input_str <- function(datatypes, data) {
 
-  for (i in seq_len(nrow(dtypes))) {
-    col <- dtypes[[i, "column"]]
-    dtype <- dtypes[[i, "datatype"]]
+  for (i in seq_len(nrow(datatypes))) {
+    col <- datatypes[[i, "column"]]
+    dtype <- datatypes[[i, "datatype"]]
 
     if (isFALSE(dtype %in% names(datatype_conversion_catalogue))) {
       stop(glue::glue(
@@ -1394,8 +1397,8 @@ update_existing_data <- function(
 
   # prepare the data by converting all to string
   prepared_update_data <- convert_data_to_sql_input_str(
-    table_columns %>% filter(column %in% c(reference_columns, update_columns)),
-    changed_data
+    datatypes = table_columns %>% filter(column %in% c(reference_columns, update_columns)),
+    data = changed_data
   )
 
 
@@ -1588,7 +1591,7 @@ precedence_columns <- list(
   )
 )
 
-
+# TODO this is not a good function name. There is work to do here.
 just_do_it <- function(
     mnmdb,
     table_label,
