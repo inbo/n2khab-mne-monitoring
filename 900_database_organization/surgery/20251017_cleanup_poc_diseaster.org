@@ -175,3 +175,87 @@ locations_lookup <- update_cascade_lookup(
 #+end_src
 
 
+
+* Even More Apocalypse (EMA)
+SCHEDULED: <2025-10-20 Mon>
+
+** another personal falk-up
+On 20251020, I attempted the update procedure again.
+For some reason, my database connection was not pointing to `staging`, but to `production`.
+So the update went trough; unplanned, but succesful.
+
+
+** recovering field precedence
+
+*However*, the update put *>75%* of our prior visits for installation to archive. 
+
+
+#+begin_example
+mnmgwdb=# SELECT DISTINCT archive_version_id, visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done, archive_version_id;
+avid | visit_done | count
+-----+------------+-------
+  1  | f          |    72
+  1  | t          |     2
+  2  | f          |     4
+  3  | f          |  1876
+  3  | t          |    88
+  /  | f          |  2295
+  /  | t          |    28
+(7 rows)
+#+end_example
+
+
+
+I reactivated, temporarily.
+
+
+#+begin_src sql
+
+UPDATE "outbound"."FieldworkCalendar" 
+SET archive_version_id = NULL
+WHERE done_planning;
+-- UPDATE 194
+
+UPDATE "inbound"."Visits" 
+SET archive_version_id = NULL
+WHERE visit_done;
+-- UPDATE 118
+
+UPDATE "outbound"."SampleLocations"
+SET archive_version_id = NULL
+WHERE grts_address IN (
+  1195701, 
+  122549, 
+  1588917, 
+  19914421, 
+  212661, 
+  253621, 
+  29769397, 
+  3202741, 
+  3554997, 
+  3858101, 
+  409269, 
+  4447925, 
+  44961461, 
+  450229, 
+  48053941, 
+  48578229, 
+  49692341, 
+  50282165, 
+  5193397, 
+  5234357, 
+  540341, 
+  5455541, 
+  5979829, 
+  6360757, 
+  6504117, 
+  6635189, 
+  6811317, 
+  7409333, 
+  908981
+);
+-- UPDATE 22
+#+end_src
+
+
+To be discussed with Floris.

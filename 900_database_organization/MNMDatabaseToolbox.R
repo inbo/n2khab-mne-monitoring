@@ -1155,7 +1155,7 @@ categorize_data_update <- function(
       data_match,
       join_by(!!!rlang::syms(characteristic_columns))
     )
-  # data_reactivate  %>% filter(grts_address == 3202741) %>% arrange(!!!rlang::syms(characteristic_columns))
+  # data_reactivate  %>% filter(grts_address == 1514726) %>% arrange(!!!rlang::syms(characteristic_columns))
 
   # (2.) of those matching, some will need to be updated
   # [2.1] changed data
@@ -1198,6 +1198,7 @@ categorize_data_update <- function(
       data_previous_archive,
       by = join_by(!!!rlang::syms(characteristic_columns))
     )
+  # data_to_archive %>% arrange(!!!rlang::syms(characteristic_columns))
 
   # [0.0] new data is ready for upload
   data_to_upload <- data_future %>%
