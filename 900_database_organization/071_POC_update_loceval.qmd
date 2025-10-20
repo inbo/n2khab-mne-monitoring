@@ -95,8 +95,8 @@ verify_poc_objects()
 ```{r connect-databases}
 database <- "loceval"
 config_filepath <- file.path("./inbopostgis_server.conf")
-# mirror <- ""
-mirror <- "-staging"
+mirror <- ""
+# mirror <- "-staging"
 
 
 # connect loceval
@@ -450,9 +450,26 @@ print_category_count(distribution, table_label)
 # distribution$to_archive
 # distribution$to_upload
 # data_future %>% filter(grts_address == 48043282)
-distribution$to_archive %>% arrange(grts_address) %>% knitr::kable()
-distribution$reactivate %>% arrange(grts_address) %>% knitr::kable()
+distribution$to_archive %>%
+  select(grts_address, type) %>% 
+  arrange(grts_address) %>% knitr::kable()
+distribution$reactivate %>%
+  select(grts_address, type) %>% 
+  arrange(grts_address) %>% knitr::kable()
+```
 
+```{r detective-work}
+#| eval: false
+
+fag_stratum_grts_calendar %>%
+  rename(type = stratum, grts_address_original = grts_address, grts_address = grts_address_final) %>% 
+  semi_join(
+    distribution$to_archive,
+    by = join_by(grts_address, type)
+  )
+
+
+distribution$changed %>% knitr::kable()
 ```
 
 
@@ -655,6 +672,7 @@ fieldwork_calendar <-
     no_visit_planned = FALSE,
     done_planning = FALSE
   ) 
+
 fieldwork_calendar %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
 
 fieldwork_calendar_new <- fieldwork_calendar %>%
@@ -710,7 +728,7 @@ distribution <- categorize_data_update(
   data_future = data_future,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
-  exclude_columns = c("sampleunit_id", "fieldactivitycalendar_id", "archive_version_id")
+  exclude_columns = c("sampleunit_id") #, "fieldactivitycalendar_id") # , "archive_version_id"
 )
 print_category_count(distribution, table_label)
 
@@ -723,8 +741,7 @@ print_category_count(distribution, table_label)
 #| eval: false
 
 distribution$to_archive %>%
-  select(activity_group_id) %>%
-  distinct() %>%
+  count(activity_group_id) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group_id)
@@ -1038,6 +1055,9 @@ WHERE locationinfo_id IN (
 
 ```
 
+
+## landuse
+
 ```{r update-landuse}
 update_landuse_in_locationinfos(locevaldb)
 ```
@@ -1240,8 +1260,10 @@ update_string <- glue::glue("
 locevaldb$execute_sql(update_string, verbose = TRUE)
 
 
-# to check: SELECT * FROM "outbound"."SampleUnits" WHERE replacement_id IS NOT NULL;
 ```
+
+to check: `SELECT * FROM "outbound"."SampleUnits" WHERE replacement_id IS NOT NULL;`
+
 
 ## replacement cells
 
