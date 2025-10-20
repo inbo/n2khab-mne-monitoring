@@ -734,6 +734,7 @@ distribution <- categorize_data_update(
   data_future = data_future,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
+  exclude_columns = c("samplelocation_id") #, "fieldactivitycalendar_id") # , "archive_version_id"
 )
 print_category_count(distribution, table_label)
 # distribution$to_archive
@@ -750,6 +751,7 @@ print_category_count(distribution, table_label)
 ```
 
 ```{r compare-old-new-fwcal}
+#| eval: false
 
 ex_data <- mnmgwdb$query_table(table_label)
 new_comparison <- data_future %>%
@@ -872,7 +874,7 @@ visits_upload <- potential_visits %>%
     by = join_by(!!!fieldcalendar_characols)
   ) %>%
   left_join(
-    samplelocations_lookup %>% rename(stratum = strata) %>% select(-location_id),
+    samplelocations_lookup %>% rename(stratum = strata),#  %>% select(-location_id),
     by = join_by(grts_address, stratum)
   ) 
 
@@ -949,6 +951,9 @@ update_existing_data(
 )
 
 ```
+
+- SELECT DISTINCT archive_version_id, done_planning, count(*) FROM "outbound"."FieldworkCalendar" GROUP BY done_planning, archive_version_id;
+- SELECT DISTINCT archive_version_id, visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done, archive_version_id;
 
 
 ## Fieldwork Activity Tables
@@ -1271,10 +1276,14 @@ locationinfo_lookup <- update_cascade_lookup(
 ```
 
 
+## Landuse
+
 ```{r update-landuse}
 update_landuse_in_locationinfos(mnmgwdb)
 ```
 
+
+# post hoc
 
 
 ```{r step-n-safety-dump}
@@ -1351,3 +1360,50 @@ Second Round:
 Third Round
 - then re-download RData
 - -> add new `wait_*` column
+
+
+
+UPDATE "outbound"."FieldworkCalendar" 
+SET archive_version_id = NULL
+WHERE done_planning;
+-- UPDATE 194
+
+UPDATE "inbound"."Visits" 
+SET archive_version_id = NULL
+WHERE visit_done;
+-- UPDATE 118
+
+UPDATE "outbound"."SampleLocations"
+SET archive_version_id = NULL
+WHERE grts_address IN (
+  1195701, 
+  122549, 
+  1588917, 
+  19914421, 
+  212661, 
+  253621, 
+  29769397, 
+  3202741, 
+  3554997, 
+  3858101, 
+  409269, 
+  4447925, 
+  44961461, 
+  450229, 
+  48053941, 
+  48578229, 
+  49692341, 
+  50282165, 
+  5193397, 
+  5234357, 
+  540341, 
+  5455541, 
+  5979829, 
+  6360757, 
+  6504117, 
+  6635189, 
+  6811317, 
+  7409333, 
+  908981
+);
+-- UPDATE 22
