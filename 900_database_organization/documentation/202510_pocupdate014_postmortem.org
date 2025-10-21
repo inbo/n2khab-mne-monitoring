@@ -1,0 +1,166 @@
+#+title: POC Update 0.14 - /post mortem/
+#+date: 20251016
+
+* DISCLAIMER
+
+This document is /in preparation/ and has not been reviewed by all stakeholders.
+Listed items may be influenced by the opinion of the writer.
+
+* Summary
+
+This /post mortem/ documents issues and mitigations surrounding the unsuccesful MNM database upgrade from =poc_0.13.1= to =poc_0.14.0=.
+To summarize, issues and their status:
++ [X] TECHNICAL 1: QGis layer style would filter visualization of locations
++ [X] TECHNICAL 2: erroneous use of a secondary index column as characteristic column in Fieldwork Calendar
++ [X] TECHNICAL 3: erroneous 64 bit integer parsing via =sprintf=
++ [ ] LOGICAL 1: (to be discussed) =start_date= as characteristic column and fieldwork precedence
++ [ ] LOGICAL 2: (to be followed-up) "Achterhaven Zeebrugge" manual addition of out-of-sample locations in temporarily accessible area (loceval)
++ [ ] MANUAL FAIL: (to be prevented) accidentally updated directly to production
++ [ ] Fieldwork Precedence and UNARCHIVE as temp mitigation: /to be discussed/
+
+* Timeline
+
+
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| *t*                       | *w*             | *d*                                                                                |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 12:55=        | @FV           | ✉ "nieuwe POC RData file (=poc_0.14.0=; =snippets 0.12.0=)"                         |
+|                         |               | /"Dolle Dromedaris"/                                                               |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 15:00=        | @FM           | begin implementation (loceval > mnmgwdb; staging > production)                   |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 15:49-16:10=  | @FM           | loceval production update & info @WT                                             |
+|                         |               | noticed & reported @FV: many new locations, but few extra calendar entries       |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 16:10=        | @FM           | mnmgwdb staging; noticed:                                                        |
+|                         |               | - double-run SampleLocations because Replacements only covered after later step  |
+|                         |               | - few shifts in Locations; many shifts in Calendar                               |
+|                         |               | but calender is priority, so otherwise no signals to halt                        |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 17:20=        | @FM           | mnmgwdb production *ERROR*                                                         |
+|                         |               | - actually went through well enough                                              |
+|                         |               | - double-run was confusing, again many shifts; triple-ran SLocs to make sure     |
+|                         |               | - but then triple SLocs would shift ALL locations again                          |
+|                         |               | - noticed in QGIS that many prior visits/plannings were gone                     |
+|                         |               | ⇒ clear error, unclear cause; *aborted* update procedure                           |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 ~17:55=       | @FM           | mnmgwdb production recovery                                                      |
+| *CRASH/RESTORE*           |               | - took a "post-failure backup" as auto script step                               |
+|                         |               | - restored backup file pre-update                                                |
+|                         |               | - informed fieldwork about lost hour                                             |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 ~18:10=       | @WS, @JM      | confirmation no data loss                                                        |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 18:06=        | @FM           | info to @FV about failed update                                                  |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =16/10/2025 22:30=        | @FM           | realization & info Floris:                                                       |
+| *LOGICAL 1*               |               | using =start_date= as *characteristic column* is problematic                         |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =17/10/2025 09:30=        | @FV           | information "Achterhaven" and reference to fieldwork_2025.gpkg                   |
+|                         |               | - selectively filtered subset of Calendar (i.e. some activities preponed)        |
+|                         |               | - map + diff locations                                                           |
+|                         |               | - @FM neglected n2khab_data checksums                                            |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =17/10/2025 >12:00=       | @FV, @KW, @FM | discussie LOGICAL 1 and info characteristic columns, precedence columns          |
+|                         |               | planning live meeting Tuesday                                                    |
+|                         |               | start discussion precedence of prior or faulty installations//installation plans |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =17/10/2025 13:00=        | @FM           | noticed QGIS layer style which filtered locations; correction + info @WT         |
+| *TECHNICAL 1*             |               |                                                                                  |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =17/10/2025 14:00=        | @FM           | id field =samplelocation_id= was erroneously charactersitic column of Calendar     |
+| *TECHNICAL 2*             |               | - thus, =sloc_id= was considered unique characteristic of calendar entry           |
+|                         |               | - downstream: shuffling of id's during =stitching= = re-linking tables             |
+|                         |               | - consequence: re-upload after shuffling would replace all calendar              |
+|                         |               | - but: only upon repeated upload                                                 |
+|                         |               | ⇒ cause identified, locally/temporarily mitigated by =exclude_columns=             |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =20/10/2025 ~08:00=       | @FM           | data type issues in R: =int64= parsing to character ="0"= with =sprintf=               |
+| *TECHNICAL 3*             |               | - some sql =UPDATE= commands are manually parsed (e.g. archive and back)           |
+|                         |               | - naïvely used =sprintf= for this                                                  |
+|                         |               | - some columns (critically: =grts_address=) come from the db as =int64=              |
+|                         |               | - ... which is not expected: they would all fit =2^31= which is default in R       |
+|                         |               | - ... but @FM defined them =BIGINT= and this is why DBI plays safe                 |
+|                         |               | ⇒ now using =as.character= for sql string conversion                               |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =20/10/2025 ~10:00=       | @FM           | careful re-run of loceval update after correction of TECHNICAL 1-3               |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =20/10/2025 ~11:00-13:45= | @WT           | request visibility ALL extra locations "Achterhaven Zeebrugge"                   |
+| *LOGICAL 2*               | @FM           | info @FV and begin manual implementation                                         |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =20/10/2025 14:00=        | @FM           | update mnmgwdb after correction TECHNICAL 1-3                                    |
+| *MANUAL FAIL*             |               | - accidentally went to production mirror (connection misconfigured?)             |
+|                         |               | - luckily, no major crashes                                                      |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =20/10/2025 15:30=        | @FM           | briefly capture effect of new start dates in Calendar:                           |
+| *FW PRECEDENCE*           |               | - 88/118 visits where archived (mostly installations)                            |
+|                         |               | - temporary/technical: expecting trivial revive upon linking start dates         |
+|                         |               | - linked to LOGICAL 1                                                            |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =20/10/2025 16:00-17:30=  | @LP, @WS      | notification that field activities are hindered by missing QGIS/QField entries   |
+|                         |               | - Hellebos 23238, 6314694, 23091910                                              |
+|                         |               | - Kravaalbos 211193                                                              |
+|                         |               | - Trimpontbos 1902553                                                            |
+|                         |               | - location-id // screenshot @WS (Uitkerkse Polder?)                              |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =20/10/2025 16:00=        | @FM           | re-activation of archived database entries                                       |
+| *UNARCHIVE*               |               | - FieldworkCalendar \ done_planning                                              |
+|                         |               | - Visits \ visit_done                                                            |
+|                         |               | - grts_address \ in "Achterhaven Zeebrugge"                                      |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =21/10/2025 11:00=        | @FM, @FV      | Meeting / Discussion of /post mortem/ draft                                        |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+
+
+* Lessons Learned
+
++ significance of backups in general, but also post-failure backup (for not loosing data entries during faulty periods)
++ more/earlier testing prior to poc update
+  + @FM will receive preliminary POC adjustments for general testing period
+  + to consider: =_future= mirror to anticipate updates
++ technically complicate production mirror work (warning popups): errors happen, but likelihood must be minimized
++ misc/technical:
+  + concepts characteristic column, precedence column are crucial and must be hardened
+  + SQL data types: more expertise and reflection and testing (e.g. 32bit grts_address'es)
+  + @FM better use of n2khab_data checksums
++ "installation < drop-out < sampling" can happen in rare/exceptional cases, but it is not the norm
+  + usually units are picked up later on
+  + e.g. "Hellebos 3" -> planned for 2030
+
+* TODO from discussion with Floris
++ [0%] *LOGICAL 1* persistence/linkage of =start_date= per =activity_group= as an event characteristic (rationale: "first/second installation/sampling/..."; given limited time interval)
+  + [ ] 
+  + [ ] harden definitions of characteristic columns and precedence columns (with default) by fixing them in db structure sheets
++ *LOGICAL 2* handling out-of-sample installations (Hellebos, Achterhaven; pre-poned installations)
+  + will not be implemented via POC: the POC is the theoretical framework for pure MNM goals
+  + but: possible via side-load to databank; ideally tagged
++ [ ] FW (Fieldwork) Precedence
+  + bias: depends.
+    + GRTS sample is spatially biased only if units are in a continuous series
+    + dropout (e.g. loceval, e.g. inaccessibility) will usually lead to shift of consecutive units
+    + normally little influence of POC revisions (but it can happen that we install and don't sample)
+  + date shifts: likely
+    + must be covered by database
++ [ ] technically notify upon pushes to =production= mirror
++ [ ] geopackages parallel to RData continued as checksums and confirmation 
+
+
+
+* Appendix
+
+#+begin_example
+mnmgwdb=# SELECT DISTINCT archive_version_id, visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done, archive_version_id;
+avid | visit_done | count
+-----+------------+-------
+  1  | f          |    72
+  1  | t          |     2
+  2  | f          |     4
+  3  | f          |  1876
+  3  | t          |    88
+  /  | f          |  2295
+  /  | t          |    28
+(7 rows)
+#+end_example
+
+
