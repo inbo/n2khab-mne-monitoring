@@ -1,14 +1,47 @@
-#+title: Achterhaven Zeebrugge Locevalterr
+#+title: Achterhaven Zeebrugge LOCEVALTERR
 #+date: 20251020 
+
+* The 20 Locations
+
+After double-check with the new fieldwork calendar, these are the locations for "achterhaven":
+
+1195701
+122549
+1588917
+212661
+253621
+3202741
+3554997
+3858101
+409269
+44961461
+450229
+48053941
+48578229
+49692341
+5193397
+5234357
+540341
+5455541
+5979829
+908981
+
+
 
 
 * achterhaven focus area
+SCHEDULED: <2025-10-20 Mon>
 
 + +17 from archives
 + +5 SampleUnits
 + +9 FieldActivityCalendar / Visits
 + +5 LocationInfos
   
+#+begin_quote
+WRONG LIST!
+This was a preliminary, manual list. The correct one is above ([[The 20 Locations]], and [[De-Activation]]).
+#+end_quote
+
 
 #+begin_src R
 
@@ -721,4 +754,43 @@ sampleunits_lookup <- locevaldb$query_columns(
   c("grts_address", "type", "sampleunit_id")
 )
 
+#+end_src
+
+
+
+* Achterhaven
+
+\COPY (
+    SELECT *
+    FROM "outbound"."FieldworkPlanning"
+    WHERE done_planning
+    AND grts_address IN
+        (1195701, 1195701, 122549, 122549, 1588917, 1588917, 212661, 253621, 253621, 3202741, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 450229, 48053941, 48053941, 48578229, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981)
+) TO '/data/mnm_db_backups/achterhaven/planned_gwdb.csv' With CSV DELIMITER ',' HEADER
+;
+
+\COPY (
+    SELECT *
+    FROM "inbound"."Visits"
+    WHERE visit_done
+    AND grts_address IN
+        (1195701, 1195701, 122549, 122549, 1588917, 1588917, 212661, 253621, 253621, 3202741, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 450229, 48053941, 48053941, 48578229, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981)
+) TO '/data/mnm_db_backups/achterhaven/install_visits.csv' With CSV DELIMITER ',' HEADER
+;
+) TO '/data/mnm_db_backups/achterhaven/loceval_visits.csv' With CSV DELIMITER ',' HEADER
+;
+
+
+* De-Activation
+SCHEDULED: <2025-10-21 Tue>
+
+Some of the manual chosen locations above were wrong; they are not part of the calendar any more.
+
+to archive: 19914421, 29769397, 4447925, 50282165, 6360757, 6504117, 6635189, 6811317, 7409333
+
+#+begin_src sql
+UPDATE "outbound"."SampleUnits"
+SET archive_version_id = 3
+WHERE grts_address IN (19914421, 29769397, 4447925, 50282165, 6360757, 6504117, 6635189, 6811317, 7409333)
+;
 #+end_src

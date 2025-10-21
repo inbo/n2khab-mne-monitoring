@@ -146,8 +146,9 @@ if (FALSE) {
 
   # manually set a new version
   # version_tag <- "≤v0.11.0_poc0.13.1"
-  version_tag <- "v0.12.0_poc0.14.0"
-  version_notes <- "dolle dromedaris: aanpassing van steekproefgroottes op typeniveau (verkleiningen resp vergrotingen)"
+  # version_tag <- "v0.12.0_poc0.14.0"
+  version_tag <- "v0.12.0_poc0.14.0" # data_iteration = 2
+  version_notes <- "de-activation inactive locations in Achterhaven Zeebrugge"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- locevaldb$tag_new_version(
