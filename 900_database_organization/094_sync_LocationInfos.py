@@ -15,13 +15,241 @@ import pandas as PD
 import MNMDatabaseToolbox as DTB
 import geopandas as GPD
 
+raise(Exception("DON'T USE! There is an issue with this script and poc update timestamps. A better way is on the way."))
+
+# currently,
+# - reserved watina codes are overwritten loceval -> mnmgwdb
+# - ... but recovery_info is overwritten other direction.
+
+# TODO to manually update LocationInfos, do:
+"""
+-- @loceval
+\COPY (
+SELECT grts_address, recovery_hints
+FROM "outbound"."LocationInfos"
+WHERE recovery_hints IS NOT NULL
+) TO '/data/locinfos_loceval.csv' With CSV DELIMITER ',' HEADER;
+
+... and then in LibreOffice calc
+="UPDATE ""outbound"".""LocationInfos"" SET recovery_hints = E'"&B2&"' WHERE grts_address = "&A2&" AND recovery_hints IS NULL;"
+
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel bamboestok, ZO van plukje zilte rus' WHERE grts_address = 5234357 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, klei met zand' WHERE grts_address = 5455541 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 5979829 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel en blauwe bamboestok, juist ten westen veenmosbult. ' WHERE grts_address = 4234358 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  staat niet exact ivm beverburcht' WHERE grts_address = 190802 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 196022 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel. MiddelMiddelpunt zit eigenlijk op liggende stam, meetnagel ernaast geplaatst. Laarzen, ondiep grondwater' WHERE grts_address = 837618 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele, net ten zuiden greppeltje. Zeker grondwater binnen bereik geurende winter' WHERE grts_address = 9262 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 1660081 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 1676465 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 769793 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 366225 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Witte meetnagel, blauwe bamboestok. Op rand gemaaid stuk' WHERE grts_address = 369974 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok,  ca 2 m van  water thv zwarte els' WHERE grts_address = 780114 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 2593969 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel,  blauwe bamboestok in elzenopslag. Grondwater ondiep' WHERE grts_address = 51431410 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, blauwe bamboestok ' WHERE grts_address = 832158 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe,  dunne bamboestok. Droog, grondwater zakt vrij diep' WHERE grts_address = 84598 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok in greppel' WHERE grts_address = 12353 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Dunne bamboestok. Midden tussen wilgen-elzeneilandje en "vasteland". Extreem nat, waadpak, best 2 personen' WHERE grts_address = 41746 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel,' WHERE grts_address = 53662 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel,  blauwe bamboestokb.Broekbos overstroomd in ' WHERE grts_address = 45526 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel. Wellicht grondwaterafhankelijk ' WHERE grts_address = 84270 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel  onder struikhei naast zaailing amerikaans. Droog, Maar grondwater wellicht binnenn bereik' WHERE grts_address = 88274 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, gele meetnagel ' WHERE grts_address = 4313042 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 3036337 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok (kort),  gele meetnagel ' WHERE grts_address = 11990318 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 49779889 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 792209 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel ' WHERE grts_address = 51221550 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok  tussen omgevallen es met twee hoofdtakken en snaak van els' WHERE grts_address = 7069106 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel  ca. 1,25 m van rand plagplek' WHERE grts_address = 649522 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel ' WHERE grts_address = 656798 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, bamboestok. 1,5 m ZZW van beuk. Veel grind,' WHERE grts_address = 7151026 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok.  tegen es DBH 5 CM' WHERE grts_address = 11256498 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meet. meetnagel locatie onnauwkeurig ' WHERE grts_address = 13688242 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel,   1m ten zuidoosten tweestammige dikke berk' WHERE grts_address = 1485106 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel,  ca 0,5 m no van zuidelijke wal' WHERE grts_address = 51429121 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 253621 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gemarkeerd met twee paaltjes' WHERE grts_address = 905382 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, dichtst bij knotwilgje' WHERE grts_address = 31875858 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe sparrentak. Laarzen' WHERE grts_address = 709330 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 44955281 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, gele  meetnagel ' WHERE grts_address = 3796785 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel ' WHERE grts_address = 120110 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok en gele meetnagel. In stoof van zwarte els, 5 m zw van eik' WHERE grts_address = 6417454 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel op dijkje bij perceelsrand. Laarzen' WHERE grts_address = 121042 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel.  Wellicht grondwaterafhankelijk.' WHERE grts_address = 118830 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel, droog/laarzen.  Grondwater zakt vrij diep weg' WHERE grts_address = 127710 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauw op dode berk, gele meetnagel tak. Laarzen' WHERE grts_address = 219694 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel.  Laarzen.' WHERE grts_address = 12532662 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe tak, gele meetnagel,' WHERE grts_address = 928050 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel en blauwe' WHERE grts_address = 45726 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'2 bamboe, 1 wit schijfje. Tussen zwarte bes en meidoorn.' WHERE grts_address = 47238 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel. Opgelet, meetpunt voor 2 types' WHERE grts_address = 131806 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel,  op zuidhelling donkje' WHERE grts_address = 3559134 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, blauwe tak op de lijn tussen twee peilbuizen' WHERE grts_address = 743982 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 1202926 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel ' WHERE grts_address = 505902 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, gele meetnagel ' WHERE grts_address = 1205598 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, gele meetnagel.  in vangkraal, plaatsing te bespreken met boswachter' WHERE grts_address = 2987185 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel,  in stukje met snavelzegge (die grote blauwgrijze :) )' WHERE grts_address = 5471538 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel. Grondwaterafhankelijk ' WHERE grts_address = 3818642 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 44765877 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok waadpak, wellicht best met 2 personen' WHERE grts_address = 696182 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe tak, gele bamboestok. Tegen bosrand op koeienpaadje, dus wellicht omvergelopen' WHERE grts_address = 53438770 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, ongeveer halfweg k bewateringsgeul en gracht' WHERE grts_address = 48043282 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel. Veel strooisel' WHERE grts_address = 4229394 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel die wat boven maaiveld uitsteekt' WHERE grts_address = 6326546 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel.  Droog, maar grondwater binnen bereik' WHERE grts_address = 102706 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel, net ten zuiden pitrisbult' WHERE grts_address = 31682546 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok. Net ten N wilgenkoepel' WHERE grts_address = 53438326 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel en blauwe bamboestok ' WHERE grts_address = 211193 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel,  bultje met veel dophei' WHERE grts_address = 826486 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Twee blauwe stokken gele meetnagel ' WHERE grts_address = 52009518 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel' WHERE grts_address = 7733982 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel  1 m O van duintje met hoge struikhei' WHERE grts_address = 176862 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel,  net ten noorden dikke strooiselhoop. Lukt met laarzen als je voorzichtig bent. Lastige draad rondom. 2 personen' WHERE grts_address = 13822258 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele  meetnagel,  2 m boven gracht' WHERE grts_address = 1971474 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe stok, gele meetnagel ' WHERE grts_address = 1677870 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 50042033 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 50133169 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok,  naast tweestammige es. Stukjes met kalkneerslag vermijden (7220)' WHERE grts_address = 3726770 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel  en blauwe bamboestok' WHERE grts_address = 37049 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok waadpak, wellicht best met 2 personen. Toegang makkelijkst vanaf noord, zie punt.' WHERE grts_address = 31496054 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe eikentak (bamboe op ð). Geen meetnagel ivm maaibeheer op zachtz bodem. Punt is waar stok in de grond stopt. Net ten zw iemand anders bamboestok. Laarzen met voorzichtigheid,  anders lieslaarzen/waadpak' WHERE grts_address = 31536054 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel ' WHERE grts_address = 39213362 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Witte meetnagel ' WHERE grts_address = 40434990 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, gele meetnagel ' WHERE grts_address = 41313630 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel ' WHERE grts_address = 42070750 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel.  Droog, maar grondwater binnen bereik' WHERE grts_address = 42651954 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Witte meetnagel' WHERE grts_address = 43623186 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 48578229 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel  blauwe bamboestok ' WHERE grts_address = 50137201 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 50476209 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel,  waadpak gaat eenvoudigst zijn om langs zuid door de gracht te komen. Erg mooi ontwikkeld voorbeeld van het habitattype! ' WHERE grts_address = 50325810 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe stok, dichtbij gasleiding' WHERE grts_address = 50354734 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 50811954 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Korte bamboestok, geÃ¶e meetnagel. Circa 2,5 m ten NO wandelpad' WHERE grts_address = 50988446 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel ' WHERE grts_address = 50725598 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel. Noeilijk af te bakenen, zie uitleg bij celkartering' WHERE grts_address = 1922225 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok,  paaltje tekort' WHERE grts_address = 1938609 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel en blauwe bamboestok ' WHERE grts_address = 51598638 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel,  in rand van hogere en meer vergraste zone' WHERE grts_address = 9300274 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok (dun)' WHERE grts_address = 57174322 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel bamboestok.' WHERE grts_address = 540341 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 81985 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel in slenk' WHERE grts_address = 261854 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe,  dunne bamboestok. Droog, grondwater zakt vrij diep' WHERE grts_address = 871030 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, gele meetnagel ' WHERE grts_address = 3676246 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel,  ca 0,5 m no van zuidelijke wal' WHERE grts_address = 48897 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 1035478 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel, droog/laarzen.  Grondwater zakt vrij diep weg' WHERE grts_address = 1176286 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 450229 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel' WHERE grts_address = 472065 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 480306 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok,  juist in gagelstruik' WHERE grts_address = 4496502 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'GelGele meetnagel blauwe bamboestok,  naast gagelstruikje ' WHERE grts_address = 105458 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, gele meetnagel,  zo goed als onder raster. Wellicht diep grondwater, maar stuwwatertafel in de winter. Stenig' WHERE grts_address = 1032326 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 1062930 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel en blauwe bamboestok ' WHERE grts_address = 46177398 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok,  juist ten zuiden rijpad.  Grondwater diep, mergel ondiep, veel silex' WHERE grts_address = 53288370 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Kort bamboestokje, gele meetnagel ' WHERE grts_address = 500782 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 1818369 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 45029009 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 10640110 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel' WHERE grts_address = 47553522 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok. 40 cm water!' WHERE grts_address = 1013294 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel bWellicht  grondwaterafhankelijk ' WHERE grts_address = 74542 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel, peilbuis niet tussen zilte rus plaatsen' WHERE grts_address = 3202741 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 3554997 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok,  gele meetnagel ' WHERE grts_address = 236530 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel en blauwe bamboestok' WHERE grts_address = 44604534 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel ' WHERE grts_address = 3858101 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok' WHERE grts_address = 3664630 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, blauwe  bamboestok. Ca. 1,5 m van gemaaid pad door het riet' WHERE grts_address = 46172434 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel  blauwe bamboestok,  naast door everzwijnen omgewoeld stukje' WHERE grts_address = 9488370 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel  op kaal stukje grond, blauwe bamboestok. Lemige bodem, grondwater relatief  Check Nederlandse grens met RTK. Punt ligt net binnen landsgrenzen' WHERE grts_address = 53206450 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok en gele meetnagel. In stoof van zwarte els, 5 m zw van eik' WHERE grts_address = 1999406 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'2 bamboe, 1 wit schijfje. Tussen zwarte bes en meidoorn.' WHERE grts_address = 4241542 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel op dijkje bij perceelsrand. Laarzen' WHERE grts_address = 4315346 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel en blauwe bamboestok ' WHERE grts_address = 1134841 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 4447925 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel,' WHERE grts_address = 4772254 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, blauwe bamboestok ' WHERE grts_address = 6075038 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel' WHERE grts_address = 6092977 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Midden op het veld' WHERE grts_address = 1280278 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 9424086 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Dunne bamboestok. Midden tussen wilgen-elzeneilandje en "vasteland". Extreem nat, waadpak, best 2 personen' WHERE grts_address = 9478930 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauw op dode berk, gele meetnagel tak. Laarzen' WHERE grts_address = 9525806 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel  ca. 1,25 m van rand plagplek' WHERE grts_address = 10152242 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok, gele meetnagel ' WHERE grts_address = 10655830 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok,  maar grote grazers. ' WHERE grts_address = 306162 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  staat niet exact ivm beverburcht' WHERE grts_address = 12773714 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok (kort),  gele meetnagel ' WHERE grts_address = 13038894 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 21167406 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 4632918 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Witte meetnagel' WHERE grts_address = 6923026 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel in slenk' WHERE grts_address = 14070494 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel,  in rand van hogere en meer vergraste zone' WHERE grts_address = 14543154 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe stok gele meetnagel bij boomstronkje' WHERE grts_address = 15538734 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 15595153 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel ' WHERE grts_address = 16470006 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 27369590 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 27584145 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok' WHERE grts_address = 29329682 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 29769397 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Mo eilijk terug te vinden, neem rtk gps mee. Bamboestokje gebroken... korte bamboestok, gele meetnagel. Bijkomend gemarkeerd met wilgentak' WHERE grts_address = 9431346 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel (onder water ) blauwe bamboestok' WHERE grts_address = 53184786 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, stokjes op, sorry' WHERE grts_address = 17262898 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gemarkeerd met twee paaltjes' WHERE grts_address = 17682598 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel en blauwe bamboestok ' WHERE grts_address = 17912057 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel bamboestok, ZO van plukje zilte rus' WHERE grts_address = 19914421 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe stok, dichtbij gasleiding' WHERE grts_address = 20994606 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, geen bamboestok wegens koeien. Zout!' WHERE grts_address = 21323197 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel,   1m ten zuidoosten tweestammige dikke berk' WHERE grts_address = 35039538 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel (onder water ) blauwe bamboestok' WHERE grts_address = 36407570 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 37843062 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel,  waadpak gaat eenvoudigst zijn om langs zuid door de gracht te komen. Erg mooi ontwikkeld voorbeeld van het habitattype! ' WHERE grts_address = 43182386 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Bamboestok gele meetnagel,  naast' WHERE grts_address = 10305 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Kort blauw bamboestokje, gele meetnagel ' WHERE grts_address = 943826 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Kort bamboestokje, gele meet. Laarzen, grondwater zakt zeer ondiep weg' WHERE grts_address = 959958 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel  blauwe bamboestok. Naast grote schuinhangende schietwilg' WHERE grts_address = 198137 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Klein dun blauw bamboestokje, gele meetnagel ' WHERE grts_address = 1468114 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe stok gele meetnagel bij boomstronkje' WHERE grts_address = 72238 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok,  vlak ten ZO van duidelijk loopspoor' WHERE grts_address = 49692341 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, geen bamboestok wegens koeien. Zout!' WHERE grts_address = 49896893 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  gele meetnagel, makkelijkst te bereiken vanaf noord' WHERE grts_address = 4026486 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok' WHERE grts_address = 4163858 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok. Laarzen ' WHERE grts_address = 7958646 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel tussen witte snavelbies' WHERE grts_address = 2136622 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 3185198 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel ' WHERE grts_address = 1665330 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, Ca 50 cm van het pad' WHERE grts_address = 1736754 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 299701 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel.  Slecht internet. Wellicht niet grondwaterafhankelijk. Sleutel voor slagboom te vragen aan boswachter. Buis niet op ruimingspiste.' WHERE grts_address = 355910 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel, stokjes op, sorry' WHERE grts_address = 485682 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel ' WHERE grts_address = 37113566 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 51474550 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok' WHERE grts_address = 518902 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok,  dun, steekt juist boven vegetqtie uit. Geen meetnagel ivm indrukbare bodem en maaibalk. Gaat met laarzen mits voorzichtig en wat rondlopen via zuidkant. Broedplek kraanvogels!' WHERE grts_address = 670646 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Blauwe bamboestok gele meetnagel. MiddelMiddelpunt zit eigenlijk op liggende stam, meetnagel ernaast geplaatst. Laarzen, ondiep grondwater' WHERE grts_address = 23906290 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 2137206 AND recovery_hints IS NULL;
+UPDATE "outbound"."LocationInfos" SET recovery_hints = E'Gele meetnagel blauwe bamboestok ' WHERE grts_address = 2203766 AND recovery_hints IS NULL;
+
+
+"""
+
+
 commandline_args = SYS.argv
 if len(commandline_args) > 1:
     suffix = commandline_args[1]
 else:
-    suffix = ""
-    # suffix = "-testing"
+    # suffix = ""
+    suffix = "-testing"
     # suffix = "-staging"
+suffix = "-testing" # TODO safety net
 
 print("|"*64)
 print(f"going to sync LocationInfos between *loceval{suffix}* and *mnmgwdb{suffix}*. \n")
