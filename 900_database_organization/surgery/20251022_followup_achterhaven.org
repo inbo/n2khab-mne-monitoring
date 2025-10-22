@@ -1,0 +1,23 @@
+#+title: Followup Achterhaven Zeebrugge
+#+date: 20251022 
+
+* Live Ticker
+
+SELECT
+  UNIT.grts_address,
+  (VISIT.grts_address = UNIT.grts_address) AND (VISIT.type = UNIT.type) AS unit_is_equal,
+  VISIT.type,
+  visit_done,
+  is_replaced,
+  log_user,
+  log_update,
+  VISIT.notes
+FROM "inbound"."Visits" AS VISIT
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON UNIT.sampleunit_id = VISIT.sampleunit_id
+WHERE activity_group_id = 18
+AND VISIT.grts_address IN (
+  122549, 48053941, 1195701, 1588917, 253621, 3202741, 48578229, 450229, 3554997, 540341, 49692341, 3858101, 5193397, 5234357, 44961461, 5455541, 908981, 5979829, 212661, 409269
+)
+ORDER BY visit_done DESC, log_update DESC, grts_address ASC
+;
