@@ -11,6 +11,7 @@ WHERE location_id IN (
   IN (
     SELECT DISTINCT samplelocation_id
     FROM "outbound"."FieldworkCalendar"
+    WHERE archive_version_id IS NULL
   )
 )
 ;
