@@ -109,7 +109,18 @@ To summarize, issues and their status:
 |                         |               | - Visits \ visit_done                                                            |
 |                         |               | - grts_address \ in "Achterhaven Zeebrugge"                                      |
 |-------------------------+---------------+----------------------------------------------------------------------------------|
-| =21/10/2025 11:00=        | @FM, @FV      | Meeting / Discussion of /post mortem/ draft                                        |
+| =21/10/2025 11:00=        | @FV, @FM      | Meeting / Discussion of /post mortem/ draft                                        |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =21/10/2025 >14:00=       | @FV, @FM      | follow-up "Achterhaven"                                                          |
+|                         |               | manual re-activation of [[Addresses Achterhaven]]                                    |
+|                         |               | - first in loceval                                                               |
+|                         |               | - then also in mnmgwdb                                                           |
+|                         |               | - then maintenance scripts (LocationInfos broken)                                |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =22/10/2025 <12:00=       | @KW, @FV, @FM | Comment @KW on communication with PAOB (haven administration) and Dries/Milklim  |
+|                         |               | Confirmation that 19/20 locations were in approved set for placement along with  |
+|                         |               | others which were dropped. It was therefore decided that 908981 should also be   |
+|                         |               | installed.                                                                       |
 |-------------------------+---------------+----------------------------------------------------------------------------------|
 
 
@@ -149,6 +160,7 @@ To summarize, issues and their status:
 
 * Appendix
 
+** percentage archived visits
 #+begin_example
 mnmgwdb=# SELECT DISTINCT archive_version_id, visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done, archive_version_id;
 avid | visit_done | count
@@ -164,3 +176,30 @@ avid | visit_done | count
 #+end_example
 
 
+** Addresses Achterhaven
+https://docs.google.com/spreadsheets/d/1ZqEvJCS93BNZ_nftED7N4mO4J3sTyCqcwFQjun0nBaw
+
+|----------+-------------+----------|
+|     grts | replacement | type     |
+|----------+-------------+----------|
+|   122549 |             | 1330_hpr |
+| 48053941 |             | 1310_pol |
+|  1195701 |             | 1310_pol |
+|  1588917 |             | 1310_pol |
+|   253621 |     4447925 | 1330_hpr |
+|  3202741 |             | 1310_pol |
+| 48578229 |             | 1310_pol |
+|   450229 |             | 1330_hpr |
+|  3554997 |    29769397 | 1310_pol |
+|   540341 |             | 1330_hpr |
+| 49692341 |             | 1310_pol |
+|  3858101 |             | 1310_pol |
+|  5193397 |             | 1310_pol |
+|  5234357 |    19914421 | 1310_pol |
+| 44961461 |             | 1330_hpr |
+|  5455541 |             | 1310_pol |
+|   908981 |             | 1330_hpr |
+|  5979829 |             | 1310_pol |
+|   212661 |             | 1310_pol |
+|   409269 |             | 1310_pol |
+|----------+-------------+----------|

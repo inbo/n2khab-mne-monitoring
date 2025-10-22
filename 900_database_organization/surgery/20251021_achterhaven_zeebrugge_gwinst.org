@@ -81,7 +81,7 @@ WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 355499
 |    1195701 |             1195701 |
 |    1588917 |             1588917 |
 |    3202741 |             3202741 |
-|  ? 3554997 |             3554997 |
+|  ! 3554997 | 3554997 -> 29769397 |
 |    3858101 |             3858101 |
 |    5193397 |             5193397 |
 | ! 19914421 | 5234357 -> 19914421 |
@@ -115,6 +115,15 @@ AND archive_version_id = 3
 ;
 #+end_src
 
+20251022 append local replacement
+#+begin_src sql
+UPDATE "outbound"."FieldworkCalendar"
+SET archive_version_id = NULL
+WHERE grts_address IN (29769397)
+AND archive_version_id = 3
+;
+#+end_src
+
 * Visits
 
 
@@ -127,11 +136,19 @@ WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 355499
 ;
 #+end_src
 
-
 #+begin_src sql
 UPDATE "inbound"."Visits"
 SET archive_version_id = NULL
 WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421)
+AND archive_version_id = 3
+;
+#+end_src
+
+20251022 append local replacement
+#+begin_src sql
+UPDATE "inbound"."Visits"
+SET archive_version_id = NULL
+WHERE grts_address IN (29769397)
 AND archive_version_id = 3
 ;
 #+end_src
