@@ -11,6 +11,7 @@ FROM "metadata"."LocationCells"
 WHERE location_id IN (
   SELECT DISTINCT location_id
   FROM "outbound"."SampleUnits"
+  WHERE archive_version_id IS NULL
 )
 UNION
 SELECT
