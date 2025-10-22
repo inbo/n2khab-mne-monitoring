@@ -259,7 +259,10 @@ status_changed %>%
     by = join_by(grts_address, type, activity_group_id),
     suffix = c("","_new")
   ) %>%
-  filter(date_id == date_id_new, archive_version_id == 2) %>% 
+  filter(
+    date_id == date_id_new,
+    ((archive_version_id == 2) || (is.na(archive_version_id) && (done_planning))
+  ) %>% 
   mutate(across(c(date_start, date_start_new), as.character)) %>% 
   write.csv2("dumps/fieldwork_calendar_poc0140_loceval.csv")
 
@@ -421,7 +424,10 @@ status_changed %>%
     by = join_by(grts_address, stratum, activity_group_id),
     suffix = c("","_new")
   ) %>%
-  filter(date_id == date_id_new, archive_version_id == 3) %>% 
+  filter(
+    date_id == date_id_new,
+    (archive_version_id == 3) | ( done_planning) # is.na(archive_version_id) &
+  ) %>% 
   mutate(across(c(date_start, date_start_new), as.character)) %>% 
   write.csv2("dumps/fieldwork_calendar_poc0140_mnmgwdb.csv")
 
@@ -962,4 +968,11 @@ UPDATE  "inbound"."Visits"  SET date_start = '2026-04-01' WHERE grts_address = 5
 UPDATE  "inbound"."Visits"  SET date_start = '2026-07-01' WHERE grts_address = 51535145 AND stratum = '6430_hw' AND activity_group_id = 9 AND date_start = '2026-04-01';
 UPDATE  "inbound"."Visits"  SET date_start = '2026-04-01' WHERE grts_address = 51535145 AND stratum = '6430_hw' AND activity_group_id = 28 AND date_start = '2025-10-01';
 
+```
+
+```{sql}
+#| eval: false
+\COPY (
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE done_planning
+) TO '/data/mnm_db_backups/check_fwcal_mnmgwdb.csv' With CSV DELIMITER ',' HEADER;
 ```
