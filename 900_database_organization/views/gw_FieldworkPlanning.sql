@@ -51,6 +51,8 @@ SELECT
        ELSE current_date - ACT.date_visit
   END AS count_days_ws,
   LOCEVAL.has_loceval,
+  LOCEVAL.type_assessed,
+  LOCEVAL.type_is_absent,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes,
   LOCEVAL.latest_visit
@@ -65,25 +67,32 @@ LEFT JOIN "metadata"."SSPSTaPas" AS SSPSTP
   ON SSPSTP.sspstapa_id = FWCAL.sspstapa_id
 LEFT JOIN (
   SELECT
-    samplelocation_id,
+    grts_address,
     latest_visit,
     loceval_photo,
     loceval_notes,
+    type_assessed,
+    type_is_absent,
     TRUE AS has_loceval
   FROM (
     SELECT DISTINCT
-      samplelocation_id,
+      grts_address,
       eval_source,
       MAX(eval_date) AS latest_visit,
       eval_date,
+      type_assessed,
+      type_is_absent,
       photo AS loceval_photo,
       notes AS loceval_notes
     FROM "outbound"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
-    GROUP BY samplelocation_id, eval_source, photo, notes, eval_date
+    GROUP BY grts_address, eval_source,
+      photo, notes, eval_date,
+      type_assessed, type_is_absent
   ) WHERE eval_date = latest_visit 
   ) AS LOCEVAL
-    ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
+    ON SLOC.grts_address = LOCEVAL.grts_address
+    AND SLOC.strata = LOCEVAL.type_assessed
 LEFT JOIN (
   SELECT DISTINCT
     VISIT.samplelocation_id,
@@ -125,6 +134,7 @@ ORDER BY
 ;
 
 -- SELECT DISTINCT visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done;
+--  AND LOC.grts_address = 48578229
 
 -- DROP RULE IF EXISTS FieldworkPlanning_upd0 ON "outbound"."FieldworkPlanning";
 -- CREATE RULE FieldworkPlanning_upd0 AS
@@ -158,18 +168,8 @@ DO ALSO
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tom;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  yglinga;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  jens;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  lise;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  wouter;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  floris;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  karen;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  ward;
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  monkey;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  floris;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  karen;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom, floris, karen;
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester;

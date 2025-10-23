@@ -138,6 +138,34 @@ mnmgwdb <- connect_mnm_database(
 mnmgwdb$shellstring
 
 
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "SampleLocations",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "LocationInfos",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "LocationEvaluations",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "type_assessed"),
+  reference_mod = function(x) if (x == "type_assessed") {"strata"} else {x}
+)
+
+
 
 # link FieldworkCalender back to SampleLocations
 stitch_table_connection(
