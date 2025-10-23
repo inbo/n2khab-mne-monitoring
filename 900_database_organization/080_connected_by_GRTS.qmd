@@ -39,7 +39,8 @@ suffix <- ""
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(3554997, 29769397)
+grts <- c(49896893, 21323197)
+    # c(3554997, 29769397)
     # c(51221550, 16470006) # WIA/CSA mismatch 20251016 -> special activities seem missed on replacement processing (091_)
     # c(120110) # dual replacement
     # c(23257, 60185305) # visit by Wouter 20/8

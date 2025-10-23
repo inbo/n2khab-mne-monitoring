@@ -85,6 +85,8 @@ Solution would be to load the old and new calendar in R, select those which disa
 
 ## Dump New Plan
 
+This goes back to the latest `RData` file to retrieve the actual new plan, prior to fiddling.
+
 ```{r libraries}
 #| eval: false
 
@@ -120,13 +122,25 @@ source("051_snippet_transformation_code.R")
 
 ```
 
+
+Two options here: 
+
+- the "full" list of activities (`fag_stratum_grts_calendar`)
+- the reduced, applied subset (`fieldwork_2025_prioritization_by_stratum`)
+
+I think the first one caused trouble because there were manually shifted activities
+which date back to 2024; 
+but because I use group-wise counting below they count as the first applicable date.
+The "2025"(+) calendar is more focused, yet also lacks connection to some later procedures (thus missing the link, below).
+
 ```{r fwcal}
 #| eval: false
 
 fieldwork_calendar <-
-  # fag_stratum_grts_calendar %>%
-  fieldwork_2025_prioritization_by_stratum %>%
+  fag_stratum_grts_calendar %>%
+  # fieldwork_2025_prioritization_by_stratum %>%
   common_current_calenderfilters() %>% # should be filtered already!
+  filter(date_start >= as.Date("2025-07-01")) %>% 
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
   rename(type = stratum) %>%
@@ -203,9 +217,17 @@ status_quo <- locevaldb$query_columns(
       "activity_group_id",
       "date_start",
       "done_planning",
-      "archive_version_id"
+      "archive_version_id",
+      "fieldactivitycalendar_id"
     )
   )  %>%
+  left_join(
+    locevaldb$query_columns(
+      "Visits",
+      c("fieldactivitycalendar_id", "visit_done")
+    ),
+    by = join_by(fieldactivitycalendar_id)
+  )  %>% 
   arrange(date_start) %>% 
   mutate(date_id = row_number(), .by = c("grts_address", "type", "activity_group_id"))
 
@@ -261,7 +283,9 @@ status_changed %>%
   ) %>%
   filter(
     date_id == date_id_new,
-    ((archive_version_id == 2) || (is.na(archive_version_id) && (done_planning))
+    ((archive_version_id == 2)
+     | (is.na(archive_version_id) & (done_planning | visit_done))
+     )
   ) %>% 
   mutate(across(c(date_start, date_start_new), as.character)) %>% 
   write.csv2("dumps/fieldwork_calendar_poc0140_loceval.csv")
@@ -334,6 +358,41 @@ UPDATE  "inbound"."Visits"  SET date_start = '2026-07-01' WHERE grts_address = 1
 UPDATE  "inbound"."Visits"  SET date_start = '2026-10-01' WHERE grts_address = 1899829 AND type = '2190_mp' AND activity_group_id = 4 AND date_start = '2025-07-01';
 UPDATE  "inbound"."Visits"  SET date_start = '2026-04-01' WHERE grts_address = 3202741 AND type = '1310_pol' AND activity_group_id = 28 AND date_start = '2025-07-01';
 UPDATE  "inbound"."Visits"  SET date_start = '2025-07-01' WHERE grts_address = 3673653 AND type = '6510_hu' AND activity_group_id = 11 AND date_start = '2025-10-01';
+
+
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 480306 AND type = '6410_mo' AND activity_group_id = 4 AND date_start = '2030-10-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1542626 AND type = '6510_hus' AND activity_group_id = 4 AND date_start = '2027-10-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1922225 AND type = '2190_mp' AND activity_group_id = 28 AND date_start = '2027-01-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1996593 AND type = '2190_overig' AND activity_group_id = 4 AND date_start = '2027-04-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 2137206 AND type = '7230' AND activity_group_id = 4 AND date_start = '2027-04-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 3858101 AND type = '1310_pol' AND activity_group_id = 4 AND date_start = '2027-10-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 17923334 AND type = '91E0_vc' AND activity_group_id = 4 AND date_start = '2030-07-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 21167406 AND type = '6410_ve' AND activity_group_id = 4 AND date_start = '2027-01-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2030-10-01' WHERE grts_address = 480306 AND type = '6410_mo' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2027-10-01' WHERE grts_address = 1542626 AND type = '6510_hus' AND activity_group_id = 4 AND date_start = '2025-10-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2027-01-01' WHERE grts_address = 1922225 AND type = '2190_mp' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2027-04-01' WHERE grts_address = 1996593 AND type = '2190_overig' AND activity_group_id = 4 AND date_start = '2025-10-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2027-04-01' WHERE grts_address = 2137206 AND type = '7230' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2027-10-01' WHERE grts_address = 3858101 AND type = '1310_pol' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2030-07-01' WHERE grts_address = 17923334 AND type = '91E0_vc' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldActivityCalendar"  SET date_start = '2027-01-01' WHERE grts_address = 21167406 AND type = '6410_ve' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 480306 AND type = '6410_mo' AND activity_group_id = 4 AND date_start = '2030-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1542626 AND type = '6510_hus' AND activity_group_id = 4 AND date_start = '2027-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1922225 AND type = '2190_mp' AND activity_group_id = 28 AND date_start = '2027-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1996593 AND type = '2190_overig' AND activity_group_id = 4 AND date_start = '2027-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 2137206 AND type = '7230' AND activity_group_id = 4 AND date_start = '2027-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 3858101 AND type = '1310_pol' AND activity_group_id = 4 AND date_start = '2027-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 17923334 AND type = '91E0_vc' AND activity_group_id = 4 AND date_start = '2030-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 21167406 AND type = '6410_ve' AND activity_group_id = 4 AND date_start = '2027-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2030-10-01' WHERE grts_address = 480306 AND type = '6410_mo' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2027-10-01' WHERE grts_address = 1542626 AND type = '6510_hus' AND activity_group_id = 4 AND date_start = '2025-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2027-01-01' WHERE grts_address = 1922225 AND type = '2190_mp' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2027-04-01' WHERE grts_address = 1996593 AND type = '2190_overig' AND activity_group_id = 4 AND date_start = '2025-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2027-04-01' WHERE grts_address = 2137206 AND type = '7230' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2027-10-01' WHERE grts_address = 3858101 AND type = '1310_pol' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2030-07-01' WHERE grts_address = 17923334 AND type = '91E0_vc' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2027-01-01' WHERE grts_address = 21167406 AND type = '6410_ve' AND activity_group_id = 4 AND date_start = '2025-07-01';
+
 ```
 
 
@@ -375,9 +434,17 @@ status_quo <- mnmgwdb$query_columns(
       "activity_group_id",
       "date_start",
       "done_planning",
-      "archive_version_id"
+      "archive_version_id",
+      "fieldworkcalendar_id"
     )
   )  %>%
+  left_join(
+    mnmgwdb$query_columns(
+      "Visits",
+      c("fieldworkcalendar_id", "visit_done")
+    ),
+    by = join_by(fieldworkcalendar_id)
+  )  %>% 
   arrange(date_start) %>% 
   mutate(date_id = row_number(), .by = c("grts_address", "stratum", "activity_group_id"))
 
@@ -422,11 +489,13 @@ status_changed %>%
   left_join(
     calender_new,
     by = join_by(grts_address, stratum, activity_group_id),
-    suffix = c("","_new")
+    suffix = c("","_new"),
+    relationship = "many-to-many"
   ) %>%
   filter(
     date_id == date_id_new,
-    (archive_version_id == 3) | ( done_planning) # is.na(archive_version_id) &
+    (archive_version_id == 3)
+    # | ( done_planning) # is.na(archive_version_id) &
   ) %>% 
   mutate(across(c(date_start, date_start_new), as.character)) %>% 
   write.csv2("dumps/fieldwork_calendar_poc0140_mnmgwdb.csv")
@@ -968,11 +1037,147 @@ UPDATE  "inbound"."Visits"  SET date_start = '2026-04-01' WHERE grts_address = 5
 UPDATE  "inbound"."Visits"  SET date_start = '2026-07-01' WHERE grts_address = 51535145 AND stratum = '6430_hw' AND activity_group_id = 9 AND date_start = '2026-04-01';
 UPDATE  "inbound"."Visits"  SET date_start = '2026-04-01' WHERE grts_address = 51535145 AND stratum = '6430_hw' AND activity_group_id = 28 AND date_start = '2025-10-01';
 
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 4 AND date_start = '2029-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 9 AND date_start = '2029-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 28 AND date_start = '2029-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5527750 AND stratum = '9130_fm' AND activity_group_id = 4 AND date_start = '2029-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5527750 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2029-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 7069106 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2027-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 13688242 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2029-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 47517086 AND stratum = '6510_hus' AND activity_group_id = 4 AND date_start = '2028-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 47517086 AND stratum = '6510_hus' AND activity_group_id = 28 AND date_start = '2028-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 53206450 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2029-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2029-01-01' WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2029-07-01' WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 9 AND date_start = '2026-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2029-01-01' WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2029-04-01' WHERE grts_address = 5527750 AND stratum = '9130_fm' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2029-04-01' WHERE grts_address = 5527750 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2027-04-01' WHERE grts_address = 7069106 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2029-04-01' WHERE grts_address = 13688242 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2026-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2028-07-01' WHERE grts_address = 47517086 AND stratum = '6510_hus' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2028-07-01' WHERE grts_address = 47517086 AND stratum = '6510_hus' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2029-04-01' WHERE grts_address = 53206450 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 4 AND date_start = '2029-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 9 AND date_start = '2029-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 28 AND date_start = '2029-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5527750 AND stratum = '9130_fm' AND activity_group_id = 4 AND date_start = '2029-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5527750 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2029-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 7069106 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2027-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 13688242 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2029-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 47517086 AND stratum = '6510_hus' AND activity_group_id = 4 AND date_start = '2028-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 47517086 AND stratum = '6510_hus' AND activity_group_id = 28 AND date_start = '2028-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 53206450 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2029-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2029-01-01' WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2029-07-01' WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 9 AND date_start = '2026-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2029-01-01' WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2029-04-01' WHERE grts_address = 5527750 AND stratum = '9130_fm' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2029-04-01' WHERE grts_address = 5527750 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2027-04-01' WHERE grts_address = 7069106 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2029-04-01' WHERE grts_address = 13688242 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2026-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2028-07-01' WHERE grts_address = 47517086 AND stratum = '6510_hus' AND activity_group_id = 4 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2028-07-01' WHERE grts_address = 47517086 AND stratum = '6510_hus' AND activity_group_id = 28 AND date_start = '2025-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2029-04-01' WHERE grts_address = 53206450 AND stratum = '9130_fm' AND activity_group_id = 28 AND date_start = '2025-07-01';
+
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 9262 AND stratum = '9120' AND activity_group_id = 28 AND date_start = '2031-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 22726 AND stratum = '9160' AND activity_group_id = 4 AND date_start = '2031-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 22726 AND stratum = '9160' AND activity_group_id = 28 AND date_start = '2031-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 88274 AND stratum = '9190' AND activity_group_id = 28 AND date_start = '2031-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 114454 AND stratum = '6430_hf' AND activity_group_id = 4 AND date_start = '2031-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 114454 AND stratum = '6430_hf' AND activity_group_id = 28 AND date_start = '2031-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 211193 AND stratum = '91E0_vc' AND activity_group_id = 28 AND date_start = '2032-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 236530 AND stratum = '4010' AND activity_group_id = 28 AND date_start = '2032-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 4 AND date_start = '2032-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 28 AND date_start = '2032-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 4 AND date_start = '2031-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 28 AND date_start = '2031-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1032326 AND stratum = '6230_hmo' AND activity_group_id = 4 AND date_start = '2032-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1032326 AND stratum = '6230_hmo' AND activity_group_id = 28 AND date_start = '2032-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1736754 AND stratum = '9160' AND activity_group_id = 28 AND date_start = '2031-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1902553 AND stratum = '9130_end' AND activity_group_id = 28 AND date_start = '2031-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1904953 AND stratum = '9130_end' AND activity_group_id = 28 AND date_start = '2031-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 9 AND date_start = '2029-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-10-01' WHERE grts_address = 9262 AND stratum = '9120' AND activity_group_id = 28 AND date_start = '2026-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-04-01' WHERE grts_address = 22726 AND stratum = '9160' AND activity_group_id = 4 AND date_start = '2025-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-04-01' WHERE grts_address = 22726 AND stratum = '9160' AND activity_group_id = 28 AND date_start = '2025-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-10-01' WHERE grts_address = 88274 AND stratum = '9190' AND activity_group_id = 28 AND date_start = '2026-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-07-01' WHERE grts_address = 114454 AND stratum = '6430_hf' AND activity_group_id = 4 AND date_start = '2026-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-07-01' WHERE grts_address = 114454 AND stratum = '6430_hf' AND activity_group_id = 28 AND date_start = '2026-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2032-04-01' WHERE grts_address = 211193 AND stratum = '91E0_vc' AND activity_group_id = 28 AND date_start = '2026-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2032-04-01' WHERE grts_address = 236530 AND stratum = '4010' AND activity_group_id = 28 AND date_start = '2026-07-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2032-04-01' WHERE grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 4 AND date_start = '2026-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2032-04-01' WHERE grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 28 AND date_start = '2026-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-10-01' WHERE grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 4 AND date_start = '2026-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-10-01' WHERE grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 28 AND date_start = '2026-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2032-07-01' WHERE grts_address = 1032326 AND stratum = '6230_hmo' AND activity_group_id = 4 AND date_start = '2026-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2032-07-01' WHERE grts_address = 1032326 AND stratum = '6230_hmo' AND activity_group_id = 28 AND date_start = '2026-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-07-01' WHERE grts_address = 1736754 AND stratum = '9160' AND activity_group_id = 28 AND date_start = '2026-01-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-01-01' WHERE grts_address = 1902553 AND stratum = '9130_end' AND activity_group_id = 28 AND date_start = '2025-10-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2031-10-01' WHERE grts_address = 1904953 AND stratum = '9130_end' AND activity_group_id = 28 AND date_start = '2026-04-01';
+UPDATE  "outbound"."FieldworkCalendar"  SET date_start = '2029-07-01' WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 9 AND date_start = '2026-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 9262 AND stratum = '9120' AND activity_group_id = 28 AND date_start = '2031-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 22726 AND stratum = '9160' AND activity_group_id = 4 AND date_start = '2031-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 22726 AND stratum = '9160' AND activity_group_id = 28 AND date_start = '2031-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 88274 AND stratum = '9190' AND activity_group_id = 28 AND date_start = '2031-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 114454 AND stratum = '6430_hf' AND activity_group_id = 4 AND date_start = '2031-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 114454 AND stratum = '6430_hf' AND activity_group_id = 28 AND date_start = '2031-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 211193 AND stratum = '91E0_vc' AND activity_group_id = 28 AND date_start = '2032-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 236530 AND stratum = '4010' AND activity_group_id = 28 AND date_start = '2032-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 4 AND date_start = '2032-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 28 AND date_start = '2032-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 4 AND date_start = '2031-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 28 AND date_start = '2031-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1032326 AND stratum = '6230_hmo' AND activity_group_id = 4 AND date_start = '2032-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1032326 AND stratum = '6230_hmo' AND activity_group_id = 28 AND date_start = '2032-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1736754 AND stratum = '9160' AND activity_group_id = 28 AND date_start = '2031-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1902553 AND stratum = '9130_end' AND activity_group_id = 28 AND date_start = '2031-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 1904953 AND stratum = '9130_end' AND activity_group_id = 28 AND date_start = '2031-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2024-01-01', archive_version_id = 3 WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 9 AND date_start = '2029-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-10-01' WHERE grts_address = 9262 AND stratum = '9120' AND activity_group_id = 28 AND date_start = '2026-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-04-01' WHERE grts_address = 22726 AND stratum = '9160' AND activity_group_id = 4 AND date_start = '2025-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-04-01' WHERE grts_address = 22726 AND stratum = '9160' AND activity_group_id = 28 AND date_start = '2025-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-10-01' WHERE grts_address = 88274 AND stratum = '9190' AND activity_group_id = 28 AND date_start = '2026-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-07-01' WHERE grts_address = 114454 AND stratum = '6430_hf' AND activity_group_id = 4 AND date_start = '2026-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-07-01' WHERE grts_address = 114454 AND stratum = '6430_hf' AND activity_group_id = 28 AND date_start = '2026-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2032-04-01' WHERE grts_address = 211193 AND stratum = '91E0_vc' AND activity_group_id = 28 AND date_start = '2026-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2032-04-01' WHERE grts_address = 236530 AND stratum = '4010' AND activity_group_id = 28 AND date_start = '2026-07-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2032-04-01' WHERE grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 4 AND date_start = '2026-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2032-04-01' WHERE grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 28 AND date_start = '2026-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-10-01' WHERE grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 4 AND date_start = '2026-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-10-01' WHERE grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 28 AND date_start = '2026-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2032-07-01' WHERE grts_address = 1032326 AND stratum = '6230_hmo' AND activity_group_id = 4 AND date_start = '2026-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2032-07-01' WHERE grts_address = 1032326 AND stratum = '6230_hmo' AND activity_group_id = 28 AND date_start = '2026-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-07-01' WHERE grts_address = 1736754 AND stratum = '9160' AND activity_group_id = 28 AND date_start = '2026-01-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-01-01' WHERE grts_address = 1902553 AND stratum = '9130_end' AND activity_group_id = 28 AND date_start = '2025-10-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2031-10-01' WHERE grts_address = 1904953 AND stratum = '9130_end' AND activity_group_id = 28 AND date_start = '2026-04-01';
+UPDATE  "inbound"."Visits"  SET date_start = '2029-07-01' WHERE grts_address = 5471538 AND stratum = '7140_oli' AND activity_group_id = 9 AND date_start = '2026-07-01';
+
+
 ```
 
 ```{sql}
 #| eval: false
 \COPY (
-SELECT * FROM "outbound"."FieldworkCalendar" WHERE done_planning
+SELECT * FROM "outbound"."FieldworkCalendar"
+WHERE done_planning
+OR fieldworkcalendar_id IN (
+  SELECT fieldworkcalendar_id FROM "inbound"."Visits" WHERE visit_done
+)
 ) TO '/data/mnm_db_backups/check_fwcal_mnmgwdb.csv' With CSV DELIMITER ',' HEADER;
+```
+
+
+```{r find_by_grts}
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+grts_archived_locations <- c(
+  114454, 9262, 22726, 42070750, 41313630, 1032326, 22726, 299701, 7069106, 4211622, 1904953, 53206450, 1176286, 1736754, 1032326, 88274, 114454, 131806, 131806, 211193, 709330, 709330, 236530, 455349, 455349, 780114, 1176286, 1902553, 4772254, 5471538, 5471538, 5471538, 5471538, 5471538, 5471538, 5527750, 5527750, 6417454, 8826293, 8826293, 12773714, 12773714, 13688242, 15026297, 15026297, 17912057, 17912057, 42070750, 43623186, 43623186, 43623186, 47517086, 47517086, 43623186, 780114, 21323197 
+)
+
+
+calender_check <- readRDS("dumps/fieldwork_calendar_poc0140.rds") %>%
+  filter(grts_address %in% grts_archived_locations) %>%
+  filter(activity_group == "GWINSTPIEZWELL")
+
+
 ```
