@@ -40,8 +40,8 @@ yad --form \
   --field=" mhq areas [mnmgwdb$MIRROR]":fbtn "Rscript 097mnmgwdb_mhq_areas.R $MIRROR " \
   --field=" random placement points [mnmgwdb$MIRROR]":fbtn "Rscript 098_random_placementpoints_mnmgwdb.R $MIRROR " \
   --field=" sync FreeFieldNotes [$MIRROR]":fbtn "python 099_sync_FreeFieldNotes.py $MIRROR " \
-  --field=" open dashboard [mnmgwdb]":fbtn "lynx 040m_mnmgwdb_consistency_dashboard.html" \
   --field=" open dashboard [loceval]":fbtn "lynx 040l_loceval_consistency_dashboard.html" \
+  --field=" open dashboard [mnmgwdb]":fbtn "lynx 040m_mnmgwdb_consistency_dashboard.html" \
   --field="":CHK FALSE \
   --field="":CHK FALSE \
   --field="":CHK FALSE \
