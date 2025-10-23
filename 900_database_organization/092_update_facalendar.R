@@ -102,6 +102,42 @@ replace_grts_local <- function(df, typecolumn = "stratum") {
 }
 
 
+### Locations - restoring
+# seems to be the new thing.
+
+locations <- bind_rows(
+    mnmgwdb$query_columns("Locations", c("grts_address")),
+    # sample_units %>% select(grts_address),
+    mnmgwdb$query_columns("LocationInfos", c("grts_address")),
+    mnmgwdb$query_columns("ReplacementData", c("grts_address")),
+    mnmgwdb$query_columns("ReplacementData", c("grts_address_replacement")) %>%
+      rename(grts_address = grts_address_replacement),
+    mnmgwdb$query_columns("FieldworkCalendar", c("grts_address")),
+    mnmgwdb$query_columns("Visits", c("grts_address"))
+  ) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
+  distinct() %>%
+  # count(grts_address) %>%
+  # arrange(desc(n))
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(locations) <- "wkb_geometry"
+
+locations_lookup <- update_cascade_lookup(
+  table_label = "Locations",
+  new_data = locations,
+  index_columns = c("location_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+
 # fieldwork_2025_prioritization_by_stratum %>%
 # fieldwork_calendar %>%
 # samplelocations_lookup %>%

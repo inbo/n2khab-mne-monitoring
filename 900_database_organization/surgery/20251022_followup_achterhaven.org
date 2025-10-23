@@ -1,7 +1,12 @@
 #+title: Followup Achterhaven Zeebrugge
 #+date: 20251022 
 
+* SUMMARY
+
+All issues were unlinked ID columns in combination with joins of the mnmgwdb::FieldworkPlanning.
+
 * Live Ticker
+
 
 SELECT
   UNIT.grts_address,
@@ -20,4 +25,146 @@ AND VISIT.grts_address IN (
   122549, 48053941, 1195701, 1588917, 253621, 3202741, 48578229, 450229, 3554997, 540341, 49692341, 3858101, 5193397, 5234357, 44961461, 5455541, 908981, 5979829, 212661, 409269
 )
 ORDER BY visit_done DESC, log_update DESC, grts_address ASC
+;
+
+
+
+positive evaluation, yeah:
+  122549
+  409269
+ 1195701
+ 1588917
+48053941
+
+
+type not found:
+908981
+
+FROM "outbound"."gwTransfer"
+FROM "metadata"."Locations"
+FROM "outbound"."SampleLocations"
+FROM "outbound"."LocationEvaluations"
+FROM "outbound"."FieldworkCalendar"
+FROM "outbound"."FieldworkPlanning"
+FROM "inbound"."Visits"
+FROM "inbound"."WellInstallationActivities"
+AND activity_group_id = 4
+122549, 409269, 1195701, 1588917, 48053941, 908981
+FROM "outbound"."FieldworkPlanning"
+
+SELECT *
+FROM "outbound"."SampleLocations"
+WHERE grts_address IN (
+  122549, 48053941, 1195701, 1588917, 253621, 3202741, 48578229, 450229, 3554997, 540341, 49692341, 3858101, 5193397, 5234357, 44961461, 5455541, 908981, 5979829, 212661, 409269
+)
+;
+
+
+FROM "metadata"."Locations"
+FROM "outbound"."LocationInfos"
+FROM "outbound"."SampleLocations"
+FROM "outbound"."LocationEvaluations"
+SELECT *
+FROM "outbound"."LocationInfos"
+WHERE grts_address IN (122549)
+;
+
+
+SELECT *
+FROM "outbound"."LocationInfos"
+WHERE location_id = 377
+;
+
+
+FROM "outbound"."FieldworkCalendar"
+FROM "inbound"."Visits"
+FROM "inbound"."WellInstallationActivities"
+FROM "outbound"."FieldworkPlanning"
+SELECT *
+FROM "outbound"."FieldworkPlanning"
+WHERE grts_address IN (122549)
+AND activity_group_id = 4
+;
+
+
+-> seems to be an issue with Locations
+
+SELECT
+  LOC.*
+FROM "outbound"."FieldworkCalendar" AS FWCAL
+LEFT JOIN "outbound"."SampleLocations" AS SLOC
+  ON FWCAL.samplelocation_id = SLOC.samplelocation_id
+LEFT JOIN "metadata"."Locations" AS LOC
+  ON LOC.location_id = SLOC.location_id
+LEFT JOIN "outbound"."LocationInfos" AS INFO
+  ON LOC.location_id = INFO.location_id
+WHERE TRUE
+  AND FWCAL.archive_version_id IS NULL
+  AND LOC.grts_address IN (122549)
+  AND FWCAL.activity_group_id = 4
+;
+
+
+
+* Live-Tocker
+
+? 409269 has no GWINST
+212661 neither?
+
+
+FROM "outbound"."gwTransfer"
+FROM "metadata"."Locations"
+FROM "outbound"."LocationInfos"
+FROM "outbound"."SampleLocations"
+FROM "outbound"."LocationEvaluations"
+SELECT *
+FROM "outbound"."LocationEvaluations"
+WHERE grts_address IN (409269, 212661)
+;
+
+SELECT *
+FROM "outbound"."FieldworkCalendar"
+WHERE grts_address IN (409269, 212661)
+AND activity_group_id = 4
+;
+
+
+fag_stratum_grts_calendar %>% filter(grts_address_final %in% c(409269, 212661))
+
+
+SELECT max(fieldworkcalendar_id) FROM "outbound"."FieldworkCalendar";
+
+INSERT INTO "outbound"."FieldworkCalendar"
+(fieldworkcalendar_id, samplelocation_id, grts_address, stratum, date_start, date_end, date_interval, activity_group_id, activity_rank, priority, excluded)
+VALUES 
+(4380, 513, 212661, '1310_pol', '2030-04-01', '2030-06-30', '2030-04-01 -- 2030-06-30', 4, 2, 8, FALSE),
+(4381, 513, 212661, '1310_pol', '2030-04-01', '2030-06-30', '2030-04-01 -- 2030-06-30', 28, 3, 8, FALSE),
+(4382, 674, 409269, '1310_pol', '2030-07-01', '2030-09-30', '2030-07-01 -- 2030-09-30', 4, 2, 8, FALSE),
+(4383, 674, 409269, '1310_pol', '2030-07-01', '2030-09-30', '2030-07-01 -- 2030-09-30', 28, 3, 8, FALSE)
+;
+
+
+SELECT max(visit_id) FROM "inbound"."Visits";
+
+INSERT INTO "inbound"."Visits"
+(visit_id, fieldworkcalendar_id, samplelocation_id, location_id, grts_address, stratum, activity_group_id, date_start)
+VALUES 
+(4380, 4380, 513, 486, 212661, '1310_pol', 4,  '2030-04-01'),
+(4381, 4381, 513, 486, 212661, '1310_pol', 28, '2030-04-01'),
+(4382, 4382, 674, 642, 409269, '1310_pol', 4,  '2030-07-01'),
+(4383, 4383, 674, 642, 409269, '1310_pol', 28, '2030-07-01')
+;
+
+
+SELECT max(fieldwork_id) FROM "inbound"."WellInstallationActivities"
+UNION
+SELECT max(fieldwork_id) FROM "inbound"."ChemicalSamplingActivities"
+;
+
+
+INSERT INTO "inbound"."WellInstallationActivities"
+(fieldwork_id, samplelocation_id, fieldworkcalendar_id, visit_id, grts_address, stratum, activity_group_id, date_start)
+VALUES 
+(4180, 513, 4380, 4380, 212661, '1310_pol', 4,  '2030-04-01'),
+(4181, 674, 4382, 4382, 409269, '1310_pol', 4,  '2030-07-01')
 ;

@@ -188,7 +188,7 @@ verify_poc_objects()
 database <- "mnmgwdb"
 config_filepath <- file.path("./inbopostgis_server.conf")
 mirror <- ""
-# mirror <- "-staging"
+mirror <- "-staging"
 
 # connect loceval
 mnmgwdb_mirror <- glue::glue("{database}{mirror}")

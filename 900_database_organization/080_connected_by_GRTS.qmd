@@ -39,7 +39,8 @@ suffix <- ""
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(49896893, 21323197) # "Putten West"; disappeared with POC update 0.14 (TODO)
+grts <- c(122549)
+    # c(49896893, 21323197) # "Putten West"; disappeared with POC update 0.14 (TODO)
     # c(3554997, 29769397)
     # c(51221550, 16470006) # WIA/CSA mismatch 20251016 -> special activities seem missed on replacement processing (091_)
     # c(120110) # dual replacement

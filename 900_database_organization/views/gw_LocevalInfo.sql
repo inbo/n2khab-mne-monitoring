@@ -7,6 +7,7 @@ SELECT
   LOCEVAL.schemes,
   LOCEVAL.type,
   LOCEVAL.type_assessed,
+  LOCEVAL.type_is_absent,
   LOCEVAL.eval_source,
   LOCEVAL.eval_name,
   LOCEVAL.eval_date,
@@ -23,14 +24,6 @@ WHERE TRUE
 
 
 
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tom;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  yglinga;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  jens;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  lise;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  wouter;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  floris;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  karen;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  ward;
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  monkey;
+GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
 
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tester;
