@@ -55,6 +55,7 @@ LEFT JOIN (
     )
   ) AS VISIT
   ON REPU.sampleunit_id = VISIT.sampleunit_id
+WHERE VISIT.archive_version_id IS NULL
 ;
 
 
