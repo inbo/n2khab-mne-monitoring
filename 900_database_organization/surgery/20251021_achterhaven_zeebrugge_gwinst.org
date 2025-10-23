@@ -19,6 +19,7 @@
 48578229
 49692341
 5193397
+5234357
 540341
 5455541
 5979829
@@ -265,3 +266,19 @@ AND activity_group_id = 4;
 SELECT * FROM "outbound"."FieldworkPlanning"
 WHERE grts_address = 3202741
 AND activity_group_id = 4;
+
+
+
+
+* RE-ACTIVATION
+SCHEDULED: <2025-10-23 Thu>
+
+UPDATE "inbound"."Visits"
+UPDATE "outbound"."FieldworkCalendar"
+UPDATE "outbound"."SampleLocations"
+SET archive_version_id = NULL
+WHERE grts_address IN (
+1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421
+)
+;
+
