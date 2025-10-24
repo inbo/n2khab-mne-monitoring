@@ -1,10 +1,13 @@
-#+title: POC Update 0.14 - /post mortem/
-#+date: 20251016
+#+title: Memorandum (/post mortem/): POC Update 0.14.0
+#+date: 20251016-20251024
+
 
 * DISCLAIMER
 
-This document is /in preparation/ and has not been reviewed by all stakeholders.
-Listed items may be influenced by the opinion of the writer.
+This document is a subjective, /ad hoc/ summary by Falk Mielke, and has not been reviewed by all stakeholders.
+There are certainly points to add, and feedback is welcome via PR or github comment to [[https://github.com/inbo/n2khab-mne-monitoring/blob/dbinit_pocupdate014/900_database_organization/documentation/202510_pocupdate014_postmortem.org][this document]].
+Some follow-up TODO's are not finished up at the time of writing, but will be as soon as possible.
+
 
 * Summary
 
@@ -14,10 +17,11 @@ To summarize, issues and their status:
 + [X] TECHNICAL 2: erroneous use of a secondary index column as characteristic column in Fieldwork Calendar
 + [X] TECHNICAL 3: erroneous 64 bit integer parsing via =sprintf=
 + [ ] LOGICAL 1: (to be discussed) =start_date= as characteristic column and fieldwork precedence
-+ [ ] LOGICAL 2: (to be followed-up) "Achterhaven Zeebrugge" manual addition of out-of-sample locations in temporarily accessible area (loceval)
++ [X] LOGICAL 2: (to be followed-up) "Achterhaven Zeebrugge" manual addition of out-of-sample locations in temporarily accessible area (loceval)
 + [ ] MANUAL FAIL: (to be prevented) accidentally updated directly to production
 + [ ] Fieldwork Precedence and UNARCHIVE as temp mitigation: /to be discussed/
 
+  
 * Timeline
 
 
@@ -122,6 +126,12 @@ To summarize, issues and their status:
 |                         |               | others which were dropped. It was therefore decided that 908981 should also be   |
 |                         |               | installed.                                                                       |
 |-------------------------+---------------+----------------------------------------------------------------------------------|
+| =23/10/2025=              | @FV, @FM      | (some input from regular meeting with Jo / databeheer)                           |
+|                         |               | follow-up and manual re-activation locations in Achterhaven Zeebrugge            |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
+| =24/10/2025=              | @FM           | ensure locations are planned/scheduled for autumn break                          |
+|                         |               | wrap-up this memorandum; to be followed up                                       |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
 
 
 * Lessons Learned
@@ -139,22 +149,38 @@ To summarize, issues and their status:
   + usually units are picked up later on
   + e.g. "Hellebos 3" -> planned for 2030
 
-* TODO from discussion with Floris
-+ [0%] *LOGICAL 1* persistence/linkage of =start_date= per =activity_group= as an event characteristic (rationale: "first/second installation/sampling/..."; given limited time interval)
-  + [ ] 
-  + [ ] harden definitions of characteristic columns and precedence columns (with default) by fixing them in db structure sheets
+* Mitigations and TODO's
+/(from discussion with Floris, 2025/10/21)/
+
++ *LOGICAL 1* persistence/linkage of =start_date= per =activity_group= as an event characteristic (rationale: "first/second installation/sampling/..."; given limited time interval)
+  + temporal coupling: link+shift previous to new calendar entries
+    + via "series of events" (grts+stratum+FAG+"series/rank")
+    + both intra- and inter-activitygroup considerations
+  + print-out and warning of changing events, to follow up by planners
+  + if non-match:
+    + mismatches, from theoretical standpoint, "should not have been planned"
+    + yet there is always a /veto/ by Karen/Tom to recover; risk: different location or time, non-sampled location
+  + harden definitions of characteristic columns and precedence columns (with default) by fixing them in db structure sheets
 + *LOGICAL 2* handling out-of-sample installations (Hellebos, Achterhaven; pre-poned installations)
   + will not be implemented via POC: the POC is the theoretical framework for pure MNM goals
   + but: possible via side-load to databank; ideally tagged
-+ [ ] FW (Fieldwork) Precedence
-  + bias: depends.
++ FW (Fieldwork) Precedence: whether or not to keep out-of-sample locations
+  + bias by out-of-sample or extra locations: depends
     + GRTS sample is spatially biased only if units are in a continuous series
     + dropout (e.g. loceval, e.g. inaccessibility) will usually lead to shift of consecutive units
     + normally little influence of POC revisions (but it can happen that we install and don't sample)
+    + therefore generally: new plans must overwrite old plans
   + date shifts: likely
     + must be covered by database
-+ [ ] technically notify upon pushes to =production= mirror
-+ [ ] geopackages parallel to RData continued as checksums and confirmation 
+    + analysis 
++ prohibit involuntary/premature changes on =production=
+  + technically notify (= warn, pop-up, captcha-level of annoyance) upon any pushes to =production= mirror
+  + check database/table/entry locks (suggestion by Jo)
++ anticipation
+  + FM involved in data revisions as soon as possible
+  + potentially use =_future= mirror
+  + geopackages parallel to RData continued as checksums and confirmation 
+  + avoid "special ops + update + vacation" situation
 
 
 
@@ -174,6 +200,8 @@ avid | visit_done | count
   /  | t          |    28
 (7 rows)
 #+end_example
+
+Note: those are likely to be only date shifts
 
 
 ** Addresses Achterhaven
