@@ -1,0 +1,2 @@
+- *cf.* [journal](https://github.com/inbo/n2khab-mne-monitoring/blob/database_initialization/900_database_organization/000_steps_journal.org) for many details in mnm context
+- [further reading](https://datalemur.com/blog/sql-create-read-update-delete-drop-alter)
