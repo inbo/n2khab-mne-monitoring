@@ -1,0 +1,3 @@
+- Welcome to the MNM database documentation!
+- This subfolder is a logseq graph, best opened in [logseq](https://logseq.com).
+- Therein, feel free to use the [sidebar contents]([[Contents]]) to navigate.

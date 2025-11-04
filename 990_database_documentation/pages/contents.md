@@ -1,0 +1,34 @@
+# [[server]]
+	- [operating system]([[server/os]])
+	- [users]([[server/users]])
+	- [cronjobs]([[server/cronjobs]])
+	- [ssh]([[server/ssh]])
+	- [postgresql]([[server/postgresql]])
+	- [cronjobs]([[server/cronjobs]])
+	- see also: [[software]]
+- # [[database]]
+	- [generation]([[database/generation]])
+	- [mirrors]([[database/mirrors]])
+	- [authentication]([[database/authentication]])
+	- [backups]([[database/backups]])
+	- [structure]([[database/structure]])
+	- [design guidelines]([[database/design guidelines]])
+- # [[maintenance]]
+	- [creation]([[maintenance/creation]])
+	- [recurrent]([[maintenance/recurrent]])
+	- [pocupdate]([[maintenance/pocupdate]])
+	- [surgery]([[maintenance/surgery]])
+- # [[usage]]
+	- [qgis]([[usage/qgis]])
+	- [qfield]([[usage/qfield]])
+	- [R]([[usage/R]])
+		- [R/MNMDatabaseConnection]([[usage/R/MNMDatabaseConnection]] "object")
+		- [R/MNMDatabaseToolbox]([[usage/R/MNMDatabaseToolbox]] "procedures")
+	- [python]([[usage/python]])
+	- [connection config file]([[usage/connection config file]])
+- # [[sql]]
+	- [create table]([[sql/create table]])
+	- [views]([[sql/views]])
+	- [copy]([[sql/copy]])
+	- [examples]([[sql/examples]])
+	- ["backslash commands"]([[sql/backslash commands]])
