@@ -129,6 +129,8 @@ To summarize, issues and their status:
 | =23/10/2025=              | @FV, @FM      | (some input from regular meeting with Jo / databeheer)                           |
 |                         |               | follow-up and manual re-activation locations in Achterhaven Zeebrugge            |
 |-------------------------+---------------+----------------------------------------------------------------------------------|
+| =23/10/2025=              | @FM           | bugfix: missing some tables in =095_re_link_foreign_keys_optional.R= script        |
+|-------------------------+---------------+----------------------------------------------------------------------------------|
 | =24/10/2025=              | @FM           | ensure locations are planned/scheduled for autumn break                          |
 |                         |               | manual re-activation of four confirmed locations in "De Liereman"                |
 |                         |               | wrap-up this memorandum; to be followed up                                       |

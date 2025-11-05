@@ -27,6 +27,7 @@
 #   no less, no more.
 
 # SQL Basics
+#    ATTENTION: the `->` used in this comment block is NOT an R operator.
 # > execute_sql(mnmdb, sql_command, verbose = TRUE) -> invisible(result)
 # > dump_all <- function(
 #     config_filepath, database_to_dump, target_filepath,

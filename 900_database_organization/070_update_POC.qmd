@@ -728,6 +728,8 @@ data_future <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
 
+# data_future %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_older.rds")
+# data_future %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_older.csv")
 distribution <- categorize_data_update(
   mnmdb = mnmgwdb,
   table_label = table_label,
