@@ -1100,7 +1100,10 @@ categorize_data_update <- function(
 
   ## load database status
   data_previous <- mnmdb$query_table(table_label)
-
+  # data_previous %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_previous.rds")
+  # data_future %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_future.rds")
+  # data_previous %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_previous.csv")
+  # data_future %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_future.csv")
 
   cols <- names(data_future)
   cols <- cols[!(cols %in% logging_columns)]

@@ -13,6 +13,6 @@ WHERE WIA.fieldwork_id = CSA.fieldwork_id
 
 [!]
 UPDATE "inbound"."ChemicalSamplingActivities"
-  SET fieldwork_id = fieldwork_id + 10224
+  SET fieldwork_id = fieldwork_id + 10000
   WHERE fieldwork_id < 9999
 ;

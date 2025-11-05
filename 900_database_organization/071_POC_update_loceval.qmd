@@ -95,8 +95,8 @@ verify_poc_objects()
 ```{r connect-databases}
 database <- "loceval"
 config_filepath <- file.path("./inbopostgis_server.conf")
-mirror <- ""
-# mirror <- "-staging"
+# mirror <- ""
+mirror <- "-staging"
 
 
 # connect loceval
