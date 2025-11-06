@@ -1,9 +1,11 @@
 library("tidyverse")
 
 data_pre <- readRDS("dumps/datelink_older.rds")
-data_post <- readRDS("dumps/datelink_previous.rds")
+# data_post <- readRDS("dumps/datelink_previous.rds")
+data_post <- readRDS("dumps/datelink_future.rds")
+# dfuture <- readRDS("dumps/datelink_future.rds")
 
-
+# NOT USED
 grts_selection <- c("122549",
   "49896893", "21323197", "3554997", "29769397",
   "51221550", "16470006", "120110", "23257",
@@ -19,7 +21,8 @@ characteristic_columns <- c("grts_address", "stratum", "activity_group_id")
 
 filter_and_arrange <- function(.data) {
   .data %>%
-    filter(grts_address %in% grts_selection) %>%
+    # filter(grts_address %in% grts_selection) %>%
+    filter(date_start >= as.Date("2025-07-01")) %>%
     arrange(grts_address, stratum, activity_group_id, date_start) %>%
     return()
 }
@@ -36,10 +39,10 @@ dgroups <- bind_rows(dpre, dpost) %>%
 
 
 ### time selection options
-# do not allow a shift backwards in time
-disable_backshift <- function(dt) {
+# do not allow a shift backwards in time by further than a min_dt
+disable_backshift <- function(dt, min_dt = 0) {
   dt_pos <- dt
-  dt_pos[dt_pos < 0] <- Inf
+  dt_pos[dt_pos < min_dt] <- Inf
   return(dt_pos)
 }
 
@@ -85,14 +88,17 @@ compare_group <- function(row_nr) {
     return(
       keep_sequence(
         abs(
-          disable_backshift(
-            disable_past(dt, min_dt)
-          )
+          dt
+          # disable_backshift(
+          #   # disable_past(dt, min_dt),
+          #   dt,
+          #   min_dt
+          # )
         ),
         i
       )
     )
-    }
+  }
 
   pre <- pre %>% dplyr::mutate(
       date_start_new = as.Date(NA),
@@ -105,11 +111,14 @@ compare_group <- function(row_nr) {
   # cross-difference dates
   date1 <- pre %>% dplyr::pull(date_start)
   date2 <- post %>% dplyr::pull(date_start)
+
+  # has the original date already been passed?
   diff_today <- as.numeric(as.Date(now()) - date1)
+  diff_today[diff_today > 0] <- 0
 
   cross_dt <- outer(X = date1, Y = date2, FUN = function(X, Y) as.numeric(Y - X) )
 
-  # go rowwise
+  # go rowwise # i <- 1
   for (i in seq_len(nrow(cross_dt))){
     row_dt <- cross_dt[i,]
     dtoday <- diff_today[[i]]
@@ -119,6 +128,8 @@ compare_group <- function(row_nr) {
     min_dt_idx <- which.min(dt_transformed)
 
     # none acceptable
+    if (is.null(dt_transformed)) next
+    if (0 == length(dt_transformed)) next
     if (!is.finite(dt_transformed[[min_dt_idx]])) next
 
     # select correspondent entry
@@ -136,7 +147,7 @@ compare_group <- function(row_nr) {
   } # / loop pre rows
 
   pre %>%
-    select(-nearest_post) %>%
+    dplyr::select(-nearest_post) %>%
     return()
 
 } # /compare_group
@@ -144,11 +155,94 @@ compare_group <- function(row_nr) {
 
 dates_connected <- bind_rows(
   lapply(
-    seq_len(nrow(groups)),
+    seq_len(nrow(dgroups)),
     FUN = compare_group
   )
 )
 
+dates_connected %>% write.csv2("dumps/datelink_result.csv")
+
+
+### inspection
+## first iteration
+# grts_to_find <- 327153 # ok
+# grts_to_find <- 455349 # contains an ancient 9|GWLEVREADDIVERMAN
+# grts_to_find <- 709330
+# -> de-activated "no past" and "no backshift"
+## second iteration
+# grts_to_find <- 5705 # solved by dtoday !< 0
+# grts_to_find <- 9262 # was set to 2024-01-01
+# -> introduced minimum absolute date
+## third iteration
+# grts_to_find <- 53206450
+grts_to_find <- 84598 # the double replacement; TODO separately tackled
+
+dgroups %>% filter(grts_address == grts_to_find)
+seq_len(nrow(dgroups))[dgroups$grts_address == grts_to_find]
+
+fag_stratum_grts_calendar %>%
+  filter(
+    grts_address_final == grts_to_find,
+    field_activity_group %in% c("GWINSTPIEZWELL", "SPATPOSITPIPE")
+    # field_activity_group %in% c("GWINSTPIEZWELL", "GWLEVREADDIVERMAN", "SPATPOSITPIPE")
+    ) %>%
+    select(
+      grts_address,
+      stratum,
+      field_activity_group,
+      date_start
+    )
+
+fieldwork_2025_prioritization_by_stratum %>%
+  filter(
+    grts_address_final == grts_to_find,
+    field_activity_group %in% c("GWINSTPIEZWELL", "SPATPOSITPIPE")
+    ) %>%
+    select(
+      grts_address,
+      stratum,
+      field_activity_group,
+      date_start
+    )
+
+data_pre %>%
+  filter(
+    grts_address == grts_to_find,
+    activity_group_id %in% c(4, 9, 28)
+  ) %>% arrange(activity_group_id, date_start)
+
+data_post %>%
+  filter(
+    grts_address == grts_to_find,
+    activity_group_id %in% c(4, 9, 28)
+  ) %>% arrange(activity_group_id, date_start)
+
+dpost %>%
+  filter(
+    grts_address == grts_to_find,
+    activity_group_id %in% c(4, 28)
+  )
+
+dfuture %>%
+  filter(
+    grts_address == grts_to_find,
+    activity_group_id %in% c(4, 28)
+  )
+
+dates_connected %>%
+  filter(
+    grts_address == grts_to_find,
+    activity_group_id %in% c(4, 28)
+  )
+
+data_post %>% filter(grts_address == 5705)
+
 # build a difference optimizer
 # which incorporates distance from today (linearly)
-# TODO consider sequence of events
+
+# TODO there are many events still retained in STATUS QUO which are not planned any more.
+
+# SUMMARY:
+# - the basic procedure seems to work
+# - jumps |dt| > 100d should be reported, but applied
+# - planning status must be considered
