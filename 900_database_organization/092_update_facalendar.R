@@ -317,7 +317,7 @@ distribution$to_upload <- distribution$to_upload %>%
   )
 
 
-fieldworkcalendar_lookup <- just_do_it(
+fieldworkcalendar_lookup <- redistribute_calendar_data(
   mnmdb = mnmgwdb,
   table_label = table_label,
   distribution = distribution,
