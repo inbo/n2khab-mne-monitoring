@@ -379,7 +379,7 @@ print_category_count(distribution, table_label)
 
 ```{r update-locations}
 
-locations_lookup <- just_do_it(
+locations_lookup <- redistribute_calendar_data(
   mnmdb = locevaldb,
   table_label = table_label,
   distribution = distribution,
@@ -494,7 +494,7 @@ distribution$to_upload <- distribution$to_upload %>%
 #     by = join_by(grts_address)
 #   ) %>% knitr::kable()
 
-sampleunits_lookup <- just_do_it(
+sampleunits_lookup <- redistribute_calendar_data(
   mnmdb = locevaldb,
   table_label = table_label,
   distribution = distribution,
@@ -763,7 +763,7 @@ distribution$to_upload <- distribution$to_upload %>%
   ) 
 
 
-fieldworkcalendar_lookup <- just_do_it(
+fieldworkcalendar_lookup <- redistribute_calendar_data(
   mnmdb = locevaldb,
   table_label = table_label,
   distribution = distribution,

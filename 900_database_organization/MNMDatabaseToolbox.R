@@ -1819,7 +1819,7 @@ precedence_columns <- list(
 )
 
 # TODO this is not a good function name. There is work to do here.
-just_do_it <- function(
+redistribute_calendar_data <- function(
     mnmdb,
     table_label,
     distribution,
@@ -1892,7 +1892,8 @@ just_do_it <- function(
     table_label,
     characteristic_columns = characteristic_columns
   ))
-} # /just_do_it
+} # /redistribute_calendar_data
+
 
 #_______________________________________________________________________________
 # / (end of file)
