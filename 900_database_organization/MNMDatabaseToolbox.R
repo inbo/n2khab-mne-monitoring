@@ -1078,9 +1078,12 @@ categorize_data_update <- function(
     input_precedence_columns,
     characteristic_columns = NA,
     archive_flag_column = NA,
-    exclude_columns = NA
+    exclude_columns = NA,
+    skip_archive = NULL,
+    attempt_date_link = FALSE
   ) {
 
+  ### PREPARATION
   ## general checks
   stopifnot("dplyr" = require("dplyr"))
 
@@ -1094,9 +1097,11 @@ categorize_data_update <- function(
     archive_flag_column <- "archive_version_id"
   }
 
-  skip_archive <- isFALSE(
-    mnmdb$table_has_column(table_label, archive_flag_column)
-  )
+  if (is.null(skip_archive)) {
+    skip_archive <- isFALSE(
+      mnmdb$table_has_column(table_label, archive_flag_column)
+    )
+  }
 
   ## load database status
   data_previous <- mnmdb$query_table(table_label)
@@ -1133,14 +1138,99 @@ categorize_data_update <- function(
 
   }
 
+  ### ASSOCIATION
+  # match dates in previous and future data
+  # note: archived existing columns will also be considered.
+  # TODO can we subset before linking? (i.e. could this happen later in the chain?)
+  if (attempt_date_link) {
+    if (isFALSE("date_start" %in% names(data_future))) {
+      stop("Attempting to link dates, yet `date_start` column is not in the data.")
+    }
+
+    ## find the link
+    data_previous_linked <- link_dates(
+      data_pre = data_previous %>% select(!!!characteristic_columns),
+      data_post = data_future %>% select(!!!characteristic_columns),
+      characteristic_columns = characteristic_columns,
+      date_column = "date_start"
+    )
+
+    # only changes are relevant
+    date_updates <- data_previous_linked  %>%
+      filter(
+        !is.na(date_start_new),
+        date_start != date_start_new
+      )
+
+    ## feedback result
+    # TODO store this somewhere
+    output_filename <- glue::glue(
+        "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
+      )
+    write_csv2(output_filename, date_updates)
+
+
+    ## update the data_previous to reflect date changes
+    #   (i) on the database
+    # UPDATE... FROM method with temptable
+    stopifnot("glue" = require("glue"))
+    stopifnot("DBI" = require("DBI"))
+
+    # create temp table
+    srctab <- glue::glue("temp_{table_label}")
+    trgtab <- mnmdb$get_namestring(table_label)
+
+    DBI::dbWriteTable(
+      mnmdb$connection,
+      name = srctab,
+      value = date_updates,
+      overwrite = TRUE,
+      temporary = TRUE
+    )
+
+    lookup_criteria <- unlist(lapply(
+      characteristic_columns,
+      FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{reference_mod(col)}")
+    ))
+
+    update_string <- glue::glue("
+      UPDATE {trgtab} AS TRGTAB
+        SET
+          date_start = SRCTAB.date_start_new
+        FROM {srctab} AS SRCTAB
+        WHERE
+         ({paste0(lookup_criteria, collapse = ') AND (')})
+      ;")
+
+    mnmdb$execute_sql(update_string, verbose = TRUE)
+
+    #   (ii) here in R
+    data_previous <- data_previous %>%
+      dplyr::left_join(
+        date_updates,
+        by = dplyr::join_by(!!!characteristic_columns)
+      ) %>%
+      dplyr::mutate(
+        date_start = dplyr::coalesce(date_start_new, date_start)
+      ) %>%
+      select(-date_start_new)
+
+
+  } # / attempt_date_link
+  # (dates are renewed at this point.)
+
+
   # if there is no archive column, then there can be no archive
   if (skip_archive) {
     data_previous_archive <- data_previous %>% filter(TRUE == FALSE)
   } else {
+    # the archive flag column effectively codes non-archived entries as NA
     data_previous_archive <- data_previous[!is.na(data_previous[archive_flag_column]), ]
   }
 
-  ## categorize: match-and-mix
+
+  ### CATEGORIZATION
+  # (match-and-mix)
   # please refresh your knowledge on "filtering joins"
   # -> https://dplyr.tidyverse.org/reference/filter-joins.html
   # tip: filtering is not joining; these are actually set operations.
@@ -1220,6 +1310,15 @@ categorize_data_update <- function(
   ))
 } # /categorize_data_update
 
+
+#' Output a text block indicating the number of data points per category
+#' in a list-like data flow assembly.
+#'
+#' This is intended to double-check the result of categorization of calendar data
+#' output, prior to applying update/upload/archiving functions.
+#'
+#' @param cats as in categories
+#' @param table_label for an extra header indicating which table is redistributed
 print_category_count <- function(cats, table_label = NA) {
   # *meow*
   dogs <- "Distributed as follows:"
@@ -1633,21 +1732,44 @@ link_dates <- function(
   # only char cols and date are relevant
   relevant_columns <- unique(c(characteristic_columns, date_column))
 
+
   # filter and sort data
   dpre <- data_pre[
       data_pre %>% pull(!!date_column) >= date_threshold,
     ] %>%
+    select(!!!rlang::syms(relevant_columns)) %>%
     dplyr::arrange(!!!rlang::syms(relevant_columns))
   dpost <- data_post[
       data_post %>% pull(!!date_column) >= date_threshold,
     ] %>%
+    select(!!!rlang::syms(relevant_columns)) %>%
     dplyr::arrange(!!!rlang::syms(relevant_columns))
 
+  # only entries that differ must be linked
+  dpre_stashed <- dpre %>%
+    anti_join(
+      dpost,
+      by = dplyr::join_by(!!!rlang::syms(relevant_columns))
+    )
+  dpost <- dpost %>%
+    anti_join(
+      dpre,
+      by = dplyr::join_by(!!!rlang::syms(relevant_columns))
+    )
+  data_pre <- data_pre_stashed
+
+  # grouping by all except date column
   nondate_charcols <-
     characteristic_columns[characteristic_columns != date_column]
 
-  dgroups <- dplyr::bind_rows(dpre, dpost) %>%
-    dplyr::distinct(!!!rlang::syms(nondate_charcols)) %>%
+  # only groups which are in *both* data sets can be joined.
+  dgroups <- dpre %>%
+      dplyr::distinct(!!!rlang::syms(nondate_charcols)) %>%
+    dplyr::inner_join(
+      dpost %>%
+        dplyr::distinct(!!!rlang::syms(nondate_charcols)),
+      by = join_by(!!!rlang::syms(nondate_charcols))
+    ) %>%
     dplyr::arrange(!!!rlang::syms(nondate_charcols))
 
   if (verbose) {

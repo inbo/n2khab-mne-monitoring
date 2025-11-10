@@ -124,15 +124,6 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 mirror <- "-staging"
 # mirror <- ""
 
-# loceval
-# loceval_mirror <- glue::glue("loceval{mirror}")
-# 
-# loceval <- connect_mnm_database(
-#   config_filepath,
-#   database_mirror = loceval_mirror
-# ) 
-
-
 # ... and mnmgwdb
 mnmgwdb_mirror <- glue::glue("mnmgwdb{mirror}")
 
@@ -468,14 +459,14 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 
 table_label <- "Locations"
-data_future <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
 index_column <- mnmgwdb$get_primary_key(table_label)
 characteristic_columns <- c("grts_address")
 
 distribution <- categorize_data_update(
   mnmdb = mnmgwdb,
   table_label = table_label,
-  data_future = data_future,
+  data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
   exclude_columns = c("wkb_geometry")
@@ -495,7 +486,6 @@ locations_lookup <- redistribute_calendar_data(
   skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
 )
 
-
 ```
 
 
@@ -513,6 +503,7 @@ stitch_table_connection(
   link_key_column = "location_id",
   lookup_columns = c("grts_address")
 )
+
 ```
 
 
@@ -539,7 +530,7 @@ sample_locations <- sample_locations %>%
 
 ```{r prepare-slocs}
 table_label <- "SampleLocations"
-data_future <- sample_locations %>%
+data_nouveau <- sample_locations %>%
   rename(strata = stratum)
 characteristic_columns <- c("grts_address", "strata") # ERROR location_id was in here ☠
 index_column <- mnmgwdb$get_primary_key(table_label)
@@ -547,7 +538,7 @@ index_column <- mnmgwdb$get_primary_key(table_label)
 distribution <- categorize_data_update(
   mnmdb = mnmgwdb,
   table_label = table_label,
-  data_future = data_future,
+  data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
 )
@@ -724,19 +715,20 @@ stitch_table_connection(
 ```{r categorize-fieldworkcalendar}
 
 table_label <- "FieldworkCalendar"
-data_future <- fieldwork_calendar_new
+data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
 
-# data_future %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_older.rds")
-# data_future %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_older.csv")
+# data_nouveau %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_older.rds")
+# data_nouveau %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_older.csv")
 distribution <- categorize_data_update(
   mnmdb = mnmgwdb,
   table_label = table_label,
-  data_future = data_future,
+  data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
-  exclude_columns = c("samplelocation_id") #, "fieldactivitycalendar_id") # , "archive_version_id"
+  exclude_columns = c("samplelocation_id"), #, "fieldactivitycalendar_id") # , "archive_version_id"
+  attempt_date_link = TRUE
 )
 print_category_count(distribution, table_label)
 # distribution$to_archive
@@ -756,7 +748,7 @@ print_category_count(distribution, table_label)
 #| eval: false
 
 ex_data <- mnmgwdb$query_table(table_label)
-new_comparison <- data_future %>%
+new_comparison <- data_nouveau %>%
   semi_join(
     ex_data,
     by = join_by(grts_address, stratum)
