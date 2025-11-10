@@ -122,6 +122,22 @@ link_dates <- function(
     return(dt_seq)
   }
 
+  # time difference transformation, to achieve various effects
+  if (is.null(dt_trafo)) {
+    dt_trafo <- function(dt, i = NA, min_dt = -Inf) {
+      return(
+        retain_event_sequence(
+          abs(dt
+            # disable_backshift(
+            #   # disable_past(dt, min_dt),
+            #   dt, min_dt)
+          ), i
+        )
+      )
+    }
+  }
+
+
   # take all columns by default
   if (is.null(characteristic_columns)) {
     characteristic_columns <- names(data_pre)
@@ -160,7 +176,7 @@ link_dates <- function(
   }
 
   ### groupwise comparison
-  # row_nr <- 1
+  # row_nr <- 100
   compare_group <- function(row_nr) {
 
     if (verbose) setTxtProgressBar(pb, row_nr)
@@ -174,21 +190,6 @@ link_dates <- function(
       dplyr::semi_join(grp, by = dplyr::join_by(!!!nondate_charcols))
     post <- dpost %>%
       dplyr::semi_join(grp, by = dplyr::join_by(!!!nondate_charcols))
-
-    # time difference transformation, to achieve various effects
-    if (is.null(dt_trafo)) {
-      dt_trafo <- function(dt, i = NA, min_dt = -Inf) {
-        return(
-          retain_event_sequence(
-            abs(dt
-              # disable_backshift(
-              #   # disable_past(dt, min_dt),
-              #   dt, min_dt)
-            ), i
-          )
-        )
-      }
-    }
 
     pre[glue::glue("{date_column}_new")] <- as.Date(NA)
     pre <- pre %>% dplyr::mutate(
@@ -209,6 +210,8 @@ link_dates <- function(
       Y = date2,
       FUN = function(X, Y) as.numeric(Y - X)
     )
+
+    print(glue::glue("{row_nr} {nrow(cross_dt)}x{ncol(cross_dt)}"))
 
     # go rowwise # i <- 1
     for (i in seq_len(nrow(cross_dt))){

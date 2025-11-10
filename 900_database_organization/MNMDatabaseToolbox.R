@@ -1604,6 +1604,22 @@ link_dates <- function(
     return(dt_seq)
   }
 
+  # time difference transformation, to achieve various effects
+  if (is.null(dt_trafo)) {
+    dt_trafo <- function(dt, i = NA, min_dt = -Inf) {
+      return(
+        retain_event_sequence(
+          abs(dt
+            # disable_backshift(
+            #   # disable_past(dt, min_dt),
+            #   dt, min_dt)
+          ), i
+        )
+      )
+    }
+  }
+
+
   # take all columns by default
   if (is.null(characteristic_columns)) {
     characteristic_columns <- names(data_pre)
@@ -1611,7 +1627,7 @@ link_dates <- function(
 
   ### time selection options
   if (is.null(date_threshold)) {
-    date_threshold <- as.Date("2025-07-01")
+    date_threshold <- as.Date("2025-07-01") # effective start of MNM project
   }
 
   # only char cols and date are relevant
@@ -1657,20 +1673,6 @@ link_dates <- function(
     post <- dpost %>%
       dplyr::semi_join(grp, by = dplyr::join_by(!!!nondate_charcols))
 
-    # time difference transformation, to achieve various effects
-    if (is.null(dt_trafo)) {
-      dt_trafo <- function(dt, i = NA, min_dt = -Inf) {
-        return(
-          retain_event_sequence(
-            abs(dt
-              # disable_backshift(
-              #   # disable_past(dt, min_dt),
-              #   dt, min_dt)
-            ), i
-          )
-        )
-      }
-    }
 
     pre[glue::glue("{date_column}_new")] <- as.Date(NA)
     pre <- pre %>% dplyr::mutate(
@@ -1691,6 +1693,14 @@ link_dates <- function(
       Y = date2,
       FUN = function(X, Y) as.numeric(Y - X)
     )
+
+    # TODO Note: more heuristics can be applied.
+    #      - skip if identical dates
+    #      - work through `cross_dt` matrix starting by lowest diff
+    #        (least-difference optimization)
+    #      - further optimization and special cases
+    #      However, currently there are only 1x1 matches,
+    #      so any linkage will be fine.
 
     # go rowwise # i <- 1
     for (i in seq_len(nrow(cross_dt))){
