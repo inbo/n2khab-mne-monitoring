@@ -83,6 +83,13 @@ stitch_table_connection <- function(
   ))
 
 
+  reset_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      {link_key_column} = NULL
+  ;")
+  mnmdb$execute_sql(reset_string, verbose = TRUE)
+
   update_string <- glue::glue("
   UPDATE {trgtab} AS TRGTAB
     SET
@@ -454,7 +461,7 @@ upload_data_and_update_dependencies <- function(
     verbose = TRUE
     ) {
 
-  # mnmdb <- target_db
+  # mnmdb <- mnmgwdb
   # data_replacement <- new_data
 
   stopifnot("dplyr" = require("dplyr"))
@@ -557,6 +564,14 @@ upload_data_and_update_dependencies <- function(
   # On the occasion, we reset the sequence counter
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
     mnmdb$set_sequence_key(table_label)
+    if (table_label == "ChemicalSamplingActivities") {
+      mnmdb$execute_sql('
+        UPDATE "inbound"."ChemicalSamplingActivities"
+          SET fieldwork_id = fieldwork_id + 100000
+          WHERE fieldwork_id < 100000
+        ;
+      ')
+    }
   }
 
   ### (8) INSERT new data
@@ -599,12 +614,12 @@ upload_data_and_update_dependencies <- function(
 
   # cols <- c("grts_address", "stratum", "activity_group_id", "date_start")
   # cols <- characteristic_columns
-  #  new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n))
-  #  old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+   new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+   old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,
-      by = characteristic_columns,
+      by = join_by(!!!rlang::syms(characteristic_columns)),
       relationship = "one-to-one",
       suffix = c("_old", ""),
       unmatched = "drop"
@@ -1214,6 +1229,12 @@ categorize_data_update <- function(
   # data_previous <- readRDS("./dumps/datelink_older.rds")
   # data_future <- readRDS("./dumps/datelink_future.rds")
 
+  # data_previous %>%
+  #   filter(grts_address %in% c(415022, 3560750)) %>%
+  #   t() %>% knitr::kable()
+  # data_future %>%
+  #   filter(grts_address %in% c(415022, 3560750)) %>%
+  #   t() %>% knitr::kable()
 
   cols <- names(data_future)
   cols <- cols[!(cols %in% logging_columns)]
@@ -2052,7 +2073,8 @@ precedence_columns <- list(
   )
 )
 
-# TODO this is not a good function name. There is work to do here.
+# TODO this is STILL not a good function name.
+#   -> There is work to do here. (-calendar)
 redistribute_calendar_data <- function(
     mnmdb,
     table_label,
