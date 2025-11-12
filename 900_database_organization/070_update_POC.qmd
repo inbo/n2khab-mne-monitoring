@@ -721,6 +721,15 @@ data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
 
+
+startdate_updates_happened <- associate_and_shift_start_dates(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  characteristic_columns = characteristic_columns,
+  other_table_labels = c("Visits", "WellInstallationActivities", "ChemicalSamplingActivities")
+) 
+
 # data_nouveau %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_older.rds")
 # data_nouveau %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_older.csv")
 distribution <- categorize_data_update(
@@ -729,8 +738,7 @@ distribution <- categorize_data_update(
   data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
-  exclude_columns = c("samplelocation_id"), #, "fieldactivitycalendar_id") # , "archive_version_id"
-  attempt_date_link = TRUE
+  exclude_columns = c("samplelocation_id") #, "fieldactivitycalendar_id") # , "archive_version_id"
 )
 print_category_count(distribution, table_label)
 # distribution$to_archive
