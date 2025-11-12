@@ -95,8 +95,8 @@ verify_poc_objects()
 ```{r connect-databases}
 database <- "loceval"
 config_filepath <- file.path("./inbopostgis_server.conf")
-# mirror <- ""
-mirror <- "-staging"
+mirror <- ""
+# mirror <- "-staging"
 
 
 # connect loceval
@@ -148,7 +148,7 @@ if (FALSE) {
   # version_tag <- "≤v0.11.0_poc0.13.1"
   # version_tag <- "v0.12.0_poc0.14.0"
   version_tag <- "v0.12.0_poc0.14.0" # data_iteration = 2
-  version_notes <- "de-activation inactive locations in Achterhaven Zeebrugge"
+  version_notes <- "implement start date linkage"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- locevaldb$tag_new_version(
@@ -729,7 +729,7 @@ startdate_updates_happened <- associate_and_shift_start_dates(
   table_label = table_label,
   data_future = data_nouveau,
   characteristic_columns = characteristic_columns,
-  other_table_labels = c("Visits", "WellInstallationActivities", "ChemicalSamplingActivities")
+  other_table_labels = c("Visits")
 ) 
 
 
@@ -1407,7 +1407,7 @@ locevaldb$insert_data(
 ```
 
 
-# TODO
+# Wrap-up
 
 
 ```{r step-n-safety-dump}
@@ -1434,7 +1434,5 @@ if (isFALSE(grepl("-staging", locevaldb_mirror))) {
 system("quarto render 040l_loceval_consistency_dashboard.qmd --to html")
 ```
 
-- [X] re-run the procedure.
-- [X] apply to production server.
-- [X] daily scripts
 
+Done.
