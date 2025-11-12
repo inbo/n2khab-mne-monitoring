@@ -172,7 +172,7 @@ if (FALSE) {
   #    v1 <- "≤v0.9.0_poc0.13.0"
   #    v2 <- "v0.11.0_poc0.13.1"
   version_tag <- "v0.12.0_poc0.14.0"
-  version_notes <- "dolle dromedaris: aanpassing van steekproefgroottes op typeniveau (verkleiningen resp vergrotingen)"
+  version_notes <- "implement start date linkage"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- mnmgwdb$tag_new_version(
@@ -590,12 +590,14 @@ samplelocations_lookup <- redistribute_calendar_data(
 ```{r ad-hoc-checks-fwcal}
 #| eval: false
 # 84598 -> 871030
+if (FALSE) {
 fieldwork_2025_prioritization_by_stratum %>%
   filter(grts_address == 84598, field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
     
 fieldwork_calendar %>% 
   filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
   filter(grts_address %in% c(84598, 871030), field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+}
 
 ```
 
@@ -747,6 +749,7 @@ print_category_count(distribution, table_label)
 ```{r compare-old-new-fwcal}
 #| eval: false
 
+if (FALSE) {
 ex_data <- mnmgwdb$query_table(table_label)
 new_comparison <- data_nouveau %>%
   semi_join(
@@ -760,6 +763,7 @@ ex_data %>%
 new_comparison %>% 
   arrange(grts_address, stratum, activity_group_id) %>%
   write_csv2("dumps/compare_new.csv")
+}
 
 # TODO dump to csv and compare
 ```
@@ -768,6 +772,7 @@ new_comparison %>%
 ```{r check-the-news}
 #| eval: false
 
+if (FALSE) {
 status_quo <- mnmgwdb$query_table("FieldworkCalendar") %>%
   select(!!!rlang::syms(names(distribution$unchanged)))
 
@@ -789,6 +794,7 @@ distribution$to_upload %>%
   filter(grts_address == 871030, activity_group_id == 9) %>% knitr::kable()
 
 distribution$reactivate
+}
 ```
 
 

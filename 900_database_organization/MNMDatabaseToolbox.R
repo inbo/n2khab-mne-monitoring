@@ -1086,6 +1086,8 @@ categorize_data_update <- function(
   ### PREPARATION
   ## general checks
   stopifnot("dplyr" = require("dplyr"))
+  stopifnot("glue" = require("glue"))
+  stopifnot("DBI" = require("DBI"))
 
   if (is.scalar.na(characteristic_columns)) {
     # ... or just take all characteristic columns
@@ -1109,6 +1111,10 @@ categorize_data_update <- function(
   # data_future %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_future.rds")
   # data_previous %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_previous.csv")
   # data_future %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_future.csv")
+
+  # data_previous <- readRDS("./dumps/datelink_older.rds")
+  # data_future <- readRDS("./dumps/datelink_future.rds")
+
 
   cols <- names(data_future)
   cols <- cols[!(cols %in% logging_columns)]
@@ -1161,23 +1167,24 @@ categorize_data_update <- function(
         !is.na(date_start_new),
         date_start != date_start_new
       )
+  } # date updates found
 
-    ## feedback result
+  ## feedback and apply result
+  if (attempt_date_link && (nrow(date_updates) > 0)) {
+
     # TODO store this somewhere
     output_filename <- glue::glue(
-        "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
+        "logs/{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
       )
-    write_csv2(output_filename, date_updates)
+    write_csv2(date_updates, output_filename)
 
 
     ## update the data_previous to reflect date changes
     #   (i) on the database
     # UPDATE... FROM method with temptable
-    stopifnot("glue" = require("glue"))
-    stopifnot("DBI" = require("DBI"))
 
     # create temp table
-    srctab <- glue::glue("temp_{table_label}")
+    srctab <- glue::glue("temp_{tolower(table_label)}")
     trgtab <- mnmdb$get_namestring(table_label)
 
     DBI::dbWriteTable(
@@ -1190,7 +1197,7 @@ categorize_data_update <- function(
 
     lookup_criteria <- unlist(lapply(
       characteristic_columns,
-      FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{reference_mod(col)}")
+      FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
     ))
 
     update_string <- glue::glue("
@@ -1362,9 +1369,30 @@ upload_additional_data <- function(mnmdb, ...) {
 # )) %>% distinct()
 
 
+# to update
+datatype_conversion_functions <- c(
+  "int" = as.integer,
+  "integer" = as.integer,
+  "int64" = as.integer,
+  "integer64" = as.integer,
+  "smallint" = as.integer,
+  "bigint" = as.integer,
+  "double precision" = as.double,
+  "varchar" = as.character,
+  "varchar(3)" = as.character,
+  "varchar(16)" = as.character,
+  "text" = as.character,
+  "timestamp" = as.POSIXct,
+  "date" = as.Date,
+  "bool" = as.logical,
+  "boolean" = as.logical
+)
+
+
+
 logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
 validate_sql_text <- function (txt) gsub("'", "", txt)
-datatype_conversion_catalogue <- c(
+datatype_stringconversion_catalogue <- c(
   "bool" = function(val) toString(val),
   "boolean" = function(val) toString(val),
   "varchar" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
@@ -1383,8 +1411,8 @@ datatype_conversion_catalogue <- c(
 )
 
 catch_nans <- function(fcn) function(val) if (is.na(val)) "NULL" else fcn(val)
-datatype_conversion_catalogue <- sapply(
-  datatype_conversion_catalogue,
+datatype_stringconversion_catalogue <- sapply(
+  datatype_stringconversion_catalogue,
   FUN = catch_nans
 )
 
@@ -1397,7 +1425,7 @@ convert_data_to_sql_input_str <- function(datatypes, data) {
     col <- datatypes[[i, "column"]]
     dtype <- datatypes[[i, "datatype"]]
 
-    if (isFALSE(dtype %in% names(datatype_conversion_catalogue))) {
+    if (isFALSE(dtype %in% names(datatype_stringconversion_catalogue))) {
       stop(glue::glue(
         "Datatype `{dtype}` not found in conversion catalogue.
          Probably you mispelled that, didn't you?"
@@ -1407,7 +1435,7 @@ convert_data_to_sql_input_str <- function(datatypes, data) {
     data[[col]] <-
       unlist(lapply(
         data %>% pull(!!col),
-        FUN = datatype_conversion_catalogue[[dtype]]
+        FUN = datatype_stringconversion_catalogue[[dtype]]
       ))
   }
 
@@ -1498,51 +1526,99 @@ update_existing_data <- function(
   logging_nonrefs <- logging_columns[!(logging_columns %in% reference_columns)]
   update_columns <- update_columns[!(update_columns %in% logging_nonrefs)]
 
-  # prepare the data by converting all to string
-  prepared_update_data <- convert_data_to_sql_input_str(
-    datatypes = table_columns %>% filter(column %in% c(reference_columns, update_columns)),
-    data = changed_data
+  # # prepare the data by converting all to string
+  # prepared_update_data <- convert_data_to_sql_input_str(
+  #   datatypes = table_columns %>% filter(column %in% c(reference_columns, update_columns)),
+  #   data = changed_data
+  # )
+
+
+  # # sewing the update string
+  # create_update_string_ <- function(row_nr) {
+  #
+  #     row <- prepared_update_data[row_nr,]
+  #
+  #     # the "SET" block of update data
+  #   udata <- paste(lapply(
+  #     update_columns,
+  #     FUN = function(col) glue::glue("{col} = {row[[col]]}")
+  #   ), collapse = ", \n\t")
+  #
+  #     # the filter block by reference columns
+  #   where_filter <- paste(lapply(
+  #     reference_columns,
+  #     FUN = function(col) glue::glue("{col} = {row[[col]]}")
+  #   ), collapse = ") \n AND (")
+  #
+  #     # combined update command
+  #   update_cmd <- glue::glue("
+  #     UPDATE {mnmdb$get_namestring(table_label)}
+  #     SET {udata}
+  #     WHERE ({where_filter})
+  #   ;")
+  #
+  #     return(update_cmd)
+  #
+  #   } # /create_update_string_
+  #
+  #   # rowwise apply the update command
+  # update_commands <- lapply(
+  #   seq_len(nrow(prepared_update_data)),
+  #   FUN = create_update_string_
+  # )
+  #
+  #   invisible(lapply(
+  #   update_commands,
+  #   FUN = function(update_cmd) mnmdb$execute_sql(update_cmd, verbose = TRUE)
+  # ))
+
+  ## UPDATE FROM TEMPTABLE
+  srctab <- glue::glue("temp_{tolower(table_label)}")
+  trgtab <- mnmdb$get_namestring(table_label)
+
+  dtypes <- mnmdb$load_table_info(table_label) %>% select(column, datatype)
+
+  prepared_update_data <- changed_data
+  for (i in seq_len(nrow(dtypes))) {
+    dtyp <- dtypes[i, ]
+    conv <- datatype_conversion_functions[[dtyp[[2]]]]
+    col <- dtyp[[1]]
+    if (!(col %in% names(prepared_update_data))) next
+
+    prepared_update_data[col] <- conv(prepared_update_data[[col]])
+  }
+
+
+  # create temp table
+  DBI::dbWriteTable(
+    mnmdb$connection,
+    name = srctab,
+    value = prepared_update_data,
+    overwrite = TRUE,
+    temporary = TRUE
   )
 
+  ucolumnames <- unlist(lapply(
+    update_columns,
+    FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
+  ))
 
-  # sewing the update string
-  create_update_string_ <- function(row_nr) {
+  lookup_criteria <- unlist(lapply(
+    reference_columns,
+    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
+  ))
 
-    row <- prepared_update_data[row_nr,]
-
-    # the "SET" block of update data
-    udata <- paste(lapply(
-      update_columns,
-      FUN = function(col) glue::glue("{col} = {row[[col]]}")
-    ), collapse = ", \n\t")
-
-    # the filter block by reference columns
-    where_filter <- paste(lapply(
-      reference_columns,
-      FUN = function(col) glue::glue("{col} = {row[[col]]}")
-    ), collapse = ") \n AND (")
-
-    # combined update command
-    update_cmd <- glue::glue("
-      UPDATE {mnmdb$get_namestring(table_label)}
-      SET {udata}
-      WHERE ({where_filter})
+  update_string <- glue::glue("
+    UPDATE {trgtab} AS TRGTAB
+      SET
+       {paste0(ucolumnames, collapse = ', ')}
+      FROM {srctab} AS SRCTAB
+      WHERE
+       ({paste0(lookup_criteria, collapse = ') AND (')})
     ;")
 
-    return(update_cmd)
+  mnmdb$execute_sql(update_string, verbose = TRUE)
 
-  } # /create_update_string_
-
-  # rowwise apply the update command
-  update_commands <- lapply(
-    seq_len(nrow(prepared_update_data)),
-    FUN = create_update_string_
-  )
-
-  invisible(lapply(
-    update_commands,
-    FUN = function(update_cmd) mnmdb$execute_sql(update_cmd, verbose = TRUE)
-  ))
 
   return(invisible(NULL))
 
@@ -1642,6 +1718,7 @@ reactivate_archived_data <- function(...) {
 #'        all-too-old data (specifically, events planned 2024 was never
 #'        realized)
 #' @param verbose provides extra prose on the way, in case you need it
+#' @return the data_pre characteristic columns with new `date_start_new`
 #'
 #' @examples
 #' \dontrun{
@@ -1756,7 +1833,7 @@ link_dates <- function(
       dpre,
       by = dplyr::join_by(!!!rlang::syms(relevant_columns))
     )
-  data_pre <- data_pre_stashed
+  data_pre <- dpre_stashed
 
   # grouping by all except date column
   nondate_charcols <-
@@ -1771,6 +1848,13 @@ link_dates <- function(
       by = join_by(!!!rlang::syms(nondate_charcols))
     ) %>%
     dplyr::arrange(!!!rlang::syms(nondate_charcols))
+
+  # might be that none are left
+  if (nrow(dgroups) == 0) {
+    dpre <- dpre %>% dplyr::mutate(dt_min = as.integer(NA))
+    dpre[glue::glue("{date_column}_new")] <- as.Date(NA)
+    return(dpre)
+  }
 
   if (verbose) {
     pb <- utils::txtProgressBar(
