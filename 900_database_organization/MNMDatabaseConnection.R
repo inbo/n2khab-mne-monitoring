@@ -1113,14 +1113,14 @@ mnmdb_versions_and_archiving <- function(db) {
     # determine the next counter
     versions <- db$query_table("Versions")
 
-    data_iteration <- versions %>%
+    data_iterations <- versions %>%
       filter(version_tag == new_version_tag) %>%
       pull(data_iteration)
 
-    if (length(data_iteration) == 0) {
+    if (length(data_iterations) == 0) {
       data_iteration <- 1
     } else {
-      data_iteration <- data_iteration + 1
+      data_iteration <- max(data_iterations) + 1
     }
 
     version_upload <- as_tibble(list(
