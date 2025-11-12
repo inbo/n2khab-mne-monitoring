@@ -360,14 +360,14 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 
 table_label <- "Locations"
-data_future <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
 index_column <- locevaldb$get_primary_key(table_label)
 characteristic_columns <- c("grts_address")
 
 distribution <- categorize_data_update(
   mnmdb = locevaldb,
   table_label = table_label,
-  data_future = data_future,
+  data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
   exclude_columns = c("wkb_geometry")
@@ -431,7 +431,7 @@ sample_units <- sample_units %>%
 #   t() %>% knitr::kable()
 
 table_label <- "SampleUnits"
-data_future <- sample_units %>%
+data_nouveau <- sample_units %>%
   rename(type = stratum)
 characteristic_columns <- c("grts_address", "type") # , "location_id"
 index_column <- locevaldb$get_primary_key(table_label)
@@ -440,7 +440,7 @@ index_column <- locevaldb$get_primary_key(table_label)
 distribution <- categorize_data_update(
   mnmdb = locevaldb,
   table_label = table_label,
-  data_future = data_future,
+  data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
 )
@@ -450,7 +450,7 @@ print_category_count(distribution, table_label)
 # distribution$reactivate
 # distribution$to_archive
 # distribution$to_upload
-# data_future %>% filter(grts_address == 48043282)
+# data_nouveau %>% filter(grts_address == 48043282)
 distribution$to_archive %>%
   select(grts_address, type) %>% 
   arrange(grts_address) %>% knitr::kable()
@@ -717,16 +717,26 @@ stitch_table_connection(
 ```{r categorize-fieldworkcalendar}
 
 table_label <- "FieldActivityCalendar"
-data_future <- fieldwork_calendar_new
+data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
-# data_future %>% head(3) %>% t() %>% knitr::kable()
-# data_future %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
+# data_nouveau %>% head(3) %>% t() %>% knitr::kable()
+# data_nouveau %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
+
+
+startdate_updates_happened <- associate_and_shift_start_dates(
+  mnmdb = locevaldb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  characteristic_columns = characteristic_columns,
+  other_table_labels = c("Visits", "WellInstallationActivities", "ChemicalSamplingActivities")
+) 
+
 
 distribution <- categorize_data_update(
   mnmdb = locevaldb,
   table_label = table_label,
-  data_future = data_future,
+  data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
   exclude_columns = c("sampleunit_id") #, "fieldactivitycalendar_id") # , "archive_version_id"

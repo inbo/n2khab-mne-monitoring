@@ -383,7 +383,7 @@ update_landuse_in_locationinfos <- function(mnmdb) {
     ;")
 
   mnmdb$execute_sql(update_string, verbose = TRUE)
-
+  mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
 
 }
 
@@ -1033,6 +1033,106 @@ parametrize_cascaded_update <- function(mnmdb) {
 
 #_______________________________________________________________________________
 # POC APPEND
+#
+
+### Date Association
+# match dates in previous and future data
+# note: archived existing entries will also be considered.
+associate_and_shift_start_dates <- function(
+    mnmdb,
+    table_label,
+    data_future,
+    characteristic_columns,
+    other_table_labels = NULL
+  ) {
+
+  if (isFALSE("date_start" %in% names(data_future))) {
+    stop("Attempting to link dates, yet `date_start` column is not in the data.")
+  }
+
+  # load previous data
+  data_previous <- mnmdb$query_table(table_label)
+
+
+  ## find the link
+  data_previous_linked <- link_dates(
+    data_pre = data_previous %>% select(!!!characteristic_columns),
+    data_post = data_future %>% select(!!!characteristic_columns),
+    characteristic_columns = characteristic_columns,
+    date_column = "date_start"
+  )
+
+  # only changes are relevant
+  date_updates <- data_previous_linked  %>%
+    filter(
+      !is.na(date_start_new),
+      date_start != date_start_new
+    )
+
+  if (nrow(date_updates) == 0) {
+    return(FALSE)
+  }
+
+  # TODO store this somewhere
+  output_filename <- glue::glue(
+      "./logs/{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
+    )
+  write_csv2(date_updates, output_filename)
+
+
+  ## update the data_previous to reflect date changes
+  #  on the database
+  # UPDATE... FROM method with temptable
+
+  # create temp table
+  srctab <- glue::glue("temp_startdate_update") # {tolower(table_label)}
+
+  DBI::dbWriteTable(
+    mnmdb$connection,
+    name = srctab,
+    value = date_updates,
+    overwrite = TRUE,
+    temporary = TRUE
+  )
+
+  lookup_criteria <- unlist(lapply(
+    characteristic_columns,
+    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
+  ))
+
+  for (tablab in c(table_label, other_table_labels)) {
+    trgtab <- mnmdb$get_namestring(tablab)
+    update_string <- glue::glue("
+      UPDATE {trgtab} AS TRGTAB
+        SET
+          date_start = SRCTAB.date_start_new
+        FROM {srctab} AS SRCTAB
+        WHERE
+         ({paste0(lookup_criteria, collapse = ') AND (')})
+      ;")
+
+    mnmdb$execute_sql(update_string, verbose = TRUE)
+  }
+
+  mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
+
+  # #   (ii) here in R
+  # data_previous <- data_previous %>%
+  #   dplyr::left_join(
+  #     date_updates,
+  #     by = dplyr::join_by(!!!characteristic_columns)
+  #   ) %>%
+  #   dplyr::mutate(
+  #     date_start = dplyr::coalesce(date_start_new, date_start)
+  #   ) %>%
+  #   select(-date_start_new)
+
+  message(glue::glue("Updated dates of {nrow(date_updates)} -> see `{output_filename}`"))
+
+  return(TRUE)
+
+} # /associate_and_shift_start_dates
+
 
 ### categorize data
 # categorize potentially new ("future") content for a given table
@@ -1079,8 +1179,7 @@ categorize_data_update <- function(
     characteristic_columns = NA,
     archive_flag_column = NA,
     exclude_columns = NA,
-    skip_archive = NULL,
-    attempt_date_link = FALSE
+    skip_archive = NULL
   ) {
 
   ### PREPARATION
@@ -1143,88 +1242,6 @@ categorize_data_update <- function(
     data_previous <- data_previous %>% select(!!!cols)
 
   }
-
-  ### ASSOCIATION
-  # match dates in previous and future data
-  # note: archived existing columns will also be considered.
-  # TODO can we subset before linking? (i.e. could this happen later in the chain?)
-  if (attempt_date_link) {
-    if (isFALSE("date_start" %in% names(data_future))) {
-      stop("Attempting to link dates, yet `date_start` column is not in the data.")
-    }
-
-    ## find the link
-    data_previous_linked <- link_dates(
-      data_pre = data_previous %>% select(!!!characteristic_columns),
-      data_post = data_future %>% select(!!!characteristic_columns),
-      characteristic_columns = characteristic_columns,
-      date_column = "date_start"
-    )
-
-    # only changes are relevant
-    date_updates <- data_previous_linked  %>%
-      filter(
-        !is.na(date_start_new),
-        date_start != date_start_new
-      )
-  } # date updates found
-
-  ## feedback and apply result
-  if (attempt_date_link && (nrow(date_updates) > 0)) {
-
-    # TODO store this somewhere
-    output_filename <- glue::glue(
-        "logs/{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
-      )
-    write_csv2(date_updates, output_filename)
-
-
-    ## update the data_previous to reflect date changes
-    #   (i) on the database
-    # UPDATE... FROM method with temptable
-
-    # create temp table
-    srctab <- glue::glue("temp_{tolower(table_label)}")
-    trgtab <- mnmdb$get_namestring(table_label)
-
-    DBI::dbWriteTable(
-      mnmdb$connection,
-      name = srctab,
-      value = date_updates,
-      overwrite = TRUE,
-      temporary = TRUE
-    )
-
-    lookup_criteria <- unlist(lapply(
-      characteristic_columns,
-      FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
-    ))
-
-    update_string <- glue::glue("
-      UPDATE {trgtab} AS TRGTAB
-        SET
-          date_start = SRCTAB.date_start_new
-        FROM {srctab} AS SRCTAB
-        WHERE
-         ({paste0(lookup_criteria, collapse = ') AND (')})
-      ;")
-
-    mnmdb$execute_sql(update_string, verbose = TRUE)
-
-    #   (ii) here in R
-    data_previous <- data_previous %>%
-      dplyr::left_join(
-        date_updates,
-        by = dplyr::join_by(!!!characteristic_columns)
-      ) %>%
-      dplyr::mutate(
-        date_start = dplyr::coalesce(date_start_new, date_start)
-      ) %>%
-      select(-date_start_new)
-
-
-  } # / attempt_date_link
-  # (dates are renewed at this point.)
 
 
   # if there is no archive column, then there can be no archive
@@ -1573,7 +1590,7 @@ update_existing_data <- function(
   # ))
 
   ## UPDATE FROM TEMPTABLE
-  srctab <- glue::glue("temp_{tolower(table_label)}")
+  srctab <- glue::glue("temp_upd_{tolower(table_label)}")
   trgtab <- mnmdb$get_namestring(table_label)
 
   dtypes <- mnmdb$load_table_info(table_label) %>% select(column, datatype)
@@ -1619,6 +1636,7 @@ update_existing_data <- function(
 
   mnmdb$execute_sql(update_string, verbose = TRUE)
 
+  mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
 
   return(invisible(NULL))
 
