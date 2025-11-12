@@ -26,6 +26,7 @@ mnmgwdb <- connect_mnm_database(
   database_mirror = glue::glue("{database_label}{suffix}")
 )
 # keyring::keyring_delete(keyring = "mnmdb_temp")
+
 message(mnmgwdb$shellstring)
 
 ## ----poc-data-----------------------------------------------------------------
@@ -127,15 +128,30 @@ locations <- bind_rows(
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
-locations_lookup <- update_cascade_lookup(
-  table_label = "Locations",
-  new_data = locations,
-  index_columns = c("location_id"),
-  characteristic_columns = c("grts_address"),
-  tabula_rasa = FALSE,
-  verbose = TRUE
-)
 
+table_label <- "Locations"
+data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+index_column <- mnmgwdb$get_primary_key(table_label)
+characteristic_columns <- c("grts_address")
+
+distribution <- categorize_data_update(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = characteristic_columns,
+  exclude_columns = c("wkb_geometry")
+)
+print_category_count(distribution, table_label)
+
+locations_lookup <- redistribute_calendar_data(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
+)
 
 
 # fieldwork_2025_prioritization_by_stratum %>%
@@ -243,19 +259,34 @@ fieldcalendar_characols <- c(
 
 
 table_label <- "FieldworkCalendar"
-data_future <- fieldwork_calendar_new
+data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
+
+
+startdate_updates_happened <- associate_and_shift_start_dates(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  characteristic_columns = characteristic_columns,
+  other_table_labels = c(
+    "Visits",
+    "WellInstallationActivities",
+    "ChemicalSamplingActivities"
+  )
+)
+
 
 distribution <- categorize_data_update(
   mnmdb = mnmgwdb,
   table_label = table_label,
-  data_future = data_future,
+  data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
   archive_flag_column = "archive_version_id"
 )
 print_category_count(distribution, table_label)
+
 
 
 if (FALSE) {
@@ -264,8 +295,10 @@ distribution$to_archive %>%
   count(grts_address, stratum) %>%
   print(n = Inf)
 
-select_grts <- 871030
-select_stratum <- "4010"
+# select_grts <- 871030
+# select_stratum <- "4010"
+select_grts <- 3560750
+select_stratum <- "7150"
 
 
 check <- function(df, ...) {
@@ -427,8 +460,7 @@ empty_init <- list(
     mutate(
       log_user = "maintenance",
       log_update = as.POSIXct(Sys.time())
-    )
- # /CSA
+    ) # /CSA
 )
 
 
@@ -513,6 +545,7 @@ absent_type_fwcals <- mnmgwdb$query_table("LocationEvaluations") %>%
     ) %>% distinct(),
     by = join_by(grts_address, stratum)
   ) %>%
+  filter(!is.na(fieldworkcalendar_id)) %>%
   pull(fieldworkcalendar_id)
 
 
@@ -526,7 +559,10 @@ present_type_fwcals <- mnmgwdb$query_table("FieldworkCalendar") %>%
 
 
 # exclude cells where the expected type was not found
-absent_type_fwcals <- paste0(absent_type_fwcals, collapse = ", ")
+absent_type_fwcals <- paste0(
+  absent_type_fwcals[],
+  collapse = ", "
+)
 message(glue::glue("excluding: fwcal ⊆ {absent_type_fwcals}"))
 
 mnmgwdb$execute_sql(
