@@ -39,7 +39,10 @@ suffix <- ""
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(415022, 3560750)
+grts <- c(5193397, 59719349) # left-over WIA
+    # SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 59719349;
+    # UPDATE "inbound"."WellInstallationActivities" SET grts_address = 59719349 WHERE grts_address = 5193397;
+    # c(415022, 3560750)
     # c(122549)
     # c(49896893, 21323197) # "Putten West"; disappeared with POC update 0.14 (TODO)
     # c(3554997, 29769397)

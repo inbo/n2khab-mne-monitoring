@@ -46,7 +46,8 @@ stitch_table_connection <- function(
     reference_table,
     link_key_column = NA,
     lookup_columns = NA,
-    reference_mod = NA
+    reference_mod = NA,
+    skip_reset = FALSE
   ) {
 
   if (is.scalar.na(link_key_column)) {
@@ -83,12 +84,17 @@ stitch_table_connection <- function(
   ))
 
 
-  reset_string <- glue::glue("
-  UPDATE {trgtab} AS TRGTAB
-    SET
-      {link_key_column} = NULL
-  ;")
-  mnmdb$execute_sql(reset_string, verbose = TRUE)
+  if (isFALSE(skip_reset)) {
+    # if we just UPDATE [...] FROM with a subset of the data,
+    # wrong linkages could potentially persist.
+    # Therefore, here (and only here) it seems wise to NULL all links before stitching.
+    reset_string <- glue::glue("
+    UPDATE {trgtab} AS TRGTAB
+      SET
+        {link_key_column} = NULL
+    ;")
+    mnmdb$execute_sql(reset_string, verbose = FALSE)
+  }
 
   update_string <- glue::glue("
   UPDATE {trgtab} AS TRGTAB
@@ -99,7 +105,7 @@ stitch_table_connection <- function(
      ({paste0(lookup_criteria, collapse = ') AND (')})
   ;")
 
-  mnmdb$execute_sql(update_string, verbose = TRUE)
+  mnmdb$execute_sql(update_string, verbose = FALSE)
 
   return(invisible(NULL))
 
@@ -561,19 +567,6 @@ upload_data_and_update_dependencies <- function(
     verbose = verbose
   )
 
-  # On the occasion, we reset the sequence counter
-  if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
-    mnmdb$set_sequence_key(table_label)
-    if (table_label == "ChemicalSamplingActivities") {
-      mnmdb$execute_sql('
-        UPDATE "inbound"."ChemicalSamplingActivities"
-          SET fieldwork_id = fieldwork_id + 100000
-          WHERE fieldwork_id < 100000
-        ;
-      ')
-    }
-  }
-
   ### (8) INSERT new data
   # INSERT new data, appending the empty table
   #    (to make use of the "ON DELETE SET NULL" rule)
@@ -588,6 +581,19 @@ upload_data_and_update_dependencies <- function(
   ## restore sequence
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
     mnmdb$set_sequence_key(table_label, "max")
+  }
+
+  # On the occasion, we reset the sequence counter
+  if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
+    mnmdb$set_sequence_key(table_label)
+    if (table_label == "ChemicalSamplingActivities") {
+      mnmdb$execute_sql('
+        UPDATE "inbound"."ChemicalSamplingActivities"
+          SET fieldwork_id = fieldwork_id + 100000
+          WHERE fieldwork_id < 100000
+        ;
+      ')
+    }
   }
 
 
@@ -614,8 +620,8 @@ upload_data_and_update_dependencies <- function(
 
   # cols <- c("grts_address", "stratum", "activity_group_id", "date_start")
   # cols <- characteristic_columns
-   new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
-   old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+  # new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+  # old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,
@@ -625,26 +631,26 @@ upload_data_and_update_dependencies <- function(
       unmatched = "drop"
     )
 
-  if (FALSE) {
-    # TODO return here to inspect the repercussions of previous errors
-    a <- old_data %>%
-      select(!!c(pk, characteristic_columns))  %>%
-      filter(grts_address == 23238)
-    b <- new_redownload %>%
-      select(!!c(pk, characteristic_columns))  %>%
-      filter(grts_address == 23238)
-    new_redownload %>% head() %>% knitr::kable()
-    a %>% knitr::kable()
-    b %>% knitr::kable()
+  # if (FALSE) {
+  #   # TODO return here to inspect the repercussions of previous errors
+  #   a <- old_data %>%
+  #     select(!!c(pk, characteristic_columns))  %>%
+  #     filter(grts_address == 23238)
+  #   b <- new_redownload %>%
+  #     select(!!c(pk, characteristic_columns))  %>%
+  #     filter(grts_address == 23238)
+  #   new_redownload %>% head() %>% knitr::kable()
+  #   a %>% knitr::kable()
+  #   b %>% knitr::kable()
 
-    a %>% left_join(
-      b,
-      by = characteristic_columns,
-      relationship = "one-to-one",
-      suffix = c("_old", ""),
-      unmatched = "drop"
-    ) %>% knitr::kable()
-  }
+  #   a %>% left_join(
+  #     b,
+  #     by = characteristic_columns,
+  #     relationship = "one-to-one",
+  #     suffix = c("_old", ""),
+  #     unmatched = "drop"
+  #   ) %>% knitr::kable()
+  # }
 
 
   ## save non-recovered rows

@@ -479,14 +479,14 @@ visits_redownload <- visits_redownload %>%
 
 
 speciact_characols <- c(
-  "samplelocation_id",
-  "fieldworkcalendar_id",
-  "visit_id",
   "grts_address",
   "stratum",
   "activity_group_id",
   "date_start"
 )
+# "samplelocation_id",
+# "fieldworkcalendar_id",
+# "visit_id",
 
 # table_label <- "WellInstallationActivities"
 # table_label <- "ChemicalSamplingActivities"

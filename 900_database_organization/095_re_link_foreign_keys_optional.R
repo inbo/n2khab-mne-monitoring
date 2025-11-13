@@ -35,7 +35,7 @@ locevaldb <- connect_mnm_database(
 )
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 
-locevaldb$shellstring
+print(locevaldb$shellstring)
 
 
 # Locations
@@ -135,7 +135,7 @@ mnmgwdb <- connect_mnm_database(
   database_mirror = mnmgwdb_mirror
 )
 
-mnmgwdb$shellstring
+print(mnmgwdb$shellstring)
 
 
 stitch_table_connection(
