@@ -37,3 +37,5 @@ n2khab-mne-monitoring.Rproj
 /900_database_organization/logs/
 /900_database_organization/documentation/achterhaven_points.*
 /800_fwsupport_mapping_amphibiaprotection/data/*.rds
+/800_fwsupport_mapping_amphibiaprotection/data/
+/800_fwsupport_mapping_amphibiaprotection/*.gpkg
