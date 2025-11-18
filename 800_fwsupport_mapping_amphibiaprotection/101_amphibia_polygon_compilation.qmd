@@ -164,3 +164,10 @@ mapview(data_areas)
 ```{r data-export}
 st_write(data_areas, dsn="amphibia_areas.gpkg", layer='amphibia_protection_areas')
 ```
+
+
+# Changelog - *post processing* by Tom
+
+- het Parkbos van Gent,  Steenbergen in Erpe-Mere, Kluisbos in Halle (verwijderd uit geopackage)
+- Het Kapellenbos van Kapellen is ingetekend, niet dat van Brakel (verwijderd uit geopackage, het correcte Kapelbos werd reeds afgedekt)
+- Hauwstraat, Hul/Kanakkendries is een complex in Brakel. (toegevoegd aan geopackage)

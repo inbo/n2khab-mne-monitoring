@@ -6,6 +6,4 @@
 .quarto
 n2khab-mne-monitoring.Rproj
 
-/800_fwsupport_mapping_amphibiaprotection/data/*.rds
 /800_fwsupport_mapping_amphibiaprotection/data/
-/800_fwsupport_mapping_amphibiaprotection/*.gpkg
