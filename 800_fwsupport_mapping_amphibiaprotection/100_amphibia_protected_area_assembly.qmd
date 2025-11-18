@@ -104,6 +104,7 @@ remotes::install_github("inbo/inbospatial") # install inbospatial from github
 silently <- suppressPackageStartupMessages
 library("dplyr") |> silently()
 library("stringr") |> silently() # forest finder
+library("glue") |> silently() 
 library("knitr") |> silently() # table printing
 library("sf") |> silently()
 library("mapview") |> silently() # quick inspection
