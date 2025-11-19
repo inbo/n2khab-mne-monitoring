@@ -106,9 +106,9 @@ replacement_data = GPD.read_postgis( \
     ) \
     .dropna(subset=['grts_address', 'grts_address_replacement']) \
     .astype({"grts_address": int, "grts_address_replacement": int})
-replacement_data.loc[
-    replacement_data["grts_address"].values == 84598 # 23238 253621
-    , :].T
+# replacement_data.loc[
+#     replacement_data["grts_address"].values == 84598 # 23238 253621
+#     , :].T
 
 for remo in to_remove.values():
     removements = NP.logical_and(
@@ -124,12 +124,13 @@ existing_locations = GPD.read_postgis( \
     con = mnmgwdb.connection, \
     geom_col = "wkb_geometry" \
     ).astype({"grts_address": int})
-existing_locations.loc[
-    # [any(int(val) == NP.array([23238, 6314694, 23091910]))
-    # [any(int(val) == NP.array([253621, 4447925]))
-    [any(int(val) == NP.array([84598, 871030]))
-     for val in existing_locations["grts_address"].values
-     ], :]
+
+# existing_locations.loc[
+#     # [any(int(val) == NP.array([23238, 6314694, 23091910]))
+#     # [any(int(val) == NP.array([253621, 4447925]))
+#     [any(int(val) == NP.array([84598, 871030]))
+#      for val in existing_locations["grts_address"].values
+#      ], :]
 # print("\n".join(map(str, list(map(int, sorted(existing_locations["grts_address"].values))))))
 
 new_locations = replacement_data.loc[
@@ -218,9 +219,9 @@ replacement_data = replacement_data.join(
     on = "grts_address_replacement"
 )
 
-replacement_data.loc[
-    replacement_data["grts_address"].values == 84598 # 23238 253621
-    , :].T
+# replacement_data.loc[
+#     replacement_data["grts_address"].values == 84598 # 23238 253621
+#     , :].T
 
 ## also join samplelocation_id -> lookup to the SampleLocations
 
@@ -238,9 +239,9 @@ existing_samplelocations = PD.read_sql( \
 )
 # NOTE: some locations have been mis-replaced previously; their original GRTS is not stored (yet)
 
-existing_samplelocations.loc[
-    existing_samplelocations["grts_address"].values == 871030
-    , :].T
+# existing_samplelocations.loc[
+#     existing_samplelocations["grts_address"].values == 871030
+#     , :].T
 # existing_samplelocations.loc[
 #     existing_samplelocations["grts_address"].values == 253621
 #     , :].T
@@ -311,9 +312,9 @@ for idx, row in replacement_data.iterrows():
     missing.append(idx)
 
 print(missing)
-replacement_data.loc[
-    replacement_data["grts_address"].values == 84598 # 23238 253621
-    , :].T
+# replacement_data.loc[
+#     replacement_data["grts_address"].values == 84598 # 23238 253621
+#     , :].T
 
 # existing_samplelocations.loc[existing_samplelocations["grts_address"].values == 23238, :]
 # existing_samplelocations.loc[existing_samplelocations["grts_address"].values == 23091910, :]
@@ -340,7 +341,7 @@ replacement_data["samplelocation_id"] = replacement_data["samplelocation_id"].as
 # print(replacement_data.sample(3).T)
 # print(replacement_data.loc[replacement_data["grts_address"].values == 23238, :].T)
 # print(replacement_data.loc[replacement_data["grts_address"].values == 253621, :].T)
-print(replacement_data.loc[replacement_data["grts_address"].values == 84598, :].T)
+# print(replacement_data.loc[replacement_data["grts_address"].values == 84598, :].T)
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -570,11 +571,8 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
                 fieldwork_id = int(activity_check.iloc[0, 0])
 
                 fieldwork_next = int(PD.read_sql(
-                    """ (
-                        SELECT fieldwork_id FROM "inbound"."WellInstallationActivities"
-                        WHERE fieldwork_id IS NOT NULL
-                        UNION
-                        SELECT fieldwork_id FROM "inbound"."ChemicalSamplingActivities"
+                    f""" (
+                        SELECT fieldwork_id FROM "inbound"."{activity_table}"
                         WHERE fieldwork_id IS NOT NULL
                         )
                         ORDER BY fieldwork_id DESC
