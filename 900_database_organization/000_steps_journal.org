@@ -1632,6 +1632,28 @@ SCHEDULED: <2025-09-29 Mon>
 
 forgot to restore those that received a type in ex post correction.
 
+** tap water!
+SCHEDULED: <2025-11-14 Fri>
+
+new columns to indicate the source of field water
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN used_water_from_tap boolean DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".used_water_from_tap IS E'whether or not tap water was used for installation';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN used_water_source varchar DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".used_water_source IS E'source of the water used for facilitating installation';
+
+Ik heb aan de tab "installatie" toegevoegd
+1. `used_water_from_tap` = "gebruik kraanwater" -> gelieve aanvinken indien kraanwatergebruik
+2. `used_water_source` = "gebruik water bron" -> optioneel aangeven waar spoelwater vandaan kwam, ook bij niet-kraanwater uit de omgeving (bv. "WC HT Brussel", "beekje dichtbij", "vlesje Spa van de colruyt")
+
+** non-absent placement 4163858
+SCHEDULED: <2025-11-19 Wed>
+
+(via Lise)
++ 4163858<29329682//7140_mrd was "excluded" for "type_is_absent", because in =loceval= the note said "Ander type binnen mozaïek"; however replacement and mapping were good.
++ conclusion: this was a victim of the auto-detection of "absent" cells.
+
+loceval=# UPDATE "outbound"."SampleUnits" SET type_is_absent = FALSE WHERE grts_address = 4163858;
 
 * Major R Code Overhaul (202508)
 ** Code File Organization
