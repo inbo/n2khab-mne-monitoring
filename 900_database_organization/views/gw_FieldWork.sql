@@ -1,5 +1,6 @@
 -- SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
 
+-- !!! also re-create update MyFieldWork
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE VIEW "inbound"."FieldWork" AS
@@ -45,6 +46,8 @@ SELECT
   WIA.random_point_number,
   WIA.diver_id,
   WIA.free_diver,
+  WIA.used_water_from_tap,
+  WIA.used_water_source,
   CSA.project_code,
   CSA.recipient_code,
   VISIT.visit_done
@@ -102,8 +105,8 @@ WHERE TRUE
   AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
   AND NOT FwCAL.excluded
   AND GAP.is_gw_activity
-  AND FwCAL.archive_version_id IS NULL
-  AND VISIT.archive_version_id IS NULL
+  AND (VISIT.visit_done OR (FwCAL.archive_version_id IS NULL))
+  AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
 
 
@@ -157,7 +160,9 @@ DO ALSO
   random_point_number = NEW.random_point_number,
   no_diver = NEW.no_diver,
   diver_id = NEW.diver_id,
-  free_diver = NEW.free_diver
+  free_diver = NEW.free_diver,
+  used_water_from_tap = NEW.used_water_from_tap,
+  used_water_source = NEW.used_water_source
  WHERE fieldwork_id = OLD.fieldwork_id
 ;
 
