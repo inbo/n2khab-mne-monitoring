@@ -35,7 +35,7 @@ locevaldb <- connect_mnm_database(
 )
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 
-print(locevaldb$shellstring)
+# print(locevaldb$shellstring)
 
 
 # Locations
@@ -135,7 +135,7 @@ mnmgwdb <- connect_mnm_database(
   database_mirror = mnmgwdb_mirror
 )
 
-print(mnmgwdb$shellstring)
+# print(mnmgwdb$shellstring)
 
 
 stitch_table_connection(
@@ -210,9 +210,9 @@ stitch_table_connection(
 )
 
 
-mnmgwdb$query_table("Visits") %>%
-  count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
-  knitr::kable()
+# mnmgwdb$query_table("Visits") %>%
+#   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+#   knitr::kable()
 
 
 

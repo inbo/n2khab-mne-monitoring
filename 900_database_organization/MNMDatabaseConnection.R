@@ -56,6 +56,7 @@
 #   - host
 #   - port
 #   - database
+#   - mirror_short # a shorthand for the mirror; "" on "production"
 #   - user
 #   - shellstring
 #   - connection
@@ -557,6 +558,13 @@ connect_mnm_database <- function(
     )
   }
 
+  # a shorthand for the mirror; "" on "production"
+  split_mirror <- unlist(strsplit(database_mirror, split = "-"))
+  if (length(split_mirror) > 1) {
+    db$mirror_short <- split_mirror[2]
+  } else {
+    db$mirror_short <- ""
+  }
 
   # shell string for psql use
   db$shellstring <- glue::glue("-U {db$user} -h {db$host} -p {db$port} -d {db$database}")
