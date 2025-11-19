@@ -260,12 +260,21 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-database_label <- "loceval"
+# choose database via the command line
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  database_label <- commandline_args[1]
+} else {
+  stop("please provide a database label as command line argument, e.g. 'loceval'.")
+}
+# database_label <- "loceval"
 # database_label <- "mnmgwdb"
+stopifnot(database_label %in% c("loceval", "mnmgwdb"))
 
 source_mirror <- glue::glue("{database_label}") # -staging
 target_mirror <- glue::glue("{database_label}-testing")
 
+message(glue::glue("copying `{source_mirror}` to `{target_mirror}`."))
 
 # from source...
 source_db <- connect_mnm_database(
@@ -334,7 +343,7 @@ copy_over_single_table <- function(table_label, new_data, ...) {
 
   # push the update
   upload_data_and_update_dependencies(
-    target_db,
+    mnmdb = target_db,
     table_label = table_label,
     data_replacement = new_data,
     verbose = FALSE,

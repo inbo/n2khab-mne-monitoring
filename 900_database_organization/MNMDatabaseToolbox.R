@@ -589,8 +589,8 @@ upload_data_and_update_dependencies <- function(
     if (table_label == "ChemicalSamplingActivities") {
       mnmdb$execute_sql('
         UPDATE "inbound"."ChemicalSamplingActivities"
-          SET fieldwork_id = fieldwork_id + 100000
-          WHERE fieldwork_id < 100000
+          SET fieldwork_id = fieldwork_id + 10000
+          WHERE fieldwork_id < 10000
         ;
       ')
     }
@@ -687,8 +687,19 @@ upload_data_and_update_dependencies <- function(
   # deptab <- dependent_tables[[3]]
   # deptab <- "Visits"
 
-  source('095_re_link_foreign_keys_optional.R')
+  # message(mnmdb$shellstring)
+  # message(mnmdb$mirror_short)
+
+  if (mnmdb$mirror_short == "") {
+    source(glue::glue('095_re_link_foreign_keys_optional.R'))
+  } else {
+    system(glue::glue(
+      "Rscript 095_re_link_foreign_keys_optional.R -{mnmdb$mirror_short}"
+    ))
+  }
   return(invisible(NULL))
+
+  ## OBSOLETE
   for (deptab in dependent_tables) {
 
     # extract the associating columns

@@ -9,7 +9,7 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-# TODO this does not yet work for `loceval` (based on SampleLocations)
+# this issue is "mnmgwdb only"
 database_label <- "mnmgwdb"
 
 commandline_args <- commandArgs(trailingOnly = TRUE)
