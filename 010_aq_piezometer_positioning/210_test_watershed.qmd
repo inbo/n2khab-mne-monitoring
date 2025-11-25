@@ -1,0 +1,46 @@
+---
+title: "Watershed Area Identification"
+subtitle: "Using watershed analysis to find the area of intrest for flow direction calculation"
+date: "2025-11-25"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+# The Watershed Transform
+
+Information about this procedure might be confusing at first because two algorithm variants exist.
+
+
+Take a "landscape" of quasi-continuous measurements in any dimension.
+Examples are a waterlevel time series (2D landscape plot of water level x, plotted against time), a query from [DHMV](https://inbo.github.io/inbospatial/articles/spatial_dhmv_query.html) which covers elevation (z) as a function of space (x, y), or a CT scan (grey values as a function of x, y, and z).
+
+
+The first variant of watershed finds all local minima, and fills the landscape from bottom to top. 
+I think of it as "bottom-up" watershed.
+
+
+The second variant, which leans more to the present use case, "drops" virtual water everywhere on the measurement landscape to see which way they roll. 
+Sprinkling from the top, this is "top-down watershed".
+
+Resources on the second, "top-down" variant:
+
++ J. Cousty, G. Bertrand, L. Najman and M. Couprie. Watershed Cuts: Minimum Spanning Forests and the Drop of Water Principle, IEEE Transactions on Pattern Analysis and Machine Intelligence 31(8) pp. 1362-1374, 2009, <https://inria.hal.science/hal-01113462/document>; <https://doi.org/10.1109/TPAMI.2008.173>
++ https://lochbihler.nl/practice-your-r-two-options-to-implement-the-watershed-segmentation/
+
+
+A straight forward implementation is found in the second reference.
+
+
+# Strategy
+
+One of the feedback points we received on the first iteration of this "aquatic sample placement" analysis was that a fixed circumference around a given water body might not be correct to determine its inflow situation.
+Rather, a kind of watershed analysis could be used to infer the actual area of water intake.
+

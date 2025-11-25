@@ -298,13 +298,13 @@ However, it is not clear whether/how this will generalizes.
 ```{r lines-or-points}
 #| eval: false
 
-stream_testpoints <- read_watercourse_100mseg(element = "points") %>% 
+stream_testpoints <- n2khab::read_watercourse_100mseg(element = "points") %>% 
   filter(vhag_code == 9574)
-stream_testlines <- read_watercourse_100mseg(element = "lines") %>% 
+stream_testlines <- n2khab::read_watercourse_100mseg(element = "lines") %>% 
   filter(vhag_code == 9574)
 
-mapview(stream_testpoints, col.regions = "brown") +
-    mapview(stream_testlines, col.regions = "steelblue")
+mapview::mapview(stream_testpoints, col.regions = "brown") +
+    mapview::mapview(stream_testlines, col.regions = "steelblue")
 
 ```
 
