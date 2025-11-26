@@ -309,3 +309,59 @@ plot(ws)
 
 
 
+# Generalization
+
+I am channeling the chaos above into few convenience functions.
+
+```{r}
+library("inbospatial")
+source(here::here("..", "R", "watershed.R"))
+
+bbox <- sf::st_bbox(
+   c(xmin = 148000, xmax = 149000, ymin = 208000, ymax = 209000),
+   crs = sf::st_crs(31370)
+)
+test_raster <- inbospatial::get_coverage_wcs(
+  wcs = "dhmv",
+  bbox = bbox,
+  layername = "DHMVII_DTM_1m",
+  version = "2.0.1",
+  wcs_crs = "EPSG:31370",
+  resolution = 1
+)
+
+smooth_sigma <- 16
+test_smoothed <- smooth_raster(test_raster, sigma = smooth_sigma)
+
+resample_width <- 16 #m
+test_resampled <- resample_to_grid(
+  test_smoothed,
+  nrows = as.integer(dim(test_smoothed)[1]/resample_width),
+  ncols = as.integer(dim(test_smoothed)[1]/resample_width)
+)
+test_resmoothed <- smooth_raster(test_resampled, sigma = 2)
+# test_watershed_raw <- compute_watershed(test_raster)[["watershed"]]
+# test_watershed_smooth <- compute_watershed(test_smoothed)[["watershed"]]
+test_watershed_resampled <- compute_watershed(test_resampled)[["watershed"]]
+test_watershed_resmoothed <- compute_watershed(test_resmoothed)[["watershed"]]
+# spat_raster <- test_resampled
+# areas <- test_watershed[["watershed"]]
+# sinks <- test_watershed[["sinks"]]
+
+
+par(mfrow = c(2, 4))
+plot(test_raster, col = gray.colors(256))
+# points(sinks, col = gray.colors(256))
+plot(test_smoothed, col = gray.colors(256))
+plot(test_resampled, col = gray.colors(256))
+plot(test_resmoothed, col = gray.colors(256))
+plot(0)#test_watershed_raw)
+plot(0)#test_watershed_smoothed)
+plot(test_watershed_resampled)
+plot(test_watershed_resmoothed)
+
+
+# TODO unclear whether the t()/flipping/mirroring should be done.
+# TODO matrix must be square for Gaussian/Euclid ...
+
+```
