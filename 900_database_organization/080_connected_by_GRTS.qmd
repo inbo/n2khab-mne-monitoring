@@ -39,9 +39,30 @@ suffix <- ""
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(5193397, 59719349) # left-over WIA
+grts <- c(1205598, 41313630) # replacement cell missing from updated plans
+    # c(23238, 6314694, 23091910) # Hellebos!
+    # c(908981) # dismissed -> no replacements
+    # c(3554997, 29769397) # early bird ZEB/achterhaven
+    # c(5193397, 57919349) # LOST?!
+    # c(84598, 871030) # replacement mishap
+    # c(1999406, 6417454)
+    # c(53206450) # victim to the Dolle Dromedaris
+    # c(13688242) # victim to the Dolle Dromedaris
+    # c(53662, 4772254) # victim to the Dolle Dromedaris
+    # c(41313630) # installed location, not planned anymore
+    # c(23238, 6314694, 23091910) # Hellebos!
+    # c(49896893, 21323197)
+
+    # c(1902553) # info INST op foute regel (planning oud: 2025-10-01; nieuw: 2025-07-01)
+    # c(6092977) # info INST on wrong row
+
+    # c(3554997, 29769397)
+    # c(5234357, 19914421)
+    # c(5193397, 59719349) # left-over WIA
     # SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 59719349;
     # UPDATE "inbound"."WellInstallationActivities" SET grts_address = 59719349 WHERE grts_address = 5193397;
+
+    # c(4163858, 29329682)
     # c(415022, 3560750)
     # c(122549)
     # c(49896893, 21323197) # "Putten West"; disappeared with POC update 0.14 (TODO)
@@ -132,6 +153,7 @@ eva_print_sunit <- function() {
       replaced = is_replaced,
       mhq = in_mhq_samples,
       forest = is_forest,
+      typ_weg = type_is_absent,
       grts = grts_address
     ) %>%
     dplyr::select(
@@ -147,6 +169,7 @@ eva_print_sunit <- function() {
       has_infos,
       mhq,
       forest,
+      typ_weg,
       archived
     ) %>%
     t() %>% 
@@ -289,6 +312,7 @@ eva_print_replacements <- function() {
   replacements %>%
     dplyr::rename(
       grts = grts_address,
+      typ = type,
       suid = sampleunit_id,
       rep = grts_address_replacement,
       rank = replacement_rank,
@@ -297,6 +321,7 @@ eva_print_replacements <- function() {
     ) %>%
     dplyr::select(
       grts,
+      typ,
       rank,
       rep,
       sel,
@@ -543,6 +568,7 @@ gw_print_visits <- function() {
       date_start,
       archv,
       tid,
+      issues,
       date_visit
     ) %>%
     arrange(stratum, date_start, agid) %>% 

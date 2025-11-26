@@ -1654,6 +1654,7 @@ SCHEDULED: <2025-11-19 Wed>
 + conclusion: this was a victim of the auto-detection of "absent" cells.
 
 loceval=# UPDATE "outbound"."SampleUnits" SET type_is_absent = FALSE WHERE grts_address = 4163858;
+mnmgwdb=# UPDATE "outbound"."FieldworkCalendar" SET excluded = FALSE, excluded_reason = NULL WHERE grts_address IN (4163858, 29329682);
 
 * Major R Code Overhaul (202508)
 ** Code File Organization

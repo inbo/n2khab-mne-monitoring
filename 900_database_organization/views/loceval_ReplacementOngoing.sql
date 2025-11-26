@@ -38,7 +38,7 @@ FROM (
   LEFT JOIN "outbound"."SampleUnits" AS UNIT
     ON UNIT.sampleunit_id = REP.sampleunit_id
   LEFT JOIN "outbound"."LocationInfos" AS INFO
-   ON UNIT.location_id = INFO.location_id
+    ON UNIT.location_id = INFO.location_id
   WHERE UNIT.replacement_ongoing
     AND (
       REP.is_selected
