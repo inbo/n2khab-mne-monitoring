@@ -75,7 +75,7 @@ test_raster <- inbospatial::get_coverage_wcs(
   resolution = 1
 )
 
-# plot(hopo_raster, col = gray.colors(256))
+# plot(test_raster, col = gray.colors(256))
 ```
 
 
@@ -103,7 +103,7 @@ test_resampled <- terra::resample(
   method = "lanczos"
   # method = "bilinear"
 )
-plot(test_resampled)
+plot(test_resampled, col = gray.colors(256))
 ```
 
 
@@ -145,12 +145,12 @@ smooth <- function(data, sigma = NULL) {
 
 test_smoothed <- smooth(
   test_matrix,
-  sigma = 16
+  sigma = 2^3
 )
 
 x <- test_smoothed
 
-plot(terra::rast(x))
+plot(terra::rast(x), col = gray.colors(256))
 ```
 
 
@@ -180,12 +180,14 @@ for (i in 1:9) {
 data.direction <- reshape2::melt(
   apply(data.shifted, FUN = which.min, MARGIN = c(1, 2))
   )
-
+# data.direction <- data.direction[, c(2, 1, 3)]
 
 data.direction[data.direction[, 1] == 1, 3] <- 5
 data.direction[data.direction[, 1] == dim(x)[1], 3] <- 5
 data.direction[data.direction[, 2] == 1, 3] <- 5
 data.direction[data.direction[, 2] == dim(x)[1], 3] <- 5
+
+# data.direction[, 2] <- -data.direction[, 2] + max(data.direction[, 2])
 
 flow <- terra::terrain(
     terra::rast(x),
@@ -198,9 +200,12 @@ flow <- terra::terrain(
 flow[isFALSE(is.finite(flow))] <- 0
 
 par(mfrow = c(1, 2))
-plot(terra::rast(data.direction, type = "xyz"))
+plot(terra::rast(data.direction, type = "xyz"), col = gray.colors(256))
 plot(flow)
 ```
+
+Note above: the `data.direction` is transposed and horizontally mirrored!
+
 
 ```{r iterative-move}
 # generate initial coordinates for each drop of the input matrix
@@ -233,7 +238,11 @@ while (changed) {
   }
 }
 
-# plot(old.coor)
+# plot(old.coor, col = gray.colors(256))
+sinks <- old.coor
+
+sinks <- sinks[, c(2, 1)]
+sinks[, 2] <- max(sinks[, 2]) + 1 - sinks[, 2]
 ```
 
 ```{r}
@@ -248,10 +257,14 @@ labels <- cbind(init.coor, #[,c(2,1)],
   dplyr::select(i) %>%
   as.matrix() 
 )
+labels <- labels[, c(2, 1, 3)]
+labels[, 2] <- max(labels[, 2]) + 1 -labels[, 2]
 
 par(mfrow = c(1, 2))
-plot(terra::rast(x))
+plot(terra::rast(x), col = gray.colors(256))
+points(sinks, col = gray.colors(256))
 plot(terra::rast(labels, type = "xyz"))
+points(sinks, col = gray.colors(256))
 ```
 
 
@@ -264,9 +277,10 @@ for (i in 1:length(loc.min)) {
 }
 
 par(mfrow = c(1, 2))
-plot(terra::rast(x))
+plot(terra::rast(x), col = gray.colors(256))
+points(labels[loc.min, c(1, 2)] - 0.5)
 plot(terra::rast(data.output))
-
+points(labels[loc.min, c(1, 2)] - 0.5)
 ```
 
 
@@ -285,7 +299,7 @@ flowdir <- terra::terrain(terra::rast(x), "flowdir")
 ws <- terra::watershed(flowdir, pourpoint)
 
 par(mfrow = c(1, 3))
-plot(terra::rast(x))
+plot(terra::rast(x), col = gray.colors(256))
 plot(flowdir)
 plot(ws)
 ```
