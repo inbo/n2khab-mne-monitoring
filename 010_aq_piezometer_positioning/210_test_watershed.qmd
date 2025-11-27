@@ -459,7 +459,7 @@ plot_points(test_watershed_resmoothed, col = "red")
 We know our water bodies.
 On the rainflow watershed, we can sink all drops which enter the lake to a given point in the lake.
  <https://stackoverflow.com/questions/69071990/indexing-using-a-boolean-matrix-in-r>
-```{r}
+```{r testing-matrix-masks}
  
 nx <- 3
 ny <- 4
@@ -600,4 +600,3 @@ The implemented watershed algorithm is simplistic and limited.
 :::
 
 
-Remains for future exploration to find out whether *ex post* joining (presumably more efficient) yields similar results to waterbody masking.
