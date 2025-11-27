@@ -505,7 +505,7 @@ source(here::here("..", "R", "watershed.R"))
 bbox <- sf::st_bbox(
    c(
      xmin = 251500, xmax = 251800,
-     ymin = 159400, ymax = 159700
+     ymin = 159450, ymax = 159650
    ),
    crs = sf::st_crs(31370)
 )
@@ -524,21 +524,22 @@ test_smoothed <- mdenoise(test_raster, n = 8, t = 0.6)
 
 mask <- is.na(matrix(,
   nrow = dim(test_smoothed)[1],
-  ncol = dim(test_smoothed)[1]
+  ncol = dim(test_smoothed)[2]
 ))
-mask[1:140,] <- FALSE
-mask[161:300,] <- FALSE
+mask[1:100,] <- FALSE
+mask[121:200,] <- FALSE
 mask[,1:100] <- FALSE
 mask[,201:300] <- FALSE
+
+raster_mask <- terra::deepcopy(test_raster)
+raster_mask[, ] <- mask
 
 test_ws <- compute_watershed(test_smoothed)
 test_ws_drained <- compute_watershed_drained(
   test_smoothed,
   mask
 )
-spat_raster <- test_smoothed
-
-dim(test_smoothed)[1:2] == dim(mask)
+# spat_raster <- test_smoothed
 
 
 plot_points <- function(ws, ...) {
@@ -548,12 +549,17 @@ plot_points <- function(ws, ...) {
 
 par(mfrow = c(2, 2))
 plot(test_smoothed, col = gray.colors(256))
-plot_points(test_ws_drained, col = "green")
+title("raw data")
+plot_points(test_ws, col = "lightblue", pch = 17)
+plot_points(test_ws_drained, col = "orange", pch = 22)
 plot(test_ws[["watershed"]])
-plot_points(test_ws, col = "red")
-image(mask)
+title("regular watershed")
+plot_points(test_ws, col = "lightblue", pch = 17)
+plot(raster_mask, col = rev(gray.colors(256)))
+title("mask")
 plot(test_ws_drained[["watershed"]])
-plot_points(test_ws_drained, col = "red")
+title("masked watershed")
+plot_points(test_ws_drained, col = "orange", pch = 15)
 
 ```
 
@@ -583,13 +589,12 @@ A solution would be to add prior knowledge:
 provide a mask for the water body of interest and join all inflow.
 
 - This matches the actual question for standing waters or stream segments.
-- However, the masking is inefficient in R and computationally inefficient.
-- This is different from *ex post* joining, because flows might just temporarily pass the water body (which, acknowledged, is unlikely).
+- ~~However, the masking is inefficient in R and computationally inefficient.~~ Adapted (flow sink precalculation).
 
 
 The implemented watershed algorithm is simplistic and limited.
 
-- it works with 8 directions, and thus flows tend to go along straight or diagonal lines.
+- It works with 8 directions, and thus flows tend to go along straight or diagonal lines.
 - But: it works!
 
 :::

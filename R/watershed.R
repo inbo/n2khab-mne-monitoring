@@ -227,7 +227,11 @@ compute_watershed <- function(spat_raster) {
   coords_next <- coords_initial
 
   # drop flow loop
+  count <- 0
   while (changed) {
+    count <- count + 1
+    if (count %% 1000 == 0) message(glue::glue("it. {count}; {sum(coords_prev == coords_next)}"))
+
     # calculate new coordinates
     row <- (coords_prev[, 2] - 1)
     col <- coords_prev[, 1]
@@ -237,7 +241,7 @@ compute_watershed <- function(spat_raster) {
       ]
     coords_next[, 2] <-
       coords_prev[, 2] - shift_vectors[
-        flow_tensor[row * ny + col, 3], 2
+        flow_tensor[row * nx + col, 3], 2
       ]
 
     # boundary checks: flows get stuck there
@@ -278,7 +282,9 @@ compute_watershed <- function(spat_raster) {
 
 
   data_output <- matrix(0, nrow = nx, ncol = ny)
-  loc_min <- as.integer(rownames(flow_tensor[flow_tensor[, 3] == 5, c(1, 2)]))
+  loc_min <- as.integer(rownames(
+    flow_tensor[flow_tensor[, 3] == 5, c(1, 2)]
+  ))
 
   for (i in 1:length(loc_min)) {
     data_output[
@@ -295,7 +301,7 @@ compute_watershed <- function(spat_raster) {
   # lmin <- loc_min[[1]]
 
   get_min <- function(lmin) {
-    sink <- catchments[lmin,c(2,1)]
+    sink <- catchments[lmin, c(2,1)]
     pnt <- extract_raster_point_by_index(
       spat_raster,
       sink[[1]],
@@ -393,21 +399,30 @@ compute_watershed_drained <- function(spat_raster, mask) {
   mask_coordinates <- coords_initial[mask_array,]
   sink_idx <- mask_coordinates[as.integer(ceiling(nrow(mask_coordinates)/2)), ]
 
+  # a sink could be on the rim, so prevent it from moving
+  flow_mask <- get_mask_array(flow_tensor)
+  flow_tensor[flow_mask, 3] <- 0
+
   # drop flow loop
   count <- 0
   while (changed) {
-    if (count %% 10 == 0) message(glue::glue("it. {count}; masked: {sum(mask_array)}"))
+    count <- count + 1
+    if (count %% 1000 == 0) message(glue::glue("it. {count}; {sum(coords_prev == coords_next)}"))
 
     # calculate new coordinates
     row <- (coords_prev[, 2] - 1)
     col <- coords_prev[, 1]
+    flow_idx <- flow_tensor[row * nx + col, 3]
+    flow_sink <- flow_idx == 0
+    flow_idx[flow_sink] <- 5 # no movement
+
     coords_next[, 1] <-
       coords_prev[, 1] - shift_vectors[
-        flow_tensor[row * nx + col, 3], 1
+        flow_idx, 1
       ]
     coords_next[, 2] <-
       coords_prev[, 2] - shift_vectors[
-        flow_tensor[row * ny + col, 3], 2
+        flow_idx, 2
       ]
 
 
@@ -417,12 +432,14 @@ compute_watershed_drained <- function(spat_raster, mask) {
     coords_next[coords_next[, 1] < 1, 1] <- 1
     coords_next[coords_next[, 2] < 1, 2] <- 1
 
-    # set points in mask to centroid
-    # because the centroid is ensured to be in the mask,
-    # points on it will not shift.
-    mask_array <- get_mask_array(coords_next)
-    coords_next[mask_array, 1] <- sink_idx[[1]]
-    coords_next[mask_array, 2] <- sink_idx[[2]]
+    coords_next[flow_sink, 1] <- sink_idx[[1]]
+    coords_next[flow_sink, 2] <- sink_idx[[2]]
+    # # set points in mask to centroid
+    # # because the centroid is ensured to be in the mask,
+    # # points on it will not shift.
+    # mask_array <- get_mask_array(coords_next)
+    # coords_next[mask_array, 1] <- sink_idx[[1]]
+    # coords_next[mask_array, 2] <- sink_idx[[2]]
 
     # check if anything changed
     if (all(coords_next == coords_prev)) {
@@ -430,7 +447,6 @@ compute_watershed_drained <- function(spat_raster, mask) {
     } else {
       # update coords_prev for next iteration
       coords_prev <- coords_next
-      count <- count + 1
     }
   } # /while
 
@@ -457,9 +473,11 @@ compute_watershed_drained <- function(spat_raster, mask) {
 
 
   data_output <- matrix(0, nrow = nx, ncol = ny)
-  loc_min <- as.integer(rownames(flow_tensor[flow_tensor[, 3] == 5, c(1, 2)]))
+  loc_min <- c(as.integer(rownames(
+      flow_tensor[flow_tensor[, 3] %in% c(5), c(1, 2)]
+    )), as.integer(rownames(sink_idx)))
 
-  for (i in 1:length(loc_min)) {
+  for (i in seq_len(length(loc_min))) {
     data_output[
       seq(1, nx * ny)[
         (coords_final[, 2] - 1) * nx + coords_final[, 1] == loc_min[i]
