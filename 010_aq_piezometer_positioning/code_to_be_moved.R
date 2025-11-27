@@ -86,10 +86,11 @@ n2khab_types <-
   distinct(type) %>%
   arrange(type)
 
-# `wsh` is the watersurface map of Flanders (https://doi.org/10.5281/zenodo.3386857)
+# `wsh` are the polygons that contain standing water types
+# (cf. https://inbo.github.io/n2khab/reference/read_watersurfaces_hab.html, https://doi.org/10.21436/inbor.114075267)
 wsh <- read_watersurfaces_hab(interpreted = TRUE)
 
-# we are interested in the types which are part of the n2khab list
+# we are interested in the types which are part of the n2khab monitoring list
 wsh_occ <-
   wsh$watersurfaces_types %>%
   # in general we restrict types using an expanded type list tailored to the

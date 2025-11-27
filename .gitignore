@@ -6,3 +6,10 @@
 .quarto
 n2khab-mne-monitoring.Rproj
 
+/010_aq_piezometer_positioning/data/
+*.html
+/010_aq_piezometer_positioning/figures/
+/010_aq_piezometer_positioning/*.rmarkdown
+/010_aq_piezometer_positioning/110_explore_placement_streams_files/
+/010_aq_piezometer_positioning/*.png
+/010_aq_piezometer_positioning/voedingsgebieden/

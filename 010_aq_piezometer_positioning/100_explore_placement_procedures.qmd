@@ -1,0 +1,1224 @@
+---
+title: "Aquatic Habitat Types: Observation Well Placement"
+subtitle: "part I: watersurfaces"
+date: "2025-05-20"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+
+```{r libraries}
+
+source(here::here("..", "R", "import_aquatic_positioning.R"))
+
+```
+
+# REMINDER
+
+- `unit_id` is not strictly unique; make sure to filter for `sample_support_code`+`unit_id` always!
+
+
+# strategy:
+
+
+## procedural:
+
+- (i) get sample locations
+- (ii) get aquatic bodies
+  - surfs, streams, springs
+  - ensure 31370
+  - buffers: r₁ = 20m, r₂ = 40m
+- target distance from surface water edge: r = 30m
+- query dhmv(xᵢ | 1m resolution) ∀ xᵢ < r₂
+  - calculate gradient direction
+  - take wedge of α=π/8
+  - complication: Flanders is flat; optionally query a wider range
+
+
+## special situation:
+
+- stream into/out of surface water body
+
+
+## cases:
+
+- sample x ⊂ r₁ ⇒ place anywhere around
+- sample r₁ < x < r ⇒ move to target distance r
+
+
+## exploration:
+
+- filter an example area/location
+
+
+## complication anticipation:
+
+- Flanders is relatively flat
+- water redistributes under the influence of gravity
+
+⇒ elevation gradient below detection limit?
+
+
+# data
+
+## Assembling Aquatic Habitat Types
+
+### data consistence
+
+```{r datasource-consistency}
+
+# apply the consistency check
+confirm_n2khab_data_consistency()
+
+```
+
+
+### watersurfaces present in the n2khab type list
+
+```{r load-watersurface-habitats}
+
+# reading scheme and type of target populations
+n2khab_targetpops <-
+  read_scheme_types() %>%
+  select(scheme, type)
+
+# list of distinct types
+n2khab_types <-
+  n2khab_targetpops %>%
+  distinct(type) %>%
+  arrange(type)
+
+# `wsh` are the polygons that contain standing water types
+# (cf. https://inbo.github.io/n2khab/reference/read_watersurfaces_hab.html, https://doi.org/10.21436/inbor.114075267)
+wsh <- read_watersurfaces_hab(interpreted = TRUE)
+
+# we are interested in the types which are part of the n2khab monitoring list
+wsh_occ <-
+  wsh$watersurfaces_types %>%
+  # in general we restrict types using an expanded type list tailored to the
+  # type levels present in data sources, but for the aquatic types expansion and
+  # subsequent collapse of types are redundant steps
+  semi_join(n2khab_types, join_by(type))
+
+# of the focus-type watersurface polygons, we extract the polygon id
+wsh_pol <-
+  wsh$watersurfaces_polygons %>%
+  semi_join(wsh_occ, join_by(polygon_id)) %>%
+  select(polygon_id)
+
+kableprint(wsh_pol) # polygon id of the watersurface polygons of interest
+```
+
+
+
+## load the sample
+
+### google authentification
+
+Currently, the latest version of the sample is distributed via an `.RData` file on the google drive.
+
+```{r google-auth}
+google_drive_init()
+```
+
+
+
+### load/restore sample data
+
+Download the sample data (unless it is already there).
+
+```{r sample-data-download}
+# latest (20250506):
+#   sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+#   googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
+
+
+force_reload_sample <- FALSE
+sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+
+if (force_reload_sample || !file.exists(sample_filepath)) {
+  download_poc_rdata_file(sample_filepath, overwrite = TRUE)
+}
+
+# deprecated: 
+#   sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+#   googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
+#   sample_filepath <- file.path("./data", "objects_panflpan5.RData")
+#   googledrive::as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
+
+
+env_extradata <- load_rdata_environment(sample_filepath)
+
+```
+
+(adjusted to read full POC `.RData`, [see here](https://github.com/inbo/n2khab-mne-design/blob/7a08ab9d36669d3a5b64d12b8bc35ff7c7a6a5d1/100_design_common/010_prototyping_sampling_and_revisit_design/helper_scripts/support_dcp_and_fieldwork.R))
+
+
+restore sample data structure
+Below object can be used to filter the foregoing geospatial objects, taking
+into account that: rows with ...
+
+- `sample_support_code == watersurface` relate to the IDs in `wsh_pol`
+- `sample_support_code == watercourse_segment` relate to the IDs in `segm_3260`
+- `sample_support_code == spring` relate to the IDs in `habspring_units_aquatic`
+
+```{r sample-data-join}
+
+stratum_units_grts_aquatic_gw_spsamples_spares <-
+  # units per stratum:
+  get("stratum_units_non_cell_n2khab", envir = env_extradata) %>%
+  # joining GRTS address per unit. A few non-unique GRTS addresses exist, hence
+  # 'many-to-one'. See further.
+  inner_join(
+    get("units_non_cell_n2khab_grts", envir = env_extradata),
+    join_by(sample_support_code, unit_id),
+    relationship = "many-to-one",
+    unmatched = "error"
+  ) %>%
+  filter(
+    # other 'non-cell' types exist so these must be dropped:
+    sample_support_code %in% c(
+      "watersurface"
+      # "watercourse_segment",
+      # "spring"
+    )
+    # # terrestrial spring units must also be excluded: # -> not for this notebook
+    # unit_id %in% habspring_units_aquatic$unit_id |
+    #   sample_support_code != "spring"
+  ) %>%
+  rename(grts_address_final = grts_address) %>%
+  # join with samples ('sample_status' defines whether location is 'in the
+  # sample' or is a 'spare unit' (spare units = a bunch of 'next' GRTS addresses
+  # in the available GRTS series for a stratum))
+  inner_join(
+    get(
+      "scheme_moco_ps_stratum_sppost_spsamples_spares_sf",
+      envir = env_extradata
+    ) %>%
+      st_drop_geometry() %>% # geom will be used below
+      # only use the samples of groundwater schemes
+      filter(str_detect(scheme, "^GW")) %>%
+      rename(grts_address_drawn = grts_address) %>%
+      # collapse module combos and schemes; hereby select the 'prior'
+      # sample_status ("in_sample") across module combos and schemes:
+      summarize(
+        sample_status = sample_status %>% droplevels() %>% levels() %>%  first(),
+        .by = c(
+          stratum,
+          grts_address_drawn,
+          grts_address_final
+        )
+      ) %>%
+      mutate(sample_status = factor(sample_status)),
+    join_by(stratum, grts_address_final),
+    # A few non-unique GRTS addresses exist, hence 'many-to-one'. We will apply
+    # a quick-fix below to meet the requirement of 'one unit sampled per GRTS
+    # address', but at least the selection will need further alignment with the
+    # (likewise) MHQ solution (to be continued).
+    relationship = "many-to-one",
+    unmatched = "drop"
+  ) %>%
+  arrange(sample_support_code, stratum, grts_address_drawn, unit_id) %>%
+  # for now, de-duplicate units with the same GRTS address by selecting the 1st
+  slice(1, .by = c(stratum, sample_support_code, grts_address_final)) %>%
+  select(-grts_address_drawn)
+
+
+# grts address and stratum of all units which are in the target category
+# (i.e. "watersurface", "watercourse_segment", "non-terrestrial spring")
+kableprint(stratum_units_grts_aquatic_gw_spsamples_spares)
+
+```
+
+
+::: {.callout-caution}
+REMINDER:
+we de-duplicated units with the same GRTS address by selecting the 1st.
+:::
+
+
+This was an erroneous attempt: `scheme_moco_ps_stratum_sppost_spsamples_spares_sf` is an sf object, but it refers to centres of the GRTS grid. 
+Instead, we would prefer to work on centroids of the water surface polygons
+
+```{r recover-geometry-obsolete}
+#| eval: false
+
+geometry_link <- get(
+    "scheme_moco_ps_stratum_sppost_spsamples_spares_sf",
+    envir = env_extradata
+  ) %>%
+  assert_31370() %>% 
+  select(grts_address) %>%
+  distinct
+
+data_obsolete <- geometry_link %>%
+  right_join(
+    stratum_units_grts_aquatic_gw_spsamples_spares,
+  by = join_by(grts_address == grts_address_final),
+  relationship = "one-to-many",
+  unmatched = "drop"
+  )
+
+# mapview(data_obsolete)
+
+# for comparison
+data_pol <- data_obsolete %>%
+  sf::st_drop_geometry() %>%
+  inner_join(
+    wsh_pol,
+    join_by(unit_id == polygon_id),
+    relationship = "many-to-many",
+    unmatched = "drop"
+  ) %>%
+  sf::st_as_sf()
+mapview(data_pol)
+
+```
+
+Hence, we better start from `wsh_pol`:
+
+```{r recover-geometry}
+
+watersurfaces_polygons <- stratum_units_grts_aquatic_gw_spsamples_spares %>% 
+  filter(sample_support_code == "watersurface") %>% 
+  select(unit_id, grts_address_final, sample_status) %>% 
+  distinct() %>% 
+  left_join(
+    wsh_pol,
+    join_by(unit_id == polygon_id),
+    relationship = "many-to-one",
+    unmatched = "drop"
+  ) %>%
+  sf::st_as_sf()
+
+# mapview(watersurfaces_polygons)
+```
+
+
+```{r polygons-to-centroids}
+watersurfaces_data <- watersurfaces_polygons %>%
+  sf::st_centroid() %>%
+  # sf::st_point_on_surface() %>%
+  suppressWarnings()
+
+# mapview(watersurfaces_data)
+```
+
+
+### data double checking
+
+1. missing polygons
+
+
+```{r find-missing-wsh-polygons}
+#| eval: false
+stratum_units_grts_aquatic_gw_spsamples_spares %>%
+  filter(sample_support_code == "watersurface") %>% 
+  anti_join(wsh_pol, join_by(unit_id == polygon_id))
+
+```
+
+Simple: these were the `sample_support_code` != watersurface.
+
+
+2. duplicate units 
+
+```{r find-duplicate-unit-ids}
+#| eval: false
+stratum_units_grts_aquatic_gw_spsamples_spares %>%
+  count(sample_support_code, unit_id) %>%
+  # count(stratum, sample_support_code, unit_id) %>%
+  arrange(desc(n))
+```
+
+Of course, these are sampled for different strata.
+
+
+3. centroid vs point-on-surface vs other options
+
+```{r map-surface-centroids}
+#| eval: false
+# mapviewGetOption("basemaps")
+
+m1 <- watersurfaces_polygons %>% 
+  filter(
+    stringr::str_detect(unit_id, "^LIMDPB|^LIMGNK"),
+    sample_status == "in_sample"
+  ) %>%
+  mutate(
+    highlight = unit_id %in% c("LIMDPB0101", "LIMDPB0157", "LIMDPB0315")
+    ) %>%
+  sf::st_point_on_surface() %>%
+  mapview(
+    map.types = c("Esri.WorldImagery", "OpenStreetMap"),
+    col.regions = c("snow", "yellow"),
+    zcol = "highlight",
+    burst = TRUE
+  )
+m2 <- watersurfaces_polygons %>% 
+  filter(
+    stringr::str_detect(unit_id, "^LIMDPB|^LIMGNK"),
+    sample_status == "in_sample"
+  ) %>%
+  mapview(col.regions = c("steelblue"))
+
+m3 <- watersurfaces_polygons %>% 
+  filter(
+    stringr::str_detect(unit_id, "^LIMDPB|^LIMGNK"),
+    sample_status == "in_sample"
+  ) %>%
+  sf::st_centroid() %>% 
+  mapview()
+
+m3+m2+m1
+
+```
+
+We immediately encounter the problem of centroids outside the polygon.
+Some research: 
+
+- <https://www.spatialanalysisonline.com/HTML/centroids_and_centers.htm>
+- <https://github.com/r-spatial/sf/issues/1302#issuecomment-599226372>
+- <https://gis.stackexchange.com/a/76563>
+- <https://stackoverflow.com/a/13745559> ! 
+- <https://grass.osgeo.org/grass-stable/manuals/v.centroids.html>
+- <https://gis.stackexchange.com/questions/244769/grass-calculation-of-centroids-very-important-differences-with-qgis-calculatio>
+
+
+DONE revisited this issue: had to do with the wrong data source.
+
+
+### filter test data
+
+generate a small test dataset:
+unit_id ⊂ {`LIMDPB`, `LIMGNK`}
+
+
+```{r filter-test-data}
+test_data <- watersurfaces_data %>%
+  filter(
+    stringr::str_detect(unit_id, "^LIMDPB|^LIMGNK"),
+    sample_status == "in_sample"
+  )
+
+mapview(test_data)
+```
+
+:::{.callout-warning}
+- There are some points which appear not to be wet (e.g. `LIMGNK0062`). This might have to do with GRTS raster ["partial volumes"]("https://en.wikipedia.org/wiki/Partial_volume_(imaging)").
+- Others are vast (`LIMGNK0055`); will be challenging to get elevation gradient.
+- `LIMGNK0010` might serve as an example.
+:::
+
+```{r map-test-watersurfaces}
+# mapviewGetOption("basemaps")
+m1 <- test_data %>%
+  mutate(
+    highlight = unit_id %in% c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")
+    ) %>%
+  mapview(
+    map.types = c("Esri.WorldImagery", "OpenStreetMap"),
+    col.regions = c("snow", "yellow"),
+    zcol = "highlight",
+    burst = TRUE
+  )
+m2 <- watersurfaces_polygons %>% 
+  filter(
+    stringr::str_detect(unit_id, "^LIMDPB|^LIMGNK"),
+    sample_status == "in_sample"
+  ) %>%
+  mapview(col.regions = c("steelblue"))
+
+
+m2+m1
+
+```
+
+We immediately encounter the problem of centroids outside the polygon.
+Some research: 
+
+- <https://www.spatialanalysisonline.com/HTML/centroids_and_centers.htm>
+- <https://github.com/r-spatial/sf/issues/1302#issuecomment-599226372>
+- <https://gis.stackexchange.com/a/76563>
+- <https://stackoverflow.com/a/13745559> ! 
+- <https://grass.osgeo.org/grass-stable/manuals/v.centroids.html>
+- <https://gis.stackexchange.com/questions/244769/grass-calculation-of-centroids-very-important-differences-with-qgis-calculatio>
+
+# Case Study: LIM*@DHMV
+
+**Natuurreservaat "De Maten"**, nabij Genk.
+
+
+## query dhmv
+
+
+```{r query-dhmv}
+xy <- as.data.frame(
+    sf::st_coordinates(test_data)
+  ) %>%
+  rename_with(tolower)
+
+margin <- 256 # m
+flow_cellsize <- 32 # m
+bbox <- sf::st_bbox(
+   c(xmin = min(xy["x"]) - margin,
+     xmax = max(xy["x"]) + margin,
+     ymin = min(xy["y"]) - margin,
+     ymax = max(xy["y"]) + margin
+     ),
+   crs = sf::st_crs(31370)
+)
+test_raster <- inbospatial::get_coverage_wcs(
+  wcs = "dhmv",
+  bbox = bbox,
+  layername = "DHMVII_DTM_1m",
+  version = "2.0.1",
+  wcs_crs = "EPSG:31370",
+  resolution = 1
+)
+
+# plot map
+plot(test_raster, col = gray.colors(256)
+     # ylab = sprintf("cluster %i (%s)", cluster_idx, regions)
+     )
+points(xy[["x"]], xy[["y"]], pch = 21, col = "black")
+points(xy[["x"]], xy[["y"]], pch = 16, col = "yellow")
+# title(sprintf("cluster %i", cluster_idx))
+
+```
+
+
+## example location: `LIMGNK0010`
+
+```{r filter-test-location}
+test_location <- test_data %>%
+  filter(
+    unit_id == "LIMGNK0010"
+    )
+
+test_buffer <- test_location %>%
+  sf::st_buffer(margin) 
+sub_raster <- terra::crop(test_raster, sf::st_bbox(test_buffer))
+
+plot(sub_raster, col = gray.colors(256))
+```
+
+
+# Flow Direction
+
+## Exploration: flow direction
+
+
+Prior (by Hans / via `qgisprocess`):
+
+- <https://docs.google.com/presentation/d/1mF9Nd3sXwsZmCYLmAE3vsRYNO7sX4p0ojro9-szMmJY/edit#slide=id.g2e7cd3adab0_21_25>
+
+
+Whitebox Tools / Hydrological Analysis / FD8 flow pointer
+
+- <https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#Fd8Pointer>
+
+
+R / cran / whitebox / `wbt_d8_pointer`
+
+- <https://rdrr.io/cran/whitebox/man/wbt_d8_pointer.html>
+- <https://whiteboxr.gishub.org/reference/wbt_d8_pointer.html>
+
+
+- <https://github.com/inbo/mas-piloot/blob/29b2589baa9b822449624ff207eb53131b286568/src/markdown/general/verkenning_macroinvertebraten_map_vmm.Rmd#L459>
+
+
+```{r qgis-find-algorithm}
+#| eval: false
+
+qgisprocess::qgis_algorithms() %>%
+  filter(stringr::str_detect(tolower(algorithm_title), "flow"))
+  # filter(stringr::str_detect(tolower(algorithm_title), "pointer"))
+  # filter(stringr::str_detect(tolower(algorithm_title), "buffer"))
+
+```
+
+- "grass:r.gwflow",
+- "grass:r.flow",
+
+
+this errors:
+
+```{r qgisprocess-d8-pointer}
+#| eval: false
+
+test_flow <- qgisprocess::qgis_run_algorithm(
+  "grass:r.flow",
+  elevation = sub_raster,
+  # output = here::here("data", "dhmvii_dtm_50m_d8_pointer.tif"),
+  .quiet = TRUE)
+```
+
+  ... but maybe qgis can be skipped.
+  
+- either via `rgrass`: <https://grasswiki.osgeo.org/wiki/R_statistics/rgrass>
+- or directly in terra? <https://rdrr.io/cran/terra/man/terrain.html>
+
+
+```{r terra-slope}
+slope <- terra::terrain(
+  sub_raster,
+  v = "slope"
+  )
+plot(slope)
+```
+
+```{r terra-flowdir}
+flow <- terra::terrain(
+  sub_raster,
+  v = "flowdir",
+  neighbors = 8
+  )
+plot(flow)
+```
+
+
+nice, but maybe too many details.
+
+```{r resample-coarse}
+n_grid <- as.integer(margin/flow_cellsize)
+
+xtnt <- sf::st_bbox(test_buffer)
+#     setNames(as.vector()
+#   c("xmin", "xmax", "ymin", "ymax"))
+
+coarse_grid <- rast(
+  nrows = n_grid, ncols = n_grid,
+  xmin = xtnt[["xmin"]],
+  xmax = xtnt[["xmax"]],
+  ymin = xtnt[["ymin"]],
+  ymax = xtnt[["ymax"]],
+  )
+crs(coarse_grid) <- "EPSG:31370"
+x <- resample(
+  sub_raster,
+  coarse_grid,
+  method = "lanczos"
+  # method = "bilinear"
+)
+plot(x)
+```
+
+```{r resample-slope}
+slope <- terra::terrain(
+  x,
+  v = "slope"
+  )
+plot(slope)
+
+```
+
+```{r resample-flow}
+flow <- terra::terrain(
+  x,
+  v = "flowdir",
+  neighbors = 8
+  )
+plot(flow)
+```
+
+
+*I keep forgetting the sin/cos sign conventions ;)*
+
+```
+      32  64  128
+      16   x    1
+       8   4    2
+
+log2:  5   6    7
+       4   x    0
+       3   2    1
+       
+2*pi/8 = 0.8
+pi:  4.0 3/2pi 5.6
+      pi    x    0
+     2.4 1/2pi 0.8
+
+|-------|--------|---------|
+| α     | cos(α) | -sin(α) |
+|-------|--------|---------|
+| 0     |    1   |    0    |
+| pi/2  |    0   |   -1    |
+| pi    |   -1   |    0    |
+| 3pi/2 |    0   |   +1    |
+| 2pi   |    1   |    0    |
+|-------|--------|---------|
+| coord |   *x*  |   *y*   |
+|-------|--------|---------|
+
+```
+
+
+- <https://search.r-project.org/CRAN/refmans/pracma/help/quiver.html>
+
+(based on arrows)
+
+```{r arrows}
+#| eval: false
+x <- stats::runif(12); y <- stats::rnorm(12)
+i <- order(x, y); x <- x[i]; y <- y[i]
+plot(x,y, main = "arrows(.) and segments(.)")
+## draw arrows from point to point :
+s <- seq(length(x)-1)  # one shorter than data
+graphics::arrows(x[s], y[s], x[s+1], y[s+1], col = 1:3)
+```
+
+
+```{r flow-to-angle}
+#| eval: true
+# positions <- as(terra::raster(coarse_grid), "SpatialGridDataFrame")
+# pz <- terra::rasterToPoints(terra::raster(flow))[,3]
+flow_df <- terra::as.data.frame(flow, xy = TRUE)
+px <- flow_df[["x"]]
+py <- flow_df[["y"]]
+pz <- flow_df[["flowdir"]]
+
+# pz[1] <- 2^1
+# pz[1<n<9] <- 2^n 
+# pz[9] <- 0
+direction <- 2*pi/8 * log2(pz)
+direction[!is.finite(direction)] <- NA 
+
+dx <- +1*cos(direction)
+dy <- -1*sin(direction)
+
+# directions <- as.matrix(flow, wide = TRUE)
+```
+
+
+```{r quiver-plot}
+# plot(px, py, cex = 1)
+plot(x)
+# plot(slope)
+pracma::quiver(
+  x = px,
+  y = py,
+  u = dx,
+  v = dy,
+  scale = 3,
+  col = "darkorange"
+  )
+
+```
+
+
+```{r average-direction}
+nonnan <- function(vec) vec[!is.na(vec)]
+nanmean <- function(vec) mean(nonnan(vec))
+print(paste0(nanmean(dx), ", ", nanmean(dy)))
+
+```
+
+
+```{r radius}
+nonnan <- function(vec) vec[!is.na(vec)]
+nanmean <- function(vec) mean(vec[!is.na(vec)])
+Euclid <- function(x, y) sqrt(x^2 + y^2)
+within_radius <- function(x, y, r = 128) {
+  dist <- Euclid(
+    nonnan(x) - nanmean(x),
+    nonnan(y) - nanmean(y)
+  )
+  return(dist < r)
+}
+sel <- within_radius(px, py, r = margin-flow_cellsize) # TODO discuss radius
+
+plot(x)
+pracma::quiver(
+  x = px[sel],
+  y = py[sel],
+  u = dx[sel],
+  v = dy[sel],
+  scale = 3,
+  col = "darkorange"
+  )
+
+print(paste0(nanmean(dx[sel]), ", ", nanmean(dy[sel])))
+```
+
+
+```{r slope-weighted-average}
+nancumsum <- function (vec, weight, selection) {
+
+  vec <- as.matrix(vec)
+  weight <- as.matrix(weight)
+  selection <- as.matrix(selection)
+
+  nans <- is.na(vec) | is.na(weight) | is.na(selection)
+  vec <- vec[!nans]
+  weight <- weight[!nans]
+  selection <- selection[!nans]
+
+  return(sum(vec[selection] * weight[selection]) / sum(weight[selection]))
+}
+
+print(paste0(nancumsum(dx, slope, sel), ", ", nancumsum(dy, slope, sel)))
+
+```
+
+
+(intermediate TODOs)
+
+- [X] get grids of 32m
+- [X] idea: slope-weighted average direction
+- [X] test other interpol methods (not matter much)
+
+
+## Generalization I: Flow Direction
+
+- get flow direction
+- based on DHMV
+- within given radius 
+- ... and given grid size
+
+
+```{r flow-gradient-general-function}
+# loaded from an R script.
+```
+
+
+The function is batch-applied as follows:
+
+```{r flow-gradient-application}
+
+# exemplary execution
+for (location_code in c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")) {
+  test_location <- test_data %>% 
+    filter(unit_id == location_code)
+
+  # location <- test_location
+
+  flow_vector <- calculate_flow_direction(
+    test_location,
+    flow_range = 256,
+    flow_cellsize = 32,
+    save_plot_filepath = here::here("figures", sprintf("%s.png", location_code))
+  )
+  print(paste0(
+    location_code, ": ",
+    paste0(flow_vector, collapse = ", "),
+    collapse = ""
+  ))
+
+}
+
+```
+
+
+## flow in circles
+
+Instead of a local grid of fixed size, we require calculation of the flow within a band around the watersurface.
+
+
+```{r polygon-flow-direction}
+# outsourced to "calculate_watersurface_flow_direction.R"
+```
+
+```{r test-band-flow}
+for (location_code in c(
+    "LIMGNK0062",
+    "LIMGNK0055",
+    "LIMGNK0010",
+    "ANTMOL0164"
+    )) {
+  test_polygon <- watersurfaces_polygons %>%
+    filter(unit_id == location_code)
+  flow_vector <- calculate_watersurface_flow_direction(
+    test_polygon,
+    flow_range = 128+32, flow_cellsize = 32,
+    close_island_size = 8,
+    save_plot_filepath = here::here("figures", sprintf("%s.png", location_code))
+  )
+
+  print(paste0(
+    location_code, ": ",
+    paste0(flow_vector, collapse = ", "),
+    collapse = ""
+  ))
+}
+    
+```
+
+
+# Identify Target Area
+
+## strategy
+
+- get target direction (upflow)
+- get outer buffer of the water body of interest
+- wedge buffer in target direction
+
+## technical: casting polygons
+
+```{r casting-polygons}
+#| eval: false
+test_data <- watersurfaces_data %>%
+  filter(
+    stringr::str_detect(unit_id, "^LIMDPB|^LIMGNK"),
+    sample_status == "in_sample"
+  )
+
+# test_location <- test_data %>%
+#   filter(
+#     unit_id == "LIMGNK0010"
+#     )
+
+water_mupo <- wsh$watersurfaces_polygons %>%
+  filter(polygon_id %in% test_data$unit_id)
+
+water_poly <- water_mupo %>%
+  sf::st_cast("POLYGON", warn = FALSE)
+
+water_vali <- water_poly %>%
+  sf::st_make_valid() 
+
+m1 <- mapview(water_mupo, col.regions = "grey")
+m2 <- mapview(water_poly, col.regions = "steelblue")
+m3 <- mapview(water_vali, col.regions = "brown")
+
+m1+m2+m3
+
+```
+
+seems visually good.
+
+
+## exploration: target area
+
+Target will be in a belt around the water surface.
+
+```{r direction-exploration-buffer}
+# stratum_units_grts_aquatic_gw_spsamples_spares %>% 
+#   filter(unit_id == test_location$unit_id)
+
+# wsh_occ # `polygon_id`, but no `geom`
+water <- wsh$watersurfaces_polygons %>%
+  filter(polygon_id %in% test_location$unit_id) %>% 
+  sf::st_cast("POLYGON", warn = FALSE) %>%
+  sf::st_make_valid() 
+
+
+buffer_range <- c(10, 30) # "belt from... to..." distance range
+
+water_buffer <- st_difference(
+  sf::st_buffer(water, buffer_range[2]),
+  sf::st_buffer(water, buffer_range[1])
+  )
+
+water_buffer %>% 
+  mapview(
+    map.types = "OpenStreetMap"
+    )
+```
+
+
+... but we only admit a wedge area in the direction opposite of flow/slope.
+
+```{r direction-exploration-direction}
+wedge_width <- pi/3
+
+wedge_range <- get_extent(st_bbox(water_buffer)) + buffer_range[2]
+
+test_coords <- sf::st_coordinates(test_location) %>% as_tibble %>% rename_with(tolower)
+
+pt0 <- t(as.matrix(c(0, 0)))
+upstream <- t(as.matrix(-calculate_watersurface_flow_direction(water, 64, 8, 8)))
+upstream_vec <- wedge_range * upstream / vector_norm(upstream)
+vector_norm(upstream_vec)
+
+pt1 <- rotate_vec_2d(upstream_vec, wedge_width/2)
+pt2 <- rotate_vec_2d(upstream_vec, -wedge_width/2)
+
+triangle <- as.data.frame(rbind(pt0, pt1, pt2)) %>%
+  setNames(c("x", "y")) %>% 
+  mutate(x = x + test_coords[["x"]], y = y + test_coords[["y"]]) %>% 
+  sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+
+triangle <- st_combine(triangle) %>% st_cast("POLYGON", warn = FALSE)
+
+target_area <- triangle %>% sf::st_intersection(water_buffer)
+
+mapview(target_area,
+    map.types = "OpenStreetMap"
+  )
+
+```
+
+
+## Generalization II: Buffer Wedge
+
+```{r general-buffer-upstream-wedge}
+# outsourced.
+```
+
+
+Fancy visualization:
+
+```{r test-flowdir-buffer}
+
+test_polygon <- wsh$watersurfaces_polygons %>%
+  filter(polygon_id %in% test_location$unit_id) %>% 
+  sf::st_cast("POLYGON", warn = FALSE) %>%
+  sf::st_make_valid() 
+  
+test_target <- determine_watersurface_target_area(
+  test_polygon,
+  buffer_range = c(1, 10),
+  buffer_arc_radians = -1, # because 1 ≡ pi/3
+  flow_range = 256,
+  flow_cellsize = 32,
+  view_map = TRUE
+)
+
+center_location <- st_centroid(test_polygon) %>% suppressWarnings()
+center_coords <- sf::st_coordinates(center_location) %>%
+  as_tibble %>% rename_with(tolower)
+
+flow_dir <- calculate_watersurface_flow_direction(
+  test_polygon,
+  flow_range = 128,
+  flow_cellsize = 32,
+  close_island_size = 8
+)
+upstream <- t(as.matrix(-flow_dir))
+upstream_vec <- 100 * upstream / vector_norm(upstream)
+
+inflow <- as.data.frame(rbind(upstream_vec, t(as.matrix(c(0, 0))))) %>%
+  setNames(c("x", "y")) %>% 
+  mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
+  sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+
+inflow <- sf::st_combine(inflow) %>% st_cast("LINESTRING")
+
+m1 <- mapview(test_polygon, map.types = "OpenStreetMap", col.regions = "lightblue")
+m2 <- mapview(inflow, map.types = "OpenStreetMap", col.regions = "darkblue")
+m3 <- mapview(test_target, map.types = "OpenStreetMap", col.regions = "red")
+m1 + m2 + m3
+
+```
+
+
+## Generalization III: Mapview
+
+```{r generalize-flowdir-buffer-plot}
+
+# TODO: this function still uses the `data` collected above
+
+calculate_aquatic_type_targets <- function(
+    location_code,
+    flow_range = 128,
+    flow_cellsize = 32,
+    buffer_range = NA,
+    buffer_arc_radians = 1, # because 1 ≡ pi/3
+    save_plot_filepath = NA
+    ){
+
+  location <- watersurfaces_data %>% 
+    filter(unit_id == location_code)
+  water_polygon <- wsh$watersurfaces_polygons %>%
+    filter(polygon_id == location_code) %>% 
+    sf::st_cast("POLYGON", warn = FALSE) 
+    
+  flow_dir <- calculate_watersurface_flow_direction(
+    water_polygon,
+    flow_range = flow_range,
+    flow_cellsize = flow_cellsize,
+    close_island_size = 8,
+    save_plot_filepath = save_plot_filepath
+  )
+
+  target_area <- determine_watersurface_target_area(
+    water_polygon,
+    original_location = location,
+    flow_range = flow_range,
+    flow_cellsize = flow_cellsize,
+    buffer_range = buffer_range,
+    buffer_arc_radians = buffer_arc_radians
+  )
+
+
+  upstream <- t(as.matrix(-flow_dir))
+  upstream_vec <- 100 * upstream / vector_norm(upstream)
+  
+
+  center_coords <- sf::st_coordinates(location) %>%
+    as_tibble %>% rename_with(tolower)
+  inflow <- as.data.frame(rbind(upstream_vec, t(as.matrix(c(0, 0))))) %>%
+    setNames(c("x", "y")) %>% 
+    mutate(x = x + center_coords[["x"]], y = y + center_coords[["y"]]) %>% 
+    sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+  inflow <- sf::st_combine(inflow) %>% sf::st_cast("LINESTRING")
+    
+  return(
+    list(
+      location_code = location_code,
+      location = location,
+      water_polygon = water_polygon,
+      flow_direction = flow_dir,
+      inflow = inflow,
+      target_area = target_area
+    )
+  )
+
+} # /calculate_aquatic_type_targets
+```
+
+
+batch-visualize
+
+```{r visualize}
+
+# location_code <- "LIMDPB0157"
+target_open <- function(spatialist, buf = 2) {
+
+  # shrink/expand to separate islands
+  target_area <- spatialist$target_area %>% 
+      sf::st_buffer(-buf) %>% 
+      sf::st_buffer(buf)
+
+  # calculate distances from centroid
+  geometries <- st_cast(target_area, "POLYGON")
+  # length(geometry)
+  centroid <- spatialist$location %>%
+    select(unit_id) %>%
+    distinct
+  distances <- sf::st_distance(centroid, geometries) 
+
+  spatialist$target_area <- geometries[which.max(t(distances))]
+    
+  return(spatialist)
+}
+
+assemble_targeting <- function(
+    location_code,
+    show_mapview = FALSE
+  ) {
+
+  # location_code <- "LIMGNK0010"
+
+  spatialist <- calculate_aquatic_type_targets(
+      location_code,
+      flow_range = 128,
+      flow_cellsize = 32,
+      buffer_range = NA,
+      buffer_arc_radians = 1, # because 1 ≡ pi/3
+      save_plot_filepath = NA
+    ) %>%
+    target_open(buf = 2)
+
+  if (show_mapview) {
+    m1 <- mapview(spatialist$water_polygon,
+      map.types = "OpenStreetMap", col.regions = "lightblue")
+    
+    m2 <- mapview(spatialist$inflow, map.types = "OpenStreetMap", col.regions = "darkblue")
+    m3 <- mapview(spatialist$target_area, map.types = "OpenStreetMap", col.regions = "red")
+    return(m1 + m2 + m3)
+  }
+  return(spatialist)
+  
+}
+
+location_code <- "LIMGNK0062"
+assemble_targeting(location_code, show_mapview = TRUE)
+```
+
+
+We can even show a large set of aquatic locations on the map.
+
+```{r assemble-data}
+# location_code_list <- c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")
+location_code_list <- test_data$unit_id
+
+target_data <- lapply(location_code_list, FUN = assemble_targeting)
+```
+
+
+```{r combine-data}
+all_polygons <- bind_rows(lapply(
+    target_data, FUN = function(td) td$water_polygon
+  ))
+
+all_inflows <- bind_rows(lapply(
+    target_data, FUN = function(td) cbind(
+      td$location_code,
+      vector_norm(td$flow_direction),
+      sf::st_as_sf(td$inflow)
+      )
+  )) %>% rename(c(
+    "flow_gradient" = "vector_norm.td.flow_direction.",
+    "location_code" = "td.location_code"
+  ))
+
+all_targets <- bind_rows(lapply(
+    target_data, FUN = function(td) sf::st_as_sf(td$target_area)
+  ))
+
+
+# and map them out
+map_types <- c("OpenStreetMap", "Esri.WorldImagery")
+
+m1 <- mapview(all_polygons,
+  map.types = map_types, col.regions = "lightblue")
+
+m2 <- mapview(all_inflows, map.types = map_types, col.regions = "darkblue", zcol = "flow_gradient")
+m3 <- mapview(all_targets, map.types = map_types, col.regions = "red")
+
+m1 + m2 + m3
+
+```
+
+
+
+
+# TODOs
+
+- [X] where do [the spaces](https://github.com/inbo/inbospatial/issues/18) come from? -> from "inbospatial", hence the name
+- [X] flow direction for a point
+- target area | `sample_support_code` 
+  - [X] for water surfaces
+  - [X] streams
+  - [X] springs
+- [ ] streams: is it possible to get the stream *width* at a given segment?
+- [ ] extensive function documentation
+  - continue: `work_linestream...` extra functions
+- [ ] harden functions (dependencies, weird input, curvature unavailable)
+- [ ] flow direction: dependence on buffer area and cell grid size (brief exploration)
+- [ ] `inbospatial::get_coverage_wcs` may cripple or fail on large water surfaces.
+- [X] gather functions in package main:
+  - `confirm_n2khab_data_consistency()`
+  - `calculate_flow_direction(...)`
+- [ ] add unit tests for `c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")` locations (but hardcode xy)
+- [X] `rank` in streams seems to be faulty? (see example zig-zag in higher ranks) -> *no. was just ggplot.*
+
+
+to ~~be discussed~~ keep in mind:
+
+- **water everywhere** 
+  - what if there is more water in the target area? -> *ignored for now*
+- **non-aquatic aquatics**
+  - There are some points which appear not to be wet 
+  - e.g. `LIMGNK0062`
+  - might have to do with GRTS raster ["partial volumes"]("https://en.wikipedia.org/wiki/Partial_volume_(imaging)").
+  - or temporal change (vegetation, eutrophication, drying)
+  - also: think of a U-shaped water
+  -> *solved with use of `wsh_pol` and pre-/postprocessing.* 
+- **does size matter?**
+  - some vast water bodies (`LIMGNK0055`); will be challenging to get elevation gradient.
+  - on the other hand, what is the minimum size? (springs!)
+  -> *check individually*
+- **go with the flow**
+  - does `rank` count upstream or downstream? -> *upstream*
+  - how far to go away from a stream? -> *flexible (args)*

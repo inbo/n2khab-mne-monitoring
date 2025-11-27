@@ -1,0 +1,213 @@
+---
+title: "Aquatic Habitat Types: Observation Well Placement"
+subtitle: "part III: springs"
+date: "2025-05-28"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+
+```{r libraries}
+
+source(here::here("..", "R", "import_aquatic_positioning.R"))
+
+```
+
+# data
+
+## Assembling Aquatic Habitat Types
+
+### data consistence
+
+```{r datasource-consistency}
+confirm_n2khab_data_consistency()
+```
+
+
+### Springs
+Generating `habspring_units` (unit ID defined by `unit_id`)
+
+```{r load-springs}
+
+# creating a buffered version of Flanders
+flanders_buffer <-
+  read_admin_areas(dsn = "flanders") %>%
+  st_buffer(40) # units: meter
+
+# read in the spring habitat source
+habspring_units <-
+  # following function will be adapted to support the latest version of the data
+  # source (just released); for now use version habitatsprings_2020v2
+  read_habitatsprings(units_7220 = TRUE) %>%
+  # filtering for the spatial intersect with Flanders
+  .[flanders_buffer, ] # %>%
+  # and NOT excluding "mire" type
+  # filter(system_type != "mire")
+
+habspring_units <- habspring_units %>%
+  mutate(label = sprintf("%04.0f", unit_id)) %>% 
+  unite("label", label, system_type, name, remove = FALSE) %>%
+  sf::st_as_sf() 
+
+# all spring locations (note: full data, not just ID)
+kableprint(habspring_units)
+```
+
+:::{.callout-note}
+Decided with Floris to also include terrestrial springs ("mire" type).
+:::
+
+
+
+
+
+# Positioning Locations on Streams
+
+## selecting test data
+
+```{r find-test-location}
+#| eval: false
+# habspring_units %>% count(name) %>% arrange(desc(n)) # all single, except the nameless
+mapview(habspring_units)
+```
+
+Small clusters are visible, e.g. in the area of `c(8, 35, 50)` ("Zulzeke").
+Tongeren might also work `c(11, 12, 13, 31)`.
+
+```{r extract-test-locations}
+test_extent <- habspring_units %>%
+  filter(unit_id %in% c(8, 35, 50)) %>%
+  sf::st_bbox() %>%
+  bbox_to_polygon() %>%
+  sf::st_buffer(1000) 
+# sf::st_coordinates(test_extent)
+
+test_springs <- habspring_units %>% 
+  sf::st_intersection(test_extent) %>%
+  suppressWarnings()
+
+test_springs %>%
+  mapview()
+
+# Fonteinbos 2 ("unknown" system type)
+test_location <- test_springs %>%
+  filter(unit_id == 6)
+```
+
+## calculate flow
+
+We can get into the flow as before.
+
+```{r flow-vector-test}
+location_label <- test_location$label
+flow_vector <- calculate_flow_direction(
+  test_location,
+  flow_range = 256,
+  flow_cellsize = 32,
+  save_plot_filepath = here::here("figures", sprintf("%s.png", location_label))
+)
+```
+
+... and then extract the target area.
+
+```{r flow-wedge}
+
+wedge_width <- pi/3
+wedge_range <- c(2, 20)
+
+location_coords <- sf::st_coordinates(test_location) %>%
+  as_tibble %>%
+  rename_with(tolower)
+
+flow_direction <- calculate_flow_direction(test_location, 64, 8)
+
+wedge_points <- carve_wedge(-flow_direction, wedge_width, 1.1*wedge_range[2])
+
+
+target_area <- wedge_points %>%
+  mutate(x = x + location_coords[["x"]], y = y + location_coords[["y"]]) %>% 
+  sf::st_as_sf(coords = c("x", "y"), crs = 31370)
+target_area <- st_combine(target_area) %>% st_cast("POLYGON", warn = FALSE)
+
+
+
+range_buffer <- sf::st_difference(
+  sf::st_buffer(test_location, wedge_range[2]),
+  sf::st_buffer(test_location, wedge_range[1])
+  ) %>% suppressWarnings
+
+# mapview(target_area,
+#     map.types = "OpenStreetMap"
+#   ) +
+# mapview(range_buffer,
+#     map.types = "OpenStreetMap"
+#   )
+
+target_area <- sf::st_intersection(target_area, range_buffer)
+
+mapview(target_area,
+    map.types = "OpenStreetMap"
+  )
+    
+
+```
+
+
+## Generalization: The "Flow-Wedge" Method
+
+This is outsourced and generalized in a function.
+
+```{r apply-flowwedge-targeting}
+
+assemble_spring_targets <- function(selected_unit_id) {
+
+  # unit_id <- 6
+  spring_location <- habspring_units %>%
+    dplyr::filter(unit_id == selected_unit_id)
+
+  target_area <- determine_spring_target_area(
+    spring_location,
+    wedge_width_rad = pi/3,
+    wedge_range_m = c(4, 32),
+    flow_range = 64,
+    flow_cellsize = 8
+  )
+
+  sf::st_geometry(spring_location) <- target_area
+  target_area <- spring_location
+  return(target_area)
+}
+
+# assemble_spring_targets(selected_unit_id = 6)
+
+
+```
+
+
+Voila.
+
+```{r bulk-apply-spring-target}
+
+unit_list <- test_springs %>% pull(unit_id)
+
+target_areas <- bind_rows(
+  lapply(unit_list[1:6], FUN = assemble_spring_targets)
+)
+
+mapview(target_areas,
+  col.regions = "darkorange") +
+mapview(test_springs,
+  col.regions = "darkblue")
+    
+```
+
+
+(Zoom in to the spring locations)
