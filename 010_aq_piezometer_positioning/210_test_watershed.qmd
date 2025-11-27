@@ -110,7 +110,7 @@ plot(test_resampled, col = gray.colors(256))
 ```{r grid-to-matrix}
 test_matrix <- as.matrix(test_resampled, geom = "XY", wide = T)
 # coarse_matrix <- extract(test_resampled, coarse_grid)
-print(test_matrix)
+print(test_matrix[1:10, 1:16])
 ```
 
 
@@ -245,7 +245,7 @@ sinks <- sinks[, c(2, 1)]
 sinks[, 2] <- max(sinks[, 2]) + 1 - sinks[, 2]
 ```
 
-```{r}
+```{r bind-labels}
 labels <- cbind(init.coor, #[,c(2,1)],
   old.coor %>%
   dplyr::left_join(
@@ -268,7 +268,7 @@ points(sinks, col = gray.colors(256))
 ```
 
 
-```{r}
+```{r watershed-output}
 data.output <- matrix(0, nrow = dim(x)[1], ncol = dim(x)[2])
 loc.min <- as.integer(rownames(data.direction[data.direction[, 3] == 5, c(1, 2)]))
 
@@ -289,7 +289,7 @@ points(labels[loc.min, c(1, 2)] - 0.5)
 Oh, well, there is also a built-in function in `terra`.
 <https://rspatial.github.io/terra/reference/watershed.html>
 
-```{r shift-matrix}
+```{r terra-builtin-watershed}
 #| eval: false
 pourpoint <- cbind(
   mean(sf::st_bbox(test_raster)[c("xmin", "xmax")]),
@@ -307,20 +307,99 @@ plot(ws)
 ... but I can't get it to work correctly.
 
 
+# Excourse: Smoothing/Denoising
+
+It turns out that smoothing is critical, and Gaussian might be just too rough.
+
+There is the "whitebox" geoprocessing toolbox with open source rust core, looks pretty decent:
+<https://www.whiteboxgeo.com/manual/wbt_book/available_tools/image_processing_tools_filters.html>
+<https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#Watershed>
+
+They implement this algorithm:
+<https://doi.org/10.1109/TVCG.2007.1065>
+
+```{r try-qgisprocess}
+#| eval: false
+# trying to find grass::r.denoise via qgisprocess
+library("qgisprocess")
+library("terra")
+qgis_enable_plugins()
+
+qgis_search_algorithms("denoise") |>
+  dplyr::select(provider_title, algorithm)
+```
+
+<https://grass.osgeo.org/grass-stable/manuals/addons/r.denoise.html>
+
+```{sh install-mdsource-mesh-filtering}
+#| eval: false
+wget http://www.cs.cf.ac.uk/meshfiltering/index_files/Doc/mdsource.zip
+unzip mdsource.zip
+cd mdenoise
+g++ -o mdenoise mdenoise.cpp triangle.c
+ln -s `pwd`/mdenoise /usr/bin/mdenoise
+```
+
+```{r try-rgrass}
+#| eval: false
+library("rgrass")
+link2GI::linkGRASS(test_raster, ver_select = TRUE)
+rgrass::write_RAST(test_raster, vname = "test")
+rgrass::execGRASS(
+  cmd = "r.denoise", input = "test", output = "test_denoised",
+  iterations = 5, threshold = 0.93
+)
+
+
+```
+
+```{r try-shell-denoise}
+#| eval: false
+xyz <- writeRaster(test_raster, "test.xyz", filetype="XYZ", overwrite=TRUE)
+```
+
+```{sh shell-denoise}
+#| eval: false
+mdenoise -i test.xyz -n 5 -t 0.93 -z -o test_denoised.xyz
+```
+
+```{r reload-shell-denoise}
+#| eval: false
+# test_denoised <- rast("test_denoised.xyz")
+xyz_denoised <- read.csv2("test_denoised.xyz", sep = " ", header = FALSE)
+# xyz_denoised %>% head()
+raster_denoised <- terra::rast(xyz_denoised)
+
+par(mfrow = c(1, 2))
+plot(test_raster, col = gray.colors(256))
+plot(raster_denoised, col = gray.colors(256))
+
+spat_raster <- test_raster
+```
+
 
 
 # Generalization
 
 I am channeling the chaos above into few convenience functions.
 
-```{r}
+```{r generalization}
 library("inbospatial")
 source(here::here("..", "R", "watershed.R"))
 
+# bbox <- sf::st_bbox(
+#    c(xmin = 148000, xmax = 149000, ymin = 208000, ymax = 209000),
+#    crs = sf::st_crs(31370)
+# )
+offset <- -900 # scanning around for a good spot
 bbox <- sf::st_bbox(
-   c(xmin = 148000, xmax = 149000, ymin = 208000, ymax = 209000),
+   c(
+     xmin = 252400+offset, xmax = 252700+offset,
+     ymin = 159400, ymax = 159700
+   ),
    crs = sf::st_crs(31370)
 )
+
 test_raster <- inbospatial::get_coverage_wcs(
   wcs = "dhmv",
   bbox = bbox,
@@ -330,8 +409,7 @@ test_raster <- inbospatial::get_coverage_wcs(
   resolution = 1
 )
 
-smooth_sigma <- 16
-test_smoothed <- smooth_raster(test_raster, sigma = smooth_sigma)
+test_smoothed <- mdenoise(test_raster, n = 8, t = 0.6)
 
 resample_width <- 16 #m
 test_resampled <- resample_to_grid(
@@ -339,29 +417,65 @@ test_resampled <- resample_to_grid(
   nrows = as.integer(dim(test_smoothed)[1]/resample_width),
   ncols = as.integer(dim(test_smoothed)[1]/resample_width)
 )
-test_resmoothed <- smooth_raster(test_resampled, sigma = 2)
-# test_watershed_raw <- compute_watershed(test_raster)[["watershed"]]
-# test_watershed_smooth <- compute_watershed(test_smoothed)[["watershed"]]
-test_watershed_resampled <- compute_watershed(test_resampled)[["watershed"]]
-test_watershed_resmoothed <- compute_watershed(test_resmoothed)[["watershed"]]
+smooth_sigma <- 4
+test_resmoothed <- smooth_raster(test_resampled, sigma = smooth_sigma)
+test_watershed_raw <- compute_watershed(test_raster)
+test_watershed_smooth <- compute_watershed(test_smoothed)
+test_watershed_resampled <- compute_watershed(test_resampled)
+test_watershed_resmoothed <- compute_watershed(test_resmoothed)
 # spat_raster <- test_resampled
-# areas <- test_watershed[["watershed"]]
-# sinks <- test_watershed[["sinks"]]
 
+plot_points <- function(ws, ...) {
+  sinks <- ws[["sinks"]]
+  points(sinks[["x"]], sinks[["y"]], ...)
+}
 
 par(mfrow = c(2, 4))
 plot(test_raster, col = gray.colors(256))
-# points(sinks, col = gray.colors(256))
+plot_points(test_watershed_raw, col = "green")
 plot(test_smoothed, col = gray.colors(256))
+plot_points(test_watershed_smooth, col = "green")
 plot(test_resampled, col = gray.colors(256))
+plot_points(test_watershed_resampled, col = "green")
 plot(test_resmoothed, col = gray.colors(256))
-plot(0)#test_watershed_raw)
-plot(0)#test_watershed_smoothed)
-plot(test_watershed_resampled)
-plot(test_watershed_resmoothed)
+plot_points(test_watershed_resmoothed, col = "green")
+plot(test_watershed_raw[["watershed"]])
+plot_points(test_watershed_raw, col = "red")
+plot(test_watershed_smooth[["watershed"]])
+plot_points(test_watershed_smooth, col = "red")
+plot(test_watershed_resampled[["watershed"]])
+plot_points(test_watershed_resampled, col = "red")
+plot(test_watershed_resmoothed[["watershed"]])
+plot_points(test_watershed_resmoothed, col = "red")
 
 
-# TODO unclear whether the t()/flipping/mirroring should be done.
-# TODO matrix must be square for Gaussian/Euclid ...
+# TODO By now, matrix must be square for Gaussian/Euclid ...
 
 ```
+
+
+# Lessons Learned
+
+:::{.callout-warning title="Take-Home Messages"}
+
+Watershed is tremendously sensitive to noise!
+
+- As so often, (2D) Gaussian smoothing is insufficient.
+- "Feature-preserving denoising" (Sun et al., 2007) seems good. Parameters need fine-tuning.
+
+
+Watershed is crucially affected by grid / resampling!
+
+- Too coarse grid: features lost and flow inaccurate.
+- Too fine grid: noise and microstructure; computation time.
+
+
+As a result, water bodies get fragmented (see stream above).
+- Surface water is approximately level.
+- In that situation, small fluctuations catch the instream.
+
+A solution for future exploration would be to add prior knowledge:
+provide a mask for the water body of interest and join all inflow (i.e. once `coords_next` is in the `mask`, set it to centroid).
+This could work for standing waters or stream segments.
+
+:::

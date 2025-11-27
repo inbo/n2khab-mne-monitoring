@@ -242,6 +242,8 @@ bbox <- sf::st_bbox(
      ),
    crs = sf::st_crs(31370)
 )
+print(bbox)
+
 test_raster <- inbospatial::get_coverage_wcs(
   wcs = "dhmv",
   bbox = bbox,

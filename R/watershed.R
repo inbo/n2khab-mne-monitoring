@@ -4,7 +4,35 @@
 convert_rast_to_matrix <- \(rs) as.matrix(rs, geom = "XY", wide = TRUE)
 
 
+#' Extract an xyz point from a raster, given x- and y indices.
+#' The center of the grid cells is returned for x and y.
+#' (Optionally invert y-axis for matrix vs. image indexing.)
+extract_raster_point_by_index <- function(spat_raster, ix, iy, y_invert = FALSE) {
+  sdim <- ext(spat_raster)[]
+  nx <- ncol(spat_raster) + 1
+  ny <- nrow(spat_raster) + 1
+  ax_x <- seq(sdim["xmin"], sdim["xmax"], length.out = nx)
+  if (y_invert){
+    ax_y <- seq(sdim["ymax"], sdim["ymin"], length.out = ny)
+  } else {
+    ax_y <- seq(sdim["ymin"], sdim["ymax"], length.out = ny)
+  }
+
+  # offset by half a box
+  dx <- mean(diff(ax_x))
+  dy <- mean(diff(ax_y))
+
+  return(c(
+    "x" = ax_x[[ix]] + dx / 2,
+    "y" = ax_y[[iy]] + dy / 2,
+    "z" = spat_raster[ix, iy][[1]]
+  ))
+}
+
+
 #' Smooth a landscape via application of a 2D Gaussian.
+#'
+#' TODO By now, matrix must be square for Gaussian/Euclid ...
 #'
 #' @param spat_raster a terra::SpatRaster object
 #' @param sigma width of prior 2D Gaussian smoothing
@@ -49,6 +77,44 @@ smooth_raster <- function(spat_raster, sigma) {
 }
 
 
+#' A system execution wrapper around `mdenoise` by Sun et al. (2007).
+#' <https://doi.org/10.1109/TVCG.2007.1065>
+#'
+#' applying the Sun et al. (2007) algorithm
+#' "Fast and Effective Feature-Preserving Mesh Denoising"
+#' but only in z direction
+#' requires working `mdnoise` installation
+#' via <https://grass.osgeo.org/grass-stable/manuals/addons/r.denoise.html>
+#'   wget http://www.cs.cf.ac.uk/meshfiltering/index_files/Doc/mdsource.zip
+#'   unzip mdsource.zip
+#'   cd mdenoise
+#'   g++ -o mdenoise mdenoise.cpp triangle.c
+#'   ln -s `pwd`/mdenoise /usr/bin/mdenoise
+#'
+#' @param spat_raster a terra::SpatRaster object
+#' @param n number of iterations (for mdenoise)
+#' @param t threshold (for mdenoise)
+#'
+mdenoise <- function(spat_raster, n = 5, t = 0.93) {
+
+  tmpfi <- tempfile(tmpdir = "/tmp", fileext = ".xyz")
+  tmpfo <- tempfile(tmpdir = "/tmp", fileext = ".xyz")
+
+  writeRaster(spat_raster, tmpfi, filetype = "XYZ", overwrite = TRUE)
+
+  sys_command <- glue::glue(
+    "mdenoise -i {tmpfi} -n {n} -t {t} -z -o {tmpfo}"
+    )
+  system(sys_command)
+
+  xyz_denoised <- read.csv2(tmpfo, sep = " ", header = FALSE)
+  raster_denoised <- terra::rast(xyz_denoised)
+  crs(raster_denoised) <- crs(spat_raster)
+
+  return(raster_denoised)
+} # /mdenoise
+
+
 #' A convenience wrapper around terra::resample.
 #'
 #' Bring a given raster image to a regular grid.
@@ -88,7 +154,7 @@ resample_to_grid <- function(spat_raster, nrows, ncols, method = "lanczos", ...)
   # done.
   return(raster_resampled)
 
-}
+} # /resample_to_grid
 
 
 #' Compute the watershed labels ("catchments"/segments) for a given surface area or landscape.
@@ -98,13 +164,11 @@ resample_to_grid <- function(spat_raster, nrows, ncols, method = "lanczos", ...)
 #' <https://inbo.github.io/inbospatial/articles/spatial_dhmv_query.html>).
 #' Using the "rain"/"top-down" approach to follow virtual droplets from
 #' every point on the grid to its associated local elevation minimum.
-#' Optional *ex ante* Gaussian to smooth out minor ridges.
 #' It is recommended to resample the landscape to a regular (coarse) grid.
 #'
 #' REFERENCES:
 #' + J. Cousty, G. Bertrand, L. Najman and M. Couprie (2009). "Watershed Cuts: Minimum Spanning Forests and the Drop of Water Principle". IEEE Transactions on Pattern Analysis and Machine Intelligence 31(8) pp. 1362-1374, <https://inria.hal.science/hal-01113462/document>; <https://doi.org/10.1109/TPAMI.2008.173>
 #' + Kai Lochbihler (2022). "Practice my R: Two options to implement the watershed segmentation". Personal blog; <https://lochbihler.nl/practice-your-r-two-options-to-implement-the-watershed-segmentation>
-#'   (I think that the outcome on the latter is likely transposed / mirrored.)
 #'
 #' @param spat_raster a terra::SpatRaster object
 #' @return list with labels and local minima.
@@ -181,7 +245,7 @@ compute_watershed <- function(spat_raster) {
         2
       ]
 
-    # boundary checks
+    # boundary checks: flows get stuck there
     coords_next[coords_next[, 1] > nx, 1] <- nx
     coords_next[coords_next[, 2] > ny, 2] <- ny
     coords_next[coords_next[, 1] < 1, 1] <- 1
@@ -196,25 +260,23 @@ compute_watershed <- function(spat_raster) {
     }
   }
 
-  # plot(coords_prev, col = gray.colors(256))
-  sinks <- coords_prev
+  coords_final <- coords_prev
+  # plot(coords_final, col = gray.colors(256))
 
-  sinks <- sinks[, c(2, 1)]
-  sinks[, 2] <- max(sinks[, 2]) + 1 - sinks[, 2]
-
-  catchments <- cbind(coords_initial, #[,c(2,1)],
-    coords_prev %>%
-    dplyr::left_join(
-      coords_prev %>%
-        dplyr::distinct() %>%
-        dplyr::mutate(i = seq_len(dplyr::n())),
-      by = dplyr::join_by(Var1, Var2)
-    ) %>%
-    dplyr::select(i) %>%
-    as.matrix()
+  catchments <- cbind(
+    coords_initial,
+    coords_final %>%
+      dplyr::left_join(
+        coords_final %>%
+          dplyr::distinct() %>%
+          dplyr::mutate(i = seq_len(dplyr::n())),
+        by = dplyr::join_by(Var1, Var2)
+      ) %>%
+      dplyr::select(i) %>%
+      as.matrix()
   )
-  catchments <- catchments[, c(2, 1, 3)]
-  catchments[, 2] <- max(catchments[, 2]) + 1 - catchments[, 2]
+  # catchments <- catchments[, c(2, 1, 3)]
+  # catchments[, 2] <- max(catchments[, 2]) + 1 - catchments[, 2]
 
   # raster_catch <- terra::deepcopy(spat_raster)
   # raster_catch[, ] <- catchments
@@ -226,19 +288,41 @@ compute_watershed <- function(spat_raster) {
   for (i in 1:length(loc_min)) {
     data_output[
       seq(1, nx * ny)[
-        (coords_prev[, 2] - 1) * nx + coords_prev[, 1] == loc_min[i]
+        (coords_final[, 2] - 1) * nx + coords_final[, 1] == loc_min[i]
       ]
     ] <- i
   }
 
   # data_output <- t(data_output)
-  data_output <- data_output[c(nx:1), , drop = FALSE]
+  # data_output <- data_output[c(nx:1), , drop = FALSE]
   # data_output <- data_output[, c(ny:1), drop = FALSE]
+
+  # lmin <- loc_min[[1]]
+
+  get_min <- function(lmin) {
+    sink <- catchments[lmin,c(2,1)]
+    pnt <- extract_raster_point_by_index(
+      spat_raster,
+      sink[[1]],
+      sink[[2]],
+      y_invert = TRUE
+    )
+    return(c("n" = lmin, pnt))
+  }
+
+  minima <- bind_rows(lapply(
+    loc_min,
+    FUN = get_min
+  ))
 
 
   raster_shed <- terra::deepcopy(spat_raster)
   raster_shed[, ] <- data_output
 
-  return(list("watershed" = raster_shed, "catchments" = catchments, "sinks" = sinks))
+  return(list(
+    "watershed" = raster_shed,
+    "catchments" = catchments,
+    "sinks" = minima
+  ))
 
-}
+} # /compute_watershed
