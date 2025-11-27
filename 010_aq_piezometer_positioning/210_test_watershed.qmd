@@ -454,6 +454,110 @@ plot_points(test_watershed_resmoothed, col = "red")
 ```
 
 
+# Water Body Fixing
+
+We know our water bodies.
+On the rainflow watershed, we can sink all drops which enter the lake to a given point in the lake.
+ <https://stackoverflow.com/questions/69071990/indexing-using-a-boolean-matrix-in-r>
+```{r}
+ 
+nx <- 3
+ny <- 4
+
+mask <- matrix(c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE), nrow = nx, ncol = ny, byrow = TRUE)
+
+data <- matrix(c(1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4), nrow = nx, ncol = ny, byrow = TRUE)
+
+
+coords_initial <- expand.grid(
+  seq(1, nx),
+  seq(1, ny)
+)
+
+# mask[coords_initial[,1], coords_initial[,2]]
+
+get_mask_array <- function(coords) {
+  mask_array <- sapply(
+    seq_len(nrow(coords)),
+    FUN = function(i) mask[coords[i, 1], coords[i, 2]]
+  ) 
+  return(mask_array)
+}
+
+mask_coordinates <- coords_initial[get_mask_array(coords_initial),]
+centroid_idx <- mask_coordinates[as.integer(ceiling(nrow(mask_coordinates)/2)), ]
+
+coords_new <- coords_initial
+mask_array <- get_mask_array(coords_new)
+coords_new[mask_array, 1] <- centroid_idx[[1]]
+coords_new[mask_array, 2] <- centroid_idx[[2]]
+
+print(coords_new)
+```
+
+
+In application:
+```{r lakesink-watershed}
+
+library("inbospatial")
+source(here::here("..", "R", "watershed.R"))
+
+bbox <- sf::st_bbox(
+   c(
+     xmin = 251500, xmax = 251800,
+     ymin = 159400, ymax = 159700
+   ),
+   crs = sf::st_crs(31370)
+)
+
+test_raster <- inbospatial::get_coverage_wcs(
+  wcs = "dhmv",
+  bbox = bbox,
+  layername = "DHMVII_DTM_1m",
+  version = "2.0.1",
+  wcs_crs = "EPSG:31370",
+  resolution = 1
+)
+
+test_smoothed <- mdenoise(test_raster, n = 8, t = 0.6)
+
+
+mask <- is.na(matrix(,
+  nrow = dim(test_smoothed)[1],
+  ncol = dim(test_smoothed)[1]
+))
+mask[1:140,] <- FALSE
+mask[161:300,] <- FALSE
+mask[,1:100] <- FALSE
+mask[,201:300] <- FALSE
+
+test_ws <- compute_watershed(test_smoothed)
+test_ws_drained <- compute_watershed_drained(
+  test_smoothed,
+  mask
+)
+spat_raster <- test_smoothed
+
+dim(test_smoothed)[1:2] == dim(mask)
+
+
+plot_points <- function(ws, ...) {
+  sinks <- ws[["sinks"]]
+  points(sinks[["x"]], sinks[["y"]], ...)
+}
+
+par(mfrow = c(2, 2))
+plot(test_smoothed, col = gray.colors(256))
+plot_points(test_ws_drained, col = "green")
+plot(test_ws[["watershed"]])
+plot_points(test_ws, col = "red")
+image(mask)
+plot(test_ws_drained[["watershed"]])
+plot_points(test_ws_drained, col = "red")
+
+```
+
+
 # Lessons Learned
 
 :::{.callout-warning title="Take-Home Messages"}
@@ -471,11 +575,24 @@ Watershed is crucially affected by grid / resampling!
 
 
 As a result, water bodies get fragmented (see stream above).
+
 - Surface water is approximately level.
 - In that situation, small fluctuations catch the instream.
 
-A solution for future exploration would be to add prior knowledge:
-provide a mask for the water body of interest and join all inflow (i.e. once `coords_next` is in the `mask`, set it to centroid).
-This could work for standing waters or stream segments.
+A solution would be to add prior knowledge:
+provide a mask for the water body of interest and join all inflow.
+
+- This matches the actual question for standing waters or stream segments.
+- However, the masking is inefficient in R and computationally inefficient.
+- This is different from *ex post* joining, because flows might just temporarily pass the water body (which, acknowledged, is unlikely).
+
+
+The implemented watershed algorithm is simplistic and limited.
+
+- it works with 8 directions, and thus flows tend to go along straight or diagonal lines.
+- But: it works!
 
 :::
+
+
+Remains for future exploration to find out whether *ex post* joining (presumably more efficient) yields similar results to waterbody masking.

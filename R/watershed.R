@@ -96,11 +96,12 @@ smooth_raster <- function(spat_raster, sigma) {
 #' @param t threshold (for mdenoise)
 #'
 mdenoise <- function(spat_raster, n = 5, t = 0.93) {
+  stopifnot(terra = require("terra"))
 
   tmpfi <- tempfile(tmpdir = "/tmp", fileext = ".xyz")
   tmpfo <- tempfile(tmpdir = "/tmp", fileext = ".xyz")
 
-  writeRaster(spat_raster, tmpfi, filetype = "XYZ", overwrite = TRUE)
+  terra::writeRaster(spat_raster, tmpfi, filetype = "XYZ", overwrite = TRUE)
 
   sys_command <- glue::glue(
     "mdenoise -i {tmpfi} -n {n} -t {t} -z -o {tmpfo}"
@@ -228,21 +229,15 @@ compute_watershed <- function(spat_raster) {
   # drop flow loop
   while (changed) {
     # calculate new coordinates
+    row <- (coords_prev[, 2] - 1)
+    col <- coords_prev[, 1]
     coords_next[, 1] <-
       coords_prev[, 1] - shift_vectors[
-        flow_tensor[
-            (coords_prev[, 2] - 1) * nx + coords_prev[, 1],
-            3
-          ],
-        1
+        flow_tensor[row * nx + col, 3], 1
       ]
     coords_next[, 2] <-
       coords_prev[, 2] - shift_vectors[
-        flow_tensor[
-            (coords_prev[, 2] - 1) * ny + coords_prev[, 1],
-            3
-          ],
-        2
+        flow_tensor[row * ny + col, 3], 2
       ]
 
     # boundary checks: flows get stuck there
@@ -326,3 +321,182 @@ compute_watershed <- function(spat_raster) {
   ))
 
 } # /compute_watershed
+
+
+compute_watershed_drained <- function(spat_raster, mask) {
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("terra" = require("terra"))
+  stopifnot("magic" = require("terra"))
+  stopifnot("reshape2" = require("sf"))
+  stopifnot("glue" = require("glue"))
+
+  stopifnot("Raster and mask dimensions don't match." = all(dim(spat_raster)[1:2] == dim(mask)))
+
+  nx <- dim(spat_raster)[1]
+  ny <- dim(spat_raster)[2]
+
+  spat_matrix <- convert_rast_to_matrix(spat_raster)
+
+  shift_vectors <- matrix(
+    c(1, 1,   #1
+      1, 0,   #2
+      1, -1,  #3
+      0, 1,   #4
+      0, 0,   #5
+      0, -1,  #6
+      -1, 1,  #7
+      -1, 0,  #8
+      -1, -1),#9
+      ncol = 2,
+      byrow = TRUE
+    )
+
+  # shift the data and stack the shifted versions
+  data_shifted <- array(0.0, dim = c(nx, ny, 9))
+  for (i in 1:9) {
+    data_shifted[, , i] <- magic::ashift(spat_matrix, v = shift_vectors[i, ])
+  }
+
+  # calculate flow direction by applying `which.min`
+  flow_tensor <- reshape2::melt(
+    apply(
+      data_shifted,
+      FUN = which.min,
+      MARGIN = c(1, 2)
+    )
+  )
+
+  # generate initial coordinates for each drop of the input matrix
+  coords_initial <- expand.grid(
+    seq(1, nx),
+    seq(1, ny)
+  )
+
+  # initialize, then loop and let drops flow along the gradient
+  changed <- TRUE
+  coords_prev <- coords_initial
+  coords_next <- coords_initial
+
+  # function to convert the mask into a coordinate boolean selection
+  # finds out which coordinate lies within the mask
+  get_mask_array <- function(coords) {
+    mask_array <- sapply(
+      seq_len(nrow(coords)),
+      FUN = function(i) mask[coords[i, 1], coords[i, 2]]
+    )
+    return(mask_array)
+  }
+
+  # get an arbitrary "sink" in the mask
+  mask_array <- get_mask_array(coords_initial)
+  mask_coordinates <- coords_initial[mask_array,]
+  sink_idx <- mask_coordinates[as.integer(ceiling(nrow(mask_coordinates)/2)), ]
+
+  # drop flow loop
+  count <- 0
+  while (changed) {
+    if (count %% 10 == 0) message(glue::glue("it. {count}; masked: {sum(mask_array)}"))
+
+    # calculate new coordinates
+    row <- (coords_prev[, 2] - 1)
+    col <- coords_prev[, 1]
+    coords_next[, 1] <-
+      coords_prev[, 1] - shift_vectors[
+        flow_tensor[row * nx + col, 3], 1
+      ]
+    coords_next[, 2] <-
+      coords_prev[, 2] - shift_vectors[
+        flow_tensor[row * ny + col, 3], 2
+      ]
+
+
+    # boundary checks: flows get stuck there
+    coords_next[coords_next[, 1] > nx, 1] <- nx
+    coords_next[coords_next[, 2] > ny, 2] <- ny
+    coords_next[coords_next[, 1] < 1, 1] <- 1
+    coords_next[coords_next[, 2] < 1, 2] <- 1
+
+    # set points in mask to centroid
+    # because the centroid is ensured to be in the mask,
+    # points on it will not shift.
+    mask_array <- get_mask_array(coords_next)
+    coords_next[mask_array, 1] <- sink_idx[[1]]
+    coords_next[mask_array, 2] <- sink_idx[[2]]
+
+    # check if anything changed
+    if (all(coords_next == coords_prev)) {
+      changed <- FALSE
+    } else {
+      # update coords_prev for next iteration
+      coords_prev <- coords_next
+      count <- count + 1
+    }
+  } # /while
+
+  coords_final <- coords_prev
+  # plot(coords_final, col = gray.colors(256))
+
+  catchments <- cbind(
+    coords_initial,
+    coords_final %>%
+      dplyr::left_join(
+        coords_final %>%
+          dplyr::distinct() %>%
+          dplyr::mutate(i = seq_len(dplyr::n())),
+        by = dplyr::join_by(Var1, Var2)
+      ) %>%
+      dplyr::select(i) %>%
+      as.matrix()
+  )
+  # catchments <- catchments[, c(2, 1, 3)]
+  # catchments[, 2] <- max(catchments[, 2]) + 1 - catchments[, 2]
+
+  # raster_catch <- terra::deepcopy(spat_raster)
+  # raster_catch[, ] <- catchments
+
+
+  data_output <- matrix(0, nrow = nx, ncol = ny)
+  loc_min <- as.integer(rownames(flow_tensor[flow_tensor[, 3] == 5, c(1, 2)]))
+
+  for (i in 1:length(loc_min)) {
+    data_output[
+      seq(1, nx * ny)[
+        (coords_final[, 2] - 1) * nx + coords_final[, 1] == loc_min[i]
+      ]
+    ] <- i
+  }
+
+  # data_output <- t(data_output)
+  # data_output <- data_output[c(nx:1), , drop = FALSE]
+  # data_output <- data_output[, c(ny:1), drop = FALSE]
+
+  # lmin <- loc_min[[1]]
+
+  get_min <- function(lmin) {
+    sink <- catchments[lmin,c(2,1)]
+    pnt <- extract_raster_point_by_index(
+      spat_raster,
+      sink[[1]],
+      sink[[2]],
+      y_invert = TRUE
+    )
+    return(c("n" = lmin, pnt))
+  }
+
+  minima <- bind_rows(lapply(
+    loc_min,
+    FUN = get_min
+  ))
+
+
+  raster_shed <- terra::deepcopy(spat_raster)
+  raster_shed[, ] <- data_output
+
+  return(list(
+    "watershed" = raster_shed,
+    "catchments" = catchments,
+    "sinks" = minima
+  ))
+
+} # /compute_watershed_drained
