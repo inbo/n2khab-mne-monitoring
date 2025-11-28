@@ -14,6 +14,53 @@ SELECT DISTINCT lims_code FROM "inbound"."Visits";
 gone.
 
 
+* general overview
+
+the found ones:
+
+#+begin_src sql
+SELECT *
+FROM "inbound"."Visits"
+WHERE grts_address IN (
+  60185305, 23257,
+  211193,
+  6417454, 1999406,
+  88274,
+  236530,
+  1736754,
+  9262,
+  27584145
+)
+AND activity_group_id = 4
+ORDER BY grts_address, stratum, activity_group_id, archive_version_id, date_start
+;
+
+#+end_src
+
+first iteration did not work on 60185305;
+Maybe it has stuff *planned*?
+
+#+begin_src sql
+SELECT *
+FROM "outbound"."FieldworkCalendar"
+WHERE grts_address IN (
+  60185305, 23257,
+  211193,
+  6417454, 1999406,
+  88274,
+  236530,
+  1736754,
+  9262,
+  27584145
+)
+AND activity_group_id = 4
+ORDER BY grts_address, stratum, activity_group_id, archive_version_id, date_start
+;
+
+#+end_src
+
+INDEED, this was =done_planning=.
+
 * chasing calendar zombies
 
 
@@ -97,14 +144,7 @@ SELECT DISTINCT
 
 #+end_src
 
-60185305, 23257
-211193
-6417454, 1999406
-88274
-236530
-1736754
-9262
-27584145
+
 
 
 ???
