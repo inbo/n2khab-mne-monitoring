@@ -1666,9 +1666,10 @@ Strategy:
   + this removed 148 calendar entries (and associated Special Activities)
 + then, fix the calendar update: [[file:./092_update_facalendar.R]]
 
-# GOOD TO KNOW:
-#   - Entries can be reactivated AND changed in the same round.
-#   - In the case of date adjustments: `date_end` was updated afterwards.
+GOOD TO KNOW:
+- Entries can be reactivated AND changed in the same round.
+  + Although, not exactly at the same round: had to run the calendar update script twice.
+- In the case of date adjustments: =date_end= was updated afterwards. Makes sense.
 
 
 * Major R Code Overhaul (202508)
