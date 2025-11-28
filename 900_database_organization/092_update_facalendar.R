@@ -20,7 +20,6 @@ if (length(commandline_args) > 0) {
   # suffix <- "-staging" # "-testing"
 }
 
-
 ### connect to database
 mnmgwdb <- connect_mnm_database(
   config_filepath,
@@ -264,7 +263,7 @@ data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
 
-
+# stop()
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = mnmgwdb,
   table_label = table_label,
@@ -276,6 +275,8 @@ startdate_updates_happened <- associate_and_shift_start_dates(
     "ChemicalSamplingActivities"
   )
 )
+
+# attention: do NOT use `previous_calendar_plans` any more
 
 
 distribution <- categorize_data_update(
@@ -292,14 +293,28 @@ print_category_count(distribution, table_label)
 
 if (FALSE) {
 
+
+current_calendar_db <- mnmgwdb$query_table("FieldworkCalendar") %>%
+  left_join(
+    mnmgwdb$query_table("SSPSTaPas"),
+    by = join_by(sspstapa_id)
+  ) %>%
+  relocate(stratum_scheme_ps_targetpanels, .after = sspstapa_id) %>%
+  select(-sspstapa_id)
+
+
+distribution$reactivate %>%
+  count(grts_address, stratum) %>%
+  print(n = Inf)
+
 distribution$to_archive %>%
   count(grts_address, stratum) %>%
   print(n = Inf)
 
 # select_grts <- 871030
 # select_stratum <- "4010"
-select_grts <- 3560750
-select_stratum <- "7150"
+select_grts <- 9262
+select_stratum <- "9120"
 
 
 check <- function(df, ...) {
@@ -317,7 +332,7 @@ check <- function(df, ...) {
     return()
 }
 
-previous_calendar_plans %>%
+current_calendar_db %>%
   check(grts_address == select_grts, stratum == select_stratum) %>%
   t() %>% knitr::kable()
 
@@ -337,8 +352,38 @@ distribution$unchanged %>%
   check(grts_address == select_grts, stratum == select_stratum) %>%
   t() %>% knitr::kable()
 
+message("##### REACTIVATE ####")
+distribution$reactivate %>%
+  check(grts_address == select_grts, stratum == select_stratum) %>%
+  t() %>% knitr::kable()
+
+message("##### CHANGED ####")
+distribution$changed %>%
+  check(grts_address == select_grts, stratum == select_stratum) %>%
+  t() %>% knitr::kable()
+
+distribution$changed %>%
+  filter(
+    grts_address == select_grts,
+    stratum == select_stratum,
+    activity_group_id == 4
+  ) %>%
+  t() %>% knitr::kable()
+
+current_calendar_db %>%
+  filter(
+    grts_address == select_grts,
+    stratum == select_stratum,
+    activity_group_id == 4
+  ) %>%
+  t() %>% knitr::kable()
+
+
 } # /checking intervention
 
+# GOOD TO KNOW:
+#   - Entries can be reactivated AND changed in the same round.
+#   - In the case of date adjustments: `date_end` was updated afterwards.
 
 
 distribution$to_upload <- distribution$to_upload %>%

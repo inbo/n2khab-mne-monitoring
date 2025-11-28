@@ -1093,6 +1093,10 @@ associate_and_shift_start_dates <- function(
     characteristic_columns = characteristic_columns,
     date_column = "date_start"
   )
+  # check_grts <- 9262
+  # data_pre  %>%  filter(grts_address == check_grts)
+  # data_post  %>%  filter(grts_address == check_grts)
+  # data_previous_linked  %>%  filter(grts_address == check_grts)
 
   # only changes are relevant
   date_updates <- data_previous_linked  %>%
@@ -1100,6 +1104,7 @@ associate_and_shift_start_dates <- function(
       !is.na(date_start_new),
       date_start != date_start_new
     )
+  # date_updates  %>%  filter(grts_address == check_grts)
 
   if (nrow(date_updates) == 0) {
     return(FALSE)

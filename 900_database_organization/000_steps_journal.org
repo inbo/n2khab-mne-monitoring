@@ -1656,6 +1656,21 @@ SCHEDULED: <2025-11-19 Wed>
 loceval=# UPDATE "outbound"."SampleUnits" SET type_is_absent = FALSE WHERE grts_address = 4163858;
 mnmgwdb=# UPDATE "outbound"."FieldworkCalendar" SET excluded = FALSE, excluded_reason = NULL WHERE grts_address IN (4163858, 29329682);
 
+
+** QField Anormalities (I): Misplaced Archive Tags
+
+Some visits have been done but their table entry is flagged as archived, whereas an empty, updated version is unarchived but does not contain the =visit_done=.
+
+Strategy:
++ first delete the empty, untouched, but "non-archive" activities of all types: [[file:./surgery/20251128_reconnect_calendar.org]]
+  + this removed 148 calendar entries (and associated Special Activities)
++ then, fix the calendar update: [[file:./092_update_facalendar.R]]
+
+# GOOD TO KNOW:
+#   - Entries can be reactivated AND changed in the same round.
+#   - In the case of date adjustments: `date_end` was updated afterwards.
+
+
 * Major R Code Overhaul (202508)
 ** Code File Organization
 SCHEDULED: <2025-08-31 Sun>
