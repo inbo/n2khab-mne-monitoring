@@ -1,6 +1,18 @@
 #+title: Reconnect Calendar
 #+date: 20251128
 
+* Open Questions
+
+
+???
+450229	1330_hpr	9	2026-04-01	5	f	f	1
+450229	1330_hpr	9	2026-10-01	5	f	f	1
+
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  450229 AND VIS.stratum = '1330_hpr' AND VIS.activity_group_id = 9;
+
+-> regular panel design visit!
+
+
 * =lims_code= in ="inbound"."Visits"=
 
 
@@ -60,6 +72,7 @@ ORDER BY grts_address, stratum, activity_group_id, archive_version_id, date_star
 #+end_src
 
 INDEED, this was =done_planning=.
+
 
 * chasing calendar zombies
 
@@ -139,23 +152,306 @@ SELECT DISTINCT
     activity_group_id,
     date_start,
     was_modified
-) TO '/data/mnm_db_backups/archive_zombies_20251128.csv' With CSV DELIMITER ',' HEADER
+) TO '/data/mnm_db_backups/archive_zombies_20251201.csv' With CSV DELIMITER ',' HEADER
+;
+
+#+end_src
+
+* Manual Poking
+
+???
+1902553	9130_end
+3202741	1310_pol
+  60185305, 23257,
+105458	4010	4	2025-07-01		f	f	1
+105458	4010	4	2026-04-01	5	t	t	1
+236530	4010	28	2026-04-01		f	f	1
+236530	4010	28	2032-04-01	3	f	f	1
+709330	7140_meso	4	2026-04-01		t	t	1
+709330	7140_meso	4	2032-04-01	3	f	f	1
+709330	7140_meso	28	2026-04-01		t	t	1
+709330	7140_meso	28	2032-04-01	3	f	f	1
+780114	6230_hmo	4	2025-10-01		t	t	1
+780114	6230_hmo	4	2031-10-01	3	f	f	1
+
+Many of these have the visits discrepancy clearly solved:
++ some are placed, but entirely archived
++ Others have 2 Visits: 1 archive and filled, 1 active and unfilled
+  + At leas a subset of these has a modified Calendar (e.g. "planned") and thus wasn't corrected
+
+
+* Track Modifications
+
+#+begin_src sql
+DROP TABLE IF EXISTS tmp_VisitMods;
+CREATE TEMP TABLE tmp_VisitMods AS
+SELECT DISTINCT
+  visit_id,
+  grts_address,
+  stratum,
+  activity_group_id,
+  date_start,
+  archive_version_id,
+  (
+    (teammember_id IS NOT NULL) OR
+    (date_visit IS NOT NULL) OR
+    (notes IS NOT NULL) OR
+    (photo IS NOT NULL) OR
+    (issues) OR
+    (visit_done)
+  ) AS modified
+FROM "inbound"."Visits"
+GROUP BY
+  visit_id,
+  grts_address,
+  stratum,
+  activity_group_id,
+  archive_version_id,
+  modified
+;
+#+end_src
+
+#+begin_src sql
+DROP TABLE IF EXISTS tmp_CalendarMods;
+CREATE TEMP TABLE tmp_CalendarMods AS
+SELECT
+  fieldworkcalendar_id,
+  grts_address,
+  stratum,
+  activity_group_id,
+  date_start,
+  archive_version_id,
+  (
+    (excluded)
+    OR (excluded_reason IS NOT NULL)
+    OR (teammember_assigned IS NOT NULL)
+    OR (date_visit_planned IS NOT NULL)
+    OR (no_visit_planned)
+    OR (notes IS NOT NULL)
+    OR (done_planning)
+  ) AS modified
+FROM "outbound"."FieldworkCalendar"
+GROUP BY
+  fieldworkcalendar_id,
+  grts_address,
+  stratum,
+  activity_group_id,
+  date_start,
+  archive_version_id
+;
+#+end_src
+
+
+#+begin_src  sql
+SELECT DISTINCT
+  VIS.grts_address,
+  VIS.stratum,
+  VIS.activity_group_id
+FROM "inbound"."Visits" AS VIS
+LEFT JOIN (
+  SELECT grts_address, stratum, activity_group_id, TRUE AS unmod_vis
+  FROM tmp_VisitMods WHERE NOT modified
+  ) AS tVIS0
+  ON VIS.grts_address = tVIS0.grts_address
+  AND VIS.stratum = tVIS0.stratum
+  AND VIS.activity_group_id = tVIS0.activity_group_id
+LEFT JOIN (
+  SELECT grts_address, stratum, activity_group_id, TRUE AS mod_vis
+  FROM tmp_VisitMods WHERE modified
+  ) AS tVIS1
+  ON VIS.grts_address = tVIS1.grts_address
+  AND VIS.stratum = tVIS1.stratum
+  AND VIS.activity_group_id = tVIS1.activity_group_id
+LEFT JOIN (
+  SELECT grts_address, stratum, activity_group_id, TRUE AS unmod_cal
+  FROM tmp_CalendarMods WHERE NOT modified
+  ) AS tCAL0
+  ON VIS.grts_address = tCAL0.grts_address
+  AND VIS.stratum = tCAL0.stratum
+  AND VIS.activity_group_id = tCAL0.activity_group_id
+LEFT JOIN (
+  SELECT grts_address, stratum, activity_group_id, TRUE AS mod_cal
+  FROM tmp_CalendarMods WHERE modified
+  ) AS tCAL1
+  ON VIS.grts_address = tCAL1.grts_address
+  AND VIS.stratum = tCAL1.stratum
+  AND VIS.activity_group_id = tCAL1.activity_group_id
+WHERE TRUE
+  AND (mod_vis AND unmod_vis)
+  OR (mod_cal AND unmod_cal)
 ;
 
 #+end_src
 
 
+|--------------+-----------+-------------------|
+| grts_address | stratum   | activity_group_id |
+|--------------+-----------+-------------------|
+|        24774 | 9160      |                 9 |
+|       105458 | 4010      |                 4 |
+|       131806 | 4010      |                 4 |
+|       131806 | 4010      |                28 |
+|       196022 | 91E0_vo   |                 4 |
+|       196022 | 91E0_vo   |                28 |
+|       709330 | 7140_meso |                 4 |
+|       709330 | 7140_meso |                28 |
+|       780114 | 6230_hmo  |                 4 |
+|       780114 | 6230_hmo  |                28 |
+|       790918 | 6410_mo   |                 4 |
+|       790918 | 6410_mo   |                 9 |
+|       790918 | 6410_mo   |                28 |
+|      1176286 | 4010      |                 4 |
+|      1176286 | 4010      |                28 |
+|      1677870 | 7140_oli  |                 4 |
+|      1677870 | 7140_oli  |                28 |
+|      1902553 | 9130_end  |                 4 |
+|      1902553 | 9130_end  |                28 |
+|      4026486 | 7140_mrd  |                 4 |
+|      4026486 | 7140_mrd  |                28 |
+|      5017433 | 6230_hmo  |                 4 |
+|      5017433 | 6230_hmo  |                28 |
+|      8826293 | 1330_hpr  |                 4 |
+|      8826293 | 1330_hpr  |                28 |
+|     13038894 | 7150      |                 4 |
+|     13038894 | 7150      |                28 |
+|     17912057 | 91E0_vn   |                 4 |
+|     60185305 | 91E0_va   |                 4 |
+|--------------+-----------+-------------------|
+
+#+begin_example
+\COPY (
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  24774 AND VIS.stratum = '9160' AND VIS.activity_group_id = 9 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  105458 AND VIS.stratum = '4010' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  131806 AND VIS.stratum = '4010' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  131806 AND VIS.stratum = '4010' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  196022 AND VIS.stratum = '91E0_vo' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  196022 AND VIS.stratum = '91E0_vo' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  709330 AND VIS.stratum = '7140_meso' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  709330 AND VIS.stratum = '7140_meso' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  780114 AND VIS.stratum = '6230_hmo' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  780114 AND VIS.stratum = '6230_hmo' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  790918 AND VIS.stratum = '6410_mo' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  790918 AND VIS.stratum = '6410_mo' AND VIS.activity_group_id = 9 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  790918 AND VIS.stratum = '6410_mo' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  1176286 AND VIS.stratum = '4010' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  1176286 AND VIS.stratum = '4010' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  1677870 AND VIS.stratum = '7140_oli' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  1677870 AND VIS.stratum = '7140_oli' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  1902553 AND VIS.stratum = '9130_end' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  1902553 AND VIS.stratum = '9130_end' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  4026486 AND VIS.stratum = '7140_mrd' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  4026486 AND VIS.stratum = '7140_mrd' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  5017433 AND VIS.stratum = '6230_hmo' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  5017433 AND VIS.stratum = '6230_hmo' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  8826293 AND VIS.stratum = '1330_hpr' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  8826293 AND VIS.stratum = '1330_hpr' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  13038894 AND VIS.stratum = '7150' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  13038894 AND VIS.stratum = '7150' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  17912057 AND VIS.stratum = '91E0_vn' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  60185305 AND VIS.stratum = '91E0_va' AND VIS.activity_group_id = 4
+
+) TO '/data/mnm_db_backups/20251201_archive_zombies_refined.csv' With CSV DELIMITER ',' HEADER
+;
 
 
-???
-1902553	9130_end
-3202741	1310_pol
+\COPY (
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  709330 AND VIS.stratum = '7140_meso' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  709330 AND VIS.stratum = '7140_meso' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  780114 AND VIS.stratum = '6230_hmo' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  780114 AND VIS.stratum = '6230_hmo' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  8826293 AND VIS.stratum = '1330_hpr' AND VIS.activity_group_id = 4 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  8826293 AND VIS.stratum = '1330_hpr' AND VIS.activity_group_id = 28 UNION
+SELECT * FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id AND VIS.grts_address =  17912057 AND VIS.stratum = '91E0_vn' AND VIS.activity_group_id = 4
+) TO '/data/mnm_db_backups/20251201_archive_zombies_refined_addendum.csv' With CSV DELIMITER ',' HEADER
+;
+#+end_example
+
+
+then executed to DELETE:
+
+#+begin_example
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 4605 AND grts_address = 24774 AND stratum = '9160' AND activity_group_id = 9 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5146 AND grts_address = 105458 AND stratum = '4010' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5250 AND grts_address = 131806 AND stratum = '4010' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5251 AND grts_address = 131806 AND stratum = '4010' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5257 AND grts_address = 131806 AND stratum = '4010' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5258 AND grts_address = 131806 AND stratum = '4010' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5392 AND grts_address = 196022 AND stratum = '91E0_vo' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5395 AND grts_address = 196022 AND stratum = '91E0_vo' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6012 AND grts_address = 790918 AND stratum = '6410_mo' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6014 AND grts_address = 790918 AND stratum = '6410_mo' AND activity_group_id = 9 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6018 AND grts_address = 790918 AND stratum = '6410_mo' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6264 AND grts_address = 1176286 AND stratum = '4010' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6270 AND grts_address = 1176286 AND stratum = '4010' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6512 AND grts_address = 1677870 AND stratum = '7140_oli' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6516 AND grts_address = 1677870 AND stratum = '7140_oli' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6635 AND grts_address = 1902553 AND stratum = '9130_end' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6640 AND grts_address = 1902553 AND stratum = '9130_end' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7088 AND grts_address = 4026486 AND stratum = '7140_mrd' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7095 AND grts_address = 4026486 AND stratum = '7140_mrd' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7259 AND grts_address = 5017433 AND stratum = '6230_hmo' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7263 AND grts_address = 5017433 AND stratum = '6230_hmo' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7601 AND grts_address = 13038894 AND stratum = '7150' AND activity_group_id = 4 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7607 AND grts_address = 13038894 AND stratum = '7150' AND activity_group_id = 28 UNION
+SELECT *  FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 8612 AND grts_address = 60185305 AND stratum = '91E0_va' AND activity_group_id = 4;
+
+SELECT * FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;
+
+#+end_example
+
+SELECT * FROM "outbound"."FieldworkCalendar"
+UPDATE "outbound"."FieldworkCalendar" SET archive_version_id = NULL
+UPDATE "inbound"."Visits" SET archive_version_id = NULL
+WHERE fieldworkcalendar_id IN (4606, 5147, 5252, 5259, 6265, 6271, 6636, 6641, 8613)
+
+
+#+begin_src sql
+UPDATE "outbound"."FieldworkCalendar" SET notes = E'(ad-hoc herfstplanning/FM) Veen, duidelijk markeren voor maaibeheer' WHERE fieldworkcalendar_id = 5923 AND grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 4;
+UPDATE "outbound"."FieldworkCalendar" SET notes = E'(ad-hoc herfstplanning/FM) Veen, duidelijk markeren voor maaibeheer' WHERE fieldworkcalendar_id = 5926 AND grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 28;
+UPDATE "outbound"."FieldworkCalendar" SET notes = E'(ad-hoc herfstplanning/FM) opletten voor blauwalg in het ven, runderproof afwerken' WHERE fieldworkcalendar_id = 6004 AND grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 4;
+UPDATE "outbound"."FieldworkCalendar" SET notes = E'(ad-hoc herfstplanning/FM) opletten voor blauwalg in het ven, runderproof afwerken' WHERE fieldworkcalendar_id = 6009 AND grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 28;
+UPDATE "outbound"."FieldworkCalendar" SET notes = E'(ad-hoc herfstplanning/FM) zware klei' WHERE fieldworkcalendar_id = 7410 AND grts_address = 8826293 AND stratum = '1330_hpr' AND activity_group_id = 4;
+UPDATE "outbound"."FieldworkCalendar" SET notes = E'(ad-hoc herfstplanning/FM) zware klei' WHERE fieldworkcalendar_id = 7415 AND grts_address = 8826293 AND stratum = '1330_hpr' AND activity_group_id = 28;
+UPDATE "outbound"."FieldworkCalendar" SET notes = E'(ad-hoc herfstplanning/FM) nieuw aangemaakt gebied, toegansgrechten nog regelen met Frederic/Mathias' WHERE fieldworkcalendar_id = 7726 AND grts_address = 17912057 AND stratum = '91E0_vn' AND activity_group_id = 4;
+#+end_src
+
+
+Afterwards, delete:
+
+#+begin_src sql
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5924 AND grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 4;
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 5927 AND grts_address = 709330 AND stratum = '7140_meso' AND activity_group_id = 28;
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6005 AND grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 4;
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 6010 AND grts_address = 780114 AND stratum = '6230_hmo' AND activity_group_id = 28;
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7409 AND grts_address = 8826293 AND stratum = '1330_hpr' AND activity_group_id = 4;
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7414 AND grts_address = 8826293 AND stratum = '1330_hpr' AND activity_group_id = 28;
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7727 AND grts_address = 17912057 AND stratum = '91E0_vn' AND activity_group_id = 4;
+
+#+end_src
+
+
+
+** Trace
+
+#+begin_src sql
+SELECT *
+FROM "inbound"."Visits" VIS, "outbound"."FieldworkCalendar" FWC
+WHERE VIS.fieldworkcalendar_id = FWC.fieldworkcalendar_id
+AND VIS.grts_address IN (780114)
+AND VIS.activity_group_id = 4
+ORDER BY VIS.visit_done, VIS.activity_group_id
+;
+#+end_src
+visit_id | fieldworkcalendar_id | samplelocation_id | location_id | grts_address | stratum  | activity_group_id | date_start | teammember_id | date_visit | notes | photo                 | issues | visit_done | archive_version_id
+
 
 
 ** excel sorting
+... see excel tables
 
 ** testing
 
+#+begin_src sql
 SELECT
   fieldworkcalendar_id,
   (NOT excluded),
@@ -172,7 +468,9 @@ WHERE
   AND activity_group_id = 4
 ;
 
+#+end_src
 
+#+begin_src sql
 SELECT
     grts_address,
     stratum,
@@ -210,6 +508,7 @@ WHERE
   AND unmodified2
 ;
 
+#+end_src
 
 
 SELECT *
