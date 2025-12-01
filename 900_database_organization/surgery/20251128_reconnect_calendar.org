@@ -430,6 +430,25 @@ SELECT * FROM "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 7727 A
 #+end_src
 
 
+#+begin_src sql
+date_visit_planned = NULL
+UPDATE "outbound"."FieldworkCalendar" SET
+done_planning = FALSE
+WHERE fieldworkcalendar_id IN (5147, 5252, 5259, 6265, 6271, 6636, 6641, 8613);
+
+SELECT * FROM
+WHERE grts_address IN (24774
+105458
+131806
+131806
+1176286
+1176286
+1902553
+1902553
+60185305
+)
+#+end_src
+
 
 ** Trace
 
