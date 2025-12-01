@@ -1,0 +1,21 @@
+---
+title: "Overview MNM Groundwater Installations"
+subtitle: ""
+date: "2025-11-28"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+# Number of Well Installations
+
+```{r}
+
+```
