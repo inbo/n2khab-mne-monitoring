@@ -20,5 +20,6 @@ random_point_number,smallint,False,NULL,False,False,,,,"if so, which random poin
 no_diver,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
 diver_id,varchar,False,NULL,False,False,,,,link to the table of available divers
 free_diver,varchar,False,NULL,False,False,,,,free field to enter a non-registered diver code
+reused_well_reference,varchar,False,NULL,False,False,,,,"if an existing installation was reused or refreshed, this is its reference"
 used_water_from_tap,boolean,False,NULL,False,False,,,,whether or not tap water was used for installation
 used_water_source,varchar,False,NULL,False,False,,,,source of the water used for facilitating installation
