@@ -46,8 +46,12 @@ SELECT
   WIA.random_point_number,
   WIA.diver_id,
   WIA.free_diver,
+<<<<<<< HEAD
   WIA.reused_existing_well,
   WIA.reused_with_replacement,
+=======
+  WIA.reused_well_reference,
+>>>>>>> 799abfc (dbinit: fieldwork ++re-use)
   WIA.used_water_from_tap,
   WIA.used_water_source,
   CSA.project_code,
@@ -163,8 +167,12 @@ DO ALSO
   no_diver = NEW.no_diver,
   diver_id = NEW.diver_id,
   free_diver = NEW.free_diver,
+<<<<<<< HEAD
   reused_existing_well = NEW.reused_existing_well,
   reused_with_replacement = NEW.reused_with_replacement,
+=======
+  reused_well_reference = NEW.reused_well_reference,
+>>>>>>> 799abfc (dbinit: fieldwork ++re-use)
   used_water_from_tap = NEW.used_water_from_tap,
   used_water_source = NEW.used_water_source
  WHERE fieldwork_id = OLD.fieldwork_id

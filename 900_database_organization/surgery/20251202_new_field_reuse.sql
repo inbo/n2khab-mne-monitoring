@@ -1,4 +1,5 @@
 
+<<<<<<< HEAD
 -- ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN reused_well_reference varchar;
 -- COMMENT ON COLUMN "inbound"."WellInstallationActivities".reused_well_reference IS E'if an existing installation was reused or refreshed, this is its reference';
 
@@ -29,6 +30,36 @@ WHERE random_point_number = 0
 SELECT * FROM "inbound"."WellInstallationActivities"
 WHERE random_point_number = 0
 ;
+=======
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN reused_well_reference varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".reused_well_reference IS E'if an existing installation was reused or refreshed, this is its reference';
+
+
+>>>>>>> 799abfc (dbinit: fieldwork ++re-use)
 -- views adjusted:
 --   gw_FieldWork
 --   gw_myFieldWork
