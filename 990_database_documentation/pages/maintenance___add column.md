@@ -47,6 +47,15 @@ tags:: examples
 	  COMMENT ON COLUMN "inbound"."WellInstallationActivities".reused_well_reference IS E'if an existing installation was reused or refreshed, this is its reference';
 	  ```
 	- Update the View and derived Views.
+	- Consider *filling* the new field with non-`NULL` data.
+	  ```sql
+	  UPDATE "inbound"."WellInstallationActivities" SET reused_well_reference = FALSE;
+	  -- SELECT * FROM "inbound"."WellInstallationActivities" WHERE random_point_number = 0;
+	  UPDATE "inbound"."WellInstallationActivities" 
+	  SET reused_well_reference = TRUE 
+	  WHERE random_point_number = 0
+	  ;
+	  ```
 - #### (5) Test qgis.
 	- You might want to copy your qgis project and link it to another mirror; use [[software/qgis]] / ((692eb7de-7131-4302-b3f2-d2aa1c826212)).
 	- Add the new field to its place in the field form.
