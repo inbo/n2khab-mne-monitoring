@@ -14,7 +14,6 @@ teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed 
 date_visit,date,False,,False,False,,,,date of the field activity
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
-lims_code,varchar,False,NULL,False,False,,,,link to the LIMS system via recipient code
 issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
 visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived visits
