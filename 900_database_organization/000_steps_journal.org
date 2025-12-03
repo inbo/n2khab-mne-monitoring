@@ -145,6 +145,23 @@ SCHEDULED: <2025-10-14 Tue>
 there is now a menu to click-work through maintenance scripts.
 + [[file:./090_all_maintenence_menu.sh]]
 
+** Spontaneous postgres v18.0 major upgrade
+SCHEDULED: <2025-12-03 Wed>
+
++ there were issues with a crashing qgis
++ due to a rolling progress bar, I suspected the server
++ server seemed fine; but because I was working on a certain (regular) user and heavily extending the qgis layer structure, I still suspected server load / server load prevention (e.g. "max connections") to cause the issue
++ decided to go for postgres setting, yet that is best done on latest version
+
+DECISION: postgresql/postgres-libs upgrade via pacman
+REVELATION: pg_update [[https://gis.stackexchange.com/q/261526][cannot handle the postGIS extension]]!
+What a bummer.
+
++ backup was from 10:16, restore was ~11:30
+
+restore worked flawlessly!
+... except that I now have to recreate all the database mirrors.
+
 * loceval
 
 ** setup database
@@ -1672,6 +1689,16 @@ GOOD TO KNOW:
 - In the case of date adjustments: =date_end= was updated afterwards. Makes sense.
 
 
+** QGIS mulit-layer style
+SCHEDULED: <2025-12-03 Wed>
+
+*Advanced cake symbology.*
+I tried around how to display the intersection of "planning/done", "visit/done", possible "issues", and on the other hand the different ACTIVITYGROUPS.
+
++ combinations of =done_planning= and =visit_done= now yield a symbol fill color
++ symbol rotation by activity group; yet those are in different layers
+
+
 * Major R Code Overhaul (202508)
 ** Code File Organization
 SCHEDULED: <2025-08-31 Sun>
@@ -1852,7 +1879,7 @@ Temporarily solved by increasing the fieldwork_id
 see [[file:./surgery/20250924_fieldwork_id_conflict.sql]]
 
 
-* General
+* General (II)
 
 ** REMINDER fk columns which allow NULL
 SCHEDULED: <2025-10-14 Thu>
