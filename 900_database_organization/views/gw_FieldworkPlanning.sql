@@ -1,11 +1,11 @@
 -- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldworkcalendar_id = 3;
+--
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
   SLOC.scheme_ps_targetpanels,
-  SSPSTP.stratum_scheme_ps_targetpanels,
   SLOC.schemes,
   SLOC.strata,
   SLOC.is_forest,
@@ -27,10 +27,8 @@ SELECT
   FWCAL.date_interval,
   FWCAL.date_end - current_date AS days_to_deadline,
   FWCAL.activity_group_id,
-  FWCAL.activity_group_id IN (
-    SELECT DISTINCT activity_group_id FROM "metadata"."GroupedActivities"
-    WHERE is_gw_activity
-  ) AS is_gw_activity,
+  ACT.activity_group,
+  ACT.is_gw_activity,
   FWCAL.activity_rank,
   FWCAL.priority,
   FWCAL.wait_watersurface,
@@ -44,12 +42,13 @@ SELECT
   FWCAL.no_visit_planned,
   FWCAL.notes,
   FWCAL.done_planning,
-  ACT.date_visit,
-  ACT.has_installation,
-  ACT.photo,
-  CASE WHEN ACT.date_visit IS NULL THEN NULL
-       ELSE current_date - ACT.date_visit
+  VISIT.date_visit,
+  VISIT.photo,
+  VISIT.visit_done,
+  CASE WHEN VISIT.date_visit IS NULL THEN NULL
+       ELSE current_date - VISIT.date_visit
   END AS count_days_ws,
+  WIA.fieldwork_id IS NOT NULL AS has_installation,
   LOCEVAL.has_loceval,
   LOCEVAL.type_assessed,
   LOCEVAL.type_is_absent,
@@ -58,13 +57,21 @@ SELECT
   LOCEVAL.latest_visit
 FROM "outbound"."FieldworkCalendar" AS FWCAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON FWCAL.samplelocation_id = SLOC.samplelocation_id
+  ON SLOC.samplelocation_id = FWCAL.samplelocation_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = SLOC.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
-LEFT JOIN "metadata"."SSPSTaPas" AS SSPSTP
-  ON SSPSTP.sspstapa_id = FWCAL.sspstapa_id
+LEFT JOIN "inbound"."Visits" AS VISIT
+  ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
+LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
+    ON VISIT.visit_id = WIA.visit_id
+LEFT JOIN (
+  SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
+    FROM "metadata"."GroupedActivities"
+    GROUP BY activity_group_id, activity_group, is_gw_activity
+  ) AS ACT
+    ON ACT.activity_group_id = FWCAL.activity_group_id
 LEFT JOIN (
   SELECT
     grts_address,
@@ -95,24 +102,6 @@ LEFT JOIN (
     AND SLOC.strata = LOCEVAL.type_assessed
 LEFT JOIN (
   SELECT DISTINCT
-    VISIT.samplelocation_id,
-    VISIT.date_visit,
-    VISIT.photo,
-    (WIA.fieldwork_id IS NOT NULL) AS has_installation
-  FROM "inbound"."Visits" AS VISIT
-  LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
-    ON VISIT.visit_id = WIA.visit_id
-  WHERE VISIT.visit_done
-    AND VISIT.activity_group_id IN (
-      SELECT DISTINCT activity_group_id
-      FROM "metadata"."GroupedActivities"
-      WHERE activity_group LIKE 'GWINST%'
-    )
-    AND VISIT.archive_version_id IS NULL
-) AS ACT
-  ON FWCAL.samplelocation_id = ACT.samplelocation_id
-LEFT JOIN (
-  SELECT DISTINCT
     type,
     grts_address AS grts_address_poc,
     grts_address_replacement AS grts_address
@@ -121,7 +110,7 @@ LEFT JOIN (
 ) AS REP
   ON ((REP.grts_address = SLOC.grts_address)
   AND (SLOC.strata = REP.type))
-WHERE TRUE
+WHERE is_gw_activity
   AND FWCAL.archive_version_id IS NULL
 ORDER BY
   FWCAL.date_end,
@@ -136,15 +125,15 @@ ORDER BY
 -- SELECT DISTINCT visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done;
 --  AND LOC.grts_address = 48578229
 
--- DROP RULE IF EXISTS FieldworkPlanning_upd0 ON "outbound"."FieldworkPlanning";
--- CREATE RULE FieldworkPlanning_upd0 AS
--- ON UPDATE TO "outbound"."FieldworkPlanning"
--- DO INSTEAD NOTHING;
+DROP RULE IF EXISTS FieldworkPlanning_upd0 ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd0 AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO INSTEAD NOTHING;
 
 DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd1 AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
-DO INSTEAD
+DO ALSO
  UPDATE "outbound"."FieldworkCalendar"
  SET
   excluded = NEW.excluded,
@@ -173,3 +162,38 @@ GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom, floris, karen;
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester;
+
+DROP VIEW IF EXISTS  "outbound"."FWPlanINST" CASCADE;
+CREATE VIEW "outbound"."FWPlanINST" AS
+SELECT * FROM "outbound"."FieldworkPlanning"
+WHERE activity_group LIKE '%INST%';
+GRANT SELECT ON  "outbound"."FWPlanINST"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
+GRANT UPDATE ON  "outbound"."FWPlanINST"  TO  tom, floris, karen;
+
+DROP VIEW IF EXISTS  "outbound"."FWPlanPOSIT" CASCADE;
+CREATE VIEW "outbound"."FWPlanPOSIT" AS
+SELECT * FROM "outbound"."FieldworkPlanning"
+WHERE activity_group LIKE '%POSIT%';
+GRANT SELECT ON  "outbound"."FWPlanPOSIT"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
+GRANT UPDATE ON  "outbound"."FWPlanPOSIT"  TO  tom, floris, karen;
+
+DROP VIEW IF EXISTS  "outbound"."FWPlanCLEAN" CASCADE;
+CREATE VIEW "outbound"."FWPlanCLEAN" AS
+SELECT * FROM "outbound"."FieldworkPlanning"
+WHERE activity_group LIKE '%CLEAN%';
+GRANT SELECT ON  "outbound"."FWPlanCLEAN"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
+GRANT UPDATE ON  "outbound"."FWPlanCLEAN"  TO  tom, floris, karen;
+
+DROP VIEW IF EXISTS  "outbound"."FWPlanREAD" CASCADE;
+CREATE VIEW "outbound"."FWPlanREAD" AS
+SELECT * FROM "outbound"."FieldworkPlanning"
+WHERE activity_group LIKE '%READ%';
+GRANT SELECT ON  "outbound"."FWPlanREAD"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
+GRANT UPDATE ON  "outbound"."FWPlanREAD"  TO  tom, floris, karen;
+
+DROP VIEW IF EXISTS  "outbound"."FWPlanSAMP" CASCADE;
+CREATE VIEW "outbound"."FWPlanSAMP" AS
+SELECT * FROM "outbound"."FieldworkPlanning"
+WHERE activity_group LIKE '%SAMP%';
+GRANT SELECT ON  "outbound"."FWPlanSAMP"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
+GRANT UPDATE ON  "outbound"."FWPlanSAMP"  TO  tom, floris, karen;

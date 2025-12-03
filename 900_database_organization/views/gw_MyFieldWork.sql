@@ -8,7 +8,7 @@ WHERE teammember_assigned IN (
   FROM "metadata"."TeamMembers"
   WHERE username = 'all_groundwater'
     OR LOWER(username) = LOWER(current_user)
-);
+) OR visit_done;
 
 
 GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
