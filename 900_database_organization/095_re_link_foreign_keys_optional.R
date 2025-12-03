@@ -252,6 +252,23 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 }
 
 
-# TODO there are `new_location_id` and `new_samplelocation_id` in "archive"."ReplacementData"
+# there are `new_location_id` and `new_samplelocation_id` in "archive"."ReplacementData"
+# column names are non-standard, hence the "gefoefel".
+trgtab <- '"archive"."ReplacementData"'
+srctab <- '"outbound"."SampleLocations"'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    new_location_id = SRCTAB.location_id,
+    new_samplelocation_id = SRCTAB.samplelocation_id
+  FROM {srctab} AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.type = SRCTAB.strata)
+;")
+
+mnmgwdb$execute_sql(update_string, verbose = FALSE)
+
+
 
 message("________________________________________________________________")

@@ -39,7 +39,8 @@ suffix <- ""
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(1205598, 41313630) # replacement cell missing from updated plans
+grts <- c(908981, 59629237)
+    # c(1205598, 41313630) # replacement cell missing from updated plans
     # c(23238, 6314694, 23091910) # Hellebos!
     # c(908981) # dismissed -> no replacements
     # c(3554997, 29769397) # early bird ZEB/achterhaven
