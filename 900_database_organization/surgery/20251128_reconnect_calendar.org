@@ -468,6 +468,78 @@ visit_id | fieldworkcalendar_id | samplelocation_id | location_id | grts_address
 ** excel sorting
 ... see excel tables
 
+** failed by deletion
+
+Because I manually removed entries from Visits, prior to re-linking, some wrongly associated empty entries remained in the WellInstallationActivities.
+
+
+
+Error: Failed to fetch row : ERROR:  duplicate key value violates unique constraint "WellInstallationActivities_pkey"
+DETAIL:  Key (fieldwork_id)=(201) already exists.
+Execution halted
+Database falk@<host>/mnmgwdb gracefully disconnected.
+
+#+begin_src sql
+SELECT DISTINCT grts_address, stratum, activity_group_id, date_start, COUNT(*) AS n
+FROM "inbound"."WellInstallationActivities"
+GROUP BY grts_address, stratum, activity_group_id, date_start
+ORDER BY n DESC
+;
+#+end_src
+
+| grts_address |  stratum | activity_group_id | date_start | n |
+|       105458 |     4010 |                 4 | 2025-07-01 | 2 |
+|       131806 |     4010 |                 4 | 2026-01-01 | 2 |
+|      1176286 |     4010 |                 4 | 2025-10-01 | 2 |
+|      1902553 | 9130_end |                 4 | 2025-07-01 | 2 |
+|     60185305 |  91E0_va |                 4 | 2026-01-01 | 2 |
+
+
+SELECT
+  fieldwork_id, fieldworkcalendar_id, visit_id, grts_address, date_start
+FROM "inbound"."WellInstallationActivities"
+WHERE grts_address IN (105458, 131806, 1176286, 1902553, 60185305)
+;
+
+|--------------+----------------------+----------+--------------+------------|
+| fieldwork_id | fieldworkcalendar_id | visit_id | grts_address | date_start |
+|--------------+----------------------+----------+--------------+------------|
+|          202 | ✓            5147   |     5147 |       105458 | 2025-07-01 |
+|          233 | ✓             5252  |     5252 |       131806 | 2026-01-01 |
+|          234 | ✓             5252  |     5252 |       131806 | 2026-01-01 |
+|          480 | ✓            6265   |     6265 |      1176286 | 2025-10-01 |
+|          481 | ✓            6265   |     6265 |      1176286 | 2025-10-01 |
+|          201 | ✓            5147   |     5147 |       105458 | 2025-07-01 |
+|          562 | ✓            6636   |     6636 |      1902553 | 2025-07-01 |
+|          232 | ✓                   |          |       131806 | 2025-07-01 |
+|          235 | ✓            5260   |     5260 |       131806 | 2025-07-01 |
+|          563 | ✓            6636   |     6636 |      1902553 | 2025-07-01 |
+|         1018 | ✓            8613   |     8613 |     60185305 | 2026-01-01 |
+|         1019 | ✓            8613   |     8613 |     60185305 | 2026-01-01 |
+|--------------+----------------------+----------+--------------+------------|
+
+
+SELECT *
+FROM "inbound"."WellInstallationActivities"
+WHERE fieldworkcalendar_id IN (8613)
+AND watina_code_used_2_piezometer IS NULL
+AND fieldwork_id = 480
+;
+
+SELECT *
+FROM "inbound"."Visits" V, "outbound"."FieldworkCalendar" F
+WHERE
+F.fieldworkcalendar_id = V.fieldworkcalendar_id
+AND V.fieldworkcalendar_id IN (5252);
+
+
+ -- DELETE
+ SELECT *
+ FROM "inbound"."WellInstallationActivities"
+ WHERE grts_address IN (105458, 131806, 1176286, 1902553, 60185305)
+ AND fieldworkcalendar_id IS NULL
+ ;
+
 ** testing
 
 #+begin_src sql

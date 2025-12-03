@@ -47,6 +47,8 @@ for (table_label in c(
     "ChemicalSamplingActivities"
   )) {
 
+  mnmgwdb$set_sequence_key(table_label)
+
   if (table_label == "ChemicalSamplingActivities") {
     offset <- 10000
     } else offset <- 0
