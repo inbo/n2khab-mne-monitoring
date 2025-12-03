@@ -27,3 +27,5 @@ WHERE VIS.fieldactivitycalendar_id = FAC.fieldactivitycalendar_id
 
 ) TO '/data/mnm_db_backups/20251201_dateless_loceval.csv' With CSV DELIMITER ',' HEADER
 ;
+
+
