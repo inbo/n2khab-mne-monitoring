@@ -505,6 +505,7 @@ connect_database_configfile <- function(
 connect_mnm_database <- function(
     config_filepath,
     database_mirror = NA,
+    folder = NA,
     skip_structure_assembly = FALSE,
     ... # -> connect_database_configfile
   ) {
@@ -535,6 +536,11 @@ connect_mnm_database <- function(
   for (arg in names(args)) {
     if (arg == "password") next
     db[[arg]] <- args[[arg]]
+  }
+
+  # folder may be located distally
+  if (isFALSE(is.na(folder))) {
+    db[["folder"]] <- folder
   }
 
   # connect
