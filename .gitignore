@@ -6,4 +6,5 @@
 .quarto
 n2khab-mne-monitoring.Rproj
 
+/800_fwsupport_mapping_amphibiaprotection/data/
 /100_reporting/load_environment_dbinit.R
