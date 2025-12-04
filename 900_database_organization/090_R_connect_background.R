@@ -17,6 +17,7 @@ keyring_label <- 'mnmdb_temp'
 if (keyring_label %in% keyring::keyring_list()$keyring) {
   stop(glue::glue("Keyring Conflict: `{keyring_label}` already exists."))
 }
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 
 # silent, single-prompt creation
 suppressWarnings(keyring::keyring_create(keyring_label, password = ""))

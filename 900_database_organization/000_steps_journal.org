@@ -159,8 +159,55 @@ What a bummer.
 
 + backup was from 10:16, restore was ~11:30
 
-restore worked flawlessly!
+Restore worked flawlessly!
 ... except that I now have to recreate all the database mirrors.
+
+https://www.bytebase.com/blog/what-is-new-in-postgres-18-for-developer/
+
+** change of superuser
+
+I [[https://www.postgresql.org/docs/current/sql-alterdatabase.html][switched]] to a new superuser.
+
+#+begin_src sql
+ALTER USER <new_owner> WITH SUPERUSER;
+ALTER USER <old_owner> WITH NOSUPERUSER;
+ALTER DATABASE <db_name> OWNER TO <new_owner>;
+#+end_src
+
+https://www.postgresql.org/docs/current/sql-reassign-owned.html
+#+begin_src sh
+REASSIGN OWNED BY <old_owner> TO <new_owner>;
+#+end_src
+
++ adjust =.conf= file.
+
+But: this also involves resetting the =EXPOST= functions.
+
+#+begin_src sql
+GRANT ALL ON SCHEMA pg_catalog TO <new_owner>;
+#+end_src
+
++ adjust structure in google sheet
+
+#+begin_src sql
+DROP FUNCTION IF EXISTS "public"."sync_mod" CASCADE;
+CREATE FUNCTION sync_mod() RETURNS trigger AS $sync_mod$
+BEGIN
+  NEW.log_update := current_timestamp;
+  NEW.log_user := current_user;
+  RETURN NEW
+  ;
+END;
+$sync_mod$ LANGUAGE plpgsql;
+
+#+end_src
+
++ grep all =OWNER TO <new_owner>= and =GRANT= statements from a backup dump file, change user, execute.
+
++ test if everything is correct by dump-restoring the production mirror to staging
+
+In fact, the extensions did not change hands; let's see how this plays out.
+
 
 * loceval
 
@@ -1877,6 +1924,32 @@ but neglects uniqueness of the =fieldwork_id=.
 Temporarily solved by increasing the fieldwork_id
 
 see [[file:./surgery/20250924_fieldwork_id_conflict.sql]]
+
+
+** restoring production database from dumps
+
+Times this happened: 𝍸𝍷
++ POC update failure after successful test on staging
+  + it might be that the connection was misconfigured to point to production, I cannot reproduce why
++ too eager major version upgrade postgres v17 -> v18
+
+*Note* that dumps *do not contain functions* which are defined on the server; e.g. =sync_mod=.
+In consequence, triggers get lost (throw an error upon attempted recreation).
+
+To restore them, the database owner must get access to =pg_catalog=: =GRANT ALL ON SCHEMA pg_catalog TO <user>;=
+
+And then
+#+begin_src sql
+CREATE FUNCTION sync_mod() RETURNS trigger AS $sync_mod$
+BEGIN
+  NEW.log_update := current_timestamp;
+  NEW.log_user := current_user;
+
+  RETURN NEW
+  ;
+END;
+$sync_mod$ LANGUAGE plpgsql;
+#+end_src
 
 
 * General (II)

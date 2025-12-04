@@ -120,6 +120,7 @@ class DatabaseConnection(object):
         self.engine = SQL.create_engine(ConfigToConnectionString(config))
         self.connection = self.engine.connect()
 
+        # print(self.connection)
         EXIT.register(self.connection.close)
 
         # register some pass-through functions
