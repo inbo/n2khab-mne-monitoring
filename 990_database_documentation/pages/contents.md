@@ -18,6 +18,7 @@
 	- [recurrent]([[maintenance/recurrent]])
 	- [pocupdate]([[maintenance/pocupdate]])
 	- [surgery]([[maintenance/surgery]])
+	- [workflow: add a column]([[maintenance/add column]])
 - # [[usage]]
 	- [qgis]([[usage/qgis]])
 	- [qfield]([[usage/qfield]])

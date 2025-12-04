@@ -1,0 +1,279 @@
+---
+title: "Overview MNM Groundwater Installations"
+subtitle: ""
+date: "2025-11-28"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+# Task
+
+Requested are:
+
+- het aantal koppels dat tot en met 28/11 is geïnstalleerd, in totaal en per maatwerkgebied
+- idem voor het aantal locaties waar de loceval is uitgevoerd
+- [de totale geplande aantallen in de drie meetnetten: een update dus van onderstaande tabel obv de actuele steekproeven (POC 0.14)] -> @FV
+
+
+```{r date-filter}
+report_date <- as.Date("2025-11-28")
+
+```
+
+# Preparation
+
+load libraries...
+
+```{r libraries}
+
+# libraries
+source("MNMLibraryCollection.R")
+# load_poc_common_libraries()
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+```
+
+
+connect to the server...
+
+```{r connect-databases}
+
+config_filepath <- file.path("./inbopostgis_server.conf")
+
+locevaldb_mirror <- glue::glue("loceval")
+mnmgwdb_mirror <- glue::glue("mnmgwdb")
+
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror,
+  user = "monkey",
+  password = NA
+)
+
+mnmgwdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmgwdb_mirror,
+  user = "monkey",
+  password = NA
+)
+```
+
+
+load POC info:
+
+```{r load-rdata}
+load_poc_common_libraries()
+load_poc_rdata(reload = FALSE, to_env = globalenv())
+
+domains %>%
+  sf::st_drop_geometry() %>% 
+  knitr::kable(format = "markdown")
+```
+
+
+# Number of Location Evaluations
+
+## counting
+
+```{r loceval-count}
+
+all_locevals <- locevaldb$query_table("Locations") %>%
+  left_join(
+    locevaldb$query_table("Visits"),
+    by = join_by(location_id),
+    relationship = "one-to-many",
+    suffix = c("_loc", "")
+  ) %>% 
+  inner_join(
+    locevaldb$query_table("GroupedActivities") %>%
+      filter(activity_group == "LOCEVALTERR") %>%
+      distinct(activity_group_id, activity_group),
+    by = join_by(activity_group_id)
+  ) %>%
+  left_join(
+    locevaldb$query_table("SampleUnits"),
+    by = join_by(sampleunit_id),
+    relationship = "many-to-one",
+    suffix = c("", "_su")
+  ) %>% 
+  filter(visit_done, date_visit <= report_date) %>%
+  sf::st_set_geometry("wkb_geometry") %>% 
+  select(
+    grts_address,
+    type,
+    type_assessed,
+    date_visit,
+    is_replaced,
+    type_is_absent,
+    wkb_geometry
+  )
+
+all_locevals %>%
+  sf::st_drop_geometry() %>%
+  count(is_replaced, type_is_absent) %>% 
+  janitor::adorn_totals() %>% 
+  knitr::kable(format = "markdown")
+
+```
+
+
+
+```{r view-on-map}
+mapview::mapview(
+  domains,
+  zcol = "domain",
+  alpha.region = 0.1
+) +
+mapview::mapview(
+  all_locevals,
+  zcol = "type_is_absent"
+)
+```
+
+## localizing
+
+:::{.callout-warning}
+Note: In the table below, "Vlaams Gewest" is the TOTAL, it includes the locevals in the SBZs.
+:::
+
+```{r intersect-domains}
+
+locevals_per_region <- sf::st_join(
+    all_locevals,
+    domains,
+    join = sf::st_intersects
+  ) 
+
+locevals_per_region %>%
+  sf::st_drop_geometry() %>%
+  count(domain_name_nl, type_is_absent) %>% 
+  tidyr::pivot_wider(
+    values_from = n,
+    names_from = type_is_absent
+  ) %>%
+  setNames(c("domain", "type confirmed", "type absent")) %>% 
+  janitor::adorn_totals(where = "col") %>% 
+  knitr::kable(format = "markdown")
+
+```
+
+
+# Number of Well Placements
+
+## counting
+
+```{r gw-count}
+
+all_gwdb <- mnmgwdb$query_table("Locations") %>%
+  left_join(
+    mnmgwdb$query_table("Visits"),
+    by = join_by(location_id),
+    relationship = "one-to-many",
+    suffix = c("_loc", "")
+  ) %>% 
+  inner_join(
+    mnmgwdb$query_table("GroupedActivities") %>%
+      filter(activity_group == "GWINSTPIEZWELL") %>%
+      distinct(activity_group_id, activity_group),
+    by = join_by(activity_group_id)
+  ) %>%
+  left_join(
+    mnmgwdb$query_table("SampleLocations"),
+    by = join_by(samplelocation_id),
+    relationship = "many-to-one",
+    suffix = c("", "_sl")
+  ) %>% 
+  filter(visit_done, date_visit <= report_date) %>%
+  sf::st_set_geometry("wkb_geometry") %>% 
+  select(
+    grts_address,
+    stratum,
+    date_visit,
+    issues,
+    archive_version_id,
+    archive_version_id_sl,
+    notes,
+    wkb_geometry
+  ) %>%
+  mutate(archived = coalesce(archive_version_id_sl, archive_version_id))
+
+all_gwdb %>%
+  sf::st_drop_geometry() %>%
+  count(archived, issues) %>% 
+  janitor::adorn_totals() %>% 
+  knitr::kable(format = "markdown")
+
+```
+
+
+
+```{r view-placements-on-map}
+
+mapview::mapview(
+  domains,
+  zcol = "domain",
+  alpha.region = 0.1
+) +
+mapview::mapview(
+  all_gwdb,
+  zcol = "issues"
+)
+
+```
+
+
+
+## localizing
+
+
+:::{.callout-warning}
+Reminder: in the table below, "Flanders" also incorporates all the other subsets of data. 
+It is the total number of placements.
+Do not draw totals per column!
+:::
+
+```{r intersect-gw-domains}
+
+installations_per_region <- sf::st_join(
+    all_gwdb,
+    domains,
+    join = sf::st_intersects
+  ) 
+
+installations_per_region %>%
+  sf::st_drop_geometry() %>%
+  count(domain, issues) %>% 
+  tidyr::pivot_wider(
+    values_from = n,
+    names_from = issues
+  ) %>%
+  setNames(c("domain", "installed", "issues encountered")) %>% 
+  janitor::adorn_totals(where = "col") %>% 
+  knitr::kable(format = "markdown")
+
+```
+
+
+
+## issues
+
+What kind of issues?
+
+```{r show-issues}
+
+all_gwdb %>% 
+  sf::st_drop_geometry() %>%
+  filter(issues) %>%
+  knitr::kable(format = "markdown")
+
+```
