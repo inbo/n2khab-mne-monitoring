@@ -163,37 +163,3 @@ GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom, floris, karen;
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester;
 
-DROP VIEW IF EXISTS  "outbound"."FWPlanINST" CASCADE;
-CREATE VIEW "outbound"."FWPlanINST" AS
-SELECT * FROM "outbound"."FieldworkPlanning"
-WHERE activity_group LIKE '%INST%';
-GRANT SELECT ON  "outbound"."FWPlanINST"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
-GRANT UPDATE ON  "outbound"."FWPlanINST"  TO  tom, floris, karen;
-
-DROP VIEW IF EXISTS  "outbound"."FWPlanPOSIT" CASCADE;
-CREATE VIEW "outbound"."FWPlanPOSIT" AS
-SELECT * FROM "outbound"."FieldworkPlanning"
-WHERE activity_group LIKE '%POSIT%';
-GRANT SELECT ON  "outbound"."FWPlanPOSIT"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
-GRANT UPDATE ON  "outbound"."FWPlanPOSIT"  TO  tom, floris, karen;
-
-DROP VIEW IF EXISTS  "outbound"."FWPlanCLEAN" CASCADE;
-CREATE VIEW "outbound"."FWPlanCLEAN" AS
-SELECT * FROM "outbound"."FieldworkPlanning"
-WHERE activity_group LIKE '%CLEAN%';
-GRANT SELECT ON  "outbound"."FWPlanCLEAN"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
-GRANT UPDATE ON  "outbound"."FWPlanCLEAN"  TO  tom, floris, karen;
-
-DROP VIEW IF EXISTS  "outbound"."FWPlanREAD" CASCADE;
-CREATE VIEW "outbound"."FWPlanREAD" AS
-SELECT * FROM "outbound"."FieldworkPlanning"
-WHERE activity_group LIKE '%READ%';
-GRANT SELECT ON  "outbound"."FWPlanREAD"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
-GRANT UPDATE ON  "outbound"."FWPlanREAD"  TO  tom, floris, karen;
-
-DROP VIEW IF EXISTS  "outbound"."FWPlanSAMP" CASCADE;
-CREATE VIEW "outbound"."FWPlanSAMP" AS
-SELECT * FROM "outbound"."FieldworkPlanning"
-WHERE activity_group LIKE '%SAMP%';
-GRANT SELECT ON  "outbound"."FWPlanSAMP"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
-GRANT UPDATE ON  "outbound"."FWPlanSAMP"  TO  tom, floris, karen;

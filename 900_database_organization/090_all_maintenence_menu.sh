@@ -4,6 +4,7 @@ MIRROR="$1"
 
 source .dbinit/bin/activate
 # Rscript 090_R_connect_background.R &
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 
 # if [[ "$MIRROR" == "-staging" ]]; then
 #   sh ./yad/sync_staging.sh
