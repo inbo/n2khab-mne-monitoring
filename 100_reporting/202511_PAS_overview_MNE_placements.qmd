@@ -121,6 +121,7 @@ all_locevals <- locevaldb$query_table("Locations") %>%
 all_locevals %>%
   sf::st_drop_geometry() %>%
   count(is_replaced, type_is_absent) %>% 
+  janitor::adorn_totals() %>% 
   knitr::kable(format = "markdown")
 
 ```
@@ -141,15 +142,16 @@ mapview::mapview(
 
 ## localizing
 
-
-Note: "Vlaams Gewest" is the TOTAL, it includes the locevals in the SBZs.
+:::{.callout-warning}
+Note: In the table below, "Vlaams Gewest" is the TOTAL, it includes the locevals in the SBZs.
+:::
 
 ```{r intersect-domains}
 
 locevals_per_region <- sf::st_join(
     all_locevals,
     domains,
-    join = st_within
+    join = sf::st_intersects
   ) 
 
 locevals_per_region %>%
@@ -160,6 +162,7 @@ locevals_per_region %>%
     names_from = type_is_absent
   ) %>%
   setNames(c("domain", "type confirmed", "type absent")) %>% 
+  janitor::adorn_totals(where = "col") %>% 
   knitr::kable(format = "markdown")
 
 ```
@@ -207,6 +210,7 @@ all_gwdb <- mnmgwdb$query_table("Locations") %>%
 all_gwdb %>%
   sf::st_drop_geometry() %>%
   count(archived, issues) %>% 
+  janitor::adorn_totals() %>% 
   knitr::kable(format = "markdown")
 
 ```
@@ -232,14 +236,18 @@ mapview::mapview(
 ## localizing
 
 
-Note: "Vlaams Gewest" is the TOTAL, it includes the locevals in the SBZs.
+:::{.callout-warning}
+Reminder: in the table below, "Flanders" also incorporates all the other subsets of data. 
+It is the total number of placements.
+Do not draw totals per column!
+:::
 
 ```{r intersect-gw-domains}
 
 installations_per_region <- sf::st_join(
     all_gwdb,
     domains,
-    join = st_within
+    join = sf::st_intersects
   ) 
 
 installations_per_region %>%
@@ -250,9 +258,11 @@ installations_per_region %>%
     names_from = issues
   ) %>%
   setNames(c("domain", "installed", "issues encountered")) %>% 
+  janitor::adorn_totals(where = "col") %>% 
   knitr::kable(format = "markdown")
 
 ```
+
 
 
 ## issues
