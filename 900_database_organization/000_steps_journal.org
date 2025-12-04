@@ -170,8 +170,12 @@ I [[https://www.postgresql.org/docs/current/sql-alterdatabase.html][switched]] t
 
 #+begin_src sql
 ALTER USER <new_owner> WITH SUPERUSER;
-ALTER USER <old_owner> WITH NOSUPERUSER;
 ALTER DATABASE <db_name> OWNER TO <new_owner>;
+
+
+ALTER USER <old_owner> WITH NOSUPERUSER;
+ALTER USER <old_owner> WITH NOCREATEDB;
+ALTER USER <old_owner> WITH NOCREATEROLE;
 #+end_src
 
 https://www.postgresql.org/docs/current/sql-reassign-owned.html
