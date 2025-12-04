@@ -1,11 +1,17 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 773a461 (dbinit: add another standard user for myself)
 The superuser for this database is:,salamandra,Unnamed: 2,Unnamed: 3,Unnamed: 4,Unnamed: 5,Unnamed: 6,Unnamed: 7,Unnamed: 8
 planners:,"tom,falk",tom,falk,,,,,
 list of other users:,"yglinga,jens,lise,wouter,floris,karen,falk",yglinga,jens,lise,wouter,floris,karen,falk
 read-only users:,"ward,monkey",ward,,,,,,
+<<<<<<< HEAD
 =======
 The superuser for this database is:,falk,Unnamed: 2,Unnamed: 3,Unnamed: 4,Unnamed: 5,Unnamed: 6,Unnamed: 7
 planners:,tom,tom,,,,,
 list of other users:,"yglinga,jens,lise,wouter,floris,karen",yglinga,jens,lise,wouter,floris,karen
 read-only users:,"ward,monkey",ward,,,,,
 >>>>>>> 916978f (dbinit: dashboard ++ archive, counts)
+=======
+>>>>>>> 773a461 (dbinit: add another standard user for myself)

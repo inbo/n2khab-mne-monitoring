@@ -5,10 +5,14 @@ BEGIN;COMMIT;,"-- ALTER TABLE ""outbound"".""fieldworkcalendar"" ADD CONSTRAINT 
 "ALTER TABLE ""metadata"".""LocationCells"" DROP CONSTRAINT IF EXISTS fk_Locations_LocationCells CASCADE;ALTER TABLE ""metadata"".""LocationCells"" ADD CONSTRAINT fk_Locations_LocationCells FOREIGN KEY (location_id)REFERENCES ""metadata"".""Locations"" (location_id) MATCH SIMPLEON DELETE CASCADE ON UPDATE CASCADE;",-- location_cells must delete on locations cascade (non-null constraint for foreign key is difficult)
 "CREATE SEQUENCE ""inbound"".seq_fieldwork_idINCREMENT BY 1MINVALUE 0MAXVALUE 2147483647START WITH 1CACHE 1NO CYCLE;",-- shared sequence for multiple fieldwork activity tables
 <<<<<<< HEAD
+<<<<<<< HEAD
 "GRANT USAGE ON SEQUENCE ""inbound"".""seq_fieldwork_id"" TO tom,falk,yglinga,jens,lise,wouter,floris,karen,falk;",
 =======
 "GRANT USAGE ON SEQUENCE ""inbound"".""seq_fieldwork_id"" TO tom,yglinga,jens,lise,wouter,floris,karen;",
 >>>>>>> 916978f (dbinit: dashboard ++ archive, counts)
+=======
+"GRANT USAGE ON SEQUENCE ""inbound"".""seq_fieldwork_id"" TO tom,falk,yglinga,jens,lise,wouter,floris,karen,falk;",
+>>>>>>> 773a461 (dbinit: add another standard user for myself)
 "GRANT SELECT ON SEQUENCE ""inbound"".""seq_fieldwork_id"" TO ward,monkey;",
 "ALTER TABLE ""inbound"".""WellInstallationActivities"" ALTER COLUMN fieldwork_id SET DEFAULT nextval('inbound.seq_fieldwork_id'::regclass);",
 "ALTER TABLE ""inbound"".""ChemicalSamplingActivities"" ALTER COLUMN fieldwork_id SET DEFAULT nextval('inbound.seq_fieldwork_id'::regclass);",
