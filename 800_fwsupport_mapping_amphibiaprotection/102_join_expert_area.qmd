@@ -1,0 +1,66 @@
+---
+title: "Joining expert information"
+author: Falk Mielke
+date: today
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+  pdf:
+    toc: false
+    margin-left: 1cm
+    margin-top: 1cm
+    margin-rechts: 1cm
+    margin-bottom: 1cm
+knitr:
+  opts_chunk:
+    echo: false
+---
+
+> De vermelde gebieden zijn (actuele en voormalige) leefgebieden van vuursalamander en zijn nog steeds relevant.
+> In jouw laag zitten wat foutjes. 
+> Hier is een laag met de actuele verspreiding van de soort incl. buffer.
+> Ik denk dat je best deze neemt en daar dan Voeren en het Zoniënwoud aan toevoegt.
+
+
+```{r libraries}
+silently <- suppressPackageStartupMessages
+library("dplyr") |> silently()
+library("stringr") |> silently() # forest finder
+library("glue") |> silently() 
+library("knitr") |> silently() # table printing
+library("sf") |> silently()
+library("mapview") |> silently() # quick inspection
+library("purrr") |> silently() # apply spatial operations
+library("inbospatial") |> silently() # wfs query
+
+```
+
+```{r}
+areas_statusquo <- sf::st_read("amphibia_areas.gpkg")
+areas_addition <- sf::st_read("wn_buffer.gpkg")
+
+mapview::mapview(areas_addition, col.regions = "yellow") +
+  mapview::mapview(areas_statusquo, col.regions = "black")
+```
+
+```{r}
+
+areas_all <- sf::st_union(areas_statusquo, areas_addition) %>%
+  sf::st_as_sfc() %>% 
+  sf::st_union()
+
+mapview::mapview(areas_all)
+```
+
+
+
+```{r}
+st_write(areas_all,
+  dsn = "amphibia_areas.gpkg",
+  layer = 'amphibia_protection_areas',
+  append = FALSE
+)
+```
