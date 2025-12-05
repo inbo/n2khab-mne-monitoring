@@ -1171,6 +1171,8 @@ associate_and_shift_start_dates <- function(
 } # /associate_and_shift_start_dates
 
 
+#_______________________________________________________________________________
+
 ### categorize data
 # categorize potentially new ("future") content for a given table
 # into three groups, by matching with the existing table on the
@@ -1420,6 +1422,7 @@ upload_additional_data <- function(mnmdb, ...) {
 } # /upload_additional_data
 
 
+#_______________________________________________________________________________
 ### Update Machinery
 
 # ## check all data types
@@ -1502,6 +1505,8 @@ convert_data_to_sql_input_str <- function(datatypes, data) {
   return(data)
 } # /convert_data_to_sql_input_str
 
+
+#_______________________________________________________________________________
 
 ### update data rows
 # which are already present, identified by reference columns
@@ -1686,6 +1691,9 @@ update_existing_data <- function(
 } # /update_existing_data
 
 
+
+#_______________________________________________________________________________
+
 ### flag data as archived
 # `version_id = NULL` will un-archive (i.e. reactivate) the rows
 archive_ancient_data <- function(
@@ -1753,6 +1761,7 @@ reactivate_archived_data <- function(...) {
 } # /reactivate_archived_data
 
 
+#_______________________________________________________________________________
 
 #' Link dates of two calendar sets using common heuristics
 #'
@@ -2017,10 +2026,78 @@ link_dates <- function(
 } # /link_dates
 
 
+
+#_______________________________________________________________________________
+# SIDELOADING
+
+#' Sideload extra data to a database table
+#'
+#' @param mnmdb an MNM database including DBI connection, structure, and
+#'        working functions. See `MNMDatabaseConnection.R` for details.
+#' @param table_label the table to be appended
+#' @param characteristic_columns a subset of columns common by which data rows
+#'        can be uniquely identified
+#' @param data_filepath path of a csv file with the extra data
+#'
+load_table_sideload_content <- function(
+    mnmdb,
+    table_label,
+    characteristic_columns,
+    data_filepath
+  ) {
+
+  stopifnot("dplyr" = require("dplyr"))
+
+  # load the new data
+  inception_data <- read.csv2(data_filepath, sep = ",") %>%
+    dplyr::as_tibble()
+
+  dtypes <- mnmdb$load_table_info(table_label) %>%
+    select(column, datatype)
+
+  # data type adjustment
+  for (col in colnames(inception_data)) {
+    dtyp <- dtypes %>%
+      filter(column == col) %>%
+      pull(datatype) %>% .[1]
+    dtype_conversion_fcn <- datatype_conversion_functions[[tolower(dtyp)]]
+
+    inception_data <- inception_data %>%
+      mutate_at(vars(!!!rlang::syms(c(col))), dtype_conversion_fcn)
+  }
+
+  # query existing data from database
+  existing_data <- mnmdb$query_table(table_label)
+    # %>% select(!!!rlang::syms(characteristic_columns))
+
+  # existing_data %>%
+  #   semi_join(
+  #     inception_data,
+  #     by = join_by(!!!rlang::syms(characteristic_columns))
+  #   ) %>% t() %>% knitr::kable()
+
+  # Only keep entries which are not in the database yet
+  inception_data <- inception_data %>%
+    anti_join(
+      existing_data,
+      by = join_by(!!!rlang::syms(characteristic_columns))
+    )
+
+  # inception_data  %>%
+  #   t() %>% knitr::kable()
+
+  return(inception_data)
+
+} # /load_table_sideload_content
+
+
+#_______________________________________________________________________________
+
 # for some columns, existing data may not be overwritten
 # (i.e. the database is the one and only reference)
 # TODO: This is incredibly hacky and embarassing, but it will
-# eventually get better.
+# eventually get better. I am embarassed.
+# Last update: 20251205
 precedence_columns <- list(
   "SampleLocations" = c(
     "is_replacement"
@@ -2063,9 +2140,6 @@ precedence_columns <- list(
     "type_assessed"
   ),
   "WellInstallationActivities" = c(
-    "teammember_id",
-    "date_visit",
-    "visit_done",
     "photo_soil_1_peilbuis",
     "photo_soil_2_piezometer",
     "photo_well",
@@ -2076,12 +2150,13 @@ precedence_columns <- list(
     "random_point_number",
     "no_diver",
     "diver_id",
-    "free_diver"
+    "free_diver",
+    "reused_existing_well",
+    "reused_with_replacement",
+    "used_water_from_tap",
+    "used_water_source"
   ),
   "ChemicalSamplingActivities" = c(
-    "teammember_id",
-    "date_visit",
-    "visit_done",
     "project_code",
     "recipient_code"
   ),

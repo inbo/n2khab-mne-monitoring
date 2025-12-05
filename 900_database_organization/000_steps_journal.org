@@ -1213,7 +1213,33 @@ SCHEDULED: <2025-10-09 Thu>
 
 + TODO: location_infos don't get replaced; re-work 094 in R?
   
-  
+
+** sideloading: the lost replacement =84598/7150= to =871030=
+SCHEDULED: <2025-12-05 Fri>
+
+One of my favorite locations: =grts_address = 84598=.
++ covers two types: =4010= and =7150=
++ Double-replaced to =grts_address = 871030= by @WT (info via chat)
+
+This caused some trouble in the machinery, which was eventually solved.
+
+... Until POC upgrade to v0.14!
+
+Then, replacements changed, and the originally selected replacement table entry was removed for type =7150= (but not for type =4010=).
+
+*⇒ Sideloading needed to be implemented.*
+
++ For the time being, I sideload from =.csv= files located in =./sideload=.
++ supported by =load_table_sideload_content()= in =MNMDatabaseTesting.R=
++ both extra loading script, as well as insert in =071_POC_update_loceval.qmd= (to be tested)
++ On the way, I almost deleted all ="outbound"."Replacements"= by accidental =tabula_rasa=; weekend is due.
+
+
+#+begin_src sql
+SELECT * FROM "outbound"."Replacements" WHERE grts_address = 84598 AND is_selected;
+#+end_src
+
+
 * mnmgwdb
 
 ** the next database

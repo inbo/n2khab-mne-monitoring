@@ -1089,7 +1089,7 @@ stitch_table_connection(
 )
 
 
-replacement_characols = c(
+replacement_characols <- c(
     "grts_address",
     "type",
     "grts_address_replacement",
@@ -1155,9 +1155,23 @@ if (nrow(replacement_archives) > 0) {
 
 ## restore
 
+
+```{r STOP-sideload-replacements}
+stop()
+# TODO this is the place to sideload extra replacemetnts
+
+
+replacements_sideload <- load_table_sideload_content(
+  mnmdb = locevaldb,
+  table_label = "Replacements",
+  characteristic_columns = c("grts_address", "type", "grts_address_replacement"),
+  data_filepath = "sideload/loceval_replacements.csv"
+)
+```
+
 ```{r new-replacements}
 
-replacements <-
+replacements_poc <- 
   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   select(stratum, grts_address, replacement_cells) %>%
   unnest(replacement_cells) %>%
@@ -1172,7 +1186,13 @@ replacements <-
     cellnr_replacement = cellnr_replac,
     grts_address_replacement = grts_address_replac,
     replacement_rank = ranknr
-  ) %>%
+  ) 
+    
+    
+replacements <- bind_rows(
+    replacements_poc,
+    replacements_sideload 
+  ) %>% 
   inner_join(
     sampleunits_lookup %>%
       select(type, grts_address, sampleunit_id),
@@ -1180,7 +1200,6 @@ replacements <-
     relationship = "many-to-many", # TODO
     unmatched = "drop"
   )
-
 
 
 replacements_new <- replacements %>%
