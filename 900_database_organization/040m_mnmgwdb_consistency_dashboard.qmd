@@ -565,13 +565,15 @@ archives %>%
   left_join(
     mnmgwdb$query_columns(
         "ReplacementData",
-        c("grts_address", "grts_address_replacement")
+        c("grts_address", "type", "grts_address_replacement")
       ) %>%
       rename(
         grts_address_poc = grts_address,
+        stratum = type,
         grts_address = grts_address_replacement,
       ),
-    by = join_by(grts_address)
+    by = join_by(grts_address),
+    relationship = "many-to-many"
   ) %>% 
   knitr::kable()
 ```

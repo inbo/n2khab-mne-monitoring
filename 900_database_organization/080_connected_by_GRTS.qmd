@@ -39,12 +39,12 @@ suffix <- ""
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(709330)
+grts <- c(908981)#, 59629237) # dismissed -> no replacements
+    # c(1205598, 41313630) # replacement from previous POC version -> sideloaded
+    # c(5193397, 59719349) # LOST?! NO! -> just mistyped the replacer GRTS. But it is archived.
     # c(1205598, 41313630) # replacement cell missing from updated plans
     # c(23238, 6314694, 23091910) # Hellebos!
-    # c(908981, 59629237) # dismissed -> no replacements
     # c(3554997, 29769397) # early bird ZEB/achterhaven
-    # c(5193397, 57919349) # LOST?!
     # c(84598, 871030) # replacement mishap
     # c(1999406, 6417454)
     # c(53206450) # victim to the Dolle Dromedaris

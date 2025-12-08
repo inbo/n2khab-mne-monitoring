@@ -82,6 +82,7 @@ replacements_to_sideload %>% t() %>% knitr::kable()
 sampleunits_lookup <- locevaldb$query_columns(
     "SampleUnits", c("grts_address", "type", "sampleunit_id")
   )
+# sampleunits_lookup %>% filter(grts_address == 1205598)
 
 replacements_new <- replacements_to_sideload %>%
   inner_join(

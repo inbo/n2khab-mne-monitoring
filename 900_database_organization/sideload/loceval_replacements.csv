@@ -1,2 +1,3 @@
-grts_address, type, grts_address_replacement, type_suggested, replacement_rank, is_inappropriate, is_selected, implications_habitatmap, notes
-84598, "7150", 871030, , 9999, 0, 1, 0,
+grts_address,type,grts_address_replacement,type_suggested,replacement_rank,is_inappropriate,is_selected,implications_habitatmap,notes
+84598,7150,871030,,9999,0,1,0,
+1205598,6510_hus,41313630,,9999,0,1,0,
