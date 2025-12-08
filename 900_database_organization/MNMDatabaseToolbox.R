@@ -2038,12 +2038,14 @@ link_dates <- function(
 #' @param characteristic_columns a subset of columns common by which data rows
 #'        can be uniquely identified
 #' @param data_filepath path of a csv file with the extra data
+#' @param reload_previous optionally skip the removal of previous sideloads
 #'
 load_table_sideload_content <- function(
     mnmdb,
     table_label,
     characteristic_columns,
-    data_filepath
+    data_filepath,
+    reload_previous = FALSE
   ) {
 
   stopifnot("dplyr" = require("dplyr"))
@@ -2077,11 +2079,13 @@ load_table_sideload_content <- function(
   #   ) %>% t() %>% knitr::kable()
 
   # Only keep entries which are not in the database yet
-  inception_data <- inception_data %>%
-    anti_join(
-      existing_data,
-      by = join_by(!!!rlang::syms(characteristic_columns))
-    )
+  if (isFALSE(reload_previous)) {
+    inception_data <- inception_data %>%
+      anti_join(
+        existing_data,
+        by = join_by(!!!rlang::syms(characteristic_columns))
+      )
+  }
 
   # inception_data  %>%
   #   t() %>% knitr::kable()

@@ -201,6 +201,7 @@ fieldwork_calendar <-
   mutate(
     log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
+    is_sideloaded = FALSE,
     excluded = FALSE,
     no_visit_planned = FALSE,
     done_planning = FALSE
@@ -210,13 +211,13 @@ fieldwork_calendar <-
 ### query previous calendar
 ## ----save-previous-FACs----------------------------------------------
 
-previous_calendar_plans <- mnmgwdb$query_table("FieldworkCalendar") %>%
-  left_join(
-    mnmgwdb$query_table("SSPSTaPas"),
-    by = join_by(sspstapa_id)
-  ) %>%
-  relocate(stratum_scheme_ps_targetpanels, .after = sspstapa_id) %>%
-  select(-sspstapa_id)
+# previous_calendar_plans <- mnmgwdb$query_table("FieldworkCalendar") %>%
+#   left_join(
+#     mnmgwdb$query_table("SSPSTaPas"),
+#     by = join_by(sspstapa_id)
+#   ) %>%
+#   relocate(stratum_scheme_ps_targetpanels, .after = sspstapa_id) %>%
+#   select(-sspstapa_id)
 
 # glimpse(previous_calendar_plans)
 
@@ -258,12 +259,47 @@ fieldcalendar_characols <- c(
   )
 
 
+# sideloading: extra activities e.g. to follow up issues in the field
+calendar_to_sideload <- load_table_sideload_content(
+    mnmdb = mnmgwdb,
+    table_label = "FieldworkCalendar",
+    characteristic_columns = fieldcalendar_characols,
+    data_filepath = "sideload/mnmgwdb_calendars.csv",
+    reload_previous = TRUE
+  ) %>%
+  inner_join(
+    samplelocations_lookup %>% rename(stratum = strata),
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-many", # TODO
+    unmatched = "drop"
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    is_sideloaded = TRUE,
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  )
+
+fieldwork_calendar_new <- bind_rows(
+  fieldwork_calendar_new,
+  calendar_to_sideload %>%
+    anti_join(
+      fieldwork_calendar_new,
+      by = join_by(!!!rlang::syms(fieldcalendar_characols))
+    )
+  )
+
+
+
 table_label <- "FieldworkCalendar"
 data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
 
-# stop()
+
+# link start dates of old and new plans by shifting old plans
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = mnmgwdb,
   table_label = table_label,
@@ -292,7 +328,7 @@ print_category_count(distribution, table_label)
 
 
 if (FALSE) {
-
+# manual checks
 
 current_calendar_db <- mnmgwdb$query_table("FieldworkCalendar") %>%
   left_join(

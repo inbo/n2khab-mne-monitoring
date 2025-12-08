@@ -1,5 +1,11 @@
 #!/usr/bin/env Rscript
 
+
+# SELECT DISTINCT fieldwork_id, COUNT(*) AS n
+# FROM "inbound"."WellInstallationActivities"
+# GROUP BY fieldwork_id
+# ORDER BY n DESC;
+
 source("MNMLibraryCollection.R")
 load_database_interaction_libraries()
 
@@ -42,6 +48,7 @@ characteristic_columns <- c(
   "date_start"
 )
 
+# table_label <- "WellInstallationActivities"
 for (table_label in c(
     "WellInstallationActivities",
     "ChemicalSamplingActivities"
@@ -49,9 +56,13 @@ for (table_label in c(
 
   mnmgwdb$set_sequence_key(table_label)
 
+  # NOTE on the offset:
+  #      - CSA is offset by 10000 per default
+  #      - both IDs are offset by 100000 for update, reduced back below
+  #        otherwise there can be duplicate on inset new activities
   if (table_label == "ChemicalSamplingActivities") {
-    offset <- 10000
-    } else offset <- 0
+    offset <- 110000
+    } else offset <- 100000
 
   ### query existing
   existing_activities <- mnmgwdb$query_columns(
@@ -97,6 +108,13 @@ for (table_label in c(
 
   ### execute update
   mnmgwdb$execute_sql(update_string)
+
+  mnmgwdb$execute_sql(glue::glue("
+    UPDATE {trgtab}
+      SET fieldwork_id = fieldwork_id - 100000
+      WHERE fieldwork_id > 99999
+    ;"
+    ))
 
   mnmgwdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
 
