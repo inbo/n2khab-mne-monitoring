@@ -1,5 +1,9 @@
 #!/usr/bin/env Rscript
 
+message(".______________________________________________________________.")
+message("|         sideloading outbound.Replacements to loceval         |")
+message(".______________________________________________________________.")
+
 source("MNMLibraryCollection.R")
 load_database_interaction_libraries()
 
@@ -80,8 +84,8 @@ replacements_to_sideload %>% t() %>% knitr::kable()
 
 # join sampleunit_id
 sampleunits_lookup <- locevaldb$query_columns(
-    "SampleUnits", c("grts_address", "type", "sampleunit_id")
-  )
+  "SampleUnits", c("grts_address", "type", "sampleunit_id")
+)
 # sampleunits_lookup %>% filter(grts_address == 1205598)
 
 replacements_new <- replacements_to_sideload %>%

@@ -1157,7 +1157,7 @@ if (nrow(replacement_archives) > 0) {
 
 
 ```{r STOP-sideload-replacements}
-stop()
+stop("UNDER CONSTRUCTION: sideloaded replacements yet to be be included.")
 # TODO this is the place to sideload extra replacemetnts
 
 

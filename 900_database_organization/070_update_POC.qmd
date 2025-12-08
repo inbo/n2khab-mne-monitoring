@@ -640,8 +640,11 @@ fieldwork_calendar <-
     log_update = as.POSIXct(Sys.time()),
     excluded = FALSE,
     no_visit_planned = FALSE,
-    done_planning = FALSE
+    done_planning = FALSE,
+    is_sideloaded = FALSE
   ) 
+
+stop("UNDER CONSTRUCTION: sideloads have to be union'd")
 
 # fieldwork_calendar %>% 
 #   filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
@@ -1010,7 +1013,7 @@ visits_redownload <- visits_redownload %>%
     by = join_by(activity_group_id)
   )
 
-
+stop("CONSIDER: these are not special activity characteristic columns!")
 speciact_characols <- c(
   "samplelocation_id",
   "fieldworkcalendar_id",
