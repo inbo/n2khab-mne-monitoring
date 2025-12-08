@@ -32,14 +32,15 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./inbopostgis_server.conf")
 
 suffix <- "-staging" # "-testing"
-suffix <- ""
+# suffix <- ""
 ```
 
 
 -- choose a GRTS
 
 ```{r choose-grts}
-grts <- c(908981)#, 59629237) # dismissed -> no replacements
+grts <- c(49896893, 21323197) # first sideload: visit with issues must be repeated
+    # c(908981)#, 59629237) # dismissed -> no replacements
     # c(1205598, 41313630) # replacement from previous POC version -> sideloaded
     # c(5193397, 59719349) # LOST?! NO! -> just mistyped the replacer GRTS. But it is archived.
     # c(1205598, 41313630) # replacement cell missing from updated plans

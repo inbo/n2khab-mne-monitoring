@@ -12,10 +12,16 @@
 # search info in calendar:
 # fag_stratum_grts_calendar %>%
 # fag_stratum_grts_calendar_2025_attribs %>%
+# fieldwork_2025_prioritization_by_stratum %>%
 #   filter(
-#     grts_address %in% c(49896893, 21323197),
-#     field_activity_group == "GWINSTPIEZWELL"
-#   ) %>% t() %>% knitr::kable()
+#     # field_activity_group == "GWINSTPIEZWELL",
+#     grts_address %in% c(49896893, 21323197)
+#   ) %>%
+#   t() %>% knitr::kable()
+#   # select(
+#   #   grts_address, domain_part, date_start,
+#   #   date_end, date_interval, field_activity_group, rank
+#   # ) %>%
 # NOTE that `date_start` may not same as the original! (uniqueness constraint)
 
 
@@ -220,6 +226,7 @@ activities_upload <- fwcalendar_upload %>%
     by = join_by(!!!rlang::syms(visits_characols))
   )
 
+activities_upload %>% select(-notes) %>% t() %>% knitr::kable()
 
 # table_label <- "WellInstallationActivities"
 for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
@@ -243,3 +250,4 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
   )
 
 }
+
