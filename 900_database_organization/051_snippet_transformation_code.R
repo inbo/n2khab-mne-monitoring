@@ -2,50 +2,44 @@
 
 common_current_calenderfilters <- function(.data) {
 
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("stringr" = require("stringr"))
+  stopifnot("purrr" = require("purrr"))
+
   if ("scheme_moco_ps" %in% names(.data)) {
-    .data %>%
-      mutate(has_gw = purrr::map_lgl(
-        scheme_moco_ps,
-        \(df) any(stringr::str_detect(df$scheme, "^GW"))
-      )) %>%
+    gw_data <- .data %>%
+      dplyr::mutate(
+        has_gw = purrr::map_lgl(
+          scheme_moco_ps,
+          \(df) any(stringr::str_detect(df$scheme, "^GW"))
+        )
+      )
+  } else if ("scheme_ps_targetpanels" %in% names(.data)) {
+    gw_data <- .data %>%
+      dplyr::mutate(
+        has_gw = stringr::str_detect(scheme_ps_targetpanels, "^GW")
+      )
+
+  }
+
+  gw_data %>%
     filter(
       lubridate::year(date_start) < 2026 |
         # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
         # next years to be executed:
         (
           has_gw &
-            str_detect(
+            stringr::str_detect(
               field_activity_group,
               "INST|LEVREAD|SPATPOSIT"
-            )
-            # & date_start == min(date_start)
+            ) &
+          date_start == min(date_start)
         ),
       .by = c(stratum, grts_address, field_activity_group)
     ) %>%
     select(-has_gw) %>%
     return()
 
-  } else if ("scheme_ps_targetpanels" %in% names(.data)) {
-    .data %>%
-      mutate(
-        has_gw = stringr::str_detect(scheme_ps_targetpanels, "^GW")
-      ) %>%
-    filter(
-      lubridate::year(date_start) < 2026 |
-        # already allow GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from 2026 to be
-        # executed in 2025:
-        (
-          (lubridate::year(date_start) < 2027) &
-            has_gw &
-            str_detect(
-              field_activity_group,
-              "INST|LEVREAD|SPATPOSIT"
-            )
-        )
-    ) %>%
-    select(-has_gw) %>%
-    return()
-  }
 }
 
 common_current_samplefilters <- function(.data) {
@@ -64,35 +58,42 @@ common_current_samplefilters <- function(.data) {
 
 prioritize_and_arrange_fieldwork <- function(.data) {
 
-  return(
   .data %>%
     mutate(
       priority = case_when(
-        str_detect(
-          scheme_ps_targetpanels,
-          "GW_03\\.3:(PS1PANEL(09|10|11|12)|PS2PANEL0[56])|SURF_03\\.4_[a-z]+:PS\\dPANEL03"
-        ) ~ 1L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 2L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 4L,
-        .default = 5L
+        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL12|PS2PANEL06)") ~ 7L,
+        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL11)") ~ 1L,
+        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL10|PS2PANEL05)") ~ 2L,
+        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL09)") ~ 3L,
+        str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL03") ~ 4L,
+        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 5L,
+        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 6L,
+        str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 8L,
+        .default = 9L
       ),
-      wait_watersurface = str_detect(stratum, "^31|^2190_a$"),
+      wait_watersurface = str_detect(stratum, "^31|^2190_a"),
       wait_3260 = stratum == "3260",
-      wait_7220 = str_detect(stratum, "^7220")
-    )
-  ) %>%
-  arrange(
-    date_end,
-    priority,
-    wait_watersurface,
-    wait_3260,
-    wait_7220,
-    stratum,
-    grts_address,
-    rank,
-    field_activity_group
-  )
+      wait_7220 = str_detect(stratum, "^7220"),
+      wait_floating = stratum == "7140_mrd",
+      wait_any = if_any(starts_with("wait"))
+    ) %>%
+    relocate(wait_any, .before = wait_watersurface) %>%
+    arrange(
+      date_end,
+      priority,
+      wait_watersurface,
+      wait_3260,
+      wait_7220,
+      wait_floating,
+      wait_any,
+      stratum,
+      grts_address,
+      rank,
+      field_activity_group
+    ) %>%
+    return()
+
+
 }
 
 rename_grts_address_final_to_grts_address <- function(.data) {

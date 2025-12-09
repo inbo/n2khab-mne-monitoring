@@ -208,6 +208,13 @@ fieldwork_calendar <-
   )
 
 
+# fieldwork_calendar %>%
+#   filter(grts_address %in% c(2137206, 49692341)) %>%
+#   t() %>% knitr::kable()
+# fieldwork_2025_prioritization_by_stratum %>%
+#   filter(grts_address_final %in% c(2137206, 49692341)) %>%
+#   t() %>% knitr::kable()
+
 ### query previous calendar
 ## ----save-previous-FACs----------------------------------------------
 
@@ -297,6 +304,10 @@ table_label <- "FieldworkCalendar"
 data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
+
+# fieldwork_calendar_new %>%
+#   filter(grts_address %in% c(2137206, 49692341)) %>%
+#   t() %>% knitr::kable()
 
 
 # link start dates of old and new plans by shifting old plans

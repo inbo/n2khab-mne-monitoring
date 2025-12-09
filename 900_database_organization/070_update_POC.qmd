@@ -644,7 +644,6 @@ fieldwork_calendar <-
     is_sideloaded = FALSE
   ) 
 
-stop("UNDER CONSTRUCTION: sideloads have to be union'd")
 
 # fieldwork_calendar %>% 
 #   filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
@@ -712,6 +711,44 @@ stitch_table_connection(
   lookup_columns = c("grts_address", "stratum"),
   reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
+
+```
+
+
+```{r sideload-extra-calendar-entries}
+
+# sideloading: extra activities e.g. to follow up issues in the field
+calendar_to_sideload <- load_table_sideload_content(
+    mnmdb = mnmgwdb,
+    table_label = "FieldworkCalendar",
+    characteristic_columns = fieldcalendar_characols,
+    data_filepath = "sideload/mnmgwdb_calendars.csv",
+    reload_previous = TRUE
+  ) %>%
+  inner_join(
+    samplelocations_lookup %>% rename(stratum = strata),
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-many", # TODO
+    unmatched = "drop"
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    is_sideloaded = TRUE,
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  )
+
+fieldwork_calendar_new <- bind_rows(
+  fieldwork_calendar_new,
+  calendar_to_sideload %>%
+    anti_join(
+      fieldwork_calendar_new,
+      by = join_by(!!!rlang::syms(fieldcalendar_characols))
+    )
+  )
+
 
 ```
 

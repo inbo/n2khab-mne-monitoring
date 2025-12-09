@@ -29,11 +29,15 @@ verify_poc_objects()
 #_______________________________________________________________________________
 # prioritization and subset -> fieldwork_2025_prioritization_by_stratum
 
+# 2137206
+# 23238 -> 23091910   # Hellebos
+# 49692341
+
 fieldwork_2025_prioritization_by_stratum %>%
   filter(
     # field_activity_group == "GWINSTPIEZWELL",
     # grts_address %in% c(49896893, 21323197)
-    grts_address %in% c(2137206)
+    grts_address %in% c(49692341)
   ) %>%
   select(
     domain_part,
@@ -67,7 +71,10 @@ LEFT JOIN (
   ) AS ACT ON ACT.activity_group_id = VIS.activity_group_id
 WHERE
   FWCAL.fieldworkcalendar_id = VIS.fieldworkcalendar_id
-  AND FWCAL.grts_address IN (2137206)
+  AND FWCAL.grts_address IN (49692341)
 ;
 
 '
+
+# will go through fwcal update with an eye for
+#    (2137206, 49692341)
