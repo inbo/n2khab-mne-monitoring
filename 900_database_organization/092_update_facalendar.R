@@ -6,6 +6,7 @@ load_database_interaction_libraries()
 source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
+## ----database-connection------------------------------------------------------
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
@@ -35,7 +36,7 @@ load_poc_common_libraries()
 load_poc_rdata(reload = FALSE, to_env = globalenv())
 
 # ... and code snippets.
-snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 load_poc_code_snippets(snippets_path)
 
 verify_poc_objects()
@@ -49,7 +50,7 @@ update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 
 ### query true activity calendar
 activity_groupid_lookup <- mnmgwdb$query_columns(
-    "GroupedActivities",
+    table_label = "GroupedActivities",
     c("activity_group", "activity_group_id")
   ) %>%
   distinct()

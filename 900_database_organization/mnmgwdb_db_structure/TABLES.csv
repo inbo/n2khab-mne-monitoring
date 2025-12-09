@@ -1,6 +1,4 @@
 schema,table,owner,read_access,write_access,geometry,constraint,freesql,persistent,excluded,comment
-<<<<<<< HEAD
-<<<<<<< HEAD
 metadata,Versions,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,1,,storing the POC versions which caused the archived data
 metadata,Protocols,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,protocols (preliminary version)
 metadata,GroupedActivities,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
@@ -24,82 +22,3 @@ inbound,ChemicalSamplingActivities,salamandra,"tom,falk,yglinga,jens,lise,wouter
 inbound,FreeFieldNotes,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,FieldFollowUps,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",POINT,,,1,,"forgotten, but never really forgotten tasks"
 archive,ReplacementData,salamandra,monkey,,,,,1,,storing info about replacements (temporary solution)
-=======
-=======
->>>>>>> 773a461 (dbinit: add another standard user for myself)
-<<<<<<< HEAD
-metadata,Protocols,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,protocols (preliminary version)
-metadata,GroupedActivities,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
-metadata,TeamMembers,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,1,,list of team members
-metadata,N2kHabStrata,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,n2khab types and strata
-metadata,SSPSTaPas,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,1,,lookup for stratum_scheme_ps_targetpanels
-metadata,Locations,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
-metadata,LocationCells,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
-metadata,Coordinates,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,coordinates of the grts points (in other CRS)
-outbound,LocationInfos,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
-outbound,SampleLocations,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
-outbound,LocationEvaluations,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
-outbound,FieldworkCalendar,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,field activity calender
-outbound,Divers,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",tom,,,,1,,list of reserved diver numbers for selection
-outbound,RandomPoints,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,POINT,,,,,random points for placement in the cell
-outbound,MHQPolygons,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey",,POLYGON,,,1,,MHQ sample areas NO TRESPASSING!
-outbound,CellMaps,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",POLYGON,,,1,,cell mapping input by drawing polygons
-inbound,Visits,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,"inbound information about location visits, planned in FieldworkCalendar, linked to SampleLocations and field activity GROUP"
-inbound,WellInstallationActivities,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,information collected for certain activities (well installations); linked to a subset of Visits
-inbound,ChemicalSamplingActivities,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",,,,1,,information collected for certain activities (chemical sampling); linked to a subset of Visits
-inbound,FreeFieldNotes,yoda,"tom,yglinga,jens,lise,wouter,floris,karen,tester,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,tester",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
-archive,ReplacementData,yoda,monkey,,,,,1,,storing info about replacements (temporary solution)
-=======
-metadata,Versions,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,1,,storing the POC versions which caused the archived data
-metadata,Protocols,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,protocols (preliminary version)
-metadata,GroupedActivities,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
-metadata,TeamMembers,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,1,,list of team members
-metadata,N2kHabStrata,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,n2khab types and strata
-metadata,SSPSTaPas,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,1,,lookup for stratum_scheme_ps_targetpanels
-metadata,Locations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
-metadata,LocationCells,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
-metadata,Coordinates,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,Locations coordinates of the grts points (in other CRS)
-outbound,LocationInfos,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
-outbound,SampleLocations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
-outbound,LocationEvaluations,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
-outbound,FieldworkCalendar,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,field activity calender
-outbound,Divers,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",tom,,,,1,,list of reserved diver numbers for selection
-outbound,RandomPoints,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,POINT,,,,,random points for placement in the cell
-outbound,MHQPolygons,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey",,POLYGON,,,1,,MHQ sample areas NO TRESPASSING!
-outbound,CellMaps,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POLYGON,,,1,,cell mapping input by drawing polygons
-inbound,Visits,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,"inbound information about location visits, planned in FieldworkCalendar, linked to SampleLocations and field activity GROUP"
-inbound,WellInstallationActivities,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,information collected for certain activities (well installations); linked to a subset of Visits
-inbound,ChemicalSamplingActivities,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",,,,1,,information collected for certain activities (chemical sampling); linked to a subset of Visits
-inbound,FreeFieldNotes,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
-inbound,FieldFollowUps,falk,"tom,yglinga,jens,lise,wouter,floris,karen,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen",POINT,,,1,,"forgotten, but never really forgotten tasks"
-archive,ReplacementData,falk,monkey,,,,,1,,storing info about replacements (temporary solution)
->>>>>>> fbb2d78 (dbinit: dashboard ++ archive, counts)
-<<<<<<< HEAD
->>>>>>> 916978f (dbinit: dashboard ++ archive, counts)
-=======
-=======
-metadata,Versions,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,1,,storing the POC versions which caused the archived data
-metadata,Protocols,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,protocols (preliminary version)
-metadata,GroupedActivities,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
-metadata,TeamMembers,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,1,,list of team members
-metadata,N2kHabStrata,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,n2khab types and strata
-metadata,SSPSTaPas,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,1,,lookup for stratum_scheme_ps_targetpanels
-metadata,Locations,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
-metadata,LocationCells,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
-metadata,Coordinates,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,Locations coordinates of the grts points (in other CRS)
-outbound,LocationInfos,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
-outbound,SampleLocations,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
-outbound,LocationEvaluations,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
-outbound,FieldworkCalendar,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,field activity calender
-outbound,Divers,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk",,,,1,,list of reserved diver numbers for selection
-outbound,RandomPoints,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,POINT,,,,,random points for placement in the cell
-outbound,MHQPolygons,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,POLYGON,,,1,,MHQ sample areas NO TRESPASSING!
-outbound,CellMaps,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",POLYGON,,,1,,cell mapping input by drawing polygons
-inbound,Visits,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,"inbound information about location visits, planned in FieldworkCalendar, linked to SampleLocations and field activity GROUP"
-inbound,WellInstallationActivities,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,information collected for certain activities (well installations); linked to a subset of Visits
-inbound,ChemicalSamplingActivities,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,information collected for certain activities (chemical sampling); linked to a subset of Visits
-inbound,FreeFieldNotes,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
-inbound,FieldFollowUps,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,falk,yglinga,jens,lise,wouter,floris,karen,falk",POINT,,,1,,"forgotten, but never really forgotten tasks"
-archive,ReplacementData,salamandra,monkey,,,,,1,,storing info about replacements (temporary solution)
->>>>>>> 6a0522b (dbinit: add another standard user for myself)
->>>>>>> 773a461 (dbinit: add another standard user for myself)

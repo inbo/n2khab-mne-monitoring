@@ -7,7 +7,7 @@ import MNMDatabaseToolbox as DTB
 
 restore_dev = False
 restore_staging = False
-restore_testing = True # tabula rasa; note that it requires `dev` roles but works on `prod` structure
+restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
 base_folder = DTB.PL.Path(".")
 DTB.ODStoCSVs(base_folder/"loceval_dev_structure.ods", base_folder/"loceval_dev_structure")

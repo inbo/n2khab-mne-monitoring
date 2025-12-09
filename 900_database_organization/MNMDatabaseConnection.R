@@ -1127,11 +1127,7 @@ mnmdb_versions_and_archiving <- function(db) {
     # determine the next counter
     versions <- db$query_table("Versions")
 
-<<<<<<< HEAD
-    data_iterations <- versions %>%
-=======
     data_iteration <- versions %>%
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
       filter(version_tag == new_version_tag) %>%
       pull(data_iteration)
 
