@@ -113,7 +113,7 @@ to_env <- parent.frame()
 load(poc_rdata_path, envir = to_env)
 
 
-snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 source(file.path(snippets_path, "020_fieldwork_organization/R/grts.R"))
 source(file.path(snippets_path, "020_fieldwork_organization/R/misc.R"))
 

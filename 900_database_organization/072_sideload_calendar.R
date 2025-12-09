@@ -74,7 +74,7 @@ message(glue::glue("Good morning!
 ))
 
 
-snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 
 toc <- Sys.time()
 load_poc_code_snippets(snippets_path)

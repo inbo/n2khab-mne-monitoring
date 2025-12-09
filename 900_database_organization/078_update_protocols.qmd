@@ -16,7 +16,6 @@ knitr:
 (outsourced from `070_poc_update` on 20250923)
 
 
-<<<<<<< HEAD
 ```{r choose-database}
 
 mnmdb <- mnmgwdb
@@ -24,8 +23,6 @@ mnmdb <- locevaldb
 
 ```
 
-=======
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 # Test Case 1: Protocols
 
@@ -38,11 +35,7 @@ mnmdb <- locevaldb
 # columns which uniquely identify a table entry
 characteristic_columns <- c("protocol_code", "protocol_version")
 # the index column
-<<<<<<< HEAD
 index_column <- "protocol_id" # mnmdb$get_primary_key("Protocols")
-=======
-index_column <- "protocol_id" # mnmgwdb$get_primary_key("Protocols")
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 
 # # columns which indicate a change from default state; used to decide whether to archive or remove
@@ -55,11 +48,7 @@ index_column <- "protocol_id" # mnmgwdb$get_primary_key("Protocols")
 
 ## get updated raw data
 protocols_raw <- read_csv(
-<<<<<<< HEAD
   here::here(mnmdb$folder, "data_Protocols.csv"),
-=======
-  here::here(mnmgwdb$folder, "data_Protocols.csv"),
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   show_col_types = FALSE
 )
 
@@ -69,11 +58,7 @@ protocols_raw <- protocols_raw %>%
 protocols_raw %>% print(n = Inf)
 
 protocols_distribution <- categorize_data_update(
-<<<<<<< HEAD
   mnmdb = mnmdb,
-=======
-  mnmdb = mnmgwdb,
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   table_label = "Protocols",
   data_future = protocols_raw,
   input_precedence_columns = precedence_columns[["Protocols"]],
@@ -89,11 +74,7 @@ print_category_count(protocols_distribution, "Protocols")
 #| eval: false
 
 update_existing_data(
-<<<<<<< HEAD
   mnmdb = mnmdb,
-=======
-  mnmdb = mnmgwdb,
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   table_label = "Protocols",
   changed_data = protocols_distribution$changed,
   input_precedence_columns = precedence_columns[["Protocols"]],
@@ -108,11 +89,7 @@ update_existing_data(
 #| eval: false
 
 upload_additional_data(
-<<<<<<< HEAD
   mnmdb = mnmdb,
-=======
-  mnmdb = mnmgwdb,
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   table_label = "Protocols",
   new_data = protocols_distribution$to_upload,
   index_columns = c(index_column),
@@ -132,11 +109,7 @@ upload_additional_data(
 
 # # archive # -> not applicable for protocols
 # archive_ancient_data(
-<<<<<<< HEAD
 #   mnmdb = mnmdb,
-=======
-#   mnmdb = mnmgwdb,
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 #   table_label = "Protocols",
 #   data_to_archive = protocols_distribution$to_archive,
 #   version_id = version_id,
@@ -145,11 +118,7 @@ upload_additional_data(
 
 # # ... and un-archive = reactivate # -> not applicable for protocols
 # reactivate_archived_data(
-<<<<<<< HEAD
 #   mnmdb = mnmdb,
-=======
-#   mnmdb = mnmgwdb,
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 #   table_label = "Protocols",
 #   data_to_archive = protocols_distribution$reactivate,
 #   reference_columns = c(index_column)

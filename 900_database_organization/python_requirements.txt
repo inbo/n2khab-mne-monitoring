@@ -16,7 +16,6 @@ numpy==2.3.3
 odfpy==1.4.1
 OWSLib==0.34.1
 packaging==25.0
-<<<<<<< HEAD
 pandas==2.3.3
 pathlib==1.0.1
 pillow==11.3.0
@@ -24,13 +23,6 @@ psycopg2==2.9.11
 pyogrio==0.11.1
 pyparsing==3.2.5
 pyproj==3.7.2
-=======
-pandas==2.2.3
-pathlib==1.0.1
-pillow==11.2.1
-psycopg2==2.9.10
-pyparsing==3.2.3
->>>>>>> 4b8e3f7 (dbinit: uploading POC data to database (!!))
 python-dateutil==2.9.0.post0
 pytz==2025.2
 PyYAML==6.0.3

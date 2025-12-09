@@ -481,7 +481,6 @@ check_foreignkey_connection(
 ```
 
 
-<<<<<<< HEAD:900_database_organization/040m_mnmgwdb_consistency_dashboard.qmd
 # Archive
 
 ## Count
@@ -521,24 +520,6 @@ count_archived_content(
 ## Consistency
 
 ("archive" tag set along the line of `SampleLocation` -> `FieldworkCalendar` -> `Visits`)
-=======
-```{r count-notes}
-lapply(
-    mnmgwdb$query_tables_data(c(
-        "FreeFieldNotes",
-        "FieldFollowUps"
-      )),
-    FUN = nrow
-  ) %>%
-  as_tibble() %>%
-  t() %>% 
-  knitr::kable(format = "markdown") %>%
-  print()
-
-```
-
-## archived
->>>>>>> 916978f (dbinit: dashboard ++ archive, counts):900_database_organization/040_consistency_dashboard.qmd
 
 ```{r consistent-archive}
 #| eval: true
@@ -584,7 +565,6 @@ archives %>%
   left_join(
     mnmgwdb$query_columns(
         "ReplacementData",
-<<<<<<< HEAD:900_database_organization/040m_mnmgwdb_consistency_dashboard.qmd
         c("grts_address", "type", "grts_address_replacement")
       ) %>%
       rename(
@@ -598,15 +578,3 @@ archives %>%
   knitr::kable()
 ```
 
-=======
-        c("grts_address", "grts_address_replacement")
-      ) %>%
-      rename(
-        grts_address_poc = grts_address,
-        grts_address = grts_address_replacement,
-      ),
-    by = join_by(grts_address)
-  ) %>% 
-  knitr::kable()
-```
->>>>>>> 916978f (dbinit: dashboard ++ archive, counts):900_database_organization/040_consistency_dashboard.qmd

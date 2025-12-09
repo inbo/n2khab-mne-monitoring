@@ -490,10 +490,6 @@ WHERE grts_address = 60185305 AND stratum = '91E0_va'
 --------------------------------------------------------------------------------
 
 SELECT DISTINCT
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 916978f (dbinit: dashboard ++ archive, counts)
   FWCAL.grts_address,
   FWCAL.stratum,
   FWCAL.archive_version_id,
@@ -507,7 +503,6 @@ LEFT JOIN (
   FROM "archive"."ReplacementData"
 ) AS REP
   ON REP.grts_address = FWCAL.grts_address
-<<<<<<< HEAD
 WHERE archive_version_id IS NOT NULL
 GROUP BY FWCAL.grts_address, FWCAL.stratum, archive_version_id, grts_address_poc
 ORDER BY FWCAL.stratum, FWCAL.grts_address, archive_version_id, grts_address_poc
@@ -567,13 +562,10 @@ FROM "inbound"."WellInstallationActivities"
 
 SELECT * FROM "outbound"."LocationInfos" WHERE grts_address = 10119474;
 SELECT * FROM "metadata"."Coordinates" WHERE grts_address = 10119474;
-=======
   grts_address,
   stratum,
   archive_version_id
 FROM "outbound"."FieldworkCalendar"
-=======
->>>>>>> 916978f (dbinit: dashboard ++ archive, counts)
 WHERE archive_version_id IS NOT NULL
 GROUP BY FWCAL.grts_address, FWCAL.stratum, archive_version_id, grts_address_poc
 ORDER BY FWCAL.stratum, FWCAL.grts_address, archive_version_id, grts_address_poc
@@ -607,9 +599,6 @@ WHERE FALSE
 -- more found when continuing the consistency dashboard
 
 
-<<<<<<< HEAD
->>>>>>> b4b58bd (dbinit: raiders of the archived locations)
-=======
 mnmgwdb=> SELECT grts_address, *
 FROM "outbound"."SampleLocations"
 WHERE grts_address IN (10119474)
@@ -636,5 +625,4 @@ FROM "inbound"."WellInstallationActivities"
 
 SELECT * FROM "outbound"."LocationInfos" WHERE grts_address = 10119474;
 SELECT * FROM "metadata"."Coordinates" WHERE grts_address = 10119474;
->>>>>>> 916978f (dbinit: dashboard ++ archive, counts)
 -- DONE

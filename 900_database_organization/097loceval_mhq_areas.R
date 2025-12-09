@@ -44,7 +44,7 @@ load_poc_common_libraries()
 load_poc_rdata(reload = FALSE, to_env = globalenv())
 
 # ... and code snippets.
-snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 load_poc_code_snippets(snippets_path)
 
 verify_poc_objects()

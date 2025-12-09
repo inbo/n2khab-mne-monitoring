@@ -97,8 +97,7 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 # Load some custom GRTS functions
 # project_root <- find_root(is_git_root)
 # source(file.path(project_root, "R/grts.R"))
-# TODO: rebase once PR#5 gets merged
-snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 
 toc <- Sys.time()
 load_poc_code_snippets(snippets_path)
@@ -169,15 +168,10 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 if (FALSE) {
 
   # manually set a new version
-<<<<<<< HEAD
   #    v1 <- "≤v0.9.0_poc0.13.0"
   #    v2 <- "v0.11.0_poc0.13.1"
   version_tag <- "v0.12.0_poc0.14.0"
   version_notes <- "implement start date linkage"
-=======
-  version_tag <- "v0.11.0_poc0.13.1"
-  version_notes <- ""
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- mnmgwdb$tag_new_version(
@@ -210,7 +204,6 @@ if (FALSE) {
 ```
 
 
-<<<<<<< HEAD
 # Protocols, Activities, TeamMembers
 
 :::{callout-warning}
@@ -218,9 +211,6 @@ Any news?
 Now is the time!
 :::
 
-
-=======
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 # Discarded Consideration: Prune Unused Rows
 
@@ -404,11 +394,7 @@ sample_units <-
     across(c(
         grts_join_method,
         scheme_ps_targetpanels,
-<<<<<<< HEAD
         # targetpanel,
-=======
-        targetpanel,
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
         sp_poststratum,
         stratum,
         domain_part,
@@ -656,10 +642,6 @@ fieldwork_calendar <-
     is_sideloaded = FALSE
   ) 
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 # fieldwork_calendar %>% 
 #   filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
 
@@ -917,11 +899,7 @@ visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
 
 potential_visits <- fieldworkcalendar_lookup %>%
   select(
-<<<<<<< HEAD
     !!!rlang::syms(visits_characols)
-=======
-    !!!visits_characols
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   ) %>%
   left_join(
     locations_lookup,
@@ -935,11 +913,7 @@ potential_visits <- fieldworkcalendar_lookup %>%
   )
 
 
-<<<<<<< HEAD
 visits_upload <- potential_visits %>%
-=======
-visits_upload <- new_visits %>%
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
   anti_join(
     mnmgwdb$query_table("Visits"),
     by = join_by(!!!fieldcalendar_characols)

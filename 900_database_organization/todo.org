@@ -39,19 +39,16 @@ if major updates:
 
 20250923:
 + [X] re-run maintenance tasks (carefully)
-<<<<<<< HEAD
 + [X] yet another pocupdate =mnmgwdb=
 + [ ] also update =loceval=
 + [ ] map layer with "placed wells"
 
 + [ ] data consistency dashboard -> loceval
 
-=======
 + [ ] yet another pocupdate =mnmgwdb=
 + [ ] also update =loceval=
 + [ ] map layer with "placed wells"
 
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 prio:
 + [ ] postgresql update 20250925
   + [X] announced
@@ -109,7 +106,6 @@ from last fieldwork meeting:
 
 + [ ] write a function to restore all =seq_keys= to the last used value (special: shared =fieldwork_id=).
 + [X] credentials to config
-<<<<<<< HEAD
 + [X] =UNIQUE= tag? -> constraints added
 + [-] migration and real test
   + [X] activity calendar
@@ -410,7 +406,6 @@ Warning message:
 Using `by = character()` to perform a cross join was deprecated in dplyr 1.1.0.
 ℹ Please use `cross_join()` instead.
 #+end_quote
-=======
 + [ ] =UNIQUE= tag?
 + [ ] migration and real test
   + [ ] activity calendar
@@ -422,7 +417,6 @@ Using `by = character()` to perform a cross join was deprecated in dplyr 1.1.0.
 + [ ] backup procedures
 + [ ] forms refinement
 + [ ] images and how to bring them home
->>>>>>> 4b8e3f7 (dbinit: uploading POC data to database (!!))
 
 * optional
 + save/restore a whole =db_structure= in pandas tables
@@ -431,7 +425,6 @@ Using `by = character()` to perform a cross join was deprecated in dplyr 1.1.0.
     Een beetje experimentering met database-geometrieën vind je in deze code <https://github.com/inbo/n2khab-preprocessing/blob/1bf89599398b1b1be121fe84dcedec5623a8a576/src/miscellaneous/watersurfaces.Rmd#L76-L120>.
     Inspiratie kwam van https://hydroecology.net/reading-spatial-data-from-sql-server-without-sf/
     #+end_quote
-<<<<<<< HEAD
 
 + array data types (e.g. =panel_set=) -> upload with dplyr tricky (str -> int[])
 
@@ -477,5 +470,3 @@ Using `by = character()` to perform a cross join was deprecated in dplyr 1.1.0.
 + [ ] backup procedures
 + [ ] forms refinement
 + [ ] images and how to bring them home
-=======
->>>>>>> 4b8e3f7 (dbinit: uploading POC data to database (!!))

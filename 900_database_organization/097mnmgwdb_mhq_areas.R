@@ -11,15 +11,9 @@ config_filepath <- file.path("./inbopostgis_server.conf")
 database_label <- "mnmgwdb"
 db_using_locations <- grep("mnmgwdb", database_label)
 
-<<<<<<< HEAD
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {
   suffix <- commandline_args[1]
-=======
-testing <- FALSE
-if (testing) {
-  suffix <- "-staging" # "-testing"
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 } else {
   suffix <- ""
   # suffix <- "-staging" # "-testing"
@@ -49,7 +43,7 @@ load_poc_common_libraries()
 load_poc_rdata(reload = FALSE, to_env = globalenv())
 
 # ... and code snippets.
-snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 load_poc_code_snippets(snippets_path)
 
 verify_poc_objects()

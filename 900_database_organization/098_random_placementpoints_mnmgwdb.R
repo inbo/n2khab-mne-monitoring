@@ -44,7 +44,7 @@ load_poc_common_libraries()
 load_poc_rdata(reload = FALSE, to_env = globalenv())
 
 # ... and code snippets.
-snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 load_poc_code_snippets(snippets_path)
 
 verify_poc_objects()
@@ -159,15 +159,10 @@ locations_all <- locations_sf %>%
     by = join_by(location_id)
   ) %>%
   mutate(
-<<<<<<< HEAD
     is_forest_previously_for_comparison = stringr::str_detect(strata, "^9|^2180|^rbbppm")
     # is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
   ) %>%
   rename(stratum = strata)
-=======
-    is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
-  )
->>>>>>> 5c6f9a5 (dbinit: (wip) another POC update/testing)
 
 # TODO: work with a subset for testing
 locations <- locations_all %>%
