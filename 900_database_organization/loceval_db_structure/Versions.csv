@@ -1,0 +1,6 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+version_id,smallint,True,,True,True,,,,version index (technical)
+version_tag,varchar,True,,False,False,,,,tag version in human-readable format
+data_iteration,integer,False,NULL,False,False,,,,repeated data updates without version tag change
+date_applied,integer,False,NULL,False,False,,,,date when the data was uploaded
+notes,text,False,NULL,False,False,,,,relevant notes on this change

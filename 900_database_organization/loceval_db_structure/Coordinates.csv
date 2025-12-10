@@ -1,0 +1,8 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+coordinate_id,int,True,,True,True,,,,coordinate index (technical)
+location_id,int,False,,False,False,,,,location index (technical)
+grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+lambert_x,double precision,False,NULL,False,False,,,,x coordinate in EPSG:31370 BD72 Lambert
+lambert_y,double precision,False,NULL,False,False,,,,y coordinate in EPSG:31370 BD72 Lambert
+wgs84_x,double precision,False,NULL,False,False,,,,x coordinate in EPSG:4326 WGS84
+wgs84_y,double precision,False,NULL,False,False,,,,y coordinate in EPSG:4326 WGS84

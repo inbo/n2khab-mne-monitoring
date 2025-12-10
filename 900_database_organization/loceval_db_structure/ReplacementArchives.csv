@@ -1,0 +1,15 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+replacementarchive_id,int,True,,True,True,,,,replacement archive index (technical)
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+type,varchar,True,,False,False,,,,"type (code), our latest best assessment"
+grts_address_replacement,int,True,,False,False,,CHECK (grts_address_replacement > 0),,"GRTS address (`final`, i.e. after corrections)"
+replacement_rank,smallint,True,,False,False,,CHECK (replacement_rank > 0),,replacement preference order
+replacement_reason,text,False,NULL,False,False,,,,"explanation for replacement choice, e.g. inaccessibility"
+replacement_permanence,text,False,NULL,False,False,,,,whether or not the location is permanently unavailable
+type_is_absent,boolean,True,0,False,False,,,,unsuccessful local replacement / target type not found
+is_inappropriate,boolean,True,0,False,False,,,,indicating whether this location was visited but inappropriate as replacement unit
+is_selected,boolean,True,0,False,False,,,,indicating whether this location was selected as replacement unit
+implications_habitatmap,boolean,True,0,False,False,,,,whether disapproval has implications for habitat map
+type_suggested,varchar,False,NULL,False,False,,,,type suggested for a non-selected replacement cell
+notes,text,False,NULL,False,False,,,,free text notes which will be transferred to the field app
+version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag latest version on archived replacements

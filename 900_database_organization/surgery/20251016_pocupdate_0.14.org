@@ -1,0 +1,112 @@
+#+title: POC Update to v0.14
+#+date: 20251016 
+
+
+* update snippets
++ pulled `*supportbyfloris` branch
++ cleaned `dbinit` branch and branched off
++ removed all differences via =meld [...]/n2khab-mne-monitoring_support/020_fieldwork_organization/code_snippets.R [...]/n2khab-mne-monitoring_dbinit/900_database_organization/050_snippet_selection.R=
+
+
+* switch mirror
++ first =-staging=
+  + mirrored staging branch
++ then "production"!
+
+* download RData
++ copy a backup to =./data/objects_panflpan5_v0.14.0_20250915.RData=
++ goes via script
+  + +kinit+ tomb
+
+* update loceval
+>>> fire up a tmux and go!
+
++ =071_POC_update_loceval.qmd=
+  + @@quote: Loading the POC data took 16.8 seconds today.@@
+  + segfault wtf?!
+#+begin_example
+ *** caught segfault ***
+address (nil), cause 'memory not mapped'
+
+Traceback:
+1: b_ss_list(self, private, service, keyring)
+2: default_backend()$list(service, keyring = keyring)
+3: keyring::key_list(keyring = keyring_label)
+4: select(., service, username)
+5: keyring::key_list(keyring = keyring_label) %>% select(service,     username)
+6: get_mnm_password(username = config$user, keyring_label = "mnmdb_temp")
+7: connect_database_configfile(config_filepath, profile = database_mirror,     database = config$database, ...)
+8: connect_mnm_database(config_filepath, database_mirror = locevaldb_mirror)
+
+Possible actions:
+1: abort (with core dump, if enabled)
+2: normal R exit
+3: exit R without saving workspace
+4: exit R saving workspace
+
+Selection: 2
+#+end_example
+
+ + +928 Locations (was: 1148)
+ + +1219/-27 SampleUnits (was: 914):
+#+begin_example
+Distributed SampleUnits as follows:
+1: N = 556 changed
+2: N = 331 unchanged
+3: N = 27 to_archive
+4: N = 1219 to_upload
+5: N = 0 reactivate
+
+#+end_example
+
+there was a discrepancy btwn definition and actual db; corrected:
+#+begin_src sql
+ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id DROP NOT NULL;
+#+end_src
+
++ +206 Calendar
+Distributed FieldActivityCalendar as follows:
+     1: N = 279 changed
+     2: N = 784 unchanged
+     3: N = 198 to_archive
+     4: N = 206 to_upload
+     5: N = 0 reactivate
+
++ we now have 24468 replacement cells!
+     
+* mnmgwdb
+
+** TODO ISSUE:
++ [ ] we got replacements in places that have no samplelocation_id!
+  -> run again after SampleLocation upload
+  -> this should be an exception
+
++ [X] Where did targetpanel and scheme go? 
+  -> because of adjusted =nest_scheme_ps_targetpanel()=
+  -> hope it works now
+
++ should empty "RandomPoints" beforehend, but okay.
+
++ [X] change in stitching mechanism -> now reflected
+
++ [ ] still few unmatched SpecialActivities.
+
++ seems fine for the rest.
+
++ [!] on production, there was an issue with the archiving;
+  then on a second run:
+  Distributed FieldworkCalendar as follows:
+     1: N = 0 changed
+     2: N = 3265 unchanged
+     3: N = 1100 to_archive
+     4: N = 0 to_upload
+     5: N = 1068 reactivate
+
+-> restored!
+
+
+* TODO
+
++ [ ] temp table in =$changed= part of =just_do_it= (function =update_existing_data=)
++ [ ] rename =just_do_it=
++ [ ] temptable-less cascade in cascaded update

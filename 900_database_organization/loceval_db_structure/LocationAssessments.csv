@@ -1,0 +1,16 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+locationassessment_id,int,True,,True,True,,,,calendar index (technical)
+sampleunit_id,int,False,,False,False,SampleUnits.sampleunit_id,,,reference to sample unit
+location_id,int,False,,False,False,metadata.Locations.location_id,,,the technical sequence of all locations
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
+grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+type,varchar,True,,False,False,,,,"type (referring to ""N2kHabTypes"".""type"") as originally assigned in the sample"
+cell_disapproved,boolean,True,0,False,False,,,,"indication that the cell is not suitable for the destined scheme, and has to be replaced"
+revisit_disapproval,date,False,,False,False,,,,"optional indicator to revisit disapproval, if it is expexted to be temporary"
+disapproval_explanation,text,False,NULL,False,False,,,,whether or not the location is permanently unavailable
+type_suggested,varchar,False,NULL,False,False,,,,"in case of disapproval, suggestion which types could be present instead (referring to ""N2kHabTypes"".""type"")"
+implications_habitatmap,boolean,False,0,False,False,,,,whether disapproval has implications for habitat map
+feedback_habitatmap,text,False,NULL,False,False,,,,feedback for follow-up via habitat mapping
+notes,text,False,NULL,False,False,,,,free text notes which will be transferred to the field app
+assessment_done,boolean,True,0,False,False,,,,flag to indicate preparation status

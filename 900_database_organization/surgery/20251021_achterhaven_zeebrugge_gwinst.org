@@ -1,0 +1,285 @@
+#+title: Achterhaven Zeebrugge GWINST
+#+date: 20251021 
+
+
+* The List
+
+1195701
+122549
+1588917
+212661
+253621
+3202741
+3554997
+3858101
+409269
+44961461
+450229
+48053941
+48578229
+49692341
+5193397
+5234357
+540341
+5455541
+5979829
+908981
+
+253621 -> 4447925
+5234357 -> 19914421
+
+
+* Locations [✓]
++ all present!
+
+#+begin_src sql
+SELECT DISTINCT grts_address
+FROM "metadata"."Locations"
+WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421)
+;
+#+end_src
+(22 rows)
+
+* Replacements
+
+
+#+begin_src sql
+SELECT DISTINCT grts_address, grts_address_replacement
+FROM "archive"."ReplacementData"
+WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421)
+;
+#+end_src
+
+(2 rows)
+|--------------+--------------------------|
+| grts_address | grts_address_replacement |
+|--------------+--------------------------|
+|       253621 |                  4447925 |
+|      5234357 |                 19914421 |
+|--------------+--------------------------|
+
+
+* SampleLocations [✓]
+
+#+begin_src sql
+SELECT DISTINCT grts_address, archive_version_id
+FROM "outbound"."SampleLocations"
+WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421)
+;
+#+end_src
+
+(20 rows)
+|------------+---------------------|
+| status quo |              wanted |
+|------------+---------------------|
+|     122549 |              122549 |
+|     212661 |              212661 |
+|  ! 4447925 |   253621 -> 4447925 |
+|     409269 |              409269 |
+|     450229 |              450229 |
+|     540341 |              540341 |
+|     908981 |              908981 |
+|    1195701 |             1195701 |
+|    1588917 |             1588917 |
+|    3202741 |             3202741 |
+|  ! 3554997 | 3554997 -> 29769397 |
+|    3858101 |             3858101 |
+|    5193397 |             5193397 |
+| ! 19914421 | 5234357 -> 19914421 |
+|    5455541 |             5455541 |
+|    5979829 |             5979829 |
+|   44961461 |            44961461 |
+|   48053941 |            48053941 |
+|   48578229 |            48578229 |
+|   49692341 |            49692341 |
+|------------+---------------------|
+
+all archive_version_id's are NULL
+
+* FieldworkCalendar
+
+#+begin_src sql
+-- \COPY (
+SELECT *
+FROM "outbound"."FieldworkCalendar"
+WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421)
+-- ) TO '/data/mnm_db_backups/achterhaven/mnmgwdb_calendar_pre_unarchived.csv' With CSV DELIMITER ',' HEADER
+;
+#+end_src
+
+
+#+begin_src sql
+UPDATE "outbound"."FieldworkCalendar"
+SET archive_version_id = NULL
+WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421)
+AND archive_version_id = 3
+;
+#+end_src
+
+20251022 append local replacement
+#+begin_src sql
+UPDATE "outbound"."FieldworkCalendar"
+SET archive_version_id = NULL
+WHERE grts_address IN (29769397)
+AND archive_version_id = 3
+;
+#+end_src
+
+* Visits
+
+
+#+begin_src sql
+\COPY (
+SELECT *
+FROM "inbound"."Visits"
+WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421)
+) TO '/data/mnm_db_backups/achterhaven/mnmgwdb_visits_pre_unarchived.csv' With CSV DELIMITER ',' HEADER
+;
+#+end_src
+
+#+begin_src sql
+UPDATE "inbound"."Visits"
+SET archive_version_id = NULL
+WHERE grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421)
+AND archive_version_id = 3
+;
+#+end_src
+
+20251022 append local replacement
+#+begin_src sql
+UPDATE "inbound"."Visits"
+SET archive_version_id = NULL
+WHERE grts_address IN (29769397)
+AND archive_version_id = 3
+;
+#+end_src
+
+
+* archive others
+
+#+begin_src R :eval no
+
+source("MNMLibraryCollection.R")
+load_poc_common_libraries()
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+tic <- function(toc) round(Sys.time() - toc, 1)
+toc <- Sys.time()
+load_poc_rdata(reload = FALSE, to_env = parent.frame())
+message(glue::glue("Good morning!
+  Loading the POC data took {tic(toc)} seconds today."
+))
+
+
+snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+
+toc <- Sys.time()
+load_poc_code_snippets(snippets_path)
+message(glue::glue(
+  "... loading/executing the code snippets took {tic(toc)}s."
+))
+
+
+verify_poc_objects()
+
+
+database <- "mnmgwdb"
+config_filepath <- file.path("./inbopostgis_server.conf")
+mirror <- ""
+mirror <- "-staging"
+
+# connect loceval
+mnmgwdb_mirror <- glue::glue("{database}{mirror}")
+
+mnmgwdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmgwdb_mirror
+) 
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
+# update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
+
+
+version_tag <- "v0.12.0_poc0.14.0" # data_iteration = 2
+version_notes <- "de-activation inactive locations in Achterhaven Zeebrugge"
+date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+
+version_id <- mnmgwdb$tag_new_version(
+  new_version_tag = version_tag,
+  new_version_notes =  version_notes,
+  new_date_applied = date_applied
+)
+
+#+end_src
+
+
+
+UPDATE "outbound"."FieldworkCalendar"
+SET archive_version_id = 4
+WHERE fieldworkcalendar_id IN
+(
+  SELECT DISTINCT fieldworkcalendar_id
+  FROM "outbound"."FieldworkCalendar" AS CAL
+  INNER JOIN (
+    SELECT DISTINCT
+      grts_address, stratum, activity_group_id,
+        min(date_start) AS activities_first
+    FROM "outbound"."FieldworkCalendar"
+    WHERE (grts_address IN (1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421) )
+    GROUP BY grts_address, stratum, activity_group_id
+  ) AS ACT1
+  ON (CAL.grts_address = ACT1.grts_address)
+  AND (CAL.stratum = ACT1.stratum)
+  AND (CAL.activity_group_id = ACT1.activity_group_id)
+  WHERE NOT (activities_first = date_start)
+)
+;
+
+
+
+UPDATE "inbound"."Visits" AS TRGTAB
+  SET
+    archive_version_id = SRCTAB.archive_version_id
+  FROM "outbound"."FieldworkCalendar" AS SRCTAB
+  WHERE (
+    TRGTAB.grts_address = SRCTAB.grts_address
+    AND TRGTAB.stratum = SRCTAB.stratum
+    AND TRGTAB.activity_group_id = SRCTAB.activity_group_id
+    AND TRGTAB.date_start = SRCTAB.date_start
+   )
+;
+  
+SELECT DISTINCT archive_version_id, count(*) AS n
+-- FROM "outbound"."FieldworkCalendar"
+FROM "inbound"."Visits"
+GROUP BY archive_version_id
+;
+
+SELECT * FROM "inbound"."Visits"
+WHERE grts_address = 3202741
+AND activity_group_id = 4;
+
+
+SELECT * FROM "outbound"."FieldworkPlanning"
+WHERE grts_address = 3202741
+AND activity_group_id = 4;
+
+
+
+
+* RE-ACTIVATION
+SCHEDULED: <2025-10-23 Thu>
+
+UPDATE "inbound"."Visits"
+UPDATE "outbound"."FieldworkCalendar"
+UPDATE "outbound"."SampleLocations"
+SET archive_version_id = NULL
+WHERE grts_address IN (
+1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981, 4447925, 19914421
+)
+;
+
+

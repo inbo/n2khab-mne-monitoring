@@ -1,0 +1,556 @@
+---
+title: "Sample Location Targeting"
+date: "2025-06-05"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+
+:::{.callout-note title="Purpose"}
+Let's bring the sample to the field!
+:::
+
+<https://github.com/inbo/n2khab-mne-monitoring/pull/5>
+
+<https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link>
+
+# preparation
+
+## info stream from POC
+
+```{r libraries}
+library("dplyr")
+library("tidyr")
+library("stringr")
+library("purrr")
+library("lubridate")
+library("sf")
+library("terra")
+library("n2khab")
+library("googledrive")
+library("readr")
+library("rprojroot")
+
+library("configr")
+library("DBI")
+library("RPostgres")
+
+projroot <- find_root(is_rstudio_project)
+
+# Load some custom GRTS functions
+# source(file.path(projroot, "R/grts.R"))
+# TODO: rebase once PR#5 gets merged
+source("/data/git/n2khab-mne-monitoring_support/020_fieldwork_organization/R/grts.R")
+
+
+# Setup for googledrive authentication. Set the appropriate env vars in
+# .Renviron and make sure you ran drive_auth() interactively with these settings
+# for the first run (or to renew an expired Oauth token).
+# See ?gargle::gargle_options for more information.
+if (Sys.getenv("GARGLE_OAUTH_EMAIL") != "") {
+  options(gargle_oauth_email = Sys.getenv("GARGLE_OAUTH_EMAIL"))
+}
+if (Sys.getenv("GARGLE_OAUTH_CACHE") != "") {
+  options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
+}
+
+```
+
+
+```{r load-sample-rdata}
+# Download and load R objects from the POC into global environment
+reload <- FALSE
+path <- file.path("./data", "objects_panflpan5.RData")
+if (reload || !file.exists(path)){
+  drive_download(as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"), path = path)
+}
+load(path)
+```
+
+
+## Test Case: FAG Calendar
+
+In [this useful file](https://github.com/inbo/n2khab-mne-monitoring/blob/fieldworkdata_supportbyfloris/020_fieldwork_organization/code_snippets.R), I found the following interesting object stack:
+
+- `fag_grts_calendar_2025_attribs_sf`
+  - `fag_grts_calendar_2025_attribs`
+    - `fag_stratum_grts_calendar_2025_attribs`
+      - `fag_stratum_grts_calendar` (raw)
+      - `scheme_moco_ps_stratum_targetpanel_spsamples`
+        - `scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar` (raw)
+        - `n2khab_strata` (raw)
+        - `n2khab_types_expanded_properties` (raw)
+  - `grts_mh` (n2khab)
+  - `grts_mh_index`
+    - (`grts_mh`)
+    
+(would be cool to have a dependence graph.)
+
+
+```{r load-fag-grts-calender-2025-attribs-sf}
+
+grts_mh <- read_GRTSmh()
+# create a spatial index of the GRTS addresses
+grts_mh_index <- tibble(
+  id = seq_len(ncell(grts_mh)),
+  grts_address = values(grts_mh)[, 1]
+) %>%
+  filter(!is.na(grts_address))
+
+
+
+scheme_moco_ps_stratum_targetpanel_spsamples <-
+  scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar %>%
+  inner_join(
+    n2khab_strata,
+    join_by(stratum),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  inner_join(
+    n2khab_types_expanded_properties %>%
+      select(type, grts_join_method, sample_support_code),
+    join_by(type),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  mutate(
+    is_forest = str_detect(type, "^9|^2180|^rbbppm")
+  ) %>%
+  distinct(
+    scheme,
+    module_combo_code,
+    panel_set,
+    stratum,
+    # 'aquatic' column will be improved for 7220 later on (now it simply has a
+    # duplication (TRUE + FALSE) of all locations)
+    is_aquatic = in_aquatic_subset,
+    is_forest,
+    grts_join_method,
+    sample_support_code,
+    grts_address,
+    grts_address_final,
+    targetpanel,
+    last_type_assessment = assessment_date,
+    last_type_assessment_in_field = assessed_in_field,
+    last_inaccessible = inaccessible
+  ) %>%
+  arrange(pick(scheme:grts_address))
+
+
+fag_stratum_grts_calendar_2025_attribs <-
+  fag_stratum_grts_calendar %>%
+  select(
+    scheme_moco_ps,
+    stratum,
+    grts_address,
+    starts_with("date"),
+    field_activity_group,
+    rank
+  ) %>%
+  filter(year(date_start) < 2026) %>%
+  # count(date_start, date_end, date_interval) %>%
+  # move the fieldwork that was kept for 2024, to 2025, since that is indeed
+  # its meaning
+  mutate(
+    across(c(date_start, date_end), \(x) {
+      if_else(year(date_start) == 2024, x + years(1), x)
+    }),
+    date_interval = interval(
+      force_tz(date_start, "Europe/Brussels"),
+      force_tz(date_end, "Europe/Brussels")
+    )
+  ) %>%
+  unnest(scheme_moco_ps) %>%
+  # adding location attributes
+  inner_join(
+    scheme_moco_ps_stratum_targetpanel_spsamples %>%
+      select(
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        grts_join_method,
+        grts_address,
+        grts_address_final,
+        targetpanel
+      ),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-many",
+    unmatched = c("error", "drop")
+  ) %>%
+  relocate(grts_address_final, .after = grts_address) %>%
+  select(-module_combo_code, -panel_set) %>%
+  # flatten scheme x targetpanel to unique strings per stratum x location x FAG
+  # occasion. Note that the scheme_targetpanels attribute is a shrinked version
+  # of the one at the level of the whole sample (see sampling unit attributes in
+  # the beginning), since we limited the activities to those planned before
+  # 2026, and then generate stratum_scheme_targetpanels as a location attribute.
+  # So it says specifically which schemes & targetpanels are served by the
+  # specific fieldwork at a specific date interval.
+  unite(scheme_targetpanel, scheme, targetpanel, sep = ":") %>%
+  nest(scheme_targetpanels = scheme_targetpanel) %>%
+  mutate(
+    scheme_targetpanels = map_chr(scheme_targetpanels, \(df) {
+      str_flatten(
+        unique(df$scheme_targetpanel),
+        collapse = " | "
+      )
+    }) %>%
+      factor()
+  ) %>%
+  relocate(scheme_targetpanels)
+
+
+# Derive an object where stratum x scheme_targetpanels is flattened per location
+# x FAG occasion. Beware that more locations will emerge due to local
+# replacement, so this is misleading for counting & planning (but useful in
+# spatial visualization)
+fag_grts_calendar_2025_attribs <-
+  fag_stratum_grts_calendar_2025_attribs %>%
+  mutate(
+    stratum_scheme_targetpanels = str_c(
+      stratum,
+      " (",
+      grts_join_method,
+      ") ",
+      " [",
+      scheme_targetpanels,
+      "]"
+    ),
+    .keep = "unused"
+  ) %>%
+  summarize(
+    stratum_scheme_targetpanels =
+      str_flatten(
+        unique(stratum_scheme_targetpanels),
+        collapse = " \u2588 "
+      ) %>%
+      factor(),
+    .by = !stratum_scheme_targetpanels
+  ) %>%
+  relocate(stratum_scheme_targetpanels)
+
+# A simple derived spatial object (as points; see earlier for the actual unit
+# geometries). Points are still repeated because of different date_interval &
+# FAG values at the same location.
+fag_grts_calendar_2025_attribs_sf <-
+  fag_grts_calendar_2025_attribs %>%
+  add_point_coords_grts(
+    grts_var = "grts_address_final",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+# glimpse(fag_grts_calendar_2025_attribs_sf)
+
+knitr::kable(head(
+  sf::st_drop_geometry(fag_grts_calendar_2025_attribs_sf)
+))
+```
+
+Contains a `POINT` geometry and columns:
+
+| stratum_scheme_targetpanels | <fct>       |
+| grts_address                | <int>       |
+| grts_address_final          | <int>       |
+| date_start                  | <date>      |
+| date_end                    | <date>      |
+| date_interval               | <Interval>  |
+| field_activity_group        | <fct>       |
+| rank                        | <int>       |
+| geometry                    | <POINT [m]> |
+
+
+
+## database connection
+
+Working out a way to load the config.
+Config has the following structure:
+
+```{toml}
+#| eval: false
+    [test]
+    server = localhost
+    port = 5439
+    user = test
+    database = playground
+    password = <the password you entered IN PLAIN TEXT>
+```
+
+:::{.callout-warning}
+That `.conf`/`.ini` file contains password in plain text!
+
+- Do not print its content in this notebook.
+- Make sure to `.gitignore` it!
+:::
+
+
+We can use `configr` (<https://cran.r-project.org/web/packages/configr/readme/README.html>)
+
+```{r load-config}
+
+connect_database_configfile <- function(config_filepath) {
+
+  # read connection info from a config file
+  config <- configr::read.config(file = config_filepath)[[1]] # only connects with first config block
+
+  # connect to database
+  database_connection <- DBI::dbConnect(
+    RPostgres::Postgres(),
+    dbname = config$database,
+    host = config$server,
+    port = config$port,
+    user = config$user,
+    password = config$password
+  )
+
+
+  # store a label for verbose disconnection at exit
+  db_label <- sprintf("%s@%s/%s", config$user, config$server, config$database)
+
+  # remove the config: we do not want to expose credentials further
+  # down in this notebook
+  rm(config)
+
+  # register disconnect for finalization
+  # https://stackoverflow.com/a/41179916
+  reg.finalizer(
+    .GlobalEnv,
+    function(e){
+      DBI::dbDisconnect(database_connection)
+      message(sprintf("database %s disconnected.", db_label))
+    },
+    onexit = TRUE
+  )
+  
+  return(invisible(database_connection))
+}
+
+config_filepath <- file.path("./inbopostgis_server.conf")
+db_connection <- connect_database_configfile(config_filepath)
+
+```
+
+
+# Upload Data
+
+```{r preview-work-to-do}
+#| eval: false
+glimpse(activities)
+glimpse(activity_sequences)
+glimpse(fag_grts_calendar_2025_attribs_sf)
+```
+
+## MetaData
+
+A general function to append metadata tables (i.e. upload rows which are missing):
+
+```{r append-tabledata}
+# TODO: option to drop; but mind cascading
+
+append_tabledata <- function(conn, db_table, data_to_append, reference_column = NA){
+  content <- DBI::dbReadTable(conn, db_table)
+
+  if (is.na(reference_column)) {
+    reference_column <- names(data_to_append)[[1]]
+  }
+
+  refcol <- enquo(reference_column)
+  existing <- content %>% select(!!refcol)
+  to_upload <- data_to_append %>%
+    anti_join( existing, join_by(!!refcol)
+  )
+
+  rs <- DBI::dbWriteTable(conn, db_table, to_upload, overwrite = FALSE, append = TRUE)
+
+  message(sprintf(
+    "%s: %i rows uploaded, %i/%i existing judging by '%s'.",
+    toString(db_table),
+    nrow(to_upload),
+    nrow(existing),
+    nrow(data_to_append),
+    reference_column
+  ))
+  return(invisible(rs))
+
+}
+
+
+upload_and_lookup <- function(conn, db_table, data, ref_col, index_col) {
+
+  append_tabledata(conn, db_table, data, reference_column = ref_col)
+  
+  lookup <- dplyr::tbl(conn, db_table) %>%
+    select(!!enquo(ref_col), !!enquo(index_col)) %>% 
+    collect
+
+  return(lookup)
+}
+
+lookup_join <- function(.data, lookup_tbl, join_column){
+  joined_tbl <- .data %>%
+    left_join(
+      lookup_tbl,
+      by = join_by(!!enquo(join_column))
+    ) %>%
+  select(-!!enquo(join_column))
+
+  return(joined_tbl)
+
+}
+
+```
+
+### Protocols
+
+```{r upload-protocols}
+
+# conn <- db_connection
+# db_table <- DBI::Id(schema = "loceval_outbound", table = "Protocols")
+# data_to_append <- protocols
+# reference_column <- "protocol"
+
+protocols <- activities %>%
+  select(protocol) %>%
+  distinct() %>%
+  arrange(protocol) %>%
+  filter(!is.na(protocol)) %>%
+  mutate(
+    protocol_id = 1:n(),
+    protocol = as.character(protocol),
+    description = NA
+  )
+
+protocol_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "loceval_outbound", table = "Protocols"),
+  protocols,
+  ref_col = "protocol",
+  index_col = "protocol_id"
+)
+
+```
+
+
+### Activity Groups
+
+```{r upload-activity-groups}
+activity_groups <- activity_sequences %>%
+  select(activity_group) %>%
+  distinct() %>%
+  arrange(activity_group) %>%
+  filter(!is.na(activity_group)) %>%
+  mutate(
+    activity_group_id = 1:n(),
+    activity_group = as.character(activity_group)
+  )
+
+
+activity_group_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "loceval_outbound", table = "ActivityGroups"),
+  activity_groups,
+  ref_col = "activity_group",
+  index_col = "activity_group_id"
+)
+```
+
+
+
+## POC data
+
+### Activities
+
+```{r upload-activities}
+
+activities_to_upload <- activities %>%
+  mutate(
+    protocol = as.character(protocol)
+  ) %>% 
+  lookup_join(protocol_lookup, "protocol")
+
+
+activity_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "loceval_outbound", table = "Activities"),
+  activities_to_upload,
+  ref_col = "activity",
+  index_col = "activity_id"
+)
+```
+
+
+
+### Activity Sequences
+
+```{r upload-activity-sequences}
+
+activity_sequences_to_upload <- activity_sequences %>%
+  lookup_join(activity_lookup, "activity") %>% 
+  lookup_join(activity_group_lookup, "activity_group")
+
+activity_sequence_lookup <- upload_and_lookup(
+  db_connection,
+  DBI::Id(schema = "loceval_outbound", table = "ActivitySequences"),
+  activity_sequences_to_upload,
+  ref_col = "activity_sequence",
+  index_col = "activity_sequence_id"
+)
+```
+
+
+## `sf` table
+
+### LocationCalendar
+
+```{r upload-calendar}
+location_calendar <- fag_grts_calendar_2025_attribs_sf %>% 
+    mutate(
+      stratum_scheme_targetpanels = as.character(stratum_scheme_targetpanels)
+    ) %>% 
+    left_join(
+      activity_group_lookup,
+      by = join_by(field_activity_group == activity_group)
+    ) %>%
+  select(-field_activity_group, -date_interval)
+
+sf::st_geometry(location_calendar) = "wkb_geometry"
+glimpse(location_calendar)
+
+
+# delete all previously uploaded table content
+rs <- DBI::dbSendStatement(
+  db_connection,
+  'DELETE FROM "loceval_outbound"."LocationCalendar";'
+  )
+DBI::dbClearResult(rs)
+
+# re-upload
+sf::dbWriteTable(
+  db_connection,
+  DBI::Id(schema = "loceval_outbound", table = "LocationCalendar"),
+  location_calendar,
+  row.names = FALSE,
+  overwrite = FALSE,
+  append = TRUE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+  )
+
+
+# SELECT * FROM "LocationCalendar";
+```
+
+
+# NEXT STEPS
+
+check with `qgis`
