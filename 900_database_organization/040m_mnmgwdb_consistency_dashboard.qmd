@@ -42,6 +42,7 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./inbopostgis_server.conf")
 # mirror <- "-testing"
 mirror <- ""
+# mirror <- "-staging"
 
 # connect mnmgwdb
 mnmgwdb_database <- glue::glue("mnmgwdb{mirror}")

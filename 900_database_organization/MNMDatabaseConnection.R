@@ -1127,7 +1127,7 @@ mnmdb_versions_and_archiving <- function(db) {
     # determine the next counter
     versions <- db$query_table("Versions")
 
-    data_iteration <- versions %>%
+    data_iterations <- versions %>%
       filter(version_tag == new_version_tag) %>%
       pull(data_iteration)
 

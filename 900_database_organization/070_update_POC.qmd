@@ -171,7 +171,7 @@ if (FALSE) {
   #    v1 <- "≤v0.9.0_poc0.13.0"
   #    v2 <- "v0.11.0_poc0.13.1"
   version_tag <- "v0.12.0_poc0.14.0"
-  version_notes <- "implement start date linkage"
+  version_notes <- "correct filter for post 2026 locations"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- mnmgwdb$tag_new_version(
@@ -249,7 +249,7 @@ activity_groupid_lookup <- mnmgwdb$query_columns(
   ) %>%
   distinct()
 
-field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
+field_activities_db <- mnmgwdb$query_table("GroupedActivities") %>%
   filter(is_gw_activity, is_field_activity) %>%
   distinct(activity_group, activity)
 
@@ -618,7 +618,7 @@ fieldwork_calendar <-
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(field_activities, by = join_by(activity_group)) %>%
+  semi_join(field_activities_db, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
@@ -1010,7 +1010,7 @@ selection_of_activities <- list(
 , # /WIA
   "ChemicalSamplingActivities" = function(df) df %>% 
     filter(activity_group %in%
-      c(field_activities %>%
+      c(field_activities_db %>%
         filter(grepl("^GW.*SAMP", activity)) %>%
         pull(activity_group))
       )
