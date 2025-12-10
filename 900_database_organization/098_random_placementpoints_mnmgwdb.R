@@ -178,14 +178,14 @@ generate_random_points <- function(
     target_radius = 10,
     n_samples = 256,
     # is_forest = FALSE,
-    # is_assessed = FALSE,
+    # is_mhq_samplelocation = FALSE,
     location_seed = 42
   ) {
 
 
   cell_center <- sf::st_coordinates(one_location)
   is_forest <- one_location$is_forest
-  is_assessed <- one_location$has_mhq_assessment
+  is_mhq_samplelocation <- one_location$has_mhq_assessment | one_location$in_mhq_samples
 
   # target_area <- sf::st_buffer(one_location, target_radius)
   target_area <- make_polygon(
@@ -252,7 +252,7 @@ generate_random_points <- function(
     sf::st_intersects(random_points_sf, target_area, sparse = FALSE),
     ]
 
-  if (is_forest && isFALSE(is_assessed)) {
+  if (is_forest && isFALSE(is_mhq_samplelocation)) {
     # cell not assessed / not part of MHQ
     outside_mhq <- inside_cell
   } else {
@@ -297,7 +297,7 @@ pb <- txtProgressBar(
   initial = 0, style = 1
 )
 
-# location_row <- 1 #234
+# location_row <- 234
 randompoints_locationwise <- function(location_row) {
 
   setTxtProgressBar(pb, location_row)
@@ -307,12 +307,15 @@ randompoints_locationwise <- function(location_row) {
   # print(one_location$grts_address)
   location_seed <- as.integer(one_location$grts_address)
 
+  is_forest <- one_location$is_forest
+  is_mhq_samplelocation <- one_location$has_mhq_assessment | one_location$in_mhq_samples
+
   target_radius <- sqrt(2 * 16^2) # m
     # NOTE: r>16 because we include points in the whole cell
   n_samples <- 128
   n_points <- 20
   # is_forest <- one_location$is_forest
-  # is_assessed <- assessment_lookup %>%
+  # is_mhq_samplelocation <- assessment_lookup %>%
   #   filter(grts_address == one_location$grts_address) %>%
   #   pull(assessed) %>%
   #   any
@@ -338,6 +341,17 @@ randompoints_locationwise <- function(location_row) {
     limit_count <- limit_count + 1 # but don't go too big
   }
 
+
+  center_representation_point <- as.data.frame(sf::st_coordinates(one_location)) %>%
+    mutate(r = 0, phi = 0) %>%
+    sf::st_as_sf(coords = c("X", "Y"), crs = sf::st_crs(one_location))
+
+  if (is_forest && isFALSE(is_mhq_samplelocation)) {
+    rnd20_points <- bind_rows(
+      center_representation_point,
+      rnd20_points
+      )
+  }
 
   rnd20_points <- rnd20_points %>%
     mutate(

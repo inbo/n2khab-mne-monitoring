@@ -119,13 +119,13 @@ locations <- locations_all %>%
 generate_mhq_polygon <- function(
     one_location #,
     # is_forest = FALSE,
-    # is_assessed = FALSE
+    # is_mhq_samplelocation = FALSE
   ) {
 
 
   cell_center <- sf::st_coordinates(one_location)
   is_forest <- one_location$is_forest
-  is_assessed <- one_location$has_mhq_assessment
+  is_mhq_samplelocation <- one_location$has_mhq_assessment | one_location$in_mhq_samples
 
   if (is_forest) {
     mhq_zone <- make_polygon(
@@ -152,7 +152,7 @@ generate_mhq_polygon <- function(
   }
 
 
-  if (is_forest && !is_assessed) {
+  if (is_forest && isFALSE(is_mhq_samplelocation)) {
     return(NA)
   } else {
     return(sf::st_as_sf(mhq_safety, crs = 31370))
@@ -179,7 +179,7 @@ mhq_locationwise <- function(location_row) {
   one_location <- locations[location_row, ]
 
   # is_forest <- one_location$is_forest
-  # is_assessed <- assessment_lookup %>%
+  # is_mhq_samplelocation <- assessment_lookup %>%
   #   filter(grts_address == one_location$grts_address) %>%
   #   pull(assessed) %>%
   #   any
@@ -187,7 +187,7 @@ mhq_locationwise <- function(location_row) {
   mhq_safety <- generate_mhq_polygon(
     one_location #,
     # is_forest = is_forest,
-    # is_assessed = is_assessed
+    # is_mhq_samplelocation = is_mhq_samplelocation
   )
   if (is.na(mhq_safety)) return(NULL)
 

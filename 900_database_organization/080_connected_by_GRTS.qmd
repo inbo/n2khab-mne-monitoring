@@ -39,7 +39,8 @@ suffix <- ""
 choose a GRTS
 
 ```{r choose-grts}
-grts <- c(1205598, 41313630) # replacement cell missing from updated plans
+grts <- c(24774) # forest location where the first choice of point should be cell center; MHQ assessment unclear
+    # c(1205598, 41313630) # replacement cell missing from updated plans
     # c(49896893, 21323197) # first sideload: visit with issues must be repeated
     # c(908981)#, 59629237) # dismissed -> no replacements
     # c(1205598, 41313630) # replacement from previous POC version -> sideloaded
@@ -521,7 +522,6 @@ gw_print_fwcal <- function() {
       agid = activity_group_id,
       archv = archive_version_id,
       done_p = done_planning
-      archv = archive_version_id
     ) %>%
     dplyr::select(
       stratum,
@@ -681,12 +681,6 @@ gw_print_replacement <- function() {
 ```
 
 # Overview: `r as.character(grts)`
-
-```{r noop}
-#| eval: false
-#| echo: false
-# source('080_connected_by_GRTS.R')
-```
 
 ## sample location
 

@@ -1776,6 +1776,56 @@ I tried around how to display the intersection of "planning/done", "visit/done",
 + symbol rotation by activity group; yet those are in different layers
 
 
+** MHQ cells and Random Placement Points: wrong logic
+SCHEDULED: <2025-12-10 Wed>
+
+According to info from pocupdate 0.13.1,
+the MHQ area logic should be
+=is_mhq_samplelocation <- has_mhq_assessment | in_mhq_samples=.
+
+The previous version of the code neglected =in_mhq_samples= and just took those which had an assessment.
+
+Error Magnitude (I): 340 potential locations...
+
+mnmgwdb=> SELECT DISTINCT has_mhq_assessment, in_mhq_samples, COUNT(*) AS n FROM "outbound"."SampleLocations" GROUP BY has_mhq_assessment, in_mhq_samples;
+ has_mhq_assessment | in_mhq_samples |  n
+--------------------+----------------+------
+ f                  | f              | 1457
+ f                  | t              |  340
+ t                  | f              |   85
+ t                  | t              |  175
+
+
+Error Magnitude (II): 7 visited, thereof 2 in forest
+
+#+begin_src sql
+SELECT
+  grts_address,
+  stratum,
+  date_visit
+FROM "inbound"."Visits"
+WHERE activity_group_id = 4
+  AND samplelocation_id IN (
+  SELECT DISTINCT samplelocation_id
+  FROM "outbound"."SampleLocations"
+  WHERE NOT has_mhq_assessment
+    AND in_mhq_samples
+    -- AND is_forest
+)
+AND visit_done;
+#+end_src
+
+| grts_address | stratum   | date_visit | forest |
+|--------------+-----------+------------+--------|
+|        24774 | 9160      | 2025-12-03 | X      |
+|       366225 | 6510_hua  | 2025-09-18 |        |
+|      1280278 | 6510_hus  | 2025-07-30 |        |
+|      1818369 | 6230_hmo  | 2025-08-13 |        |
+|      3664630 | 7140_meso | 2025-08-26 |        |
+|      4241542 | 91E0_vm   | 2025-09-17 | X      |
+|      8826293 | 1330_hpr  | 2025-11-12 |        |
+
+
 * Major R Code Overhaul (202508)
 ** Code File Organization
 SCHEDULED: <2025-08-31 Sun>
