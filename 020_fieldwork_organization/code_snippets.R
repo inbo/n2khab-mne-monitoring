@@ -998,6 +998,14 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   )) %>%
   filter(
     year(date_start) < 2026 |
+      # include groundwater cleaning & sampling activities from 2026
+      (
+        year(date_start) < 2027 &
+          str_detect(
+            field_activity_group,
+            "SHALL(CLEAN|SAMP)"
+          )
+      ) |
       # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
       # next years to be executed:
       (
