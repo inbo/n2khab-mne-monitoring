@@ -126,7 +126,7 @@ source("051_snippet_transformation_code.R")
 Two options here: 
 
 - the "full" list of activities (`fag_stratum_grts_calendar`)
-- the reduced, applied subset (`fieldwork_2025_prioritization_by_stratum`)
+- the reduced, applied subset (`fieldwork_shortterm_prioritization_by_stratum`)
 
 I think the first one caused trouble because there were manually shifted activities
 which date back to 2024; 
@@ -138,7 +138,7 @@ The "2025"(+) calendar is more focused, yet also lacks connection to some later 
 
 fieldwork_calendar <-
   fag_stratum_grts_calendar %>%
-  # fieldwork_2025_prioritization_by_stratum %>%
+  # fieldwork_shortterm_prioritization_by_stratum %>%
   common_current_calenderfilters() %>% # should be filtered already!
   filter(date_start >= as.Date("2025-07-01")) %>% 
   rename_grts_address_final_to_grts_address() %>%

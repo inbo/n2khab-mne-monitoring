@@ -926,14 +926,14 @@ scheme_moco_fa_fieldvar <-
 
 
 
-## Processing the FAG calendar wrt prioritizing fieldwork in 2025 ----
+## Processing the FAG calendar wrt prioritizing short-term fieldwork ----
 
 # This section is primarily intended as support for fieldwork planning by the
 # compartment scheme responsible, who will use these R objects directly.
 
-# Derive the FAG calendar for 2025 at the stratum x location x FAG occasion, and
+# Derive the short-term FAG calendar at the stratum x location x FAG occasion, and
 # include some of the location attributes.
-fag_stratum_grts_calendar_2025_attribs <-
+fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
   select(
     scheme_moco_ps,
@@ -949,6 +949,14 @@ fag_stratum_grts_calendar_2025_attribs <-
   )) %>%
   filter(
     year(date_start) < 2026 |
+      # include groundwater cleaning & sampling activities from 2026
+      (
+        year(date_start) < 2027 &
+          str_detect(
+            field_activity_group,
+            "SHALL(CLEAN|SAMP)"
+          )
+      ) |
       # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
       # next years to be executed:
       (
@@ -1046,8 +1054,8 @@ unite_stratum_and_schemepstargetpanels <- function(df) {
       .keep = "unused"
     )
 }
-fag_grts_calendar_2025_attribs <-
-  fag_stratum_grts_calendar_2025_attribs %>%
+fag_grts_calendar_shortterm_attribs <-
+  fag_stratum_grts_calendar_shortterm_attribs %>%
   unite_stratum_and_schemepstargetpanels() %>%
   summarize(
     stratum_scheme_ps_targetpanels =
@@ -1063,18 +1071,18 @@ fag_grts_calendar_2025_attribs <-
 # A simple derived spatial object (as points; see earlier for the actual unit
 # geometries). Points are still repeated because of different date_interval &
 # FAG values at the same location.
-fag_grts_calendar_2025_attribs_sf <-
-  fag_grts_calendar_2025_attribs %>%
+fag_grts_calendar_shortterm_attribs_sf <-
+  fag_grts_calendar_shortterm_attribs %>%
   add_point_coords_grts(
     grts_var = "grts_address_final",
     spatrast = grts_mh,
     spatrast_index = grts_mh_index
   )
 
-# prioritization of fieldwork 2025 with stratum distinguished (preferred for
+# prioritization of short-term fieldwork with stratum distinguished (preferred for
 # counts and for planning):
-fieldwork_2025_prioritization_by_stratum <-
-  fag_stratum_grts_calendar_2025_attribs %>%
+fieldwork_shortterm_prioritization_by_stratum <-
+  fag_stratum_grts_calendar_shortterm_attribs %>%
   mutate(
     priority = case_when(
       str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL12|PS2PANEL06)") ~ 7L,
@@ -1108,9 +1116,9 @@ fieldwork_2025_prioritization_by_stratum <-
     field_activity_group
   )
 
-# overview fieldwork prioritization 2025 according to schemes & panels:
-fieldwork_2025_targetpanels_prioritization_count <-
-  fieldwork_2025_prioritization_by_stratum %>%
+# overview short-term fieldwork prioritization according to schemes & panels:
+fieldwork_shortterm_targetpanels_prioritization_count <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
   count(
     scheme_ps_targetpanels,
     priority,
@@ -1129,16 +1137,16 @@ gs_id <- "1RXhqlK8nu_BdIiYEbjhjoNnu82wnn6zGfQSdzyi-afI"
 
 # WRITE PIVOT TABLE TO GSHEET:
 if (FALSE) {
-  fieldwork_2025_targetpanels_prioritization_count %>%
+  fieldwork_shortterm_targetpanels_prioritization_count %>%
     write_sheet(
       ss = gs_id,
-      sheet = "fieldwork_2025_targetpanels_prioritization_count"
+      sheet = "fieldw_shortterm_targetpanels_prioritization_count"
     )
 }
 
-# overview fieldwork prioritization 2025 according to date intervals:
-fieldwork_2025_dates_prioritization_count <-
-  fieldwork_2025_prioritization_by_stratum %>%
+# overview short-term fieldwork prioritization according to date intervals:
+fieldwork_shortterm_dates_prioritization_count <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
   count(
     date_interval,
     date_end,
@@ -1156,11 +1164,11 @@ fieldwork_2025_dates_prioritization_count <-
 
 # WRITE PIVOT TABLE TO GSHEET:
 if (FALSE) {
-  fieldwork_2025_dates_prioritization_count %>%
+  fieldwork_shortterm_dates_prioritization_count %>%
     mutate(date_interval = as.character(date_interval)) %>%
     write_sheet(
       ss = gs_id,
-      sheet = "fieldwork_2025_dates_prioritization_count"
+      sheet = "fieldwork_shortterm_dates_prioritization_count"
     )
 }
 
@@ -1216,7 +1224,7 @@ fag_stratum_grts_calendar %>%
 stratum_schemepstargetpanel_spsamples %>%
   filter(is_forest) %>%
   semi_join(
-    fag_stratum_grts_calendar_2025_attribs,
+    fag_stratum_grts_calendar_shortterm_attribs,
     join_by(grts_address, stratum)
   ) %>%
   filter(!last_type_assessment_in_field, in_mhq_samples) %>%
@@ -1228,7 +1236,7 @@ stratum_schemepstargetpanel_spsamples %>%
 
 
 
-## Making selections for orthophoto assessments in 2025 ----------------------
+## Making selections for short-term orthophoto assessments ---------------------
 
 # Making a list of terrestrial locations to be assessed using orthophotos in
 # 2025. The procedure evaluates somewhat larger areas in which the unit is
@@ -1237,7 +1245,7 @@ stratum_schemepstargetpanel_spsamples %>%
 # need for replacements at polygon level (dropping the unit without a local
 # field replacement), the locations that are scheduled for field evaluation in
 # both 2025 and 2026 are provided for orthophoto evaluation.
-orthophoto_2025_type_grts <-
+orthophoto_shortterm_type_grts <-
   fag_stratum_grts_calendar %>%
   filter(
     str_detect(field_activity_group, "LOCEVAL"),
@@ -1354,10 +1362,10 @@ orthophoto_2025_type_grts <-
   )
 
 # unit geometries (cells):
-orthophoto_2025_cells <-
+orthophoto_shortterm_cells <-
   units_cell_polygon %>%
   inner_join(
-    orthophoto_2025_type_grts,
+    orthophoto_shortterm_type_grts,
     join_by(grts_address_final),
     relationship = "one-to-many",
     unmatched = c("drop", "error")
@@ -1373,8 +1381,8 @@ orthophoto_2025_cells <-
   )
 
 # cell centers:
-orthophoto_2025_cell_centers <-
-  orthophoto_2025_type_grts %>%
+orthophoto_shortterm_cell_centers <-
+  orthophoto_shortterm_type_grts %>%
   add_point_coords_grts(
     grts_var = "grts_address_final",
     spatrast = grts_mh,

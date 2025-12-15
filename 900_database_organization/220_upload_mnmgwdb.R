@@ -131,13 +131,13 @@ stopifnot(
 )
 
 stopifnot(
-  "snip snap >> `fieldwork_2025_prioritization_shorter` not found" =
-    exists("fieldwork_2025_prioritization_shorter")
+  "snip snap >> `fieldwork_shortterm_prioritization_shorter` not found" =
+    exists("fieldwork_shortterm_prioritization_shorter")
 )
 
-# fag_stratum_grts_calendar_2025_attribs %>% distinct(field_activity_group)
-# fieldwork_2025_prioritization_by_stratum %>% distinct(field_activity_group)
-# fieldwork_2025_prioritization_shorter %>% distinct(field_activity_group)
+# fag_stratum_grts_calendar_shortterm_attribs %>% distinct(field_activity_group)
+# fieldwork_shortterm_prioritization_by_stratum %>% distinct(field_activity_group)
+# fieldwork_shortterm_prioritization_shorter %>% distinct(field_activity_group)
 
 ## ----establish-connection-config----------------------------------------------
 db_connection <- connect_database_configfile(
@@ -919,7 +919,7 @@ activity_groupid_lookup <-
 # activity_groupid_lookup %>% distinct(activity_group, activity_group_id) %>% count(activity_group) %>% print(n=Inf)
 
 
-# prioritization of fieldwork 2025 with stratum collapsed
+# prioritization of fieldwork shortterm with stratum collapsed
 # (preferred for planning of non-biotic FAGs)
 
 # TODO double check with Floris
@@ -928,7 +928,7 @@ gw_field_activities <- grouped_activities %>%
   distinct(activity_group)
 
 fieldwork_calendar <-
-  fieldwork_2025_prioritization_shorter %>%
+  fieldwork_shortterm_prioritization_shorter %>%
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
   semi_join(
@@ -1092,7 +1092,7 @@ if (FALSE) {
       activity_name
     )
 
-  fieldwork_2025_prioritization_shorter %>%
+  fieldwork_shortterm_prioritization_shorter %>%
     distinct(field_activity_group)
 }
 

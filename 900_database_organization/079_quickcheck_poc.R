@@ -27,13 +27,13 @@ verify_poc_objects()
 
 
 #_______________________________________________________________________________
-# prioritization and subset -> fieldwork_2025_prioritization_by_stratum
+# prioritization and subset -> fieldwork_shortterm_prioritization_by_stratum
 
 # 2137206
 # 23238 -> 23091910   # Hellebos
 # 49692341
 
-fieldwork_2025_prioritization_by_stratum %>%
+fieldwork_shortterm_prioritization_by_stratum %>%
   filter(
     # field_activity_group == "GWINSTPIEZWELL",
     # grts_address %in% c(49896893, 21323197)

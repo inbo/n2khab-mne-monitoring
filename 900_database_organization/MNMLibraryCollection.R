@@ -166,13 +166,13 @@ verify_poc_objects <- function() {
 
   stopifnot(
     "snip snap >> `orthophoto grts` not found" =
-      exists("orthophoto_2025_type_grts")
+      exists("orthophoto_shortterm_type_grts")
   )
 
   # fieldwork calendar
   stopifnot(
-    "NOT FOUND: snip snap >> `fieldwork_2025_prioritization_by_stratum`" =
-      exists("fieldwork_2025_prioritization_by_stratum")
+    "NOT FOUND: snip snap >> `fieldwork_shortterm_prioritization_by_stratum`" =
+      exists("fieldwork_shortterm_prioritization_by_stratum")
   )
 
   # replacements

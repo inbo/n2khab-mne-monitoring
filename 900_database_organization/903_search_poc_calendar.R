@@ -26,7 +26,7 @@ verify_poc_objects()
 
 
 fieldwork_calendar <-
-  fieldwork_2025_prioritization_by_stratum %>%
+  fieldwork_shortterm_prioritization_by_stratum %>%
   common_current_calenderfilters() %>% # should be filtered already!
   rename_grts_address_final_to_grts_address()
 

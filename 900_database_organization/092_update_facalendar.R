@@ -155,21 +155,21 @@ locations_lookup <- redistribute_calendar_data(
 )
 
 
-# fieldwork_2025_prioritization_by_stratum %>%
+# fieldwork_shortterm_prioritization_by_stratum %>%
 # fieldwork_calendar %>%
 # samplelocations_lookup %>%
 #   filter(grts_address == 871030)
 
-# fieldwork_2025_prioritization_by_stratum %>%
+# fieldwork_shortterm_prioritization_by_stratum %>%
 #   filter(grts_address == 84598, field_activity_group == "LOCEVALTERR") %>%
 #   t() %>% knitr::kable()
 #
-# fieldwork_2025_prioritization_by_stratum %>%
+# fieldwork_shortterm_prioritization_by_stratum %>%
 #   filter(grts_address == 84598, field_activity_group != "LOCEVALTERR") %>%
 #   t() %>% knitr::kable()
 
 fieldwork_calendar <-
-  fieldwork_2025_prioritization_by_stratum %>%
+  fieldwork_shortterm_prioritization_by_stratum %>%
   common_current_calenderfilters() %>% # should be filtered already!
   rename_grts_address_final_to_grts_address() %>%
   replace_grts_local() %>%
@@ -212,7 +212,7 @@ fieldwork_calendar <-
 # fieldwork_calendar %>%
 #   filter(grts_address %in% c(2137206, 49692341)) %>%
 #   t() %>% knitr::kable()
-# fieldwork_2025_prioritization_by_stratum %>%
+# fieldwork_shortterm_prioritization_by_stratum %>%
 #   filter(grts_address_final %in% c(2137206, 49692341)) %>%
 #   t() %>% knitr::kable()
 

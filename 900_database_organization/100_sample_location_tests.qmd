@@ -80,9 +80,9 @@ load(path)
 
 In [this useful file](https://github.com/inbo/n2khab-mne-monitoring/blob/fieldworkdata_supportbyfloris/020_fieldwork_organization/code_snippets.R), I found the following interesting object stack:
 
-- `fag_grts_calendar_2025_attribs_sf`
-  - `fag_grts_calendar_2025_attribs`
-    - `fag_stratum_grts_calendar_2025_attribs`
+- `fag_grts_calendar_shortterm_attribs_sf`
+  - `fag_grts_calendar_shortterm_attribs`
+    - `fag_stratum_grts_calendar_shortterm_attribs`
       - `fag_stratum_grts_calendar` (raw)
       - `scheme_moco_ps_stratum_targetpanel_spsamples`
         - `scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar` (raw)
@@ -95,7 +95,7 @@ In [this useful file](https://github.com/inbo/n2khab-mne-monitoring/blob/fieldwo
 (would be cool to have a dependence graph.)
 
 
-```{r load-fag-grts-calender-2025-attribs-sf}
+```{r load-fag-grts-calender-shortterm-attribs-sf}
 
 grts_mh <- read_GRTSmh()
 # create a spatial index of the GRTS addresses
@@ -146,7 +146,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
   arrange(pick(scheme:grts_address))
 
 
-fag_stratum_grts_calendar_2025_attribs <-
+fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
   select(
     scheme_moco_ps,
@@ -214,8 +214,8 @@ fag_stratum_grts_calendar_2025_attribs <-
 # x FAG occasion. Beware that more locations will emerge due to local
 # replacement, so this is misleading for counting & planning (but useful in
 # spatial visualization)
-fag_grts_calendar_2025_attribs <-
-  fag_stratum_grts_calendar_2025_attribs %>%
+fag_grts_calendar_shortterm_attribs <-
+  fag_stratum_grts_calendar_shortterm_attribs %>%
   mutate(
     stratum_scheme_targetpanels = str_c(
       stratum,
@@ -242,18 +242,18 @@ fag_grts_calendar_2025_attribs <-
 # A simple derived spatial object (as points; see earlier for the actual unit
 # geometries). Points are still repeated because of different date_interval &
 # FAG values at the same location.
-fag_grts_calendar_2025_attribs_sf <-
-  fag_grts_calendar_2025_attribs %>%
+fag_grts_calendar_shortterm_attribs_sf <-
+  fag_grts_calendar_shortterm_attribs %>%
   add_point_coords_grts(
     grts_var = "grts_address_final",
     spatrast = grts_mh,
     spatrast_index = grts_mh_index
   )
 
-# glimpse(fag_grts_calendar_2025_attribs_sf)
+# glimpse(fag_grts_calendar_shortterm_attribs_sf)
 
 knitr::kable(head(
-  sf::st_drop_geometry(fag_grts_calendar_2025_attribs_sf)
+  sf::st_drop_geometry(fag_grts_calendar_shortterm_attribs_sf)
 ))
 ```
 
@@ -347,7 +347,7 @@ db_connection <- connect_database_configfile(config_filepath)
 #| eval: false
 glimpse(activities)
 glimpse(activity_sequences)
-glimpse(fag_grts_calendar_2025_attribs_sf)
+glimpse(fag_grts_calendar_shortterm_attribs_sf)
 ```
 
 ## MetaData
@@ -513,7 +513,7 @@ activity_sequence_lookup <- upload_and_lookup(
 ### LocationCalendar
 
 ```{r upload-calendar}
-location_calendar <- fag_grts_calendar_2025_attribs_sf %>% 
+location_calendar <- fag_grts_calendar_shortterm_attribs_sf %>% 
     mutate(
       stratum_scheme_targetpanels = as.character(stratum_scheme_targetpanels)
     ) %>% 

@@ -733,7 +733,7 @@ activity_groupid_lookup <- loceval_db$query_columns(
 
 
 fieldwork_calendar <-
-  fieldwork_2025_prioritization_by_stratum %>%
+  fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
   relocate(grts_join_method, .after = grts_address) %>%

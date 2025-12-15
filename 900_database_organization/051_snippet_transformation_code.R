@@ -25,6 +25,14 @@ common_current_calenderfilters <- function(.data) {
   gw_data %>%
     filter(
       lubridate::year(date_start) < 2026 |
+        # include groundwater cleaning & sampling activities from 2026
+        (
+          lubridate::year(date_start) < 2027 &
+            str_detect(
+              field_activity_group,
+              "SHALL(CLEAN|SAMP)"
+            )
+        ) |
         # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
         # next years to be executed:
         (

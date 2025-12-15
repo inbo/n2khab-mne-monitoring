@@ -312,7 +312,7 @@ fag_stratum_grts_calendar %>%
       date_start
     )
 
-fieldwork_2025_prioritization_by_stratum %>%
+fieldwork_shortterm_prioritization_by_stratum %>%
   filter(
     grts_address_final == grts_to_find,
     field_activity_group %in% c("GWINSTPIEZWELL", "SPATPOSITPIPE")
