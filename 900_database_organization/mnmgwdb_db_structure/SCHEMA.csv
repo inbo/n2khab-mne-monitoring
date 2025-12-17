@@ -1,6 +1,6 @@
 schema,owner,usage
-outbound,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
-inbound,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
-metadata,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
+outbound,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
+inbound,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
+metadata,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
 archive,salamandra,"tester,monkey"
-analysis,salamandra,"tom,falk,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"
+analysis,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey"

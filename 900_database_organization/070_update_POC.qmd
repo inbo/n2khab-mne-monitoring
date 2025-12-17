@@ -684,6 +684,11 @@ fieldwork_calendar_new <- fieldwork_calendar %>%
     -last_type_assessment_in_field
   )
 
+```
+
+
+```{r}
+
 fieldcalendar_characols <- c(
     "grts_address",
     "stratum", 
@@ -693,6 +698,25 @@ fieldcalendar_characols <- c(
 
 # "samplelocation_id",
 # "sspstapa_id",
+
+
+special_activity_tables <- c(
+    "WellInstallationActivities",
+    "ChemicalSamplingActivities",
+    "SpatialPositioningActivities"
+    )
+
+
+# stop("CONSIDER: these are not special activity characteristic columns!")
+speciact_characols <- c(
+  # "samplelocation_id",
+  # "fieldworkcalendar_id",
+  # "visit_id",
+  "grts_address",
+  "stratum",
+  "activity_group_id",
+  "date_start"
+)
 
 ```
 
@@ -764,7 +788,7 @@ startdate_updates_happened <- associate_and_shift_start_dates(
   table_label = table_label,
   data_future = data_nouveau,
   characteristic_columns = characteristic_columns,
-  other_table_labels = c("Visits", "WellInstallationActivities", "ChemicalSamplingActivities")
+  other_table_labels = c("Visits", special_activity_tables)
 ) 
 
 # data_nouveau %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_older.rds")
@@ -1013,8 +1037,13 @@ selection_of_activities <- list(
       c(field_activities_db %>%
         filter(grepl("^GW.*SAMP", activity)) %>%
         pull(activity_group))
-      )
- # /CSA
+      ), # /CSA
+  "SpatialPositioningActivities" = function(df) df %>% 
+    filter(activity_group %in%
+      c(field_activities_db %>%
+        filter(grepl("^SPATPOSIT", activity)) %>%
+        pull(activity_group))
+      ) # /SPA
 )
 
 empty_init <- list(
@@ -1029,8 +1058,12 @@ empty_init <- list(
     mutate(
       log_user = "maintenance",
       log_update = as.POSIXct(Sys.time())
-    )
- # /CSA
+    ), # /CSA
+  "SpatialPositioningActivities" = function(df) df %>% 
+    mutate(
+      log_user = "maintenance",
+      log_update = as.POSIXct(Sys.time())
+    ) # /SPA
 )
 
 
@@ -1047,19 +1080,9 @@ visits_redownload <- visits_redownload %>%
     by = join_by(activity_group_id)
   )
 
-stop("CONSIDER: these are not special activity characteristic columns!")
-speciact_characols <- c(
-  "samplelocation_id",
-  "fieldworkcalendar_id",
-  "visit_id",
-  "grts_address",
-  "stratum",
-  "activity_group_id",
-  "date_start"
-)
-
 # table_label <- "WellInstallationActivities"
 # table_label <- "ChemicalSamplingActivities"
+# table_label <- "SpatialPositioningActivities"
 
 # uniqueness
 mnmgwdb$query_table("WellInstallationActivities") %>%
@@ -1072,13 +1095,18 @@ mnmgwdb$query_table("ChemicalSamplingActivities") %>%
   arrange(desc(n)) %>%
   filter(n>1) %>% 
   knitr::kable()
-
+mnmgwdb$query_table("SpatialPositioningActivities") %>%
+  count(!!!rlang::syms(speciact_characols)) %>%
+  arrange(desc(n)) %>%
+  filter(n>1) %>% 
+  knitr::kable()
 ```
 
 
 ```{r link-special-activities}
 
-for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
+
+for (table_label in special_activity_tables) {
 
   # link WIA/CSA back to SampleLocations
   stitch_table_connection(
@@ -1108,18 +1136,13 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
   )
 
+  # missing links
+  mnmgwdb$query_table(table_label) %>%
+    filter(is.na(visit_id)) %>% 
+    knitr::kable()
 
 }
 
-
-
-# missing links
-mnmgwdb$query_table("WellInstallationActivities") %>%
-  filter(is.na(visit_id)) %>% 
-  knitr::kable()
-mnmgwdb$query_table("ChemicalSamplingActivities") %>%
-  filter(is.na(visit_id)) %>% 
-  knitr::kable()
 
 
 ```
@@ -1128,7 +1151,7 @@ mnmgwdb$query_table("ChemicalSamplingActivities") %>%
 ```{r upload-special-activities}
 
 # table_label <- "WellInstallationActivities"
-for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
+for (table_label in special_activity_tables) {
 
   special_activities <- visits_redownload %>% 
     selection_of_activities[[table_label]]()
@@ -1172,7 +1195,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
 
 ```{r reconnect-special-activities}
 
-for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
+for (table_label in special_activity_tables) {
   stitch_table_connection(
     mnmdb = mnmgwdb,
     table_label = table_label,

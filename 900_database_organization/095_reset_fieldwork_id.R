@@ -1,8 +1,9 @@
 #!/usr/bin/env Rscript
 
 
-# SELECT DISTINCT fieldwork_id, COUNT(*) AS n
 # FROM "inbound"."WellInstallationActivities"
+# SELECT DISTINCT fieldwork_id, COUNT(*) AS n
+# FROM "inbound"."ChemicalSamplingActivities"
 # GROUP BY fieldwork_id
 # ORDER BY n DESC;
 
@@ -51,18 +52,24 @@ characteristic_columns <- c(
 # table_label <- "WellInstallationActivities"
 for (table_label in c(
     "WellInstallationActivities",
-    "ChemicalSamplingActivities"
+    "ChemicalSamplingActivities",
+    "SpatialPositioningActivities"
   )) {
 
   mnmgwdb$set_sequence_key(table_label)
 
   # NOTE on the offset:
   #      - CSA is offset by 10000 per default
+  #      - SPA is offset by 20000 per default
   #      - both IDs are offset by 100000 for update, reduced back below
-  #        otherwise there can be duplicate on inset new activities
+  #        otherwise there can be duplicate on insert new activities
   if (table_label == "ChemicalSamplingActivities") {
     offset <- 110000
-    } else offset <- 100000
+  } else if (table_label == "SpatialPositioningActivities") {
+    offset <- 120000
+  } else {
+    offset <- 100000
+  }
 
   ### query existing
   existing_activities <- mnmgwdb$query_columns(

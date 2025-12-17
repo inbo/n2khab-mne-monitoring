@@ -217,8 +217,13 @@ stitch_table_connection(
 
 
 
+special_activity_tables <- c(
+  "WellInstallationActivities",
+  "ChemicalSamplingActivities",
+  "SpatialPositioningActivities"
+)
 
-for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
+for (table_label in special_activity_tables) {
 
   # link WIA/CSA back to SampleLocations
   stitch_table_connection(

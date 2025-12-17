@@ -42,7 +42,7 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./inbopostgis_server.conf")
 # mirror <- "-testing"
 mirror <- ""
-# mirror <- "-staging"
+mirror <- "-staging"
 
 # connect mnmgwdb
 mnmgwdb_database <- glue::glue("mnmgwdb{mirror}")
@@ -119,7 +119,8 @@ count_table_content(c(
     "FieldworkCalendar",
     "Visits",
     "WellInstallationActivities",
-    "ChemicalSamplingActivities"
+    "ChemicalSamplingActivities",
+    "SpatialPositioningActivities"
   ))
 
 ```
@@ -415,6 +416,20 @@ check_foreignkey_connection(
 ```
 
 
+```{r spa-sloc}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SpatialPositioningActivities", fk = "samplelocation_id",
+  characteristic_columns = c("grts_address", "stratum"),
+  ref_table = "SampleLocations", pk = "samplelocation_id",
+  rename_ref = c("strata" = "stratum")
+  )
+
+```
+
+
 ## Fieldwork Calendar and Visits
 
 
@@ -475,6 +490,31 @@ check_foreignkey_connection(
 
 check_foreignkey_connection(
   table_label = "ChemicalSamplingActivities", fk = "visit_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "Visits" 
+  )
+
+```
+
+```{r spa-fwcal}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SpatialPositioningActivities", fk = "fieldworkcalendar_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "FieldworkCalendar" 
+  )
+
+```
+
+
+```{r spa-visits}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SpatialPositioningActivities", fk = "visit_id",
   characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
   ref_table = "Visits" 
   )

@@ -17,6 +17,7 @@ wait_watersurface,boolean,False,,False,False,,,,filter field for convenient aqua
 wait_3260,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
 wait_7220,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
 wait_floating,boolean,False,,False,False,,,,filter field for convenient floating type (de)selection
+is_sideloaded,boolean,False,,False,False,,,,(technical) this calendar event was sideloaded and not part of the POC
 excluded,boolean,True,0,False,False,,,,activity obsolete due to sample updates or prior activities
 excluded_reason,text,False,NULL,False,False,,,,reason for exclusion (e.g. loceval type not found)
 teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee

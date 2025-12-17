@@ -35,6 +35,7 @@ SELECT
   COALESCE( WIA.fieldwork_id, CSA.fieldwork_id) AS fieldwork_id,
   CASE WHEN WIA.is_installation IS NULL THEN FALSE ELSE WIA.is_installation END AS show_installation,
   CASE WHEN CSA.is_sampling IS NULL THEN FALSE ELSE CSA.is_sampling END AS show_sampling,
+  CASE WHEN SPA.is_positioning IS NULL THEN FALSE ELSE SPA.is_positioning END AS show_positioning,
   WIA.photo_soil_1_peilbuis,
   WIA.photo_soil_2_piezometer,
   WIA.photo_well,
@@ -52,6 +53,7 @@ SELECT
   WIA.used_water_source,
   CSA.project_code,
   CSA.recipient_code,
+  SPA.require_total_station,
   VISIT.visit_done
 FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -89,6 +91,11 @@ LEFT JOIN (
   FROM "inbound"."ChemicalSamplingActivities"
 ) AS CSA
   ON VISIT.visit_id = CSA.visit_id
+LEFT JOIN (
+  SELECT *, TRUE AS is_positioning
+  FROM "inbound"."SpatialPositioningActivities"
+) AS SPA
+  ON VISIT.visit_id = SPA.visit_id
 LEFT JOIN (
   SELECT samplelocation_id, loceval_photo
   FROM (
@@ -181,9 +188,40 @@ DO ALSO
  WHERE fieldwork_id = OLD.fieldwork_id
 ;
 
+DROP RULE IF EXISTS FieldWork_upd_SPA ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_SPA AS
+ON UPDATE TO "inbound"."FieldWork"
+DO ALSO
+ UPDATE "inbound"."SpatialPositioningActivities"
+ SET
+  require_total_station = NEW.require_total_station
+ WHERE fieldwork_id = OLD.fieldwork_id
+;
 
 GRANT SELECT ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk, ward, monkey;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk;
 
+
+
+DROP VIEW IF EXISTS  "inbound"."MyFieldWork" ;
+CREATE VIEW "inbound"."MyFieldWork" AS
+SELECT * FROM "inbound"."FieldWork"
+WHERE teammember_assigned IN (
+  SELECT DISTINCT teammember_id
+  FROM "metadata"."TeamMembers"
+  WHERE username = 'all_groundwater'
+    OR LOWER(username) = LOWER(current_user)
+) OR visit_done;
+
+
+
+GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
+GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen;
+
+
+
 GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
 GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
+
+GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tester;
+GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tester;

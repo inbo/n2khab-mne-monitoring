@@ -1,5 +1,5 @@
 
-
+-- DEPRECATED: this was moved to the "FieldWork" definition file
 DROP VIEW IF EXISTS  "inbound"."MyFieldWork" ;
 CREATE VIEW "inbound"."MyFieldWork" AS
 SELECT * FROM "inbound"."FieldWork"

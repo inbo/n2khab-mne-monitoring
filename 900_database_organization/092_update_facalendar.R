@@ -131,7 +131,7 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 
 table_label <- "Locations"
-data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+data_nouveau <- locations # %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
 index_column <- mnmgwdb$get_primary_key(table_label)
 characteristic_columns <- c("grts_address")
 
@@ -320,7 +320,8 @@ startdate_updates_happened <- associate_and_shift_start_dates(
   other_table_labels = c(
     "Visits",
     "WellInstallationActivities",
-    "ChemicalSamplingActivities"
+    "ChemicalSamplingActivities",
+    "SpatialPositioningActivities"
   )
 )
 
