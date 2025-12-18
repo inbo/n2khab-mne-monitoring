@@ -594,6 +594,14 @@ upload_data_and_update_dependencies <- function(
         ;
       ')
     }
+    if (table_label == "SpatialPositioningActivities") {
+      mnmdb$execute_sql('
+        UPDATE "inbound"."SpatialPositioningActivities"
+          SET fieldwork_id = fieldwork_id + 20000
+          WHERE fieldwork_id < 20000
+        ;
+      ')
+    }
   }
 
 
@@ -612,11 +620,11 @@ upload_data_and_update_dependencies <- function(
   # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
   # entries which were not present prior to update are not in this lookup
   # new_redownload %>%
-  #   count(samplelocation_id, grts_address, activity_group_id,
-  #         date_start, fieldworkcalendar_id
+  #   count(stratum, grts_address, activity_group_id,
+  #         date_start# , fieldworkcalendar_id
   #         ) %>%
   #   arrange(desc(n))
-  # old_data %>% count(location_id) %>% arrange(desc(n))
+  # old_data %>% count(!!!rlang::syms(characteristic_columns)) %>% arrange(desc(n))
 
   # cols <- c("grts_address", "stratum", "activity_group_id", "date_start")
   # cols <- characteristic_columns
@@ -1277,6 +1285,7 @@ categorize_data_update <- function(
   }
 
   ## ignore excluded columns
+  previous_cols <- names(data_previous)
   if (!is.scalar.na(exclude_columns)) {
     cols <- names(data_future)
     cols <- cols[!(cols %in% exclude_columns)]
@@ -1285,13 +1294,17 @@ categorize_data_update <- function(
     cols <- names(data_previous)
     cols <- cols[!(cols %in% c(logging_columns, exclude_columns))]
     data_previous <- data_previous %>% select(!!!cols)
+    previous_cols <- cols
 
   }
 
 
   # if there is no archive column, then there can be no archive
   if (skip_archive) {
-    data_previous_archive <- data_previous %>% filter(TRUE == FALSE)
+    data_previous_archive <- data_previous %>%
+      filter(TRUE == FALSE) %>%
+      select(!!!previous_cols)
+
   } else {
     # the archive flag column effectively codes non-archived entries as NA
     data_previous_archive <- data_previous[!is.na(data_previous[archive_flag_column]), ]
@@ -2163,6 +2176,9 @@ precedence_columns <- list(
   "ChemicalSamplingActivities" = c(
     "project_code",
     "recipient_code"
+  ),
+  "SpatialPositioningActivities" = c(
+    "require_total_station"
   ),
   "LocationInfos" = c(
     "landowner",

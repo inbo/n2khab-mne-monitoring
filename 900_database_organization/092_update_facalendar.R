@@ -131,7 +131,7 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 
 table_label <- "Locations"
-data_nouveau <- locations # %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
 index_column <- mnmgwdb$get_primary_key(table_label)
 characteristic_columns <- c("grts_address")
 
@@ -543,7 +543,13 @@ selection_of_activities <- list(
       c(gw_field_activities %>%
         filter(grepl("^GW.*SAMP", activity)) %>%
         pull(activity_group))
-      ) # /CSA
+      ), # /CSA
+  "SpatialPositioningActivities" = function(df) df %>%
+    filter(activity_group %in%
+      c(gw_field_activities %>%
+        filter(grepl("^SPATPOSIT", activity)) %>%
+        pull(activity_group))
+      ) # /SPA
 )
 
 empty_init <- list(
@@ -558,7 +564,12 @@ empty_init <- list(
     mutate(
       log_user = "maintenance",
       log_update = as.POSIXct(Sys.time())
-    ) # /CSA
+    ), # /CSA
+  "SpatialPositioningActivities" = function(df) df %>%
+    mutate(
+      log_user = "maintenance",
+      log_update = as.POSIXct(Sys.time())
+    ) # /SPA
 )
 
 
@@ -576,6 +587,13 @@ visits_redownload <- visits_redownload %>%
   )
 
 
+special_activity_tables <- c(
+  "WellInstallationActivities",
+  "ChemicalSamplingActivities",
+  "SpatialPositioningActivities"
+)
+
+
 speciact_characols <- c(
   "grts_address",
   "stratum",
@@ -590,7 +608,7 @@ speciact_characols <- c(
 # table_label <- "ChemicalSamplingActivities"
 
 
-for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities")) {
+for (table_label in special_activity_tables) {
 
   special_activities <- visits_redownload %>%
     selection_of_activities[[table_label]]()
@@ -617,7 +635,7 @@ for (table_label in c("WellInstallationActivities", "ChemicalSamplingActivities"
     index_columns = c("fieldwork_id"),
     characteristic_columns = speciact_characols,
     tabula_rasa = FALSE,
-    skip_sequence_reset = TRUE, # fieldwork_id is tricky
+    skip_sequence_reset = TRUE, # fieldwork_id is tricky; see script 095b
     verbose = TRUE
   )
 
