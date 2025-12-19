@@ -8,7 +8,7 @@ CREATE TABLE "inbound"."SpatialPositioningActivities"();
 
 COMMENT ON TABLE "inbound"."SpatialPositioningActivities" IS E'information collected for certain activities (spatial positioning); linked to a subset of Visits';
 
-ALTER TABLE "inbound"."SpatialPositioningActivities" ADD COLUMN fieldwork_id int NOT NULL PRIMARY KEY DEFAULT nextval('inbound.seq_fieldwork_id'::regclass);
+ALTER TABLE "inbound"."SpatialPositioningActivities" ADD COLUMN fieldwork_id int NOT NULL PRIMARY KEY;
 COMMENT ON COLUMN "inbound"."SpatialPositioningActivities".fieldwork_id IS E'fieldwork index: shared index over multiple fieldwork activity tables';
 
 ALTER TABLE "inbound"."SpatialPositioningActivities" ADD COLUMN log_user varchar NOT NULL DEFAULT current_user;
@@ -71,3 +71,13 @@ GRANT DELETE ON "inbound"."SpatialPositioningActivities" TO tom;
 -- adjusted 040m_mnmgwdb_consistency_dashboard.qmd
 -- adjusted 095_reset_fieldwork_id.R, of course; SPA gets +20000
 -- 095_re_link_foreign_keys_optional.R
+
+-- "ExPost" tab in structure sheet
+
+DROP TRIGGER IF EXISTS log_spatialpositioningactivities ON "inbound"."SpatialPositioningActivities";
+CREATE TRIGGER log_spatialpositioningactivities
+BEFORE UPDATE ON "inbound"."SpatialPositioningActivities"
+FOR EACH ROW EXECUTE PROCEDURE sync_mod();
+
+"ALTER TABLE ""inbound"".""SpatialPositioningActivities"" ALTER COLUMN fieldwork_id
+ SET DEFAULT nextval('inbound.seq_fieldwork_id'::regclass);"

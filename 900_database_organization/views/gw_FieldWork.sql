@@ -32,7 +32,11 @@ SELECT
   GAP.is_field_activity,
   GAP.is_gw_activity,
   GAP.protocols,
-  COALESCE( WIA.fieldwork_id, CSA.fieldwork_id) AS fieldwork_id,
+  COALESCE(
+    WIA.fieldwork_id,
+    CSA.fieldwork_id,
+    SPA.fieldwork_id
+    ) AS fieldwork_id,
   CASE WHEN WIA.is_installation IS NULL THEN FALSE ELSE WIA.is_installation END AS show_installation,
   CASE WHEN CSA.is_sampling IS NULL THEN FALSE ELSE CSA.is_sampling END AS show_sampling,
   CASE WHEN SPA.is_positioning IS NULL THEN FALSE ELSE SPA.is_positioning END AS show_positioning,
@@ -215,8 +219,8 @@ WHERE teammember_assigned IN (
 
 
 
-GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
-GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen;
+GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk, ward, monkey;
+GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk;
 
 
 
