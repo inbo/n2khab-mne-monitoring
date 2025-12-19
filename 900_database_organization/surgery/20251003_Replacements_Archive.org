@@ -1,0 +1,102 @@
+#+title: 20251003 Replacements
+
+#+begin_src sql :eval no
+
+ALTER TABLE "outbound"."ReplacementCells" ALTER COLUMN replacement_id DROP NOT NULL;
+
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"archive";
+
+DROP TABLE IF EXISTS "archive"."ReplacementArchives" CASCADE;
+
+BEGIN;
+CREATE TABLE "archive"."ReplacementArchives"();
+
+COMMENT ON TABLE "archive"."ReplacementArchives" IS E'archive of replacement information for samples which are not used any more';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN replacementarchive_id int NOT NULL PRIMARY KEY; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".replacementarchive_id IS E'replacement archive index (technical)';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN grts_address int NOT NULL CHECK (grts_address > 0); 
+COMMENT ON COLUMN "archive"."ReplacementArchives".grts_address IS E'GRTS address (`final`, i.e. after prior replacements)';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN type varchar NOT NULL; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".type IS E'type (code), our latest best assessment';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN grts_address_replacement int NOT NULL CHECK (grts_address_replacement > 0); 
+COMMENT ON COLUMN "archive"."ReplacementArchives".grts_address_replacement IS E'GRTS address (`final`, i.e. after corrections)';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN replacement_rank smallint NOT NULL CHECK (replacement_rank > 0); 
+COMMENT ON COLUMN "archive"."ReplacementArchives".replacement_rank IS E'replacement preference order';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN replacement_reason text; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".replacement_reason IS E'explanation for replacement choice, e.g. inaccessibility';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN replacement_permanence text; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".replacement_permanence IS E'whether or not the location is permanently unavailable';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN type_is_absent boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".type_is_absent IS E'unsuccessful local replacement / target type not found';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN is_inappropriate boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".is_inappropriate IS E'indicating whether this location was visited but inappropriate as replacement unit';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN is_selected boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".is_selected IS E'indicating whether this location was selected as replacement unit';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN implications_habitatmap boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".implications_habitatmap IS E'whether disapproval has implications for habitat map';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN type_suggested varchar; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".type_suggested IS E'type suggested for a non-selected replacement cell';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN notes text; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".notes IS E'free text notes which will be transferred to the field app';
+
+ALTER TABLE "archive"."ReplacementArchives" ADD COLUMN version_id smallint; 
+COMMENT ON COLUMN "archive"."ReplacementArchives".version_id IS E'(technical) flag latest version on archived replacements';
+
+COMMIT;
+
+-- sequence replacementarchive_id
+CREATE SEQUENCE "archive".seq_replacementarchive_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "archive"."ReplacementArchives".replacementarchive_id;
+ALTER TABLE "archive"."ReplacementArchives" ALTER COLUMN replacementarchive_id
+ SET DEFAULT nextval('archive.seq_replacementarchive_id'::regclass);
+
+GRANT USAGE ON SEQUENCE "archive"."seq_replacementarchive_id" TO tom;
+
+GRANT USAGE ON SEQUENCE "archive"."seq_replacementarchive_id" TO ward;
+
+GRANT USAGE ON SEQUENCE "archive"."seq_replacementarchive_id" TO floris;
+
+GRANT USAGE ON SEQUENCE "archive"."seq_replacementarchive_id" TO karen;
+
+GRANT USAGE ON SEQUENCE "archive"."seq_replacementarchive_id" TO monkey;
+
+GRANT SELECT ON SEQUENCE "archive"."seq_replacementarchive_id" TO monkey;
+
+-- foreign key version_id
+ALTER TABLE "archive"."ReplacementArchives" DROP CONSTRAINT IF EXISTS fk_Versions_ReplacementArchives CASCADE;
+ALTER TABLE "archive"."ReplacementArchives" ADD CONSTRAINT fk_Versions_ReplacementArchives FOREIGN KEY (version_id)
+REFERENCES "metadata"."Versions" (version_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+GRANT SELECT ON "archive"."ReplacementArchives" TO tom;
+
+GRANT SELECT ON "archive"."ReplacementArchives" TO ward;
+
+GRANT SELECT ON "archive"."ReplacementArchives" TO floris;
+
+GRANT SELECT ON "archive"."ReplacementArchives" TO karen;
+
+GRANT SELECT ON "archive"."ReplacementArchives" TO monkey;
+
+
+#+end_src

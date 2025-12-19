@@ -1,0 +1,9 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,comment
+activity_id,smallint,TRUE,,TRUE,TRUE,,activity index (technical)
+activity,varchar,TRUE,,FALSE,,,activity string shorthand
+activity_name,varchar,TRUE,,,,,description of the activity
+is_datacollection_method,boolean,FALSE,NULL,,,,
+is_field_activity,boolean,FALSE,NULL,,,,
+is_prep_activity,boolean,FALSE,NULL,,,,
+is_lab_activity,boolean,FALSE,NULL,,,,
+protocol_id,smallint,FALSE,NULL,,,Protocols.protocol_id,referencing the protocol table

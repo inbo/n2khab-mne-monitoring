@@ -1,0 +1,261 @@
+#+title: Cleanup Poc Diseaster
+#+date: 20251017 
+
+
+
+#+begin_src R
+# libraries
+source("MNMLibraryCollection.R")
+load_poc_common_libraries()
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+tic <- function(toc) round(Sys.time() - toc, 1)
+toc <- Sys.time()
+load_poc_rdata(reload = FALSE, to_env = parent.frame())
+message(glue::glue("Good morning!
+  Loading the POC data took {tic(toc)} seconds today."
+))
+
+snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+
+toc <- Sys.time()
+load_poc_code_snippets(snippets_path)
+message(glue::glue(
+  "... loading/executing the code snippets took {tic(toc)}s."
+))
+
+verify_poc_objects()
+
+database <- "loceval"
+config_filepath <- file.path("./inbopostgis_server.conf")
+# mirror <- ""
+mirror <- "-staging"
+
+
+# connect loceval
+locevaldb_mirror <- glue::glue("{database}{mirror}")
+
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+) 
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(glue::glue("connected: psql {locevaldb$shellstring}"))
+
+
+#+end_src
+
+
+* BUG FOUND??!!
+
+** sampleunit_id triggers data change
+In [[file:../MNMDatabaseToolbox.R]], =categorize_data_update(...)=
+does include columns which are dynamic identifiers (e.g. =sampleunit_id=).
+Those should NOT be considered a reason of change.
+
+I am testing this in 071/upd fieldactivitycalendar
+
+** sprintf does not convert int64
+=convert_data_to_sql_input_str= parsed grts_addresses to "0"
+because they came out the db as int64
+
+though R by default carries 32 bit (signed) integers, which gives 2.147.483.647 addresses and is totally fine for Flanders (actual grts currently <= 65.133.237 in locevaldb).
+#+begin_src 
+as.integer(c(
+  2^31-1, 2^31 + 1
+))
+#+end_src
+
+
+* missing planned points
+
+grts-adressen:
+1677870, 52009518, 5471538, 928050, 649522
+(de laatste is een lokale vervanging)
+
+#+begin_example
+SELECT *
+FROM "outbound"."FieldActivityCalendar"
+WHERE grts_address IN (1677870, 52009518, 5471538, 928050, 649522)
+;
+
+SELECT *
+FROM "outbound"."FieldworkPlanning"
+WHERE grts_address IN (1677870, 52009518, 5471538, 928050, 649522)
+;
+#+end_example
+
+for all except 649522
+
+#+begin_quote
+The locations were out of bounds for QGIS categorical symbolics.
+Categorical symbols in QGIS *need* an "else" field!
+#+end_quote
+
+
+* more missives
+3202741 does not appear @loceval
+
+
+#+begin_example
+SELECT * FROM "outbound"."SampleUnits" WHERE grts_address = 3202741;
+#+end_example
+
+
+#+begin_src 
+
+fag_stratum_grts_calendar %>%
+  filter(
+    grts_address == 3202741,
+    field_activity_group == 'LOCEVALTERR',
+    date_start == as.Date('2025-06-01'),
+  ) %>%
+  glimpse()
+
+sample_units %>% 
+  filter(
+    grts_address == 3202741
+  ) %>% glimpse()
+
+
+fieldwork_2025_prioritization_by_stratum %>%
+  filter(
+    grts_address == 3202741,
+    field_activity_group == 'LOCEVALTERR'
+  ) %>% glimpse()
+
+#+end_src
+
+
+* empty cells
+2746674 is a cell without point. Where does it come from?
+-> location_id 1211
+-> grts 2746674
+
+
+#+begin_example
+SELECT * FROM "outbound"."SampleUnits" WHERE grts_address = 2746674;
+#+end_example
+
+
+* subsetting location_id
+
+Sorry, correctie, je stelde voor location_id te gebruiken (default was ogc_fid).
+Dus location_id leidde tot een subset van de data.
+
+
+#+begin_src R
+locations <- locevaldb$query_columns("Locations", c("grts_address")) %>% 
+  mutate(grts_address = as.integer(grts_address)) %>%
+  distinct() %>%
+  # count(grts_address) %>%
+  # arrange(desc(n))
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(locations) <- "wkb_geometry"
+
+
+update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
+locations_lookup <- update_cascade_lookup(
+  table_label = "Locations",
+  new_data = locations,
+  index_columns = c("location_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+
+#+end_src
+
+
+
+* Even More Apocalypse (EMA)
+SCHEDULED: <2025-10-20 Mon>
+
+** another personal falk-up
+On 20251020, I attempted the update procedure again.
+For some reason, my database connection was not pointing to `staging`, but to `production`.
+So the update went trough; unplanned, but succesful.
+
+
+** recovering field precedence
+
+*However*, the update put *>75%* of our prior visits for installation to archive. 
+
+
+#+begin_example
+mnmgwdb=# SELECT DISTINCT archive_version_id, visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done, archive_version_id;
+avid | visit_done | count
+-----+------------+-------
+  1  | f          |    72
+  1  | t          |     2
+  2  | f          |     4
+  3  | f          |  1876
+  3  | t          |    88
+  /  | f          |  2295
+  /  | t          |    28
+(7 rows)
+#+end_example
+
+
+
+I reactivated, temporarily.
+
+
+#+begin_src sql
+
+UPDATE "outbound"."FieldworkCalendar" 
+SET archive_version_id = NULL
+WHERE done_planning;
+-- UPDATE 194
+
+UPDATE "inbound"."Visits" 
+SET archive_version_id = NULL
+WHERE visit_done;
+-- UPDATE 118
+
+UPDATE "outbound"."SampleLocations"
+SET archive_version_id = NULL
+WHERE grts_address IN (
+  1195701, 
+  122549, 
+  1588917, 
+  19914421, 
+  212661, 
+  253621, 
+  29769397, 
+  3202741, 
+  3554997, 
+  3858101, 
+  409269, 
+  4447925, 
+  44961461, 
+  450229, 
+  48053941, 
+  48578229, 
+  49692341, 
+  50282165, 
+  5193397, 
+  5234357, 
+  540341, 
+  5455541, 
+  5979829, 
+  6360757, 
+  6504117, 
+  6635189, 
+  6811317, 
+  7409333, 
+  908981
+);
+-- UPDATE 22
+#+end_src
+
+
+To be discussed with Floris.

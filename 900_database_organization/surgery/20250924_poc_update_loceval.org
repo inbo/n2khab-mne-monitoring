@@ -1,0 +1,629 @@
+
+I have neglected =loceval= for a while.
+
+* structural changes
+** DONE MISC changes
+CLOSED: [2025-10-02 Thu 13:45]
+
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."FieldActivityCalendar" RENAME COLUMN stratum TO type;
+ALTER TABLE "inbound"."Visits" RENAME COLUMN stratum TO type;
+
+
+ALTER TABLE "metadata"."LocationCells" ALTER COLUMN location_id DROP NOT NULL;
+ALTER TABLE "outbound"."LocationInfos" ALTER COLUMN location_id DROP NOT NULL;
+ALTER TABLE "outbound"."SampleUnits" ALTER COLUMN location_id DROP NOT NULL;
+
+ALTER TABLE "outbound"."SampleUnitPolygons" ALTER COLUMN sampleunit_id DROP NOT NULL;
+ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id DROP NOT NULL;
+
+ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id DROP NOT NULL;
+
+
+UPDATE "outbound"."FieldActivityCalendar" AS REP
+SET sampleunit_id = UNIT.sampleunit_id
+FROM "outbound"."SampleUnits" AS UNIT
+WHERE (REP.grts_address = UNIT.grts_address)
+  AND (REP.type = UNIT.type)
+;
+
+
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN grts_join_method;
+-- ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN domain_part;
+
+ALTER TABLE "inbound"."Visits" DROP COLUMN grouped_activity_id CASCADE;
+
+
+
+#+end_src
+
+THEN restore view ReplacementOngoing!
+
+** DONE Foreign Keys
+CLOSED: [2025-10-02 Thu 13:46]
+
+#+begin_src sql
+
+
+-- foreign key location_id
+ALTER TABLE "metadata"."LocationCells" DROP CONSTRAINT IF EXISTS fk_Locations_LocationCells CASCADE;
+ALTER TABLE "metadata"."LocationCells" ADD CONSTRAINT fk_Locations_LocationCells FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "outbound"."LocationInfos" DROP CONSTRAINT IF EXISTS fk_Locations_LocationInfos CASCADE;
+ALTER TABLE "outbound"."LocationInfos" ADD CONSTRAINT fk_Locations_LocationInfos FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "outbound"."SampleUnits" DROP CONSTRAINT IF EXISTS fk_Locations_SampleUnits CASCADE;
+ALTER TABLE "outbound"."SampleUnits" ADD CONSTRAINT fk_Locations_SampleUnits FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."SampleUnitPolygons" DROP CONSTRAINT IF EXISTS fk_SampleUnits_SampleUnitPolygons CASCADE;
+ALTER TABLE "outbound"."SampleUnitPolygons" ADD CONSTRAINT fk_SampleUnits_SampleUnitPolygons FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."Replacements" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Replacements CASCADE;
+ALTER TABLE "outbound"."Replacements" ADD CONSTRAINT fk_SampleUnits_Replacements FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP CONSTRAINT IF EXISTS fk_SampleUnits_FieldActivityCalendar CASCADE;
+ALTER TABLE "outbound"."FieldActivityCalendar" ADD CONSTRAINT fk_SampleUnits_FieldActivityCalendar FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key fieldactivitycalendar_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldActivityCalendar_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_FieldActivityCalendar_Visits FOREIGN KEY (fieldactivitycalendar_id)
+REFERENCES "outbound"."FieldActivityCalendar" (fieldactivitycalendar_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key sampleunit_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_SampleUnits_Visits FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key location_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_Locations_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_Locations_Visits FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+
+
+ALTER TABLE "outbound"."LocationAssessments" ADD CONSTRAINT fk_Locations_LocationAssessments FOREIGN KEY (location_id)
+REFERENCES "metadata"."Locations" (location_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+ALTER TABLE "outbound"."LocationAssessments" ADD COLUMN sampleunit_id integer DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."LocationAssessments".sampleunit_id IS E'reference to sample unit';
+
+
+ALTER TABLE "outbound"."LocationAssessments" ADD CONSTRAINT fk_SampleUnits_LocationAssessments FOREIGN KEY (sampleunit_id)
+REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+UPDATE "outbound"."LocationAssessments" AS ASS
+SET
+  sampleunit_id = UNIT.sampleunit_id
+FROM "outbound"."SampleUnits" AS UNIT
+WHERE (ASS.grts_address = UNIT.grts_address)
+  AND (ASS.type = UNIT.type)
+;
+
+
+UPDATE "outbound"."LocationAssessments" AS ASS
+SET
+  location_id = LOC.location_id
+FROM "metadata"."Locations" AS LOC
+WHERE (ASS.grts_address = LOC.grts_address)
+;
+
+#+end_src
+
+
+** DONE urgent: grts_address to replacements
+CLOSED: [2025-10-01 Wed 14:28]
+
+#+begin_src sql :eval no
+SELECT * FROM "outbound"."Replacements" WHERE sampleunit_id IS NOT NULL;
+
+ALTER TABLE "outbound"."Replacements" ADD COLUMN grts_address integer DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."Replacements".grts_address IS E'GRTS address (`final`, i.e. after prior replacements)';
+
+ALTER TABLE "outbound"."Replacements" ADD COLUMN type varchar DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."Replacements".type IS E'type according to sample/POC';
+
+UPDATE "outbound"."Replacements" AS REP
+SET
+  grts_address = UNIT.grts_address,
+  type = UNIT.type
+FROM "outbound"."SampleUnits" AS UNIT
+WHERE REP.sampleunit_id = UNIT.sampleunit_id
+;
+
+
+ALTER TABLE "outbound"."Replacements" ALTER COLUMN grts_address SET NOT NULL;
+ALTER TABLE "outbound"."Replacements" ALTER COLUMN type SET NOT NULL;
+-- ALTER TABLE "outbound"."Replacements" RENAME COLUMN type_anticipated TO type;
+
+
+ALTER TABLE "outbound"."Replacements" ADD COLUMN type_suggested varchar DEFAULT NULL;
+#+end_src
+
+
+** DONE domain partition
+CLOSED: [2025-10-01 Wed 14:30]
+
+introduced by Floris
+
+#+begin_src sql
+-- add domain part to loceval
+-- ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN domain_part varchar;
+-- COMMENT ON COLUMN "outbound"."FieldActivityCalendar".domain_part IS E'domain partition';
+-- TODO is this an attribute of SampleUnits?
+
+
+-- add domain part to mnmgwdb
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN domain_part varchar;
+COMMENT ON COLUMN "outbound"."SampleUnits".domain_part IS E'domain partition';
+
+#+end_src
+
+** more AND less SampleUnit Info
+*** DONE new /renamed columns:
+CLOSED: [2025-10-02 Thu 13:47]
+#+begin_src sql :eval no
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN is_forest bool NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "outbound"."SampleUnits".is_forest IS E'flag forest type sample units';
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN in_mhq_samples bool NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "outbound"."SampleUnits".in_mhq_samples IS E'flag sites used for MHQ';
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN has_mhq_assessment bool NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "outbound"."SampleUnits".has_mhq_assessment IS E'(temporary) column to filter MHQ polygons';
+
+
+
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN mhq_assessment_date date; 
+COMMENT ON COLUMN "outbound"."SampleUnits".mhq_assessment_date IS E'date of previous mhq assessment';
+
+ALTER TABLE "outbound"."SampleUnits" RENAME COLUMN scheme TO schemes;
+#+end_src
+
+*** DONE removed columns:
+CLOSED: [2025-10-02 Thu 13:52]
+FIRST UPDATE:
++ view outbound."gwTransfer"
++ view outbound."OrthophotoAssessment"
++ view outbound."FieldworkPlanning"
++ view inbound."LocationEvaluation"
+
+THEN:
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN panel_set;
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN targetpanel;
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN assessment;
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN assessment_date;
+
+
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN sp_poststratum;
+#+end_src
+
+
+#+begin_src R :eval no
+
+# libraries
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+database <- "loceval"
+config_filepath <- file.path("./inbopostgis_server.conf")
+# mirror <- "-staging"
+mirror <- ""
+
+# connect loceval
+locevaldb_mirror <- glue::glue("{database}{mirror}")
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+) 
+
+message(glue::glue("connected: psql {locevaldb$shellstring}"))
+
+
+
+existing_units <- locevaldb$query_table("SampleUnits")
+characteristic_columns <- c("grts_address", "type") # , "location_id"
+dupli_units <- existing_units %>%
+  count(!!!rlang::syms(characteristic_columns)) %>%
+  filter(n>1)
+
+dupli_distinct <- dupli_units %>% distinct(grts_address, type) 
+
+# loop grts with unit duplicates
+for (unit_row in seq_len(nrow(dupli_distinct))) {
+  subset_unit <- dupli_distinct[unit_row,]
+  subset_grts_address <- subset_unit[["grts_address"]]
+  subset_type <- subset_unit[["type"]]
+    
+  these_units <- existing_units %>%
+    filter(
+      grts_address == subset_grts_address,
+      type == subset_type
+    )
+  print(these_units)
+
+  first_su <- these_units[[1, "sampleunit_id"]]
+  other_su <- these_units %>% filter(sampleunit_id != first_su) %>% pull(sampleunit_id)
+
+  other_su <- paste(other_su, collapse = ", ")
+
+  for (tablab in c("Replacements", "FieldActivityCalendar", "Visits", "MHQPolygons")){
+    table_namestr <- locevaldb$get_namestring(tablab)
+    locevaldb$execute_sql(glue::glue("
+      UPDATE {table_namestr}
+      SET sampleunit_id = {first_su}
+      WHERE sampleunit_id IN ({other_su});
+    "), verbose = TRUE)
+  }
+
+  table_namestr <- locevaldb$get_namestring("SampleUnits")
+  locevaldb$execute_sql(glue::glue("
+    DELETE FROM {table_namestr}
+    WHERE sampleunit_id IN ({other_su});
+  "), verbose = TRUE)
+  
+}
+
+
+## ----save-previous-extra-visits----------------------------------------------
+# analogous: clean Visits
+table_label <- "Visits"
+filter_unused <- "
+      (teammember_id IS NULL)
+  AND (date_visit IS NULL)
+  AND (type_assessed IS NULL)
+  AND (notes IS NULL)
+  AND (photo IS NULL)
+  AND NOT visit_done
+"
+locevaldb$delete_unused(table_label, filter_unused)
+
+
+## ----save-previous-FACs----------------------------------------------
+
+table_label <- "FieldActivityCalendar"
+filter_unused <- '
+      (NOT excluded)
+  AND (excluded_reason IS NULL)
+  AND (teammember_assigned IS NULL)
+  AND (date_visit_planned IS NULL)
+  AND ((no_visit_planned IS NULL) OR (no_visit_planned IS FALSE))
+  AND (notes IS NULL)
+  AND NOT done_planning
+  AND fieldactivitycalendar_id NOT IN (
+    SELECT DISTINCT fieldactivitycalendar_id
+    FROM "inbound"."Visits"
+    GROUP BY fieldactivitycalendar_id
+  )
+'
+
+locevaldb$delete_unused(table_label, filter_unused)
+
+#+end_src
+
+** DONE duplicates
+CLOSED: [2025-10-02 Thu 13:52]
+
+#+begin_src sql :eval no
+SELECT * FROM (
+  SELECT DISTINCT grts_address, type, COUNT(*) AS n
+  FROM "outbound"."SampleUnits"
+  GROUP BY grts_address, type
+)
+WHERE n > 1
+;
+
+SELECT
+  sampleunit_id,
+  location_id,
+  grts_address,
+  type,
+  schemes,
+  scheme_ps_targetpanels
+FROM "outbound"."SampleUnits"
+WHERE grts_address = 22107438
+;
+
+#+end_src
+
+
+#+begin_src sql :eval no
+SELECT * FROM (
+SELECT DISTINCT
+  grts_address, type,
+  COUNT(DISTINCT sampleunit_id) AS n
+FROM "outbound"."FieldActivityCalendar"
+GROUP BY grts_address, type
+) WHERE n > 1;
+
+
+-- DELETE!
+SELECT * 
+FROM "outbound"."FieldActivityCalendar"
+WHERE (CAST(fieldactivitycalendar_id AS VARCHAR) IN (
+  SELECT DISTINCT fieldactivitycalendar_id FROM (
+    SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
+    FROM (
+    SELECT DISTINCT
+      grts_address, type, activity_group_id, date_start,
+      STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
+      -- MAX(fieldactivitycalendar_id) AS max_id,
+      COUNT(*) AS n
+    FROM "outbound"."FieldActivityCalendar"
+    GROUP BY grts_address, type, activity_group_id, date_start
+    )
+    WHERE n > 1
+  ) GROUP BY fieldactivitycalendar_id
+))
+AND NOT done_planning
+AND fieldactivitycalendar_id NOT IN (
+  SELECT DISTINCT fieldactivitycalendar_id
+  FROM "inbound"."Visits"
+  WHERE visit_done
+)
+ORDER BY fieldactivitycalendar_id ASC
+;
+
+
+#+end_src
+
+
+#+begin_src sql :eval no
+
+
+SELECT * 
+FROM "inbound"."Visits"
+WHERE (CAST(fieldactivitycalendar_id AS VARCHAR) IN (
+  SELECT DISTINCT fieldactivitycalendar_id FROM (
+    SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
+    FROM (
+    SELECT DISTINCT
+      grts_address, type, activity_group_id, date_start,
+      STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
+      -- MAX(fieldactivitycalendar_id) AS max_id,
+      COUNT(*) AS n
+    FROM "outbound"."FieldActivityCalendar"
+    GROUP BY grts_address, type, activity_group_id, date_start
+    )
+    WHERE n > 1
+  ) GROUP BY fieldactivitycalendar_id
+))
+AND NOT visit_done
+AND (grts_address = 743982 OR grts_address = 1022766)
+ORDER BY fieldactivitycalendar_id ASC
+;
+
+SELECT * 
+FROM "inbound"."Visits"
+WHERE fieldactivitycalendar_id IN (914, 639)
+AND NOT visit_done;
+
+
+SELECT *
+FROM "outbound"."FieldActivityCalendar"
+WHERE fieldactivitycalendar_id IN (
+  SELECT DISTINCT CAL.fieldactivitycalendar_id 
+  FROM "outbound"."FieldActivityCalendar" AS CAL
+  LEFT JOIN (
+    SELECT fieldactivitycalendar_id, visit_done, date_visit, notes
+    FROM "inbound"."Visits"
+  ) AS VIS
+    ON VIS.fieldactivitycalendar_id = CAL.fieldactivitycalendar_id
+  WHERE (CAST(CAL.fieldactivitycalendar_id AS VARCHAR) IN (
+    SELECT DISTINCT fieldactivitycalendar_id FROM (
+      SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
+      FROM (
+      SELECT DISTINCT
+        grts_address, type, activity_group_id, date_start,
+        STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
+        COUNT(*) AS n
+      FROM "outbound"."FieldActivityCalendar"
+      GROUP BY grts_address, type, activity_group_id, date_start
+      )
+      WHERE n > 1
+    ) GROUP BY fieldactivitycalendar_id
+  ))
+  AND VIS.fieldactivitycalendar_id IS NULL
+  ORDER BY CAL.fieldactivitycalendar_id ASC
+)
+;
+
+
+
+SELECT *
+FROM "outbound"."FieldActivityCalendar" AS CAL
+LEFT JOIN "inbound"."Visits" AS VIS
+  ON VIS.fieldactivitycalendar_id = CAL.fieldactivitycalendar_id
+WHERE
+  (CAL.grts_address = 743982 OR CAL.grts_address = 1022766)
+  AND done_planning
+;
+
+
+
+#+end_src
+
+** DONE wait_<more>
+CLOSED: [2025-10-01 Wed 14:33]
+
+
+#+begin_src sql :eval no
+
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN landowner;
+ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN wait_any boolean;
+COMMENT ON COLUMN "outbound"."FieldActivityCalendar".wait_any IS E'must I always be waiting, waiting on you? *whistle*';
+
+ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN wait_floating boolean;
+COMMENT ON COLUMN "outbound"."FieldActivityCalendar".wait_floating IS E'filter field for convenient floating type (de)selection';
+
+#+end_src
+
+
+* DONE Versions
+CLOSED: [2025-10-02 Thu 13:53]
+we now store the POC versions
+
+subprocedure: Versions
+
+#+begin_src sql
+
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"metadata";
+
+DROP TABLE IF EXISTS "metadata"."Versions" CASCADE;
+
+BEGIN;
+CREATE TABLE "metadata"."Versions"();
+
+COMMENT ON TABLE "metadata"."Versions" IS E'storing the POC versions which caused the data';
+
+ALTER TABLE "metadata"."Versions" ADD COLUMN version_id smallint NOT NULL PRIMARY KEY;
+COMMENT ON COLUMN "metadata"."Versions".version_id IS E'version index (technical)';
+
+ALTER TABLE "metadata"."Versions" ADD COLUMN version_tag varchar NOT NULL;
+COMMENT ON COLUMN "metadata"."Versions".version_tag IS E'tag version in human-readable format';
+
+ALTER TABLE "metadata"."Versions" ADD COLUMN data_iteration integer;
+COMMENT ON COLUMN "metadata"."Versions".data_iteration IS E'repeated data updates without version tag change';
+
+ALTER TABLE "metadata"."Versions" ADD COLUMN date_applied integer;
+COMMENT ON COLUMN "metadata"."Versions".date_applied IS E'date when the data was uploaded';
+
+ALTER TABLE "metadata"."Versions" ADD COLUMN notes text;
+COMMENT ON COLUMN "metadata"."Versions".notes IS E'relevant notes on this change';
+
+COMMIT;
+
+-- sequence version_id
+CREATE SEQUENCE "metadata".seq_version_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "metadata"."Versions".version_id;
+ALTER TABLE "metadata"."Versions" ALTER COLUMN version_id
+ SET DEFAULT nextval('metadata.seq_version_id'::regclass);
+
+GRANT USAGE ON SEQUENCE "metadata"."seq_version_id" TO floris, karen, ward, monkey;
+GRANT SELECT ON SEQUENCE "metadata"."seq_version_id" TO monkey;
+GRANT SELECT ON "metadata"."Versions" TO floris, karen, ward, monkey;
+
+
+-- GRANT USAGE ON SEQUENCE "metadata"."seq_version_id" TO tester;
+-- GRANT SELECT ON "metadata"."Versions" TO tester;
+ALTER TABLE "outbound"."SampleUnits" DROP COLUMN IF EXISTS archive_version_id;
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN archive_version_id smallint DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."SampleUnits".archive_version_id IS E'(technical) archived SampleUnits are retained but flagged';
+
+
+
+-- foreign key archive_version_id
+ALTER TABLE "outbound"."SampleUnits" DROP CONSTRAINT IF EXISTS fk_Versions_SampleUnits CASCADE;
+ALTER TABLE "outbound"."SampleUnits" ADD CONSTRAINT fk_Versions_SampleUnits FOREIGN KEY (archive_version_id)
+REFERENCES "metadata"."Versions" (version_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP COLUMN IF EXISTS archive_version_id;
+
+ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN archive_version_id smallint DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."FieldActivityCalendar".archive_version_id IS E'(technical) flag archived calendar entries';
+-- foreign key archive_version_id
+ALTER TABLE "outbound"."FieldActivityCalendar" DROP CONSTRAINT IF EXISTS fk_Versions_FieldActivityCalendar CASCADE;
+ALTER TABLE "outbound"."FieldActivityCalendar" ADD CONSTRAINT fk_Versions_FieldActivityCalendar FOREIGN KEY (archive_version_id)
+REFERENCES "metadata"."Versions" (version_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "inbound"."Visits" DROP COLUMN IF EXISTS archive_version_id;
+ALTER TABLE "inbound"."Visits" ADD COLUMN archive_version_id smallint DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".archive_version_id IS E'(technical) flagged archived visits';
+-- foreign key archive_version_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_Versions_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_Versions_Visits FOREIGN KEY (archive_version_id)
+REFERENCES "metadata"."Versions" (version_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+#+end_src
+
+
+* DONE Protocols
+CLOSED: [2025-10-02 Thu 13:57]
+
+subprocedure: Protocols
+>>> [[file:./20250904_Protocols.sql]]
+
+-> MANUALLY update the Protocols table once.
+>>> [[file:../078_update_protocols.qmd]]
+
+
+* DONE Stitch Lookups
+CLOSED: [2025-10-02 Thu 14:16]
+
+... to reduce off-focus updates during POC update
+
+>>> [[file:../095_re_link_foreign_keys_optional.R]]
+
+
+* POC update =v0.9.0_poc0.13.1=
+
+>>> [[file:../071_POC_update_loceval.qmd]]
+
+
+* MISC cleanup
+ALTER TABLE "outbound"."FieldActivityCalendar" ALTER COLUMN sampleunit_id SET NOT NULL;
+
+* /post mortem:/ replacements
+
+[[file:./20251003_Replacements_Archive.org]]
+
+* auxiliary maintenance scripts
+... all of them, just to make sure.
+
+* TODO
+
++ [ ] cascaded updates via temp tables
++ [ ] to_archive / to_update via temp table
++ [X] =mnmgwdb= adjustment: 
+  =ALTER TABLE "outbound"."LocationEvaluations" RENAME COLUMN scheme TO schemes;=
++ [ ] adjust maintenance scripts
++ [ ] =mhq areas= new logic!
++ [?!] 900_database_organization/.dbinit/lib/python3.13/site-packages/pandas/io/sql.py:1737: SAWarning: Did not recognize type 'geometry' of column 'wkb_geometry'
+  self.meta.reflect(bind=self.con, only=[table_name], views=True)
++ [X] Replacements
++ [X] LocationCells and ReplacementCells
++ [ ] ?? Habitatmap Polygons
++ [ ] ?? LocationAssessments (ofo's)
+
++ [ ] restore =testing= project

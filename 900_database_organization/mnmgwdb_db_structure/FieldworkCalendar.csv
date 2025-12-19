@@ -1,0 +1,28 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+fieldworkcalendar_id,int,True,,True,True,,,,calendar index (technical)
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
+samplelocation_id,int,False,,False,False,,,,optional link to sample locations
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after corrections)"
+stratum,varchar,True,,False,False,,,,strata for which the cell is eligible
+sspstapa_id,smallint,False,,False,False,metadata.SSPSTaPas.sspstapa_id,,,a lookup for one of those long concatenated text columns
+date_start,date,True,,False,False,,,,start of the panel activity sequence
+date_end,date,True,,False,False,,,,end date for the panel activity sequence
+date_interval,varchar,False,NULL,False,False,,,,experimenting with date intervals (yolo)
+activity_group_id,smallint,True,,False,False,,,,a link to the activity metadata
+activity_rank,smallint,False,,False,False,,CHECK (activity_rank > 0),,execution order of the field activities
+priority,smallint,True,,False,False,,,,"priority, based on scheme, panel, and stratum"
+wait_any,boolean,False,,False,False,,,,"must I always be waiting, waiting on you? *whistle*"
+wait_watersurface,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
+wait_3260,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
+wait_7220,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
+wait_floating,boolean,False,,False,False,,,,filter field for convenient floating type (de)selection
+is_sideloaded,boolean,False,,False,False,,,,(technical) this calendar event was sideloaded and not part of the POC
+excluded,boolean,True,0,False,False,,,,activity obsolete due to sample updates or prior activities
+excluded_reason,text,False,NULL,False,False,,,,reason for exclusion (e.g. loceval type not found)
+teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee
+date_visit_planned,date,False,NULL,False,False,,,,planned date of visit
+no_visit_planned,boolean,True,0,False,False,,,,whether or not a visit is planned
+notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
+done_planning,boolean,True,0,False,False,,,,flag to indicate preparation status
+archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived calendar entries

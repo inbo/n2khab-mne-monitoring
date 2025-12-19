@@ -1,0 +1,2272 @@
+#!/usr/bin/env Rscript
+
+# Various database-related helper functions.
+# Usually depend on
+# - libraries (`MNMLibraryCollection.R`), specifically
+#     `poc_common_libraries`,
+#     `database_interaction_libraries`,
+#     `load_poc_code_snippets`
+# - the POC
+#   (`050_snippet_selection.R`, `051_snippet_transformation_code.R`, to be moved)
+# - a database connection (`MNMDatabaseConnection.R`)
+#
+
+#_______________________________________________________________________________
+# common commands (quick helpers for Falk)
+
+# .libPaths("/data/R/library")
+# SET search_path TO public,"metadata","outbound","inbound","archive";
+
+#_______________________________________________________________________________
+# MISC
+
+
+lookup_join <- function(.data, lookup_tbl, join_column){
+  joined_tbl <- .data %>%
+    left_join(
+      lookup_tbl,
+      by = join_by(!!enquo(join_column))
+      # relationship = "many-to-one",
+      # unmatched = "drop"
+    ) %>%
+  select(-!!enquo(join_column))
+
+  return(joined_tbl)
+
+}
+
+
+
+#' @param reference_mod function to modify column names of the reference column, e.g.
+#'   reference_mod <- function(x) gsub("mhq_", "test_", x)
+#'   reference_mod <- function(x) if (x == "type") {"stratum"} else {x} # to rename `stratum` to `type`
+stitch_table_connection <- function(
+    mnmdb,
+    table_label,
+    reference_table,
+    link_key_column = NA,
+    lookup_columns = NA,
+    reference_mod = NA,
+    skip_reset = FALSE
+  ) {
+
+  if (is.scalar.na(link_key_column)) {
+    link_key_column <- mnmdb$get_primary_key(reference_table)
+  }
+
+
+  data_cols <- mnmdb$load_table_info(table_label) %>% pull(column)
+  reference_cols <- mnmdb$load_table_info(reference_table) %>% pull(column)
+
+  if (isFALSE(is.scalar.na(reference_mod))) {
+    reference_cols <- unlist(lapply(reference_cols, FUN = reference_mod))
+  } else {
+    reference_mod <- function(x) x
+  }
+
+  if (is.scalar.na(lookup_columns)) {
+    lookup_columns <- data_cols
+    lookup_columns <- lookup_columns[lookup_columns %in% reference_cols]
+    lookup_columns <- lookup_columns[!(lookup_columns %in% c(link_key_column))]
+    lookup_columns <- lookup_columns[!(lookup_columns %in% c(link_key_column, logging_columns))]
+    # archive_version_id might still be in here!
+  }
+
+  # UPDATE... FROM method
+  stopifnot("glue" = require("glue"))
+
+  trgtab <- mnmdb$get_namestring(table_label)
+  srctab <- mnmdb$get_namestring(reference_table)
+
+  lookup_criteria <- unlist(lapply(
+    lookup_columns,
+    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{reference_mod(col)}")
+  ))
+
+
+  if (isFALSE(skip_reset)) {
+    # if we just UPDATE [...] FROM with a subset of the data,
+    # wrong linkages could potentially persist.
+    # Therefore, here (and only here) it seems wise to NULL all links before stitching.
+    reset_string <- glue::glue("
+    UPDATE {trgtab} AS TRGTAB
+      SET
+        {link_key_column} = NULL
+    ;")
+    mnmdb$execute_sql(reset_string, verbose = FALSE)
+  }
+
+  update_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      {link_key_column} = SRCTAB.{link_key_column}
+    FROM {srctab} AS SRCTAB
+    WHERE
+     ({paste0(lookup_criteria, collapse = ') AND (')})
+  ;")
+
+  mnmdb$execute_sql(update_string, verbose = FALSE)
+
+  return(invisible(NULL))
+
+  # inefficient: the R method
+  if (FALSE) {
+
+  # # cols <- names(data)
+  # # cols <- cols[!(cols %in% c(link_key_column, logging_columns))]
+  # lookup <- data %>%
+  #   select(!!!rlang::syms(lookup_columns)) %>%
+  #   left_join(
+  #     reference %>%
+  #       select(!!!c(lookup_columns, link_key_column)),
+  #     by = join_by(!!!rlang::syms(lookup_columns))
+  #   )
+
+  lookup <- reference %>%
+     select(!!!c(lookup_columns, link_key_column)) %>%
+     distinct()
+
+  table_columns <- mnmdb$load_table_info(table_label) %>%
+    select(column, datatype) %>%
+    filter(column %in% names(lookup))
+
+  prepared_lookup <- convert_data_to_sql_input_str(
+    table_columns,
+    lookup
+  )
+
+  # row_nr <- 1
+  create_update_string_ <- function(row_nr) {
+    row <- prepared_lookup[row_nr, lookup_columns]
+    where_filter <- paste(lapply(
+      lookup_columns,
+      FUN = function(col) glue::glue("{col} = {row[[col]]}")
+    ), collapse = ") \n AND (")
+
+    val <- prepared_lookup[[row_nr, link_key_column]]
+
+    update_string <- glue::glue("
+       UPDATE {mnmdb$get_namestring(table_label)}
+         SET {link_key_column} = {val}
+       WHERE ({where_filter})
+       ;
+     ")
+    return(update_string)
+  }
+
+  # rowwise apply the update command
+  update_commands <- lapply(
+    seq_len(nrow(prepared_lookup)),
+    FUN = create_update_string_
+  )
+
+  invisible(lapply(
+    update_commands,
+    FUN = function(update_cmd) mnmdb$execute_sql(update_cmd, verbose = TRUE)
+  ))
+
+  } # previous, inefficient command
+
+  return(invisible(NULL))
+
+} # /stitch_table_connection
+
+
+
+
+upload_and_lookup <- function(
+    mnmdb,
+    table_label,
+    ..., # -> append_tabledata
+    characteristic_columns,
+    index_columns
+  ) {
+
+  # label and id
+  table_id <- mnmdb$get_table_id(table_label)
+
+  # append the data
+  append_tabledata(
+    mnmdb$connection,
+    table_id = table_id,
+    ...,
+    characteristic_columns
+  )
+
+  # collect the lookup (link characteristics to index)
+  lookup <- mnmdb$query_columns(
+    table_label,
+    c(characteristic_columns, index_columns)
+  )
+
+  return(lookup)
+}
+
+
+#_______________________________________________________________________________
+# LOOKUP RESTORATION
+
+# procedure to loop through a table
+# which is linked to "Locations" via `location_id`
+# and restore the correct id.
+# This is necessary because previously assembled data is
+#   in some cases retained, but
+#   would loose links to the pruned "Locations" after rearrangement.
+restore_location_id_by_grts <- function(
+      mnmdb,
+      table_label,
+      retain_log = FALSE,
+      verbose = FALSE
+    ) {
+
+
+  # know table relations to get the pk
+  table_relations <- mnmdb$table_relations %>%
+    filter(relation_table == tolower(table_label))
+
+  pk <- mnmdb$get_primary_key(table_label)
+
+  target_namestring <- mnmdb$get_namestring(table_label)
+
+  # query the status quo
+  location_lookup <- mnmdb$query_table("Locations") %>%
+    select(grts_address, location_id)
+
+  # optional: store and retain "log_" columns
+  # TODO (though I fear this did not work)
+  target_cols <- c(pk, "grts_address")
+  if (retain_log) {
+    target_cols <- c(pk, "grts_address", "log_user", "log_update")
+  }
+
+  target_lookup <- mnmdb$query_columns(table_label, target_cols)
+
+  key_replacement <- target_lookup %>%
+    left_join(
+      location_lookup,
+      by = join_by(grts_address),
+      relationship = "many-to-one"
+    )
+
+
+  ### UPDATE the location-related table
+
+  # repl_rownr <- 10 # testing
+  get_update_row_string <- function(repl_rownr) {
+
+    dep_pk_val <- key_replacement[repl_rownr, pk]
+    val <- key_replacement[repl_rownr, "location_id"]
+    if (is.na(val)) {
+      val <- "NULL"
+    }
+
+    if (retain_log) {
+      log_user <- key_replacement[[repl_rownr, "log_user"]]
+      log_update <- key_replacement[[repl_rownr, "log_update"]]
+      logstr <- glue::glue(",
+        log_user = '{log_user}',
+        log_update = '{toString(log_update)}'
+      ")
+    } else {
+      logstr <- ""
+    }
+
+    update_string <- glue::glue("
+      UPDATE {target_namestring}
+        SET location_id = {val} {logstr}
+      WHERE {pk} = {dep_pk_val}
+      ;
+    ")
+
+    return(update_string)
+  }
+
+  # concatenate update rows
+  update_command <- lapply(
+    seq_len(nrow(key_replacement)),
+    FUN = get_update_row_string
+  )
+
+  # spin up a progress bar
+  if (verbose) {
+    pb <- txtProgressBar(
+      min = 0, max = nrow(key_replacement),
+      initial = 0, style = 1
+    )
+  }
+
+  # execute the update commands.
+  for (repl_rownr in 1:nrow(key_replacement)) {
+    if (verbose) setTxtProgressBar(pb, repl_rownr)
+    cmd <- update_command[[repl_rownr]]
+    mnmdb$execute_sql(cmd, verbose = FALSE)
+  }
+
+  if (verbose) close(pb) # close the progress bar
+
+  # TODO this is sluggish, of course; I would rather prefer a combined UPDATE.
+
+} # /restore_location_id_by_grts
+
+
+#_______________________________________________________________________________
+# UPDATE - CASCADE
+
+update_landuse_in_locationinfos <- function(mnmdb) {
+  # mnmdb <- locevaldb
+
+  landuse <- readRDS("data/landuse_export.rds")
+
+  # forestry_area, # bosbeheerregio
+  # fores_naam, # bosbeheer
+  # np_type, # natuurpunt
+  # lila_statuut,
+  # durme_reservaat,
+  # perc_rbh, # percelen // rbh
+  # perc_naameig, # naam eigenaar
+  # nbhp_type, # natuurbeheerplan
+  # gewasgroep, # landbouw
+  # lblhfdtlt # landbouw
+
+  landinfo <- landuse %>%
+    mutate(anb = stringr::str_c("ANB: ", anb_rights)) %>%
+    mutate(mil = stringr::str_c("MIL: ", mdbd_naam, " (", mdbd_inbo, ")")) %>%
+    mutate(bos = stringr::str_c("BOS: ", forestry_area, " (", fores_naam, ")")) %>%
+    mutate(np = stringr::str_c("NP: ", np_type)) %>%
+    mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
+    mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
+    mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
+    mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
+    mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
+    tidyr::unite(landuse, c(
+        anb, mil, bos,
+        np, lila, durme,
+        perc, nbhp, lb
+      ),
+      sep = ", ",
+      na.rm = TRUE
+    ) %>%
+    distinct(
+      # schemegroup,
+      # stratum,
+      grts_address,
+      landuse
+    ) %>%
+    semi_join(
+      mnmdb$query_columns("LocationInfos", c("grts_address")) %>%
+      distinct(),
+      by = join_by(grts_address)
+    ) %>%
+    rename(landowner = landuse)
+
+  ## testing
+  # landinfo <- landinfo %>%
+  #   filter(grts_address == 3202741) %>%
+  #   mutate(landowner = "<insert your name here>")
+
+  glimpse(landinfo)
+
+
+  # create temp table
+  DBI::dbWriteTable(
+    mnmdb$connection,
+    name = "temp_landinfo",
+    value = landinfo,
+    overwrite = TRUE,
+    temporary = TRUE
+  )
+
+  # dplyr::tbl(
+  #   mnmdb$connection,
+  #   "temp_landinfo"
+  # )
+
+  trgtab <- mnmdb$get_namestring("LocationInfos")
+  srctab <- "temp_landinfo"
+  link_column <- "landowner"
+  lookup_criteria <- c("TRGTAB.grts_address = SRCTAB.grts_address")
+
+  update_string <- glue::glue("
+    UPDATE {trgtab} AS TRGTAB
+      SET
+        {link_column} = SRCTAB.{link_column}
+      FROM {srctab} AS SRCTAB
+      WHERE
+       ({paste0(lookup_criteria, collapse = ') AND (')})
+    ;")
+
+  mnmdb$execute_sql(update_string, verbose = TRUE)
+  mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
+
+}
+
+
+#_______________________________________________________________________________
+# UPDATE - CASCADE
+
+#' Update table content and cascade all key changes to dependent tables
+#'
+#' Updates the content of a data table in a relatively safe manner
+#' by recursing the database structure and updating foreign keys in other
+#' tables which link to the changed data.
+#' - Prior to the critical DELETE/INSERT, all pk/fk pairs of dependent
+#'   tables are stored.
+#' - After the critical step, an UPDATE will re-establish the new fk links.
+#' "Safe manner" also means that dumps and backups are written to text files
+#' along the way.
+#' The original intention of this function was to provide tooling for
+#' reloading backed up content of a previous data version, or for copying
+#' data from one connection to the other.
+#'        hint: use keyring::key_set("DBPassword", "db_user_password") to
+#'        store a connection password prior to execution.
+#'
+#' @param mnmdb an MNM database including DBI connection, structure, and
+#'        working functions. See `MNMDatabaseConnection.R` for details.
+#' @param table_label the table to be changed
+#' @param data_replacement a data frame or tibble with the new data
+#' @param characteristic_columns a subset of columns of the data table
+#'        by which old and new data can be uniquely identified and joined;
+#'        refers to the new data
+#' @param rename_characteristics link columns with different names by
+#'        renaming them in data_replacement
+#' @param verbose provides extra prose on the way, in case you need it
+#'
+#' @examples
+#' \dontrun{
+#'   config_filepath <- file.path("./postgis_server.conf")
+#'   # keyring::key_set("DBPassword", "db_user_password") # <- for source database
+#'   source("MNMDatabaseConnection.R")
+#'   source_db <- connect_mnm_database(
+#'     config_filepath,
+#'     database_mirror = "source-testing"
+#'   )
+#'
+#'   test_table <- "LocationCalendar"
+#'   data_replacement <- source_db$query_table(test_table)
+#'   characteristic_columns = \
+#'     c("scheme", "stratum", "grts_address", "column_newname")
+#'
+#'   upload_data_and_update_dependencies(
+#'     mnmdb = source_db,
+#'     table_label = test_table,
+#'     data_replacement = data_replacement,
+#'     characteristic_columns = characteristic_columns,
+#'     rename_characteristics = c(column_oldname = "column_newname")
+#'     verbose = TRUE
+#'   )
+#' }
+#'
+upload_data_and_update_dependencies <- function(
+    mnmdb,
+    table_label,
+    data_replacement,
+    characteristic_columns = NA,
+    rename_characteristics = NULL,
+    skip_sequence_reset = FALSE,
+    sort_data_by_characteristics = TRUE,
+    verbose = TRUE
+    ) {
+
+  # mnmdb <- mnmgwdb
+  # data_replacement <- new_data
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("DBI" = require("DBI"))
+  stopifnot("RPostgres" = require("RPostgres"))
+  stopifnot("glue" = require("glue"))
+
+  # check if database connection is active
+  # TODO mnmdb$connection_is_active
+
+  ### (1) dump all data, for safety
+  now <- format(Sys.time(), "%Y%m%d%H%M")
+  # mnmdb$dump_all(
+  #   target_filepath = here::here("dumps", glue::glue("safedump_{mnmdb$database}_{now}.sql")),
+  #   exclude_schema = c("tiger", "public")
+  # )
+
+
+  ### (2) load current data
+  # table_relations <- mnmdb$table_relations %>%
+  #   filter(
+  #     tolower(relation_table) == tolower(table_label),
+  #     !(dependent_table %in% mnmdb$excluded_tables)
+  #   )
+
+  # table_label <- "LocationCells"
+  # table_label <- "Locations"
+  dependent_tables <- mnmdb$get_dependent_tables(table_label)
+
+
+  ### (3) store key lookup of dependent table
+  lookups <- lapply(
+    dependent_tables,
+    FUN = function(deptab_label) mnmdb$lookup_dependent_columns(table_label, deptab_label)
+  ) %>% setNames(dependent_tables)
+
+
+  ### (4) retrieve old data
+  pk <- mnmdb$get_primary_key(table_label)
+
+  if (is.scalar.na(characteristic_columns)) {
+    characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
+  } # TODO else: check that col really is a field in the data_replacement table
+
+
+  # attempt of sorting the data for better temporal ID consistency
+  if (sort_data_by_characteristics) {
+    data_replacement <- data_replacement %>%
+      arrange(!!!rlang::syms(characteristic_columns))
+  }
+
+  # TODO there must be more column match checks
+  # prior to deletion
+  # in connection with `characteristic_columns`
+
+  old_data <- mnmdb$query_table(table_label)
+
+  ### ERROR
+  # the old data does not contain dependent table keys any more.
+  # if there are no characteristic columns, depentent table lookups are dead
+  # at the point of DELETE.
+  # This happened with SSPSTapas on production already (20250825).
+  # TODO review this, see also `lookups` above.
+
+  ### (5) adjust column names
+
+  # use `rename_characteristics`
+  # to rename cols in the data_replacement to the server data logic
+  # data_replacement
+  # rename_characteristics
+  for (rnc in seq_len(length(rename_characteristics))) {
+    new_colname <- rename_characteristics[[rnc]]
+    server_colname <- names(rename_characteristics)[rnc]
+    names(data_replacement)[names(data_replacement) == new_colname] <- server_colname
+  }
+
+
+  # what about `sf` data?
+  # - R function overloading: no matter if sf or not
+  # - because geometry columns are skipped for `characteristic_columns`
+  #       -> seems to work the same
+  # - update (202509): sf will work now (see MNMDatabaseConnection.R)
+
+
+  ### (6) store dependent table lookups
+  # short-circuit the DELETE/CASCADE process:
+  #   foreign keys are stored for later re-linking
+  fk_lookups <- lapply(
+    dependent_tables,
+    FUN = function(deptab) mnmdb$lookup_dependent_columns(table_label, deptab)
+  ) %>% setNames(dependent_tables)
+
+
+  ### (7) DELETE existing data -> DANGEROUS territory!
+  mnmdb$execute_sql(
+    glue::glue("DELETE  FROM {mnmdb$get_namestring(table_label)};"),
+    verbose = verbose
+  )
+
+  ### (8) INSERT new data
+  # INSERT new data, appending the empty table
+  #    (to make use of the "ON DELETE SET NULL" rule)
+  mnmdb$insert_data(table_label, data_replacement)
+
+  # data_replacement %>%
+  #   filter(grts_address == 871030, activity_group_id == 4) %>%
+  #   knitr::kable()
+  # data_replacement %>% head() %>% knitr::kable()
+
+
+  ## restore sequence
+  if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
+    mnmdb$set_sequence_key(table_label, "max")
+  }
+
+  # On the occasion, we reset the sequence counter
+  if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
+    mnmdb$set_sequence_key(table_label)
+    if (table_label == "ChemicalSamplingActivities") {
+      mnmdb$execute_sql('
+        UPDATE "inbound"."ChemicalSamplingActivities"
+          SET fieldwork_id = fieldwork_id + 10000
+          WHERE fieldwork_id < 10000
+        ;
+      ')
+    }
+    if (table_label == "SpatialPositioningActivities") {
+      mnmdb$execute_sql('
+        UPDATE "inbound"."SpatialPositioningActivities"
+          SET fieldwork_id = fieldwork_id + 20000
+          WHERE fieldwork_id < 20000
+        ;
+      ')
+    }
+  }
+
+
+  if (length(pk) > 0) {
+    # pk should be unique enough: below, we relate existing characteristics to pk
+    cols_to_query <- c(characteristic_columns, pk)
+  } else {
+    cols_to_query <- c(characteristic_columns)
+  }
+
+  new_redownload <- mnmdb$query_columns(
+    table_label,
+    select_columns = cols_to_query
+  )
+
+  # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
+  # entries which were not present prior to update are not in this lookup
+  # new_redownload %>%
+  #   count(stratum, grts_address, activity_group_id,
+  #         date_start# , fieldworkcalendar_id
+  #         ) %>%
+  #   arrange(desc(n))
+  # old_data %>% count(!!!rlang::syms(characteristic_columns)) %>% arrange(desc(n))
+
+  # cols <- c("grts_address", "stratum", "activity_group_id", "date_start")
+  # cols <- characteristic_columns
+  # new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+  # old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+  pk_lookup <- old_data %>%
+    left_join(
+      new_redownload,
+      by = join_by(!!!rlang::syms(characteristic_columns)),
+      relationship = "one-to-one",
+      suffix = c("_old", ""),
+      unmatched = "drop"
+    )
+
+  # if (FALSE) {
+  #   # TODO return here to inspect the repercussions of previous errors
+  #   a <- old_data %>%
+  #     select(!!c(pk, characteristic_columns))  %>%
+  #     filter(grts_address == 23238)
+  #   b <- new_redownload %>%
+  #     select(!!c(pk, characteristic_columns))  %>%
+  #     filter(grts_address == 23238)
+  #   new_redownload %>% head() %>% knitr::kable()
+  #   a %>% knitr::kable()
+  #   b %>% knitr::kable()
+
+  #   a %>% left_join(
+  #     b,
+  #     by = characteristic_columns,
+  #     relationship = "one-to-one",
+  #     suffix = c("_old", ""),
+  #     unmatched = "drop"
+  #   ) %>% knitr::kable()
+  # }
+
+
+  ## save non-recovered rows
+  if (length(pk) > 0) {
+    not_found <- pk_lookup %>%
+      select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>%
+      filter(if_any(everything(), ~ is.na(.x)))
+
+    # (corrected 20250825)
+    lost_rows <- old_data %>%
+      semi_join(
+        not_found,
+        by = join_by(!!pk == !!glue::glue("{pk}_old"))
+      )
+
+    # mourn the loss of rows
+    if (nrow(lost_rows) > 0) {
+      warning("some previous data rows were not found back.")
+      knitr::kable(lost_rows)
+      write.csv(
+        lost_rows,
+        glue::glue("dumps/lostrows_{table_label}_{now}.csv"),
+        row.names = FALSE
+      )
+    }
+  }
+
+
+  ## update dependent tables
+  # "LocationCells"       "SampleLocations"     "LocationAssessments" "ExtraVisits"
+  # deptab <- "LocationCells"
+  # deptab <- dependent_tables[[1]] # the table itself
+  # deptab <- dependent_tables[[2]]
+  # deptab <- dependent_tables[[3]]
+  # deptab <- "Visits"
+
+  # message(mnmdb$shellstring)
+  # message(mnmdb$mirror_short)
+
+  if (mnmdb$mirror_short == "") {
+    source(glue::glue('095_re_link_foreign_keys_optional.R'))
+  } else {
+    system(glue::glue(
+      "Rscript 095_re_link_foreign_keys_optional.R -{mnmdb$mirror_short}"
+    ))
+  }
+  return(invisible(NULL))
+
+  ## OBSOLETE
+  for (deptab in dependent_tables) {
+
+    # extract the associating columns
+    # get_dependent_tables
+    keycolumn_linkpair <- mnmdb$table_relations %>%
+      filter(
+        tolower(relation_table) == tolower(table_label),
+        tolower(dependent_table) == tolower(deptab),
+      ) %>%
+      select(dependent_column, relation_column)
+
+    if (nrow(keycolumn_linkpair) == 0) next # the table itself
+
+    dependent_key <- keycolumn_linkpair[["dependent_column"]]
+    reference_key <- keycolumn_linkpair[["relation_column"]]
+
+    # the focus table, linking old and new pk values
+    # copied in case multiple deptabs have same key diff name
+    pk_link <- pk_lookup # copying for temporary renaming
+
+    # ensure `_old` suffix for joining below
+    # dependent_col_old <- glue::glue("{dependent_key}_old")
+    reference_col_old <- glue::glue("{reference_key}_old")
+    if (isFALSE(reference_col_old %in% names(pk_lookup))) {
+      names(pk_link)[names(pk_link) == reference_key] <- reference_col_old
+    }
+
+    # reduced to just the "old -> new" keys
+    pk_link <- pk_link %>%
+      select(!!!rlang::syms(c(reference_col_old, pk)))
+
+    # names(pk_link)[names(pk_link) == dependent_key] <- reference_key
+
+
+    # finally, combine the lookup table
+    lookup_deptab <- lookups[[deptab]]
+
+    # swap the table-specific names
+    names(lookup_deptab)[
+        names(lookup_deptab) == dependent_key
+      ] <- reference_col_old
+    names(pk_link)[names(pk_link) == reference_key] <- dependent_key
+
+    key_replacement <- lookup_deptab %>%
+      left_join(
+        pk_link,
+        by = reference_col_old,
+        relationship = "many-to-one",
+        suffix = c("_old", "")
+      )
+
+    # dump-store look
+    write.csv(
+      key_replacement,
+      glue::glue("dumps/lookup_{now}_{table_label}_{deptab}.csv"),
+      row.names = FALSE
+    )
+
+
+    # restrict this to modified data, ignore empty rows
+    # by FILTER for changed values
+    key_replacement <- bind_rows(
+      key_replacement[
+        !mapply(identical,
+          key_replacement[[reference_col_old]],
+          key_replacement[[dependent_key]]
+        )
+        , ],
+      key_replacement[
+        is.na(key_replacement[[reference_col_old]])
+        , ]
+      )
+
+    if (nrow(key_replacement) == 0) next # nothing to update
+
+    ### UPDATE the dependent table
+    # ... by looking up the dependent table pk
+    dep_pk <- mnmdb$get_primary_key(deptab)
+
+
+    if (length(dep_pk) == 0) next # special case, e.g. the LocationCells
+
+    if (!(length(dep_pk) == 1)) {
+      message(glue::glue(
+        "Table {deptab} registers more than one primary key?! {paste0(dep_pk, collapse = ', ')}"
+        ) )
+      stop()
+    }
+
+    # get the original foreign key values
+    fk_table <- fk_lookups[[deptab]]
+
+    # prepare rowwise update
+    # repl_rownr <- 1
+    get_update_row_string <- function(repl_rownr) {
+      dep_pk_val <- key_replacement[repl_rownr, dep_pk]
+      val <- key_replacement[repl_rownr, dependent_key][[1]]
+
+      # desparate attempt 1: check the previously saved data
+      fk_vals <- fk_table %>% pull(!!dep_pk)
+      if (is.na(val)) {
+        fk_val <- fk_table[fk_vals == dep_pk_val[[1]],] %>% pull(!!dependent_key)
+
+        if (isFALSE(is.na(fk_val))) {
+          old_vals <- pk_link %>% pull(!!reference_col_old)
+          find_val <- old_vals == fk_val
+          if (any(find_val)) {
+            val <- pk_link[find_val, 2][[1]]
+          }
+        }
+      }
+
+      # failure: set NULL
+      if (is.na(val)) {
+        val <- "NULL"
+      }
+
+      update_string <- glue::glue("
+        UPDATE {mnmdb$get_namestring(deptab)}
+          SET {dependent_key} = {val}
+        WHERE {dep_pk} = {dep_pk_val}
+        ;
+      ")
+
+      return(update_string)
+    }
+
+    update_command <- lapply(
+      1:nrow(key_replacement),
+      FUN = get_update_row_string
+    )
+
+    # execute the update commands.
+    message(
+      glue::glue(
+        "Updating {dependent_key} to {pk} of {deptab} (N={length(update_command)})."
+      )
+    )
+
+    for (cmd in update_command) {
+      mnmdb$execute_sql(cmd, verbose = FALSE)
+    }
+
+  } # /loop dependent tables
+
+
+} #/upload_data_and_update_dependencies
+
+
+
+#' parametrize cascaded update for a given database
+#'
+#' The update_datatable... function above relies on the database which is given.
+#' Yet it also has aspects which only change at runtime (hence not part of the
+#' `MNMDatabaseConnection.R`).
+#' This function parametrizes the cascaded upload with a given connection.
+#'
+#'
+parametrize_cascaded_update <- function(mnmdb) {
+
+  #' Take this, @roxygen! A function within a function to be returned
+  #' for functional application.
+  #' Here: the parametrized "update/cascade/lookup" function.
+  #' How dare you do not handle this, @roxygen?
+  #' Don't we agree that functions are first class citizens in R?!
+  #'
+  #' @param table_label the table lable
+  #' @param new_data new data for upload
+  #' @param index_columns colums which are returned in the lookup
+  #' @param tabula_rasa empty the table prior to upload (fresh restart)
+  #' @param characteristic_columns a subset of columns of the data table
+  #'        by which old and new data can be uniquely identified and joined;
+  #'        refers to the new data
+  #' @param skip_sequence_reset do (or do not) reset the sequence columns
+  #' @param verbose provides extra prose on the way, in case you need it
+  #'
+  ucl_function <- function(
+      table_label,
+      new_data,
+      index_columns,
+      tabula_rasa = FALSE,
+      characteristic_columns = NA,
+      skip_sequence_reset = FALSE,
+      verbose = TRUE
+    ) {
+    # mnmdb <- mnmgwdb
+
+    stopifnot("glue" = require("glue"))
+
+    if (nrow(new_data) == 0) {
+      message(glue::glue("No data provided to update {table_label}."))
+      return(invisible(NULL))
+    }
+
+    schema <- mnmdb$get_schema(table_label)
+    # this is a rather abstract construct; hope R will work it.
+
+    if (verbose) {
+      message("________________________________________________________________")
+      message(glue::glue("Cascaded update of {schema}.{table_label}"))
+    }
+
+    # characteristic columns := columns which uniquely define a data row,
+    # but which are not the primary key.
+    if (is.scalar.na(characteristic_columns)) {
+      # in case no char. cols provided, just take all columns.
+      characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
+    }
+
+    ## (0) check that characteristic columns are UNIQUE:
+    # the char. columns of the data to upload
+    new_characteristics <- new_data
+
+    new_characteristics <- new_characteristics %>%
+      select(!!!characteristic_columns) %>%
+      distinct()
+    stopifnot("Error: characteristic columns are not characteristic!" =
+      nrow(new_data) == nrow(new_characteristics))
+
+    # existing content
+    prior_content <- mnmdb$query_table(table_label)
+    # head(prior_content)
+    # # TODO this just turned up a duplicate
+    # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+
+
+    ## (1) optionally append
+    if (isFALSE(tabula_rasa)) {
+
+      # columns must either be non-index, or in the new data
+      # (to avoid case where existing indices are rowbound with NULL)
+      subset_columns <- names(prior_content)
+      subset_columns <- subset_columns[
+        (!(subset_columns %in% index_columns))
+        | (subset_columns %in% names(new_data))
+        & !(subset_columns %in% c("wkb_geometry", "geometry"))
+      ]
+
+      prior_content <- prior_content %>%
+        select(!!!subset_columns)
+
+      # "untouched" means: content which is not affected by the update
+      #   (but, though unaffected, must be uploaded again).
+      existing_untouched <- prior_content %>%
+        anti_join(
+          new_characteristics,
+          by = join_by(!!!characteristic_columns)
+        )
+      # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+      # new_characteristics %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+      # existing_untouched %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+
+      existing_removed <- prior_content %>%
+        semi_join(
+          new_characteristics,
+          by = join_by(!!!characteristic_columns)
+        )
+      # existing_removed %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+
+      if (verbose) {
+        message(glue::glue("  N = {nrow(new_data)} rows provided for update."))
+        if (nrow(existing_removed) > 0) {
+          message(glue::glue(
+            "  {nrow(existing_removed)} were already present -> transient backup gets dumped."
+          ))
+          now <- format(Sys.time(), "%Y%m%d%H%M")
+          write.csv(
+            existing_removed,
+            glue::glue("dumps/lost_changerows_{table_label}_{now}.csv"),
+            row.names = FALSE
+          )
+        }
+        message(glue::glue("  {nrow(existing_untouched)} other rows will be retained."))
+      }
+
+      # revert to spatial in case the data is spatial (need coords)
+      # if (mnmdb$is_spatial(table_label) && (nrow(existing_untouched) > 0) ) {
+
+      #   existing_untouched <- prior_sf %>%
+      #     semi_join(existing_untouched) %>%
+      #     df_to_sf(coords = c("x", "y"), crs = 31370)
+
+      #   sf::st_geometry(existing_untouched) <- "wkb_geometry"
+      # }
+
+
+      # combine existing and new data
+      if (nrow(existing_untouched) > 0) {
+      new_data <- bind_rows(
+          existing_untouched,
+          new_data
+        )
+      }
+      new_data <- new_data %>%
+        distinct()
+      # new_data %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+    } else {
+      message(glue::glue(
+        "  Tabula rasa: no rows will be retained, then {nrow(new_data)} uploaded anew."
+      ))
+    }
+
+    ## do not upload index columns
+    retain_cols <- names(new_data)
+    retain_cols <- retain_cols[!(retain_cols %in% index_columns)]
+    new_data <- new_data %>% select(!!!retain_cols)
+
+
+    ### double safety: load/catch/restore
+    table_content_storage <- mnmdb$store_table_deptree_in_memory(table_label)
+
+    tryCatch({
+      ### update datatable, propagating/cascading new keys to other's fk
+
+      upload_data_and_update_dependencies(
+        mnmdb,
+        table_label = table_label,
+        data_replacement = new_data,
+        characteristic_columns = characteristic_columns,
+        skip_sequence_reset = skip_sequence_reset,
+        verbose = verbose
+      )
+      # TODO rename_characteristics = rename_characteristics,
+    }, error = function(wrnmsg) {
+      message("\n")
+      message("##########################")
+      message("##### update failed! #####")
+      message(glue::glue("--> FAILED uploading {nrow(new_data)} rows to {table_label} :"))
+      message(wrnmsg)
+      message("\nrestoring data.\n")
+      invisible(
+        mnmdb$restore_table_data_from_memory(table_content_storage)
+      )
+
+      stop("Stopping: something went wrong in cascaded update.")
+    }) # /tryCatch update
+
+
+    lookup_deptab <- mnmdb$query_columns(
+      table_label,
+      c(characteristic_columns, index_columns)
+      )
+
+    if (verbose){
+      message(sprintf(
+        "%s: %i rows uploaded, were %i existing judging by '%s'.",
+        mnmdb$get_namestring(table_label),
+        nrow(new_data),
+        nrow(prior_content),
+        paste0(characteristic_columns, collapse = ", ")
+      ))
+    }
+
+    return(invisible(lookup_deptab))
+
+  } # /ucl_function
+
+  return(ucl_function)
+} # /parametrize_cascaded_update
+
+
+
+
+#_______________________________________________________________________________
+# POC APPEND
+#
+
+### Date Association
+# match dates in previous and future data
+# note: archived existing entries will also be considered.
+associate_and_shift_start_dates <- function(
+    mnmdb,
+    table_label,
+    data_future,
+    characteristic_columns,
+    other_table_labels = NULL
+  ) {
+
+  if (isFALSE("date_start" %in% names(data_future))) {
+    stop("Attempting to link dates, yet `date_start` column is not in the data.")
+  }
+
+  # load previous data
+  data_previous <- mnmdb$query_table(table_label)
+
+
+  ## find the link
+  data_previous_linked <- link_dates(
+    data_pre = data_previous %>% select(!!!characteristic_columns),
+    data_post = data_future %>% select(!!!characteristic_columns),
+    characteristic_columns = characteristic_columns,
+    date_column = "date_start"
+  )
+  # check_grts <- 9262
+  # data_pre  %>%  filter(grts_address == check_grts)
+  # data_post  %>%  filter(grts_address == check_grts)
+  # data_previous_linked  %>%  filter(grts_address == check_grts)
+
+  # only changes are relevant
+  date_updates <- data_previous_linked  %>%
+    filter(
+      !is.na(date_start_new),
+      date_start != date_start_new
+    )
+  # date_updates  %>%  filter(grts_address == check_grts)
+
+  if (nrow(date_updates) == 0) {
+    return(FALSE)
+  }
+
+  # TODO store this somewhere
+  output_filename <- glue::glue(
+      "./logs/{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
+    )
+  write_csv2(date_updates, output_filename)
+
+
+  ## update the data_previous to reflect date changes
+  #  on the database
+  # UPDATE... FROM method with temptable
+
+  # create temp table
+  srctab <- glue::glue("temp_startdate_update") # {tolower(table_label)}
+
+  DBI::dbWriteTable(
+    mnmdb$connection,
+    name = srctab,
+    value = date_updates,
+    overwrite = TRUE,
+    temporary = TRUE
+  )
+
+  lookup_criteria <- unlist(lapply(
+    characteristic_columns,
+    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
+  ))
+
+  for (tablab in c(table_label, other_table_labels)) {
+    trgtab <- mnmdb$get_namestring(tablab)
+    update_string <- glue::glue("
+      UPDATE {trgtab} AS TRGTAB
+        SET
+          date_start = SRCTAB.date_start_new
+        FROM {srctab} AS SRCTAB
+        WHERE
+         ({paste0(lookup_criteria, collapse = ') AND (')})
+      ;")
+
+    mnmdb$execute_sql(update_string, verbose = TRUE)
+  }
+
+  mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
+
+  # #   (ii) here in R
+  # data_previous <- data_previous %>%
+  #   dplyr::left_join(
+  #     date_updates,
+  #     by = dplyr::join_by(!!!characteristic_columns)
+  #   ) %>%
+  #   dplyr::mutate(
+  #     date_start = dplyr::coalesce(date_start_new, date_start)
+  #   ) %>%
+  #   select(-date_start_new)
+
+  message(glue::glue("Updated dates of {nrow(date_updates)} -> see `{output_filename}`"))
+
+  return(TRUE)
+
+} # /associate_and_shift_start_dates
+
+
+#_______________________________________________________________________________
+
+### categorize data
+# categorize potentially new ("future") content for a given table
+# into three groups, by matching with the existing table on the
+# basis of given characteristic columns.
+# `input_precedence_columns` may not cause a data update.
+#
+# Hence, we split the data based on the following decision tree:
+# (MATCH?) do data match by characteristic columns,
+#  |       i.e. present in past and future?
+#  |
+#  |_> (1. YES) matching
+#  |   (1.?) Were data archived previously?
+#  |   |_> *[1.1] YES ==> "re-activate"
+#  |   |
+#  |   (2.) do they differ in other, non-characteristic values?
+#  |   |_> *[2.1] YES ==> "changed"
+#  |   |_> *[2.0] NO  ==> "unchanged"
+#  |
+#  |_> (0. NO) data mismatch
+#      (0.?) is data present in previous data, but now not any more?
+#      |_> (0.1) YES
+#      |   (0.1.?) Were data archived previously?
+#      |   |_> *[0.1.1] YES ==> "unchanged"
+#      |   |_> *[0.1.0] NO  ==> "to_archive" new-old archive rows
+#      |
+#      |_> *[0.0] NO ==> "to_upload" (new data will find its place)
+#
+# The outcome completely contains all rows of the input data:
+# - "changed"    [2.1]        are rows which were there, but changed,
+# - "unchanged"  [2.0, 0.1.1] can safely be ignored (no change),
+# - "to_archive" [0.1.0]      are rows which have disappeared,
+# - "to_upload"  [0.0]        are those not found yet in the data.
+# - "reactivate" [1.1]        outgroup:  re-activated archive
+#                             (potential overlab with "changed"/"unchanged")
+#
+# Returns a list with subsets of the original data.
+# Receiver must decide wisely what to do with them!
+categorize_data_update <- function(
+    mnmdb,
+    table_label,
+    data_future,
+    input_precedence_columns,
+    characteristic_columns = NA,
+    archive_flag_column = NA,
+    exclude_columns = NA,
+    skip_archive = NULL
+  ) {
+
+  ### PREPARATION
+  ## general checks
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("glue" = require("glue"))
+  stopifnot("DBI" = require("DBI"))
+
+  if (is.scalar.na(characteristic_columns)) {
+    # ... or just take all characteristic columns
+    characteristic_columns <- mnmdb$get_characteristic_columns(table_label)
+  }
+
+  # archiving logic
+  if (is.na(archive_flag_column)) {
+    archive_flag_column <- "archive_version_id"
+  }
+
+  if (is.null(skip_archive)) {
+    skip_archive <- isFALSE(
+      mnmdb$table_has_column(table_label, archive_flag_column)
+    )
+  }
+
+  ## load database status
+  data_previous <- mnmdb$query_table(table_label)
+  # data_previous %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_previous.rds")
+  # data_future %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_future.rds")
+  # data_previous %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_previous.csv")
+  # data_future %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_future.csv")
+
+  # data_previous <- readRDS("./dumps/datelink_older.rds")
+  # data_future <- readRDS("./dumps/datelink_future.rds")
+
+  # data_previous %>%
+  #   filter(grts_address %in% c(415022, 3560750)) %>%
+  #   t() %>% knitr::kable()
+  # data_future %>%
+  #   filter(grts_address %in% c(415022, 3560750)) %>%
+  #   t() %>% knitr::kable()
+
+  cols <- names(data_future)
+  cols <- cols[!(cols %in% logging_columns)]
+  data_future <- data_future %>% select(!!!cols)
+
+  ## ignore input precedence columns
+  if (!is.scalar.na(input_precedence_columns)) {
+    cols <- names(data_future)
+    cols <- cols[!(cols %in% input_precedence_columns)]
+    data_future <- data_future %>% select(!!!cols)
+
+    cols <- names(data_previous)
+    cols <- cols[!(cols %in% input_precedence_columns)]
+    data_previous <- data_previous %>% select(!!!cols)
+
+  }
+
+  ## ignore excluded columns
+  previous_cols <- names(data_previous)
+  if (!is.scalar.na(exclude_columns)) {
+    cols <- names(data_future)
+    cols <- cols[!(cols %in% exclude_columns)]
+    data_future <- data_future %>% select(!!!cols)
+
+    cols <- names(data_previous)
+    cols <- cols[!(cols %in% c(logging_columns, exclude_columns))]
+    data_previous <- data_previous %>% select(!!!cols)
+    previous_cols <- cols
+
+  }
+
+
+  # if there is no archive column, then there can be no archive
+  if (skip_archive) {
+    data_previous_archive <- data_previous %>%
+      filter(TRUE == FALSE) %>%
+      select(!!!previous_cols)
+
+  } else {
+    # the archive flag column effectively codes non-archived entries as NA
+    data_previous_archive <- data_previous[!is.na(data_previous[archive_flag_column]), ]
+  }
+
+
+  ### CATEGORIZATION
+  # (match-and-mix)
+  # please refresh your knowledge on "filtering joins"
+  # -> https://dplyr.tidyverse.org/reference/filter-joins.html
+  # tip: filtering is not joining; these are actually set operations.
+
+  # (1.?) some rows are present in pre and post
+  data_match <- data_future %>%
+    semi_join(
+      data_previous,
+      join_by(!!!rlang::syms(characteristic_columns))
+    )
+
+  # [1.1] data re-activated: matched again though archived before
+  data_reactivate <- data_previous_archive %>%
+    semi_join(
+      data_match,
+      join_by(!!!rlang::syms(characteristic_columns))
+    )
+  # data_reactivate  %>% filter(grts_address == 1514726) %>% arrange(!!!rlang::syms(characteristic_columns))
+
+  # (2.) of those matching, some will need to be updated
+  # [2.1] changed data
+  data_changed <- data_match %>%
+    anti_join(
+      data_previous,
+      by = join_by(!!!rlang::syms(names(data_future)))
+    )
+
+  # ... but others will not.
+  # [2.2] unchanged data
+  data_unchanged <- data_match %>%
+    semi_join(
+      data_previous,
+      by = join_by(!!!rlang::syms(names(data_future)))
+    )
+
+  ## (0.?) is data present in previous data, but now not any more?
+  # some data are not relevant any more, and could be archived
+  data_potential_archive <- data_previous %>%
+    anti_join(
+      data_future,
+      by = join_by(!!!rlang::syms(characteristic_columns))
+    )
+  # data_potential_archive %>% arrange(!!!rlang::syms(characteristic_columns))
+
+  # (0.1.?) Were data archived previously?
+  # [0.1.1] stay archived; no change
+  data_unchanged <- bind_rows(
+    data_unchanged,
+    data_potential_archive %>% semi_join(
+      data_previous_archive,
+      by = join_by(!!!rlang::syms(characteristic_columns))
+    )
+  )
+
+  # [0.1.0] NO  ==> "to_archive"
+  data_to_archive <- data_potential_archive %>%
+    anti_join(
+      data_previous_archive,
+      by = join_by(!!!rlang::syms(characteristic_columns))
+    )
+  # data_to_archive %>% arrange(!!!rlang::syms(characteristic_columns))
+
+  # [0.0] new data is ready for upload
+  data_to_upload <- data_future %>%
+    anti_join(
+      data_previous,
+      by = join_by(!!!rlang::syms(characteristic_columns))
+    )
+
+  ## return a list
+  return(list(
+    "changed" = data_changed,
+    "unchanged" = data_unchanged,
+    "to_archive" = data_to_archive,
+    "to_upload" = data_to_upload,
+    "reactivate" = data_reactivate
+  ))
+} # /categorize_data_update
+
+
+#' Output a text block indicating the number of data points per category
+#' in a list-like data flow assembly.
+#'
+#' This is intended to double-check the result of categorization of calendar data
+#' output, prior to applying update/upload/archiving functions.
+#'
+#' @param cats as in categories
+#' @param table_label for an extra header indicating which table is redistributed
+print_category_count <- function(cats, table_label = NA) {
+  # *meow*
+  dogs <- "Distributed as follows:"
+  if (!is.na(table_label)) {
+    dogs <- glue::glue("Distributed {table_label} as follows:")
+  }
+  dogs <- c(
+    dogs,
+    unlist(lapply(
+      seq_len(length(cats)),
+      FUN = function(i) {
+        nr <- sprintf("% 6.0f", i)
+        label <- names(cats)[i]
+        glue::glue("{nr}: N = {nrow(cats[[i]])} {label}")
+      }
+    ))
+  )
+  message(
+    paste(dogs, collapse = "\n")
+  )
+  return(invisible(NULL))
+}
+
+
+### Safely append a data table.
+#   > "As safe as a hedgehog in a condom factory."
+#   (I think I have implemented this before.)
+upload_additional_data <- function(mnmdb, ...) {
+  # parametrize and execute upload function
+  update_cascade_lookup <- parametrize_cascaded_update(mnmdb)
+  return(update_cascade_lookup(...))
+} # /upload_additional_data
+
+
+#_______________________________________________________________________________
+### Update Machinery
+
+# ## check all data types
+# datatypes <- bind_rows(lapply(
+#   mnmdb$tables %>% pull(table),
+#   FUN = function(tablab) mnmdb$load_table_info(tablab) %>% select(datatype)
+# )) %>% distinct()
+
+
+# to update
+datatype_conversion_functions <- c(
+  "int" = as.integer,
+  "integer" = as.integer,
+  "int64" = as.integer,
+  "integer64" = as.integer,
+  "smallint" = as.integer,
+  "bigint" = as.integer,
+  "double precision" = as.double,
+  "varchar" = as.character,
+  "varchar(3)" = as.character,
+  "varchar(16)" = as.character,
+  "text" = as.character,
+  "timestamp" = as.POSIXct,
+  "date" = as.Date,
+  "bool" = as.logical,
+  "boolean" = as.logical
+)
+
+
+
+logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
+validate_sql_text <- function (txt) gsub("'", "", txt)
+datatype_stringconversion_catalogue <- c(
+  "bool" = function(val) toString(val),
+  "boolean" = function(val) toString(val),
+  "varchar" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
+  "varchar(3)" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
+  "varchar(16)" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
+  "text" = function(val) glue::glue("E'{validate_sql_text(val)}'"),
+  "int"       = as.character, #function(val) sprintf("%.0f", val),
+  "int64"     = as.character, #function(val) sprintf("%.0f", val),
+  "integer"   = as.character, #function(val) sprintf("%.0f", val),
+  "integer64" = as.character, #function(val) sprintf("%.0f", val),
+  "smallint"  = as.character, #function(val) sprintf("%.0f", val),
+  "bigint"    = as.character, #function(val) sprintf("%.0f", val),
+  "double precision" = function(val) sprintf("%.8f", val),
+  "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M"),
+  "date" = function(val) format(val, "'%Y-%m-%d'")
+)
+
+catch_nans <- function(fcn) function(val) if (is.na(val)) "NULL" else fcn(val)
+datatype_stringconversion_catalogue <- sapply(
+  datatype_stringconversion_catalogue,
+  FUN = catch_nans
+)
+
+
+# convert a whole data frame to SQL-ready characters, based on its data types
+# i <- 2
+convert_data_to_sql_input_str <- function(datatypes, data) {
+
+  for (i in seq_len(nrow(datatypes))) {
+    col <- datatypes[[i, "column"]]
+    dtype <- datatypes[[i, "datatype"]]
+
+    if (isFALSE(dtype %in% names(datatype_stringconversion_catalogue))) {
+      stop(glue::glue(
+        "Datatype `{dtype}` not found in conversion catalogue.
+         Probably you mispelled that, didn't you?"
+      ))
+    }
+
+    data[[col]] <-
+      unlist(lapply(
+        data %>% pull(!!col),
+        FUN = datatype_stringconversion_catalogue[[dtype]]
+      ))
+  }
+
+  return(data)
+} # /convert_data_to_sql_input_str
+
+
+#_______________________________________________________________________________
+
+### update data rows
+# which are already present, identified by reference columns
+# (by default the characteristic columns)
+# index columns and reference columns themselves are never updated
+# `data_input_precedence_columns` are columns for which the existing
+# data takes precedence over the upload data
+update_existing_data <- function(
+    mnmdb,
+    table_label,
+    changed_data,
+    input_precedence_columns,
+    index_columns = NA,
+    reference_columns = NA
+  ) {
+
+  stopifnot("glue" = require("glue"))
+
+  if (nrow(changed_data) == 0) {
+    message(glue::glue("No data provided to update {table_label}."))
+    return(invisible(NULL))
+  }
+
+  if (is.scalar.na(reference_columns)) {
+    # ... or just take all characteristic columns
+    reference_columns <- mnmdb$get_characteristic_columns(table_label)
+
+  }
+
+  # check for conflicts
+  conflict_columns <- reference_columns %in% input_precedence_columns
+  if (any(conflict_columns)) {
+
+    conflict_columns <- paste0(
+      reference_columns[conflict_columns],
+      collapse = ", "
+    )
+
+    stop(glue::glue(
+      "Input precedence column cannot be a characteristic column (here: {conflict_columns})."
+      )
+    )
+  }
+
+
+  # start with all the columns
+  update_columns <- names(changed_data)
+
+  # as always, be extra safe:
+  update_columns <- update_columns[
+    !(update_columns %in% input_precedence_columns)
+  ]
+
+  # confirm that reference columns are actually included
+  if (isFALSE(all(reference_columns %in% update_columns))) {
+    missing_refcol <- reference_columns[!(reference_columns %in% update_columns)]
+    missing_refcol <- paste0(missing_refcol, collapse = ", ")
+    stop(glue::glue(
+      "reference columns not found in the upload data: {missing_refcol}"
+    ))
+  }
+
+  # in case we need an index column
+  if (is.scalar.na(index_columns)) {
+    # ... or just take the primary key
+    index_columns <- c(mnmdb$get_primary_key(table_label))
+  }
+
+  # get info (column name, datatype) about the existing columns
+  table_columns <- mnmdb$load_table_info(table_label) %>%
+    select(column, datatype)
+  existing_columns <- table_columns %>% pull(column)
+
+  ## restrict to the columns to update:
+  # - only existing columns apply, naturally.
+  update_columns <- update_columns[update_columns %in% existing_columns]
+  # - never update index columns.
+  update_columns <- update_columns[!(update_columns %in% index_columns)]
+  # - the reference columns are included anyways.
+  update_columns <- update_columns[!(update_columns %in% reference_columns)]
+  # - logging columns stay untouched, unless used for reference
+  logging_nonrefs <- logging_columns[!(logging_columns %in% reference_columns)]
+  update_columns <- update_columns[!(update_columns %in% logging_nonrefs)]
+
+  # # prepare the data by converting all to string
+  # prepared_update_data <- convert_data_to_sql_input_str(
+  #   datatypes = table_columns %>% filter(column %in% c(reference_columns, update_columns)),
+  #   data = changed_data
+  # )
+
+
+  # # sewing the update string
+  # create_update_string_ <- function(row_nr) {
+  #
+  #     row <- prepared_update_data[row_nr,]
+  #
+  #     # the "SET" block of update data
+  #   udata <- paste(lapply(
+  #     update_columns,
+  #     FUN = function(col) glue::glue("{col} = {row[[col]]}")
+  #   ), collapse = ", \n\t")
+  #
+  #     # the filter block by reference columns
+  #   where_filter <- paste(lapply(
+  #     reference_columns,
+  #     FUN = function(col) glue::glue("{col} = {row[[col]]}")
+  #   ), collapse = ") \n AND (")
+  #
+  #     # combined update command
+  #   update_cmd <- glue::glue("
+  #     UPDATE {mnmdb$get_namestring(table_label)}
+  #     SET {udata}
+  #     WHERE ({where_filter})
+  #   ;")
+  #
+  #     return(update_cmd)
+  #
+  #   } # /create_update_string_
+  #
+  #   # rowwise apply the update command
+  # update_commands <- lapply(
+  #   seq_len(nrow(prepared_update_data)),
+  #   FUN = create_update_string_
+  # )
+  #
+  #   invisible(lapply(
+  #   update_commands,
+  #   FUN = function(update_cmd) mnmdb$execute_sql(update_cmd, verbose = TRUE)
+  # ))
+
+  ## UPDATE FROM TEMPTABLE
+  srctab <- glue::glue("temp_upd_{tolower(table_label)}")
+  trgtab <- mnmdb$get_namestring(table_label)
+
+  dtypes <- mnmdb$load_table_info(table_label) %>% select(column, datatype)
+
+  prepared_update_data <- changed_data
+  for (i in seq_len(nrow(dtypes))) {
+    dtyp <- dtypes[i, ]
+    conv <- datatype_conversion_functions[[dtyp[[2]]]]
+    col <- dtyp[[1]]
+    if (!(col %in% names(prepared_update_data))) next
+
+    prepared_update_data[col] <- conv(prepared_update_data[[col]])
+  }
+
+
+  # create temp table
+  DBI::dbWriteTable(
+    mnmdb$connection,
+    name = srctab,
+    value = prepared_update_data,
+    overwrite = TRUE,
+    temporary = TRUE
+  )
+
+  ucolumnames <- unlist(lapply(
+    update_columns,
+    FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
+  ))
+
+  lookup_criteria <- unlist(lapply(
+    reference_columns,
+    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
+  ))
+
+  update_string <- glue::glue("
+    UPDATE {trgtab} AS TRGTAB
+      SET
+       {paste0(ucolumnames, collapse = ', ')}
+      FROM {srctab} AS SRCTAB
+      WHERE
+       ({paste0(lookup_criteria, collapse = ') AND (')})
+    ;")
+
+  mnmdb$execute_sql(update_string, verbose = TRUE)
+
+  mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
+
+  return(invisible(NULL))
+
+} # /update_existing_data
+
+
+
+#_______________________________________________________________________________
+
+### flag data as archived
+# `version_id = NULL` will un-archive (i.e. reactivate) the rows
+archive_ancient_data <- function(
+    mnmdb,
+    table_label,
+    data_to_archive,
+    version_id = NA,
+    reference_columns = NA,
+    archive_flag_column = "archive_version_id"
+  ) {
+
+  stopifnot("glue" = require("glue"))
+
+  if (isFALSE(mnmdb$table_has_column(table_label, archive_flag_column))) {
+    stop(glue::glue(
+      "Table {table_label} does not have the `{archive_flag_column}` column.
+       Skipping archiving step."
+    ))
+  }
+
+  if (nrow(data_to_archive) == 0) {
+    message(glue::glue("No data provided to archive in {table_label}."))
+    return(invisible(NULL))
+  }
+
+  # Default: get latest version as archive version
+  if (is.null(version_id)) {
+    version_id <- NA
+  } else if (is.na(version_id)) {
+    version_id <- mnmdb$load_latest_version_id()
+  }
+
+  # Default: use primary key for archive reference
+  if (is.na(reference_columns)) {
+    reference_columns <- c(mnmdb$get_primary_key(table_label))
+  }
+
+  # subset data
+  archive_data <- data_to_archive %>%
+    select(!!!c(reference_columns))
+
+  archive_data[archive_flag_column] <- version_id
+
+
+  # pass thru to update
+  update_existing_data(
+    mnmdb = mnmdb,
+    table_label = table_label,
+    changed_data = archive_data,
+    input_precedence_columns = precedence_columns[[table_label]],
+    reference_columns = reference_columns
+  )
+
+  return(invisible(NULL))
+
+} # /archive_ancient_data
+
+
+# the opposite of archiving
+reactivate_archived_data <- function(...) {
+
+  archive_ancient_data(..., version_id = NULL)
+
+  return(invisible(NULL))
+} # /reactivate_archived_data
+
+
+#_______________________________________________________________________________
+
+#' Link dates of two calendar sets using common heuristics
+#'
+#' Links start dates from one set of calendar events to another
+#' set of calendar events. Events are defined by unique lookup
+#' columns (`characteristic_columns`). A difference in the date
+#' column will be computed per characteristic observation, then
+#' transformed (`dt_trafo`), and previous calendar entries will
+#' be linked to those post-events by minimum date difference.
+#' No event of the post-calendar can be used twice.
+#' Note that this is no global optimization:
+#'   events will be ordered (by group and date) and then
+#'   associated "first come, first serve"; skips are not possible.
+#'
+#' @param data_pre data before change
+#' @param data_post data after change
+#' @param characteristic_columns a subset of columns common to the two
+#'        data states by which old and new data can be uniquely identified and
+#'        joined; may include the date column
+#' @param date_column the name of the date column, defaults to `date_start`
+#' @param dt_trafo transformation of time differences; examples in the
+#'        nested functions below
+#' @param date_threshold the "first ever" date to prohibit linking
+#'        all-too-old data (specifically, events planned 2024 was never
+#'        realized)
+#' @param verbose provides extra prose on the way, in case you need it
+#' @return the data_pre characteristic columns with new `date_start_new`
+#'
+#' @examples
+#' \dontrun{
+#'   make_test_times <- function(t0, n, n_groups) {
+#'     as.data.frame(t0 + sample.int(365, n * n_groups)) %>%
+#'       setNames("date_start") %>%
+#'       mutate(id = rep(seq_len(4), n)) %>%
+#'       relocate(id)
+#'   }
+#'   test_pre <- make_test_times(as.Date(now()), 5, n_groups = 4)
+#'   test_post <- make_test_times(as.Date(now()), 3, n_groups = 4)
+#'
+#'   link_dates(test_pre, test_post)
+#' }
+#'
+link_dates <- function(
+    data_pre,
+    data_post,
+    characteristic_columns = NULL,
+    date_column = "date_start",
+    dt_trafo = NULL,
+    date_threshold = NULL,
+    verbose = TRUE
+  ) {
+
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("lubridate" = require("lubridate"))
+
+  ### time selection options
+  # do not allow a shift backwards in time by further than a min_dt
+  disable_backshift <- function(dt, min_dt = 0) {
+    dt_pos <- dt
+    dt_pos[dt_pos < min_dt] <- Inf
+    return(dt_pos)
+  }
+
+  # disable past, based on minimum dt (diff from date to now)
+  disable_past <- function(dt, min_dt) {
+    dt_alltime <- dt
+    dt_alltime[dt_alltime < min_dt] <- Inf
+    return(dt_alltime)
+  }
+
+  # retain the order of events
+  retain_event_sequence <- function(dt, pos = NA, nonmatch_disadvantage = 10) {
+    if (is.na(pos)) {
+      return(dt)
+    }
+    dt_seq <- dt
+
+    idx <- seq_len(length(dt))
+
+    # all lower-sequence events are impossible
+    dt_seq[idx < pos] <- Inf
+
+    # all future events are discouraged
+    dt_seq[idx > pos] <- dt_seq[idx > pos] * nonmatch_disadvantage
+
+    return(dt_seq)
+  }
+
+  # time difference transformation, to achieve various effects
+  if (is.null(dt_trafo)) {
+    dt_trafo <- function(dt, i = NA, min_dt = -Inf) {
+      return(
+        retain_event_sequence(
+          abs(dt
+            # disable_backshift(
+            #   # disable_past(dt, min_dt),
+            #   dt, min_dt)
+          ), i
+        )
+      )
+    }
+  }
+
+
+  # take all columns by default
+  if (is.null(characteristic_columns)) {
+    characteristic_columns <- names(data_pre)
+  }
+
+  ### time selection options
+  if (is.null(date_threshold)) {
+    date_threshold <- as.Date("2025-07-01") # effective start of MNM project
+  }
+
+  # only char cols and date are relevant
+  relevant_columns <- unique(c(characteristic_columns, date_column))
+
+
+  # filter and sort data
+  dpre <- data_pre[
+      data_pre %>% pull(!!date_column) >= date_threshold,
+    ] %>%
+    select(!!!rlang::syms(relevant_columns)) %>%
+    dplyr::arrange(!!!rlang::syms(relevant_columns))
+  dpost <- data_post[
+      data_post %>% pull(!!date_column) >= date_threshold,
+    ] %>%
+    select(!!!rlang::syms(relevant_columns)) %>%
+    dplyr::arrange(!!!rlang::syms(relevant_columns))
+
+  # only entries that differ must be linked
+  dpre_stashed <- dpre %>%
+    anti_join(
+      dpost,
+      by = dplyr::join_by(!!!rlang::syms(relevant_columns))
+    )
+  dpost <- dpost %>%
+    anti_join(
+      dpre,
+      by = dplyr::join_by(!!!rlang::syms(relevant_columns))
+    )
+  data_pre <- dpre_stashed
+
+  # grouping by all except date column
+  nondate_charcols <-
+    characteristic_columns[characteristic_columns != date_column]
+
+  # only groups which are in *both* data sets can be joined.
+  dgroups <- dpre %>%
+      dplyr::distinct(!!!rlang::syms(nondate_charcols)) %>%
+    dplyr::inner_join(
+      dpost %>%
+        dplyr::distinct(!!!rlang::syms(nondate_charcols)),
+      by = join_by(!!!rlang::syms(nondate_charcols))
+    ) %>%
+    dplyr::arrange(!!!rlang::syms(nondate_charcols))
+
+  # might be that none are left
+  if (nrow(dgroups) == 0) {
+    dpre <- dpre %>% dplyr::mutate(dt_min = as.integer(NA))
+    dpre[glue::glue("{date_column}_new")] <- as.Date(NA)
+    return(dpre)
+  }
+
+  if (verbose) {
+    pb <- utils::txtProgressBar(
+      min = 0, max = nrow(dgroups),
+      initial = 0, style = 1
+    )
+  }
+
+  ### groupwise comparison
+  # row_nr <- 1
+  compare_group <- function(row_nr) {
+
+    if (verbose) setTxtProgressBar(pb, row_nr)
+
+    grp <- dgroups %>%
+      mutate(extraction_sequence_ = seq_len(n())) %>%
+      filter(extraction_sequence_ == row_nr) %>%
+      select(-extraction_sequence_)
+
+    pre <- dpre %>%
+      dplyr::semi_join(grp, by = dplyr::join_by(!!!nondate_charcols))
+    post <- dpost %>%
+      dplyr::semi_join(grp, by = dplyr::join_by(!!!nondate_charcols))
+
+
+    pre[glue::glue("{date_column}_new")] <- as.Date(NA)
+    pre <- pre %>% dplyr::mutate(
+        # nearest_post = as.list(NA),
+        dt_min = as.integer(NA)
+      )
+
+    # cross-difference dates
+    date1 <- pre %>% dplyr::pull(!!date_column)
+    date2 <- post %>% dplyr::pull(!!date_column)
+
+    # has the original date already been passed?
+    diff_today <- as.numeric(as.Date(lubridate::now()) - date1)
+    diff_today[diff_today > 0] <- 0
+
+    cross_dt <- outer(
+      X = date1,
+      Y = date2,
+      FUN = function(X, Y) as.numeric(Y - X)
+    )
+
+    # TODO Note: more heuristics can be applied.
+    #      - skip if identical dates
+    #      - work through `cross_dt` matrix starting by lowest diff
+    #        (least-difference optimization)
+    #      - further optimization and special cases
+    #      However, currently there are only 1x1 matches,
+    #      so any linkage will be fine.
+
+    # go rowwise # i <- 1
+    for (i in seq_len(nrow(cross_dt))){
+      row_dt <- cross_dt[i,]
+      dtoday <- diff_today[[i]]
+
+      # find minimum difference, after adjustments
+      dt_transformed <- dt_trafo(row_dt, i, dtoday)
+      min_dt_idx <- which.min(dt_transformed)
+
+      # none acceptable
+      if (is.null(dt_transformed)) next
+      if (0 == length(dt_transformed)) next
+      if (!is.finite(dt_transformed[[min_dt_idx]])) next
+
+      # select correspondent entry
+      dt_min <- row_dt[[min_dt_idx]]
+      nearest_post <- post[min_dt_idx, ]
+      date_start_new <- nearest_post[["date_start"]]
+
+      # store info
+      pre[i, "dt_min"] <- dt_min
+      # pre$nearest_post[[i]] <- as.list(nearest_post)
+      pre[i, glue::glue("{date_column}_new")] <- date_start_new
+
+      # disable this correspondent
+      cross_dt[i, min_dt_idx] <- Inf
+
+    } # / loop pre rows
+
+    pre %>%
+      # dplyr::select(-nearest_post) %>%
+      return()
+
+  } # /compare_group
+
+  dates_linked <- dplyr::bind_rows(lapply(
+        seq_len(nrow(dgroups)),
+        FUN = compare_group
+    ))
+
+  if (verbose) close(pb) # close the progress bar
+
+  return(dates_linked)
+
+
+} # /link_dates
+
+
+
+#_______________________________________________________________________________
+# SIDELOADING
+
+#' Sideload extra data to a database table
+#'
+#' @param mnmdb an MNM database including DBI connection, structure, and
+#'        working functions. See `MNMDatabaseConnection.R` for details.
+#' @param table_label the table to be appended
+#' @param characteristic_columns a subset of columns common by which data rows
+#'        can be uniquely identified
+#' @param data_filepath path of a csv file with the extra data
+#' @param reload_previous optionally skip the removal of previous sideloads
+#'
+load_table_sideload_content <- function(
+    mnmdb,
+    table_label,
+    characteristic_columns,
+    data_filepath,
+    reload_previous = FALSE
+  ) {
+
+  stopifnot("dplyr" = require("dplyr"))
+
+  # load the new data
+  inception_data <- read.csv2(data_filepath, sep = ",") %>%
+    dplyr::as_tibble()
+
+  dtypes <- mnmdb$load_table_info(table_label) %>%
+    select(column, datatype)
+
+  # data type adjustment
+  for (col in colnames(inception_data)) {
+    dtyp <- dtypes %>%
+      filter(column == col) %>%
+      pull(datatype) %>% .[1]
+    dtype_conversion_fcn <- datatype_conversion_functions[[tolower(dtyp)]]
+
+    inception_data <- inception_data %>%
+      mutate_at(vars(!!!rlang::syms(c(col))), dtype_conversion_fcn)
+  }
+
+  # query existing data from database
+  existing_data <- mnmdb$query_table(table_label)
+    # %>% select(!!!rlang::syms(characteristic_columns))
+
+  # existing_data %>%
+  #   semi_join(
+  #     inception_data,
+  #     by = join_by(!!!rlang::syms(characteristic_columns))
+  #   ) %>% t() %>% knitr::kable()
+
+  # Only keep entries which are not in the database yet
+  if (isFALSE(reload_previous)) {
+    inception_data <- inception_data %>%
+      anti_join(
+        existing_data,
+        by = join_by(!!!rlang::syms(characteristic_columns))
+      )
+  }
+
+  # inception_data  %>%
+  #   t() %>% knitr::kable()
+
+  return(inception_data)
+
+} # /load_table_sideload_content
+
+
+#_______________________________________________________________________________
+
+# for some columns, existing data may not be overwritten
+# (i.e. the database is the one and only reference)
+# TODO: This is incredibly hacky and embarassing, but it will
+# eventually get better. I am embarassed.
+# Last update: 20251205
+precedence_columns <- list(
+  "SampleLocations" = c(
+    "is_replacement"
+  ),
+  "SampleUnits" = c(
+    "previous_notes",
+    "replacement_ongoing",
+    "replacement_id",
+    "replacement_reason",
+    "replacement_permanence",
+    "is_replaced",
+    "type_is_absent"
+  ),
+  "FieldworkCalendar" = c(
+    "excluded",
+    "excluded_reason",
+    "teammember_assigned",
+    "date_visit_planned",
+    "no_visit_planned",
+    "notes",
+    "done_planning"
+  ),
+  "FieldActivityCalendar" = c(
+    "excluded",
+    "excluded_reason",
+    "teammember_assigned",
+    "date_visit_planned",
+    "no_visit_planned",
+    "notes",
+    "done_planning"
+  ),
+  "Visits" = c(
+    "teammember_id",
+    "date_visit",
+    "notes",
+    "photo",
+    "lims_code",
+    "issues",
+    "visit_done",
+    "type_assessed"
+  ),
+  "WellInstallationActivities" = c(
+    "photo_soil_1_peilbuis",
+    "photo_soil_2_piezometer",
+    "photo_well",
+    "watina_code_used_1_peilbuis",
+    "watina_code_used_2_piezometer",
+    "soilprofile_notes",
+    "soilprofile_unclear",
+    "random_point_number",
+    "no_diver",
+    "diver_id",
+    "free_diver",
+    "reused_existing_well",
+    "reused_with_replacement",
+    "used_water_from_tap",
+    "used_water_source"
+  ),
+  "ChemicalSamplingActivities" = c(
+    "project_code",
+    "recipient_code"
+  ),
+  "SpatialPositioningActivities" = c(
+    "require_total_station"
+  ),
+  "LocationInfos" = c(
+    "landowner",
+    "accessibility_inaccessible",
+    "accessibility_revisit",
+    "recovery_hints",
+    "watina_code_1",
+    "watina_code_2"
+  )
+)
+
+# TODO this is STILL not a good function name.
+#   -> There is work to do here. (-calendar)
+redistribute_calendar_data <- function(
+    mnmdb,
+    table_label,
+    distribution,
+    index_columns,
+    characteristic_columns,
+    skip = NA,
+    version_id = NA
+  ) {
+
+  if (is.scalar.na(skip)) {
+    skip <- list(
+      "update" = FALSE,
+      "upload" = FALSE,
+      "archive" = FALSE
+    )
+  }
+
+  if (is.scalar.na(version_id)) {
+    version_id <- mnmdb$load_latest_version_id()
+  }
+
+  if (isFALSE(skip[["update"]])) {
+    message(glue::glue("\tupdating N={nrow(distribution$changed)}:"))
+    update_existing_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      changed_data = distribution$changed,
+      input_precedence_columns = precedence_columns[[table_label]],
+      index_columns = index_columns,
+      reference_columns = characteristic_columns
+    )
+  }
+
+  if (isFALSE(skip[["upload"]])) {
+    message(glue::glue("\tuploading N={nrow(distribution$to_upload)}:"))
+    upload_additional_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      new_data = distribution$to_upload,
+      index_columns = index_columns,
+      tabula_rasa = FALSE,
+      characteristic_columns = characteristic_columns,
+      skip_sequence_reset = FALSE,
+      verbose = TRUE
+    )
+  }
+
+
+  if (isFALSE(skip[["archive"]])) {
+    message(glue::glue("\tarchiving N={nrow(distribution$to_archive)}:"))
+    archive_ancient_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      data_to_archive = distribution$to_archive,
+      version_id = version_id,
+      reference_columns = c(index_column)
+    )
+
+    # ... and un-archive = reactivate
+    message(glue::glue("\tre-activating N={nrow(distribution$reactivate)}:"))
+    reactivate_archived_data(
+      mnmdb = mnmdb,
+      table_label = table_label,
+      data_to_archive = distribution$reactivate,
+      reference_columns = c(index_column)
+    )
+  }
+
+  return(mnmdb$query_lookup(
+    table_label,
+    characteristic_columns = characteristic_columns
+  ))
+} # /redistribute_calendar_data
+
+
+#_______________________________________________________________________________
+# / (end of file)

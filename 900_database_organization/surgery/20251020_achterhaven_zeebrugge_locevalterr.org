@@ -1,0 +1,817 @@
+#+title: Achterhaven Zeebrugge LOCEVALTERR
+#+date: 20251020 
+
+* The 20 Locations
+
+After double-check with the new fieldwork calendar, these are the locations for "achterhaven":
+
+1195701
+122549
+1588917
+212661
+253621
+3202741
+3554997
+3858101
+409269
+44961461
+450229
+48053941
+48578229
+49692341
+5193397
+5234357
+540341
+5455541
+5979829
+908981
+
+
+
+
+* achterhaven focus area
+SCHEDULED: <2025-10-20 Mon>
+
++ +17 from archives
++ +5 SampleUnits
++ +9 FieldActivityCalendar / Visits
++ +5 LocationInfos
+  
+#+begin_quote
+WRONG LIST!
+This was a preliminary, manual list. The correct one is above ([[The 20 Locations]], and [[De-Activation]]).
+#+end_quote
+
+
+#+begin_src R
+
+grts_achterhaven <- dplyr::as_tibble(list("grts" = c(
+  1195701, 
+  122549, 
+  1588917, 
+  19914421, 
+  212661, 
+  253621, 
+  29769397, 
+  3202741, 
+  3554997, 
+  3858101, 
+  409269, 
+  4447925, 
+  44961461, 
+  450229, 
+  48053941, 
+  48578229, 
+  49692341, 
+  50282165, 
+  5193397, 
+  5234357, 
+  540341, 
+  5455541, 
+  5979829, 
+  6360757, 
+  6504117, 
+  6635189, 
+  6811317, 
+  7409333, 
+  908981
+)))
+
+# replacements_lookup %>%
+#   rename(grts = grts_address_replacement) %>%
+#   semi_join(grts_achterhaven, by = join_by(grts))
+
+replacements_achterhaven <- as.data.frame(list(
+    "1" = c(        253621, "1330_hpr",  4447925),
+    "2" = c(       3554997, "1310_pol", 29769397),
+    "3" = c(       5234357, "1310_pol", 19914421)
+  )) %>% t() %>% as_tibble() %>%
+  setNames(c("grts_address", "type", "grts_address_replacement")) %>%
+  mutate_at(c("grts_address", "grts_address_replacement"), as.integer)
+glimpse(replacements_achterhaven)
+
+grts_achterhaven <- grts_achterhaven %>% 
+  mutate(is_replacement = grts %in% (
+      replacements_achterhaven %>% pull(grts_address_replacement)
+  )) %>%
+  left_join(
+    replacements_achterhaven %>%
+      rename(replaced_by = grts_address_replacement) %>%
+      select(grts_address, replaced_by),
+    by = join_by(grts == grts_address)
+  )
+
+
+# sampleunits_lookup %>%
+#   rename(grts = grts_address) %>%
+#   semi_join(grts_achterhaven, by = join_by(grts)) %>%
+#   pull(grts)
+units_achterhaven <- c(
+  1195701, 122549, 1588917, 212661,
+  253621, 3202741, 3554997, 3858101,
+  409269, 44961461, 450229, 48053941,
+  48578229, 49692341, 5193397, 5234357,
+  540341, 5455541, 5979829, 6360757,
+  908981
+)
+
+grts_achterhaven <- grts_achterhaven %>% 
+  mutate(in_sample_units = grts %in% units_achterhaven)
+
+
+# check if the grts is in fag_stratum_calendar
+# fag_stratum_grts_calendar %>%
+#   filter(field_activity_group == "LOCEVALTERR") %>% 
+#   rename(grts = grts_address_final) %>%
+#   semi_join(grts_achterhaven, by = join_by(grts)) %>%
+#   distinct(grts) %>%
+#   pull(grts)
+
+
+fag_stratum_grts_calendar_achterhaven <- 
+  c(212661,   409269,  1195701,  1588917,  3202741,  3554997,  3858101,  5193397,
+   5234357,  5455541,  5979829,  6360757,  6504117,  6635189,  6811317,  7409333,
+  48053941, 48578229, 49692341, 50282165,   122549,   253621,   450229,   540341,
+    908981, 44961461
+)
+
+grts_achterhaven <- grts_achterhaven %>% 
+  mutate(
+    in_fag_stratum_grts_calendar =
+      grts %in% fag_stratum_grts_calendar_achterhaven
+  )
+
+# which do not pass to fwcal?
+# fieldwork_calendar %>%
+#   filter(activity_group_id == 18) %>% 
+#   rename(grts = grts_address) %>%
+#   semi_join(grts_achterhaven, by = join_by(grts)) %>%
+#   distinct(grts) %>%
+#   pull(grts)
+    
+fwcal_achterhaven <- c(
+   450229, 3202741, 48578229, 1588917, 253621, 48053941, 1195701, 122549
+   )
+
+grts_achterhaven <- grts_achterhaven %>% 
+  mutate(
+    in_fwcal =
+      grts %in% fwcal_achterhaven
+  )
+
+
+# and in the prio? -> identical to fwcal
+# fieldwork_2025_prioritization_by_stratum %>%
+#   filter(field_activity_group == "LOCEVALTERR") %>% 
+#   rename(grts = grts_address_final) %>%
+#   semi_join(grts_achterhaven, by = join_by(grts)) %>%
+#   distinct(grts) %>%
+#   pull(grts)
+
+# 450229  3202741 48578229  1588917   253621 48053941  1195701   122549
+
+
+# grts_achterhaven <- grts_achterhaven %>%
+#   left_join(
+#     fag_stratum_grts_calendar %>%
+#       distinct(grts_address_final, stratum) %>%
+#       rename(grts = grts_address_final, type = stratum),
+#     by = join_by(grts)
+#   ) %>%
+#   relocate(type) %>% relocate(grts)
+
+
+grts_achterhaven <- grts_achterhaven %>%
+  mutate_at(c("grts"), as.integer)
+    
+
+
+grts_achterhaven %>%
+  filter(!in_fwcal) %>% 
+  filter(!is_replacement) %>% 
+  knitr::kable()
+
+
+#+end_src
+
+
+* manual inserts
+
+#+begin_example
+|     grts|type     |is_replacement | replaced_by|in_sample_units |in_fag_stratum_grts_calendar |in_fwcal |
+|--------:|:--------|:--------------|-----------:|:---------------|:----------------------------|:--------|
+|   212661|1310_pol |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+|  3554997|1310_pol |FALSE          |    29769397|TRUE            |TRUE                         |FALSE    |
+|  3858101|1310_pol |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+|   409269|1310_pol |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+| 44961461|1330_hpr |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+| 49692341|1310_pol |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+| 50282165|1310_pol |FALSE          |          NA|FALSE           |TRUE                         |FALSE    |
+|  5193397|1310_pol |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+|  5234357|1310_pol |FALSE          |    19914421|TRUE            |TRUE                         |FALSE    |
+|   540341|1330_hpr |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+|  5455541|1310_pol |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+|  5979829|1310_pol |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+|  6360757|1310_pol |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+|  6504117|1310_pol |FALSE          |          NA|FALSE           |TRUE                         |FALSE    |
+|  6635189|1310_pol |FALSE          |          NA|FALSE           |TRUE                         |FALSE    |
+|  6811317|1310_pol |FALSE          |          NA|FALSE           |TRUE                         |FALSE    |
+|  7409333|1310_pol |FALSE          |          NA|FALSE           |TRUE                         |FALSE    |
+|   908981|1330_hpr |FALSE          |          NA|TRUE            |TRUE                         |FALSE    |
+#+end_example
+
+
+#+begin_src R
+
+source("MNMLibraryCollection.R")
+load_poc_common_libraries()
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+snippets_path <- "/data/git/n2khab-mne-monitoring_support"
+
+toc <- Sys.time()
+load_poc_code_snippets(snippets_path)
+message(glue::glue(
+  "... loading/executing the code snippets took {tic(toc)}s."
+))
+verify_poc_objects()
+
+
+database <- "loceval"
+config_filepath <- file.path("./inbopostgis_server.conf")
+# mirror <- ""
+mirror <- "-staging"
+
+# connect loceval
+locevaldb_mirror <- glue::glue("{database}{mirror}")
+
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+) 
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(glue::glue("connected: psql {locevaldb$shellstring}"))
+update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
+
+#+end_src
+
+
+#+begin_src R
+
+
+tic <- function(toc) round(Sys.time() - toc, 1)
+toc <- Sys.time()
+load_poc_rdata(reload = FALSE, to_env = parent.frame())
+message(glue::glue("Good morning!
+  Loading the POC data took {tic(toc)} seconds today."
+))
+
+grts_achterhaven <- grts_achterhaven %>%
+  left_join(
+    fag_stratum_grts_calendar %>%
+      distinct(grts_address_final, stratum) %>%
+      rename(grts = grts_address_final, type = stratum),
+    by = join_by(grts)
+  ) %>%
+  mutate_at(c("type"), as.character) %>%
+  relocate(type) %>% relocate(grts)
+
+
+potential_insert <- grts_achterhaven %>%
+  filter(!in_fwcal) %>% 
+  filter(!is_replacement)
+potential_insert %>% 
+  knitr::kable()
+
+#+end_src
+
+
+* re-activate archived locations
+
+#+begin_src R
+
+current_fwcal <- locevaldb$query_table("FieldActivityCalendar") %>%
+  filter(activity_group_id == 18) %>% 
+  semi_join(grts_achterhaven, by = join_by(grts_address == grts))
+
+current_fwcal %>%
+  select(
+    grts_address, type, date_visit_planned, archive_version_id,
+    excluded, no_visit_planned, wait_any
+  )
+
+current_fwcal %>% pull(grts_address)
+#+end_src
+
+
+#+begin_src sql
+
+SELECT DISTINCT archive_version_id, count(DISTINCT grts_address) AS n FROM "outbound"."FieldActivityCalendar" GROUP BY archive_version_id;
+-- archive_version_id |  n pre | post
+----------------------+--------+------
+--                  1 |  96    |  96
+--                  2 | 213    | 205
+--                    | 791    | 800
+
+
+UPDATE "outbound"."FieldActivityCalendar"
+  SET archive_version_id = NULL
+  WHERE activity_group_id = 18 AND
+  grts_address IN (
+    122549,
+    253621,
+    450229,
+    540341,
+   1195701,
+   1588917,
+   3202741,
+   3554997,
+   3858101,
+   5193397,
+   5234357,
+   5455541,
+   5979829,
+   6360757,
+  48053941,
+  48578229,
+  49692341
+  );
+
+#+end_src
+
+
+
+* inserts
+
+#+begin_src R
+
+needs_calendar_insert <- potential_insert %>% 
+  mutate_at(c("grts"), as.integer) %>% 
+  anti_join(current_fwcal,
+    by = join_by(grts == grts_address, type))
+
+needs_calendar_insert %>% knitr::kable()
+
+#+end_src
+
+
+
+#+begin_src R
+
+current_locations <- locevaldb$query_columns("Locations", c("grts_address")) %>%
+  mutate_at(c("grts_address"), as.integer) %>% 
+  semi_join(grts_achterhaven, by = join_by(grts_address == grts))
+
+
+grts_mh <- read_GRTSmh()
+# create a spatial index of the GRTS addresses
+grts_mh_index <- tibble(
+  id = seq_len(ncell(grts_mh)),
+  grts_address = values(grts_mh)[, 1]
+) %>%
+  filter(!is.na(grts_address))
+
+
+location_insert <- needs_calendar_insert %>%
+  anti_join(
+    current_locations,
+    by = join_by(grts == grts_address)
+  ) %>% 
+  rename(grts_address = grts) %>% 
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(location_insert) <- "wkb_geometry"
+
+if (nrow(location_insert) > 0) {
+  mapview::mapview(location_insert)
+}
+
+#+end_src
+
+
+This does not work; and it is false: the grts' are already there!
+
+#+begin_src R
+
+# update_cascade_lookup(
+#   table_label = "Locations",
+#   new_data = location_insert,
+#   index_columns = c("location_id"),
+#   characteristic_columns = c("grts_address"),
+#   tabula_rasa = FALSE,
+#   verbose = TRUE
+# )
+
+#+end_src
+
+
+* sampleunits
+
+
+#+begin_src R
+current_units <- locevaldb$query_table("SampleUnits") %>%
+  mutate_at(c("grts_address"), as.integer) %>% 
+  semi_join(grts_achterhaven, by = join_by(grts_address == grts))
+
+needs_unit_insert <- needs_calendar_insert %>%
+  rename(grts_address = grts) %>% 
+  select(grts_address, type) %>% 
+  anti_join(
+    current_units,
+    by = join_by(grts_address, type)
+  )
+
+new_sample_units <-
+  fag_stratum_grts_calendar %>%
+  semi_join(
+    needs_unit_insert,
+    by = join_by(grts_address, stratum == type)
+  ) %>% 
+  distinct(
+    scheme_moco_ps,
+    stratum,
+    grts_address
+  ) %>%
+  unnest(scheme_moco_ps) %>%
+  # adding location attributes
+  inner_join(
+    scheme_moco_ps_stratum_targetpanel_spsamples %>%
+      select(
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        grts_join_method,
+        grts_address,
+        grts_address_final,
+        # retaining 3 cols that drive subsampling location(s) in the unit:
+        is_forest,
+        in_mhq_samples,
+        last_type_assessment,
+        last_type_assessment_in_field,
+        domain_part,
+        targetpanel
+      ) %>%
+      # deduplicating 7220:
+      distinct(),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>% 
+  # also join the spatial poststratum, since we need this in setting
+  # GRTS-address based priorities
+  inner_join(
+    scheme_moco_ps_stratum_sppost_spsamples %>%
+      unnest(sp_poststr_samples) %>%
+      select(-sample_status),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  select(-module_combo_code, -sp_poststratum) %>%
+  nest_scheme_ps_targetpanel() %>%
+  # # add MHQ assessment metadata
+  # inner_join(
+  #   stratum_grts_n2khab_phabcorrected_no_replacements %>%
+  #     select(stratum, grts_address, assessed_in_field, assessment_date),
+  #   join_by(stratum, grts_address),
+  #   relationship = "many-to-one",
+  #   unmatched = c("error", "drop")
+  # ) %>%
+  distinct() %>%
+  # database-related additions 
+  # convert_stratum_to_type() %>%
+  rename_grts_address_final_to_grts_address() %>%
+  rename(
+    has_mhq_assessment = last_type_assessment_in_field,
+    mhq_assessment_date = last_type_assessment 
+  ) %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  mutate(
+    previous_notes = NA # FUTURE TODO
+  ) %>%
+  mutate(
+    across(c(
+        grts_join_method,
+        scheme_ps_targetpanels,
+        # sp_poststratum,
+        stratum,
+        domain_part,
+        previous_notes
+      ),
+      as.character
+    )
+  ) 
+
+  
+locations_lookup <- locevaldb$query_columns(
+  "Locations",
+  c("grts_address", "location_id")
+)
+
+new_sample_units <- new_sample_units %>% 
+  left_join(locations_lookup, by = join_by("grts_address"))
+
+new_sample_units <- new_sample_units %>% 
+  rename(type = stratum)
+#+end_src
+
+
+#+begin_src R
+# update_cascade_lookup(
+#   table_label = "SampleUnits",
+#   new_data = new_sample_units,
+#   index_columns = c("sampleunit_id"),
+#   characteristic_columns = c("grts_address", "type"),
+#   tabula_rasa = FALSE,
+#   verbose = TRUE
+# )
+
+#+end_src
+
+wtf?! there still si and SF issue.
+
+SELECT * FROM "outbound"."SampleUnits"
+WHERE grts_address IN (6504117, 6635189, 6811317, 7409333, 50282165);
+
+#+begin_src R
+# new_sample_units %>% pull(grts_address)
+
+locevaldb$insert_data("SampleUnits", new_sample_units)
+
+
+#+end_src
+
+
+* calendar
+
+#+begin_src R
+needs_calendar_insert %>% knitr::kable()
+
+sampleunit_lookup <- locevaldb$query_columns(
+  "SampleUnits",
+  c("grts_address", "type", "sampleunit_id")
+)
+
+
+activity_group_id <- locevaldb$query_columns(
+    "GroupedActivities",
+    c("activity_group", "activity_group_id")
+  ) %>% filter(activity_group == "LOCEVALTERR") %>%
+  pull(activity_group_id)
+
+calendar_insert <- needs_calendar_insert %>% 
+  select(grts, type) %>% 
+  rename(grts_address = grts) %>% 
+  left_join(
+    sampleunit_lookup,
+    by = join_by("grts_address", "type")
+  ) %>%
+  mutate(
+    priority = 1,
+    activity_group_id = activity_group_id,
+    activity_rank = 1,
+    wait_any = FALSE,
+    wait_floating = FALSE,
+    wait_watersurface = FALSE,
+    wait_3260 = FALSE,
+    wait_7220 = FALSE,
+    excluded = FALSE,
+    date_start = as.Date('2025-10-20'),
+    date_end = as.Date('2025-10-30'),
+    date_interval = '2025-10-20--2025-10-30',
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  )
+
+
+#+end_src
+
+
+SELECT * FROM "outbound"."FieldActivityCalendar"
+WHERE grts_address IN (212661, 409269, 44961461, 50282165, 6504117, 6635189, 6811317, 7409333, 908981);
+
+
+#+begin_src R
+# calendar_insert %>% pull(grts_address)
+
+
+locevaldb$insert_data("FieldActivityCalendar", calendar_insert)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "FieldActivityCalendar",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+
+#+end_src
+
+
+
+* Visits
+
+
+#+begin_src R
+
+# link Visits back to upstream tables
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "FieldActivityCalendar",
+  link_key_column = "fieldactivitycalendar_id",
+  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+fieldcalendar_characols <- c(
+    "grts_address",
+    "type", 
+    "activity_group_id",
+    "date_start"
+  )
+visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
+
+fwcal_lookup <- locevaldb$query_columns(
+  "FieldActivityCalendar",
+  visits_characols
+)
+
+visits_insert <- calendar_insert %>% 
+  select(
+    !!!rlang::syms(fieldcalendar_characols)
+  ) %>%
+  left_join(
+    fwcal_lookup,
+    by = join_by(!!!rlang::syms(fieldcalendar_characols))
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address)
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    visit_done = FALSE
+  )
+
+#+end_src
+
+
+SELECT * FROM "inbound"."Visits"
+WHERE grts_address IN (212661, 409269, 44961461, 50282165, 6504117, 6635189, 6811317, 7409333, 908981);
+
+
+#+begin_src R
+# calendar_insert %>% pull(grts_address)
+
+locevaldb$insert_data("Visits", visits_insert)
+
+# link Visits back to upstream tables
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "FieldActivityCalendar",
+  link_key_column = "fieldactivitycalendar_id",
+  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+#+end_src
+
+
+
+* others
+
+selectively executing procedures in 071_*
+
+** LocationInfos
+#+begin_src R
+
+locations_lookup <- locevaldb$query_columns(
+  "Locations",
+  c("grts_address", "location_id")
+)
+
+sample_units <- grts_achterhaven %>%
+  select(grts) %>%
+  rename(grts_address = grts)
+
+
+update_landuse_in_locationinfos(locevaldb)
+#+end_src
+
+** replacements
+#+begin_src R
+
+version_id <- locevaldb$load_latest_version_id()
+
+sampleunits_lookup <- locevaldb$query_columns(
+  "SampleUnits",
+  c("grts_address", "type", "sampleunit_id")
+)
+
+#+end_src
+
+
+
+* Achterhaven
+
+\COPY (
+    SELECT *
+    FROM "outbound"."FieldworkPlanning"
+    WHERE done_planning
+    AND grts_address IN
+        (1195701, 1195701, 122549, 122549, 1588917, 1588917, 212661, 253621, 253621, 3202741, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 450229, 48053941, 48053941, 48578229, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981)
+) TO '/data/mnm_db_backups/achterhaven/planned_gwdb.csv' With CSV DELIMITER ',' HEADER
+;
+
+\COPY (
+    SELECT *
+    FROM "inbound"."Visits"
+    WHERE visit_done
+    AND grts_address IN
+        (1195701, 1195701, 122549, 122549, 1588917, 1588917, 212661, 253621, 253621, 3202741, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 450229, 48053941, 48053941, 48578229, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981)
+) TO '/data/mnm_db_backups/achterhaven/install_visits.csv' With CSV DELIMITER ',' HEADER
+;
+) TO '/data/mnm_db_backups/achterhaven/loceval_visits.csv' With CSV DELIMITER ',' HEADER
+;
+
+
+* De-Activation
+SCHEDULED: <2025-10-21 Tue>
+
+Some of the manual chosen locations above were wrong; they are not part of the calendar any more.
+
+to archive: 19914421, 29769397, 4447925, 50282165, 6360757, 6504117, 6635189, 6811317, 7409333
+
+#+begin_src sql
+UPDATE "outbound"."SampleUnits"
+SET archive_version_id = 3
+WHERE grts_address IN (19914421, 29769397, 4447925, 50282165, 6360757, 6504117, 6635189, 6811317, 7409333)
+;
+#+end_src
+
+
+
+* RE-ACTIVATION
+SCHEDULED: <2025-10-23 Thu>
+
+UPDATE "outbound"."SampleUnits"
+SET archive_version_id = NULL
+WHERE grts_address IN (
+1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981
+)
+;
+
+
+UPDATE "outbound"."FieldActivityCalendar"
+UPDATE "inbound"."Visits"
+SET archive_version_id = NULL
+WHERE grts_address IN (
+1195701, 122549, 1588917, 212661, 253621, 3202741, 3554997, 3858101, 409269, 44961461, 450229, 48053941, 48578229, 49692341, 5193397, 5234357, 540341, 5455541, 5979829, 908981
+)
+;

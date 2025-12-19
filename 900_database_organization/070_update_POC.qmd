@@ -1,0 +1,1494 @@
+---
+title: "POC Data Re-Upload"
+date: "2025-06-27, 2025-09-04"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+
+:::{.callout-note title="Purpose"}
+Let's bring the sample to the field - again!
+
+(... and again, and again, and again...)
+:::
+
+
+In all brevity, I collect steps here to get a new POC to the database.
+
+
+# preparation
+
+## backup
+
+1. Make sure to manually trigger backups.
+  - `ssh` to the server
+  - execute scripts in `~/backups`
+  - bring files home with `scp`
+
+2. Mirrors: try everything on `testing` and then `staging`, first.
+  - The `testing` mirror (data sync with `033_populate_testing_db.R`) is open for play and can taken even rough rides, and for that user permissions differ on there. No guarantee that the data is correct.
+  - On `staging`, everything is exactly identical to the production server (even permissions and user roles), because it gets synced with the dump/restore commands below.
+  - use the `mirror` to control database connections below.
+  
+  
+Syncing the `*_staging` database mirrors:
+
+  - has to be done for `loceval` and `mnmgwdb` 
+  - if necessary, re-instantiate the mirror prior to data upload via `postgres`/`dropdb`+`createdb` intervention on the host system (and then run `110_*` and `210_*`, if necessary)
+  - Finally, use the `pg_dump | psql` commands as follows:
+
+  
+```{sh sync-staging}
+#| eval: false
+pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c > /tmp/<database>_db_dump.txt \
+        && psql -U <database_user> -h <host> -p <port> -d <database>_staging -W < /tmp/<database>_db_dump.txt \
+        && rm /tmp/<database>_db_dump.txt
+```
+
+## libraries and variables
+
+```{r libraries}
+# libraries
+source("MNMLibraryCollection.R")
+load_poc_common_libraries()
+load_database_interaction_libraries()
+
+# the database connection object
+source("MNMDatabaseConnection.R")
+
+# more specific database tools
+source("MNMDatabaseToolbox.R")
+
+
+# library("mapview") # debugging only
+# mapviewOptions(platform = "mapdeck")
+
+```
+
+
+## info stream from POC
+
+First, there is the `.RData` file.
+
+```{r load-sample-rdata}
+tic <- function(toc) round(Sys.time() - toc, 1)
+toc <- Sys.time()
+load_poc_rdata(reload = FALSE, to_env = parent.frame())
+message(glue::glue("Good morning!
+  Loading the POC data took {tic(toc)} seconds today."
+))
+
+```
+
+Some code snippets, possibly modified on the way, were provided by Floris.
+
+```{r source-code-snippets}
+# TODO: check for changes on every update, e.g. with `meld`:
+#       meld 020_fieldwork_organization/code_snippets.R 900_database_organization/050_snippet_selection.R
+
+# Load some custom GRTS functions
+# project_root <- find_root(is_git_root)
+# source(file.path(project_root, "R/grts.R"))
+snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
+
+toc <- Sys.time()
+load_poc_code_snippets(snippets_path)
+message(glue::glue(
+  "... loading/executing the code snippets took {tic(toc)}s."
+))
+```
+
+
+Finally, check that everything was loaded correctly.
+
+```{r poc-checks}
+verify_poc_objects()
+```
+
+
+## database connection
+
+
+```{r connect-databases}
+
+config_filepath <- file.path("./inbopostgis_server.conf")
+# mirror <- "-staging"
+mirror <- ""
+
+# ... and mnmgwdb
+mnmgwdb_mirror <- glue::glue("mnmgwdb{mirror}")
+
+mnmgwdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmgwdb_mirror
+) 
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
+
+```
+
+
+## dump all data, for safety
+
+```{r step-1-safety-dump}
+
+now <- format(Sys.time(), "%Y%m%d%H%M")
+# if (isFALSE(grepl("-staging", loceval_mirror))) {
+#   loceval$dump_all(
+#     here::here("dumps", glue::glue("safedump_{loceval$database}_{now}.sql")),
+#     exclude_schema = c("tiger", "public")
+#   )
+# }
+
+if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
+  mnmgwdb$dump_all(
+    here::here("dumps", glue::glue("poc_pre_update_{mnmgwdb$database}_{now}.sql")),
+    exclude_schema = c("tiger", "public")
+  )
+}
+
+```
+
+
+# Gather and Upload - mnmgwdb
+
+## database versioning
+
+```{r version}
+
+if (FALSE) {
+
+  # manually set a new version
+  #    v1 <- "≤v0.9.0_poc0.13.0"
+  #    v2 <- "v0.11.0_poc0.13.1"
+  version_tag <- "v0.12.0_poc0.14.0"
+  version_notes <- "correct filter for post 2026 locations"
+  date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+
+  version_id <- mnmgwdb$tag_new_version(
+    new_version_tag = version_tag,
+    new_version_notes =  version_notes,
+    new_date_applied = date_applied
+  )
+
+  # SELECT * FROM "metadata"."Versions";
+
+} else {
+  # per default, the latest version is taken
+  version_id <- mnmgwdb$load_latest_version_id()
+}
+
+if (FALSE) {
+  # ... ad hoc / testing: delete version again
+  table_label <- "Versions"
+  glue::glue("
+  DELETE FROM {mnmgwdb$get_namestring(table_label)}
+  WHERE version_tag = '{version_tag}'
+    AND data_iteration = {data_iteration}
+  ;
+  ")
+}
+
+
+# TODO: I still have to make up my mind whether to archive everything.
+#       For now, I will preliminarily keep it with an "archive_id" column.
+```
+
+
+# Protocols, Activities, TeamMembers
+
+:::{callout-warning}
+Any news?
+Now is the time!
+:::
+
+
+# Discarded Consideration: Prune Unused Rows
+
+I would tend to delete unused calendar entries.
+However, these should be regarded by the distribution procedure itself.
+
+Even more important, the `precedence_columns` keep input fields from being considered.
+
+
+
+
+
+# Let's Do This
+
+## prerequisite_lookups
+
+```{r gather-lookups}
+grouped_activity_lookup <- mnmgwdb$query_lookup(
+  "GroupedActivities",
+  characteristic_columns = c("activity_group", "activity")
+)
+
+n2khabstrata_lookup <- mnmgwdb$query_lookup(
+  "N2kHabStrata",
+  characteristic_columns = c("stratum")
+)
+
+```
+
+
+```{r load-activities}
+
+activity_groupid_lookup <- mnmgwdb$query_columns(
+    "GroupedActivities",
+    c("activity_group", "activity_group_id")
+  ) %>%
+  distinct()
+
+field_activities_db <- mnmgwdb$query_table("GroupedActivities") %>%
+  filter(is_gw_activity, is_field_activity) %>%
+  distinct(activity_group, activity)
+
+```
+
+## Replacements
+
+```{r refresh-replacements}
+system(glue::glue(
+  "source .dbinit/bin/activate && python 091_push_loceval_to_mnmgwdb.py {mirror}"
+  ))
+```
+
+```{r load-replacement-lookup}
+replacement_lookup <- mnmgwdb$query_columns(
+    "ReplacementData",
+    c(
+      "grts_address",
+      "type",
+      "grts_address_replacement"
+    )
+  ) %>% 
+  rename(stratum = type)
+
+replace_grts_local <- function(df, typecolumn = "stratum") {
+  lookup <- replacement_lookup
+  names(lookup)[names(lookup) == "stratum"] <- typecolumn 
+
+  df %>%
+    dplyr::left_join(
+      lookup,
+      by = dplyr::join_by(!!!c("grts_address", typecolumn))
+    ) %>%
+    mutate(
+      grts_address = dplyr::coalesce(grts_address_replacement, grts_address)
+    ) %>% 
+    select(-grts_address_replacement) %>%
+    return()
+}
+```
+
+
+## Sample Units
+
+```{r assemble-sample-units}
+# TODO I have to anticipate REPLACEMENT here!
+
+# fag_stratum_grts_calendar %>%
+#   common_current_calenderfilters() %>%
+#   filter(grts_address_final == 10119474,
+#          # field_activity_group == 'SPATPOSITGAUGE',
+#          # field_activity_group == 'SURFLENTLOCEVALSAMPLPOINT',
+#          date_start < as.Date('2027-01-01')
+#          ) %>%
+#   unnest(scheme_moco_ps) %>% 
+#   glimpse()
+# this one enters for the `loceval`, which is okay (sync location info etc.)
+# but it should not produce any calendar items.
+
+# fag_stratum_grts_calendar %>%
+#   filter(grts_address_final == 656798,
+#          field_activity_group == 'GWINSTPIEZWELL',
+#          date_start < as.Date('2027-01-01')
+#          ) %>%
+#   select(stratum, date_start, field_activity_group, rank)
+
+# fag_stratum_grts_calendar %>%
+#   filter(grts_address_final == 50988446,
+#          field_activity_group == 'GWINSTPIEZWELL',
+#          date_start < as.Date('2027-01-01')
+#          ) %>%
+#   select(stratum, date_start, field_activity_group, rank)
+
+sample_units <-
+  fag_stratum_grts_calendar %>%
+  common_current_calenderfilters() %>%
+  distinct(
+    scheme_moco_ps,
+    stratum,
+    grts_address
+  ) %>%
+  unnest(scheme_moco_ps) %>%
+  # adding location attributes
+  inner_join(
+    scheme_moco_ps_stratum_targetpanel_spsamples %>%
+      select(
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        grts_join_method,
+        grts_address,
+        grts_address_final,
+        # retaining 3 cols that drive subsampling location(s) in the unit:
+        is_forest,
+        in_mhq_samples,
+        last_type_assessment,
+        last_type_assessment_in_field,
+        domain_part,
+        targetpanel
+      ) %>%
+      # deduplicating 7220:
+      distinct(),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  # also join the spatial poststratum, since we need this in setting
+  # GRTS-address based priorities
+  inner_join(
+    scheme_moco_ps_stratum_sppost_spsamples %>%
+      unnest(sp_poststr_samples) %>%
+      select(-sample_status),
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  select(-module_combo_code) %>%
+  nest_scheme_ps_targetpanel() %>%
+  # # add MHQ assessment metadata
+  # inner_join(
+  #   stratum_grts_n2khab_phabcorrected_no_replacements %>%
+  #     select(stratum, grts_address, assessed_in_field, assessment_date),
+  #   join_by(stratum, grts_address),
+  #   relationship = "many-to-one",
+  #   unmatched = c("error", "drop")
+  # ) %>%
+  distinct() %>%
+  # database-related additions 
+  # convert_stratum_to_type() %>%
+  rename_grts_address_final_to_grts_address() %>%
+  rename(
+    has_mhq_assessment = last_type_assessment_in_field,
+    mhq_assessment_date = last_type_assessment 
+  ) %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  mutate(
+    previous_notes = NA # FUTURE TODO
+  ) %>%
+  mutate(
+    across(c(
+        grts_join_method,
+        scheme_ps_targetpanels,
+        # targetpanel,
+        sp_poststratum,
+        stratum,
+        domain_part,
+        schemes
+      ),
+      as.character
+    )
+  ) %>%
+  replace_grts_local()
+
+
+```
+
+## Sample Locations
+
+```{r assemble-sample-locations}
+
+sample_locations <- sample_units %>%
+  summarize(
+    scheme_ps_targetpanels = str_flatten(
+      sort(unique(scheme_ps_targetpanels)),
+      collapse = " | "
+    ) %>% as.character(),
+    schemes = str_flatten(
+      sort(unique(schemes)),
+      collapse = ", "
+    ) %>% as.character(),
+    .by = c(
+      grts_address,
+      stratum,
+      domain_part,
+      is_forest,
+      in_mhq_samples,
+      has_mhq_assessment
+    )
+  )
+
+
+```
+
+## Locations
+
+```{r assemble-locations}
+
+locations <- bind_rows(
+    mnmgwdb$query_columns("Locations", c("grts_address")),
+    sample_locations %>% select(grts_address),
+  ) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
+  distinct() %>%
+  # count(grts_address) %>%
+  # arrange(desc(n))
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(locations) <- "wkb_geometry"
+
+
+table_label <- "Locations"
+data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+index_column <- mnmgwdb$get_primary_key(table_label)
+characteristic_columns <- c("grts_address")
+
+distribution <- categorize_data_update(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = characteristic_columns,
+  exclude_columns = c("wkb_geometry")
+)
+print_category_count(distribution, table_label)
+
+```
+
+```{r update-locations}
+
+locations_lookup <- redistribute_calendar_data(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
+)
+
+```
+
+
+... and wait.
+... and wait.
+... and wait.
+
+... and stitch
+```{r stitch}
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "SampleLocations",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+```
+
+
+## Sample Locations
+
+```{r porcess-sample-locations}
+
+if ("location_id" %in% names(sample_locations)) {
+  # should not be the case in a continuous script;
+  # this is extra safety for debugging and de-serial execution
+  sample_locations <- sample_locations %>%
+    select(-location_id)#, -location_id.x, -location_id.y)
+}
+
+sample_locations <- sample_locations %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+    relationship = "many-to-one"
+  ) %>% distinct 
+
+```
+
+
+```{r prepare-slocs}
+table_label <- "SampleLocations"
+data_nouveau <- sample_locations %>%
+  rename(strata = stratum)
+characteristic_columns <- c("grts_address", "strata") # ERROR location_id was in here ☠
+index_column <- mnmgwdb$get_primary_key(table_label)
+
+distribution <- categorize_data_update(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = characteristic_columns,
+)
+print_category_count(distribution, table_label)
+
+# distribution$to_archive
+# distribution$reactivate
+# distribution$to_upload
+
+```
+
+
+```{r update-sample-locations}
+
+distribution$to_upload <- distribution$to_upload %>% 
+  mutate(
+    # log_user = "maintenance",
+    # log_update = as.POSIXct(Sys.time()),
+    is_replacement = FALSE
+  ) 
+
+# distribution$changed %>% t() %>% knitr::kable()
+# mnmgwdb$query_table("SampleLocations") %>%
+#   semi_join(
+#     distribution$changed,
+#     by = join_by(grts_address)
+#   ) %>% knitr::kable()
+
+samplelocations_lookup <- redistribute_calendar_data(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
+)
+
+# OBSERVATION: samplelocation_id changed afterwards (?!)
+
+# TODO: return to `replacements` if necessary (091_push_loceval_to_mnmgwdb.py)
+
+```
+
+
+
+
+## FieldActivityCalendar
+
+```{r ad-hoc-checks-fwcal}
+#| eval: false
+# 84598 -> 871030
+if (FALSE) {
+fieldwork_shortterm_prioritization_by_stratum %>%
+  filter(grts_address == 84598, field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+    
+fieldwork_calendar %>% 
+  filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+  filter(grts_address %in% c(84598, 871030), field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+}
+
+```
+
+
+```{r assemble-field-activity-calendar}
+
+fieldwork_calendar <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
+  common_current_calenderfilters() %>% # should be filtered already!
+  rename_grts_address_final_to_grts_address() %>%
+  replace_grts_local() %>% 
+  relocate(grts_address) %>%
+  inner_join(
+    samplelocations_lookup %>% rename(stratum = strata),
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-one"
+  ) %>%
+  relocate(samplelocation_id) %>%
+  rename(
+    activity_rank = rank,
+    activity_group = field_activity_group
+  ) %>%
+  semi_join(field_activities_db, by = join_by(activity_group)) %>%
+  left_join(
+    activity_groupid_lookup,
+    by = join_by(activity_group),
+    relationship = "many-to-one"
+  ) %>%
+  select(-activity_group) %>%
+  mutate(
+    across(c(
+        date_interval
+      ),
+      as.character
+    )
+  ) %>%
+  rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% 
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE,
+    is_sideloaded = FALSE
+  ) 
+
+# fieldwork_calendar %>% 
+#   filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
+
+# # TODO this is obsolete and fake
+# sspstapas <- update_cascade_lookup(
+#   table_label = "SSPSTaPas",
+#   new_data = fieldwork_calendar %>%
+#     distinct(stratum_scheme_ps_targetpanels) %>%
+#     arrange(stratum_scheme_ps_targetpanels),
+#   index_columns = c("sspstapa_id"),
+#   tabula_rasa = TRUE,
+#   verbose = TRUE
+# )
+
+replace_sspstapa_by_lookup <- function(df) {
+  df_new <- df %>%
+    mutate(sspstapa_id = NA) %>% 
+    # left_join(
+    #   sspstapas,
+    #   by = join_by(stratum_scheme_ps_targetpanels),
+    #   relationship = "many-to-one"
+    # ) %>%
+    relocate(
+      sspstapa_id,
+      .after = stratum_scheme_ps_targetpanels
+    ) %>%
+    select(-stratum_scheme_ps_targetpanels)
+
+  return(df_new)
+}
+
+fieldwork_calendar_new <- fieldwork_calendar %>%
+  replace_sspstapa_by_lookup() %>%
+  select(
+    # -location_id,
+    -grts_join_method,
+    -domain_part,
+    -is_forest,
+    -in_mhq_samples,
+    -last_type_assessment_in_field
+  )
+
+```
+
+
+```{r}
+
+fieldcalendar_characols <- c(
+    "grts_address",
+    "stratum", 
+    "activity_group_id",
+    "date_start"
+  )
+
+# "samplelocation_id",
+# "sspstapa_id",
+
+
+special_activity_tables <- c(
+    "WellInstallationActivities",
+    "ChemicalSamplingActivities",
+    "SpatialPositioningActivities"
+    )
+
+
+# stop("CONSIDER: these are not special activity characteristic columns!")
+speciact_characols <- c(
+  # "samplelocation_id",
+  # "fieldworkcalendar_id",
+  # "visit_id",
+  "grts_address",
+  "stratum",
+  "activity_group_id",
+  "date_start"
+)
+
+```
+
+
+```{r stitch-fwcal-to-slocs}
+
+# link FieldworkCalender back to SampleLocations
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "FieldworkCalendar",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+)
+
+```
+
+
+```{r sideload-extra-calendar-entries}
+
+# sideloading: extra activities e.g. to follow up issues in the field
+calendar_to_sideload <- load_table_sideload_content(
+    mnmdb = mnmgwdb,
+    table_label = "FieldworkCalendar",
+    characteristic_columns = fieldcalendar_characols,
+    data_filepath = "sideload/mnmgwdb_calendars.csv",
+    reload_previous = TRUE
+  ) %>%
+  inner_join(
+    samplelocations_lookup %>% rename(stratum = strata),
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-many", # TODO
+    unmatched = "drop"
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    is_sideloaded = TRUE,
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  )
+
+fieldwork_calendar_new <- bind_rows(
+  fieldwork_calendar_new,
+  calendar_to_sideload %>%
+    anti_join(
+      fieldwork_calendar_new,
+      by = join_by(!!!rlang::syms(fieldcalendar_characols))
+    )
+  )
+
+
+```
+
+
+
+```{r categorize-fieldworkcalendar}
+
+table_label <- "FieldworkCalendar"
+data_nouveau <- fieldwork_calendar_new
+characteristic_columns <- fieldcalendar_characols
+index_column <- mnmgwdb$get_primary_key(table_label)
+
+
+startdate_updates_happened <- associate_and_shift_start_dates(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  characteristic_columns = characteristic_columns,
+  other_table_labels = c("Visits", special_activity_tables)
+) 
+
+# data_nouveau %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_older.rds")
+# data_nouveau %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_older.csv")
+distribution <- categorize_data_update(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = characteristic_columns,
+  exclude_columns = c("samplelocation_id") #, "fieldactivitycalendar_id") # , "archive_version_id"
+)
+print_category_count(distribution, table_label)
+# distribution$to_archive
+# distribution$reactivate
+# distribution$to_upload
+
+# distribution$to_archive %>%
+#   select(activity_group_id) %>%
+#   count(activity_group_id) %>%
+#   left_join(
+#     activity_groupid_lookup,
+#     by = join_by(activity_group_id)
+#   )
+```
+
+```{r compare-old-new-fwcal}
+#| eval: false
+
+if (FALSE) {
+ex_data <- mnmgwdb$query_table(table_label)
+new_comparison <- data_nouveau %>%
+  semi_join(
+    ex_data,
+    by = join_by(grts_address, stratum)
+  )
+
+ex_data %>%
+  arrange(grts_address, stratum, activity_group_id) %>%
+  write_csv2("dumps/compare_existing.csv")
+new_comparison %>% 
+  arrange(grts_address, stratum, activity_group_id) %>%
+  write_csv2("dumps/compare_new.csv")
+}
+
+# TODO dump to csv and compare
+```
+
+
+```{r check-the-news}
+#| eval: false
+
+if (FALSE) {
+status_quo <- mnmgwdb$query_table("FieldworkCalendar") %>%
+  select(!!!rlang::syms(names(distribution$unchanged)))
+
+samplelocations_lookup %>% 
+  filter(grts_address == 50042033) %>% knitr::kable()
+status_quo %>%
+  filter(grts_address == 50042033) %>% knitr::kable()
+distribution$changed %>% 
+  filter(grts_address == 50042033) %>% knitr::kable()
+
+distribution$unchanged
+distribution$to_archive
+
+# it is 871030 again
+distribution$to_upload
+status_quo %>%
+  filter(grts_address == 871030, activity_group_id == 9) %>% knitr::kable()
+distribution$to_upload %>% 
+  filter(grts_address == 871030, activity_group_id == 9) %>% knitr::kable()
+
+distribution$reactivate
+}
+```
+
+
+```{r sync-fieldworkcalendar}
+
+distribution$to_upload <- distribution$to_upload %>% 
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  ) 
+
+
+fieldworkcalendar_lookup <- redistribute_calendar_data(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
+)
+
+
+```
+
+
+intermediate check
+
+```{r re-inspect-fieldworkcalendar}
+
+
+mnmgwdb$query_table("FieldworkCalendar") %>% 
+  count(is.na(samplelocation_id)) %>%
+  knitr::kable()
+
+# compare stored to true sample location
+mnmgwdb$query_table("FieldworkCalendar") %>%
+  left_join(
+    mnmgwdb$query_table("SampleLocations") %>% rename(stratum = strata),
+    by = join_by(grts_address, stratum)
+  ) %>%
+  filter(samplelocation_id.x != samplelocation_id.y)
+
+```
+
+
+## Visits
+
+
+```{r assemble-new-visits}
+
+update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
+
+visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
+
+potential_visits <- fieldworkcalendar_lookup %>%
+  select(
+    !!!rlang::syms(visits_characols)
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address)
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    issues = FALSE,
+    visit_done = FALSE
+  )
+
+
+visits_upload <- potential_visits %>%
+  anti_join(
+    mnmgwdb$query_table("Visits"),
+    by = join_by(!!!fieldcalendar_characols)
+  ) %>%
+  left_join(
+    samplelocations_lookup %>% rename(stratum = strata),#  %>% select(-location_id),
+    by = join_by(grts_address, stratum)
+  ) 
+
+
+
+visits_lookup <- update_cascade_lookup(
+  table_label = "Visits",
+  new_data = visits_upload,
+  index_columns = c("visit_id"),
+  characteristic_columns = visits_characols,
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+mnmgwdb$query_table("Visits") %>% 
+  count(is.na(fieldworkcalendar_id)) %>%
+  knitr::kable()
+
+```
+
+
+```{r reconnect-visits}
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "Visits",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "stratum"), 
+  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+)
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "Visits",
+  reference_table = "FieldworkCalendar",
+  link_key_column = "fieldworkcalendar_id",
+  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+)
+
+
+mnmgwdb$query_table("Visits") %>% 
+  count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+  knitr::kable()
+
+
+```
+
+
+archive visits of archived FWCals
+
+```{r archive-visits-fwcal}
+table_label <- "Visits"
+visits_redownload <- mnmgwdb$query_table(table_label) %>% 
+  filter(is.na(archive_version_id)) %>%
+  select(-archive_version_id)
+
+fwcal_lookup <- mnmgwdb$query_table("FieldworkCalendar") %>% 
+  filter(!is.na(archive_version_id)) %>%
+  select(fieldworkcalendar_id, archive_version_id)
+
+visits_archive <- visits_redownload %>%
+  left_join(fwcal_lookup, by = join_by(fieldworkcalendar_id)) %>%
+  select(visit_id, archive_version_id) %>%
+  filter(!is.na(archive_version_id))
+
+update_existing_data(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  changed_data = visits_archive,
+  input_precedence_columns = precedence_columns[[table_label]],
+  reference_columns = c(mnmgwdb$get_primary_key(table_label))
+)
+
+```
+
+- SELECT DISTINCT archive_version_id, done_planning, count(*) FROM "outbound"."FieldworkCalendar" GROUP BY done_planning, archive_version_id;
+- SELECT DISTINCT archive_version_id, visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done, archive_version_id;
+
+
+## Fieldwork Activity Tables
+
+```{r select-activities}
+
+selection_of_activities <- list(
+  "WellInstallationActivities" = function(df) df %>% filter(grepl("^GWINST", activity_group))
+, # /WIA
+  "ChemicalSamplingActivities" = function(df) df %>% 
+    filter(activity_group %in%
+      c(field_activities_db %>%
+        filter(grepl("^GW.*SAMP", activity)) %>%
+        pull(activity_group))
+      ), # /CSA
+  "SpatialPositioningActivities" = function(df) df %>% 
+    filter(activity_group %in%
+      c(field_activities_db %>%
+        filter(grepl("^SPATPOSIT", activity)) %>%
+        pull(activity_group))
+      ) # /SPA
+)
+
+empty_init <- list(
+  "WellInstallationActivities" = function(df) df %>%
+    mutate(
+      no_diver = FALSE,
+      soilprofile_unclear = FALSE,
+      log_user = "maintenance",
+      log_update = as.POSIXct(Sys.time())
+    ), # /WIA
+  "ChemicalSamplingActivities" = function(df) df %>% 
+    mutate(
+      log_user = "maintenance",
+      log_update = as.POSIXct(Sys.time())
+    ), # /CSA
+  "SpatialPositioningActivities" = function(df) df %>% 
+    mutate(
+      log_user = "maintenance",
+      log_update = as.POSIXct(Sys.time())
+    ) # /SPA
+)
+
+
+visits_redownload <- mnmgwdb$query_table("Visits") %>% 
+  filter(is.na(archive_version_id)) %>%
+  select(-archive_version_id)
+
+visits_redownload <- visits_redownload %>%
+  left_join(
+    mnmgwdb$query_columns(
+        "GroupedActivities",
+        c("activity_group_id", "activity_group")) %>%
+      distinct(),
+    by = join_by(activity_group_id)
+  )
+
+# table_label <- "WellInstallationActivities"
+# table_label <- "ChemicalSamplingActivities"
+# table_label <- "SpatialPositioningActivities"
+
+# uniqueness
+mnmgwdb$query_table("WellInstallationActivities") %>%
+  count(!!!rlang::syms(speciact_characols)) %>%
+  arrange(desc(n)) %>%
+  filter(n>1) %>% 
+  knitr::kable()
+mnmgwdb$query_table("ChemicalSamplingActivities") %>%
+  count(!!!rlang::syms(speciact_characols)) %>%
+  arrange(desc(n)) %>%
+  filter(n>1) %>% 
+  knitr::kable()
+mnmgwdb$query_table("SpatialPositioningActivities") %>%
+  count(!!!rlang::syms(speciact_characols)) %>%
+  arrange(desc(n)) %>%
+  filter(n>1) %>% 
+  knitr::kable()
+```
+
+
+```{r link-special-activities}
+
+
+for (table_label in special_activity_tables) {
+
+  # link WIA/CSA back to SampleLocations
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "SampleLocations",
+    link_key_column = "samplelocation_id",
+    lookup_columns = c("grts_address", "stratum"),
+    reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  )
+
+  # link WIA/CSA back to FieldworkCalendar
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "FieldworkCalendar",
+    link_key_column = "fieldworkcalendar_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+
+  # link WIA/CSA back to Visits
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "Visits",
+    link_key_column = "visit_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+
+  # missing links
+  mnmgwdb$query_table(table_label) %>%
+    filter(is.na(visit_id)) %>% 
+    knitr::kable()
+
+}
+
+
+
+```
+
+
+```{r upload-special-activities}
+
+# table_label <- "WellInstallationActivities"
+for (table_label in special_activity_tables) {
+
+  special_activities <- visits_redownload %>% 
+    selection_of_activities[[table_label]]()
+
+  existing <- mnmgwdb$query_table(table_label)
+
+  # existing %>% filter(grts_address == 219694) %>% knitr::kable()
+
+  # no archiving necessary on these - they 1:1 depend on Visits
+  novel <- special_activities %>% 
+    anti_join(
+      existing,
+      by = join_by(
+        grts_address,
+        stratum,
+        activity_group_id,
+        date_start
+      )
+    ) %>%
+    select(!!!speciact_characols) %>%
+    empty_init[[table_label]]()
+
+  # novel %>% filter(grts_address == 219694) %>% knitr::kable()
+
+    
+
+  lookup <- update_cascade_lookup(
+    table_label = table_label,
+    new_data = novel,
+    index_columns = c("fieldwork_id"),
+    characteristic_columns = speciact_characols,
+    tabula_rasa = FALSE,
+    skip_sequence_reset = TRUE,
+    verbose = TRUE
+  )
+    
+}
+
+```
+
+
+```{r reconnect-special-activities}
+
+for (table_label in special_activity_tables) {
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "SampleLocations",
+    link_key_column = "samplelocation_id",
+    lookup_columns = c("grts_address", "stratum"), 
+    reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  )
+
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "FieldworkCalendar",
+    link_key_column = "fieldworkcalendar_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = table_label,
+    reference_table = "Visits",
+    link_key_column = "visit_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+
+
+} # /loop-stitch special activity
+
+```
+
+## LocationCells
+```{r update-location-cells}
+
+locations_grts <- mnmgwdb$query_columns(
+    table_label = "Locations",
+    select_columns = c("grts_address", "location_id")
+  )
+
+units_cell_polygon[["grts_address_final"]] <-
+  as.integer(units_cell_polygon[["grts_address_final"]])
+# units_cell_polygon %>% filter(grts_address_final == 922230)
+
+# unit geometries (cells):
+location_cells <-
+  units_cell_polygon %>%
+  inner_join(
+    locations_grts %>% distinct,
+    by = join_by(grts_address_final == grts_address),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(-grts_address_final) %>%
+  relocate(geometry, .after = last_col())
+
+sf::st_geometry(location_cells) <- "wkb_geometry"
+# glimpse(location_cells)
+
+# location_cells %>%
+#   filter(location_id == 409)
+# location_cells %>%
+#   filter(location_id == 527)
+
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
+
+mnmgwdb$execute_sql(
+  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
+  verbose = TRUE
+)
+
+mnmgwdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = location_cells
+)
+
+
+loceval_connection <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database = "loceval",
+  user = "monkey",
+  password = NA
+)
+
+extra_cells <- loceval_connection$query_table("ReplacementCells") %>%
+  left_join(
+    loceval_connection$query_table("Replacements") %>%
+      select(-wkb_geometry),
+    by = join_by(replacement_id)
+  ) %>%
+  select(-grts_address) %>%
+  rename(grts_address = grts_address_replacement) %>%
+  inner_join(
+    locations_grts,
+    by = join_by(grts_address)
+  ) %>%
+  select(location_id, wkb_geometry) %>%
+  distinct %>%
+  anti_join(
+    location_cells,
+    by = join_by(location_id)
+  )
+
+mnmgwdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = extra_cells
+)
+```
+
+## LocationInfos
+
+```{r update-locationinfos}
+
+new_locinfos <- sample_locations %>%
+  distinct(
+    grts_address
+  ) %>%
+  mutate(
+    log_creator = "maintenance",
+    log_creation = as.POSIXct(Sys.time()),
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time())
+  )
+
+new_locinfos <- new_locinfos %>%
+  anti_join(
+    mnmgwdb$query_table("LocationInfos"),
+    by = join_by(grts_address)
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+  )
+
+
+locationinfo_lookup <- update_cascade_lookup(
+  table_label = "LocationInfos",
+  new_data = new_locinfos,
+  index_columns = c("locationinfo_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+```
+
+
+## Landuse
+
+```{r update-landuse}
+update_landuse_in_locationinfos(mnmgwdb)
+```
+
+
+# post hoc
+
+
+```{r step-n-safety-dump}
+
+now <- format(Sys.time(), "%Y%m%d%H%M")
+# if (isFALSE(grepl("-staging", loceval_mirror))) {
+#   loceval$dump_all(
+#     here::here("dumps", glue::glue("safedump_{loceval$database}_{now}.sql")),
+#     exclude_schema = c("tiger", "public")
+#   )
+# }
+
+if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
+  mnmgwdb$dump_all(
+    here::here("dumps", glue::glue("poc_post_update_{mnmgwdb$database}_{now}.sql")),
+    exclude_schema = c("tiger", "public")
+  )
+}
+
+```
+
+
+```{r launch-consistency-dashboard}
+system("quarto render 040m_mnmgwdb_consistency_dashboard.qmd --to html")
+```
+
+
+# Random Points
+
+```{sql}
+#| eval: false
+#| echo: true
+
+-- to https://docs.google.com/spreadsheets/d/11_0sACvkvX_teOO_nJmTxYSV4-EzOWtxJYE1QNkStAc/edit
+\COPY (
+    SELECT samplelocation_id,
+      location_id,
+      grts_address,
+      random_point_rank,
+      compass,
+      angle,
+      angle_look,
+      distance_m,
+      lambert_lon,
+      lambert_lat
+    FROM "outbound"."RandomPoints"
+    WHERE angle IS NOT NULL
+    ORDER BY grts_address ASC, random_point_rank ASC
+) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
+;
+
+```
+
+# WIA/CSA id conflict
+
+```{sql}
+#| eval: false
+#| echo: true
+
+
+UPDATE "inbound"."ChemicalSamplingActivities"
+  SET fieldwork_id = fieldwork_id + 10000
+  WHERE fieldwork_id < 9999
+;
+
+```
+
+
+
+## TODO
+
+- [✓] re-run the procedure.
+- [✓] WIA and CSA seem unlinked or visit_done is wrong?
+  -> drop visit_done from WIA/CSA
+
+- [✓] processing scripts: replacement!! -> test daily maintenance scripts
+
+- [✓] LocationCells
+- [✓] LocationInfos
+
+- [✓] should I not add "replacements" above?
+
+First Round: 
+- [✓] as is
+
+Second Round:
+- [✓] adjust `common_current_calenderfilters()` -> 2026 data of certain activities
+
+Third Round
+- then re-download RData
+- -> add new `wait_*` column
+
+
+
+UPDATE "outbound"."FieldworkCalendar" 
+SET archive_version_id = NULL
+WHERE done_planning;
+-- UPDATE 194
+
+UPDATE "inbound"."Visits" 
+SET archive_version_id = NULL
+WHERE visit_done;
+-- UPDATE 118
+
+UPDATE "outbound"."SampleLocations"
+SET archive_version_id = NULL
+WHERE grts_address IN (
+  1195701, 
+  122549, 
+  1588917, 
+  19914421, 
+  212661, 
+  253621, 
+  29769397, 
+  3202741, 
+  3554997, 
+  3858101, 
+  409269, 
+  4447925, 
+  44961461, 
+  450229, 
+  48053941, 
+  48578229, 
+  49692341, 
+  50282165, 
+  5193397, 
+  5234357, 
+  540341, 
+  5455541, 
+  5979829, 
+  6360757, 
+  6504117, 
+  6635189, 
+  6811317, 
+  7409333, 
+  908981
+);
+-- UPDATE 22
+
+

@@ -1,0 +1,22 @@
+schema,table,owner,read_access,write_access,geometry,constraint,freesql,persistent,excluded,comment
+metadata,Versions,salamandra,"tom,ward,floris,karen,falk,monkey",,,,,1,,storing the POC versions which caused the data
+metadata,Protocols,salamandra,"tom,ward,floris,karen,falk,monkey",,,,,,,"protocols, linked to protocols.inbo.be"
+metadata,GroupedActivities,salamandra,"tom,ward,floris,karen,falk,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
+metadata,TeamMembers,salamandra,"tom,ward,floris,karen,falk,monkey",,,,,1,,list of team members
+metadata,N2kHabTypes,salamandra,"tom,ward,floris,karen,falk,monkey",,,,,,,habitat type
+metadata,N2kHabStrata,salamandra,"tom,ward,floris,karen,falk,monkey",,,,,,,lookup table n2khab type to stratum
+metadata,Locations,salamandra,"tom,ward,floris,karen,falk,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
+metadata,LocationCells,salamandra,"tom,ward,floris,karen,falk,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
+metadata,Coordinates,salamandra,"tom,ward,floris,karen,falk,monkey",,,,,,,Locations coordinates of the grts points (in other CRS)
+outbound,LocationInfos,salamandra,"tom,ward,floris,karen,falk,monkey","tom,ward,floris,karen,falk",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
+outbound,SampleUnits,salamandra,"tom,ward,floris,karen,falk,monkey","tom,ward,floris,karen,falk",,,,,,list of locations currently sampled
+outbound,SampleUnitPolygons,salamandra,"tom,ward,floris,karen,falk,monkey",,POLYGON,,,,,habitat map polygons of the current sample locations
+outbound,Replacements,salamandra,"tom,ward,floris,karen,falk,monkey","tom,ward,floris,karen,falk",POINT,,,,,putative replacements for inaccessible sites
+outbound,ReplacementCells,salamandra,"tom,ward,floris,karen,falk,monkey",,POLYGON,,,,,cell polygons (squares) of the replacement cells
+outbound,MHQPolygons,salamandra,"tom,ward,floris,karen,falk,monkey",,POLYGON,,,1,,MHQ sample areas NO TRESPASSING!
+outbound,LocationAssessments,salamandra,"tom,ward,floris,karen,falk,monkey","tom,ward,floris,karen,falk",,,,1,,"iudicium in praetorio, prior to fieldwork, e.g. via orthophotos, including assessments of obsolete locations"
+outbound,FieldActivityCalendar,salamandra,"tom,ward,floris,karen,falk,monkey","tom,ward,floris,karen,falk",,,,1,,field activity calender for planning fieldwork
+inbound,Visits,salamandra,"tom,ward,floris,karen,falk,monkey","tom,ward,floris,karen,falk",,,,1,,"inbound information about location visits, linked to SampleUnits and FieldActivityCalendar"
+inbound,CellMaps,salamandra,"tom,ward,floris,karen,falk,monkey","tom,ward,floris,karen,falk",POLYGON,,,1,,cell mapping input by drawing polygons
+inbound,FreeFieldNotes,salamandra,"tom,ward,floris,karen,falk,monkey","tom,ward,floris,karen,falk",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
+archive,ReplacementArchives,salamandra,"tom,ward,floris,karen,falk,monkey",,,,,1,,archive of replacement information for samples which are not used any more

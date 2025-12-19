@@ -1,0 +1,472 @@
+#+title: TODO
+
+* daily
+
++ backup shell script
+
++ 090_sync_FreeFieldNotes.py
++ 092_push_loceval_to_mnmgwdb.py
++ 093_update_facalendar.R
++ 094_replaced_LocationCells.R
++ 095_sync_LocationInfos.py
++ 096_update_wgs84_coordinates.R
+
++ 901_fix_WellInstallationActivities.R
+
+if replacements:
++ 230_random_placementpoints.R
++ 231_mhq_areas.R
+
+if major updates:
++ 2x 033_populate_testing_db.R
+
+* mainline
+
++ [X] UPDATE... FROM
+  e.g. =UPDATE "outbound"."Replacements" AS REP SET grts_address = UNIT.grts_address FROM "outbound"."SampleUnits" AS UNIT WHERE REP.sampleunit_id = UNIT.sampleunit_id;=
++ ... in combination with TEMP TABLES for cascaded update  
+  use =temporary= in https://dbi.r-dbi.org/reference/dbWriteTable.html
++ [X] ... and for stitching
+
+
++ 20250916 Falk, is het eventueel mogelijk om bij een vervangcel in de planning ook het orginele GRTS-adres op te geven? Momenteel is het voor mij moeilijk om uit te zoeken of een vervangcel gekoppeld is aan een cel van de nieuwe planningslaag (voorlopig geopackage van Floris)
+  + [X] via "archive"."ReplacementData"
+  + [ ] better store another "grts_original"
+
++ [X] Vraag Tom 20250918: zou je aan de FieldworkPlanning in outbound nog een attribuut kunnen toevoegen voor het inplannen van de waterstalen? : count_days_ws:  day(to_date(now())-to_date( "date_vis_1"))
+
++ [X] 219694 and 4447925: no activities? (Tom 20250919)
+
+20250923:
++ [X] re-run maintenance tasks (carefully)
++ [X] yet another pocupdate =mnmgwdb=
++ [ ] also update =loceval=
++ [ ] map layer with "placed wells"
+
++ [ ] data consistency dashboard -> loceval
+
++ [ ] yet another pocupdate =mnmgwdb=
++ [ ] also update =loceval=
++ [ ] map layer with "placed wells"
+
+prio:
++ [ ] postgresql update 20250925
+  + [X] announced
+  + [ ] local testing
+  + [ ] ... and action!
++ [ ] !!! re-think =SampleLocations= dependency!
+  + was made implicit: no direct fk linkage of tables
+  + this cuts ties upon update
+  + =samplelocation_id= must be manually re-linked everywhere
+  + shortcut alternative: retry setting foreign key everywhere
+  ==> better explicit `fk` with cascade-NULL
++ [ ] see chat and mails by placement team for manual adjustments
++ [ ] also update latest POC and RData
+
+
+from POC Update:
++ [ ] also update =loceval=
++ [ ] more consistent =UNIQUE()= rules on all characteristic columns
++ [X] a "consistency dashboard" with checks for NA's and correct links
++ [ ] script for common reset =fieldwork_id=
++ [ ] what to do with "Visits".lims_code? (planning -> rename =_planned=?)
++ [ ] remove "LocationEvaluations".recovery_hints -> in =loceval=, link view to LocationInfos
++ [ ] rename SampleLocations -> SampleUnits
++ [ ] sspstapas removed (NA) what to do with it? extend or drop?
++ [ ] grts_join_method to SampleLocations?
+
+from last fieldwork meeting:
++ [ ] qfield visibility of fieldwork todo's
++ [ ] extra activities: ad-hoc tasks, replacement/repair, possibly/partly related to WIA
++ [ ] consistent color codes (use Tom's style files)
++ [ ] regions with special protection amphibia
++ [ ] data types logger read-outs
+
+
++ [ ] manual entries from fieldwork
++ [ ] =SELECT * FROM "inbound"."WellInstallationActivities" WHERE visit_id IS NULL;=
++ [ ] =SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE visit_id IS NULL;=
++ [ ] 871030 restore 4010
++ [ ] 20250916 why can FW's not write "veldwerk voor iedereen"?
++ [ ] 6092977 did they visit already?
+
++ [X] continue =20250903_missing_871030.sql=
++ [ ] delete =loceval::"outbound"."FieldActivityCalendar".landowner=
++ [X] there is a duplicate location in loceval: 871030, of course.
++ [ ] there is a duplicate location in loceval: 219694, of course.
++ [X] free fieldnote counter issue in =090_*=: =SELECT setval('seq_fieldnote_id', (SELECT MAX(fieldnote_id) FROM "inbound"."FreeFieldNotes"));=
++ [ ] 093 still cuts links to WIA and CSA (temporarily using 901)
+  also check LocationInfos
++ [ ] there ARE already visits which disappeared from the calendar
+  -> instantiate archiving system which stores info from FwCal and Visits
+  SELECT * FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;
++ [ ] new table // view: *Wells*
++ [ ] unify keyring python and R
+
+
++ [ ] write a function to restore all =seq_keys= to the last used value (special: shared =fieldwork_id=).
++ [X] credentials to config
++ [X] =UNIQUE= tag? -> constraints added
++ [-] migration and real test
+  + [X] activity calendar
+  + [X] activities executed -> "Visits"
+  + [X] stratum to LocCal
+  + [ ] a unique identifier for =fag_stratum_grts_calendar_2025_attribs_sf= (fag+grts? database?)
+  + [X] there are unmatched *activities* (join) -> define meaningful set of activities with human-readable description
+  + [X] there are non-unique LocationCalendar entries, smushed before upload
+  + [X] handle *teammembers* (meta data table); e.g. for planning =Visits=
++ [X] test import to =pgmodeler= for visualization
++ [X] Visits: outsource a table with "locations due", linking to LocationCalendar
+  + [X] subset which is due for a visit
+  + [X] different schema -> it might be necessary to lookup schema in the python generator procedure
+  + [X] date scheduled; user assigned -> via desktop work (qgis project)
+  + [X] +regularly updated with stored procedure or python script+ auto-pushed
+  + [X] column "done" is fed back to LocationCalendar
++ [X] play with "read/write" permissions of user role =ward= via qgis/qfield
+  + [X] sequence references seem to be an issue (ROLE->SEQUENCE?)
++ [X] =teammember_id=:
+  + [X] =teammember_id= columns
+  + [X] or dropdown for form edit (=Teammembers= table ⊂ =metadata= schema?)
++ [X] inbound forms
+  + [X] =Visits= -> structured input
+  + [X] =FieldNotes= -> free input
++ [X] something wrong with python =getpasswd=
+
++ [ ] adjustment 2190_a* (mail Floris)
+
+* loceval
++ [ ] remove ="FieldActivityCalendar".grts_join_method=
++ [X] overhaul =ExtraVisits= -> multi visits per location +> grouped_activity_id
+
++ [ ] what is wrong with =SampleUnits= >> =replacement_done=, =is_replaced= in qfield form?
+  + [ ] they seem not to feed back reliably
+  + [ ] update rules?
+  + [ ] wrong join?
+
++ [ ] keep =grts_original= for replacements (sampling always based on original)
+
++ [ ] check incomplete replacements
+
++ [ ] CellMapping: enable multiple polygons (wrong random points in Vorsdonk 47685766)
+  + =SELECT * FROM "inbound"."CellMaps" WHERE label = 'Stronken';=
+
++ [X] change requests Ward 20250716
+  + [X] rename ="FieldActivityCalendar".acceccibility_revisit=
+  + [X] add column ="Visits".recovery_hints=
+  + [X] color changes
+  + [X] accessibility per SampleUnits
+  + [X] apply to production
+
++ [ ] accessibility across locations (see journal)
++ [ ] ++ =rtkgps_accuracy=
++ [ ] ++ LocationAssessment creation date (for info -> mnmgwdb)
+
++ [ ] new schema: =transfer= for back/forth between databases
+
++ [X] loceval fieldwork app
+  + [X] replacement procedure
+  + [X] filter "priority"
+  + [X] days to deadline (=date_end=)
+  + [X] view on =LocationCells= to show only those in sample
+
+
++ [ ] weird cells in ofo's
+  + [ ] grts 2006953 has a direct neighbor
+  + [ ] type labels have changed (e.g. =2190_mp= -> =2190_a=)
+  + [ ] grts 681846 is a totally different type (6230 -> 3150)
+
+
++ [-] 20250704 loceval post mortem
+  + [X] review the "POC Update" procedure (++ExtraVisits)
+  + [X] new locations to assess??
+    + recover old RData and compare
+    + were aquatic units
+  + [X] "verouderd" field is rubbish -> correct OrthophotoAssessment view
+  + [X] loc_id mismatch: "schietveld" in Hemiksem?
+  + [ ] combined UNIQUE constraints for all characteristic columns
+  + [X] reset sequences on tabula rasa / DELETE+INSERT updates
+
++ [ ] 20250714 loceval post mortem (II)
+  + [ ] R-based backups (all tables to R objects)
+  + [ ] in-memory rollback upon failed updates
+  + [ ] ensure safety of =FreeFieldNotes= and =CellMaps=
+  + [ ] follow-up =visit_cancelled=
+
+
++ [-] Fieldwork Planning app
+  + [X] database structure basic
+  + [X] upload data
+  + [X] qgis-directed views
+  + [X] qgis project
+  + [X] local replacement view
+  + [X] ++ GroupedActivities {=module=, =scheme=}?
+  + [ ] option to add activities / rows in FieldActivityPlanner?
+
+
+* mnmgwdb
++ [ ] tester does not consistently get access (manual adjustments), create a placeholder fieldworker to facilitate auth management
++ [ ] =metadata.Coordinates=: also give coords for FreeFieldNotes (complicates view)
+
++ [X] do replacements transfer correctly? 17318 -> 4211622 # now they do
+
++ [ ] target area in forests: 10m did not yield any placement points; set to 16m (=cell radius)
+  + TO BE DISCUSSED
+
++ [X] good question Tom: where is =GWINSTPIEZWELL=? -> filter group instead of activity.
++ [X] two watina_code fields instead of one
++ [-] replacement / split -> duplicate activities
+  + !!! the loceval prep is lost, and the activity from qgis
+  + [X] in script =092_*.py=
+  + [ ] in the update procedure
+
+fieldwork:
++ [X] gmaps attachment link (Ward/Tom)
+  + [X] show WGS84 coords for car navigation via extra table, linked on location_id
++ [X] new fields
+  + [X] divers: free field for exotic divers / re-use
+  + [X] two fotos soil profiles
+  + [X] checkbox for requiring "soil profile revision"
+  + [X] LIMS: project code + recipient code
+
++ [-] divers:
+  + [ ] batch, serial; ++ view with non-previously placed
+  + [X] but also a free field
+
+planning:
++ [ ] soilmap_simple as gpkg layer
+
+
++ [ ] plan lab activity capacity limit
+  + [ ] gather info about lab load per activity
+  + [ ] compute capacity per workweek
+  + [ ] view/adjustment to display this for fw planning
+
++ [ ] qgis/qfield authentification for project sharing, there must be something online
+  + seems to be good?
++ [-] cell mapping
+  + [X] ?? why are some sample raster cells not visible?
+  + [ ]  should be good, but refine later
+
++ [-] meeting @TDD @WT @KW @FV @FM <2025-07-02 Wed> MNM Fieldwork Outbound/Planning app
+  + [ ] INBO arcgis -> qgis via web services?
+  + [X] n2khab_strata ++allow NULL
+  + [X] move all =waiting_= types to a separate layer clone
+  + [X] type -> stratum for all except Ward (see separate email)
+    + doubling by re-join of scheme
+    + loceval: strata temporally and spatially separated -> no join of =scheme_panelset=
+    + for GW app: summarized
+      + e.g. =fag_{,_stratum}_grts_calendar=
+  + revisit =grts_address=
+  + [ ] ++ fac_rank
+  + [X] ++ field =praktische_info=
+  + [X] ++ field =accessibility=
+  + [ ] required map layers @TDD:
+    + [ ] laadpalen
+    + [ ] land owner
+    + [ ] topo map (osm, google)
+    + [ ] watina summary layer
+    + [ ] bodemkaart
+    + [ ] woonplaats medewerkers
+
++ [ ] WATINA summary layer
+  + [ ] naming a priori by Tom; provide voronoi polygon layer
+
+
+* POC
++ [X] =mnmgwdb=:
+  + [X] use of =stratum=
+  + [X] central unit is NOT sample unit, but location ~> =SampleLocations= (because we will place exactly one obswell, no matter how many schemes/strata)
++ [ ] procedure to store actual *replacements* and update sample (with @FV)
+  + quick solution: move for =mnmgwdb=
+  + which is a headache.
++ [ ] possible to mark sample units from MHQ? (request Ward 20250716)
++ [X] double-check =is_gw_activity=
++ [ ] no option to add activities / rows in FieldActivityPlanner?
++ [X] what to do with the CellMaps? (e.g. transfer mnmgwdb?)
++ [ ] =grts_address=: integer or int64?
+
++ (minor)
+#+begin_src R :eval no
+Warning message:
+In x@pntr$extractVectorFlat(y@pntr, "", FALSE, touches[1], small[1],  :
+  GDAL Message 1: DeprecationWarning: 'Memory' driver is deprecated since GDAL 3.11. Use 'MEM' onwards. Further messages of this type will be suppressed.
+#+end_src
+
++ [-] POC pipeline
+  + [ ] functional modularization suggestions for code snippets
+  + [X] =units_cell_polygon= are there other relevant polygons in there?
+  + [X] replacements by stratum?
+
++ [ ] re-check POC update script (=070_=)
+  + [ ] add other databases
+  + [ ] check with sync procedure
++ [X] extra types (vraag Floris)
+
++ [X] backup procedures
+  + [X] daily backups to S3
++ [ ] scripts for user management
++ [ ] list WCS/WFS/WMS sources
+
++ [ ] random points in target area for well placement
+
++ [X] re-upload bug -> was fk
++ [X] info from LocationAssessment
++ [X] landuse/ownership: one categorical field
+
+
+* technical
+
++ [ ] exclude admin from =log_= rules
++ [-] suggestions @FV <2025-06-18 Wed>
+  + [ ] subset habitat_types (wait input)
+  + [X] +activity_sequence+ -> =activity_rank=
+  + [X] idem =replacement_rank=
+  + [X] remove =targetpanel=; replace by =fieldwork_2025_priorities= + =stratum_scheme_ps_targetpanel= (for Tom)
+  + [ ] replacements: base on non-=_final= =grts_address=
+  + [X] +stratum+ -> =type= (convert via =n2khab_strata=)
+  + [X] =stratum_to_expect= -> =type_adjusted=
+  + [X] =stratum_corrected= -> =type_assessed=
+  + [X] corner points or polygons for sample units (also depends on type)
+  + [ ] two replacement procedures: =local replacement= vs. drop-out ( ↖sampling)
+  + [X] there was a table (replacements?) with inconsistent pk name
++ [ ] request Tom: also get Watina datalayers
++ [ ] test gps data collection via qfield
+  + [ ] coordinates
+  + [ ] elevation measurements
++ recurrent tasks
+  + [X] backup procedures via cron
+  + [ ] =Visits=: due/overdue update
++ [X] forms refinement
+  + [X] aliases? (via postgres or qfield)
++ [ ] accessibility/land ownership layer
++ [ ] database mirrors: one for me to play (=loceval_dev=), one for staging (=loceval_testing=), with copy of the one for the real work (=loceval=)
+  + [ ] safe checks for updating a production database
++ [-] qgis/database convenience
+  + [X] fill username automatically upon edit
+  + [X] store edit dates -> "append-only" + views?
+  + [ ] inbound project: view to join activities and protocols
++ [ ] second db with third schema: =mnmdb=
+  + [ ] mirror/assembly of previously collected data
+  + [ ] can live on a completely different connection
+  + [ ] replace image blobs with file links upon import
++ [X] images and how to bring them home
+  + [X] BLOB (binary large objects) work as =bytea= data type [[https://www.postgresql.org/docs/current/datatype-binary.html][(see here)]]
+  + [X] test qfield camera usage
+  + [X] test downloading and compression/update workflow
+  + [X] solved [[https://docs.qfield.org/how-to/pictures/][via qfield attachments]]; folder export/sync necessary
++ [ ] generalize R functions, to package files
+  + =append_tabledata=
+  + =upload_and_lookup=
++ [-] qfield integration
+  + [X] where is the qgis qfield export gone? *[!]* -> gdal error solved
+  + [ ] postgis login from qfield; auth with master password? set ID!
+  + [ ] [[https://docs.qfield.org/how-to/pictures/#drawing-templates][qfield drawing templates]]
+  + [X] [[https://docs.qfield.org/how-to/pictures/#configurable-attachment-path][attachment path]]
+  + [X] select/join from multiple tables; alternatively auto-generate data+metadata -> postgres views views
++ [ ] try qfield folder on shared gdrive
+  + [ ] try gdrive access with different roles
+  + [ ] provide offline alternatives
++ [ ] generic database ROLEs (extra layer btw db user and permission; simplifies adding new database users to certain tasks)
+  + [ ] roles defined
+  + [ ] adjust upload scripts
++ [ ] Activity Roles
+  + [ ] for now: solved by group members in =TeamMembers=
+  + [ ] add =role= to =TeamMembers=
+  + [ ] link =GroupedActivities= to roles -> who does what? filter?
++ [X] offline caching in qfield? -> works well
++ [X] bring to tablet
++ [ ] manual, ex post python check to constrain =LocationCalendar.activity_group_id= to valid values
++ [X] fix qgis installation
++ [ ] migrate to AWS: database + ec2 + s3
+  + [ ] backups to s3
+  + [ ] create postgis docker for db
+    + user handling?
+    + updates?
+  + [ ] organize with ICT/Jens (timing!)
+  + [ ] backup and maintenance procedures to ec2
+  + [ ] keep current node for =*_dev=
++ [ ] fieldwork roles [[https://docs.google.com/spreadsheets/d/1wFbevEcaNbQ1RBIwEdkoloRYmarQ59E2gctbcxVyH_M/edit?gid=0#gid=0][gsheet]]
++ [ ] email services on the server to send backup logs & errors
++ [ ] consider function-related schema's (e.g. "orthophoto")
++ [ ] meta table storing (current and previous) POC verisons
++ [ ] users may choose their passwords
+  + [ ] via "alter role" script in python or R
+
+* issue anticipation
+** connectivity
++ offline sattelite image layer?
++ transient replacement procedure requires connection to server
+  + can we get joins in layers? -> filter a view-like layer
+  + provide alternative tool for local use on laptop/tablet?
+
+** TODO dplyr
+copy all -> processing inbound.FreeFieldNotes
+#+begin_quote
+Warning message:
+Using `by = character()` to perform a cross join was deprecated in dplyr 1.1.0.
+ℹ Please use `cross_join()` instead.
+#+end_quote
++ [ ] =UNIQUE= tag?
++ [ ] migration and real test
+  + [ ] activity calendar
+  + [ ] activities executed
++ [ ] generalize R functions,
+  + =append_tabledata=
+  + =upload_and_lookup=
++ [ ] postgis login from qfield
++ [ ] backup procedures
++ [ ] forms refinement
++ [ ] images and how to bring them home
+
+* optional
++ save/restore a whole =db_structure= in pandas tables
++ check =wk::as_wkb()=
+    #+begin_quote
+    Een beetje experimentering met database-geometrieën vind je in deze code <https://github.com/inbo/n2khab-preprocessing/blob/1bf89599398b1b1be121fe84dcedec5623a8a576/src/miscellaneous/watersurfaces.Rmd#L76-L120>.
+    Inspiratie kwam van https://hydroecology.net/reading-spatial-data-from-sql-server-without-sf/
+    #+end_quote
+
++ array data types (e.g. =panel_set=) -> upload with dplyr tricky (str -> int[])
+
++ bug report: =sf::dbWriteTable()= seems to overwrite boolean defaults
+
++ logseq project in the folder -> document database processes
+
+
+* COMMENT Archive
+
+
++ [-] input meeting @WT @KW @FV @FM <2025-06-24 Tue>
+  + [X] decoupling LocCal - Visits!!
+  + [X] =ortophoto_2025_cells= and =ortophoto_2025_cellcenters=
+  + [X] orthophotos:
+    + via "datavindplaats" -> wcs/wfs
+    + winter && summer
+  + [X] use =grts_address_final=
+  + [X] =ortophoto_2025_type_grts=
+    + assessment
+    + sp_poststratum
+    + scheme_ps_targetpanels
+  + [X] ++ fields
+    + cel afgekeurd
+    + natuur/niet
+    + tijdelijk verloren
+    + implications polygon/habmap; feedback habitatkaart
+  + [X] landuse
+    + ANB
+    + landbouw
+  + [X] location qgis projects
+  + [X] habmap: use 2023 fixed version; later: preliminary update by @FV
+  + [ ] protocol-like criteria by @WT
+  + [X] qgis design
+    + [X] types -> qgis map label
+    + [X] "activity" visible in form
+    + [X] test attribute table sorting
+    + [X] add habitatmap (raw; wfs?) as background layer
+
+
++ [X] credentials to config
++ [ ] migration and real test
++ [ ] backup procedures
++ [ ] forms refinement
++ [ ] images and how to bring them home

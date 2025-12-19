@@ -1,0 +1,621 @@
+---
+title: "Consistency Dashboard"
+date: last-modified
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+```{r libraries}
+#| eval: true
+#| echo: false
+
+.libPaths("/data/R/library") # TODO
+
+# libraries
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+# the database connection object
+source("MNMDatabaseConnection.R")
+
+# more specific database tools
+source("MNMDatabaseToolbox.R")
+
+
+# library("mapview") # debugging only
+# mapviewOptions(platform = "mapdeck")
+```
+
+
+```{r connect-databases}
+#| eval: true
+#| echo: false
+
+config_filepath <- file.path("./inbopostgis_server.conf")
+# mirror <- "-testing"
+mirror <- ""
+mirror <- "-staging"
+
+# connect mnmgwdb
+mnmgwdb_database <- glue::glue("mnmgwdb{mirror}")
+
+mnmgwdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmgwdb_database,
+  user = "monkey",
+  password = NA
+) 
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
+
+```
+
+
+
+# Count Table Rows
+
+```{r count-table-content}
+#| eval: true
+#| echo: false
+
+count_table_content <- function(table_list) {
+  lapply(
+      mnmgwdb$query_tables_data(table_list),
+      FUN = nrow
+    ) %>%
+    as_tibble() %>%
+    t() %>% 
+    knitr::kable(format = "markdown") %>%
+    print()
+  return(invisible(NULL))
+}
+
+```
+
+```{r count-metadata}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "Versions",
+    "TeamMembers",
+    "Protocols",
+    "GroupedActivities",
+    "N2kHabStrata"
+  ))
+
+```
+
+```{r count-location-tables}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "Locations",
+    "LocationInfos",
+    "LocationCells",
+    "Coordinates",
+    "LocationEvaluations",
+    "CellMaps"
+  ))
+
+```
+
+```{r count-fieldwork-orga}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "SampleLocations",
+    "FieldworkCalendar",
+    "Visits",
+    "WellInstallationActivities",
+    "ChemicalSamplingActivities",
+    "SpatialPositioningActivities"
+  ))
+
+```
+
+
+```{r count-loose-tables}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "ReplacementData",
+    "FreeFieldNotes",
+    "FieldFollowUps"
+  ))
+
+```
+
+```{r count-ad-libitum-data}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "RandomPoints",
+    "MHQPolygons",
+    "Divers"
+  ))
+
+```
+
+
+# Foreign Key Connectivity
+
+```{r check-function}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection <- function(
+    table_label,
+    fk,
+    characteristic_columns,
+    ref_table,
+    pk = NA,
+    rename_ref = NA
+  ) {
+
+  stopifnot("glue" = require("glue"))
+  stopifnot("dplyr" = require("dplyr"))
+  # stopifnot("rlang" = suppressPackageStartupMessages(require("rlang")))
+
+  if (is.na(pk)) {
+    pk <- fk
+  }
+
+  table_data <- mnmgwdb$query_table(table_label)
+    
+  print(glue::glue("#### {table_label}.{fk} -> {ref_table}.{pk} ####"))
+  nans <- table_data %>% 
+    dplyr::count(is.na(!!!fk)) %>%
+    setNames(c("row", "N"))  %>%
+    mutate_at(vars(row), as.character)
+
+  total_count <- sum(nans %>% pull("N"))
+  nans <- bind_rows(
+    nans,
+    data.frame("label" = c("TOTAL"), "N" = c(total_count)) %>% 
+      setNames(names(nans)) 
+    ) %>% 
+    setNames(c(glue::glue("is.na({table_label}.{fk})"), "N")) %>% 
+    mutate("%" = sprintf("%.0f %%", 100 * N / total_count))
+    
+  
+  print("NANs / N:")
+  nans %>%
+    knitr::kable(format = "markdown") %>%
+    print()
+      
+    # %>%  # 
+    # gt::as_raw_html()
+
+  ## mismatches
+  ref_data <- mnmgwdb$query_table(ref_table)
+  if (!is.na(rename_ref)) {
+    names(ref_data)[names(ref_data) == names(rename_ref)] <- rename_ref
+  }
+    
+  # compare stored to true sample location
+  mismatch <- table_data %>%
+    dplyr::left_join(
+      ref_data,
+      by = dplyr::join_by(!!!characteristic_columns),
+      suffix = c("_fk", "")
+    )
+
+  fk_col <- glue::glue("{fk}_fk")
+  if (fk != pk) fk_col = fk
+
+  if(length(mismatch[[fk_col]] != mismatch[[pk]]) == 0) {
+    # fk is also characteristic_column
+    n_match <- nrow(mismatch)
+    n_ref <- nrow(ref_data)
+    perc = sprintf("%.0f %%", 100 * n_match / n_ref)
+    print("used / reference")
+    print(glue::glue("\t{n_match} | {n_ref} | {perc}"))
+
+    return(invisible(NULL))
+  }
+    
+  mismatch <- mismatch[mismatch[[fk_col]] != mismatch[[pk]], ]
+
+  table_anti <- table_data %>%
+    anti_join(
+      ref_data,
+      by = dplyr::join_by(!!!characteristic_columns)
+      # by = c(fk) %>% setNames(pk)
+    )
+
+  if (nrow(mismatch) > 0) {
+
+    print("mismatches:")
+    print(table_anti %>%
+      select(!!!rlang::syms(c(
+        mnmgwdb$get_primary_key(table_label),
+        characteristic_columns,
+        fk
+      ))),
+      n = Inf
+    )
+  } else {
+    print("no mismatches.")
+  }
+
+  return(invisible(NULL))
+
+}
+
+
+```
+
+## Location, Location, Location
+
+```{r location-cells}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "LocationCells", fk = "location_id",
+  characteristic_columns = c("location_id"),
+  ref_table = "Locations", pk = "location_id"
+  )
+
+```
+
+
+```{r location-infos}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "LocationInfos", fk = "location_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Locations", pk = "location_id"
+  )
+
+```
+
+
+
+```{r coordinates}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "Coordinates", fk = "location_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Locations", pk = "location_id"
+  )
+
+```
+
+
+```{r sample-locations}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SampleLocations", fk = "location_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Locations", pk = "location_id"
+  )
+
+```
+
+
+```{r random-points}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "RandomPoints", fk = "location_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Locations", pk = "location_id"
+  )
+
+```
+
+
+## Sample Locations
+
+:::{ .callout-warning }
+
+`SampleLocations` are currently not hard-referenced, i.e. I de-activated the foreign key constraint in favor of quick-and-dirty processing at some point.
+
+:::
+
+
+```{r fieldwork-calendar-sloc}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "FieldworkCalendar", fk = "samplelocation_id",
+  characteristic_columns = c("grts_address", "stratum"),
+  ref_table = "SampleLocations", pk = "samplelocation_id",
+  rename_ref = c("strata" = "stratum")
+  )
+
+```
+
+
+```{r visits-sloc}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "Visits", fk = "samplelocation_id",
+  characteristic_columns = c("grts_address", "stratum"),
+  ref_table = "SampleLocations", pk = "samplelocation_id",
+  rename_ref = c("strata" = "stratum")
+  )
+
+```
+
+
+```{r wia-sloc}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "WellInstallationActivities", fk = "samplelocation_id",
+  characteristic_columns = c("grts_address", "stratum"),
+  ref_table = "SampleLocations", pk = "samplelocation_id",
+  rename_ref = c("strata" = "stratum")
+  )
+
+```
+
+
+
+```{sql}
+#| eval: false
+#| echo: false
+-- FROM "inbound"."WellInstallationActivities" AS SACT
+-- FROM "inbound"."ChemicalSamplingActivities" AS SACT
+
+SELECT *
+FROM "inbound"."ChemicalSamplingActivities" AS SACT
+LEFT JOIN "outbound"."SampleLocations" AS SLOC
+  ON (SLOC.grts_address = SACT.grts_address)
+  AND (SLOC.strata = SACT.stratum)
+WHERE SACT.grts_address = 437685;
+
+NOT(SLOC.samplelocation_id = SACT.samplelocation_id)
+;
+
+SELECT * FROM "outbound"."SampleLocations" WHERE grts_address = 437685;
+SELECT * FROM "outbound"."ChemicalSamplingActivities" WHERE grts_address = 437685;
+
+vervanging  437685 -> 8826293
+```
+
+
+```{r csa-sloc}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "ChemicalSamplingActivities", fk = "samplelocation_id",
+  characteristic_columns = c("grts_address", "stratum"),
+  ref_table = "SampleLocations", pk = "samplelocation_id",
+  rename_ref = c("strata" = "stratum")
+  )
+
+```
+
+
+```{r spa-sloc}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SpatialPositioningActivities", fk = "samplelocation_id",
+  characteristic_columns = c("grts_address", "stratum"),
+  ref_table = "SampleLocations", pk = "samplelocation_id",
+  rename_ref = c("strata" = "stratum")
+  )
+
+```
+
+
+## Fieldwork Calendar and Visits
+
+
+```{r visits-fwcal}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "Visits", fk = "fieldworkcalendar_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "FieldworkCalendar" 
+  )
+
+```
+
+```{r wia-fwcal}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "WellInstallationActivities", fk = "fieldworkcalendar_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "FieldworkCalendar" 
+  )
+
+```
+
+
+```{r wia-visits}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "WellInstallationActivities", fk = "visit_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "Visits" 
+  )
+
+```
+
+
+```{r csa-fwcal}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "ChemicalSamplingActivities", fk = "fieldworkcalendar_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "FieldworkCalendar" 
+  )
+
+```
+
+
+```{r csa-visits}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "ChemicalSamplingActivities", fk = "visit_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "Visits" 
+  )
+
+```
+
+```{r spa-fwcal}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SpatialPositioningActivities", fk = "fieldworkcalendar_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "FieldworkCalendar" 
+  )
+
+```
+
+
+```{r spa-visits}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SpatialPositioningActivities", fk = "visit_id",
+  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
+  ref_table = "Visits" 
+  )
+
+```
+
+
+# Archive
+
+## Count
+
+```{r count-archived}
+#| eval: true
+#| echo: false
+
+count_archived_content <- function(table_list) {
+  archivecount <- lapply(
+      mnmgwdb$query_tables_data(table_list),
+      FUN = function(df) df %>% count(archive_version_id)
+    )
+  bind_rows(
+    lapply(
+      seq_len(length(archivecount)),
+      FUN = function(i) {
+        archivecount[[i]] %>%
+          mutate(table = names(archivecount)[[i]]) %>%
+          relocate(table) %>%
+          return()
+      }
+    )
+  ) %>%
+  return()
+}
+
+
+count_archived_content(
+    table_list = c("SampleLocations", "FieldworkCalendar", "Visits")
+  ) %>%
+  knitr::kable()
+
+```
+
+
+## Consistency
+
+("archive" tag set along the line of `SampleLocation` -> `FieldworkCalendar` -> `Visits`)
+
+```{r consistent-archive}
+#| eval: true
+#| echo: false
+
+archives <- mnmgwdb$query_table("SampleLocations") %>%
+  rename(stratum = strata) %>% 
+  left_join(
+    mnmgwdb$query_table("FieldworkCalendar"),
+    by = join_by(grts_address, stratum),
+    suffix = c("", "_fwcal")
+  ) %>% 
+  left_join(
+    mnmgwdb$query_table("Visits"),
+    by = join_by(grts_address, stratum, activity_group_id, date_start),
+    suffix = c("", "_visits")
+  )
+
+archives <- archives %>%
+  distinct(
+    grts_address, stratum,
+    archive_version_id,
+    archive_version_id_fwcal,
+    archive_version_id_visits
+  ) %>%
+  mutate(has_archive = !is.na(coalesce(
+      archive_version_id,
+      archive_version_id_fwcal,
+      archive_version_id_visits
+    ))
+  ) %>% 
+  arrange(grts_address, stratum)
+
+```
+
+
+```{r distinct-archives}
+#| eval: true
+#| echo: false
+
+archives %>% 
+  filter(has_archive) %>% 
+  left_join(
+    mnmgwdb$query_columns(
+        "ReplacementData",
+        c("grts_address", "type", "grts_address_replacement")
+      ) %>%
+      rename(
+        grts_address_poc = grts_address,
+        stratum = type,
+        grts_address = grts_address_replacement,
+      ),
+    by = join_by(grts_address),
+    relationship = "many-to-many"
+  ) %>% 
+  knitr::kable()
+```
+

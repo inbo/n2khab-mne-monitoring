@@ -1,0 +1,22 @@
+protocol_code,protocol_version,title,subtitle,language,theme,manager
+sfp-001-nl,2023.01,Vervangprocedure voor geselecteerde steekproefeenheden van terrestrische types,,nl,generic,Toon Westra
+sfp-104-nl,2023.07,Richtlijnen voor het plaatsen van peilbuizen,,nl,water,Toon Van Daele
+sfp-104-nl,2025.01,Richtlijnen voor het plaatsen van peilbuizen,,nl,water,Toon Van Daele
+sfp-105-nl,2023.09,Richtlijnen voor het bemonsteren van peilbuizen,Staalname ondiepe peilbuizen en uitvoeren van veldmetingen,nl,water,Mathias Wackenier
+sfp-106-nl,2023.01,Richtlijnen voor het bepalen van het waterpeil in peilbuizen,,nl,water,Mathias Wackenier
+sfp-113-nl,2023.04,Bepaling doorzicht waterkolom oppervlaktewater op basis van de Secchi-diepte,,nl,water,Toon Westra
+sfp-114-nl,2024.03,Bemonstering waterkolom oppervlaktewater,,nl,water,Toon Westra
+sfp-115-nl,2024.04,Veldmeting abiotiek oppervlaktewater met behulp van WTW Multi 3430 veldmeter,,nl,water,Toon Westra
+sfp-201-nl,2024.01,Bemonsteren aan de hand van oppervlaktemonsters,Manueel met steekguts,nl,soil,Hans Van Calster
+sfp-401-nl,2023.03,Klassieke vegetatieopname in een proefvlak aan de hand van visuele inschattingen van bedekking van soorten in (semi-)terrestrische vegetatie,,nl,vegetation,Hans Van Calster
+sfp-403-nl,2023.02,Vegetatieopname en LSVI-bepaling habitat 3260,,nl,vegetation,Toon Westra
+sfp-403-nl,2023.05,Vegetatieopname en LSVI-bepaling habitat 3260,,nl,vegetation,Toon Westra
+sfp-406-nl,2023.06,Vegetatieopname en LSVI-bepaling Luronium natans,,nl,vegetation,Toon Westra
+sfp-407-nl,2024.02,Veldprotocol voor vegetatie-opnames in grote proefvlakken en percelen met behulp van de beheermonitoringschaal,,nl,vegetation,Patrik Oosterlynck
+sop-039-nl,2024.07,Procedure om MAS-data te downloaden via de Sovon WFS-server,,nl,,"Langeraert, Ward"
+sop-041-nl,2025.02,Substaal spierweefsel zoogdieren,,nl,,Hans Van Calster
+spp-001-nl,2023.08,Veldprotocol Kwaliteitsmeetnet Natura 2000 habitats partim heidehabitats,"psammofiele heide (2310), buntgrasvegetaties (2330_bu), droge heide (4030), natte heide (4010)",nl,mhq,Patrik Oosterlynck
+spp-002-nl,2025.-2,Locatie-evaluatie en celkartering van terrestrische steekproefeenheden in de Meetnetten Natuurlijk Milieu,,nl,mnm,Karen Wuyts
+spp-003-nl,2025.-1,Plaatsen van een peilbuis-piëzometer in steekproefeenheden van het meetnet eutrofiëring via het grondwater (GW_03.3) van de Meetnetten Natuurlijk Milieu,,nl,mnm,Karen Wuyts
+spp-116-nl,2024.05,Abiotische staalname stilstaande oppervlaktewateren,,nl,mnm,Toon Westra
+spp-117-nl,2024.06,Abiotische staalname stromende oppervlaktewateren,,nl,mnm,Toon Westra

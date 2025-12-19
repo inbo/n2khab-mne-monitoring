@@ -1,0 +1,197 @@
+#+title: Kickoff Brainstorm
+#+date: 20250603
+#+author: Falk Mielke
+
+A collection of ideas and components to be installed very soon,
+in preparation of a stakeholder brainstorming session.
+
+* Data Flow: I/O
+** Outbound
+|------------------+------------------------------------------------------------|
+| Definition       | refers to data provided by the "back office" to the field. |
+|------------------+------------------------------------------------------------|
+| change frequency | rather high (>weekly)                                      |
+| modularity       | as low as possibe ("one app" ideal)                        |
+| recovery         | backed up upstream (e.g. POC)                              |
+|------------------+------------------------------------------------------------|
+
++ (dates and field activities)
++ sample locations
+  + core location (-> navigation)
+  + [[microlocation]] = target placement at sampling area (e.g. aquatic types, biotic sample field)
+  + replacements (/cf./ [[replacement cells]])
+
+
+** Inbound
+|------------------+------------------------------------------------------------|
+| Definition       | Data captured in the field, stored for analysis.           |
+|------------------+------------------------------------------------------------|
+| change frequency | minimal (captured as-is; could be "append only")           |
+| modularity       | partially given by INBO-context interactions (e.g. WATINA) |
+| recovery         | "all in" (daily diffs, weekly dumps)                       |
+|------------------+------------------------------------------------------------|
+
+
+* procedure BIO
+fieldmap vervangen/supplementeren
+-> biodiv?
+
+prio: outbound
+
+** *outbound*
++ locatie
+  - **data layers:** sample locations - todo's, done, replacement reserves; +perimeter
+  - (eigenaar) -> later
+  - microlocation priors?
++ habitattypes (POC)
+  + voor welk type ben ik hier?
+  + [case] -> rastermidden, rastercel, plas, stroom
+  + rastermidden/rastercel (← Karen) = "centroïdegebaseerd" vs. "celgebaseerd" / MBAG rapport
+    + centroïdegebaseerd: ht moet op centroïd voorkomen
+    + celgebaseerde koppeling gebeurt voor habitattypes 1320, 2150, 6210_sk, 6430_bz en 7150
++ target geometries
+  + aquatische / plas
+    + type moet ergens in de plas aanwezig zijn
+  + aquatische / stroom
+    + type +op eindpunt+ ergens in het segment
++ voorlopige(!) habitatkaart (bron?)
++ +protocols (e.g. "paaltje geplaatst") if desired+
++ vervanglocaties, filter by "vervangen locatie"
+  + polygon
+  + rastercellen + center + volgnummer
+
+
+** *inbound*
+- GRTS address as identifier key (link with `inboveg`)
++ toegankelijkheid + anticipated duration
++ habitattype (check targettype? -> anders freetext; percentage?)
+  + reason (mapping error? perturbation?)
+  + permanence / anticipation of recovery
+
++ (↗outbound) gekozen vervanglocatie
+  + gebruikte methode vervanging
+  + +aanpassingen polygoon (bv. list correct hab raster cells)+
+
++ microlocation details/sketch? scheme? distances? obstacles?
++ celkartering: (✓ht aanwezig | vervanging gevonden)
+  + draw points
+    + (rtkgps? sketch?)
+  + draw polygons
+    + (rtkgps? sketch?)
+
++ aanwijzigingen parkeren/logistiek/etc.
+
+
+* extra
+
+#+begin_quote
+Dag Falk, ik was je nog de link naar de protocol verschuldigd: https://inbo.github.io/protocols/standard-field-protocols-sfp.html
+De protocollen die relevant zijn voor de grondwatermonitoring zijn sfp-104-nl, sfp-105-nl en sfp-106-nl.
+#+end_quote
+
+* procedure gw
+** (I) metadata
+
+verbinding WATINA via pb_code
+FA
+verbinding protocollen via FA / datum / medewerker
+verbinding labo via recipientencode
+    -> WATINA recipientencode? (/Mathias)
++ opmerkingen!
+
+** (II) protocollen
+te noteren informatie
++ boorverslag; foto's
++ opmerkingen!
+
+++ extra gegevens <- Karen
+bv. datatypes: numeric, freetext, dropdown, checkboxes/radiobuttons
++ (ingeschatte) afstand vegetatieovergang (randeffect) < 100m
++ verstoring melden
++ vandalisme
++ herstel nodig (check + freeform)
+
+** (III) veld-mvars
+https://docs.google.com/spreadsheets/d/1gJb2nY-Cs-SCNMpz0sGFslb0j69mzNx5BJu9tQXpHfc/edit?gid=1855614358#gid=1855614358
+"standardpakket veld *"
+"meetnet == GW_03.3"
++ opmerkingen!
+
+
+* data capture (inbound)
+** users
+*** (A) location evaluation ("biotieker")
+*** (B) groundwater scheme
+
+** responsvariabelen (cf vars_per_scheme tabblad)
+
+     + milieuvariabelen
+         + zo mogelijk via invoer Watina, INBOveg e.a.
+         + waar niet (secchi ea), in app voorzien
+     + omgevingsvariabelen
+         + in app voorzien
+     + karteerdata
+         + uit celkartering - in app voorzien
+         + uit LSVI-kartering - invoerwijze?
+** planningsvariabelen (i.e. die toekomstplanning beïnvloeden)
+     + zoals
+         + attributen spatiotemporal design (kunnen steekproef beïnvloeden), bv
+                 + resultaten van LOCEVAL activities
+                 + datum uitvoering field activity X
+         + attributen response design, bv
+                 + resultaat van SAMPLPOINT activities
+         + toegankelijkheid
+     + in app voorzien
+
+** omgevingskenmerken
+Bij zowel toestand- als trenduitspraken is het bovendien nodig om met
+*aanvullende, verklarende gegevens (omgevingskenmerken, aanvullende
+variabelen)* meer indicatie te verkrijgen over mogelijke oorzaken voor de
+waargenomen toestand en trend. Dit gebeurt typisch met een modelmatige
+analyse. Lijsten van bruikbare omgevingskenmerken zijn (nog onvolledig)
+beschikbaar in google-documenten over
++ [[https://docs.google.com/spreadsheets/d/14jiHfF4vZUlmfPKiry8HCDDt-HFFvhDhW9_SFvtdSkk][omgevingskenmerken]] en
++ [[https://docs.google.com/spreadsheets/d/1gJb2nY-Cs-SCNMpz0sGFslb0j69mzNx5BJu9tQXpHfc][milieuvariabelen]].
+
+
+* Conceptual Framework
+** POC
++ [[https://github.com/inbo/n2khab-mne-design/tags][mne-design]]
++ [[https://drive.google.com/file/d/1dqbQpfv_ImzVyQL8T43ooWcljRTYmZgd/view?usp=drive_link][mindmap]]
++ [[https://github.com/inbo/n2khab-mne-monitoring/pull/5][code integration]] [!]
+
+** FAGs
++ GPS and maaiveldhoogte
+
+* Loose Collection
+** replacement cells
+/cf./ https://docs.google.com/document/d/11VE2ytlZm1PUI2_p8GHac68I40dQwSDjXR05nfjPQus
+
+** microlocation
+#+begin_quote
+enkele opties voor geografisch 'well-spread' sampling (naar
+   https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#Spreaded):
+     o
+       Dumelle M., Kincaid T., Olsen A.R. & Weber M. (2023). spsurvey:
+       Spatial Sampling Design and Analysis in R. Journal of
+       Statistical Software 105: 1–29.
+       https://doi.org/10.18637/jss.v105.i03.
+     o
+       Grafström A. (2012). Spatially correlated Poisson sampling.
+       Journal of Statistical Planning and Inference 142 (1).
+       https://doi.org/10.1016/j.jspi.2011.07.003.
+     o
+       Grafström A., Lundström N.L.P. & Schelin L. (2012). Spatially
+       Balanced Sampling through the Pivotal Method. Biometrics 68 (2):
+       514–520. https://doi.org/10.1111/j.1541-0420.2011.01699.x.
+     o
+       Robertson B.L., Brown J.A., McDonald T. & Jaksons P. (2013).
+       BAS: Balanced Acceptance Sampling of Natural Resources.
+       Biometrics 69 (3): 776–784. https://doi.org/10.1111/biom.12059.
+     o
+       Stevens D.L. & Olsen A.R. (2004). Spatially Balanced Sampling of
+       Natural Resources. Journal of the American Statistical
+       Association 99 (465): 262–278.
+       https://doi.org/10.1198/016214504000000250.
+#+end_quote
+(mail Floris 20250603)

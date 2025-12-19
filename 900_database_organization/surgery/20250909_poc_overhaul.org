@@ -1,0 +1,192 @@
+
+
+* POC changes
+** DONE domain partition
+CLOSED: [2025-09-18 Thu 08:00]
+
+introduced by Floris
+
+#+begin_src sql
+-- add domain part to loceval
+-- ALTER TABLE "outbound"."FieldActivityCalendar" ADD COLUMN domain_part varchar;
+-- COMMENT ON COLUMN "outbound"."FieldActivityCalendar".domain_part IS E'domain partition';
+-- TODO is this an attribute of SampleUnits?
+
+
+-- add domain part to mnmgwdb
+ALTER TABLE "outbound"."SampleLocations" ADD COLUMN domain_part varchar;
+COMMENT ON COLUMN "outbound"."SampleLocations".domain_part IS E'domain partition';
+
+#+end_src
+
+** TODO wait_<more>
+
+more to wait
+
+* DONE FieldworkCalendar Needs `stratum`
+CLOSED: [2025-09-18 Thu 08:01]
+
+finally, stratum comes to the gw database.
+
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."FieldworkCalendar" ADD COLUMN stratum varchar DEFAULT NULL;
+ALTER TABLE "inbound"."Visits" ADD COLUMN stratum varchar DEFAULT NULL;
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN stratum varchar DEFAULT NULL;
+ALTER TABLE "inbound"."ChemicalSamplingActivities" ADD COLUMN stratum varchar DEFAULT NULL;
+#+end_src
+
+
+subprocedure: Stratum
+>>> [[file:./20250909_FieldworkCalendar_Strata.R]]
+
+
+
+* DONE Versions
+CLOSED: [2025-09-18 Thu 08:03]
+we now store the POC versions
+
+subprocedure: Versions
+>>> [[file:./20250908_Versions.sql]]
+
+
+* DONE Protocols
+CLOSED: [2025-09-18 Thu 08:06]
+
+subprocedure: Protocols
+>>> [[file:./20250904_Protocols.sql]]
+>>> [[file:../views/gw_FieldWork.sql]]
+>>> [[file:../views/gw_MyFieldWork.sql]]
+
+-> MANUALLY update the Protocols table once.
+>>> [[file:../078_update_protocols.qmd]]
+
+* DONE column adjustments
+CLOSED: [2025-09-18 Thu 08:09]
+
+teammember_id
+date_visit
+visit_done
+
+#+begin_src sql :eval no
+DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
+ALTER TABLE "inbound"."WellInstallationActivities" DROP COLUMN teammember_id;
+ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN teammember_id;
+ALTER TABLE "inbound"."WellInstallationActivities" DROP COLUMN date_visit;
+ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN date_visit;
+ALTER TABLE "inbound"."WellInstallationActivities" DROP COLUMN visit_done;
+ALTER TABLE "inbound"."ChemicalSamplingActivities" DROP COLUMN visit_done;
+#+end_src
+
++ + restore view!
+  SELECT * FROM "inbound"."FieldWork" WHERE visit_done;
+>>> [[file:../views/gw_FieldWork.sql]]
+>>> [[file:../views/gw_MyFieldWork.sql]]
+
+* DONE Stitch Lookups
+CLOSED: [2025-09-18 Thu 08:22]
+
+... to reduce off-focus updates during POC update
+
+>>> [[file:../095_re_link_foreign_keys_optional.R]]
+
+
+* DONE 871030 manual correction
+CLOSED: [2025-09-18 Thu 08:22]
+SELECT * FROM "metadata"."SSPSTaPas" WHERE sspstapa_id IN (201, 221);
+SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address = 871030 AND activity_group_id = 9 AND date_start = '2026-10-01';
+
+
+UPDATE "outbound"."FieldworkCalendar" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
+UPDATE "inbound"."Visits" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
+UPDATE "inbound"."WellInstallationActivities" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
+UPDATE "inbound"."ChemicalSamplingActivities" SET stratum = '4010' WHERE grts_address = 871030 AND fieldworkcalendar_id = 1272;
+
+
+* DONE POC update =v0.9.0_poc0.13.0=
+CLOSED: [2025-09-18 Thu 09:11]
+
+# DELETE FROM "inbound"."Visits" WHERE grts_address = 871030 AND samplelocation_id = 857;
+
+>>> [[file:../070_update_POC.qmd]]
+
+
+
+* auxiliary maintenance scripts
+... all of them, just to make sure.
+
+* +TODO+ DONE
+
++ [✓] special activities upload
++ [✓] ++LocationInfos for new Locations
++ [✓] test =09*= update procedures
++ [✓] adjust filter 2026 locations
+  + [✓] re-run all and check 871030
+    SELECT * FROM "outbound"."FieldworkCalendar" WHERE grts_address = 871030 AND activity_group_id = 9 AND date_start = '2026-10-01';
++ [✓] adjust views
++ [✓] test qgis
+
+
+* TODOs for Later
+
++ a "consistency dashboard" with checks for NA's and correct links
++ common reset =fieldwork_id=
++ what to do with "Visits".lims_code? (planning -> rename =_planned=?)
++ remove "LocationEvaluations".recovery_hints -> in =loceval=, link view to LocationInfos
++ rename SampleLocations -> SampleUnits
+- sspstapas removed (NA) what to do with it? extend or drop?
+- grts_join_method to SampleLocations?
++ more consistent =UNIQUE()= rules on all characteristic columns
+
+
+* archive
+
+
+SPECIAL OPERATION: 871030
+OBSOLETE was solved by correcting the stratum.
+```{sql delete-one-871030}
+#| eval: false
+
+-- fieldwork_calendar_new %>% filter(grts_address == 871030)
+
+-- DELETE
+SELECT * FROM "outbound"."SampleLocations"
+WHERE samplelocation_id IN (
+SELECT DISTINCT SLOC.samplelocation_id
+FROM "outbound"."SampleLocations" AS SLOC
+LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
+  ON (SLOC.grts_address = FWCAL.grts_address)
+  AND (SLOC.strata = FWCAL.stratum)
+WHERE SLOC.grts_address = 871030
+  AND FWCAL.fieldworkcalendar_id IS NULL
+);
+
+
+SELECT *
+FROM "outbound"."SampleLocations" AS SLOC
+LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
+  ON (SLOC.grts_address = FWCAL.grts_address)
+  AND (SLOC.strata = FWCAL.stratum)
+WHERE SLOC.grts_address = 871030
+;
+
+```
+
+
+special operation: 219694
+```{sql check-special-activities}
+#| eval: false
+-- SELECT * FROM "inbound"."FieldWork" WHERE grts_address = 219694 AND fieldwork_id IS NOT NULL;
+-- yielded 5451 and 5192
+-- SELECT * FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5451;
+-- SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5192;
+--
+-- DELETE FROM "inbound"."WellInstallationActivities" WHERE grts_address = 219694 AND activity_group_id = 4 AND fieldwork_id = 5192;
+-- DELETE FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 AND activity_group_id = 13 AND fieldwork_id = 5567;
+--
+mnmgwdb=# SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE grts_address = 219694 ;
+ fieldwork_id | log_user |         log_update         | samplelocation_id | fieldworkcalendar_id | visit_id | grts_address | activity_group_id | date_start | recipient_code | project_code | stratum
+--------------+----------+----------------------------+-------------------+----------------------+----------+--------------+-------------------+------------+----------------+--------------+---------
+         5675 | falk     | 2025-09-18 06:53:46.336174 |               598 |                 1324 |     1166 |       219694 |                13 | 2025-10-01 |                |              | 91E0_vo
+         5567 | falk     | 2025-09-18 06:53:46.336174 |               598 |                 1324 |     1166 |       219694 |                13 | 2025-10-01 |                |              | 91E0_vo
+(2 rows)
+```

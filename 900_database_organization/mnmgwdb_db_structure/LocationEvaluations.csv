@@ -1,0 +1,18 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+locationevaluation_id,int,True,,True,True,,,,calendar index (technical)
+samplelocation_id,int,False,,False,False,,,,the technical sequence of sample locations
+log_user,varchar,False,,False,False,,,,"(technical, but NOT auto-created in this db) user who modified the entry"
+log_update,timestamp,False,,False,False,,,,"(technical, but NOT auto-created in this db) timestamp of last modification"
+schemes,varchar,True,,False,False,,,,monitoring scheme
+panel_set,int,False,,False,False,,,,panel reference
+targetpanel,varchar,False,,False,False,,,,panel reference
+type,varchar(16),True,,False,False,,,,natura 2000 habitat (sub-)type short label
+grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+type_assessed,varchar,False,NULL,False,False,,,,must be adjusted upstream in the POC; kept now for double-check
+type_is_absent,bool,False,,False,False,,,,target type not found in field assessment
+eval_source,varchar,False,,False,False,,,,`orthophoto` or `loceval`
+eval_name,varchar,True,,False,False,,,,(technical) user who modified the entry
+eval_date,date,False,,False,False,,,,date of assessment
+eval_id,int,False,NULL,False,False,,,,link to identifiers in the database (redundant <-> dynamic)
+notes,text,False,NULL,False,False,,,,free text notes which will be transferred to the field app
+photo,varchar,False,NULL,False,False,,,,link to a photo of the site

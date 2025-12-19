@@ -1,0 +1,25 @@
+schema,table,owner,read_access,write_access,geometry,constraint,freesql,persistent,excluded,comment
+metadata,Versions,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,1,,storing the POC versions which caused the archived data
+metadata,Protocols,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,protocols (preliminary version)
+metadata,GroupedActivities,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
+metadata,TeamMembers,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,1,,list of team members
+metadata,N2kHabStrata,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,n2khab types and strata
+metadata,SSPSTaPas,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,1,,lookup for stratum_scheme_ps_targetpanels
+metadata,Locations,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,POINT,,,1,,"center points of the (previous and current) sample locations, but excluding Replacements and FreeFieldNotes"
+metadata,LocationCells,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
+metadata,Coordinates,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,Locations coordinates of the grts points (in other CRS)
+outbound,LocationInfos,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
+outbound,SampleLocations,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
+outbound,LocationEvaluations,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
+outbound,FieldworkCalendar,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,field activity calender
+outbound,Divers,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",tom,,,,1,,list of reserved diver numbers for selection
+outbound,RandomPoints,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,POINT,,,,,random points for placement in the cell
+outbound,MHQPolygons,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey",,POLYGON,,,1,,MHQ sample areas NO TRESPASSING!
+outbound,CellMaps,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",POLYGON,,,1,,cell mapping input by drawing polygons
+inbound,Visits,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,"inbound information about location visits, planned in FieldworkCalendar, linked to SampleLocations and field activity GROUP"
+inbound,WellInstallationActivities,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,information collected for certain activities (well installations); linked to a subset of Visits
+inbound,ChemicalSamplingActivities,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,information collected for certain activities (chemical sampling); linked to a subset of Visits
+inbound,SpatialPositioningActivities,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",,,,1,,information collected for certain activities (spatial positioning); linked to a subset of Visits
+inbound,FreeFieldNotes,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",POINT,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
+inbound,FieldFollowUps,salamandra,"tom,yglinga,jens,lise,wouter,floris,karen,falk,ward,monkey","tom,yglinga,jens,lise,wouter,floris,karen,falk",POINT,,,1,,"forgotten, but never really forgotten tasks"
+archive,ReplacementData,salamandra,monkey,,,,,1,,storing info about replacements (temporary solution)

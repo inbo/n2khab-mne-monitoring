@@ -1,0 +1,9 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+replacementdata_id,int,True,,True,True,,,,location info index (technical)
+type,varchar,True,,False,False,,,,"type (code), our latest best assessment"
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`original`, i.e. prior to replacements)"
+grts_address_replacement,int,True,,False,False,,CHECK (grts_address_replacement > 0),,"GRTS address (`final`, i.e. after replacements)"
+replacement_rank,smallint,True,,False,False,,CHECK (replacement_rank >= 0),,"replacement preference order, can be zero if original is retained for one type"
+is_replaced,boolean,True,0,False,False,,,,indicator whether we used a replacement location
+new_location_id,int,True,NULL,False,False,,,,location index post
+new_samplelocation_id,int,True,NULL,False,False,,,,sample location index post
