@@ -533,7 +533,20 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 
 
 #_______________________________________________________________________________
-# Fieldwork Activity Tables
+# Fieldwork "Special" Activity Tables
+
+special_activity_tables <- c(
+  "WellInstallationActivities",
+  "ChemicalSamplingActivities",
+  "SpatialPositioningActivities"
+)
+
+speciact_characols <- c(
+  "grts_address",
+  "stratum",
+  "activity_group_id",
+  "date_start"
+)
 
 selection_of_activities <- list(
   "WellInstallationActivities" = function(df) df %>%
@@ -587,31 +600,16 @@ visits_redownload <- visits_redownload %>%
   )
 
 
-special_activity_tables <- c(
-  "WellInstallationActivities",
-  "ChemicalSamplingActivities",
-  "SpatialPositioningActivities"
-)
-
-
-speciact_characols <- c(
-  "grts_address",
-  "stratum",
-  "activity_group_id",
-  "date_start"
-)
-# "samplelocation_id",
-# "fieldworkcalendar_id",
-# "visit_id",
-
 # table_label <- "WellInstallationActivities"
 # table_label <- "ChemicalSamplingActivities"
-
+# table_label <- "SpatialPositioningActivities"
 
 for (table_label in special_activity_tables) {
 
   special_activities <- visits_redownload %>%
     selection_of_activities[[table_label]]()
+
+  # special_activities %>% head(3) %>% t() %>% knitr::kable()
 
   existing <- mnmgwdb$query_table(table_label)
 

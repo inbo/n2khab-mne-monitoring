@@ -8,7 +8,7 @@ CREATE TABLE "inbound"."SpatialPositioningActivities"();
 
 COMMENT ON TABLE "inbound"."SpatialPositioningActivities" IS E'information collected for certain activities (spatial positioning); linked to a subset of Visits';
 
-ALTER TABLE "inbound"."SpatialPositioningActivities" ADD COLUMN fieldwork_id int NOT NULL PRIMARY KEY;
+ALTER TABLE "inbound"."SpatialPositioningActivities" ADD COLUMN fieldwork_id int NOT NULL PRIMARY KEY DEFAULT nextval('inbound.seq_fieldwork_id'::regclass);
 COMMENT ON COLUMN "inbound"."SpatialPositioningActivities".fieldwork_id IS E'fieldwork index: shared index over multiple fieldwork activity tables';
 
 ALTER TABLE "inbound"."SpatialPositioningActivities" ADD COLUMN log_user varchar NOT NULL DEFAULT current_user;
@@ -60,6 +60,8 @@ GRANT INSERT ON "inbound"."SpatialPositioningActivities" TO tom;
 GRANT UPDATE ON "inbound"."SpatialPositioningActivities" TO tom, yglinga, jens, lise, wouter, floris, karen, falk, ward;
 GRANT DELETE ON "inbound"."SpatialPositioningActivities" TO tom;
 
+
+-- ALTER TABLE "inbound"."SpatialPositioningActivities" ALTER COLUMN fieldwork_id SET DEFAULT nextval('inbound.seq_fieldwork_id'::regclass);
 
 
 -- re-create views:  "inbound"."FieldWork", "inbound"."MyFieldWork" ;
