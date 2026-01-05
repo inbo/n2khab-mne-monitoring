@@ -2,14 +2,17 @@ DROP VIEW IF EXISTS  "outbound"."OrthophotoAssessment" ;
 CREATE VIEW  "outbound"."OrthophotoAssessment"  AS
 SELECT
   LOC.*,
-  LOCASS.locationassessment_id,
-  (UNIT.location_id IS NULL) AS sample_location_obsolete,
+  UNIT.type,
   UNIT.grts_join_method,
   UNIT.schemes,
   UNIT.scheme_ps_targetpanels,
+  UNIT.domain_part,
+  UNIT.is_forest,
+  UNIT.in_mhq_samples,
   UNIT.has_mhq_assessment AS assessment,
   UNIT.mhq_assessment_date AS assessment_date,
-  LOCASS.type,
+  (UNIT.archive_version_id IS NOT NULL) AS sample_unit_obsolete,
+  LOCASS.locationassessment_id,
   LOCASS.cell_disapproved,
   LOCASS.revisit_disapproval,
   LOCASS.disapproval_explanation,
@@ -19,13 +22,10 @@ SELECT
   LOCASS.notes,
   LOCASS.assessment_done
 FROM "outbound"."LocationAssessments" AS LOCASS
-LEFT JOIN "metadata"."Locations" AS LOC
-  ON LOC.location_id = LOCASS.location_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON (LOCASS.grts_address = UNIT.grts_address
-  -- AND LOCASS.type = UNIT.type
-     )
-  WHERE UNIT.location_id IS NOT NULL
+  ON LOCASS.sampleunit_id = UNIT.sampleunit_id
+LEFT JOIN "metadata"."Locations" AS LOC
+  ON LOC.location_id = UNIT.location_id
 ;
 
 
@@ -47,5 +47,5 @@ DO INSTEAD
 ;
 
 
-GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO ward, karen, floris, monkey;
-GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO ward, karen, floris;
+GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO ward, karen, floris, falk, monkey;
+GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO ward, karen, floris, falk;
