@@ -228,6 +228,8 @@ added her in the structure file
 dump recreate and grep username
 also went through all view files to adjust GRANTs
 
+finally, adjust =pg_hba= rules
+
 
 * loceval
 
@@ -1866,7 +1868,8 @@ parent_material
 info
 #+end_example
 
-info is the combination of four other columns
+info is the combination of four other columns:
+      drainage, texture, substrate, profile
 
 Append procedure to use =n2khab::read_soilmap()= and upload info for each location point
 to the end of =093_replaced_LocationCells.R=.
