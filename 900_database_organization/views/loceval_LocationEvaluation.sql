@@ -139,5 +139,5 @@ DO ALSO
 
 
 
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris, karen, tom, ward, monkey;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris, karen, janne, tom, ward, monkey;
 GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris, karen, ward;

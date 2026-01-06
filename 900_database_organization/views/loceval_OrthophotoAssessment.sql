@@ -47,5 +47,5 @@ DO INSTEAD
 ;
 
 
-GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO ward, karen, floris, falk, monkey;
-GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO ward, karen, floris, falk;
+GRANT SELECT ON  "outbound"."OrthophotoAssessment"  TO ward, karen, janne, floris, falk, monkey;
+GRANT UPDATE ON  "outbound"."OrthophotoAssessment"  TO ward, karen, janne, floris, falk;

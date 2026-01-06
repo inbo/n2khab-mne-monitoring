@@ -33,8 +33,8 @@ GROUP BY ogc_fid, wkb_geometry, location_id
 ORDER BY location_id
 ;
 
-GRANT SELECT ON  "outbound"."SampleCells"  TO ward, karen, floris, tom, monkey;
-GRANT UPDATE ON  "outbound"."SampleCells"  TO ward, karen, floris, tom;
+GRANT SELECT ON  "outbound"."SampleCells"  TO ward, karen, janne, floris, tom, monkey;
+GRANT UPDATE ON  "outbound"."SampleCells"  TO ward, karen, janne, floris, tom;
 
 GRANT SELECT ON  "outbound"."SampleCells"  TO tester;
 GRANT UPDATE ON  "outbound"."SampleCells"  TO tester;

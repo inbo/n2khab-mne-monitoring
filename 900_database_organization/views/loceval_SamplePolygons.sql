@@ -14,7 +14,11 @@ LEFT JOIN "outbound"."SampleUnits" AS UNIT
 
 GRANT SELECT ON  "outbound"."SamplePolygons"  TO ward;
 GRANT SELECT ON  "outbound"."SamplePolygons"  TO karen;
+GRANT SELECT ON  "outbound"."SamplePolygons"  TO janne;
 GRANT SELECT ON  "outbound"."SamplePolygons"  TO floris;
+GRANT SELECT ON  "outbound"."SamplePolygons"  TO falk;
 GRANT UPDATE ON  "outbound"."SamplePolygons"  TO ward;
 GRANT UPDATE ON  "outbound"."SamplePolygons"  TO karen;
+GRANT UPDATE ON  "outbound"."SamplePolygons"  TO janne;
 GRANT UPDATE ON  "outbound"."SamplePolygons"  TO floris;
+GRANT UPDATE ON  "outbound"."SamplePolygons"  TO falk;

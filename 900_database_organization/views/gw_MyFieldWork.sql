@@ -11,8 +11,8 @@ WHERE teammember_assigned IN (
 ) OR visit_done;
 
 
-GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
-GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen;
+GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, monkey;
+GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne;
 
 GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tester;
 GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tester;

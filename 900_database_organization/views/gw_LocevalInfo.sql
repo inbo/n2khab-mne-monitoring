@@ -24,6 +24,6 @@ WHERE TRUE
 
 
 
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
+GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, monkey;
 
 GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tester;

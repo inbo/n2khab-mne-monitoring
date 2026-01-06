@@ -115,8 +115,8 @@ DO ALSO
 ;
 
 
-GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO ward, karen, floris, tom, monkey;
-GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO ward, karen, floris, tom;
+GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO ward, karen, janne, floris, tom, monkey;
+GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO ward, karen, janne, floris, tom;
 
 GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO tester;
 GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO tester;

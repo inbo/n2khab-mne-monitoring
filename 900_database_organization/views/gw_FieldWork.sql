@@ -27,6 +27,7 @@ SELECT
   INFO.landowner,
   INFO.watina_code_1,
   INFO.watina_code_2,
+  SOIL.soil_info,
   LOCEVAL.loceval_photo,
   GAP.activity_group_id,
   GAP.is_field_activity,
@@ -64,6 +65,11 @@ LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON INFO.location_id = VISIT.location_id
+LEFT JOIN (
+  SELECT DISTINCT location_id, info AS soil_info
+  FROM "metadata"."LocationSoilInfos"
+  ) AS SOIL
+  ON LOC.location_id = SOIL.location_id
 LEFT JOIN "outbound"."FieldworkCalendar" AS FwCAL
   ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
@@ -202,8 +208,8 @@ DO ALSO
  WHERE fieldwork_id = OLD.fieldwork_id
 ;
 
-GRANT SELECT ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk, ward, monkey;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk;
+GRANT SELECT ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+GRANT UPDATE ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
 
 
 
@@ -219,8 +225,8 @@ WHERE teammember_assigned IN (
 
 
 
-GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk, ward, monkey;
-GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, falk;
+GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
 
 
 

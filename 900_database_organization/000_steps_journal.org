@@ -215,15 +215,18 @@ In fact, the extensions did not change hands; let's see how this plays out.
 
 ** =sync_mod= to =metadata=
 SCHEDULED: <2026-01-06 Tue>
+
 moved function to a scheme which is part of the grand scheme of MNM things.
 
 
 ** add user
 SCHEDULED: <2026-01-06 Tue>
+
 new teammember, new database user
 
 added her in the structure file
 dump recreate and grep username
+also went through all view files to adjust GRANTs
 
 
 * loceval
@@ -796,9 +799,9 @@ cd /data/ && tar -cvzf mnm_db_backup.tar.gz mnm_db_backups/*
 SCHEDULED: <2025-06-19 Thu>
 
 #+begin_src sh :eval no
-[postgres@host ~]$ dropdb loceval_dev -p 2407
-[postgres@host ~]$ createdb loceval_dev -O <admin> -p 2407
-[postgres@host ~]$ psql -p 2407 -d loceval_dev
+[postgres@host ~]$ dropdb loceval_dev -p <port>
+[postgres@host ~]$ createdb loceval_dev -O <admin> -p <port>
+[postgres@host ~]$ psql -p <port> -d loceval_dev
 loceval_dev=# CREATE EXTENSION postgis;
 loceval_dev=# CREATE EXTENSION postgis_topology;
 loceval_dev=# CREATE EXTENSION fuzzystrmatch;
@@ -1265,7 +1268,7 @@ to re-activate the fieldwork calendar
 + create and authorize extra users
 
 #+begin_src sh
-createuser  -p 2407 -S <user>
+createuser  -p <port> -S <user>
 
 psql -p <port>
 ALTER USER <user> WITH ENCRYPTED PASSWORD '<password>';
@@ -1860,11 +1863,15 @@ drainage
 profile
 profile_variant
 parent_material
+info
 #+end_example
 
+info is the combination of four other columns
 
 Append procedure to use =n2khab::read_soilmap()= and upload info for each location point
 to the end of =093_replaced_LocationCells.R=.
+
+Finally, adjusted views and qgis layer styles to incorporate =soil_info=
 
 
 * Major R Code Overhaul (202508)

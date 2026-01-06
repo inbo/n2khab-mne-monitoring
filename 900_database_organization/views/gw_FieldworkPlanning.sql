@@ -20,6 +20,7 @@ SELECT
   INFO.recovery_hints,
   INFO.watina_code_1,
   INFO.watina_code_2,
+  SOIL.soil_info,
   FWCAL.fieldworkcalendar_id,
   FWCAL.samplelocation_id,
   FWCAL.date_start,
@@ -62,6 +63,11 @@ LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = SLOC.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
+LEFT JOIN (
+  SELECT DISTINCT location_id, info AS soil_info
+  FROM "metadata"."LocationSoilInfos"
+  ) AS SOIL
+  ON LOC.location_id = SOIL.location_id
 LEFT JOIN "inbound"."Visits" AS VISIT
   ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
@@ -157,9 +163,11 @@ DO ALSO
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tom, yglinga, jens, lise, wouter, floris, karen, ward, monkey;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom, floris, karen;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, falk, monkey;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom, floris, karen, falk;
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester;
 
+
+-- REVOKE UPDATE ON  "outbound"."FieldworkPlanning"  FROM  tester;
