@@ -213,6 +213,19 @@ $sync_mod$ LANGUAGE plpgsql;
 In fact, the extensions did not change hands; let's see how this plays out.
 
 
+** =sync_mod= to =metadata=
+SCHEDULED: <2026-01-06 Tue>
+moved function to a scheme which is part of the grand scheme of MNM things.
+
+
+** add user
+SCHEDULED: <2026-01-06 Tue>
+new teammember, new database user
+
+added her in the structure file
+dump recreate and grep username
+
+
 * loceval
 
 ** setup database
@@ -1824,6 +1837,34 @@ AND visit_done;
 |      3664630 | 7140_meso | 2025-08-26 |        |
 |      4241542 | 91E0_vm   | 2025-09-17 | X      |
 |      8826293 | 1330_hpr  | 2025-11-12 |        |
+
+
+** LocationSoilInfos
+SCHEDULED: <2026-01-06 Tue>
+
+upon request by TDD;
+info from =soilmap_simple= to database to remove need of manual pasting.
+
+="metadata"."LocationSoilInfos"=
+
+#+begin_example
+locationsoilinfo_id
+location_id
+grts_address
+region
+converted
+soil_unit_type_codes
+substrate
+texture
+drainage
+profile
+profile_variant
+parent_material
+#+end_example
+
+
+Append procedure to use =n2khab::read_soilmap()= and upload info for each location point
+to the end of =093_replaced_LocationCells.R=.
 
 
 * Major R Code Overhaul (202508)
