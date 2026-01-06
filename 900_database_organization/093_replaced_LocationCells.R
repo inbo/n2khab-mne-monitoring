@@ -150,3 +150,80 @@ mapview::mapview(
 }
 
 message("________________________________________________________________")
+
+
+# ________________________________________________________________
+# Addendum: LocationSoilInfos
+
+library("n2khab")
+
+# prepare soil infos
+ss_n2khab <- n2khab::read_soilmap(use_processed = TRUE, explan = TRUE)
+ss_n2khab <- ss_n2khab %>%
+  mutate_at(
+    vars(
+      bsm_region
+    ), as.character
+  ) %>%
+  mutate_at(vars(starts_with("bsm_mo_")), as.character) %>%
+  rename(
+    region = bsm_region,
+    converted = bsm_converted,
+    soil_unit_type_codes = bsm_mo_soilunitype,
+    substrate = bsm_mo_substr_explan,
+    texture = bsm_mo_tex_explan,
+    drainage = bsm_mo_drain_explan,
+    profile = bsm_mo_prof_explan,
+    profile_variant = bsm_mo_profvar_explan,
+    parent_material = bsm_mo_parentmat
+  ) %>%
+  select(!starts_with("bsm_"))
+
+
+# concatenate info column
+paste_nonna <- \(...) paste(list(...)[!is.na(list(...))], collapse = " |  ")
+
+ss_n2khab <- ss_n2khab %>%
+  rowwise() %>%
+  mutate(
+    info = paste_nonna(
+      drainage,
+      texture,
+      substrate,
+      profile
+      #, bsm_mo_profvar_explan
+    )
+  ) %>%
+  ungroup()
+
+ss_n2khab %>% sf::st_drop_geometry() %>%
+  sample_n(1) %>% t() %>% knitr::kable()
+
+
+
+# load locations
+locations <- mnmgwdb$query_table("Locations")
+
+location_soil_infos <- locations %>%
+  sf::st_as_sf() %>%
+  sf::st_join(ss_n2khab) %>%
+  sf::st_drop_geometry()
+
+
+# upload soil info
+update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
+
+lsi_lookup <- update_cascade_lookup(
+  table_label = "LocationSoilInfos",
+  new_data = location_soil_infos,
+  index_columns = c("locationsoilinfo_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+
+
+
+message("")
+message("  Finished. ")
+message("________________________________________________________________")
