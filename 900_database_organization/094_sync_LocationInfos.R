@@ -21,14 +21,14 @@ todays_date <- strftime(as.POSIXct(Sys.time()), "%Y%m%d%H%M%S")
 # credentials are stored for easy access
 config_filepath <- file.path("./inbopostgis_server.conf")
 
-# commandline_args <- commandArgs(trailingOnly = TRUE)
-# if (length(commandline_args) > 0) {
-#   suffix <- commandline_args[1]
-# } else {
-#   suffix <- ""
-#   # suffix <- "-staging" # "-testing"
-# }
-suffix <- "-staging"
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  suffix <- commandline_args[1]
+} else {
+  suffix <- ""
+  # suffix <- "-staging" # "-testing"
+}
+# suffix <- "-staging"
 
 mnmgwdb <- connect_mnm_database(
   config_filepath = config_filepath,
@@ -140,10 +140,12 @@ mnmgwdb_to_loceval <- mnmgwdb_data %>%
     log_creation = as.POSIXct(Sys.time())
   )
 
-write_csv2(
-  mnmgwdb_to_loceval,
-  glue::glue("{todays_date}_LocationInfos_to_loceval.csv")
-)
+if (nrow(mnmgwdb_to_loceval) > 0) {
+  readr::write_csv2(
+    mnmgwdb_to_loceval,
+    glue::glue("{todays_date}_LocationInfos_to_loceval{suffix}.csv")
+  )
+}
 
 loceval_to_mnmgwdb <- loceval_data %>%
   anti_join(
@@ -156,10 +158,12 @@ loceval_to_mnmgwdb <- loceval_data %>%
     log_creation = as.POSIXct(Sys.time())
   )
 
-write_csv2(
-  loceval_to_mnmgwdb,
-  glue::glue("{todays_date}_LocationInfos_to_mnmgwdb.csv")
-)
+if (nrow(loceval_to_mnmgwdb) > 0) {
+  readr::write_csv2(
+    loceval_to_mnmgwdb,
+    glue::glue("{todays_date}_LocationInfos_to_mnmgwdb{suffix}.csv")
+  )
+}
 
 # find the common ground and evaluate it
 # (1) rows which both tables have in common
@@ -282,10 +286,12 @@ different_common[diff_revisit, "accessibility_revisit"] <-
 # different_common %>%
 #   head(5) %>% t() %>% knitr::kable()
 
-write_csv2(
-  different_common,
-  glue::glue("{todays_date}_LocationInfos_diffs.csv")
-)
+if (nrow(different_common) > 0) {
+  readr::write_csv2(
+    different_common,
+    glue::glue("{todays_date}_LocationInfos_diffs{suffix}.csv")
+  )
+}
 
 common_location_infos <- different_common %>%
   select(grts_address, !!!rlang::syms(data_columns)) %>%
@@ -362,6 +368,11 @@ update_conficting <- function(mnmdb) {
   mnmdb$execute_sql(update_string)
 
   mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
+
+  # re-link location id
+  system(glue::glue(
+    "Rscript 095_re_link_foreign_keys_optional.R {suffix}"
+  ))
 
 }
 
