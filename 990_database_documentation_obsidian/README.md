@@ -1,0 +1,3 @@
+- Welcome to the MNM database documentation!
+- This subfolder is an *obsidian vault*, best opened in [obsidian](https://obsidian.md).
+- Therein, feel free to use the [[Contents]] to navigate.

@@ -1,0 +1,221 @@
+{
+  "main": {
+    "id": "cd641764a52068f6",
+    "type": "split",
+    "children": [
+      {
+        "id": "a78b1ee1f269e817",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ca188fca0fb9aa38",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Contents.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Contents"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "2d0e9a18362db288",
+    "type": "split",
+    "children": [
+      {
+        "id": "25833067a6105fc8",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2c74ccca25d61eb4",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "d52e4f3bc1354c5b",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "9557854f71b1b9a9",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "26911313f98156a1",
+    "type": "split",
+    "children": [
+      {
+        "id": "fe705727c99d6628",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "33a05cb5d122c6da",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "database___generation.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for database___generation"
+            }
+          },
+          {
+            "id": "ed44efac2aa8fbf9",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "database___generation.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from database___generation"
+            }
+          },
+          {
+            "id": "bf1153d13a74cf31",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "022c65f030135f4e",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "256df46f8f32d2db",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "database___generation.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of database___generation"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "ca188fca0fb9aa38",
+  "lastOpenFiles": [
+    "database/connection config file.md",
+    "apps/apps.md",
+    "sql/backslash commands.md",
+    "Contents.md",
+    "server/users.md",
+    "sql.md~",
+    "R/MNMDatabaseConnection.md",
+    "databases.md",
+    "database/database.md",
+    "database/backups.md",
+    "database/authentication.md",
+    "[[database/authentication]].md",
+    "[[database",
+    "sql/sql.md",
+    "Untitled.md",
+    "software/software.md",
+    "server/server.md",
+    "README.md",
+    "R/R.md",
+    "maintenance/maintenance.md",
+    "server/os.md",
+    "server/cronjobs.md",
+    "database.md~",
+    "server/database.md",
+    "software/postgresql.md",
+    "software/postgis.md",
+    "software/openssh.md",
+    "software/git.md",
+    "software/cronie.md",
+    "R.md~",
+    "software/tomb.md~",
+    "[[usage"
+  ]
+}

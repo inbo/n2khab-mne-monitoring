@@ -1,0 +1,2 @@
+- regular processes to keep the data and structure up to date and synced
+- https://github.com/inbo/n2khab-mne-monitoring/tree/database_initialization/900_database_organization

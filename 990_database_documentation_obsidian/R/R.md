@@ -1,0 +1,6 @@
+---
+aliases:
+  - R
+tags:
+  - programming
+---

@@ -1,0 +1,6 @@
+via Python scripts:
+
+	- `110_init_loceval.py`
+	- `210_init_mnmgwdb.py`
+
+these shall be replaced in time by R scripts
