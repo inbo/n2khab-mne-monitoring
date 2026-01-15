@@ -8,7 +8,7 @@ SELECT
   LOC.*,
   FwCAL.teammember_assigned,
   FwCAL.activity_rank,
-  CASE WHEN (FwCAL.date_visit_planned IS NULL) THEN FALSE ELSE TRUE END AS is_scheduled,
+  CASE WHEN (FwCAL.date_visit_planned IS NULL) THEN FALSE ELSE FwCAL.done_planning = TRUE END AS is_scheduled,
   FwCAL.date_visit_planned,
   FwCAL.date_visit_planned - current_date AS days_to_visit,
   FwCAL.date_end - current_date AS days_to_deadline,
@@ -70,8 +70,11 @@ LEFT JOIN (
   FROM "metadata"."LocationSoilInfos"
   ) AS SOIL
   ON LOC.location_id = SOIL.location_id
-LEFT JOIN "outbound"."FieldworkCalendar" AS FwCAL
-  ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
+LEFT JOIN (
+  SELECT *,
+    CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning = TRUE END AS is_scheduled
+  FROM "outbound"."FieldworkCalendar")
+  AS FwCAL ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON FwCAL.samplelocation_id = SLOC.samplelocation_id
 LEFT JOIN (
@@ -121,6 +124,7 @@ LEFT JOIN (
 ) AS LOCEVAL
   ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
 WHERE TRUE
+  AND FwCAL.is_scheduled
   AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
   AND NOT FwCAL.excluded
   AND GAP.is_gw_activity
