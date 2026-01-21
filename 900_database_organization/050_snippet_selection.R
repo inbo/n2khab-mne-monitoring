@@ -6,6 +6,27 @@
 #     except for the header and google drive `.RData` download
 #     Note that all the "plot" functions below must be commented out manually.
 
+# # segfault:
+# habmap_gpkg <- file.path(n2khab::locate_n2khab_data(), "10_raw/habitatmap/habitatmap.gpkg")
+# habmap <- terra::vect(habmap_gpkg)
+#
+# # working, older version:
+# terra::vect(file.path(n2khab::locate_n2khab_data(), "10_raw/habitatmap/habitatmap.shp"))
+#
+# # working:
+# geopkg_file <- "/data/qgis_projects/geodata/amphibia_areas.gpkg" # works
+# test <- terra::vect(geopkg_file) # no segfault
+#
+# habmap_file <- "/home/falk/data/n2khab_data/10_raw/habitatmap/habitatmap.gpkg"
+# habmap_sf <- sf::st_read(habmap_file)
+# habmap <- terra::vect(habmap_sf)
+#
+# # workaround:
+# geopkg_file <- file.path(n2khab::locate_n2khab_data(), "99_converted/habmap.shp")
+# habmap <- terra::vect(geopkg_file) # segfault
+# mapview::mapview(habmap)
+
+
 
 
 ## Sampling unit attributes -----------------------------
@@ -397,15 +418,17 @@ stratum_grts_address_nopolygon_sf <-
 # filter, because it can handle some exotic geometries from habitatmap out of
 # the box (to do this with sf, see /src/miscellaneous/habitatmap.Rmd in the
 # interim branch of n2khab-preprocessing, but this is more laborious)
-missing_polygons <-
-  vect(file.path(
+habmap_polygons <- terra::vect(file.path(
     locate_n2khab_data(),
-    "10_raw/habitatmap/habitatmap.gpkg"
-  )) %>%
+    # "99_converted/habmap.shp"
+    "10_raw/habitatmap/habitatmap_fixed.gpkg"
+  ))
+missing_polygons <-
+  habmap_polygons %>%
   .[vect(stratum_grts_address_nopolygon_sf)] %>%
   st_as_sf() %>%
-  select(polygon_id = globalid_BWK) %>%
-  vect()
+  select(polygon_id = globalid_B) %>%
+  terra::vect()
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
 missing_pol_grts <-
