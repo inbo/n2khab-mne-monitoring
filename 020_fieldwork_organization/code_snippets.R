@@ -442,30 +442,74 @@ stratum_grts_address_nopolygon_sf <-
     spatrast_index = grts_mh_index
   )
 
+
+# Note 20260122:
+# the latest `terra` version fails to load the habitatmap, which can be fixed
+# by the following code.
+# cf. https://stackoverflow.com/a/79872679/27312898
+# Stored here for documentation, hoping that the issue will be fixed upstream.
+fix_habitatmap_gpkg <- function() {
+
+  stopifnot("n2khab" = require("n2khab"))
+  stopifnot("gdalUtilities" = require("gdalUtilities"))
+
+  # assemble the file paths
+  habmap_path <- file.path(
+      n2khab::locate_n2khab_data(),
+      "10_raw/habitatmap"
+    )
+  in_file <- file.path(habmap_path, "habitatmap.gpkg")
+  out_file <- file.path(habmap_path, "habitatmap_fixed.gpkg")
+
+  # rename existing fixed file
+  if (file.exists(out_file)) file.rename(
+    from = out_file,
+    to = sub(pattern = ".gpkg$", replacement = ".bak", x = out_file)
+  )
+
+  # use GDAL to fix the critical geometry types
+  gdalUtilities::ogr2ogr(
+    in_file,
+    dst_datasource_name = out_file,
+    explodecollections = TRUE,
+    nlt = "CONVERT_TO_LINEAR"
+  )
+
+} # /fix_habitatmap_gpkg
+
+
 # Selecting the missing polygons from the habitatmap. Using terra to read and
 # filter, because it can handle some exotic geometries from habitatmap out of
 # the box (to do this with sf, see /src/miscellaneous/habitatmap.Rmd in the
 # interim branch of n2khab-preprocessing, but this is more laborious)
+habmap_polygons <- terra::vect(file.path(
+    n2khab::locate_n2khab_data(),
+    "10_raw/habitatmap/habitatmap_fixed.gpkg"
+  ))
+
 missing_polygons <-
-  vect(file.path(
-    locate_n2khab_data(),
-    "10_raw/habitatmap/habitatmap.gpkg"
-  )) %>%
-  .[vect(stratum_grts_address_nopolygon_sf)] %>%
-  st_as_sf() %>%
-  select(polygon_id = globalid_BWK) %>%
-  vect()
+  habmap_polygons %>%
+  .[terra::vect(stratum_grts_address_nopolygon_sf)]
+
+# # [FM] These extra casts fail for me with the recent changes of `terra`
+# #      However, the select/rename was redundant and worked around,
+# #      using `globalid_BWK` directly in the tibble below
+#   sf::st_as_sf() %>%
+#   select(polygon_id = globalid_BWK) %>%
+#   terra::vect()
+# # missing_polygons %>% sf::st_geometry_type()
+
+missing_polygons_extract <-
+  terra::extract(grts_mh, missing_polygons, small = FALSE) %>%
+  as_tibble()
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
-missing_pol_grts <-
-  extract(grts_mh, missing_polygons, small = FALSE) %>%
-  as_tibble() %>%
+missing_pol_grts <- tibble(
+    ID = seq_len(nrow(missing_polygons)),
+    polygon_id = missing_polygons$globalid_BWK
+  ) %>%
   inner_join(
-    tibble(
-      ID = seq_len(nrow(missing_polygons)),
-      polygon_id = missing_polygons$polygon_id
-    ),
-    .,
+    missing_polygons_extract,
     join_by(ID),
     relationship = "one-to-many",
     unmatched = "error"
@@ -1449,8 +1493,7 @@ orthophoto_shortterm_cell_centers <-
 
 
 ## Comparing object checksums with reference to verify reproducibility --------
-
-checksumfile <- file.path(projroot, "fieldworg_checksums.csv")
+checksumfile <- file.path(projroot, "..", "020_fieldwork_organization", "fieldworg_checksums.csv")
 ref_checksums <- read_csv(checksumfile, col_types = "cc")
 available_obj <- ls()
 different_checksums <-
