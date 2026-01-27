@@ -126,3 +126,8 @@ for (table_label in c(
   mnmgwdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
 
 } # /loop special activity tables
+
+message("")
+message("________________________________________________________________")
+message(" >>>>> Finished resetting fieldwork id. ")
+message("________________________________________________________________")

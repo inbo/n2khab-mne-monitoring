@@ -251,3 +251,8 @@ if (TRUE) {
 
 
 # source('230_random_placementpoints.R')
+
+message("")
+message("________________________________________________________________")
+message(" >>>>>  Finished updating MHQ areas. ")
+message("________________________________________________________________")

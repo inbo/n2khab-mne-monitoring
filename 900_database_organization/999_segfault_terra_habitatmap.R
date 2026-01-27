@@ -13,6 +13,7 @@
 library("dplyr")
 library("sf")
 library("terra")
+# library("n2khab")
 sessionInfo()
 
 # habmap_gpkg <- file.path(n2khab::locate_n2khab_data(), "10_raw/habitatmap/habitatmap.gpkg")
@@ -30,6 +31,27 @@ habmap_raw <- sf::st_read(habmap_file)
 geometry_type <- habmap_raw %>% sf::st_geometry_type()
 levels(geometry_type)
 habmap_sf <- cbind(habmap_raw, geometry_type)
+
+for (i in seq_len(1000)) {
+  message(i)
+  set.seed(i)
+  habmap_excerpt <- habmap_sf %>%
+    select(OBJECTID, geometry_type)
+
+  habmap_excerpt <- bind_rows(
+    habmap_excerpt %>%
+      filter(geometry_type == "MULTIPOLYGON") %>%
+      sample_n(100),
+    habmap_excerpt %>%
+      filter(geometry_type == "MULTIPOLYGON") %>%
+      sample_n(100)
+    )
+
+  habmap_excerpt %>%
+    sf::st_write("data/excerpt.gpkg", append = FALSE)
+
+  terra::vect("data/excerpt.gpkg")
+}
 
 takes_too_long <- TRUE
 if (isFALSE(takes_too_long)) {

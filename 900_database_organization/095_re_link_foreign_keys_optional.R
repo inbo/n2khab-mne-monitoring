@@ -276,4 +276,8 @@ mnmgwdb$execute_sql(update_string, verbose = FALSE)
 
 
 
-message("________________________________________________________________")
+# # no printout because this script is called as a helper from others.
+# message("")
+# message("________________________________________________________________")
+# message(" >>>>>  Finished re-linking foreign keys. ")
+# message("________________________________________________________________")

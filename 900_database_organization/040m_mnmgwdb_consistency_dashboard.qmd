@@ -1,5 +1,5 @@
 ---
-title: "Consistency Dashboard"
+title: "MNMGWDB Consistency Dashboard"
 date: last-modified
 format:
   html:
@@ -13,11 +13,10 @@ knitr:
 ---
 
 
+
 ```{r libraries}
 #| eval: true
 #| echo: false
-
-.libPaths("/data/R/library") # TODO
 
 # libraries
 source("MNMLibraryCollection.R")
@@ -380,8 +379,9 @@ check_foreignkey_connection(
 
 
 ```{sql}
-#| eval: false
-#| echo: false
+--| eval: false
+--| echo: false
+
 -- FROM "inbound"."WellInstallationActivities" AS SACT
 -- FROM "inbound"."ChemicalSamplingActivities" AS SACT
 

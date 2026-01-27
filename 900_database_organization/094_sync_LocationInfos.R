@@ -143,7 +143,7 @@ mnmgwdb_to_loceval <- mnmgwdb_data %>%
 if (nrow(mnmgwdb_to_loceval) > 0) {
   readr::write_csv2(
     mnmgwdb_to_loceval,
-    glue::glue("{todays_date}_LocationInfos_to_loceval{suffix}.csv")
+    glue::glue("logs/{todays_date}_LocationInfos_to_loceval{suffix}.csv")
   )
 }
 
@@ -161,7 +161,7 @@ loceval_to_mnmgwdb <- loceval_data %>%
 if (nrow(loceval_to_mnmgwdb) > 0) {
   readr::write_csv2(
     loceval_to_mnmgwdb,
-    glue::glue("{todays_date}_LocationInfos_to_mnmgwdb{suffix}.csv")
+    glue::glue("logs/{todays_date}_LocationInfos_to_mnmgwdb{suffix}.csv")
   )
 }
 
@@ -289,7 +289,7 @@ different_common[diff_revisit, "accessibility_revisit"] <-
 if (nrow(different_common) > 0) {
   readr::write_csv2(
     different_common,
-    glue::glue("{todays_date}_LocationInfos_diffs{suffix}.csv")
+    glue::glue("logs/{todays_date}_LocationInfos_diffs{suffix}.csv")
   )
 }
 
@@ -328,7 +328,7 @@ mnmgwdb_lookup <- update_cascade_mnmgwdb(
 
 ### temptable
 # mnmdb <- mnmgwdb
-update_conficting <- function(mnmdb) {
+update_conflicting <- function(mnmdb, table_label) {
   srctab <- glue::glue("temp_upd_{tolower(table_label)}")
   trgtab <- mnmdb$get_namestring(table_label)
 
@@ -376,11 +376,17 @@ update_conficting <- function(mnmdb) {
 
 }
 
-update_conficting(mnmgwdb)
-update_conficting(locevaldb)
+table_label <- "LocationInfos"
+update_conflicting(mnmgwdb, table_label)
+update_conflicting(locevaldb, table_label)
 
 
 
 # update landowner
 update_landuse_in_locationinfos(locevaldb)
 update_landuse_in_locationinfos(mnmgwdb)
+
+
+message("")
+message("  Finished syncing location infos. ")
+message("________________________________________________________________")

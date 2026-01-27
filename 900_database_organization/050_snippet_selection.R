@@ -419,27 +419,33 @@ stratum_grts_address_nopolygon_sf <-
 # the box (to do this with sf, see /src/miscellaneous/habitatmap.Rmd in the
 # interim branch of n2khab-preprocessing, but this is more laborious)
 habmap_polygons <- terra::vect(file.path(
-    locate_n2khab_data(),
+    n2khab::locate_n2khab_data(),
     # "99_converted/habmap.shp"
     "10_raw/habitatmap/habitatmap_fixed.gpkg"
   ))
+
 missing_polygons <-
   habmap_polygons %>%
-  .[vect(stratum_grts_address_nopolygon_sf)] %>%
-  st_as_sf() %>%
-  select(polygon_id = globalid_B) %>%
-  terra::vect()
+  .[vect(stratum_grts_address_nopolygon_sf)]
+
+# # [FM] These extra casts fail for me with the recent changes of `terra`
+# #      However, the select/rename was redundant and worked around
+#   sf::st_as_sf() %>%
+#   select(polygon_id = globalid_BWK) %>%
+#   terra::vect()
+# # missing_polygons %>% sf::st_geometry_type()
+
+missing_polygons_extract <-
+  terra::extract(grts_mh, missing_polygons, small = FALSE) %>%
+  as_tibble()
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
-missing_pol_grts <-
-  extract(grts_mh, missing_polygons, small = FALSE) %>%
-  as_tibble() %>%
+missing_pol_grts <- tibble(
+    ID = seq_len(nrow(missing_polygons)),
+    polygon_id = missing_polygons$globalid_BWK
+  ) %>%
   inner_join(
-    tibble(
-      ID = seq_len(nrow(missing_polygons)),
-      polygon_id = missing_polygons$polygon_id
-    ),
-    .,
+    missing_polygons_extract,
     join_by(ID),
     relationship = "one-to-many",
     unmatched = "error"

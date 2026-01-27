@@ -21,7 +21,7 @@ yad --form \
   --field=" {staging} [loceval] -> [mnmgwdb]":fbtn "python 091_push_loceval_to_mnmgwdb.py -staging " \
   --field=" {staging} update FA-Calendar [mnmgwdb]":fbtn "Rscript 092_update_facalendar.R -staging " \
   --field=" {staging} update LocationCells [mnmgwdb]":fbtn "Rscript 093_replaced_LocationCells.R -staging " \
-  --field=" {staging} sync LocationInfos":fbtn "python 094_sync_LocationInfos.R -staging " \
+  --field=" {staging} sync LocationInfos":fbtn "Rscript 094_sync_LocationInfos.R -staging " \
   --field=" {staging} re-link all keys":fbtn "Rscript 095_re_link_foreign_keys_optional.R -staging " \
   --field=" {staging} reset fieldwork_id [mnmgwdb]":fbtn "Rscript 095_reset_fieldwork_id.R -staging " \
   --field=" {staging} update coordinates":fbtn "Rscript 096_update_wgs84_coordinates.R -staging " \
@@ -35,7 +35,7 @@ yad --form \
   --field=" [loceval$MIRROR] -> [mnmgwdb$MIRROR]":fbtn "python 091_push_loceval_to_mnmgwdb.py $MIRROR " \
   --field=" update FA-Calendar [mnmgwdb$MIRROR]":fbtn "Rscript 092_update_facalendar.R $MIRROR " \
   --field=" update LocationCells [mnmgwdb$MIRROR]":fbtn "Rscript 093_replaced_LocationCells.R $MIRROR " \
-  --field=" sync LocationInfos [$MIRROR]":fbtn "python 094_sync_LocationInfos.R $MIRROR " \
+  --field=" sync LocationInfos [$MIRROR]":fbtn "Rscript 094_sync_LocationInfos.R $MIRROR " \
   --field=" re-link all keys [$MIRROR]":fbtn "Rscript 095_re_link_foreign_keys_optional.R $MIRROR " \
   --field=" reset fieldwork_id [mnmgwdb$MIRROR]":fbtn "Rscript 095_reset_fieldwork_id.R $MIRROR " \
   --field=" update coordinates [$MIRROR]":fbtn "Rscript 096_update_wgs84_coordinates.R $MIRROR " \

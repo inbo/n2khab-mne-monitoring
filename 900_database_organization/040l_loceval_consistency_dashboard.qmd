@@ -17,8 +17,6 @@ knitr:
 #| eval: true
 #| echo: false
 
-.libPaths("/data/R/library") # TODO
-
 # libraries
 source("MNMLibraryCollection.R")
 load_database_interaction_libraries()

@@ -450,4 +450,7 @@ if (TRUE) {
 
 # source('098_random_placementpoints_mnmgwdb.R')
 
+message("")
+message("________________________________________________________________")
+message(" >>>>>  Finished updating random placement points. ")
 message("________________________________________________________________")

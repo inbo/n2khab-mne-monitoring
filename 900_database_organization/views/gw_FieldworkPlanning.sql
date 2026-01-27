@@ -49,7 +49,7 @@ SELECT
   CASE WHEN VISIT.date_visit IS NULL THEN NULL
        ELSE current_date - VISIT.date_visit
   END AS count_days_ws,
-  WIA.fieldwork_id IS NOT NULL AS has_installation,
+  (VISIT.visit_done AND NOT VISIT.issues) AS has_installation,
   LOCEVAL.has_loceval,
   LOCEVAL.type_assessed,
   LOCEVAL.type_is_absent,

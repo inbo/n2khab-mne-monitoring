@@ -225,5 +225,6 @@ lsi_lookup <- update_cascade_lookup(
 
 
 message("")
-message("  Finished. ")
+message("________________________________________________________________")
+message(" >>>>> Finished updating location cells. ")
 message("________________________________________________________________")
