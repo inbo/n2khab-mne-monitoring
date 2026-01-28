@@ -1,0 +1,299 @@
+#+title: Removals And Journals
+#+date: 20260128
+
+addl tables to follow up life cycle of sample units / focus on actual installations
+
+* MNMGWDB // InstallationRemovals
+
+#+begin_src sql :eval no
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"inbound";
+
+DROP TABLE IF EXISTS "inbound"."InstallationRemovals" CASCADE;
+
+BEGIN;
+CREATE TABLE "inbound"."InstallationRemovals"();
+
+COMMENT ON TABLE "inbound"."InstallationRemovals" IS E'logging removals of an installation, planned or by vandalism';
+
+ALTER TABLE "inbound"."InstallationRemovals" ADD COLUMN installationremoval_id int NOT NULL PRIMARY KEY;
+COMMENT ON COLUMN "inbound"."InstallationRemovals".installationremoval_id IS E'location info index (technical)';
+
+ALTER TABLE "inbound"."InstallationRemovals" ADD COLUMN location_id int;
+COMMENT ON COLUMN "inbound"."InstallationRemovals".location_id IS E'the technical sequence of all locations';
+
+ALTER TABLE "inbound"."InstallationRemovals" ADD COLUMN grts_address int NOT NULL CHECK (grts_address > 0);
+COMMENT ON COLUMN "inbound"."InstallationRemovals".grts_address IS E'GRTS address (`final`, i.e. after prior replacements)';
+
+ALTER TABLE "inbound"."InstallationRemovals" ADD COLUMN date date NOT NULL;
+COMMENT ON COLUMN "inbound"."InstallationRemovals".date IS E'date of removal of an installation';
+
+ALTER TABLE "inbound"."InstallationRemovals" ADD COLUMN is_planned boolean;
+COMMENT ON COLUMN "inbound"."InstallationRemovals".is_planned IS E'tag planned installation removals';
+
+ALTER TABLE "inbound"."InstallationRemovals" ADD COLUMN is_vandalism boolean;
+COMMENT ON COLUMN "inbound"."InstallationRemovals".is_vandalism IS E'tag vandalism as a subset of unplanned removals';
+
+ALTER TABLE "inbound"."InstallationRemovals" ADD COLUMN notes varchar;
+COMMENT ON COLUMN "inbound"."InstallationRemovals".notes IS E'notes on the removal';
+
+COMMIT;
+
+-- sequence installationremoval_id
+CREATE SEQUENCE "inbound".seq_installationremoval_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "inbound"."InstallationRemovals".installationremoval_id;
+ALTER TABLE "inbound"."InstallationRemovals" ALTER COLUMN installationremoval_id
+ SET DEFAULT nextval('inbound.seq_installationremoval_id'::regclass);
+
+
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO tom;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO yglinga;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO jens;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO lise;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO wouter;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO floris;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO karen;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO janne;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO falk;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO ward;
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationremoval_id" TO monkey;
+GRANT SELECT ON SEQUENCE "inbound"."seq_installationremoval_id" TO monkey;
+
+GRANT SELECT ON "inbound"."InstallationRemovals" TO tom;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO yglinga;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO jens;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO lise;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO wouter;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO floris;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO karen;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO janne;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO falk;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO ward;
+GRANT SELECT ON "inbound"."InstallationRemovals" TO monkey;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO tom;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO tom;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO tom;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO yglinga;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO yglinga;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO yglinga;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO jens;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO jens;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO jens;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO lise;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO lise;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO lise;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO wouter;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO wouter;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO wouter;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO floris;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO floris;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO floris;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO karen;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO karen;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO karen;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO janne;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO janne;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO janne;
+GRANT INSERT ON "inbound"."InstallationRemovals" TO falk;
+GRANT UPDATE ON "inbound"."InstallationRemovals" TO falk;
+GRANT DELETE ON "inbound"."InstallationRemovals" TO falk;
+
+
+#+end_src
+
+
+* MNMGWDB // LocationJournals
+
+#+begin_src sql :eval no
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"outbound";
+
+DROP TABLE IF EXISTS "outbound"."LocationJournals" CASCADE;
+
+BEGIN;
+CREATE TABLE "outbound"."LocationJournals"();
+
+COMMENT ON TABLE "outbound"."LocationJournals" IS E'lifecycle information of a sample unit; chronological, append-only';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN locationjournal_id int NOT NULL PRIMARY KEY;
+COMMENT ON COLUMN "outbound"."LocationJournals".locationjournal_id IS E'location info index (technical)';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN location_id int;
+COMMENT ON COLUMN "outbound"."LocationJournals".location_id IS E'the technical sequence of all locations';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN grts_address int NOT NULL CHECK (grts_address > 0);
+COMMENT ON COLUMN "outbound"."LocationJournals".grts_address IS E'GRTS address (`final`, i.e. after prior replacements)';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN date date NOT NULL;
+COMMENT ON COLUMN "outbound"."LocationJournals".date IS E'date of a journal entry';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN source varchar NOT NULL;
+COMMENT ON COLUMN "outbound"."LocationJournals".source IS E'source: MHQ/POC/LOCEVAL/REMOVALS/WIA/...';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN type_subset varchar;
+COMMENT ON COLUMN "outbound"."LocationJournals".type_subset IS E'indicating which if there are multiple types/strata only partially affected';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN activity_group_id smallint;
+COMMENT ON COLUMN "outbound"."LocationJournals".activity_group_id IS E'a link to the activity metadata, but not for all journal activities';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN loceval_type varchar;
+COMMENT ON COLUMN "outbound"."LocationJournals".loceval_type IS E'type determined in location evaluation';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN loceval_replacement boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".loceval_replacement IS E'local replacement during logeval';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN loceval_type_absence boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".loceval_type_absence IS E'type absence during loceval';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN issues boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".issues IS E'tag if there were issues during fieldwork activities';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN removal_unplanned boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".removal_unplanned IS E'tag if removal was not scheduled/planned/wanted';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN is_latest boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".is_latest IS E'flags the latest events of a type, e.g. latest installation or removal';
+
+COMMIT;
+
+-- sequence locationjournal_id
+CREATE SEQUENCE "outbound".seq_locationjournal_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "outbound"."LocationJournals".locationjournal_id;
+ALTER TABLE "outbound"."LocationJournals" ALTER COLUMN locationjournal_id
+ SET DEFAULT nextval('outbound.seq_locationjournal_id'::regclass);
+
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO tom;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO yglinga;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO jens;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO lise;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO wouter;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO floris;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO karen;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO janne;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO falk;
+
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO ward;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO monkey;
+GRANT SELECT ON SEQUENCE "outbound"."seq_locationjournal_id" TO monkey;
+GRANT SELECT ON "outbound"."LocationJournals" TO tom;
+GRANT SELECT ON "outbound"."LocationJournals" TO yglinga;
+GRANT SELECT ON "outbound"."LocationJournals" TO jens;
+GRANT SELECT ON "outbound"."LocationJournals" TO lise;
+GRANT SELECT ON "outbound"."LocationJournals" TO wouter;
+GRANT SELECT ON "outbound"."LocationJournals" TO floris;
+GRANT SELECT ON "outbound"."LocationJournals" TO karen;
+GRANT SELECT ON "outbound"."LocationJournals" TO janne;
+GRANT SELECT ON "outbound"."LocationJournals" TO falk;
+GRANT SELECT ON "outbound"."LocationJournals" TO ward;
+GRANT SELECT ON "outbound"."LocationJournals" TO monkey;
+
+
+#+end_src
+
+
+* LOCEVALDB // LocationJournals
+
+#+begin_src sql :eval no
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"outbound";
+
+DROP TABLE IF EXISTS "outbound"."LocationJournals" CASCADE;
+
+BEGIN;
+CREATE TABLE "outbound"."LocationJournals"();
+
+COMMENT ON TABLE "outbound"."LocationJournals" IS E'lifecycle information of a sample unit; chronological, append-only';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN locationjournal_id int NOT NULL PRIMARY KEY;
+COMMENT ON COLUMN "outbound"."LocationJournals".locationjournal_id IS E'location info index (technical)';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN location_id int;
+COMMENT ON COLUMN "outbound"."LocationJournals".location_id IS E'the technical sequence of all locations';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN grts_address int NOT NULL CHECK (grts_address > 0);
+COMMENT ON COLUMN "outbound"."LocationJournals".grts_address IS E'GRTS address (`final`, i.e. after prior replacements)';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN date date NOT NULL;
+COMMENT ON COLUMN "outbound"."LocationJournals".date IS E'date of a journal entry';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN source varchar NOT NULL;
+COMMENT ON COLUMN "outbound"."LocationJournals".source IS E'source: MHQ/POC/LOCEVAL/REMOVALS/WIA/...';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN type_subset varchar;
+COMMENT ON COLUMN "outbound"."LocationJournals".type_subset IS E'indicating which if there are multiple types/strata only partially affected';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN activity_group_id smallint;
+COMMENT ON COLUMN "outbound"."LocationJournals".activity_group_id IS E'a link to the activity metadata, but not for all journal activities';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN loceval_type varchar;
+COMMENT ON COLUMN "outbound"."LocationJournals".loceval_type IS E'type determined in location evaluation';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN loceval_replacement boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".loceval_replacement IS E'local replacement during logeval';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN loceval_type_absence boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".loceval_type_absence IS E'type absence during loceval';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN issues boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".issues IS E'tag if there were issues during fieldwork activities';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN removal_unplanned boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".removal_unplanned IS E'tag if removal was not scheduled/planned/wanted';
+
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN is_latest boolean;
+COMMENT ON COLUMN "outbound"."LocationJournals".is_latest IS E'flags the latest events of a type, e.g. latest installation or removal';
+
+COMMIT;
+
+-- sequence locationjournal_id
+CREATE SEQUENCE "outbound".seq_locationjournal_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "outbound"."LocationJournals".locationjournal_id;
+ALTER TABLE "outbound"."LocationJournals" ALTER COLUMN locationjournal_id
+ SET DEFAULT nextval('outbound.seq_locationjournal_id'::regclass);
+
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO tom;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO ward;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO floris;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO karen;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO janne;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO falk;
+GRANT USAGE ON SEQUENCE "outbound"."seq_locationjournal_id" TO monkey;
+GRANT SELECT ON SEQUENCE "outbound"."seq_locationjournal_id" TO monkey;
+
+GRANT SELECT ON "outbound"."LocationJournals" TO tom;
+GRANT SELECT ON "outbound"."LocationJournals" TO ward;
+GRANT SELECT ON "outbound"."LocationJournals" TO floris;
+GRANT SELECT ON "outbound"."LocationJournals" TO karen;
+GRANT SELECT ON "outbound"."LocationJournals" TO janne;
+GRANT SELECT ON "outbound"."LocationJournals" TO falk;
+GRANT SELECT ON "outbound"."LocationJournals" TO monkey;
+
+
+#+end_src
+
+* Script
+
+[[file:../091b_fill_location_journals.R]]
+
+TODO:
++ [X] rollout
++ [ ] add MHQ events from POC
+- [ ] update "is_latest" via "UPDATE ... FROM"

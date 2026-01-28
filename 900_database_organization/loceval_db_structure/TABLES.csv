@@ -9,6 +9,7 @@ metadata,Locations,salamandra,"tom,ward,floris,karen,janne,falk,monkey",,POINT,,
 metadata,LocationCells,salamandra,"tom,ward,floris,karen,janne,falk,monkey",,POLYGON,,,1,,cell polygons of the (previous and current) sample locations
 metadata,Coordinates,salamandra,"tom,ward,floris,karen,janne,falk,monkey",,,,,,,Locations coordinates of the grts points (in other CRS)
 outbound,LocationInfos,salamandra,"tom,ward,floris,karen,janne,falk,monkey","tom,ward,floris,karen,janne,falk",,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
+outbound,LocationJournals,salamandra,"tom,ward,floris,karen,janne,falk,monkey",,,,,1,,"lifecycle information of a sample unit; chronological, append-only"
 outbound,SampleUnits,salamandra,"tom,ward,floris,karen,janne,falk,monkey","tom,ward,floris,karen,janne,falk",,,,,,list of locations currently sampled
 outbound,SampleUnitPolygons,salamandra,"tom,ward,floris,karen,janne,falk,monkey",,POLYGON,,,,,habitat map polygons of the current sample locations
 outbound,Replacements,salamandra,"tom,ward,floris,karen,janne,falk,monkey","tom,ward,floris,karen,janne,falk",POINT,,,,,putative replacements for inaccessible sites

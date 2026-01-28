@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-locationassessment_id,int,True,,True,True,,,,calendar index (technical)
+locationassessment_id,int,True,,True,True,,,,assessment index (technical)
 sampleunit_id,int,False,,False,False,SampleUnits.sampleunit_id,,,reference to sample unit
 location_id,int,False,,False,False,metadata.Locations.location_id,,,the technical sequence of all locations
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry

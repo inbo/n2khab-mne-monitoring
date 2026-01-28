@@ -18,7 +18,8 @@ yad --form \
   --text="<span font_weight='bold' font='14' color='#78c6dd'>Please select a maintenance task.</span>" \
   --columns=3 --align-buttons \
   --field="  staging":fbtn "echo '-staging'" \
-  --field=" {staging} [loceval] -> [mnmgwdb]":fbtn "python 091_push_loceval_to_mnmgwdb.py -staging " \
+  --field=" {staging} [loceval] -> [mnmgwdb]":fbtn "python 091a_push_loceval_to_mnmgwdb.py -staging " \
+  --field=" {staging} location journals":fbtn "Rscript 091b_fill_location_journals.R -staging " \
   --field=" {staging} update FA-Calendar [mnmgwdb]":fbtn "Rscript 092_update_facalendar.R -staging " \
   --field=" {staging} update LocationCells [mnmgwdb]":fbtn "Rscript 093_replaced_LocationCells.R -staging " \
   --field=" {staging} sync LocationInfos":fbtn "Rscript 094_sync_LocationInfos.R -staging " \
@@ -32,7 +33,8 @@ yad --form \
   --field=" render consistency dashboard [loceval]":fbtn "quarto render 040l_loceval_consistency_dashboard.qmd --to html" \
   --field=" render consistency dashboard [mnmgwdb]":fbtn "quarto render 040m_mnmgwdb_consistency_dashboard.qmd --to html" \
   --field="  mirror [$MIRROR]":fbtn "echo $MIRROR" \
-  --field=" [loceval$MIRROR] -> [mnmgwdb$MIRROR]":fbtn "python 091_push_loceval_to_mnmgwdb.py $MIRROR " \
+  --field=" [loceval$MIRROR] -> [mnmgwdb$MIRROR]":fbtn "python 091a_push_loceval_to_mnmgwdb.py $MIRROR " \
+  --field=" location journals [$MIRROR]":fbtn "Rscript 091b_fill_location_journals.R $MIRROR " \
   --field=" update FA-Calendar [mnmgwdb$MIRROR]":fbtn "Rscript 092_update_facalendar.R $MIRROR " \
   --field=" update LocationCells [mnmgwdb$MIRROR]":fbtn "Rscript 093_replaced_LocationCells.R $MIRROR " \
   --field=" sync LocationInfos [$MIRROR]":fbtn "Rscript 094_sync_LocationInfos.R $MIRROR " \
@@ -45,6 +47,7 @@ yad --form \
   --field=" sync FreeFieldNotes [$MIRROR]":fbtn "python 099_sync_FreeFieldNotes.py $MIRROR " \
   --field=" open dashboard [loceval]":fbtn "lynx 040l_loceval_consistency_dashboard.html" \
   --field=" open dashboard [mnmgwdb]":fbtn "lynx 040m_mnmgwdb_consistency_dashboard.html" \
+  --field="":CHK FALSE \
   --field="":CHK FALSE \
   --field="":CHK FALSE \
   --field="":CHK FALSE \

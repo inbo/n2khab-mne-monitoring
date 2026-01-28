@@ -24,6 +24,7 @@ sessionInfo()
 habmap_file <- "/home/falk/data/n2khab_data/10_raw/habitatmap/habitatmap.gpkg"
 habmap_raw <- sf::st_read(habmap_file)
 # habmap <- terra::vect(habmap_sf)
+habmap <- terra::vect(habmap_file)
 
 
 # terra::is.valid() --> apply to geometries
@@ -32,7 +33,7 @@ geometry_type <- habmap_raw %>% sf::st_geometry_type()
 levels(geometry_type)
 habmap_sf <- cbind(habmap_raw, geometry_type)
 
-for (i in seq_len(1000)) {
+for (i in seq_len(1e1)) {
   message(i)
   set.seed(i)
   habmap_excerpt <- habmap_sf %>%
@@ -40,11 +41,11 @@ for (i in seq_len(1000)) {
 
   habmap_excerpt <- bind_rows(
     habmap_excerpt %>%
-      filter(geometry_type == "MULTIPOLYGON") %>%
-      sample_n(100),
+      filter(geometry_type == "MULTIPOLYGON")
+      %>% sample_n(100),
     habmap_excerpt %>%
-      filter(geometry_type == "MULTIPOLYGON") %>%
-      sample_n(100)
+      filter(geometry_type == "MULTISURFACE")
+      # %>% sample_n(100)
     )
 
   habmap_excerpt %>%

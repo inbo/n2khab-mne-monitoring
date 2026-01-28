@@ -11,3 +11,4 @@ drainage,varchar,False,NULL,False,False,,,,drainage category
 profile,varchar,False,NULL,False,False,,,,profile category
 profile_variant,varchar,False,NULL,False,False,,,,variant regarding the soil profile
 parent_material,varchar,False,NULL,False,False,,,,variant regarding the parent material
+info,varchar,False,NULL,False,False,,,,"combination of drainage, texture, substrate, profile"
