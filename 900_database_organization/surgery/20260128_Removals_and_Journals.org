@@ -289,6 +289,24 @@ GRANT SELECT ON "outbound"."LocationJournals" TO monkey;
 
 #+end_src
 
+* Exploring Windowed UPDATE...FROM
+
+#+begin_src sql :eval no
+UPDATE "outbound"."LocationJournals" AS TRGTAB
+SET
+  is_latest = SRCTAB.is_latest
+FROM (
+SELECT locationjournal_id,
+  date = (
+    MAX(date) OVER (
+      PARTITION BY grts_address, source, activity_group_id, type_subset
+  )) AS is_latest
+FROM "outbound"."LocationJournals"
+) AS SRCTAB
+WHERE TRGTAB.locationjournal_id = SRCTAB.locationjournal_id
+;
+#+end_src
+
 * Script
 
 [[file:../091b_fill_location_journals.R]]
