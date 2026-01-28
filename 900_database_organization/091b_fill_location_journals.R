@@ -305,11 +305,14 @@ location_journals <- bind_rows(
   arrange(date, grts_address, source)
 
 
+#_______________________________________________________________________________
+### Upload and Update Data
 
 # mnmdb <- mnmgwdb
 # mnmdb <- locevaldb
 upload_LoJos <- function(mnmdb) {
 
+  # join location ID
   location_lookup <- mnmdb$query_columns(
     "Locations",
     c("grts_address", "location_id")
@@ -336,11 +339,11 @@ upload_LoJos <- function(mnmdb) {
     mnmdb = mnmdb,
     table_label = "LocationJournals",
     data_to_append = lojos,
-    characteristic_columns = c("grts_address", "date", "source"),
+    characteristic_columns =
+      c("grts_address", "date", "source", "activity_group_id"),
     index_columns = "locationjournal_id",
     verbose = TRUE
   )
-
 
   if (nrow(lojos) > 0) {
     message(glue::glue("Registered {nrow(lojos)} new journal entries for {mnmdb$database}."))
@@ -348,10 +351,68 @@ upload_LoJos <- function(mnmdb) {
   }
 
 
-  # TODO update "is_latest" via sql `update from`
+  # updates
 
+  stitch_table_connection(
+    mnmdb = mnmdb,
+    table_label = "LocationJournals",
+    reference_table = "Locations",
+    link_key_column = "location_id",
+    lookup_columns = c("grts_address")
+  )
+
+
+  # update "is_latest" via sql `update from`
+  table_path <- '"outbound"."LocationJournals"'
+
+
+  category_command <- glue::glue("
+    UPDATE {table_path} AS TRGTAB
+    SET
+      category = SRCTAB.category
+    FROM (
+      SELECT
+        locationjournal_id,
+        CASE
+          WHEN
+            (source = 'removal') OR
+            (source = 'gwdb' AND activity_group_id = 4)
+            THEN 'inst'
+          WHEN
+            (source = 'mhq') OR
+            (source = 'loceval' AND activity_group_id = 18)
+            THEN 'biot'
+          ELSE source
+        END AS category
+      FROM {table_path}
+    ) AS SRCTAB
+    WHERE TRGTAB.locationjournal_id = SRCTAB.locationjournal_id
+    ;
+  ")
+
+  mnmdb$execute_sql(category_command, verbose = FALSE)
+
+
+  update_command <- glue::glue("
+    UPDATE {table_path} AS TRGTAB
+    SET
+      is_latest = SRCTAB.is_latest
+    FROM (
+    SELECT locationjournal_id,
+      date = (
+        MAX(date) OVER (
+          PARTITION BY grts_address, category
+      )) AS is_latest
+    FROM {table_path}
+    ) AS SRCTAB
+    WHERE TRGTAB.locationjournal_id = SRCTAB.locationjournal_id
+    ;
+  ")
+
+  mnmdb$execute_sql(update_command, verbose = FALSE)
 
 }
+
 
 # loceval
 upload_LoJos(locevaldb)

@@ -157,8 +157,12 @@ COMMENT ON COLUMN "outbound"."LocationJournals".issues IS E'tag if there were is
 ALTER TABLE "outbound"."LocationJournals" ADD COLUMN removal_unplanned boolean;
 COMMENT ON COLUMN "outbound"."LocationJournals".removal_unplanned IS E'tag if removal was not scheduled/planned/wanted';
 
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN category varchar;
+COMMENT ON COLUMN "outbound"."LocationJournals".loceval_type IS E'category: inst:=installation/removal, biot:=mhq/loceval, else `source`';
+
+
 ALTER TABLE "outbound"."LocationJournals" ADD COLUMN is_latest boolean;
-COMMENT ON COLUMN "outbound"."LocationJournals".is_latest IS E'flags the latest events of a type, e.g. latest installation or removal';
+COMMENT ON COLUMN "outbound"."LocationJournals".is_latest IS E'flags the latest events of a category, e.g. latest inst or biot';
 
 COMMIT;
 
@@ -307,11 +311,103 @@ WHERE TRGTAB.locationjournal_id = SRCTAB.locationjournal_id
 ;
 #+end_src
 
+* Temp Categories
+some categories are conceptually connected,
+e.g.
++ MHQ assessment and loceval
++ installation and removal
++ all other: visits by source (e.g. groundwater fieldwork)
+
+we only want to flag the latest within these categories.
+#+begin_src sql :eval no
+SELECT DISTINCT source, LoJos.activity_group_id, activity_group
+FROM "outbound"."LocationJournals" AS LoJos
+LEFT JOIN (
+  SELECT DISTINCT activity_group_id, activity_group
+  FROM "metadata"."GroupedActivities"
+  GROUP BY activity_group_id, activity_group
+) AS GRP
+ON GRP.activity_group_id = LoJos.activity_group_id
+GROUP BY source, LoJos.activity_group_id, activity_group
+;
+
+
+#+end_src
+
+#+begin_example
+source  | activity_group_id |   activity_group
+---------+-------------------+--------------------
+gwdb    |                11 | GWSHALLCLEAN
+loceval |                18 | LOCEVALTERR
+removal |                   |
+gwdb    |                13 | GWSHALLSAMPREADMAN
+gwdb    |                 4 | GWINSTPIEZWELL
+gwdb    |                28 | SPATPOSITPIPE
+#+end_example
+
+
+#+begin_src sql :eval no
+SELECT
+  grts_address, date, source, activity_group_id, type_subset,
+  CASE WHEN
+    (source = 'removal') OR
+    (source = 'gwdb' AND activity_group_id = 4)
+    THEN 'inst'
+  WHEN
+    (source = 'mhq') OR
+    (source = 'loceval' AND activity_group_id = 18)
+    THEN 'biot'
+  ELSE source || activity_group_id
+  END AS grp,
+  is_latest
+FROM "outbound"."LocationJournals"
+WHERE grts_address IN (500782, 15595153)
+ORDER BY date, source, activity_group_id
+;
+#+end_src
+
+re-arranged: it is simpler if we update =category= first, then =is_latest=.
+
+
+#+begin_src sql :eval no
+UPDATE {table_path} AS TRGTAB
+SET
+  category = SRCTAB.category
+FROM (
+  SELECT
+    locationjournal_id,
+    CASE WHEN
+      (source = 'removal') OR
+      (source = 'gwdb' AND activity_group_id = 4)
+      THEN 'inst'
+    WHEN
+      (source = 'mhq') OR
+      (source = 'loceval' AND activity_group_id = 18)
+      THEN 'biot'
+    ELSE source
+    END AS category
+  FROM "outbound"."LocationJournals"
+) AS SRCTAB
+WHERE TRGTAB.locationjournal_id = SRCTAB.locationjournal_id
+;
+#+end_src
+
+
+* Check
+
+#+begin_src sql :eval no
+SELECT DISTINCT source, is_latest, COUNT(*) AS n
+FROM "outbound"."LocationJournals"
+GROUP BY source, is_latest
+;
+#+end_src
+
+
 * Script
 
 [[file:../091b_fill_location_journals.R]]
 
 TODO:
 + [X] rollout
-+ [ ] add MHQ events from POC
-- [ ] update "is_latest" via "UPDATE ... FROM"
++ [ ] add MHQ, events from POC, Ofo's
+- [X] update "is_latest" via "UPDATE ... FROM"

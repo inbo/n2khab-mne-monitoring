@@ -231,6 +231,34 @@ also went through all view files to adjust GRANTs
 finally, adjust =pg_hba= rules
 
 
+** InstallationRemovals
+SCHEDULED: <2026-01-28 Wed>
+new table in =mnmgwdb= to log removal/deletion of a site,
+e.g. through vandalism
+
+** LocationJournals
+SCHEDULED: <2026-01-28 Wed>
+
+process table
+combining changes of a Location over time, from different sources
+
+sources are:
++ [X] loceval
++ [X] groundwater fieldwork
++ [X] =InstallationRemovals= (e.g. vandalism)
++ [ ] MHQ assessment
++ [ ] orthofoto assessment
++ [ ] POC changes
+
+entries are grouped and the lates one is flagged; groups are:
++ =inst= := installation/removal
++ =biot= := MHQ | LOCEVAL
++ otherwise: source
+
+this is enabled via [[https://www.postgresql.org/docs/current/tutorial-window.html][windowed functions]].
+
+Updated daily [[file:091b_fill_location_journals.R][via maintenance script]]
+
 * loceval
 
 ** setup database
