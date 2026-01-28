@@ -11,4 +11,5 @@ loceval_replacement,boolean,False,NULL,False,False,,,,local replacement during l
 loceval_type_absence,boolean,False,NULL,False,False,,,,type absence during loceval
 issues,boolean,False,NULL,False,False,,,,tag if there were issues during fieldwork activities
 removal_unplanned,boolean,False,NULL,False,False,,,,tag if removal was not scheduled/planned/wanted
-is_latest,boolean,False,NULL,False,False,,,,"flags the latest events of a type, e.g. latest installation or removal"
+category,varchar,False,NULL,False,False,,,,"category: inst:=installation/removal, biot:=mhq/loceval, else `source`"
+is_latest,boolean,False,NULL,False,False,,,,"flags the latest events of a category, e.g. latest inst or biot"
