@@ -230,7 +230,7 @@ load_location_evaluations <- function() {
     filter(is.na(date))
 
   if (nrow(no_dates) > 0) {
-    grtsses <- no_dates %>% pull(grts_address) %>% paste0(collapse = "+")
+    grtsses <- no_dates %>% pull(grts_address) %>% paste0(collapse = ",")
     message(glue::glue("ERROR: date missing on loceval for {grtsses}"))
   }
 
@@ -285,7 +285,7 @@ load_mnmgwdb_visits <- function() {
     filter(is.na(date))
 
   if (nrow(no_dates) > 0) {
-    grtsses <- no_dates %>% pull(grts_address) %>% paste0(collapse = "+")
+    grtsses <- no_dates %>% pull(grts_address) %>% paste0(collapse = ",")
     message(glue::glue("ERROR: date missing on gw activity for {grtsses}"))
   }
 
@@ -417,14 +417,14 @@ upload_LoJos <- function(mnmdb) {
   trgtab <- mnmdb$get_namestring(table_label)
   srctab <- mnmdb$get_namestring(reference_table)
 
-  # first, reset visit_id
-  mnmdb$execute_sql(
-    glue::glue("UPDATE {trgtab} SET visit_id = NULL;"),
-    verbose = FALSE
-  )
-
 
   # REJECTED: visit_id link to Visits
+  # # first, reset visit_id
+  # mnmdb$execute_sql(
+  #   glue::glue("UPDATE {trgtab} SET visit_id = NULL;"),
+  #   verbose = FALSE
+  # )
+
   # update_string <- glue::glue("
   # UPDATE {trgtab} AS TRGTAB
   #   SET
@@ -445,3 +445,17 @@ upload_LoJos(locevaldb)
 
 # mnmgwdb
 upload_LoJos(mnmgwdb)
+
+
+### Follow-Up
+if (FALSE) {
+sql_query = '
+SELECT *
+FROM "inbound"."Visits"
+WHERE visit_done
+AND date_visit IS NULL
+AND grts_address IN (
+500782,1818369,4229394,4234358,6092977,7151026,15026297,16470006,31496054,44604534,51431410,53288370
+);
+'
+}
