@@ -39,7 +39,9 @@ suffix <- ""
 choose a GRTS
 
 ```{r choose-grts}
-grts <- c(1202926, 10640110) # more missed archives
+grts <- c(4229394) # an installed, but archived installation
+    # c(50725598) # a loceval on archive: replacement required, but none selected
+    # c(1202926, 10640110) # more missed archives
     # c(24774) # forest location where the first choice of point should be cell center; MHQ assessment unclear
     # c(1205598, 41313630) # replacement cell missing from updated plans
     # c(49896893, 21323197) # first sideload: visit with issues must be repeated

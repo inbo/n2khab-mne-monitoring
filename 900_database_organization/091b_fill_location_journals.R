@@ -411,6 +411,32 @@ upload_LoJos <- function(mnmdb) {
 
   mnmdb$execute_sql(update_command, verbose = FALSE)
 
+  ## update `visit_id` for quick linkage
+  table_label <- "LocationJournals"
+  reference_table <- "Visits"
+  trgtab <- mnmdb$get_namestring(table_label)
+  srctab <- mnmdb$get_namestring(reference_table)
+
+  # first, reset visit_id
+  mnmdb$execute_sql(
+    glue::glue("UPDATE {trgtab} SET visit_id = NULL;"),
+    verbose = FALSE
+  )
+
+
+  # REJECTED: visit_id link to Visits
+  # update_string <- glue::glue("
+  # UPDATE {trgtab} AS TRGTAB
+  #   SET
+  #     visit_id = SRCTAB.visit_id
+  #   FROM {srctab} AS SRCTAB
+  #   WHERE
+  #    ({srctab}.grts_address = {trgtab}.grts_address)
+  #    AND ({srctab}.activity_group_id = {trgtab}.activity_group_id)
+  #    AND ({srctab}.date_visit = {trgtab}.date)
+  # ;")
+
+
 }
 
 

@@ -403,6 +403,161 @@ GROUP BY source, is_latest
 #+end_src
 
 
+* Link
+** KILL ... to =Visits=
+CLOSED: [2026-01-29 Thu 10:25]
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."LocationJournals" ADD COLUMN visit_id int;
+COMMENT ON COLUMN "outbound"."LocationJournals".visit_id IS E'optional link to the `Visits`';
+
+-- foreign key visit_id
+ALTER TABLE "outbound"."LocationJournals" DROP CONSTRAINT IF EXISTS fk_Visits_LocationJournals CASCADE;
+ALTER TABLE "outbound"."LocationJournals" ADD CONSTRAINT fk_Visits_LocationJournals FOREIGN KEY (visit_id)
+REFERENCES "inbound"."Visits" (visit_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+ALTER TABLE "outbound"."LocationJournals" DROP COLUMN IF EXISTS visit_id;
+ALTER TABLE "outbound"."LocationJournals" DROP CONSTRAINT IF EXISTS fk_Visits_LocationJournals;
+
+#+end_src
+
+This gives trouble with multi-type-locations and activities which are scheduled for both.
+
+* Application
+** View: FieldworkPlanning.
+Was:
+    grts_address,
+    latest_visit,
+    loceval_photo,
+    loceval_notes,
+    type_assessed,
+    type_is_absent,
+    TRUE AS has_loceval
+
+Now:
+  LOCEVAL.loceval_positive,
+  LOCEVAL.loceval_latest_date,
+  -- LOCEVAL.loceval_replacement,
+  LOCEVAL.loceval_colleague,
+  LOCEVAL.loceval_photo,
+  LOCEVAL.loceval_notes
+
+Experimentation:
+#+begin_src sql :eval no
+
+-- check LocationEvaluations part
+SELECT DISTINCT
+  grts_address,
+  eval_source,
+  MAX(eval_date) AS latest_visit,
+  eval_date,
+  type_assessed,
+  type_is_absent,
+  photo AS loceval_photo,
+  notes AS loceval_notes
+FROM "outbound"."LocationEvaluations" AS LE
+WHERE eval_source = 'loceval'
+GROUP BY grts_address, eval_source,
+  photo, notes, eval_date,
+  type_assessed, type_is_absent
+;
+
+
+-- check LocationJournals part
+
+SELECT
+  location_id,
+  grts_address,
+  -- STRING_TO_ARRAY(type_subset, ',') AS types,
+  -- (source = 'loceval') AS loceval_latest_by_mnm,
+  type_subset,
+  date AS loceval_latest_date,
+  loceval_replacement,
+  loceval_type_absence
+FROM "outbound"."LocationJournals"
+WHERE TRUE
+  AND category = 'biot'
+  AND is_latest
+  -- AND grts_address IN (23238, 6314694, 23091910)
+  AND grts_address IN (50725598)
+;
+
+
+-- check LocationEvaluations part again
+SELECT
+  grts_address,
+  CAST(type AS TEXT),
+  eval_date,
+  eval_name AS loceval_colleague,
+  (((type_assessed IS NULL) OR (type_assessed = type)) AND NOT type_is_absent) AS loceval_positive,
+  photo AS loceval_photo,
+  notes AS loceval_notes,
+  ,*
+FROM "outbound"."LocationEvaluations"
+WHERE eval_source = 'loceval'
+  -- AND grts_address IN (23238, 6314694, 23091910)
+  AND grts_address IN (50725598)
+;
+
+
+-- Bring it together
+SELECT
+  LJ.location_id,
+  TRUE AS has_loceval,
+  LJ.loceval_latest_date,
+  LJ.grts_address, -- <- DROP
+  LE.grts_address, -- <- DROP
+  LE.type AS stratum, -- <- DROP (used to join)
+  LJ.loceval_replacement,
+  LJ.loceval_type_absence, -- <- DROP (filtered)
+  LE.loceval_positive,
+  LE.loceval_colleague,
+  LE.*, -- <- DROP (filtered)
+  LJ.*, -- <- DROP (filtered)
+  LE.loceval_notes
+FROM (
+  SELECT
+    location_id,
+    grts_address,
+    STRING_TO_ARRAY(type_subset, ',') AS types,
+    -- (source = 'loceval') AS loceval_latest_by_mnm,
+    date AS loceval_latest_date,
+    loceval_replacement,
+    loceval_type_absence
+  FROM "outbound"."LocationJournals"
+  WHERE TRUE
+    AND category = 'biot'
+    AND is_latest
+) AS LJ
+LEFT JOIN (
+  SELECT
+    grts_address,
+    type,
+    eval_date,
+    eval_name AS loceval_colleague,
+    (  ((type_assessed IS NULL)
+       OR (type_assessed = type))
+       AND NOT type_is_absent
+    ) AS loceval_positive,
+    photo AS loceval_photo,
+    notes AS loceval_notes
+  FROM "outbound"."LocationEvaluations"
+  WHERE eval_source = 'loceval'
+) AS LE
+  ON (LE.grts_address = LJ.grts_address)
+  AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
+  AND (LJ.loceval_latest_date = LE.eval_date)
+WHERE TRUE
+  AND NOT loceval_type_absence
+  -- AND LE.grts_address IS NULL
+  -- AND LJ.grts_address IN (23238, 6314694, 23091910)
+  -- AND LJ.grts_address IN (50725598)
+ORDER BY location_id ASC
+;
+#+end_src
+
+
 * Script
 
 [[file:../091b_fill_location_journals.R]]
@@ -411,3 +566,5 @@ TODO:
 + [X] rollout
 + [ ] add MHQ, events from POC, Ofo's
 - [X] update "is_latest" via "UPDATE ... FROM"
++ [X] optional link to Visits -> discarded
++ [ ] adjust FieldworkPlanning view

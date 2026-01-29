@@ -49,13 +49,15 @@ SELECT
   CASE WHEN VISIT.date_visit IS NULL THEN NULL
        ELSE current_date - VISIT.date_visit
   END AS count_days_ws,
-  (VISIT.visit_done AND NOT VISIT.issues) AS has_installation,
-  LOCEVAL.has_loceval,
-  LOCEVAL.type_assessed,
-  LOCEVAL.type_is_absent,
+  INST.has_installation,
+  INST.installation_date,
+  INST.installation_issues,
+  LOCEVAL.loceval_positive,
+  LOCEVAL.loceval_latest_date,
+  -- LOCEVAL.loceval_replacement,
+  LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
-  LOCEVAL.loceval_notes,
-  LOCEVAL.latest_visit
+  LOCEVAL.loceval_notes
 FROM "outbound"."FieldworkCalendar" AS FWCAL
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
   ON SLOC.samplelocation_id = FWCAL.samplelocation_id
@@ -63,7 +65,7 @@ LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = SLOC.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
-LEFT JOIN (
+LEFT JOIN ( -- soil infos
   SELECT DISTINCT location_id, info AS soil_info
   FROM "metadata"."LocationSoilInfos"
   ) AS SOIL
@@ -72,41 +74,60 @@ LEFT JOIN "inbound"."Visits" AS VISIT
   ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
     ON VISIT.visit_id = WIA.visit_id
-LEFT JOIN (
+LEFT JOIN ( -- grouped activities
   SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
     FROM "metadata"."GroupedActivities"
     GROUP BY activity_group_id, activity_group, is_gw_activity
   ) AS ACT
     ON ACT.activity_group_id = FWCAL.activity_group_id
-LEFT JOIN (
+LEFT JOIN ( -- loceval
   SELECT
-    grts_address,
-    latest_visit,
-    loceval_photo,
-    loceval_notes,
-    type_assessed,
-    type_is_absent,
-    TRUE AS has_loceval
+    LJ.loceval_latest_date,
+    LJ.grts_address,
+    LE.type AS stratum,
+    LJ.loceval_replacement,
+    LE.loceval_positive,
+    LE.loceval_colleague,
+    LE.loceval_photo,
+    LE.loceval_notes
   FROM (
-    SELECT DISTINCT
+    SELECT
+      location_id,
       grts_address,
-      eval_source,
-      MAX(eval_date) AS latest_visit,
+      STRING_TO_ARRAY(type_subset, ',') AS types,
+      date AS loceval_latest_date,
+      loceval_replacement,
+      loceval_type_absence
+    FROM "outbound"."LocationJournals"
+    WHERE TRUE
+      AND category = 'biot'
+      AND is_latest
+  ) AS LJ
+  LEFT JOIN (
+    SELECT
+      grts_address,
+      type,
       eval_date,
-      type_assessed,
-      type_is_absent,
+      eval_name AS loceval_colleague,
+      (  ((type_assessed IS NULL)
+         OR (type_assessed = type))
+         AND NOT type_is_absent
+      ) AS loceval_positive,
       photo AS loceval_photo,
       notes AS loceval_notes
-    FROM "outbound"."LocationEvaluations" AS LE
+    FROM "outbound"."LocationEvaluations"
     WHERE eval_source = 'loceval'
-    GROUP BY grts_address, eval_source,
-      photo, notes, eval_date,
-      type_assessed, type_is_absent
-  ) WHERE eval_date = latest_visit 
-  ) AS LOCEVAL
-    ON SLOC.grts_address = LOCEVAL.grts_address
-    AND SLOC.strata = LOCEVAL.type_assessed
-LEFT JOIN (
+  ) AS LE
+    ON (LE.grts_address = LJ.grts_address)
+    AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
+    AND (LJ.loceval_latest_date = LE.eval_date)
+  WHERE TRUE
+    AND NOT loceval_type_absence
+    AND LE.grts_address IS NOT NULL
+) AS LOCEVAL
+  ON SLOC.grts_address = LOCEVAL.grts_address
+  AND SLOC.strata = LOCEVAL.stratum
+LEFT JOIN ( -- replacements
   SELECT DISTINCT
     type,
     grts_address AS grts_address_poc,
@@ -116,6 +137,18 @@ LEFT JOIN (
 ) AS REP
   ON ((REP.grts_address = SLOC.grts_address)
   AND (SLOC.strata = REP.type))
+LEFT JOIN ( -- journal/installations
+  SELECT
+    location_id,
+    (source = 'gwdb') AS has_installation,
+    CASE WHEN source = 'removal' THEN NULL ELSE date END AS installation_date,
+    issues AS installation_issues
+  FROM "outbound"."LocationJournals"
+  WHERE TRUE
+    AND category = 'inst'
+    AND is_latest
+) AS INST
+  ON (LOC.location_id = INST.location_id)
 WHERE is_gw_activity
   AND FWCAL.archive_version_id IS NULL
 ORDER BY
@@ -171,3 +204,4 @@ GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester;
 
 
 -- REVOKE UPDATE ON  "outbound"."FieldworkPlanning"  FROM  tester;
+
