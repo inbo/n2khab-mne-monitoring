@@ -99,6 +99,7 @@ count_table_content(c(
     "Locations",
     "LocationInfos",
     "LocationCells",
+    "LocationJournals",
     "Coordinates",
     "LocationAssessments"
   ))

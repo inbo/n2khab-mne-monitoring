@@ -104,6 +104,7 @@ count_table_content(c(
     "LocationCells",
     "Coordinates",
     "LocationEvaluations",
+    "LocationJournals",
     "CellMaps"
   ))
 

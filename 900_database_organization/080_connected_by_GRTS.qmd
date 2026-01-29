@@ -39,7 +39,8 @@ suffix <- ""
 choose a GRTS
 
 ```{r choose-grts}
-grts <- c(4229394) # an installed, but archived installation
+grts <- c(23238, 6314694, 23091910) # Hellebos!
+    # c(4229394) # an installed, but archived installation
     # c(50725598) # a loceval on archive: replacement required, but none selected
     # c(1202926, 10640110) # more missed archives
     # c(24774) # forest location where the first choice of point should be cell center; MHQ assessment unclear
@@ -48,7 +49,6 @@ grts <- c(4229394) # an installed, but archived installation
     # c(908981)#, 59629237) # dismissed -> no replacements
     # c(1205598, 41313630) # replacement from previous POC version -> sideloaded
     # c(5193397, 59719349) # LOST?! NO! -> just mistyped the replacer GRTS. But it is archived.
-    # c(23238, 6314694, 23091910) # Hellebos!
     # c(3554997, 29769397) # early bird ZEB/achterhaven
     # c(84598, 871030) # replacement mishap
     # c(1999406, 6417454)
@@ -308,6 +308,35 @@ eva_print_infos <- function() {
 ```
 
 
+```{r loceval-lojos}
+
+lojos <- mnmdb$query_table("LocationJournals") %>%
+  filter(grts_address %in% grts)
+
+eva_print_lojos <- function() {
+  lojos %>%
+    dplyr::rename(
+      grts = grts_address,
+      ljid = locationjournal_id,
+      lid = location_id,
+      src = source,
+      agid = activity_group_id,
+      tps = type_subset
+    ) %>%
+    dplyr::select(
+      grts,
+      ljid,
+      tps,
+      lid,
+      src,
+      agid
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
 ```{r loceval-replacements}
 
 replacements <- mnmdb$query_table("Replacements") %>%
@@ -370,6 +399,12 @@ eva_print_visits()
 ```{r eva-print-infos}
 #| echo: false
 eva_print_infos()
+```
+
+## journals
+```{r eva-print-lojos}
+#| echo: false
+eva_print_lojos()
 ```
 
 ## replacements
@@ -650,6 +685,35 @@ gw_print_infos <- function() {
 ```
 
 
+```{r gw-lojos}
+
+lojos <- mnmdb$query_table("LocationJournals") %>%
+  filter(grts_address %in% grts)
+
+gw_print_lojos <- function() {
+  lojos %>%
+    dplyr::rename(
+      grts = grts_address,
+      ljid = locationjournal_id,
+      lid = location_id,
+      src = source,
+      agid = activity_group_id,
+      tps = type_subset
+    ) %>%
+    dplyr::select(
+      grts,
+      ljid,
+      tps,
+      lid,
+      src,
+      agid
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
 
 ```{r gw-replacements}
 
@@ -720,6 +784,13 @@ gw_print_special_activities()
 ```{r print-infos}
 #| echo: false
 gw_print_infos()
+```
+
+## location journals
+
+```{r gw-print-lojos}
+#| echo: false
+gw_print_lojos()
 ```
 
 ## replacement
