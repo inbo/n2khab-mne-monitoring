@@ -28,7 +28,10 @@ date_start *
 These go in a =SpecialActivities= table.
 On top of that, there are extra columns.
 
-** Testing - =mnmgwdb_dev=
+*UPDATE 08:46:* these are all elements of =Visits=.
+Maybe I should couple them directly?
+
+** KILL Drafting - with Activities Interface
 
 *** =SpecialActivities=
 #+begin_src sql :eval no
@@ -207,8 +210,36 @@ tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
 
 
 
-** TODO Test Copy
+*** =SpatialPositioningActivities=
+/relevant, but not here for testing/
+
+
+** Doubt
+Should I keep "SpecialActivities"? [A]
+Or should I directly couple to "Visits"? [B]
+
+Direct coupling has the advantage of significantly reduced redundancy.
+Disadvantage is that all scripts need to work differently:
++ the calendar of activities must be split by activity_id and directly distributed to the different tables.
++ remove the name =~Activities= and use =WellInstallations= (etc.) directly.
++ will the update functions in the toolbox handle it correctly?
++ =FieldWork= view might go bogus, which I cannot allow
+
+I feel this is a major bunch of work,
+yet it makes so much sense that I might be daring.
+
+Prior tests: tutorial-like implementation with a View.
+
+
+** TODO Drafting - Direct =Visits= - =mnmgwdb_dev=
+
+
+
+** TODO Test Data
 using R to copy over the data from production database
++ establish two database connections
++ copy data like in 033 (only 5 rows each)
++ try selecting, manipulating, upating
 
 
 
@@ -239,3 +270,8 @@ note [[renaming]]
 
 ** /ex post/
 + do not forget the /ex post/ scripts, e.g. for triggering =log_= columns on update
+
+* Tutorial
+using the abstract ideas of a "calender" (=todos=) and different =activities=
+and variants of activities with extra columns
+alternatives: directly couple to =todos=
