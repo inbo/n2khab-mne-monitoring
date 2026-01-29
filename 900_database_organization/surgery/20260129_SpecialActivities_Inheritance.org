@@ -213,6 +213,9 @@ tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
 *** =SpatialPositioningActivities=
 /relevant, but not here for testing/
 
+*** first test
+
+syntax is good, this worked well on =_dev=.
 
 ** Doubt
 Should I keep "SpecialActivities"? [A]
@@ -272,6 +275,29 @@ note [[renaming]]
 + do not forget the /ex post/ scripts, e.g. for triggering =log_= columns on update
 
 * Tutorial
-using the abstract ideas of a "calender" (=todos=) and different =activities=
-and variants of activities with extra columns
-alternatives: directly couple to =todos=
+using the abstract ideas of a "calender" (=todos=)
+and variants of =activities= with extra columns
+-> directly couple to =todos=
+-> make a view to inspect all TODOs simultaneously
+
+use mermaid graphs for illustration
+
+* Not My Next Project
+** =Locations=? No!
+can =Locations= be formed into an abstract for =LocationInfos=, =LocationCells=, etc.?
+-> certainly no good, since the content overlaps (Infos also have Cells; they are non-exclusive) and geometry would conflict
+-> better keep this up with keys
+
+** =Events=? No!
+(to centralize characteristic columns)
+observation:
++ redundant use of grts+type+date_start+activity_group_id
+  + 1:1 relation of calendar and visits
++ better solved by key linkage
+
+Issue: this is *content* inheritance, only limited *structure* inheritance.
+
+** =LocationEvaluations= from different teams
+
+Table =mnmgwdb."outbound"."LocationEvaluations"= combines loceval by MNM and MHQ (distinguished by =eval_source=).
+Could be Frankensteined with inheritance stuff?
