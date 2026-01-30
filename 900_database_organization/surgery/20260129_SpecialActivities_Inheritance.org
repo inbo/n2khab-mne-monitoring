@@ -217,7 +217,8 @@ tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
 
 syntax is good, this worked well on =_dev=.
 
-** Doubt
+** DONE Doubt
+CLOSED: [2026-01-30 Fri]
 Should I keep "SpecialActivities"? [A]
 Or should I directly couple to "Visits"? [B]
 
@@ -234,15 +235,19 @@ yet it makes so much sense that I might be daring.
 Prior tests: tutorial-like implementation with a View.
 
 
+* Next Steps
 ** TODO Drafting - Direct =Visits= - =mnmgwdb_dev=
 
+Premise: *have a quarto notebook which assembles all migration steps*
++ works on a specified database mirror
++ first mirrors =-staging= from production; good to (a) start fresh or (b) have a working backup
 
+With that:
++ assemble structural adjustments
++ copy over data
++ clean up
 
-** TODO Test Data
-using R to copy over the data from production database
-+ establish two database connections
-+ copy data like in 033 (only 5 rows each)
-+ try selecting, manipulating, upating
+see [[remaining]] steps below for coverage.
 
 
 
@@ -290,7 +295,7 @@ Lessons learned:
 + computation efficiency is unclear; elegance is definite
 + I tend to favor the "Interface" route; however, in our specific case, just some special activities would make sense
 
-* Not My Next Project
+* (Not) My Next Project?
 ** =Locations=? No!
 can =Locations= be formed into an abstract for =LocationInfos=, =LocationCells=, etc.?
 -> certainly no good, since the content overlaps (Infos also have Cells; they are non-exclusive) and geometry would conflict
@@ -305,7 +310,11 @@ observation:
 
 Issue: this is *content* inheritance, only limited *structure* inheritance.
 
-** =LocationEvaluations= from different teams
+** WAIT =LocationEvaluations= from different teams -> Yes
 
 Table =mnmgwdb."outbound"."LocationEvaluations"= combines loceval by MNM and MHQ (distinguished by =eval_source=).
-Could be Frankensteined with inheritance stuff?
+Should be Frankensteined with inheritance stuff?
+
++ one abstract table for biotic stuff
++ two distinct tables for our Locevals and Others'
++ the latter may have fewer/different columns.
