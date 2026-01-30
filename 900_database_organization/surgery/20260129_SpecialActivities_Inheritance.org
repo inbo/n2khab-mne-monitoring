@@ -274,13 +274,21 @@ note [[renaming]]
 ** /ex post/
 + do not forget the /ex post/ scripts, e.g. for triggering =log_= columns on update
 
-* Tutorial
+* DONE Tutorial
+CLOSED: [2026-01-30 Fri 12:56]
+
 using the abstract ideas of a "calender" (=todos=)
 and variants of =activities= with extra columns
 -> directly couple to =todos=
 -> make a view to inspect all TODOs simultaneously
 
-use mermaid graphs for illustration
+https://github.com/inbo/tutorials/pull/371
+
+Lessons learned:
+- =NATURAL FULL JOIN=
++ inheritans works more like automatic =UNION=
++ computation efficiency is unclear; elegance is definite
++ I tend to favor the "Interface" route; however, in our specific case, just some special activities would make sense
 
 * Not My Next Project
 ** =Locations=? No!
