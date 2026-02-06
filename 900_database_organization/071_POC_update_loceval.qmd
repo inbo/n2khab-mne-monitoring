@@ -235,6 +235,8 @@ field_activities <- locevaldb$query_table("GroupedActivities") %>%
 
 
 ## Sample Units
+
+TODO: need to sideload future units from LocationAssessments
   
 ```{r assemble-sample-units}
 
