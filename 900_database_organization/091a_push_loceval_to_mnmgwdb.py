@@ -61,15 +61,15 @@ SELECT
   CASE WHEN (NOT UNIT.is_replaced) AND (LOREP.grts_address_replacement) IS NULL
     THEN LOC.wkb_geometry
     ELSE LOREP.wkb_geometry
-   END AS wkb_geometry,
+    END AS wkb_geometry,
   CASE WHEN (NOT UNIT.is_replaced) AND (LOREP.grts_address_replacement) IS NULL
     THEN UNIT.grts_address
     ELSE LOREP.grts_address_replacement
-   END AS grts_address_replacement,
+    END AS grts_address_replacement,
   CASE WHEN (NOT UNIT.is_replaced) AND (LOREP.grts_address_replacement) IS NULL
     THEN 0
     ELSE LOREP.replacement_rank
-   END AS replacement_rank,
+    END AS replacement_rank,
   LOREP.notes,
   UNIT.type,
   UNIT.grts_address,

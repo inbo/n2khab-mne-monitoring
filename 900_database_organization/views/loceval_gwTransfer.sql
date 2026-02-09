@@ -69,6 +69,7 @@ LEFT JOIN (
 WHERE TRUE
   AND LOCASS.assessment_done
   AND (UNIT.location_id IS NOT NULL)
+  AND UNIT.grts_address IN (826486, 51158134)
 ;
 
 

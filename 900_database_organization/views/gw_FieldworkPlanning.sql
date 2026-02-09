@@ -122,7 +122,7 @@ LEFT JOIN ( -- loceval
     AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
     AND (LJ.loceval_latest_date = LE.eval_date)
   WHERE TRUE
-    AND NOT loceval_type_absence
+    AND (loceval_replacement OR NOT loceval_type_absence)
     AND LE.grts_address IS NOT NULL
 ) AS LOCEVAL
   ON SLOC.grts_address = LOCEVAL.grts_address

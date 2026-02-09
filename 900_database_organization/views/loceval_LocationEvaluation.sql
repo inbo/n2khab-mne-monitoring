@@ -26,9 +26,9 @@ SELECT
   INFO.landowner,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
-  LOCASS.assessment_done,
-  LOCASS.cell_disapproved,
-  LOCASS.notes AS location_assessment,
+  -- OPHO.assessment_done, -- used for filtering
+  -- OPHO.cell_disapproved, -- used for filtering
+  OPHO.notes AS orthophoto_notes,
   CASE WHEN (FAC.date_visit_planned IS NULL) THEN FALSE ELSE TRUE END AS is_scheduled,
   FAC.teammember_assigned,
   FAC.activity_group_id,
@@ -62,23 +62,23 @@ LEFT JOIN (
   ON FAC.fieldactivitycalendar_id = VISIT.fieldactivitycalendar_id
 LEFT JOIN (
   SELECT DISTINCT
-    location_id,
+    sampleunit_id,
     cell_disapproved,
     assessment_done,
     CONCAT(notes || ' ') AS notes
   FROM "outbound"."LocationAssessments"
   GROUP BY
-    location_id,
+    sampleunit_id,
     cell_disapproved,
     assessment_done,
     notes
-  ) AS LOCASS
-  ON VISIT.location_id = LOCASS.location_id
+  ) AS OPHO
+  ON VISIT.sampleunit_id = OPHO.sampleunit_id
 WHERE TRUE
   AND (UNIT.archive_version_id IS NULL)
   AND (FAC.archive_version_id IS NULL)
   AND (VISIT.archive_version_id IS NULL)
-  AND ((LOCASS.cell_disapproved IS NULL) OR (NOT LOCASS.cell_disapproved))
+  AND ((OPHO.cell_disapproved IS NULL) OR (NOT OPHO.cell_disapproved))
   AND ((FAC.no_visit_planned IS NULL) OR (NOT FAC.no_visit_planned))
   AND (FAC.activity_group_id IN
   (SELECT DISTINCT activity_group_id FROM "metadata"."GroupedActivities"
@@ -139,5 +139,5 @@ DO ALSO
 
 
 
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris, karen, janne, tom, ward, monkey;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris, karen, ward;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris, karen, janne, tom, ward, falk, monkey;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris, karen, ward, falk;

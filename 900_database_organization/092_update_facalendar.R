@@ -210,6 +210,9 @@ fieldwork_calendar <-
 
 
 # fieldwork_calendar %>%
+#   filter(grts_address %in% c(826486)) %>%
+#   t() %>% knitr::kable()
+# fieldwork_calendar %>%
 #   filter(grts_address %in% c(2137206, 49692341)) %>%
 #   t() %>% knitr::kable()
 # fieldwork_shortterm_prioritization_by_stratum %>%

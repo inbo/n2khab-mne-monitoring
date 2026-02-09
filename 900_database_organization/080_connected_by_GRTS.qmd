@@ -39,7 +39,8 @@ suffix <- ""
 choose a GRTS
 
 ```{r choose-grts}
-grts <- c(23238, 6314694, 23091910) # Hellebos!
+grts <- c(826486, 51158134)
+    # c(23238, 6314694, 23091910) # Hellebos!
     # c(4229394) # an installed, but archived installation
     # c(50725598) # a loceval on archive: replacement required, but none selected
     # c(1202926, 10640110) # more missed archives
@@ -470,6 +471,8 @@ query_special_activity <- function(shorthand) {
     table_label <- "WellInstallationActivities"
   } else if (shorthand == "CSA") {
     table_label <- "ChemicalSamplingActivities"
+  } else if (shorthand == "SPA") {
+    table_label <- "SpatialPositioningActivities"
   }
 
   mnmdb$query_columns(
@@ -623,7 +626,8 @@ gw_print_visits <- function() {
 
 activities <- bind_rows(
     query_special_activity("WIA"),
-    query_special_activity("CSA")
+    query_special_activity("CSA"),
+    query_special_activity("SPA")
   ) %>%
   filter(grts_address %in% grts) %>%
   join_activity_groups()
@@ -772,7 +776,7 @@ gw_print_fwcal()
 gw_print_visits()
 ```
 
-special activities (well installation, chem sampling)
+special activities (well installation, chem sampling, positioning)
 
 ```{r print-special-activities}
 #| echo: false
