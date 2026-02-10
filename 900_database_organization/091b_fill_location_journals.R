@@ -470,6 +470,12 @@ upload_LoJos(locevaldb)
 upload_LoJos(mnmgwdb)
 
 
+message("")
+message("________________________________________________________________")
+message(" >>>>> Finished updating location journals. ")
+message("________________________________________________________________")
+
+
 ### Follow-Up
 if (FALSE) {
 sql_query = '
@@ -478,7 +484,7 @@ FROM "inbound"."Visits"
 WHERE visit_done
 AND date_visit IS NULL
 AND grts_address IN (
-500782,1818369,4229394,4234358,6092977,7151026,15026297,16470006,31496054,44604534,51431410,53288370
+7151026,31496054,51431410,53288370
 );
 '
 }

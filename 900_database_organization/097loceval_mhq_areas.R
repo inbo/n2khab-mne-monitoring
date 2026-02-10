@@ -254,5 +254,5 @@ if (TRUE) {
 
 message("")
 message("________________________________________________________________")
-message(" >>>>>  Finished updating MHQ areas. ")
+message(" >>>>>  Finished updating MHQ areas [locevaldb]. ")
 message("________________________________________________________________")

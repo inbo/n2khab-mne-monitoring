@@ -456,3 +456,9 @@ SELECT * FROM "outbound"."LocationJournals"
 #+end_src
 
 (605 rows)
+
++ applied on =_staging=
++ just briefly checkt pre-/-post; seems good for "Buitengoor" en "Hellebos" on mnmgwdb
++ ran and deployed to =production.=
+  + looks correct on the actual apps
++ daily maintenance tasks

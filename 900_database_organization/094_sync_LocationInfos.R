@@ -388,5 +388,6 @@ update_landuse_in_locationinfos(mnmgwdb)
 
 
 message("")
-message("  Finished syncing location infos. ")
+message("________________________________________________________________")
+message(" >>>>> Finished syncing location infos. ")
 message("________________________________________________________________")

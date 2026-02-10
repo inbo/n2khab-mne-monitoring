@@ -717,6 +717,8 @@ if (nrow(present_type_fwcals) > 0) {
 
 
 message("")
-message("  Finished. Make sure to inspect the log.  ")
+message("________________________________________________________________")
+message(" >>>>> Finished updating FWCalendar.")
+message("       Make sure to inspect the log.")
 message("________________________________________________________________")
 
