@@ -427,3 +427,32 @@ ORDER BY
 
 
 *LoJos type absence is wrong!*
+
+
+* =LocationJournals= corrected
+
+#+begin_src sql
+\COPY (
+SELECT * FROM "outbound"."LocationJournals"
+) TO '/data/mnm_db_backups/buitengoor_lojos_pre.csv' With CSV DELIMITER ',' HEADER
+;
+#+end_src
+
+(669 rows)
+
+
+#+begin_src sql
+DELETE FROM "outbound"."LocationJournals";
+#+end_src
+
+-> re-run =RScript 091b_fill_location_journals.R -staging=
+
+
+#+begin_src sql
+\COPY (
+SELECT * FROM "outbound"."LocationJournals"
+) TO '/data/mnm_db_backups/buitengoor_lojos_post.csv' With CSV DELIMITER ',' HEADER
+;
+#+end_src
+
+(605 rows)

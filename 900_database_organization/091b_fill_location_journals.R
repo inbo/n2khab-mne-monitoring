@@ -3,6 +3,9 @@
 # TODO in case we get to more than two databases,
 #      create a central place to store infos
 #      and check against that.
+#
+# TODO testing with
+# (826486, 51158134)
 
 #_______________________________________________________________________________
 ### Libraries
@@ -74,17 +77,27 @@ replacements_to_mnmgwdb <- function(df) {
 }
 
 # grts local replacement (1b): loceval split-up
-split_replacements <- function(df) {
+split_replacements_loceval <- function(df) {
 
-  replacements <- bind_rows(
-    local_replacement_lookup %>%
-      select(grts_address_original, type) %>%
-      mutate(grts_address_replacement = grts_address_original) %>%
-      mutate(type_is_absent_j = TRUE),
-    local_replacement_lookup %>%
-      select(grts_address_replacement, type, grts_address_original) %>%
+  # replacements <- bind_rows(
+  #   local_replacement_lookup %>%
+  #     select(grts_address_original, type) %>%
+  #     mutate(grts_address_replacement = grts_address_original) %>%
+  #     mutate(type_is_absent_j = TRUE),
+  #   local_replacement_lookup %>%
+  #     select(grts_address_replacement, type, grts_address_original) %>%
+  #     mutate(type_is_absent_j = FALSE)
+  # )
+  replacements <- local_replacement_lookup %>%
+      select(grts_address_original, type, grts_address_replacement) %>%
       mutate(type_is_absent_j = FALSE)
-  )
+
+  # replacements %>%
+  #     filter(grts_address_original %in% c(826486, 51158134)) %>%
+  #     t() %>% knitr::kable()
+
+  # df %>% select(-notes) %>% filter(grts_address %in% c(826486, 51158134)) %>%
+  #     t() %>% knitr::kable()
 
   df %>%
     left_join(
@@ -194,7 +207,7 @@ if (nrow(new_installation_removals) > 0) {
 ## location evaluations
 load_location_evaluations <- function() {
 
-  locevals <- locevaldb$query_table("Visits") %>%
+  loceval_visits <- locevaldb$query_table("Visits") %>%
     filter(visit_done) %>%
     left_join(
       locevaldb$query_columns(
@@ -203,7 +216,7 @@ load_location_evaluations <- function() {
       ),
       by = join_by(grts_address, type)
     ) %>%
-    split_replacements() %>%
+    split_replacements_loceval() %>%
     select(
       grts_address,
       date = date_visit,
@@ -226,7 +239,7 @@ load_location_evaluations <- function() {
     reframe(type_subset = stringr::str_c(type_subset, collapse = ",")) %>%
     arrange(date, grts_address)
 
-  no_dates <- locevals %>%
+  no_dates <- loceval_visits %>%
     filter(is.na(date))
 
   if (nrow(no_dates) > 0) {
@@ -234,10 +247,14 @@ load_location_evaluations <- function() {
     message(glue::glue("ERROR: date missing on loceval for {grtsses}"))
   }
 
-  locevals <- locevals %>%
+  loceval_visits <- loceval_visits %>%
     filter(!is.na(date))
 
-  return(locevals)
+  # loceval_visits %>%
+  #   filter(grts_address %in% c(826486, 51158134)) %>%
+  #   t() %>% knitr::kable()
+
+  return(loceval_visits)
 
 }
 
@@ -296,6 +313,8 @@ load_mnmgwdb_visits <- function() {
 }
 
 
+loceval_outputs <- load_location_evaluations()
+
 ## join all data sources
 location_journals <- bind_rows(
     load_location_evaluations(),
@@ -304,6 +323,10 @@ location_journals <- bind_rows(
   ) %>%
   arrange(date, grts_address, source)
 
+
+# location_journals %>%
+#   filter(grts_address %in% c(826486, 51158134)) %>%
+#   t() %>% knitr::kable()
 
 #_______________________________________________________________________________
 ### Upload and Update Data
@@ -335,7 +358,7 @@ upload_LoJos <- function(mnmdb) {
       by = join_by(grts_address)
     )
 
-  upload_and_lookup(
+  lojo_lookup <- upload_and_lookup(
     mnmdb = mnmdb,
     table_label = "LocationJournals",
     data_to_append = lojos,
