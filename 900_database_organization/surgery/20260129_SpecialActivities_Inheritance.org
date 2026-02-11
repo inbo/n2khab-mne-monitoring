@@ -334,3 +334,8 @@ Should be Frankensteined with inheritance stuff?
 + one abstract table for biotic stuff
 + two distinct tables for our Locevals and Others'
 + the latter may have fewer/different columns.
+
+
+* TODO ToDos
+
++ [ ] expost rules to structure sheet

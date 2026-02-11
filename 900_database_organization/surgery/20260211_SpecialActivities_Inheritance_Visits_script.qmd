@@ -1,0 +1,218 @@
+---
+title: "Migrate Special Activities"
+date: "2026-03-01"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+# Structure
+
+## Create New Tables
+
+
+```{sql}
+--| eval: false
+
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"inbound";
+
+BEGIN;
+DROP TABLE IF EXISTS "inbound"."InstallationVisits" CASCADE;
+
+CREATE TABLE "inbound"."InstallationVisits"()
+INHERITS ("inbound"."Visits")
+;
+
+COMMENT ON TABLE "inbound"."InstallationVisits" IS E'extra information collected for certain activities (well installations); subset of Visits';
+
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN installationvisit_id int NOT NULL; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".installationvisit_id IS E'technical index (extra, on top of visit_id)';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN photo_soil_1_peilbuis varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".photo_soil_1_peilbuis IS E'photo of the soil drill profile: peilbuis';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN photo_soil_2_piezometer varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".photo_soil_2_piezometer IS E'photo of the soil drill profile: piezometer';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN photo_well varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".photo_well IS E'photo of the placed well/pair';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN watina_code_used_1_peilbuis varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".watina_code_used_1_peilbuis IS E'watina code of the `odd` subset of wells';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN watina_code_used_2_piezometer varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".watina_code_used_2_piezometer IS E'watina code of the `even` subset of wells';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN soilprofile_notes varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".soilprofile_notes IS E'notes about the soil profiles';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN soilprofile_unclear boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".soilprofile_unclear IS E'help requested for evaluation of the soil profile';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN random_point_number smallint; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".random_point_number IS E'if so, which random point was chosen';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN no_diver boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".no_diver IS E'highlight issues (use notes to specify)';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN diver_id varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".diver_id IS E'link to the table of available divers';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN free_diver varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".free_diver IS E'free field to enter a non-registered diver code';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN reused_existing_well boolean DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".reused_existing_well IS E'flag if an existing installation was reused';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN reused_with_replacement boolean DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".reused_with_replacement IS E'whether an existing installation was reused and refreshed';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN used_water_from_tap boolean; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".used_water_from_tap IS E'whether or not tap water was used for installation';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN used_water_source varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".used_water_source IS E'source of the water used for facilitating installation';
+
+COMMIT;
+
+-- sequence installationvisit_id
+CREATE SEQUENCE "inbound".seq_installationvisit_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "inbound"."InstallationVisits".installationvisit_id;
+ALTER TABLE "inbound"."InstallationVisits" ALTER COLUMN installationvisit_id
+ SET DEFAULT nextval('inbound.seq_installationvisit_id'::regclass);
+
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationvisit_id" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+GRANT SELECT ON SEQUENCE "inbound"."seq_installationvisit_id" TO monkey;
+
+GRANT SELECT ON "inbound"."InstallationVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+
+GRANT INSERT ON "inbound"."InstallationVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT UPDATE ON "inbound"."InstallationVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT DELETE ON "inbound"."InstallationVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+
+```
+
+
+## Fill With Data
+
+this is somewhat more complex;
+I need to capture the data before DELETE FROM ONLY "inbound"."Visits" ;
+ore move the rows with INSERT... SELECT FROM ONLY;
+but all that while respecting uniqueness constraints.
+Maybe better have an R script?
+
+```{sql}
+--| eval: false
+-- BEGIN;
+
+INSERT INTO "inbound"."InstallationVisits" (
+  log_user,
+  log_update,
+  samplelocation_id,
+  fieldworkcalendar_id,
+  grts_address,
+  stratum,
+  activity_group_id,
+  date_start,
+  photo_soil_1_peilbuis,
+  photo_soil_2_piezometer,
+  photo_well,
+  watina_code_used_1_peilbuis,
+  watina_code_used_2_piezometer,
+  soilprofile_notes,
+  soilprofile_unclear,
+  random_point_number,
+  no_diver,
+  diver_id,
+  free_diver,
+  reused_existing_well,
+  reused_with_replacement,
+  used_water_from_tap,
+  used_water_source
+)
+SELECT
+  WIA.log_user,
+  WIA.log_update,
+  VIS.samplelocation_id,
+  VIS.fieldworkcalendar_id,
+  VIS.grts_address,
+  VIS.stratum,
+  VIS.activity_group_id,
+  VIS.date_start,
+  WIA.photo_soil_1_peilbuis,
+  WIA.photo_soil_2_piezometer,
+  WIA.photo_well,
+  WIA.watina_code_used_1_peilbuis,
+  WIA.watina_code_used_2_piezometer,
+  WIA.soilprofile_notes,
+  WIA.soilprofile_unclear,
+  WIA.random_point_number,
+  WIA.no_diver,
+  WIA.diver_id,
+  WIA.free_diver,
+  WIA.reused_existing_well,
+  WIA.reused_with_replacement,
+  WIA.used_water_from_tap,
+  WIA.used_water_source
+FROM "inbound"."WellInstallationActivities" AS WIA, "inbound"."Visits" AS VIS
+WHERE VIS.visit_id = WIA.visit_id
+  AND VIS.grts_address = WIA.grts_address
+  AND VIS.stratum = WIA.stratum
+  AND VIS.date_start = WIA.date_start
+  AND VIS.activity_group_id = 4
+  AND WIA.activity_group_id = 4
+;
+
+
+```
+
+
+## Redirect Traffic
+
+<https://stackoverflow.com/questions/12343984/insert-trigger-to-update-another-table-using-postgresql>
+
+All updates on the old table should be reflected in the new one.
+Users do not do inserts etc.
+
+
+```{sql}
+--| eval: false
+
+DROP FUNCTION IF EXISTS "metadata".sync_wia CASCADE;
+CREATE FUNCTION "metadata".sync_wia() RETURNS trigger AS $sync_wia$
+BEGIN
+
+  UPDATE "inbound"."InstallationVisits"
+  SET 
+      photo_soil_1_peilbuis = NEW.photo_soil_1_peilbuis,
+      photo_soil_2_piezometer = NEW.photo_soil_2_piezometer,
+      photo_well = NEW.photo_well,
+      watina_code_used_1_peilbuis = NEW.watina_code_used_1_peilbuis,
+      watina_code_used_2_piezometer = NEW.watina_code_used_2_piezometer,
+      soilprofile_notes = NEW.soilprofile_notes,
+      soilprofile_unclear = NEW.soilprofile_unclear,
+      random_point_number = NEW.random_point_number,
+      no_diver = NEW.no_diver,
+      diver_id = NEW.diver_id,
+      free_diver = NEW.free_diver,
+      reused_existing_well = NEW.reused_existing_well,
+      reused_with_replacement = NEW.reused_with_replacement,
+      used_water_from_tap = NEW.used_water_from_tap,
+      used_water_source = NEW.used_water_source
+  WHERE grts_address = NEW.grts_address
+    AND stratum = NEW.stratum
+    AND activity_group_id = 4
+    AND date_start = NEW.date_start
+  ;
+  
+  RETURN NEW;
+END;
+$sync_wia$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS wia_sync_trigger ON "inbound"."WellInstallationActivities";
+CREATE TRIGGER wia_sync_trigger
+BEFORE UPDATE ON "inbound"."WellInstallationActivities"
+FOR EACH ROW EXECUTE PROCEDURE "metadata".sync_wia();
+
+-- COMMIT;
+```

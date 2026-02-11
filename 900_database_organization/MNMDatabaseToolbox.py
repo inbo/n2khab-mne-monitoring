@@ -532,7 +532,7 @@ class dbTable(dict):
             {inherit_string}
         ;
         """
-        print(create_string)
+        # print(create_string)
 
         # table comment
         create_string += f"""
