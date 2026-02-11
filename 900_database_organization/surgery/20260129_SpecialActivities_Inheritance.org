@@ -250,10 +250,12 @@ With that:
 see [[remaining]] steps below for coverage.
 
 
-
 * Migration Considerations
-** TODO renaming
+** KILL renaming
+CLOSED: [2026-02-11 Wed 10:39]
 + =fieldwork_id= -> =specialactivity_id=
+
+/will all be visit_id/
 
 ** table creation script
 first, adjust the structure sheets to outsource SpecialActivities
@@ -294,6 +296,20 @@ Lessons learned:
 + inheritans works more like automatic =UNION=
 + computation efficiency is unclear; elegance is definite
 + I tend to favor the "Interface" route; however, in our specific case, just some special activities would make sense
+
+* KILL Unit Tests?
+CLOSED: [2026-02-11 Wed 10:35]
+I think I should use unit tests.
+Idea: some queries we regularly use elsewhere; store results before/after
+
+Issue: the content is rather dynamic with the complex tooling we already have (i.e. I cannot guarantee that ID's stay constant while implementing the change).
+I could work on parallel worlds by keeping the old SpecialActivities in tact,
+but then the unit tests are of very limited, temporal use.
+
+So, /glory to the brave/, I will try to just straight implement.
+BUT /glory to the douchebags/ I will also keep the SpecialActivities alive as they are until dust settles, so that I can make /ad hoc/ comparative queries before shutting down.
+No real unit tests, but at least a fallback.
+
 
 * (Not) My Next Project?
 ** =Locations=? No!
