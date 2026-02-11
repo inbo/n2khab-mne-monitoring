@@ -54,7 +54,6 @@ SELECT
   INST.installation_issues,
   LOCEVAL.loceval_positive,
   LOCEVAL.loceval_latest_date,
-  -- LOCEVAL.loceval_replacement,
   LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes
@@ -65,7 +64,7 @@ LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = SLOC.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
-LEFT JOIN ( -- soil infos
+LEFT JOIN (
   SELECT DISTINCT location_id, info AS soil_info
   FROM "metadata"."LocationSoilInfos"
   ) AS SOIL
@@ -74,13 +73,13 @@ LEFT JOIN "inbound"."Visits" AS VISIT
   ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
     ON VISIT.visit_id = WIA.visit_id
-LEFT JOIN ( -- grouped activities
+LEFT JOIN (
   SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
     FROM "metadata"."GroupedActivities"
     GROUP BY activity_group_id, activity_group, is_gw_activity
   ) AS ACT
     ON ACT.activity_group_id = FWCAL.activity_group_id
-LEFT JOIN ( -- loceval
+LEFT JOIN (
   SELECT
     LJ.loceval_latest_date,
     LJ.grts_address,
@@ -127,7 +126,7 @@ LEFT JOIN ( -- loceval
 ) AS LOCEVAL
   ON SLOC.grts_address = LOCEVAL.grts_address
   AND SLOC.strata = LOCEVAL.stratum
-LEFT JOIN ( -- replacements
+LEFT JOIN (
   SELECT DISTINCT
     type,
     grts_address AS grts_address_poc,
@@ -137,7 +136,7 @@ LEFT JOIN ( -- replacements
 ) AS REP
   ON ((REP.grts_address = SLOC.grts_address)
   AND (SLOC.strata = REP.type))
-LEFT JOIN ( -- journal/installations
+LEFT JOIN (
   SELECT
     location_id,
     (source = 'gwdb') AS has_installation,
