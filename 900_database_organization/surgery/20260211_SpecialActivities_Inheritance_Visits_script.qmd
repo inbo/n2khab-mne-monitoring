@@ -15,6 +15,16 @@ knitr:
 
 # Structure
 
+
+:::{.callout-warning}
+Working on the structure is tricky,
+especially on `_staging`.
+
+Some structural changes on the mirror will prohibit the `pg_dump` update to work;
+re-initialization, dump, and re-run of the changes will fix it.
+
+:::
+
 ## Create New Tables
 
 
@@ -114,6 +124,13 @@ INSERT INTO "inbound"."InstallationVisits" (
   stratum,
   activity_group_id,
   date_start,
+  teammember_id,
+  date_visit,
+  notes,
+  photo,
+  issues,
+  visit_done,
+  archive_version_id,
   photo_soil_1_peilbuis,
   photo_soil_2_piezometer,
   photo_well,
@@ -139,6 +156,13 @@ SELECT
   VIS.stratum,
   VIS.activity_group_id,
   VIS.date_start,
+  VIS.teammember_id
+  VIS.date_visit
+  VIS.notes
+  VIS.photo
+  VIS.issues
+  VIS.visit_done
+  VIS.archive_version_id
   WIA.photo_soil_1_peilbuis,
   WIA.photo_soil_2_piezometer,
   WIA.photo_well,
@@ -161,6 +185,16 @@ WHERE VIS.visit_id = WIA.visit_id
   AND VIS.date_start = WIA.date_start
   AND VIS.activity_group_id = 4
   AND WIA.activity_group_id = 4
+;
+
+
+DELETE
+FROM ONLY "inbound"."Visits" 
+WHERE activity_group_id = 4
+AND fieldworkcalendar_id IN (
+  SELECT DISTINCT fieldworkcalendar_id
+  FROM "inbound"."InstallationVisits"
+)
 ;
 
 
@@ -216,3 +250,51 @@ FOR EACH ROW EXECUTE PROCEDURE "metadata".sync_wia();
 
 -- COMMIT;
 ```
+
+
+Test redirect (on `_staging`):
+
+```{sql}
+--| eval: false
+SELECT *
+FROM "inbound"."WellInstallationActivities" AS WIA
+WHERE WIA.grts_address = 23238;
+
+SELECT *
+FROM "inbound"."Visits" AS VIS
+WHERE VIS.grts_address = 23238 AND activity_group_id = 4;
+
+
+SELECT WIA.grts_address, VIS.date_visit, WIA.random_point_number
+FROM "inbound"."WellInstallationActivities" AS WIA
+LEFT JOIN "inbound"."Visits" AS VIS
+ON VIS.visit_id = WIA.visit_id
+WHERE WIA.grts_address = 23238;
+
+SELECT grts_address, date_visit, random_point_number
+FROM "inbound"."InstallationVisits"
+WHERE grts_address = 23238;
+
+
+UPDATE "inbound"."WellInstallationActivities"
+SET random_point_number = 1
+WHERE grts_address = 23238;
+
+
+
+```
+
+:::{.callout-note}
+Whoohoo, it works!
+:::
+
+
+:::{.callout-warning}
+... but the INSERT didn't :(
+
+- some columns from `Visits` were missing
+- duplicates not removed
+
+... but this is solved now via a better INSERT and a distinct DELETE.
+:::
+
