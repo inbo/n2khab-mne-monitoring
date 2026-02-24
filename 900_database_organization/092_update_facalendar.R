@@ -321,10 +321,10 @@ startdate_updates_happened <- associate_and_shift_start_dates(
   data_future = data_nouveau,
   characteristic_columns = characteristic_columns,
   other_table_labels = c(
-    "Visits",
-    "WellInstallationActivities",
-    "ChemicalSamplingActivities",
-    "SpatialPositioningActivities"
+    "Visits"
+    # "WellInstallationActivities",
+    # "ChemicalSamplingActivities",
+    # "SpatialPositioningActivities"
   )
 )
 

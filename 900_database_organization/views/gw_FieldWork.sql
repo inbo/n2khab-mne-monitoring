@@ -33,34 +33,39 @@ SELECT
   GAP.is_field_activity,
   GAP.is_gw_activity,
   GAP.protocols,
-  COALESCE(
-    WIA.fieldwork_id,
-    CSA.fieldwork_id,
-    SPA.fieldwork_id
-    ) AS fieldwork_id,
-  CASE WHEN WIA.is_installation IS NULL THEN FALSE ELSE WIA.is_installation END AS show_installation,
-  CASE WHEN CSA.is_sampling IS NULL THEN FALSE ELSE CSA.is_sampling END AS show_sampling,
-  CASE WHEN SPA.is_positioning IS NULL THEN FALSE ELSE SPA.is_positioning END AS show_positioning,
-  WIA.photo_soil_1_peilbuis,
-  WIA.photo_soil_2_piezometer,
-  WIA.photo_well,
-  WIA.watina_code_used_1_peilbuis,
-  WIA.watina_code_used_2_piezometer,
-  WIA.soilprofile_notes,
-  WIA.soilprofile_unclear,
-  WIA.no_diver,
-  WIA.random_point_number,
-  WIA.diver_id,
-  WIA.free_diver,
-  WIA.reused_existing_well,
-  WIA.reused_with_replacement,
-  WIA.used_water_from_tap,
-  WIA.used_water_source,
-  CSA.project_code,
-  CSA.recipient_code,
-  SPA.require_total_station,
+  VISIT.installationvisit_id,
+  VISIT.samplingvisit_id,
+  VISIT.positioningvisit_id,
+  (VISIT.installationvisit_id IS NOT NULL) AS show_installation,
+  (VISIT.samplingvisit_id IS NOT NULL) AS show_sampling,
+  (VISIT.positioningvisit_id IS NOT NULL) AS show_positioning,
+  VISIT.photo_soil_1_peilbuis,
+  VISIT.photo_soil_2_piezometer,
+  VISIT.photo_well,
+  VISIT.watina_code_used_1_peilbuis,
+  VISIT.watina_code_used_2_piezometer,
+  VISIT.soilprofile_notes,
+  VISIT.soilprofile_unclear,
+  VISIT.no_diver,
+  VISIT.random_point_number,
+  VISIT.diver_id,
+  VISIT.free_diver,
+  VISIT.reused_existing_well,
+  VISIT.reused_with_replacement,
+  VISIT.used_water_from_tap,
+  VISIT.used_water_source,
+  VISIT.is_cattleproof,
+  VISIT.project_code,
+  VISIT.recipient_code,
+  VISIT.require_total_station,
   VISIT.visit_done
-FROM "inbound"."Visits" AS VISIT
+FROM (
+  SELECT *
+  FROM ONLY "inbound"."Visits"
+  NATURAL FULL JOIN "inbound"."InstallationVisits"
+  NATURAL FULL JOIN "inbound"."SamplingVisits"
+  NATURAL FULL JOIN "inbound"."PositioningVisits"
+) AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
@@ -94,21 +99,6 @@ LEFT JOIN (
     is_gw_activity
   ) AS GAP
   ON GAP.activity_group_id = VISIT.activity_group_id
-LEFT JOIN (
-  SELECT *, TRUE AS is_installation
-  FROM "inbound"."WellInstallationActivities"
-) AS WIA
-  ON VISIT.visit_id = WIA.visit_id
-LEFT JOIN (
-  SELECT *, TRUE AS is_sampling
-  FROM "inbound"."ChemicalSamplingActivities"
-) AS CSA
-  ON VISIT.visit_id = CSA.visit_id
-LEFT JOIN (
-  SELECT *, TRUE AS is_positioning
-  FROM "inbound"."SpatialPositioningActivities"
-) AS SPA
-  ON VISIT.visit_id = SPA.visit_id
 LEFT JOIN (
   SELECT samplelocation_id, loceval_photo
   FROM (
@@ -167,11 +157,11 @@ DO ALSO
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
-DROP RULE IF EXISTS FieldWork_upd_WIA ON "inbound"."FieldWork";
-CREATE RULE FieldWork_upd_WIA AS
+DROP RULE IF EXISTS FieldWork_upd_INSTALLATION ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_INSTALLATION AS
 ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
- UPDATE "inbound"."WellInstallationActivities"
+ UPDATE "inbound"."InstallationVisits"
  SET
   photo_soil_1_peilbuis = NEW.photo_soil_1_peilbuis,
   photo_soil_2_piezometer = NEW.photo_soil_2_piezometer,
@@ -187,29 +177,33 @@ DO ALSO
   reused_existing_well = NEW.reused_existing_well,
   reused_with_replacement = NEW.reused_with_replacement,
   used_water_from_tap = NEW.used_water_from_tap,
-  used_water_source = NEW.used_water_source
- WHERE fieldwork_id = OLD.fieldwork_id
+  used_water_source = NEW.used_water_source,
+  is_cattleproof = NEW.is_cattleproof
+ WHERE installationvisit_id = OLD.installationvisit_id
+   AND installationvisit_id IS NOT NULL
 ;
 
-DROP RULE IF EXISTS FieldWork_upd_CSA ON "inbound"."FieldWork";
-CREATE RULE FieldWork_upd_CSA AS
+DROP RULE IF EXISTS FieldWork_upd_SAMPLING ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_SAMPLING AS
 ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
- UPDATE "inbound"."ChemicalSamplingActivities"
+ UPDATE "inbound"."SamplingVisits"
  SET
   project_code = NEW.project_code,
   recipient_code = NEW.recipient_code
- WHERE fieldwork_id = OLD.fieldwork_id
+ WHERE samplingvisit_id = OLD.samplingvisit_id
+   AND samplingvisit_id IS NOT NULL
 ;
 
-DROP RULE IF EXISTS FieldWork_upd_SPA ON "inbound"."FieldWork";
-CREATE RULE FieldWork_upd_SPA AS
+DROP RULE IF EXISTS FieldWork_upd_POSITIONING ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_POSITIONING AS
 ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
- UPDATE "inbound"."SpatialPositioningActivities"
+ UPDATE "inbound"."PositioningVisits"
  SET
   require_total_station = NEW.require_total_station
- WHERE fieldwork_id = OLD.fieldwork_id
+ WHERE positioningvisit_id = OLD.positioningvisit_id
+   AND positioningvisit_id IS NOT NULL
 ;
 
 GRANT SELECT ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
@@ -234,8 +228,8 @@ GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, 
 
 
 
-GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
+-- GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
+-- GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
 
-GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tester;
-GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tester;
+-- GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tester;
+-- GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tester;

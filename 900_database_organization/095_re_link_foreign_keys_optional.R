@@ -235,45 +235,7 @@ stitch_table_connection(
 
 
 
-
-special_activity_tables <- c(
-  "WellInstallationActivities",
-  "ChemicalSamplingActivities",
-  "SpatialPositioningActivities"
-)
-
-for (table_label in special_activity_tables) {
-
-  # link WIA/CSA back to SampleLocations
-  stitch_table_connection(
-    mnmdb = mnmgwdb,
-    table_label = table_label,
-    reference_table = "SampleLocations",
-    link_key_column = "samplelocation_id",
-    lookup_columns = c("grts_address", "stratum"),
-    reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
-  )
-
-  # link WIA/CSA back to FieldworkCalendar
-  stitch_table_connection(
-    mnmdb = mnmgwdb,
-    table_label = table_label,
-    reference_table = "FieldworkCalendar",
-    link_key_column = "fieldworkcalendar_id",
-    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
-  )
-
-  # link WIA/CSA back to Visits
-  stitch_table_connection(
-    mnmdb = mnmgwdb,
-    table_label = table_label,
-    reference_table = "Visits",
-    link_key_column = "visit_id",
-    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
-  )
-
-
-}
+# REMOVED WIA/CSA/SPA
 
 
 # there are `new_location_id` and `new_samplelocation_id` in "archive"."ReplacementData"

@@ -47,8 +47,8 @@ SELECT
   VISIT.photo,
   VISIT.visit_done,
   CASE WHEN VISIT.date_visit IS NULL THEN NULL
-       ELSE current_date - VISIT.date_visit
-  END AS count_days_ws,
+      ELSE current_date - VISIT.date_visit
+    END AS count_days_ws,
   INST.has_installation,
   INST.installation_date,
   INST.installation_issues,
@@ -71,8 +71,6 @@ LEFT JOIN (
   ON LOC.location_id = SOIL.location_id
 LEFT JOIN "inbound"."Visits" AS VISIT
   ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
-LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
-    ON VISIT.visit_id = WIA.visit_id
 LEFT JOIN (
   SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
     FROM "metadata"."GroupedActivities"
