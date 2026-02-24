@@ -51,18 +51,6 @@ verify_poc_objects()
 
 }
 
-### MHQ input
-# check which cells are subject to MHQ assessment
-## not necessary: now stored in SampleLocations
-# assessment_lookup <- bind_rows(
-#   fag_stratum_grts_calendar %>%
-#     distinct(grts_address_final, assessed_in_field) %>%
-#     setNames(c("grts_address", "assessed")),
-#   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
-#     distinct(grts_address_final, last_type_assessment_in_field) %>%
-#     setNames(c("grts_address", "assessed"))
-# )
-
 
 ### Geometry helpers
 make_a_point <- function (x, y) t(as.matrix(c(x, y), byrows = TRUE, ncol = 2, nrow = 1))
@@ -85,9 +73,8 @@ make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
 
 
 
-generate_centerweighted_random_sampling <- function(
-    target_radius = 10, # m
-    angle_range = 2*pi,
+generate_random_sampling_square <- function(
+    target_radius = 16, # m
     n_samples = 128,
     location_seed = 42 # location_specific
   ) {
@@ -95,11 +82,11 @@ generate_centerweighted_random_sampling <- function(
   # prepare the unit zone
   unit_zone_rad <- make_polygon(
     rbind(
-      make_a_point(0, 0),
-      make_a_point(0, 1),
-      make_a_point(1, 1),
-      make_a_point(1, 0),
-      make_a_point(0, 0)
+      make_a_point(-1, -1),
+      make_a_point(-1,  1),
+      make_a_point( 1,  1),
+      make_a_point( 1, -1),
+      make_a_point(-1, -1)
     )
   )
 
@@ -116,20 +103,15 @@ generate_centerweighted_random_sampling <- function(
   # coordinate tricks
   coords <- sf::st_coordinates(samples)
 
-  # scale to angular- and radial range
-  phi <- coords[,1] * angle_range
-  r <- coords[,2] * target_radius
-  # plot(r, phi)
-
   # convert to x/y
-  x <- r * cos(phi)
-  y <- r * sin(phi)
+  x <- coords[,1]
+  y <- coords[,2]
 
   # plot(x, y)
   # text(x, y, 1:n_samples)
 
   # voila!
-  return(as.data.frame(cbind(x, y, r, (phi - pi)*180/pi)) %>% setNames(c("X", "Y", "r", "phi")))
+  return(as.data.frame(cbind(x, y)) %>% setNames(c("X", "Y")))
 }
 
 
@@ -167,18 +149,16 @@ locations_all <- locations_sf %>%
 # TODO: work with a subset for testing
 locations <- locations_all %>%
   filter(!sf::st_is_empty(wkb_geometry)) # %>%
+  filter(grts_address %in% c(23238, 23091910, 6314694))
 #  filter(grts_address %in% c(48897, 1818369))
-#  filter(grts_address %in% c(23238, 23091910, 6314694))
 
 ## random sampling procedure
 
-generate_random_placement_points <- function(
+generate_random_elevation_points <- function(
     one_location,
-    n_points = 20,
-    target_radius = 10,
+    n_points = 50,
+    target_radius = 16,
     n_samples = 256,
-    # is_forest = FALSE,
-    # is_mhq_samplelocation = FALSE,
     location_seed = 42
   ) {
 
@@ -233,7 +213,7 @@ generate_random_placement_points <- function(
     sf::st_union() # often multiple subparts are chosen
 
 
-  random_points <- generate_centerweighted_random_sampling(
+  random_points <- generate_random_sampling_square(
       target_radius = target_radius,
       n_samples = n_samples,
       location_seed = location_seed
@@ -286,7 +266,7 @@ generate_random_placement_points <- function(
 
   return(points_in_habitat)
 
-} # / generate_random_placement_points
+} # / generate_random_elevation_points
 
 
 
@@ -313,7 +293,7 @@ randompoints_locationwise <- function(location_row) {
   target_radius <- sqrt(2 * 16^2) # m
     # NOTE: r>16 because we include points in the whole cell
   n_samples <- 128
-  n_points <- 20
+  n_points <- 64
   # is_forest <- one_location$is_forest
   # is_mhq_samplelocation <- assessment_lookup %>%
   #   filter(grts_address == one_location$grts_address) %>%
@@ -328,7 +308,7 @@ randompoints_locationwise <- function(location_row) {
   limit_count <- 1
   while ((current_points < n_points) && (limit_count < 8)) {
 
-    rnd20_points <- generate_random_placement_points(
+    rnd64_points <- generate_random_elevation_points(
       one_location,
       n_points = n_points,
       target_radius = target_radius,
@@ -336,7 +316,7 @@ randompoints_locationwise <- function(location_row) {
       location_seed = location_seed
     )
 
-    current_points <- nrow(rnd20_points)
+    current_points <- nrow(rnd64_points)
     n_samples <- n_samples * 2 # just get more samples
     limit_count <- limit_count + 1 # but don't go too big
   }
@@ -347,21 +327,21 @@ randompoints_locationwise <- function(location_row) {
     sf::st_as_sf(coords = c("X", "Y"), crs = sf::st_crs(one_location))
 
   if (is_forest && isFALSE(is_mhq_samplelocation)) {
-    rnd20_points <- bind_rows(
+    rnd64_points <- bind_rows(
       center_representation_point,
-      rnd20_points
+      rnd64_points
       )
   }
 
-  rnd20_points <- rnd20_points %>%
+  rnd64_points <- rnd64_points %>%
     mutate(
       samplelocation_id = one_location$samplelocation_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,
-      random_point_rank = 1:nrow(rnd20_points)
+      random_point_rank = 1:nrow(rnd64_points)
     )
 
-  return(rnd20_points)
+  return(rnd64_points)
 
 } # /randompoints_locationwise
 
@@ -403,12 +383,7 @@ if (FALSE) {
 ## TODO northing - correct to magnetic north
 all_points <- all_points %>%
   mutate(
-    randompoint_id = 1:nrow(all_points),
-    angle = -(phi+90) %% 360,
-    # angle_look = (-angle) + 360, # wrong, updated 20250812
-    angle_look = (angle + 180) %% 360,
-    compass = cimir::cimis_degrees_to_compass(angle),
-    distance_m = r
+    randompoint_id = 1:nrow(all_points)
   )
 
 all_points <- all_points %>% sf::st_cast("POINT")
@@ -422,59 +397,16 @@ all_points <- cbind(all_points, lamberts) %>%
   mutate_at(
     vars(
       lambert_lon,
-      lambert_lat,
-      angle,
-      angle_look,
-      distance_m
+      lambert_lat
     ), function (x) round(x, 2)
   )
 
 sf::st_geometry(all_points) <- "wkb_geometry"
 
-message("________________________________________________________________")
-message(glue::glue("DELETE/INSERT of outbound.RandomPoints"))
 
-if (TRUE) {
-  mnmgwdb$execute_sql(
-    glue::glue('DELETE FROM "outbound"."RandomPoints";'),
-    verbose = TRUE
+sf::st_write(all_points,
+  dsn = "./data/elevationpoints_preview.gpkg",
+  layer = "random elevation points",
+  append = FALSE
   )
-
-  mnmgwdb$insert_data(
-    table_label = "RandomPoints",
-    upload_data = all_points %>% select(-r, -phi)
-  )
-
-}
-
-
-# source('098_random_placementpoints_mnmgwdb.R')
-
-message("")
-message("________________________________________________________________")
-message(" >>>>>  Finished updating random placement points. ")
-message("________________________________________________________________")
-
-
-if (FALSE) {
-
-"""
-\COPY (
-    SELECT samplelocation_id,
-      location_id,
-      grts_address,
-      random_point_rank,
-      compass,
-      angle,
-      angle_look,
-      distance_m,
-      lambert_lon,
-      lambert_lat
-    FROM "outbound"."RandomPoints"
-    WHERE angle IS NOT NULL
-    ORDER BY grts_address ASC, random_point_rank ASC
-) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
-;
-"""
-
-}
+# saveRDS(forest_data, "data/forestnature.rds")

@@ -758,3 +758,11 @@ other daily scripts
 after everything works,
 backup and then
 drop WIA/CSA/SPA tables
+
+
+<!-- 
+to re-start testing:
+DROP TABLE "inbound"."InstallationVisits" CASCADE; 
+DROP TABLE "inbound"."SamplingVisits" CASCADE; 
+DROP TABLE "inbound"."PositioningVisits" CASCADE; 
+-->

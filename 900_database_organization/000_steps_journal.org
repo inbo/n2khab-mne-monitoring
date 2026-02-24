@@ -2002,6 +2002,11 @@ Done. With some bumps.
 
 
 
+* Major Structure Overhaul: Visits Inheritance
+
+concept: [[file:./surgery/20260129_SpecialActivities_Inheritance.org]]
+implementation: [[file:./surgery/20260211_SpecialActivities_Inheritance_Visits_script.qmd]]
+
 
 * learning the hard way
 
