@@ -74,7 +74,7 @@ make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
 
 
 generate_random_sampling_square <- function(
-    target_radius = 16, # m
+    target_radius = 16, # m; half cell dimension
     n_samples = 128,
     location_seed = 42 # location_specific
   ) {
@@ -82,11 +82,11 @@ generate_random_sampling_square <- function(
   # prepare the unit zone
   unit_zone_rad <- make_polygon(
     rbind(
-      make_a_point(-1, -1),
-      make_a_point(-1,  1),
-      make_a_point( 1,  1),
-      make_a_point( 1, -1),
-      make_a_point(-1, -1)
+      make_a_point(-target_radius, -target_radius),
+      make_a_point(-target_radius,  target_radius),
+      make_a_point( target_radius,  target_radius),
+      make_a_point( target_radius, -target_radius),
+      make_a_point(-target_radius, -target_radius)
     )
   )
 
@@ -149,7 +149,7 @@ locations_all <- locations_sf %>%
 # TODO: work with a subset for testing
 locations <- locations_all %>%
   filter(!sf::st_is_empty(wkb_geometry)) # %>%
-  filter(grts_address %in% c(23238, 23091910, 6314694))
+# filter(grts_address %in% c(23238, 23091910, 6314694))
 #  filter(grts_address %in% c(48897, 1818369))
 
 ## random sampling procedure
