@@ -85,7 +85,7 @@ make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
 
 
 
-generate_random_sampling <- function(
+generate_centerweighted_random_sampling <- function(
     target_radius = 10, # m
     angle_range = 2*pi,
     n_samples = 128,
@@ -172,7 +172,7 @@ locations <- locations_all %>%
 
 ## random sampling procedure
 
-generate_random_points <- function(
+generate_random_placement_points <- function(
     one_location,
     n_points = 20,
     target_radius = 10,
@@ -210,7 +210,7 @@ generate_random_points <- function(
         cell_center + make_a_point(8, 8)
       )
     )
-    mhq_safety <- sf::st_buffer(mhq_zone, 2)
+    mhq_safety <- sf::st_buffer(mhq_zone, 1)
   } else {
     mhq_zone <- make_polygon(
       rbind(
@@ -221,7 +221,7 @@ generate_random_points <- function(
         cell_center
       )
     )
-    mhq_safety <- sf::st_buffer(mhq_zone, 3)
+    mhq_safety <- sf::st_buffer(mhq_zone, 2)
   }
 
 
@@ -233,7 +233,7 @@ generate_random_points <- function(
     sf::st_union() # often multiple subparts are chosen
 
 
-  random_points <- generate_random_sampling(
+  random_points <- generate_centerweighted_random_sampling(
       target_radius = target_radius,
       n_samples = n_samples,
       location_seed = location_seed
@@ -328,7 +328,7 @@ randompoints_locationwise <- function(location_row) {
   limit_count <- 1
   while ((current_points < n_points) && (limit_count < 8)) {
 
-    rnd20_points <- generate_random_points(
+    rnd20_points <- generate_random_placement_points(
       one_location,
       n_points = n_points,
       target_radius = target_radius,

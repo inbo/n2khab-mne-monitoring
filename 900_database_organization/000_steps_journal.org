@@ -2002,6 +2002,7 @@ Done. With some bumps.
 
 
 
+
 * learning the hard way
 
 ** =dbWriteTable(..., overwrite = TRUE, ...)= is a bad idea!
@@ -2109,6 +2110,15 @@ BEGIN
 END;
 $sync_mod$ LANGUAGE plpgsql;
 #+end_src
+
+
+** MHQ zone buffer widths were wrong
+
+was, each direction: 2m extra in forests; 3m extra in open habitats
+now, as intended (see "*maaiveldmetingen terrestrisch.pdf"):
+
++ open: 3x3 offset square +2m buffer
++ forests: 16x16 centered square +1m buffer
 
 
 * General (II)
