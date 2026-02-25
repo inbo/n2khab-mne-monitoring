@@ -26,7 +26,8 @@ library(readr)
 library(rprojroot)
 
 # Set project root; works everywhere as the RStudio project file is in the repo
-projroot <- find_root(is_rstudio_project)
+gitroot <- find_root(is_git_root)
+projroot <- file.path(gitroot, "020_fieldwork_organization")
 
 # Load some custom functions
 source(file.path(projroot, "R/grts.R"))
@@ -442,17 +443,25 @@ stratum_grts_address_nopolygon_sf <-
     spatrast_index = grts_mh_index
   )
 
-# Selecting the missing polygons from the habitatmap. Using terra to read and
-# filter, because it can handle some exotic geometries from habitatmap out of
-# the box (to do this with sf, see /src/miscellaneous/habitatmap.Rmd in the
-# interim branch of n2khab-preprocessing, but this is more laborious)
+# Selecting the missing polygons from the habitatmap. Up to terra 1.8-86, terra
+# was used to read and filter, because it can handle some exotic geometries from
+# habitatmap out of the box (to do this with sf, see
+# /src/miscellaneous/habitatmap.Rmd in the interim branch of
+# n2khab-preprocessing, but this is more laborious). terra 1.8-93 causes a
+# crash, reported in https://github.com/rspatial/terra/issues/2037. While
+# preparing the issue, it was however discovered that we don't actually keep any
+# of the MULTISURFACE geometries causing the problem. This has led to the
+# simpler way, using sf, excluding the MULTISURFACE geometries. There's a chance
+# that terra 1.8-86 actually did the same, so we should still check with later
+# terra versions if new differences appear.
 missing_polygons <-
-  vect(file.path(
+  read_sf(file.path(
     locate_n2khab_data(),
     "10_raw/habitatmap/habitatmap.gpkg"
   )) %>%
-  .[vect(stratum_grts_address_nopolygon_sf)] %>%
-  st_as_sf() %>%
+  mutate(geomtype = st_geometry_type(.)) %>%
+  filter(geomtype != "MULTISURFACE") %>%
+  .[stratum_grts_address_nopolygon_sf, ] %>%
   select(polygon_id = globalid_BWK) %>%
   vect()
 
@@ -1450,7 +1459,7 @@ orthophoto_shortterm_cell_centers <-
 
 ## Comparing object checksums with reference to verify reproducibility --------
 
-checksumfile <- file.path(projroot, "fieldworg_checksums.csv")
+checksumfile <- file.path(gitroot, "fieldworg_checksums.csv")
 ref_checksums <- read_csv(checksumfile, col_types = "cc")
 available_obj <- ls()
 different_checksums <-
