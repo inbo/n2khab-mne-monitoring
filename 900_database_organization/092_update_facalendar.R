@@ -20,6 +20,7 @@ if (length(commandline_args) > 0) {
   suffix <- ""
   # suffix <- "-staging" # "-testing"
 }
+suffix <- "-staging"
 
 ### connect to database
 mnmgwdb <- connect_mnm_database(
@@ -469,6 +470,7 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 
 #_______________________________________________________________________________
 
+### TODO here it gets interesting.
 
 visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
 
@@ -492,9 +494,46 @@ visits_upload <- new_visits %>%
   anti_join(
     mnmgwdb$query_table("Visits"),
     by = join_by(!!!fieldcalendar_characols)
-  )
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time())
+  ) # /SPA
 
-visits_lookup <- update_cascade_lookup(
+# Loop Special Activities
+selection_of_activities <- list(
+  "InstallationVisits" = activity_groupid_lookup %>%
+    filter(grepl("^GWINST", activity_group)) %>%
+    pull(activity_group_id) %>% unique, # /WIA
+  "SamplingVisits" = activity_groupid_lookup %>%
+    filter(activity_group %in%
+      c(gw_field_activities %>%
+        filter(grepl("^GW.*SAMP", activity)) %>%
+        pull(activity_group))
+      ) %>%
+    pull(activity_group_id) %>% unique, # /CSA
+  "PositioningVisits" = activity_groupid_lookup %>%
+    filter(activity_group %in%
+      c(gw_field_activities %>%
+        filter(grepl("^SPATPOSIT", activity)) %>%
+        pull(activity_group))
+      ) %>%
+    pull(activity_group_id) %>% unique # /SPA
+)
+
+append_defaults <- list(
+  "InstallationVisits" = function(df) df %>%
+    mutate(
+      no_diver = FALSE,
+      soilprofile_unclear = FALSE
+    ) # /WIA
+)
+
+# TODO KILL STOP WAIT continue here
+
+
+
+# visits_lookup <- update_cascade_lookup(
   table_label = "Visits",
   new_data = visits_upload,
   index_columns = c("visit_id"),
@@ -536,111 +575,111 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 
 
 #_______________________________________________________________________________
-# Fieldwork "Special" Activity Tables
+# OBSOLETE Fieldwork "Special" Activity Tables
 
-special_activity_tables <- c(
-  "WellInstallationActivities",
-  "ChemicalSamplingActivities",
-  "SpatialPositioningActivities"
-)
-
-speciact_characols <- c(
-  "grts_address",
-  "stratum",
-  "activity_group_id",
-  "date_start"
-)
-
-selection_of_activities <- list(
-  "WellInstallationActivities" = function(df) df %>%
-    filter(grepl("^GWINST", activity_group)), # /WIA
-  "ChemicalSamplingActivities" = function(df) df %>%
-    filter(activity_group %in%
-      c(gw_field_activities %>%
-        filter(grepl("^GW.*SAMP", activity)) %>%
-        pull(activity_group))
-      ), # /CSA
-  "SpatialPositioningActivities" = function(df) df %>%
-    filter(activity_group %in%
-      c(gw_field_activities %>%
-        filter(grepl("^SPATPOSIT", activity)) %>%
-        pull(activity_group))
-      ) # /SPA
-)
-
-empty_init <- list(
-  "WellInstallationActivities" = function(df) df %>%
-    mutate(
-      no_diver = FALSE,
-      soilprofile_unclear = FALSE,
-      log_user = "maintenance",
-      log_update = as.POSIXct(Sys.time())
-    ), # /WIA
-  "ChemicalSamplingActivities" = function(df) df %>%
-    mutate(
-      log_user = "maintenance",
-      log_update = as.POSIXct(Sys.time())
-    ), # /CSA
-  "SpatialPositioningActivities" = function(df) df %>%
-    mutate(
-      log_user = "maintenance",
-      log_update = as.POSIXct(Sys.time())
-    ) # /SPA
-)
-
-
-visits_redownload <- mnmgwdb$query_table("Visits") %>%
-  filter(is.na(archive_version_id)) %>%
-  select(-archive_version_id)
-
-visits_redownload <- visits_redownload %>%
-  left_join(
-    mnmgwdb$query_columns(
-        "GroupedActivities",
-        c("activity_group_id", "activity_group")) %>%
-      distinct(),
-    by = join_by(activity_group_id)
-  )
-
-
-# table_label <- "WellInstallationActivities"
-# table_label <- "ChemicalSamplingActivities"
-# table_label <- "SpatialPositioningActivities"
-
-for (table_label in special_activity_tables) {
-
-  special_activities <- visits_redownload %>%
-    selection_of_activities[[table_label]]()
-
-  # special_activities %>% head(3) %>% t() %>% knitr::kable()
-
-  existing <- mnmgwdb$query_table(table_label)
-
-  # no archiving necessary on these - they 1:1 depend on Visits
-  novel <- special_activities %>%
-    anti_join(
-      existing,
-      by = join_by(
-        grts_address,
-        stratum,
-        activity_group_id,
-        date_start
-      )
-    ) %>%
-    select(!!!speciact_characols) %>%
-    empty_init[[table_label]]()
-
-  lookup <- update_cascade_lookup(
-    table_label = table_label,
-    new_data = novel,
-    index_columns = c("fieldwork_id"),
-    characteristic_columns = speciact_characols,
-    tabula_rasa = FALSE,
-    skip_sequence_reset = TRUE, # fieldwork_id is tricky; see script 095b
-    verbose = TRUE
-  )
-
-}
+# special_activity_tables <- c(
+#   "WellInstallationActivities",
+#   "ChemicalSamplingActivities",
+#   "SpatialPositioningActivities"
+# )
+#
+# speciact_characols <- c(
+#   "grts_address",
+#   "stratum",
+#   "activity_group_id",
+#   "date_start"
+# )
+#
+# selection_of_activities <- list(
+#   "WellInstallationActivities" = function(df) df %>%
+#     filter(grepl("^GWINST", activity_group)), # /WIA
+#   "ChemicalSamplingActivities" = function(df) df %>%
+#     filter(activity_group %in%
+#       c(gw_field_activities %>%
+#         filter(grepl("^GW.*SAMP", activity)) %>%
+#         pull(activity_group))
+#       ), # /CSA
+#   "SpatialPositioningActivities" = function(df) df %>%
+#     filter(activity_group %in%
+#       c(gw_field_activities %>%
+#         filter(grepl("^SPATPOSIT", activity)) %>%
+#         pull(activity_group))
+#       ) # /SPA
+# )
+#
+# empty_init <- list(
+#   "WellInstallationActivities" = function(df) df %>%
+#     mutate(
+#       no_diver = FALSE,
+#       soilprofile_unclear = FALSE,
+#       log_user = "maintenance",
+#       log_update = as.POSIXct(Sys.time())
+#     ), # /WIA
+#   "ChemicalSamplingActivities" = function(df) df %>%
+#     mutate(
+#       log_user = "maintenance",
+#       log_update = as.POSIXct(Sys.time())
+#     ), # /CSA
+#   "SpatialPositioningActivities" = function(df) df %>%
+#     mutate(
+#       log_user = "maintenance",
+#       log_update = as.POSIXct(Sys.time())
+#     ) # /SPA
+# )
+#
+#
+# visits_redownload <- mnmgwdb$query_table("Visits") %>%
+#   filter(is.na(archive_version_id)) %>%
+#   select(-archive_version_id)
+#
+# visits_redownload <- visits_redownload %>%
+#   left_join(
+#     mnmgwdb$query_columns(
+#         "GroupedActivities",
+#         c("activity_group_id", "activity_group")) %>%
+#       distinct(),
+#     by = join_by(activity_group_id)
+#   )
+#
+#
+# # table_label <- "WellInstallationActivities"
+# # table_label <- "ChemicalSamplingActivities"
+# # table_label <- "SpatialPositioningActivities"
+#
+# for (table_label in special_activity_tables) {
+#
+#   special_activities <- visits_redownload %>%
+#     selection_of_activities[[table_label]]()
+#
+#   # special_activities %>% head(3) %>% t() %>% knitr::kable()
+#
+#   existing <- mnmgwdb$query_table(table_label)
+#
+#   # no archiving necessary on these - they 1:1 depend on Visits
+#   novel <- special_activities %>%
+#     anti_join(
+#       existing,
+#       by = join_by(
+#         grts_address,
+#         stratum,
+#         activity_group_id,
+#         date_start
+#       )
+#     ) %>%
+#     select(!!!speciact_characols) %>%
+#     empty_init[[table_label]]()
+#
+#   lookup <- update_cascade_lookup(
+#     table_label = table_label,
+#     new_data = novel,
+#     index_columns = c("fieldwork_id"),
+#     characteristic_columns = speciact_characols,
+#     tabula_rasa = FALSE,
+#     skip_sequence_reset = TRUE, # fieldwork_id is tricky; see script 095b
+#     verbose = TRUE
+#   )
+#
+# }
 
 
 #-------------------------------------------------------------------------------

@@ -24,7 +24,7 @@ if len(commandline_args) > 1:
 else:
   suffix = ""
   # suffix = "-testing"
-  suffix = "-staging" # TODO WIP
+  # suffix = "-staging"
 
 
 print("|"*64)

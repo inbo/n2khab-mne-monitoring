@@ -297,8 +297,8 @@ WHERE VIS.visit_id = WIA.visit_id
   AND VIS.grts_address = WIA.grts_address
   AND VIS.stratum = WIA.stratum
   AND VIS.date_start = WIA.date_start
-  AND VIS.activity_group_id = 4
-  AND WIA.activity_group_id = 4
+  AND VIS.activity_group_id IN (3, 4, 5, 6)
+  AND WIA.activity_group_id IN (3, 4, 5, 6)
   AND VIS.activity_group_id = WIA.activity_group_id
   -- AND WIA.grts_address = 23238
 ;
@@ -307,7 +307,7 @@ WHERE VIS.visit_id = WIA.visit_id
 DELETE
 -- SELECT *
 FROM ONLY "inbound"."Visits" 
-WHERE activity_group_id = 4
+WHERE activity_group_id IN (3, 4, 5, 6)
 AND fieldworkcalendar_id IN (
   SELECT DISTINCT fieldworkcalendar_id
   FROM "inbound"."InstallationVisits"
@@ -366,8 +366,8 @@ WHERE VIS.visit_id = CSA.visit_id
   AND VIS.grts_address = CSA.grts_address
   AND VIS.stratum = CSA.stratum
   AND VIS.date_start = CSA.date_start
-  AND VIS.activity_group_id IN (13, 16)
-  AND CSA.activity_group_id IN (13, 16)
+  AND VIS.activity_group_id IN (12, 13, 16)
+  AND CSA.activity_group_id IN (12, 13, 16)
   AND VIS.activity_group_id = CSA.activity_group_id
   -- AND CSA.grts_address = 23238
 ;
@@ -376,7 +376,7 @@ WHERE VIS.visit_id = CSA.visit_id
 DELETE
 -- SELECT *
 FROM ONLY "inbound"."Visits" 
-WHERE activity_group_id IN (13, 16)
+WHERE activity_group_id IN (12, 13, 16)
 AND fieldworkcalendar_id IN (
   SELECT DISTINCT fieldworkcalendar_id
   FROM "inbound"."SamplingVisits"
