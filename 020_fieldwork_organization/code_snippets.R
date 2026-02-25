@@ -26,7 +26,8 @@ library(readr)
 library(rprojroot)
 
 # Set project root; works everywhere as the RStudio project file is in the repo
-projroot <- find_root(is_rstudio_project)
+gitroot <- find_root(is_git_root)
+projroot <- file.path(gitroot, "020_fieldwork_organization")
 
 # Load some custom functions
 source(file.path(projroot, "R/grts.R"))
@@ -1458,7 +1459,7 @@ orthophoto_shortterm_cell_centers <-
 
 ## Comparing object checksums with reference to verify reproducibility --------
 
-checksumfile <- file.path(projroot, "fieldworg_checksums.csv")
+checksumfile <- file.path(gitroot, "fieldworg_checksums.csv")
 ref_checksums <- read_csv(checksumfile, col_types = "cc")
 available_obj <- ls()
 different_checksums <-
