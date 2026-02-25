@@ -1,3 +1,5 @@
+stop("OBSOLETE! This script has not been overhauled yet.")
+
 ## libraries----------------------------------------------------------------
 # libraries
 source("MNMLibraryCollection.R")

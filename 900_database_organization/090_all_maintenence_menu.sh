@@ -24,7 +24,6 @@ yad --form \
   --field=" {staging} update LocationCells [mnmgwdb]":fbtn "Rscript 093_replaced_LocationCells.R -staging " \
   --field=" {staging} sync LocationInfos":fbtn "Rscript 094_sync_LocationInfos.R -staging " \
   --field=" {staging} re-link all keys":fbtn "Rscript 095_re_link_foreign_keys_optional.R -staging " \
-  --field=" {staging} reset fieldwork_id [mnmgwdb]":fbtn "Rscript 095_reset_fieldwork_id.R -staging " \
   --field=" {staging} update coordinates":fbtn "Rscript 096_update_wgs84_coordinates.R -staging " \
   --field=" {staging} mhq areas [loceval]":fbtn "Rscript 097loceval_mhq_areas.R -staging " \
   --field=" {staging} mhq areas [mnmgwdb]":fbtn "Rscript 097mnmgwdb_mhq_areas.R -staging " \
@@ -39,7 +38,6 @@ yad --form \
   --field=" update LocationCells [mnmgwdb$MIRROR]":fbtn "Rscript 093_replaced_LocationCells.R $MIRROR " \
   --field=" sync LocationInfos [$MIRROR]":fbtn "Rscript 094_sync_LocationInfos.R $MIRROR " \
   --field=" re-link all keys [$MIRROR]":fbtn "Rscript 095_re_link_foreign_keys_optional.R $MIRROR " \
-  --field=" reset fieldwork_id [mnmgwdb$MIRROR]":fbtn "Rscript 095_reset_fieldwork_id.R $MIRROR " \
   --field=" update coordinates [$MIRROR]":fbtn "Rscript 096_update_wgs84_coordinates.R $MIRROR " \
   --field=" mhq areas [loceval$MIRROR]":fbtn "Rscript 097loceval_mhq_areas.R $MIRROR " \
   --field=" mhq areas [mnmgwdb$MIRROR]":fbtn "Rscript 097mnmgwdb_mhq_areas.R $MIRROR " \
@@ -47,7 +45,6 @@ yad --form \
   --field=" sync FreeFieldNotes [$MIRROR]":fbtn "python 099_sync_FreeFieldNotes.py $MIRROR " \
   --field=" open dashboard [loceval]":fbtn "lynx 040l_loceval_consistency_dashboard.html" \
   --field=" open dashboard [mnmgwdb]":fbtn "lynx 040m_mnmgwdb_consistency_dashboard.html" \
-  --field="":CHK FALSE \
   --field="":CHK FALSE \
   --field="":CHK FALSE \
   --field="":CHK FALSE \
