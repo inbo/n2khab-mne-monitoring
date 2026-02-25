@@ -379,7 +379,7 @@ FROM ONLY "inbound"."Visits"
 WHERE activity_group_id IN (13, 16)
 AND fieldworkcalendar_id IN (
   SELECT DISTINCT fieldworkcalendar_id
-  FROM "inbound"."InstallationVisits"
+  FROM "inbound"."SamplingVisits"
 )
 ;
 
@@ -635,21 +635,6 @@ SET require_total_station = TRUE
 WHERE grts_address = 23238;
 
 
-SELECT grts_address, stratum, activity_group_id, date_start, date_visit
-FROM "inbound"."Visits" AS VIS
-WHERE VIS.grts_address = 23238 AND activity_group_id = 4;
-
-SELECT grts_address, stratum, activity_group_id, date_start, date_visit, random_point_number
-FROM "inbound"."InstallationVisits"
-WHERE grts_address = 23238;
-
-
-SELECT VIS.visit_id, WIA.grts_address, WIA.stratum, WIA.activity_group_id, WIA.date_start, VIS.date_visit, WIA.random_point_number
-FROM "inbound"."WellInstallationActivities" AS WIA
-LEFT JOIN "inbound"."Visits" AS VIS
-ON VIS.visit_id = WIA.visit_id
-WHERE WIA.grts_address = 23238;
-
 
 ```
 
@@ -661,6 +646,7 @@ WHERE WIA.grts_address = 23238;
 
 ... but this is solved now via a better INSERT and a distinct DELETE.
 :::
+
 
 # USAGE
 
@@ -676,8 +662,9 @@ seems to be correct...
 --| eval: false
 SELECT * FROM "inbound"."Visits" WHERE activity_group_id = 4 AND grts_address = 23238;
 SELECT * FROM "outbound"."FieldworkPlanning"
-WHERE activity_group_id = 4
-AND grts_address = 23238;
+WHERE grts_address = 23238
+-- AND activity_group_id = 4
+;
 
 ```
 
@@ -694,15 +681,16 @@ WHERE grts_address = 23238
 ; -- no dups on production; but dups on staging
 
 
--- SELECT grts_address, stratum, date_start, activity_group_id, date_visit, VISIT.date_visit, IVIS.date_visit, random_point_number
-SELECT *
-SELECT visit_id, soilprofile_unclear
-FROM ONLY "inbound"."Visits"
-NATURAL FULL JOIN "inbound"."InstallationVisits"
--- NATURAL FULL JOIN "inbound"."SamplingVisits"
--- NATURAL FULL JOIN "inbound"."PositioningVisits"
+-- SELECT visit_id, soilprofile_unclear
+-- SELECT *
+SELECT grts_address, stratum, date_start, activity_group_id, date_visit, VISIT.date_visit, IVIS.date_visit,
+random_point_number, project_code, require_total_station
+FROM ONLY "inbound"."Visits" AS VISIT
+NATURAL FULL JOIN "inbound"."InstallationVisits" AS IVIS
+NATURAL FULL JOIN "inbound"."SamplingVisits"
+NATURAL FULL JOIN "inbound"."PositioningVisits"
 WHERE grts_address = 23238
-  AND installationvisit_id IS NOT NULL
+--  AND installationvisit_id IS NOT NULL
 ;
 
 
@@ -741,9 +729,12 @@ WHERE grts_address = 23238
 
 again, the issue was key linking -> link repeatedly.
 
-# Testing QGIS
+# Adjusting QGIS
 
-Seems to work as expected. All relevant fields update.
+Works as expected. 
+All relevant fields update.
+
+-> just add `is_cattleproof` = "runderproef afgewerkt"
 
 
 # TODO
@@ -765,4 +756,7 @@ to re-start testing:
 DROP TABLE "inbound"."InstallationVisits" CASCADE; 
 DROP TABLE "inbound"."SamplingVisits" CASCADE; 
 DROP TABLE "inbound"."PositioningVisits" CASCADE; 
+DROP FUNCTION IF EXISTS "metadata".sync_wia CASCADE;
+DROP FUNCTION IF EXISTS "metadata".sync_csa CASCADE;
+DROP FUNCTION IF EXISTS "metadata".sync_spa CASCADE;
 -->

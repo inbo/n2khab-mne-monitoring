@@ -24,7 +24,7 @@ if len(commandline_args) > 1:
 else:
   suffix = ""
   # suffix = "-testing"
-  # suffix = "-staging"
+  suffix = "-staging" # TODO WIP
 
 
 print("|"*64)
@@ -367,10 +367,10 @@ def DuplicateTableRow(
 
     table_namestring = f'"{schema}"."{table_key}"'
     existing_data = PD.read_sql(f"""
-        SELECT * FROM {table_namestring};
+        SELECT * FROM ONLY {table_namestring};
         """,
         con = db.connection
-    )
+    ) # TODO did this "only" work?
 
     if index_newvalues is None:
         index_newvalues = \
@@ -525,69 +525,74 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
 
 
             ## duplicate Visits
-            visit_next = int(PD.read_sql(
-                """
-                    SELECT visit_id FROM "inbound"."Visits"
-                    ORDER BY visit_id DESC
-                    LIMIT 1;
-                """,
-                con = mnmgwdb.connection
-               ).values[0, 0]) + 1
-            # DELETE FROM  "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 1192;
-            # DELETE FROM  "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 1193;
-
-            DuplicateTableRow(
-                db = mnmgwdb,
-                schema = "inbound",
-                table_key = "Visits",
-                identifier_dict = {"samplelocation_id": old_samplelocation, "fieldworkcalendar_id": fwcal_id},
-                index_columns = ["grts_address", "fieldworkcalendar_id", "samplelocation_id", "visit_id", "location_id"],
-                index_newvalues = [new_grts, fwcal_next, samplelocation_next, visit_next, new_locid]
-               )
-
-
-            # TODO !!!! ALTER TABLE "outbound"."FieldworkCalendar" DROP CONSTRAINT "FieldworkCalendar_pkey" CASCADE;
-            # TODO !!!! ALTER TABLE "inbound"."Visits" DROP CONSTRAINT "Visits_pkey" CASCADE;
-            # ... or maybe not!
 
             ## duplicate *Activities
             ## check if this is a WIA of CSA
             # activity_table  = "ChemicalSamplingActivities"
-            for activity_table in ["WellInstallationActivities", "ChemicalSamplingActivities"]:
-                check_query = f"""
-                SELECT DISTINCT fieldwork_id FROM "inbound"."{activity_table}"
-                WHERE TRUE
-                  AND samplelocation_id = {old_samplelocation}
-                  AND fieldworkcalendar_id = {fwcal_id}
-                ;
-                """
-                activity_check = PD.read_sql( \
-                    check_query, \
-                    con = mnmgwdb.connection \
-                )
-                if activity_check.shape[0] == 0:
-                    continue
+            for activity_table in [
+                "Visits", "InstallationVisits", "SamplingVisits", "PositioningVisits"]:
 
-                fieldwork_id = int(activity_check.iloc[0, 0])
-
-                fieldwork_next = int(PD.read_sql(
-                    f""" (
-                        SELECT fieldwork_id FROM "inbound"."{activity_table}"
-                        WHERE fieldwork_id IS NOT NULL
-                        )
-                        ORDER BY fieldwork_id DESC
+                visit_next = int(PD.read_sql(
+                    """
+                        SELECT visit_id FROM "inbound"."Visits"
+                        ORDER BY visit_id DESC
                         LIMIT 1;
                     """,
                     con = mnmgwdb.connection
-                   ).values[0, 0]) + 1
+                    ).values[0, 0]) + 1
+
+                # # DELETE FROM  "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 1192;
+                # # DELETE FROM  "outbound"."FieldworkCalendar" WHERE fieldworkcalendar_id = 1193;
+
+                # DuplicateTableRow(
+                #     db = mnmgwdb,
+                #     schema = "inbound",
+                #     table_key = "Visits",
+                #     identifier_dict = {"samplelocation_id": old_samplelocation, "fieldworkcalendar_id": fwcal_id},
+                #     index_columns = ["grts_address", "fieldworkcalendar_id", "samplelocation_id", "visit_id", "location_id"],
+                #     index_newvalues = [new_grts, fwcal_next, samplelocation_next, visit_next, new_locid]
+                #    )
+
+
+                # # TODO !!!! ALTER TABLE "outbound"."FieldworkCalendar" DROP CONSTRAINT "FieldworkCalendar_pkey" CASCADE;
+                # # TODO !!!! ALTER TABLE "inbound"."Visits" DROP CONSTRAINT "Visits_pkey" CASCADE;
+                # # ... or maybe not!
+
+                # check_query = f"""
+                # SELECT DISTINCT fieldwork_id FROM "inbound"."{activity_table}"
+                # WHERE TRUE
+                #   AND samplelocation_id = {old_samplelocation}
+                #   AND fieldworkcalendar_id = {fwcal_id}
+                # ;
+                # """
+                # activity_check = PD.read_sql( \
+                #     check_query, \
+                #     con = mnmgwdb.connection \
+                # )
+                # if activity_check.shape[0] == 0:
+                #     continue
+
+                # fieldwork_id = int(activity_check.iloc[0, 0])
+
+                # TODO do we have to get the next activity-specific ID here as well?
+                # fieldwork_next = int(PD.read_sql(
+                #     f""" (
+                #         SELECT fieldwork_id FROM "inbound"."{activity_table}"
+                #         WHERE fieldwork_id IS NOT NULL
+                #         )
+                #         ORDER BY fieldwork_id DESC
+                #         LIMIT 1;
+                #     """,
+                #     con = mnmgwdb.connection
+                #    ).values[0, 0]) + 1
 
                 DuplicateTableRow(
                     db = mnmgwdb,
                     schema = "inbound",
                     table_key = activity_table,
                     identifier_dict = {"fieldwork_id": fieldwork_id},
-                    index_columns = ["fieldworkcalendar_id", "samplelocation_id", "visit_id", "fieldwork_id"],
-                    index_newvalues = [fwcal_next, samplelocation_next, visit_next, fieldwork_next]
+                    index_columns = ["fieldworkcalendar_id", "samplelocation_id", "visit_id"],
+                    index_newvalues = [fwcal_next, samplelocation_next, visit_next]
                    )
 
             old_identifiers.append({"samplelocation_id": old_samplelocation, "fieldworkcalendar_id": int(fwcal_id)})
@@ -603,6 +608,8 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
     # print(potential_duplicates)
     # print(obsolete_rows)
     # print(replacement_data)
+    # SELECT DISTINCT fieldworkcalendar_id FROM "inbound"."InstallationVisits" WHERE grts_address = 23238;
+    # fwcal_id = 517
 
     for fwcal_id in NP.unique(obsolete_rows["fieldworkcalendar_id"].values):
         if fwcal_id is None:
@@ -610,10 +617,9 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
 
         for table in [
                 '"outbound"."FieldworkCalendar"',
-                '"inbound"."Visits"',
-                '"inbound"."WellInstallationActivities"',
-                '"inbound"."ChemicalSamplingActivities"'
+                '"inbound"."Visits"'
             ]:
+            # NOTE: Special Activities do not need to be specially regarded -> DELETE cascades.
 
             delete_command = f"""
                 DELETE FROM {table} WHERE fieldworkcalendar_id = {int(fwcal_id)};
