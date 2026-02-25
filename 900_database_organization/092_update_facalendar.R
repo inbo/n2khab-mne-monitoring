@@ -530,12 +530,46 @@ append_defaults <- list(
 )
 
 # TODO KILL STOP WAIT continue here
+remaining_new_visits <- visits_upload
+# table_label <- "InstallationVisits"
+for (table_label in names(selection_of_activities)) {
 
+  # subset the data by using selection_of_activities -> activity_group_id's
+  select_activities <- selection_of_activities[[table_label]]
+  special_visits <- remaining_new_visits %>%
+    filter(activity_group_id %in% select_activities)
 
+  # extra columns
+  if (table_label %in% names(append_defaults)) {
+    special_visits <- append_defaults[[table_label]](special_visits)
+  }
 
-# visits_lookup <- update_cascade_lookup(
+  # append=upload data to the activity table
+  # double-check existing to avoid dups
+  existing <- mnmgwdb$query_table(table_label)
+  sa_lookup <- upload_and_lookup(
+    mnmgwdb,
+    table_label = table_label,
+    data_to_append = special_visits,
+    characteristic_columns = visits_characols,
+    index_columns = c("visit_id"),
+    verbose = TRUE
+  )
+
+  # anti-join remaining_new_visits
+  remaining_new_visits <- remaining_new_visits %>%
+    anti_join(
+      special_visits,
+      by = join_by(fieldworkcalendar_id, grts_address, stratum, activity_group_id, date_start)
+    )
+
+}
+# TODO will `update_cascade_lookup` require an `ONLY` switch?
+
+# upload the remainder of new visits
+visits_lookup <- update_cascade_lookup(
   table_label = "Visits",
-  new_data = visits_upload,
+  new_data = remaining_new_visits,
   index_columns = c("visit_id"),
   characteristic_columns = visits_characols,
   tabula_rasa = FALSE,
@@ -544,12 +578,12 @@ append_defaults <- list(
 
 
 mnmgwdb$query_table("Visits") %>%
+  # filter(grts_address == 23238) %>%
   count(is.na(fieldworkcalendar_id)) %>%
   knitr::kable()
 
 
 # archive visits of archived FWCals
-
 trgtab <- mnmgwdb$get_namestring("Visits")
 srctab <- mnmgwdb$get_namestring("FieldworkCalendar")
 link_key_column <- "archive_version_id"
