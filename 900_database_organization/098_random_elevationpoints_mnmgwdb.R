@@ -93,7 +93,7 @@ generate_random_sampling_square <- function(
   # plot(unit_zone_rad)
 
   # set location-specific seed (grts_address -> reproducibility)
-  set.seed(location_seed)
+  # set.seed(location_seed) # is set in the upstream function
 
   # spatial sampling using Balanced Acceptance
   # https://cran.r-project.org/web/packages/spbal/vignettes/spbal.html
@@ -293,7 +293,7 @@ randompoints_locationwise <- function(location_row) {
   target_radius <- sqrt(2 * 16^2) # m
     # NOTE: r>16 because we include points in the whole cell
   n_samples <- 128
-  n_points <- 64
+  n_points <- 50
   # is_forest <- one_location$is_forest
   # is_mhq_samplelocation <- assessment_lookup %>%
   #   filter(grts_address == one_location$grts_address) %>%
@@ -306,42 +306,45 @@ randompoints_locationwise <- function(location_row) {
 
   current_points <- 0
   limit_count <- 1
-  while ((current_points < n_points) && (limit_count < 8)) {
 
-    rnd64_points <- generate_random_elevation_points(
+  # seed set before loop otherwise always same draws in `while`
+  set.seed(location_seed)
+
+  while ((current_points < n_points) && (limit_count < 16)) {
+
+    rnd50_points <- generate_random_elevation_points(
       one_location,
       n_points = n_points,
       target_radius = target_radius,
       n_samples = n_samples,
-      location_seed = location_seed
+      location_seed = location_seed # backwards compat
     )
 
-    current_points <- nrow(rnd64_points)
+    current_points <- nrow(rnd50_points)
     n_samples <- n_samples * 2 # just get more samples
     limit_count <- limit_count + 1 # but don't go too big
   }
 
 
-  center_representation_point <- as.data.frame(sf::st_coordinates(one_location)) %>%
-    mutate(r = 0, phi = 0) %>%
-    sf::st_as_sf(coords = c("X", "Y"), crs = sf::st_crs(one_location))
+  # center_representation_point <- as.data.frame(sf::st_coordinates(one_location)) %>%
+  #   sf::st_as_sf(coords = c("X", "Y"), crs = sf::st_crs(one_location))
 
-  if (is_forest && isFALSE(is_mhq_samplelocation)) {
-    rnd64_points <- bind_rows(
-      center_representation_point,
-      rnd64_points
-      )
-  }
+  # if (is_forest && isFALSE(is_mhq_samplelocation)) {
+  #   rnd50_points <- bind_rows(
+  #     center_representation_point,
+  #     rnd50_points
+  #     )
+  # }
 
-  rnd64_points <- rnd64_points %>%
+  rnd50_points <- rnd50_points %>%
     mutate(
       samplelocation_id = one_location$samplelocation_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,
-      random_point_rank = 1:nrow(rnd64_points)
+      random_point_rank = seq_len(nrow(rnd50_points))
     )
 
-  return(rnd64_points)
+  return(rnd50_points)
 
 } # /randompoints_locationwise
 
@@ -355,53 +358,36 @@ all_points <- bind_rows(all_points)
 
 
 
-if (FALSE) {
-  example_location <- all_points %>%
-    filter(grts_address == 23238)
-
-  example_location <- example_location %>%
-    mutate(phi2 = -phi + 180, # center right, clockwise 0-360
-           phi3 = (phi2 - 90) %% 360, # center DOWN, clockwise 0-360
-           phi4 = phi3 - 180, # center DOWN, clockwise 0-360
-           phi5 = -(phi+90) %% 360,
-           compass = cimir::cimis_degrees_to_compass(phi5)
-           )
-
-  rndpt <- sf::st_coordinates(example_location)
-  plot(rndpt)
-  text(
-    rndpt[, 1],
-    rndpt[, 2],
-    #example_location %>% pull(phi5), # 1:nrow(rndpt)
-    example_location %>% pull(compass), # 1:nrow(rndpt)
-    pos = 3
-  )
-}
-
 # https://en.wikipedia.org/wiki/Points_of_the_compass#/media/File:Compass-rose-32-pt.svg
 
-## TODO northing - correct to magnetic north
 all_points <- all_points %>%
   mutate(
-    randompoint_id = 1:nrow(all_points)
+    point_id = seq_len(nrow(all_points)),
+    random_point_group = floor(as.double(random_point_rank - 1) / 5) + 1,
+    random_point_group = ifelse(
+      random_point_group <= 4, 1,
+      random_point_group - 3
+    )
   )
 
-all_points <- all_points %>% sf::st_cast("POINT")
+all_points <- all_points %>% sf::st_cast("POINT") %>% select(-geometry)
 
 lamberts <- as.data.frame(
     sf::st_coordinates(all_points)
   ) %>%
   setNames(c("lambert_lon", "lambert_lat"))
 
-all_points <- cbind(all_points, lamberts) %>%
-  mutate_at(
-    vars(
-      lambert_lon,
-      lambert_lat
-    ), function (x) round(x, 2)
-  )
+all_points <- cbind(all_points, lamberts) # %>%
+all_points <- all_points %>%
+  filter_at(vars(lambert_lon, lambert_lat), ~!is.na(.))
+#  mutate_at(
+#    vars(
+#      lambert_lon,
+#      lambert_lat
+#    ), function (x) round(x, 2)
+#  )
 
-sf::st_geometry(all_points) <- "wkb_geometry"
+# sf::st_geometry(all_points) <- "wkb_geometry"
 
 
 sf::st_write(all_points,
