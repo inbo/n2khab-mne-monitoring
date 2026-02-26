@@ -1,4 +1,4 @@
-#!/usr/bin/Rscript
+#!/usr/bin/env Rscript
 
 # TODO in case we get to more than two databases,
 #      create a central place to store infos

@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 # libraries
 source("MNMLibraryCollection.R")
 # load_poc_common_libraries()

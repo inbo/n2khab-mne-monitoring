@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 
 source("MNMLibraryCollection.R")
 load_database_interaction_libraries()
