@@ -402,12 +402,16 @@ sf::st_write(all_points,
 all_points %>%
   filter(random_point_rank <= 24) %>%
   sf::st_drop_geometry() %>%
+  mutate(
+    identifier = glue::glue("{grts_address}_{random_point_group}_{random_point_rank}")
+  ) %>%
   select(
-    index = point_id,
-    grts_address,
-    group = random_point_group,
-    lambert_lon,
-    lambert_lat
+    # index = point_id,
+    # grts_address,
+    # group = random_point_group,
+    identifier,
+    lambert_east = lambert_lon,
+    lambert_north = lambert_lat
   ) %>%
   write.csv2(file = "./data/random_elevation_points_primary.csv")
 
