@@ -405,15 +405,21 @@ all_points %>%
   mutate(
     Naam = glue::glue("{grts_address}_{random_point_rank}"),
     Height = 0,
-    Code = glue::glue("random_point_group")
+    Code = glue::glue("{random_point_group}")
   ) %>%
   select(
     # index = point_id,
     # grts_address,
-    Naam
+    Naam,
     Easting = lambert_lon,
     Northing = lambert_lat,
     Height,
     Code
   ) %>%
-  write.csv2(file = "./data/random_elevation_points.csv", dec = ".")
+  write.table(
+    file = "./data/random_elevation_points.csv",
+    row.names = FALSE,
+    dec = ".",
+    sep = ";",
+    quote = TRUE
+  )
