@@ -397,3 +397,28 @@ sf::st_write(all_points,
   append = FALSE
   )
 # saveRDS(forest_data, "data/forestnature.rds")
+
+
+all_points %>%
+  filter(random_point_rank <= 24) %>%
+  sf::st_drop_geometry() %>%
+  select(
+    index = point_id,
+    grts_address,
+    group = random_point_group,
+    lambert_lon,
+    lambert_lat
+  ) %>%
+  write.csv2(file = "./data/random_elevation_points_primary.csv")
+
+all_points %>%
+  filter(random_point_rank > 24) %>%
+  sf::st_drop_geometry() %>%
+  select(
+    index = point_id,
+    grts_address,
+    group = random_point_group,
+    lambert_lon,
+    lambert_lat
+  ) %>%
+  write.csv2(file = "./data/random_elevation_points_extra.csv")
