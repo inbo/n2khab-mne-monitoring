@@ -694,6 +694,12 @@ WHERE grts_address = 23238
 ;
 
 
+SELECT grts_address, type, date_start, activity_group, teammember_assigned, date_visit, random_point_number, project_code, require_total_station
+FROM "inbound"."FieldWork"
+WHERE grts_address = 23238
+;
+
+
 ```
 
 // args... there are empty lines? -> duplicates of other activities...
@@ -737,11 +743,19 @@ All relevant fields update.
 -> just add `is_cattleproof` = "runderproef afgewerkt"
 
 
-# TODO
+# *post mortem*
 
-other daily scripts
+- [X] other daily scripts
 
 ?? there are the `is_<activity>` columns... they should be integrated to the GAP table. 
+
+
+`<2026-02-27>` Update went smoothly!
+
+- started 07:30
+- done 08:40
+- all worked as tested, everyone was informed.
+
 
 
 # Cleanup

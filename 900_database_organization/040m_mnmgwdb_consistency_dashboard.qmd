@@ -117,10 +117,7 @@ count_table_content(c(
 count_table_content(c(
     "SampleLocations",
     "FieldworkCalendar",
-    "Visits",
-    "WellInstallationActivities",
-    "ChemicalSamplingActivities",
-    "SpatialPositioningActivities"
+    "Visits"
   ))
 
 ```
@@ -364,22 +361,9 @@ check_foreignkey_connection(
 ```
 
 
-```{r wia-sloc}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "WellInstallationActivities", fk = "samplelocation_id",
-  characteristic_columns = c("grts_address", "stratum"),
-  ref_table = "SampleLocations", pk = "samplelocation_id",
-  rename_ref = c("strata" = "stratum")
-  )
-
-```
 
 
-
-```{sql}
+```{sql OBSOLETE}
 --| eval: false
 --| echo: false
 
@@ -446,81 +430,6 @@ check_foreignkey_connection(
 
 ```
 
-```{r wia-fwcal}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "WellInstallationActivities", fk = "fieldworkcalendar_id",
-  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "FieldworkCalendar" 
-  )
-
-```
-
-
-```{r wia-visits}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "WellInstallationActivities", fk = "visit_id",
-  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "Visits" 
-  )
-
-```
-
-
-```{r csa-fwcal}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "ChemicalSamplingActivities", fk = "fieldworkcalendar_id",
-  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "FieldworkCalendar" 
-  )
-
-```
-
-
-```{r csa-visits}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "ChemicalSamplingActivities", fk = "visit_id",
-  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "Visits" 
-  )
-
-```
-
-```{r spa-fwcal}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "SpatialPositioningActivities", fk = "fieldworkcalendar_id",
-  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "FieldworkCalendar" 
-  )
-
-```
-
-
-```{r spa-visits}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "SpatialPositioningActivities", fk = "visit_id",
-  characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "Visits" 
-  )
-
-```
 
 
 # Archive

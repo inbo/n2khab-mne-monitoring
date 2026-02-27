@@ -6,6 +6,9 @@ DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
+  SLOC.strata AS type,
+  FwCAL.date_start,
+  FwCAL.activity_group_id,
   FwCAL.teammember_assigned,
   FwCAL.activity_rank,
   CASE WHEN (FwCAL.date_visit_planned IS NULL) THEN FALSE ELSE FwCAL.done_planning = TRUE END AS is_scheduled,
@@ -13,7 +16,6 @@ SELECT
   FwCAL.date_visit_planned - current_date AS days_to_visit,
   FwCAL.date_end - current_date AS days_to_deadline,
   FwCAL.notes AS preparation_notes,
-  SLOC.strata AS type,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
@@ -29,7 +31,7 @@ SELECT
   INFO.watina_code_2,
   SOIL.soil_info,
   LOCEVAL.loceval_photo,
-  GAP.activity_group_id,
+  GAP.activity_group,
   GAP.is_field_activity,
   GAP.is_gw_activity,
   GAP.protocols,
