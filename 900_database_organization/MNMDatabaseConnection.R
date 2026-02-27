@@ -778,6 +778,9 @@ mnmdb_assemble_query_functions <- function(db) {
   # load all table data
   db$query_table <- function(table_label) {
 
+    # TODO this cannot handle ONLY for table inheritance.
+    # TODO views are not found
+
     table_id <- db$get_table_id(table_label)
     if (db$is_spatial(table_label)) {
       data <- sf::st_read(db$connection, layer = table_id) %>%

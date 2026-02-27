@@ -487,6 +487,7 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
         ## duplicate FieldworkCalendar
         # ISSUE: there can be multiple entries.
         # TODO more severe ISSUE: calendar might be different for different strata.
+        # KILL (20260227 upon deprication) okay might be here is where the errors happened
 
         fwcal_subset = PD.read_sql(
             f"""
@@ -585,6 +586,8 @@ for _, potential_duplicates in unique_samplelocations.iterrows():
                 #     """,
                 #     con = mnmgwdb.connection
                 #    ).values[0, 0]) + 1
+
+                error("this was wrong after implementation of Inheritance.")
 
                 DuplicateTableRow(
                     db = mnmgwdb,
