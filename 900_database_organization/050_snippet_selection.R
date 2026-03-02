@@ -414,38 +414,38 @@ stratum_grts_address_nopolygon_sf <-
     spatrast_index = grts_mh_index
   )
 
-# Selecting the missing polygons from the habitatmap. Using terra to read and
-# filter, because it can handle some exotic geometries from habitatmap out of
-# the box (to do this with sf, see /src/miscellaneous/habitatmap.Rmd in the
-# interim branch of n2khab-preprocessing, but this is more laborious)
-habmap_polygons <- terra::vect(file.path(
-    n2khab::locate_n2khab_data(),
-    # "99_converted/habmap.shp"
-    "10_raw/habitatmap/habitatmap_fixed.gpkg"
-  ))
-
+# Selecting the missing polygons from the habitatmap. Up to terra 1.8-86, terra
+# was used to read and filter, because it can handle some exotic geometries from
+# habitatmap out of the box (to do this with sf, see
+# /src/miscellaneous/habitatmap.Rmd in the interim branch of
+# n2khab-preprocessing, but this is more laborious). terra 1.8-93 causes a
+# crash, reported in https://github.com/rspatial/terra/issues/2037. While
+# preparing the issue, it was however discovered that we don't actually keep any
+# of the MULTISURFACE geometries causing the problem. This has led to the
+# simpler way, using sf, excluding the MULTISURFACE geometries. There's a chance
+# that terra 1.8-86 actually did the same, so we should still check with later
+# terra versions if new differences appear.
 missing_polygons <-
-  habmap_polygons %>%
-  .[vect(stratum_grts_address_nopolygon_sf)]
-
-# # [FM] These extra casts fail for me with the recent changes of `terra`
-# #      However, the select/rename was redundant and worked around
-#   sf::st_as_sf() %>%
-#   select(polygon_id = globalid_BWK) %>%
-#   terra::vect()
-# # missing_polygons %>% sf::st_geometry_type()
-
-missing_polygons_extract <-
-  terra::extract(grts_mh, missing_polygons, small = FALSE) %>%
-  as_tibble()
+  read_sf(file.path(
+    locate_n2khab_data(),
+    "10_raw/habitatmap/habitatmap.gpkg"
+  )) %>%
+  mutate(geomtype = st_geometry_type(.)) %>%
+  filter(geomtype != "MULTISURFACE") %>%
+  .[stratum_grts_address_nopolygon_sf, ] %>%
+  select(polygon_id = globalid_BWK) %>%
+  vect()
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
-missing_pol_grts <- tibble(
-    ID = seq_len(nrow(missing_polygons)),
-    polygon_id = missing_polygons$globalid_BWK
-  ) %>%
+missing_pol_grts <-
+  extract(grts_mh, missing_polygons, small = FALSE) %>%
+  as_tibble() %>%
   inner_join(
-    missing_polygons_extract,
+    tibble(
+      ID = seq_len(nrow(missing_polygons)),
+      polygon_id = missing_polygons$polygon_id
+    ),
+    .,
     join_by(ID),
     relationship = "one-to-many",
     unmatched = "error"
