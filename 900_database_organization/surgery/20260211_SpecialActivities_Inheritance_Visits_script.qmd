@@ -220,7 +220,7 @@ GRANT DELETE ON "inbound"."PositioningVisits" TO tom, yglinga, jens, lise, woute
 There were several _id linkage issues.
 !!! link tables (first, the old way)
 ```{r}
-source("095_re_link_foreign_keys_optional_old.R")
+source("102_re_link_foreign_keys_old.R")
 ```
 
 ### fill `InstallationVisits`
@@ -458,7 +458,7 @@ AND fieldworkcalendar_id IN (
 
 !!! link tables (the new way)
 ```{r}
-source("095_re_link_foreign_keys_optional.R")
+source("102_re_link_foreign_keys.R")
 ```
 
 

@@ -457,7 +457,7 @@ entries are grouped and the lates one is flagged; groups are:
 
 this is enabled via [windowed functions](https://www.postgresql.org/docs/current/tutorial-window.html).
 
-Updated daily [via maintenance script](091b_fill_location_journals.R)
+Updated daily [via maintenance script](111b_fill_location_journals.R)
 
 
 <a id="orgff0123a"></a>
@@ -2358,7 +2358,7 @@ Strategy:
 
 -   first delete the empty, untouched, but &ldquo;non-archive&rdquo; activities of all types: <./surgery/20251128_reconnect_calendar.md>
     -   this removed 148 calendar entries (and associated Special Activities)
--   then, fix the calendar update: <./092_update_facalendar.R>
+-   then, fix the calendar update: <./112_update_facalendar.R>
 
 GOOD TO KNOW:
 
@@ -2515,7 +2515,7 @@ info is the combination of four other columns:
       drainage, texture, substrate, profile
 
 Append procedure to use `n2khab::read_soilmap()` and upload info for each location point
-to the end of `093_replaced_LocationCells.R`.
+to the end of `113_replaced_LocationCells.R`.
 
 Finally, adjusted views and qgis layer styles to incorporate `soil_info`
 
@@ -2567,7 +2567,7 @@ Incorporating the new logic into the old scripts.
 -   [X] `070_update_POC.qmd`
 -   [X] `093_update_facalendar.R`
 -   [X] `094_replaced_LocationCells.R`
--   [X] `096_update_wgs84_coordinates.R`
+-   [X] `116_update_wgs84_coordinates.R`
 -   [X] `120_upload_loceval.R`
 -   [X] `131_mhq_areas.R`
 -   [ ] `220_upload_mnmgwdb.R`

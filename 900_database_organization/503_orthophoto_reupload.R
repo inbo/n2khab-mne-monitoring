@@ -274,10 +274,10 @@ locevaldb$insert_data(
 ## ----FK linkage---------------------------------------------------------------
 
 if (locevaldb$mirror_short == "") {
-  source(glue::glue('095_re_link_foreign_keys_optional.R'))
+  source(glue::glue('102_re_link_foreign_keys.R'))
 } else {
   system(glue::glue(
-    "Rscript 095_re_link_foreign_keys_optional.R -{locevaldb$mirror_short}"
+    "Rscript 102_re_link_foreign_keys.R -{locevaldb$mirror_short}"
   ))
 }
 

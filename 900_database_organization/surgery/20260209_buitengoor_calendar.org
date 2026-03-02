@@ -445,7 +445,7 @@ SELECT * FROM "outbound"."LocationJournals"
 DELETE FROM "outbound"."LocationJournals";
 #+end_src
 
--> re-run =RScript 091b_fill_location_journals.R -staging=
+-> re-run =RScript 111b_fill_location_journals.R -staging=
 
 
 #+begin_src sql

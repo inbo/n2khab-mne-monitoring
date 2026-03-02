@@ -257,7 +257,7 @@ entries are grouped and the lates one is flagged; groups are:
 
 this is enabled via [[https://www.postgresql.org/docs/current/tutorial-window.html][windowed functions]].
 
-Updated daily [[file:091b_fill_location_journals.R][via maintenance script]]
+Updated daily [[file:111b_fill_location_journals.R][via maintenance script]]
 
 * loceval
 
@@ -1804,7 +1804,7 @@ Some visits have been done but their table entry is flagged as archived, whereas
 Strategy:
 + first delete the empty, untouched, but "non-archive" activities of all types: [[file:./surgery/20251128_reconnect_calendar.org]]
   + this removed 148 calendar entries (and associated Special Activities)
-+ then, fix the calendar update: [[file:./092_update_facalendar.R]]
++ then, fix the calendar update: [[file:./112_update_facalendar.R]]
 
 GOOD TO KNOW:
 - Entries can be reactivated AND changed in the same round.
@@ -1900,7 +1900,7 @@ info is the combination of four other columns:
       drainage, texture, substrate, profile
 
 Append procedure to use =n2khab::read_soilmap()= and upload info for each location point
-to the end of =093_replaced_LocationCells.R=.
+to the end of =113_replaced_LocationCells.R=.
 
 Finally, adjusted views and qgis layer styles to incorporate =soil_info=
 
@@ -1942,7 +1942,7 @@ Incorporating the new logic into the old scripts.
 + [X] =070_update_POC.qmd=
 + [X] =093_update_facalendar.R=
 + [X] =094_replaced_LocationCells.R=
-+ [X] =096_update_wgs84_coordinates.R=
++ [X] =116_update_wgs84_coordinates.R=
 + [X] =120_upload_loceval.R=
 + [X] =131_mhq_areas.R=
 + [ ] =220_upload_mnmgwdb.R=

@@ -371,7 +371,7 @@ update_conflicting <- function(mnmdb, table_label) {
 
   # re-link location id
   system(glue::glue(
-    "Rscript 095_re_link_foreign_keys_optional.R {suffix}"
+    "Rscript 102_re_link_foreign_keys.R {suffix}"
   ))
 
 }
