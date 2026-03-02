@@ -1,7 +1,8 @@
 `.conf`/`.ini` file to store login credentials
-to be accessed from within [[R]] or [[python]]
+to be accessed from within [[R/R]] or [[software/python]]
+
 ## example `inbopostgis_server.conf`
-- ini ↓
+
 ```ini
 	[dumpall]
 	host = <host>

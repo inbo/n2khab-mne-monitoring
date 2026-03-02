@@ -1,7 +1,7 @@
 {
   "defaultViewMode": "preview",
   "useTab": false,
-  "openBehavior": "file:contents",
+  "openBehavior": "file:README",
   "attachmentFolderPath": "attachments",
   "newLinkFormat": "absolute",
   "alwaysUpdateLinks": true,

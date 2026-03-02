@@ -3,5 +3,5 @@ aliases:
   - openssh
 ---
 
-*cf.* [[ssh]]
+*cf.* [[server/ssh|ssh]]
 we use [OpenSSH](https://wiki.archlinux.org/title/OpenSSH)

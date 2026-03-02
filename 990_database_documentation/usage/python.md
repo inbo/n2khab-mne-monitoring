@@ -1,3 +1,3 @@
-cf. [[python]]
+cf. [[software/python|python]]
 we use virtual environments
 Python will be phased out over time in favor of R

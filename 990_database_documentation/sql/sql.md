@@ -1,0 +1,1 @@
+This folder assembles examples and knowledge about `sql`.

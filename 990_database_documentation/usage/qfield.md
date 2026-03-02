@@ -2,5 +2,8 @@
 aliases:
   - software/qfield
   - qfield
-tags: gis, mobile, app
+tags: 
+  - gis
+  - mobile
+  - app
 ---
