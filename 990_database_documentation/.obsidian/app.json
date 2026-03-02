@@ -1,0 +1,9 @@
+{
+  "defaultViewMode": "preview",
+  "useTab": false,
+  "openBehavior": "file:contents",
+  "attachmentFolderPath": "attachments",
+  "newLinkFormat": "absolute",
+  "alwaysUpdateLinks": true,
+  "showUnsupportedFiles": true
+}

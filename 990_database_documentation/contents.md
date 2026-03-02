@@ -1,0 +1,35 @@
+# [[server]]
+- [operating system]([[os]])
+- [users]([[users]])
+- [cronjobs]([[cronjobs]])
+- [ssh]([[ssh]])
+- [postgresql]([[postgresql]])
+- [cronjobs]([[cronjobs]])
+- see also: [[software]]
+# [[database]]
+- [generation]([[generation]])
+- [mirrors]([[mirrors]])
+- [authentication]([[authentication]])
+- [backups]([[backups]])
+- [structure]([[structure]])
+- [design guidelines]([[design guidelines]])
+# [[maintenance]]
+- [creation]([[creation]])
+- [recurrent]([[recurrent]])
+- [pocupdate]([[pocupdate]])
+- [surgery]([[surgery]])
+- [workflow: add a column]([[add column]])
+# #usage
+- [qgis]([[qgis]])
+- [qfield]([[qfield]])
+- [R]([[R]])
+	- [R/MNMDatabaseConnection]([[MNMDatabaseConnection]] "object")
+	- [R/MNMDatabaseToolbox]([[MNMDatabaseToolbox]] "procedures")
+- [python]([[python]])
+- [connection config file]([[connection config file]])
+# [[sql]]
+- [create table]([[create table]])
+- [views]([[views]])
+- [copy]([[copy]])
+- [examples]([[examples]])
+- ["backslash commands"]([[backslash commands]])

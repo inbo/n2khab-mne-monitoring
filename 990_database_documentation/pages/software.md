@@ -1,9 +1,0 @@
-- relevant software to install:
-- [[software/openssh]]
-- [[software/ufw]]
-- [[software/cronie]]
-- [[software/postgresql]]
-- [[software/postgis]]
-- [[software/R]]
-- [[software/python]]
-- [[software/git]]
