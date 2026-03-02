@@ -66,7 +66,7 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 
 ```{r source-code-snippets}
 # TODO: check for changes on every update, e.g. with `meld`:
-#       meld 020_fieldwork_organization/code_snippets.R 900_database_organization/050_snippet_selection.R
+#       meld 020_fieldwork_organization/code_snippets.R 900_database_organization/401_snippet_selection.R
 
 # Load some custom GRTS functions
 # project_root <- find_root(is_git_root)

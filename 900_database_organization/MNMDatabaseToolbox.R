@@ -7,7 +7,7 @@
 #     `database_interaction_libraries`,
 #     `load_poc_code_snippets`
 # - the POC
-#   (`050_snippet_selection.R`, `051_snippet_transformation_code.R`, to be moved)
+#   (`401_snippet_selection.R`, `402_snippet_transformation_code.R`, to be moved)
 # - a database connection (`MNMDatabaseConnection.R`)
 #
 

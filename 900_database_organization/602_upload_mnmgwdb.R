@@ -97,8 +97,8 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 ## ----check-loading-snippets-----------------------------------
 
 message("running code snippets...")
-invisible(capture.output(source("050_snippet_selection.R")))
-source("051_snippet_transformation_code.R")
+invisible(capture.output(source("401_snippet_selection.R")))
+source("402_snippet_transformation_code.R")
 message("done.")
 
 stopifnot(

@@ -30,4 +30,6 @@ grep -rlZ '040m_mnmgwdb_consistency_dashboard' . | xargs -0 sed -i 's/040m_mnmgw
 
 
 
-118_random_elevationpoints_mnmgwdb.R
+
+grep -rlZ '050_snippet_selection.R' . | xargs -0 sed -i 's/050_snippet_selection.R/401_snippet_selection.R/g'
+grep -rlZ '051_snippet_transformation_code.R' . | xargs -0 sed -i 's/051_snippet_transformation_code.R/402_snippet_transformation_code.R/g'

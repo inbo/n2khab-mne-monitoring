@@ -5,7 +5,7 @@
 * update snippets
 + pulled `*supportbyfloris` branch
 + cleaned `dbinit` branch and branched off
-+ removed all differences via =meld [...]/n2khab-mne-monitoring_support/020_fieldwork_organization/code_snippets.R [...]/n2khab-mne-monitoring_dbinit/900_database_organization/050_snippet_selection.R=
++ removed all differences via =meld [...]/n2khab-mne-monitoring_support/020_fieldwork_organization/code_snippets.R [...]/n2khab-mne-monitoring_dbinit/900_database_organization/401_snippet_selection.R=
 
 
 * switch mirror

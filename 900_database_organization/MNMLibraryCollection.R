@@ -116,8 +116,8 @@ load_poc_code_snippets <- function(base_path = NA) {
   source(file.path(base_path, "020_fieldwork_organization/R/grts.R"))
   source(file.path(base_path, "020_fieldwork_organization/R/misc.R"))
 
-  invisible(capture.output(source("050_snippet_selection.R")))
-  source("051_snippet_transformation_code.R")
+  invisible(capture.output(source("401_snippet_selection.R")))
+  source("402_snippet_transformation_code.R")
 
 
 } # /load_poc_code_snippets
