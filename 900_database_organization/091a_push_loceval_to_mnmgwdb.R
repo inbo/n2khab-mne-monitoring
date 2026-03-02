@@ -6,12 +6,11 @@ load_database_interaction_libraries()
 source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
+
+# connect to the databases:
+# - mnmgwdb (chosen mirror)
+# - loceval (production, read-only)
 config_filepath <- file.path("./inbopostgis_server.conf")
-
-
-#
-
-
 
 database_label <- "mnmgwdb"
 
@@ -41,7 +40,7 @@ message(mnmgwdb$shellstring)
 
 loceval_connection <- connect_mnm_database(
   config_filepath = config_filepath,
-  database = "loceval",
+  database = glue::glue("loceval{suffix}"),
   user = "monkey",
   password = NA
 )
@@ -68,7 +67,7 @@ if (FALSE) {
   system(glue::glue("Rscript 095_re_link_foreign_keys_optional.R {suffix}"))
 }
 
-
+# load the raw replacements
 replacements_raw <- loceval_connection$query_table("Replacements") %>%
   filter(is_selected, !is_inappropriate) %>%
   select(
@@ -81,23 +80,21 @@ replacements_raw <- loceval_connection$query_table("Replacements") %>%
     wkb_geometry
   )
 
+# join location and sampleunit info from `locevaldb`
 replacement_data <- replacements_raw %>%
   inner_join(
     loceval_connection$query_table("Locations"),
     by = join_by(grts_address),
-    suffix = c("_repl", "_loc")
+    suffix = c("_repl", "_loc_loceval")
   ) %>%
   left_join(
     loceval_connection$query_table("SampleUnits"),
     by = join_by(grts_address, type),
-    suffix = c("", "_unit")
+    suffix = c("", "_unit_loceval")
   )
 
 # NOTE: this still has both geometries
-
-
-# also re-link mnmgwdb
-system(glue::glue("Rscript 095_re_link_foreign_keys_optional.R {suffix}"))
+# NOTE: these are the id's from `locevaldb`
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -133,6 +130,7 @@ locations_lookup <- update_cascade_lookup(
 existing_again <- mnmgwdb$query_table("Locations") %>%
   select(grts_address_replacement = grts_address, location_id)
 
+# join [mnmgwdb] location ID to the replacement data
 replacement_data <- replacement_data %>%
   select(-location_id) %>%
   left_join(
@@ -141,12 +139,16 @@ replacement_data <- replacement_data %>%
     suffix = c("_obsolete", "")
   )
 
+# check whether location IDs are missing (triv. not)
 check <- replacement_data %>%
   filter(is.na(location_id))
 
 if (nrow(check) > 0) {
+  message("A location ID is missing!")
   check %>%
+    filter(is.na(location_id)) %>%
     t() %>% knitr::kable()
+  stop()
 }
 
 
@@ -163,9 +165,8 @@ new_samplelocations <- replacement_data %>%
     existing_samplelocations,
     by = join_by(grts_address_replacement == grts_address, type == strata)
   )
+# these `new_samplelocations` are still needed below!
 
-new_samplelocations %>% t() %>% knitr::kable()
-# these are still needed
 
 # upload new locations
 samplelocations_upload <- new_samplelocations %>% # replacement_data  %>% #
@@ -186,6 +187,14 @@ samplelocations_upload <- new_samplelocations %>% # replacement_data  %>% #
     is_replacement = TRUE
   )
 
+
+# verbose
+if (nrow(samplelocations_upload) > 0) {
+  message("New sample locations to be uploaded:")
+  samplelocations_upload %>%
+    knitr::kable()
+}
+
 samplelocations_lookup <- update_cascade_lookup(
   table_label = "SampleLocations",
   new_data = samplelocations_upload,
@@ -195,6 +204,7 @@ samplelocations_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
+# a better lookup (of all slocs)
 samplelocations_lookup <- mnmgwdb$query_columns(
     table_label = "SampleLocations",
     select_columns = c("grts_address", "strata", "samplelocation_id")
@@ -215,8 +225,10 @@ check <- replacement_data %>%
   filter(is.na(samplelocation_id))
 
 if (nrow(check) > 0) {
+  message("A samplelocation_id is missing!")
   check %>%
     t() %>% knitr::kable()
+  stop()
 }
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -229,13 +241,18 @@ if (nrow(check) > 0) {
 # (useful if contains input fields, done only for LocationInfos).
 
 ### duplicate a table row by index
-  # NOTE string identifiers must be given beforehand,
-  # e.g.
-# mnmdb = mnmgwdb # mnmdb$shellstring
-# table_label = "TeamMembers"
-# row_origin_identification = c("username" = "'Falk'", "family_name" = "'Mielke'")
-# fix_values = c("username" = "'Rödiger'", "notes" = "'testing table duplication'")
-# exclude_columns = c("notes")
+# This function will create and execute an INSERT () SELECT...; query
+# based on some user input of row identifiers and fixed values
+# that this makes no assumptions about the number of rows to update,
+#   thus care must be taken
+#   with the `origin_identification` to be specific enough.
+# NOTE string identifiers/quotes must be given beforehand,
+#   e.g.
+#   mnmdb = mnmgwdb # mnmdb$shellstring
+#   table_label = "TeamMembers"
+#   row_origin_identification = c("username" = "'Falk'", "family_name" = "'Mielke'")
+#   fix_values = c("username" = "'Rödiger'", "notes" = "'testing table duplication'")
+#   exclude_columns = c("notes")
 duplicate_table_row <- function(
     mnmdb,
     table_label,
@@ -255,18 +272,22 @@ duplicate_table_row <- function(
       filter(!(column %in% exclude_columns))
   }
 
-  # sort out columns
+  # assemble relevant columns
   fix_columns <- names(fix_values)
   other_columns <- table_columns %>%
     filter(!(column %in% fix_columns)) %>%
     pull(column)
 
+  # "fix_colums" are the columns for which user fixes the values;
+  # they will be set first on the INSERT statement
   insert_columns <- c(fix_columns, other_columns)
 
-  # select string
+  # select string:
+  #     first the fixed values,
+  #     then the actual db content for other cols
   fix_select <- paste0("",
     unlist(fix_values),
-    " AS ", names(fix_values),
+    " AS ", fix_columns,
     collapse = ", "
   )
   other_select <- paste0(other_columns, collapse = ", ")
@@ -278,7 +299,7 @@ duplicate_table_row <- function(
     collapse = " AND "
   )
 
-  # stitch query
+  # stitch SELECT part of the query
   # NOTE [!!!] the ONLY is critical.
   select_component <- glue::glue("
     SELECT {fix_select}, {other_select}
@@ -286,6 +307,7 @@ duplicate_table_row <- function(
       WHERE TRUE AND {row_identification}
   ")
 
+  # combine with the INSERT part
   insert_colstr <- paste0(insert_columns, collapse = ", ")
   insert_query <- glue::glue("
     INSERT INTO {table_namestring} ({insert_colstr})
@@ -326,70 +348,29 @@ to_upload <- new_samplelocations %>%
     samplelocation_id
   )
 
-stopifnot("Careful now: there is a local replacement!" =
-  nrow(to_upload) == 0)
+# # This safety break was used for the very first local replacement
+# stopifnot("Careful now: there is a local replacement!" =
+#   nrow(to_upload) == 0)
+if (nrow(to_upload) > 0) {
+  message(">>> Applying new replacements.")
+  to_upload %>% knitr::kable()
+}
 
-# to_upload <- data.frame(
-#     "grts_address" = c(as.integer(23238)),
-#     "grts_address_replacement" = c(as.integer(1)),
-#     "strata" = "9160",
-#     "samplelocation_id" = 2072
-#   )
-# # SELECT * FROM "outbound"."SampleLocations" ORDER BY samplelocation_id DESC LIMIT 1;
-
-# replacement_data %>%
-#   filter(
-#    grts_address == 23238
-#   ) %>% t() %>% knitr::kable()
-
-# # TODO What was the samplelocation_id?
-# # TODO get next fwcal key :(
-# fwcal_statusquo <- mnmgwdb$query_table("FieldworkCalendar")
-# fwcal_latest <- fwcal_statusquo %>%
-#   pull("fieldworkcalendar_id") %>% max()
-# mnmgwdb$set_sequence_key("FieldworkCalendar", "max")
-# # SELECT last_value FROM "outbound".seq_fieldworkcalendar_id;
-
-# ### query true activity calendar
-# activity_groupid_lookup <- mnmgwdb$query_columns(
-#     table_label = "GroupedActivities",
-#     c("activity_group", "activity_group_id")
-#   ) %>%
-#   distinct()
-#
-# gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
-#   filter(is_gw_activity, is_field_activity) %>%
-#   distinct(activity_group, activity)
-#
-# # Loop Special Activities
-# selection_of_activities <- list(
-#   "InstallationVisits" = activity_groupid_lookup %>%
-#     filter(grepl("^GWINST", activity_group)) %>%
-#     pull(activity_group_id) %>% unique, # /WIA
-#   "SamplingVisits" = activity_groupid_lookup %>%
-#     filter(activity_group %in%
-#       c(gw_field_activities %>%
-#         filter(grepl("^GW.*SAMP", activity)) %>%
-#         pull(activity_group))
-#       ) %>%
-#     pull(activity_group_id) %>% unique, # /CSA
-#   "PositioningVisits" = activity_groupid_lookup %>%
-#     filter(activity_group %in%
-#       c(gw_field_activities %>%
-#         filter(grepl("^SPATPOSIT", activity)) %>%
-#         pull(activity_group))
-#       ) %>%
-#     pull(activity_group_id) %>% unique # /SPA
-# )
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### Calendar and Visits
 #///////////////////////////////////////////////////////////////////////////////
+# These will be executed by
+#     UPDATING the `grts_address` in existing calender entries
+# (classical, custom query knitting)
+
 make_string <- \(txt) glue::glue("{txt}")
 wrap_string <- \(txt) glue::glue("'{txt}'")
 
+
+### (A) tables which are updated by just changing the `grts_address`
 # check for / retain prior visits
-visits_namestring <- mnmdb$get_namestring("Visits")
+visits_namestring <- mnmgwdb$get_namestring("Visits")
 calendar_visits_done <- glue::glue("
   SELECT DISTINCT fieldworkcalendar_id
   FROM {visits_namestring}
@@ -407,18 +388,20 @@ extra_filters <- c(
 
 system(glue::glue("Rscript 095_re_link_foreign_keys_optional.R {suffix}"))
 
+# UPDATE the grts_address in FieldworkCalendar and Visits
 for (row_nr in seq_len(nrow(to_upload))) {
   row <- to_upload[row_nr, ]
 
   for (table_label in names(extra_filters)) {
 
     # table_label = "Visits"
-    table_namestring <- mnmdb$get_namestring(table_label)
+    table_namestring <- mnmgwdb$get_namestring(table_label)
     grts_address_replacement <- row[["grts_address_replacement"]]
     grts_address_original <- row[["grts_address"]]
     stratum <- row[["strata"]]
 
-    # TODO historic visits may not be replaced
+    # historic visits may not be replaced
+    # -> use NOT IN {visit_done} structure
     filter_further <- extra_filters[[table_label]]
 
     grts_update <- glue::glue("
@@ -435,11 +418,11 @@ for (row_nr in seq_len(nrow(to_upload))) {
   } # /loop tables with grts rename
 
 
-}
+} # loop rows to upload
 
 
-
-
+### (B) tables which need a row duplicate
+#   because the old `grts_address` is still somewhat stored
 for (row_nr in seq_len(nrow(to_upload))) {
   row <- to_upload[row_nr, ]
 
@@ -472,7 +455,8 @@ for (row_nr in seq_len(nrow(to_upload))) {
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### store replacement data - tabula rasa
 #///////////////////////////////////////////////////////////////////////////////
-
+# this is just an overview table
+#   in which all the replacements are stored for later reference
 
 replacements_upload <- replacement_data %>%
   select(
