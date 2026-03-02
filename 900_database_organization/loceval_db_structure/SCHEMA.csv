@@ -1,6 +1,0 @@
-schema,owner,usage
-outbound,salamandra,"tom,ward,floris,karen,janne,falk,monkey"
-inbound,salamandra,"tom,ward,floris,karen,janne,falk,monkey"
-metadata,salamandra,"tom,ward,floris,karen,janne,falk,monkey"
-archive,salamandra,"tester,monkey"
-analysis,salamandra,"tom,ward,floris,karen,janne,falk,monkey"

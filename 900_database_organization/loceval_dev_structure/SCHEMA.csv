@@ -1,0 +1,6 @@
+schema,owner,usage
+outbound,yoda,"tom,ward,floris,karen,janne,falk,tester,monkey"
+inbound,yoda,"tom,ward,floris,karen,janne,falk,tester,monkey"
+metadata,yoda,"tom,ward,floris,karen,janne,falk,tester,monkey"
+archive,yoda,"tester,monkey"
+analysis,yoda,"tom,ward,floris,karen,janne,falk,tester,monkey"

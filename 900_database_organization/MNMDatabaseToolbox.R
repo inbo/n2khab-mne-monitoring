@@ -699,10 +699,10 @@ upload_data_and_update_dependencies <- function(
   # message(mnmdb$mirror_short)
 
   if (mnmdb$mirror_short == "") {
-    source(glue::glue('095_re_link_foreign_keys_optional.R'))
+    source(glue::glue('102_re_link_foreign_keys.R'))
   } else {
     system(glue::glue(
-      "Rscript 095_re_link_foreign_keys_optional.R -{mnmdb$mirror_short}"
+      "Rscript 102_re_link_foreign_keys.R -{mnmdb$mirror_short}"
     ))
   }
   return(invisible(NULL))

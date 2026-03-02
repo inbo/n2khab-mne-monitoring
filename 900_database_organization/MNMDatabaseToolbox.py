@@ -419,13 +419,16 @@ class dbTable(dict):
     def __init__(self, tabledef: dict, structure_folder: PL.Path = PL.Path("./db_structure")):
         # | self.schema       | self.table        | self.owner       |
         # | self.read_access  | self.write_access | self.geometry    |
-        # | self.constraint   | self.freesql      | self.persistent  |
-        # | self.comment      | self.excluded     |                  |
+        # | self.constraint   | self.inherits     | self.freesql     |
+        # | self.persistent   | self.comment      | self.excluded    |
+
 
         self.structure_folder = structure_folder
 
         for k, v in tabledef.items():
             setattr(self, k, v)
+
+        # print(tabledef["schema"])
 
         self.definition_file = self.structure_folder/f"{self.table}.csv"
 
@@ -433,6 +436,28 @@ class dbTable(dict):
         for _, datafield in table_definitions.iterrows():
             nm = datafield["column"]
             self[nm] = datafield.to_dict()
+
+        # special case: table inherits another tables structure
+        # TODO currently only one parent table can be used
+        self.inherited_columns = []
+        self.has_parent = not PD.isna(self.inherits)
+        if self.has_parent:
+            parent_table = self.inherits.split(".")[-1].replace('"', "")
+            # print(self.inherits, parent_table)
+
+            parent_definitions = PD.read_csv(self.structure_folder/f"{parent_table}.csv")
+            for _, datafield in parent_definitions.iterrows():
+                nm = datafield["column"]
+                self.inherited_columns.append(nm)
+                self[nm] = datafield.to_dict()
+
+            # print(self.inherited_columns)
+
+            # clumsy: overwrite attributes which might be captured by the inherited table
+            for k, v in tabledef.items():
+                setattr(self, k, v)
+
+        # print(self)
 
         # initialize empty
         self.data = None
@@ -498,11 +523,16 @@ class dbTable(dict):
                 DROP TABLE IF EXISTS {self.NameString()} CASCADE;
             """
 
+        inherit_string = f"INHERITS ({self.inherits})" if self.has_parent else ""
+
         # the basic create string, wrapped with others in a BEGIN;COMMIT; block.
         create_string += f"""
             BEGIN;
-            CREATE TABLE {self.NameString()}();
+            CREATE TABLE {self.NameString()}()
+            {inherit_string}
+        ;
         """
+        # print(create_string)
 
         # table comment
         create_string += f"""
@@ -533,6 +563,9 @@ class dbTable(dict):
             if PD.isna(params["datatype"]):
                 continue
 
+            if col in self.inherited_columns:
+                continue
+
             create_string += ColumnString(self.schema, self.table, col, params, no_pk = has_geometry)
 
 
@@ -549,6 +582,11 @@ class dbTable(dict):
 
         # some keys are linked to sequences, so that they get auto-increments centrally
         for col, params in self.items():
+
+            # skip inherited columns (they already link)
+            if col in self.inherited_columns:
+                continue
+
             # skip empty or False
             if PD.isna(params["sequence"]) or (not params["sequence"]):
                 continue
@@ -569,6 +607,11 @@ class dbTable(dict):
 
         # foreign keys link to other tables
         for col, params in self.items():
+
+            # skip inherited columns (they already link)
+            if col in self.inherited_columns:
+                continue
+
             fk = params["foreign_key"]
             if PD.isna(fk):
                 continue # skip non-fk's
@@ -1133,24 +1176,17 @@ if __name__ == "__main__":
     # print(connstr)
 
     base_folder = PL.Path("./")
-    ODStoCSVs(base_folder/"loceval_dev_dbstructure.ods", base_folder/"devdb_structure")
+    ODStoCSVs(base_folder/"mnmgwdb_dev_structure.ods", base_folder/"mnmgwdb_dev_structure")
 
 
-    """ # known error:
-    psycopg2.errors.ForeignKeyViolation:
-    insert or update on table "ExtraVisits"
-    violates foreign key constraint "fk_samplelocations_extravisits"
-    DETAIL:
-    Key (samplelocation_id)=(3636) is not present in table "SampleLocations".
-    """
+    # db = Database( \
+    #     structure_folder = "./mnmgwdb_dev_structure", \
+    #     definition_csv = "TABLES.csv", \
+    #     lazy_creation = True, \
+    #     lazy_dataloading = True, \
+    #     tabula_rasa = True
+    # )
 
-    db = Database( \
-        structure_folder = "./devdb_structure", \
-        definition_csv = "TABLES.csv", \
-        lazy_creation = True, \
-        lazy_dataloading = True, \
-        tabula_rasa = True
-    )
     # for k, v in db.items():
     #     print('#'*16, k, '#'*16)
     #     print(v)
@@ -1158,12 +1194,12 @@ if __name__ == "__main__":
     # db["LocationCalendar"].GetDependencies()
     # db.GetDatabaseRelations()
 
-    if True:
+    if False:
         db_connection = None
         db_connection = ConnectDatabase( \
             "inbopostgis_server.conf", \
-            connection_config = "inbopostgis-dev", \
-            database = "loceval_dev" \
+            connection_config = "mnmgwdb-dev", \
+            database = "mnmgwdb_dev" \
            )
 
         # PD.read_sql_table("Protocols", schema = "metadata", con = db_connection.connection).to_csv("dumps/Protocols.csv", index = False)
@@ -1187,9 +1223,33 @@ if __name__ == "__main__":
         #     new_data = PD.read_csv("dumps/TeamMembers_new.csv") \
         # )
 
-
-
     if True:
+        structure_folder = "./mnmgwdb_dev_structure"
+        definition_csv = "TABLES.csv"
+        lazy_creation = True
+        lazy_dataloading = True
+        tabula_rasa = False
+
+        # read in the table definitions
+        structure_folder = PL.Path(structure_folder)
+        definitions = PD.read_csv(structure_folder/definition_csv)
+        # print(definitions)
+
+        nm = "InstallationVisits"
+        tabledef = definitions.loc[definitions["table"].values == nm, :].squeeze()
+
+        # print(tabledef)
+        # print(tabledef.to_dict())
+
+        # dive into table creation
+        table = dbTable(tabledef.to_dict(), structure_folder)
+
+        # print(table.ListDependencies())
+        # print(table.ListDataFields().index("visit_id"))
+        print(table.GetCreateString())
+
+
+    if False:
         pass
         db.PersistData(db_connection)
         db.CreateSchema(db_connection)

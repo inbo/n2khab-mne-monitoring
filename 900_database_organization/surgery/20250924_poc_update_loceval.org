@@ -593,7 +593,7 @@ CLOSED: [2025-10-02 Thu 14:16]
 
 ... to reduce off-focus updates during POC update
 
->>> [[file:../095_re_link_foreign_keys_optional.R]]
+>>> [[file:../102_re_link_foreign_keys.R]]
 
 
 * POC update =v0.9.0_poc0.13.1=

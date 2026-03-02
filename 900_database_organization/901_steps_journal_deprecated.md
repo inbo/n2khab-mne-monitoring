@@ -1,0 +1,2914 @@
+
+# Table of Contents
+
+1.  [General](#orgcb39c63)
+    1.  [server setup](#orgb96f118)
+    2.  [sql user management](#orgc600f6f)
+    3.  [database setup](#org6757dcb)
+    4.  [database structure](#org6297c0f)
+    5.  [database authentification](#org07f66b9)
+        1.  [proper use of keyring](#orgf4e0139)
+        2.  [qfield authentification](#org85f36ab)
+    6.  [photo capture](#orgeccb1c1)
+    7.  [YAD menu for maintenance scripts](#org1890bc8)
+    8.  [Spontaneous postgres v18.0 major upgrade](#org5f238fe)
+    9.  [change of superuser](#orgb1e236e)
+    10. [`sync_mod` to `metadata`](#org3f85355)
+    11. [add user](#org1c02a63)
+    12. [InstallationRemovals](#orge084b30)
+    13. [LocationJournals](#orgfd49eae)
+2.  [loceval](#orgff0123a)
+    1.  [setup database](#orgbc09d1e)
+    2.  [location/activity calendar](#org7c8e14d)
+    3.  [ODS download and conversion](#org6988f7b)
+    4.  [constraints](#org5ac9f7c)
+    5.  [multiple schemas](#orgdaa81e8)
+    6.  [pgmodeler import](#org74eb086)
+    7.  [sequence issues](#orgdcf1fb6)
+    8.  [binaries, images, BLOB](#org2b98c89)
+    9.  [Visits](#org7244336)
+    10. [stratum et al. to Location Calendar](#orgda4c983)
+    11. [Schema Re-Organisation](#org82e889f)
+    12. [TeamMembers](#org2372be8)
+    13. [N2kHabTypes](#org5e42187)
+    14. [Activities - overhaul](#orgd9bedcf)
+        1.  [REMINDER: Activities/Groups DO NOT SPLIT](#org6cf68e7)
+        2.  [chat protocol](#org24681b9)
+    15. [qgis refresher](#orgf02d55f)
+    16. [postgres VIEWs](#org2d9a18c)
+    17. [first qgis tests](#org41f18f3)
+    18. [gdal error (qgis / qfieldsync plugin)](#orgb12c80f)
+    19. [qfield cloud issues](#org5c63533)
+        1.  [(a) copy file directly](#orgff52e69)
+        2.  [(b) via qfieldcloud](#org0aff8c0)
+    20. [filter activities for Ward](#org37619d5)
+    21. [prune location calendar and smush duplicate locations](#org35d5dc0)
+    22. [testing/documenting qgis export](#org3df4077)
+        1.  [on server:](#org0ea8d14)
+        2.  [on providing computer:](#org2bb51cb)
+        3.  [on target device:](#org54bcce0)
+    23. [layer filtering by targetpanel](#org4ca5fe0)
+    24. [postgres minor version upgrade](#orgd9c7537)
+    25. [two databases: dev|production](#org08d6503)
+    26. [database schema&rsquo;s and mirrors](#org1043066)
+    27. [minor fixes](#orgb0b5af2)
+    28. [inbound tables and views: FreeFieldNotes, VisitNotes, PriorVisits](#org7552d4c)
+    29. [database change tracking](#orgef08075)
+    30. [photo attachments](#org07e167a)
+    31. [meaningful attribute labels](#org971ac11)
+    32. [backups (1): dumps](#orgbd02df0)
+        1.  [database daily diffs](#orgbe504e7)
+        2.  [monthly dumpall madness](#orgfa3d4c8)
+        3.  [bring &rsquo;em home](#org836d8d8)
+        4.  [test restore](#orga0794ba)
+    33. [`.pgpass` for backups](#orgb94e16a)
+    34. [backups (2): table surgery](#org38f4068)
+    35. [selectively update table data](#org743d122)
+        1.  [concept](#org2768c63)
+        2.  [for Python](#org3d59bec)
+        3.  [for R](#orgfecd344)
+    36. [data update on **production**](#org9a8b3fb)
+    37. [database changes with data persistence](#orgce8d7ec)
+    38. [adjustments Orthophoto workpackage](#org1b4ebb7)
+    39. [store table relation structure](#org7cebe85)
+    40. [extra layers qgis orthophoto assessment](#orgafbf05d)
+        1.  [orthophotos](#orgd251db1)
+        2.  [beheer ANB](#org4718cd9)
+        3.  [preliminary habitat map](#orgacc137a)
+        4.  [public habitat map](#org74e31b7)
+    41. [copying a database](#orgdf1b2e0)
+    42. [issues with `Locations.ogc_fid` uniqueness](#org0f1045b)
+    43. [Permanent Data Captation](#org990830a)
+    44. [orthophoto database project](#org0a1272a)
+    45. [n2khab type &ldquo;gh&rdquo;](#org5470232)
+    46. [`location_id` implicit foreign key](#orgb3581b7)
+    47. [major change `GroupedActivities`](#org7a07092)
+    48. [field activity calendar](#orgb158d92)
+    49. [replacement locations](#org6946635)
+    50. [The Great Rename](#org8ec69b0)
+    51. [SampleUnitPolygons](#org175e248)
+    52. [Replacement Archives](#org89d9a55)
+    53. [Replacement Cells](#org95d799c)
+    54. [CellMaps](#org4b41733)
+    55. [major update](#org5336169)
+    56. [mirror re-organization](#orga9da47b)
+        1.  [development](#org07c554b)
+        2.  [staging](#orgd1136fa)
+        3.  [testing](#orga118cc3)
+        4.  [production](#org3e96004)
+    57. [populate testing db](#org0b291fa)
+    58. [extra info for Ward](#org9ae135b)
+    59. [MILESTONE: first field data by Ward](#org5cd52f8)
+    60. [minor change requests Ward](#orge68e0b7)
+    61. [accessibility across locations -> LocationInfos](#org831ec69)
+    62. [rtkgps accuracy](#orgc0f1fe7)
+    63. [replacement notes to sample unit](#orgb6e5a02)
+    64. [activity or activity<sub>group</sub>?](#org5bfa780)
+    65. [data type issues in sync FreeFieldNotes](#org65c2eb9)
+    66. [type<sub>is</sub><sub>absent</sub>](#orgf9a9481)
+    67. [major overhaul: poc update](#org28c76a4)
+    68. [sideloading: the lost replacement `84598/7150` to `871030`](#org1e1230d)
+3.  [mnmgwdb](#orge5b5b24)
+    1.  [the next database](#org1522c47)
+    2.  [file renames](#orgd6505bf)
+    3.  [debug init script](#org282506e)
+    4.  [fill with data](#org8dcd3a7)
+    5.  [create tester user](#org76091aa)
+    6.  [qgis outbound app](#org9aefee6)
+    7.  [RESTART (5): mnmgwdb](#org5dafc78)
+    8.  [adjusted db structure](#org9a4e8d4)
+    9.  [replacements: ad hoc solution](#org95c278c)
+    10. [testing mirror](#org55c24f5)
+    11. [sync FreeFieldNotes](#orgcd70b2d)
+    12. [sync LocationInfos](#org397708d)
+    13. [update LocationEvaluations and Replacements for `mnmgwdb`](#orgc2331f6)
+    14. [activity or activity<sub>group</sub>?](#org91cd0da)
+    15. [duplicate watina<sub>code</sub>](#org394aa78)
+    16. [FieldWork view](#org02e9107)
+    17. [FieldWork &ldquo;app&rdquo;](#orgd0d4c74)
+    18. [missing `location_id` in `mnmgwdb`](#org91a6d7a)
+    19. [watina codes decision](#org1a522c6)
+    20. [replacement duplication](#org89b2283)
+    21. [better LocationCells sync/display](#org4d38882)
+    22. [replacement affects `LocationInfos`](#org15f7d86)
+    23. [a stray point in Chartreuzenbos/Holsbeek](#org6693965)
+    24. [coordinates and google map navigation](#org7031432)
+    25. [fieldwork app v1](#orgd5ffc2d)
+    26. [random placement](#org2eb943f)
+    27. [cellmaps to mnmgwdb](#org959f65f)
+    28. [random points: refinement](#org4204fee)
+    29. [replacement f\*\*k-up](#org774438b)
+    30. [MHQ zone to polygons](#org030369c)
+    31. [qfield audio attachments](#org4586f98)
+    32. [multiple bugs in local replacement sync](#org6e28b38)
+    33. [handling of sequences](#orgd261171)
+    34. [dynamic update field activity calendar](#org9f42215)
+    35. [safety net: memory backup whilst upload/cascade](#org6883094)
+    36. [two replacements to the same grts](#org4f5f92f)
+    37. [minor change requests Y](#org04f3b95)
+    38. [correct upload procedure](#orge892e8b)
+    39. [duplicate LocationInfos and disconnected Visits](#orga1df5e8)
+    40. [disconnected FieldworkCalendar events](#org5c3e931)
+    41. [WIA/CSA quickfix](#org1b322d9)
+    42. [multi-polygon cell maps](#org0250398)
+    43. [Fieldwork Planning ++ `has_installation` and `count_days_ws`](#orgf03b1fe)
+    44. [data consistency dashboard -> improved consistency](#org323d451)
+    45. [fieldwork<sub>id</sub> conflict](#org1b96555)
+    46. [type<sub>is</sub><sub>absent</sub> -> excluded](#org8d5449e)
+    47. [type<sub>is</sub><sub>not</sub><sub>absent</sub><sub>anymore</sub> -> unexcluded](#org378da62)
+    48. [tap water!](#org257ec57)
+    49. [non-absent placement 4163858](#orgde7347b)
+    50. [QField Anormalities (I): Misplaced Archive Tags](#orgcc609fa)
+    51. [QGIS mulit-layer style](#org5eadab7)
+    52. [MHQ cells and Random Placement Points: wrong logic](#org659f32a)
+    53. [LocationSoilInfos](#org45ab3e1)
+4.  [Major R Code Overhaul (202508)](#org088e8ab)
+    1.  [Code File Organization](#org0f68c0b)
+    2.  [Database Connection](#org4bc2ebe)
+    3.  [Handling Spatial Tables](#org0d76a89)
+    4.  [major overhaul](#org4b6219f)
+    5.  [some issues on the way](#org56a014b)
+        1.  [871030](#org016d75d)
+        2.  [duplicate LocationCells](#org7e70ce5)
+        3.  [Disconnected Visits](#orga36a686)
+        4.  [Double Field Work](#org5d85e09)
+    6.  [MILESTONE ran POC update for `mnmgwdb`](#org5f822cd)
+5.  [Major Structure Overhaul: Visits Inheritance](#orgaac7be3)
+6.  [learning the hard way](#org807bc8d)
+    1.  [`dbWriteTable(..., overwrite = TRUE, ...)` is a bad idea!](#org09fa551)
+    2.  [`dbReadTable(...)` is better avoided, too](#orgb2f0e0e)
+    3.  [loss of links due to &ldquo;`append_tabledata`&rdquo;](#orged61f24)
+    4.  [update rule avoidance](#org3081b2a)
+    5.  [Polygon Memory Size](#org68247ad)
+    6.  [appending locations](#org704006d)
+    7.  [take primary keys seriously](#orga4f2ead)
+    8.  [major programming bugs](#org67eaec0)
+    9.  [fieldwork<sub>id</sub> conflict](#orgd9e0d7d)
+    10. [restoring production database from dumps](#orgbe75836)
+    11. [MHQ zone buffer widths were wrong](#org3b0da0d)
+7.  [General (II)](#orgb78e46f)
+    1.  [REMINDER fk columns which allow NULL](#org343f853)
+    2.  [Replacement Unit logic](#org479f87b)
+    3.  [python updates](#orge5cd8c6)
+    4.  [quick checks](#org00ecef5)
+8.  [Journal File Phase-Out](#org5b01340)
+
+This file documents the steps I undertook to set up the MNE database structure.
+
+
+<a id="orgcb39c63"></a>
+
+# General
+
+
+<a id="orgb96f118"></a>
+
+## server setup
+
+-   set up the SQL server on a web hosting service
+-   running on arch linux; super user and normal user
+-   access via `ssh`:
+    -   `ssh -p <port> <normaluser>@<host-ip>`
+-   postgres database initialized and postgis installed
+
+full details: <https://github.com/falkmielke/agenda/blob/main/notes/20250602135718-inbopostgis.org>
+
+> **Currently, each new IP must be registered in** `/var/lib/postgres/data/pg_hba.conf` **to be able to connect to the database.**
+
+*cf.* <https://wiki.archlinux.org/title/PostgreSQL#Optional_configuration>
+
+
+<a id="orgc600f6f"></a>
+
+## sql user management
+
+&hellip; is done directly on the server.
+
+    ssh -p <port> <normaluser>@<host-ip>
+    su - root
+    su - postgres
+    createuser -p <port> --interactive
+    
+    psql -p <port>
+    ALTER USER <user> WITH ENCRYPTED PASSWORD '<password>';
+
+-   new username needs to be added to `pg_hba.conf`!
+-   consider updating `TeamMembers` table.
+
+
+<a id="org6757dcb"></a>
+
+## database setup
+
+connect (ssh via keys):
+
+    ssh -p <port> <normaluser>@<host-ip>
+    su - root
+    su - postgres
+
+drop-create:
+
+    # dropdb <database> -p <port>
+    createdb <database> -O <owner> -p <port>
+
+postgis extension:
+
+    psql -U <owner> -h <host-ip> -p <port> -d <database> -W
+
+    \c <database>
+    CREATE EXTENSION postgis;
+    CREATE EXTENSION postgis_topology;
+    CREATE EXTENSION fuzzystrmatch;
+    CREATE EXTENSION postgis_tiger_geocoder;
+
+
+<a id="org6297c0f"></a>
+
+## database structure
+
+A python script is available here:
+
+-   `n2khab-mne-monitoring/900_database_organization/GenerateDatabase.py`
+
+This ideally uses a virtual environment, set up as follows:
+
+    cd <project_folder>
+    python -m venv .dbinit
+    source .dbinit/bin/activate
+    pip install --upgrade pip
+    pip install --upgrade -r python_requirements.txt
+    # pip freeze > python_requirements.txt # to feed back updated requirements
+
+Then to run it, with a database connection config file (as described in the script) in place:
+
+    source .dbinit/bin/activate
+    # python GenerateDatabase.py
+    python 110_init_loceval.py
+
+The script works on &ldquo;`csv`&rdquo;s which have a fixed structure to define shema&rsquo;s, tables, columns.
+
+An example google file can be found [here](https://docs.google.com/spreadsheets/d/1BTtG-A2ASjbF7IhYYb8FDcQLBZtSQbLbElUUYeofHNM/edit?usp=drive_link),
+<del>the `csv`&rsquo;s are generated by &ldquo;File >> Download >> Comma Separated Values (.csv)&rdquo; for each sheet in the document.</del>
+the `csv`&rsquo;s are generated by &ldquo;File >> Download >> OpenDocument (.ods)&rdquo; which can be converted to `.csv` with the `ODStoCSVs` python function.
+Those comma separated text files are stored in the `db_structure` subfolder.
+
+Because tables and roles are organized in schema&rsquo;s,
+it might be necessary to
+
+    SET search_path TO public,<schema>;
+    SHOW search_path;
+    -- \dt+
+
+
+<a id="org07f66b9"></a>
+
+## database authentification
+
+
+<a id="orgf4e0139"></a>
+
+### proper use of keyring
+
+was using it wrong
+wrote a tutorial about it
+<https://github.com/inbo/tutorials/pull/365>
+
+
+<a id="org85f36ab"></a>
+
+### qfield authentification
+
+see PRJ<sub>MNM</sub>/160/educational
+
+
+<a id="orgeccb1c1"></a>
+
+## photo capture
+
+-   copy whole folders from devices
+-   using &ldquo;biggest&rdquo; file -> store as raw; convert to `DCIM/` with reduced resolution
+-   script <./005_photos.md> to collect photos
+-   distribution via google drive and project zips
+-   project zipping was automated <./004_QField_distribute_projects.md>
+
+
+<a id="org1890bc8"></a>
+
+## YAD menu for maintenance scripts
+
+there is now a menu to click-work through maintenance scripts.
+
+-   <./090_all_maintenence_menu.sh>
+
+
+<a id="org5f238fe"></a>
+
+## Spontaneous postgres v18.0 major upgrade
+
+-   there were issues with a crashing qgis
+-   due to a rolling progress bar, I suspected the server
+-   server seemed fine; but because I was working on a certain (regular) user and heavily extending the qgis layer structure, I still suspected server load / server load prevention (e.g. &ldquo;max connections&rdquo;) to cause the issue
+-   decided to go for postgres setting, yet that is best done on latest version
+
+DECISION: postgresql/postgres-libs upgrade via pacman
+REVELATION: pg<sub>update</sub> [cannot handle the postGIS extension](https://gis.stackexchange.com/q/261526)!
+What a bummer.
+
+-   backup was from 10:16, restore was ~11:30
+
+Restore worked flawlessly!
+&hellip; except that I now have to recreate all the database mirrors.
+
+<https://www.bytebase.com/blog/what-is-new-in-postgres-18-for-developer/>
+
+
+<a id="orgb1e236e"></a>
+
+## change of superuser
+
+I [switched](https://www.postgresql.org/docs/current/sql-alterdatabase.html) to a new superuser.
+
+    ALTER USER <new_owner> WITH SUPERUSER;
+    ALTER DATABASE <db_name> OWNER TO <new_owner>;
+    
+    
+    ALTER USER <old_owner> WITH NOSUPERUSER;
+    ALTER USER <old_owner> WITH NOCREATEDB;
+    ALTER USER <old_owner> WITH NOCREATEROLE;
+
+<https://www.postgresql.org/docs/current/sql-reassign-owned.html>
+
+    REASSIGN OWNED BY <old_owner> TO <new_owner>;
+
+-   adjust `.conf` file.
+
+But: this also involves resetting the `EXPOST` functions.
+
+    GRANT ALL ON SCHEMA pg_catalog TO <new_owner>;
+
+-   adjust structure in google sheet
+
+    DROP FUNCTION IF EXISTS "public"."sync_mod" CASCADE;
+    CREATE FUNCTION sync_mod() RETURNS trigger AS $sync_mod$
+    BEGIN
+      NEW.log_update := current_timestamp;
+      NEW.log_user := current_user;
+      RETURN NEW
+      ;
+    END;
+    $sync_mod$ LANGUAGE plpgsql;
+
+-   grep all `OWNER TO <new_owner>` and `GRANT` statements from a backup dump file, change user, execute.
+
+-   test if everything is correct by dump-restoring the production mirror to staging
+
+In fact, the extensions did not change hands; let&rsquo;s see how this plays out.
+
+
+<a id="org3f85355"></a>
+
+## `sync_mod` to `metadata`
+
+moved function to a scheme which is part of the grand scheme of MNM things.
+
+
+<a id="org1c02a63"></a>
+
+## add user
+
+new teammember, new database user
+
+added her in the structure file
+dump recreate and grep username
+also went through all view files to adjust GRANTs
+
+finally, adjust `pg_hba` rules
+
+
+<a id="orge084b30"></a>
+
+## InstallationRemovals
+
+new table in `mnmgwdb` to log removal/deletion of a site,
+e.g. through vandalism
+
+
+<a id="orgfd49eae"></a>
+
+## LocationJournals
+
+process table
+combining changes of a Location over time, from different sources
+
+sources are:
+
+-   [X] loceval
+-   [X] groundwater fieldwork
+-   [X] `InstallationRemovals` (e.g. vandalism)
+-   [ ] MHQ assessment
+-   [ ] orthofoto assessment
+-   [ ] POC changes
+
+entries are grouped and the lates one is flagged; groups are:
+
+-   `inst` := installation/removal
+-   `biot` := MHQ | LOCEVAL
+-   otherwise: source
+
+this is enabled via [windowed functions](https://www.postgresql.org/docs/current/tutorial-window.html).
+
+Updated daily [via maintenance script](111b_fill_location_journals.R)
+
+
+<a id="orgff0123a"></a>
+
+# loceval
+
+
+<a id="orgbc09d1e"></a>
+
+## setup database
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left">database name</td>
+<td class="org-left">loceval</td>
+</tr>
+
+<tr>
+<td class="org-left">schema</td>
+<td class="org-left">loceval<sub>outbound</sub></td>
+</tr>
+
+<tr>
+<td class="org-left">peer user</td>
+<td class="org-left">ward</td>
+</tr>
+</tbody>
+</table>
+
+    psql -h <host> -p <port> -U <user> -d <database> -W
+
+
+<a id="org7c8e14d"></a>
+
+## location/activity calendar
+
+**goal:**
+
+-   get a table with point geometry of sample target locations to the database
+-   options to filter by date, potentially FAs, &hellip;
+
+Database creation in <020_create_databases.py>
+Gradual refinement in [100<sub>sample</sub><sub>location</sub><sub>tests.qmd</sub>](100_sample_location_tests.qmd)
+
+TODO:
+
+-   [X] `n2khab_data/10_raw/grtsmaster_habitats` issue: `n2khab::read_GRTSmh()` requires capitals -> was my fault
+-   [X] `loceval_outbound`: `Calendar` links to `ActivityGroups`, but not to `ActivitySequences`?
+    -> the sequence is in the dates.
+
+
+<a id="org6988f7b"></a>
+
+## ODS download and conversion
+
+It is now possible to **download the google sheet as ODS** and convert it to csv automatically.
+
+
+<a id="org5ac9f7c"></a>
+
+## constraints
+
+The option to specify constraints was added.
+More info here: <https://www.postgresql.org/docs/current/ddl-constraints.html>
+
+Most useful are
+
+-   `UNIQUE` (e.g. for columns which are pk, but blocked by geometry fid)
+-   value ranges, e.g. `CHECK (year > 0)`.
+
+
+<a id="orgdaa81e8"></a>
+
+## multiple schemas
+
+In- and outbound schemas can be defined within the same file.
+foreign keys across schema&rsquo;s are possible.
+
+
+<a id="org74eb086"></a>
+
+## pgmodeler import
+
+<https://pgmodeler.io>
+
+A great tool to visualize relational databases.
+
+It crashed earlier on syncing the &ldquo;Plantentuin&rdquo; pilot project,
+but it worked fine now for importing the database and visualizing relations.
+
+Will be re-used ad hoc later.
+
+
+<a id="orgdcf1fb6"></a>
+
+## sequence issues
+
+Due to a misconfiguration, qgis attempts to create a new location id upon attribute save.
+
+Added an &ldquo;`EXPOST`&rdquo; sheet to run after succesful creation.
+
+    GRANT USAGE ON SEQUENCE "loceval_outbound"."seq_locationcalendar_id" TO ward;
+
+*update:* Because this was such a common issue, the GRANT USAGE is now integrated for all sequences.
+
+(sequences can be listed with `\ls+`)
+
+
+<a id="org2b98c89"></a>
+
+## binaries, images, BLOB
+
+Managed to upload a binary with qgis.
+Will require download/restoration tests and good disk space management.
+
+
+<a id="org7244336"></a>
+
+## Visits
+
+a derived table showing a subset of the calendar
+
+
+<a id="orgda4c983"></a>
+
+## stratum et al. to Location Calendar
+
+-   used an upstream object of `fag_grts_calendar_...` to have scheme/stratum/module/panel for calendar
+-   TODO: some locations were not unique
+
+    fag_stratum_grts_calendar_2025_attribs_sf %>%
+      select(
+        scheme,
+        module_combo_code,
+        panel_set,
+        stratum,
+        targetpanel,
+        field_activity_group,
+        grts_address_final,
+        date_start
+      )
+
+
+<a id="org82e889f"></a>
+
+## Schema Re-Organisation
+
+We now use simple names:
+
+-   metadata
+-   outbound
+-   inbound
+
+separation is based on user rights and purpose
+
+
+<a id="org2372be8"></a>
+
+## TeamMembers
+
+to refer to users who upload stuff
+
+
+<a id="org5e42187"></a>
+
+## N2kHabTypes
+
+reference to habitat types and strata
+
+-   adding `stratum_to_expect` to LocCal
+-   adding `stratum_assigned` to `Visits`
+
+
+<a id="orgd9bedcf"></a>
+
+## Activities - overhaul
+
+Some changes and discussions with Floris about the &ldquo;Activities&rdquo; logic.
+
+-   removed `ActivityGroups` and `ActivitySequences`
+    -   sequences are already included in the calendar data via `rank`
+-   &hellip; for the sake of `GroupedActivities`
+    -   contains activities in different groups
+-   link to calendar via `grouped_activity_id`
+    -   and sequence determined by `activity_sequence`
+    -   `LocationCalendar` and `Visits` will have multiple lines now (all scheduled activities per visit)
+    -   will have to see how this plays out in qgis.
+
+
+<a id="org6cf68e7"></a>
+
+### REMINDER: Activities/Groups DO NOT SPLIT
+
+It seems tempting to split out the table `ActivityGroups`.
+However,
+`GroupedActivities` contains duplicates of some activities,
+because there are also `ActivitySequences` involved.
+
+For the future:
+
+1.  stick with the simplified `GroupedActivites`
+    -   advantage: single table simplicity
+    -   disadvantage: queries for activities or groups get complicated (DISTINCT/GROUP BY/UNIQUE)
+2.  split out `Activities` + `ActivityGroups` + `ActivitySequences`
+    -   less workable for practical purposes
+    -   duplication of sequence info (also comes with the calendar)
+    -   but: easier reference to `ActivityGroups`, which are work units for fieldwork
+
+
+<a id="org24681b9"></a>
+
+### chat protocol
+
+You, 9:50 AM
+
+> FYI er zijn activities die niet in een activity sequence terecht komen:
+> 
+> activities %>%
+>   anti<sub>join</sub>(
+>   activity<sub>sequences</sub>,
+>   join<sub>by</sub>(activity)
+> )
+> 
+> ->
+>     activity         activity<sub>name</sub>        is<sub>datacollection</sub><sub>me</sub>…¹ is<sub>field</sub><sub>activity</sub>
+>     <fct>            <fct>                <lgl>                  <lgl>
+>     1 GWSURFINSTALLMAT installatiemateriaa… FALSE                  FALSE
+>     2 GWMAT            staalnamemateriaal … FALSE                  FALSE
+>     3 SOILMAT          staalnamemateriaal … FALSE                  FALSE
+>     4 SURFMAT          staalnamemateriaal … FALSE                  FALSE
+>     5 SECDATACOLL      data uit bestaande … TRUE                   FALSE
+> 
+> &hellip; maar het zijn maar vijf; geen &ldquo;field&rdquo; activities; ik veronderstel dat ze niet in de calender terecht komen.
+> Ik ga ze toch meenemen naar de databank, voor de app oplossen door een &ldquo;fake sequence&rdquo; met naam van de activity toe te kennen, maar later kijken of ze er in qgis verschijnen of niet.
+
+Floris Vanderhaeghe, 9:51 AM
+
+> Klopt. Je hebt die zaken niet nodig, enkel de locatie-attributen en de veldwerkkalender. Ik had ze niet toegevoegd als element van de data, maar ivm tonen van inhoudelijke samenhang tussen field activities. Als je gewoon activity<sub>sequences</sub> gaat joinen aan activities, verwacht ik dat je er te veel gaat krijgen. Cf semi-joins hieronder, die ze filteren, en conditioneel stellen aan module en scheme. Puur achtergrond!
+> 
+> faseqs <- [&hellip;]
+> faseqs<sub>fag</sub><sub>fa</sub> <- [&hellip;]
+
+You, 9:54 AM
+
+> Ja, precies bij die semi-joins was ik begonnen :)
+> Het &ldquo;te veel krijgen&rdquo; is voor activities niet het gevaar, maar een activity of groep missen die later niet in de metadata-tabel staat kan de databank-logica crashen ivm. &ldquo;NOT NULL&rdquo;-constraints.
+> En ook voorbereidend desktop-werk zou in de app als een &ldquo;Notitie&rdquo;-laag meegevoerd kunnen worden, met een link naar een &ldquo;activity&rdquo;.
+> Daarom wil ik ze er liever allemaal mee hebben.
+
+Floris Vanderhaeghe, 10:03 AM, Edited
+
+> Snap ik wel vanuit databankopzicht, maar volgens mij hebben de activity sequences geen toegevoegde meerwaarde voor de uitvoerder op terrein, tov de kalender + rank. Achterwege laten is dus volgens mij even goed. Niet alles uit de POC hoeft in een databank lijkt me. Niet dat het niet mag natuurlijk.
+> 
+> Wat wel relevant is, is om &rsquo;overdue&rsquo; taken te markeren en te prioriteren, als die op dezelfde locatie en voor hetzelfde stratum al hadden moeten gebeuren tov de daar geplande taken in een huidig datuminterval taak te kunnen uitvoeren. Met andere woorden, omgaan met veldwerkvertraging op een locatie (grts<sub>address</sub>) x stratum, op basis van datuminterval en rank. We laten niets &rsquo;achter&rsquo;, vertraagde zaken zijn prioritairder en blijven op de planning staan.
+> 
+> Let er ook op dat field acts in eenzelfde FAG uitgevoerd moeten worden tijdens eenzelfde bezoek. Dat is de reden waarom FAG de eenheid is van de veldwerkkalender.
+> 
+> Wellicht vertel ik hier niets nieuws 🙂
+
+You, 10:13 AM
+
+> > hebben de activity sequences geen toegevoegde meerwaarde
+> klopt, maar activity<sub>sequences</sub> is de enige variabele waarin ik group en activity samen vindt. Mijn bericht boven was maar een &ldquo;check&rdquo;, want ik begin uiteraard bij de activities tabel.
+> 
+> > Wat wel relevant is, is om &rsquo;overdue&rsquo; taken te markeren en te prioriteren
+> Inderdaad, dit komt er in.
+> 
+> > field acts in eenzelfde FAG uitgevoerd moeten worden tijdens eenzelfde bezoek
+> Ja, zo ga ik het ook implementeren. Ward krijgt een takenlijst, met takengroepen en onderstappen.
+
+Floris Vanderhaeghe, 10:17 AM
+
+> Goed, merci!
+
+
+<a id="orgf02d55f"></a>
+
+## qgis refresher
+
+qgis startup recently began to throw some python errors
+
+    from osgeo import gdal, ogr, osr
+
+
+<a id="org2d9a18c"></a>
+
+## postgres VIEWs
+
+working on the database from qgis would cause confusion with all the unused, technical fields.
+Views are a great way out.
+
+    DROP VIEW IF EXISTS "outbound"."TestView";
+    CREATE VIEW "outbound"."TestView" AS
+    SELECT
+        ogc_fid,
+        wkb_geometry,
+        locationcalendar_id,
+        stratum,
+        teammember_assigned,
+        stratum_to_expect,
+        date_start,
+        date_end,
+        visit_planned,
+        notes
+    FROM "outbound"."LocationCalendar";
+
+Views are now part of the database definition.
+I tested that notes can be stored back to the database. HOORAY!
+
+
+<a id="org41f18f3"></a>
+
+## first qgis tests
+
+-   seems nice
+-   live update with the server
+-   forms design
+-   conditional formatting
+
+missing qfield export.
+
+
+<a id="orgb12c80f"></a>
+
+## gdal error (qgis / qfieldsync plugin)
+
+solved by
+
+    pip install --no-cache --force-reinstall gdal[numpy]=="$(gdal-config --version).*" --break-system-packages
+
+Then re-install `sf` and `terra` in R:
+
+    install.packages(c("sf", "terra", "lwgeom"))
+
+
+<a id="org5c63533"></a>
+
+## qfield cloud issues
+
+-> go with distributing zip files for now.
+[see below](#org3df4077) for procedure.
+
+
+<a id="orgff52e69"></a>
+
+### (a) copy file directly
+
+-   pg login prompted upon opening
+-   but: no error messages (☇ `pg_hba.conf` must allow user)
+
+
+<a id="org0aff8c0"></a>
+
+### (b) via qfieldcloud
+
+-   *seems* to work fine, BUT:
+-   postgis layers only supported with subscription (12EUR/month)
+
+
+<a id="org37619d5"></a>
+
+## filter activities for Ward
+
+There are many activities.
+Only some are relevant for Ward.
+I intuitively selected 
+and @KW, @FV added 
+
+<https://docs.google.com/spreadsheets/d/1VPloImiATO6jjxfMmd-LVKnBUjpVEc7sAtb4yL08sIk/edit?usp=drive_link>
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">team</th>
+<th scope="col" class="org-left">activity</th>
+<th scope="col" class="org-left">activity<sub>name</sub></th>
+<th scope="col" class="org-left">is<sub>field</sub><sub>activity</sub></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">ward</td>
+<td class="org-left">LOCEVALAQ</td>
+<td class="org-left">locatie in aquatisch habitat evalueren en eventueel vervangen</td>
+<td class="org-left">true</td>
+</tr>
+
+<tr>
+<td class="org-left">ward</td>
+<td class="org-left">LOCEVALAQ</td>
+<td class="org-left">locatie in aquatisch habitat evalueren en eventueel vervangen</td>
+<td class="org-left">true</td>
+</tr>
+
+<tr>
+<td class="org-left">ward</td>
+<td class="org-left">LOCEVALAQ</td>
+<td class="org-left">locatie in aquatisch habitat evalueren en eventueel vervangen</td>
+<td class="org-left">true</td>
+</tr>
+
+<tr>
+<td class="org-left">ward</td>
+<td class="org-left">LOCEVALTERR</td>
+<td class="org-left">locatie in terrestrisch habitat evalueren en eventueel vervangen</td>
+<td class="org-left">true</td>
+</tr>
+
+<tr>
+<td class="org-left">ward</td>
+<td class="org-left">LSVIAQ</td>
+<td class="org-left">LSVI bepalen in aquatisch habitat</td>
+<td class="org-left">true</td>
+</tr>
+
+<tr>
+<td class="org-left">ward</td>
+<td class="org-left">LSVITERR</td>
+<td class="org-left">LSVI bepalen in terrestrisch habitat</td>
+<td class="org-left">true</td>
+</tr>
+
+<tr>
+<td class="org-left">ward</td>
+<td class="org-left">SURFLENTSAMPLPOINT</td>
+<td class="org-left">vast staalnamepunt selecteren in stilstaande wateren indien er nog geen bestond</td>
+<td class="org-left">true</td>
+</tr>
+
+<tr>
+<td class="org-left">ward</td>
+<td class="org-left">SURFLOTSAMPLPOINT</td>
+<td class="org-left">vast staalnamepunt selecteren in stromende wateren indien er nog geen bestond</td>
+<td class="org-left">true</td>
+</tr>
+</tbody>
+</table>
+
+
+<a id="org35d5dc0"></a>
+
+## prune location calendar and smush duplicate locations
+
+were due to multiple strata and multiple target panels
+
+-   scheme filtered (only &ldquo;GW03.3&rdquo; for now)
+-   activities filtered: only `LOCEVAL*`
+-   multi-strata pasted as `stratum1+stratum2+...`
+
+
+<a id="org3df4077"></a>
+
+## testing/documenting qgis export
+
+(at least temporarily) stored here:
+<https://drive.google.com/drive/folders/1VgjQ5YZ6AxYo5fz6iAkXQiOGd4Q7uZlV?usp=drive_link>
+
+
+<a id="org0ea8d14"></a>
+
+### on server:
+
+remember to configure `pg_hba.conf`
+
+
+<a id="org2bb51cb"></a>
+
+### on providing computer:
+
+requires qgis with working &ldquo;QFieldSync&rdquo; plugin (beware of [gdal errors](#orgb12c80f)).
+
+1.  prepare a qgis project with connected postgis layers
+2.  double-check qfield layer settings: `directly access data source`
+3.  on qfieldsync panel: `package for qfield` -> store project in a location
+4.  zip the export folder
+5.  distribute to target device
+
+
+<a id="org54bcce0"></a>
+
+### on target device:
+
+requires qgis (desktop work) or qfield (fieldwork)
+
+1.  import data set
+    1.  qfield: &ldquo;open local file&rdquo;, &ldquo;(+)&rdquo; on lower right, &ldquo;import from zip&rdquo;
+    2.  qgis: unzip, then open folder
+
+
+<a id="org4ca5fe0"></a>
+
+## layer filtering by targetpanel
+
+syntax:
+
+    'targetpanel' LIKE '%03%'
+
+there are helpful &ldquo;show sample&rdquo;/&ldquo;show all&rdquo; views on (optionally unfiltered) data
+
+
+<a id="orgd9c7537"></a>
+
+## postgres minor version upgrade
+
+> *moment of hesitation*
+Well&hellip;
+&hellip; as I have nothing better on the list.
+
+    pacman -Syu
+    reboot
+    # crossing fingers!
+
+Everything seems still intact.
+
+
+<a id="org08d6503"></a>
+
+## two databases: dev|production
+
+-   `loceval` is now controlled by a different superuser than `loceval_dev`.
+-   adjusted config and scripts for being able to upload to both databases
+-   &hellip; also from R
+
+
+<a id="org1043066"></a>
+
+## database schema&rsquo;s and mirrors
+
+-   [X] will require additional schema&rsquo;s (`metadata`, e.g. for `username`, `activity_groups`, or sequences) and `outbound` / `inbound` database schemes
+-   [X] database mirrors (`loceval_dev` / `loceval`)
+
+
+<a id="orgb0b5af2"></a>
+
+## minor fixes
+
+-   boolean defaults wrong due to dbWriteTable
+-   indentation fault in CreateViews loop
+-   worked on the wrong qgis project :/
+
+
+<a id="org7552d4c"></a>
+
+## inbound tables and views: FreeFieldNotes, VisitNotes, PriorVisits
+
+-   new view: `VisitNotes`
+-   renamed table: `FreeFieldNotes`
+-   LocationCalendar / FieldPreparation are now aggregated by `activity_group`, which must be DISTINCTed from the `GroupedActivities`
+-   `Visits` table is linked to `LocationCalendar`, therefore does not need another geometry
+-   `Visits` have each activity split up! (as opposed to `activity_group` in `LocationCalendar`)
+-   There is now code to recurrently update `Visits`, without deleting prior data.
+-   only retaining `grts_address_final`
+-   rudimentary preparation of sample replacements
+-   Views: `PriorVisits` and `FreeFieldNotes` to field preparation project
+-   qgis layer styles are now stored on the github repo
+
+&hellip; and then this happens:
+
+> Layer veldbezoeksnotities:
+> PostGIS error while changing attributes: ERROR: cannot update view &ldquo;VisitNotes&rdquo;
+> DETAIL: Views that do not select from a single table or view are not automatically updatable.
+> HINT: To enable updating the view, provide
+>     an INSTEAD OF UPDATE trigger
+>     or an unconditional ON UPDATE DO INSTEAD rule.
+
+-   added functionality to use postgres RULES
+-   added to &ldquo;fieldwork preparation&rdquo; = outbound qgis project
+-   created qgis project for inbound work (draft): happy field-working!
+
+
+<a id="orgef08075"></a>
+
+## database change tracking
+
+there are new database fields:
+
+-   `log_creator` and `log_creation` to track creation of `FieldNotes`
+-   `log_user` and `log_update` to track last change of `LocationCalendar`, `Visits`, `FieldNotes`
+
+implemented by trigger (see `expost`)
+
+
+<a id="org07e167a"></a>
+
+## photo attachments
+
+-   blob/bytea upload in qfield did not work
+-   instead, separate folder (default: DCIM) and manual storage sync
+-   tested and working, though not ideal
+
+
+<a id="org971ac11"></a>
+
+## meaningful attribute labels
+
+qfield seems to use the first field as identifier
+
+-   is there a qgis setting to override?
+-   otherwise re-arrange database columns
+
+-> on Layer properties >> Labels, work with &ldquo;expressions&rdquo;, e.g.
+
+    "note_date" || '  (' || represent_value("teammember_id") || ')'
+
+     CASE WHEN "visit_date_planned" IS NULL THEN '' ELSE  "visit_date_planned" || ' '  END
+    || "stratum"
+    || ' ' || "activity_group"
+    || ' (' || CASE WHEN "teammember_id" IS NULL THEN 'unassigned' ELSE represent_value("teammember_id") END || ')'
+
+
+<a id="orgbd02df0"></a>
+
+## backups (1): dumps
+
+
+<a id="orgbe504e7"></a>
+
+### database daily diffs
+
+    
+    # first: dump the diff to a patch file
+    pg_dump -U <user> -h <host> -p <port> -d loceval_dev -N tiger -N public -W \
+        | diff latest_dump.sql - \
+        > $(date +"%Y%m%d")_loceval_diff.patch
+    
+    # then: patch the changes into `latest`
+    patch latest_dump.sql -i $(date +"%Y%m%d")_loceval_diff.patch
+
+Add the above to a cronjob:
+<https://wiki.archlinux.org/title/Cron>
+
+-   install cronie/patch/vi with `pacman -Sy cronie patch vi`
+-   start&enable system process: `systemctl start cronie.service && systemctl enable cronie.service`
+-   create a `.pgpass` file ([see here](#orgb94e16a)) and enter credentials; chmod it to 600.
+-   `crontab -e`
+    -   according to <https://wiki.archlinux.org/title/Cron#Crontab_format>
+    -   to add a new line: `22 0 * * * sh ~/backups/backup_loceval.sh 2>&1 |tee -a ~/backups/backup_loceval.log`
+    -   (for daily 2:22 o&rsquo;clock backup; note that the server is 2h behind)
+
+here is the backup shell script:
+(for the fish shell)
+
+    # go to the backup folder
+    backup_folder="~/backups/loceval/"
+    
+    echo ""
+    echo "________________________________________________________________________________"
+    echo "running backup $(date +"%Y%m%d%H%M") -> ${backup_folder}"
+    
+    # dump database content
+    pg_dump -U <user> -h <host> -p <port> -d loceval -N tiger -N public \
+        | diff "${backup_folder}loceval_latest.sql" - \
+        > "${backup_folder}loceval_diff_$(date +"%Y%m%d%H%M").patch"
+    
+    # store incrementally
+    patch "${backup_folder}loceval_latest.sql" -i "${backup_folder}loceval_diff_$(date +"%Y%m%d%H%M").patch"
+
+-> test was good.
+
+
+<a id="orgfa3d4c8"></a>
+
+### monthly dumpall madness
+
+There also is a script to dump all databases once monthly.
+We will se how that turns out.
+
+    # go to the backup folder
+    backup_folder="/home/mnm/backups/dumps"
+    
+    echo ""
+    echo "________________________________________________________________________________"
+    echo "monthly full dumps $(date +"%Y%m%d") -> ${backup_folder}"
+    
+    # dump loceval
+    pg_dump -U <user> -h <host> -p <port> -d loceval -N tiger -N public \
+        > "${backup_folder}/loceval_dump_$(date +"%Y%m%d").sql"
+
+
+<a id="org836d8d8"></a>
+
+### bring &rsquo;em home
+
+just scp it to a local folder.
+
+    scp -r -P 2406 "<ssh_user>@<host>:~/backups/*" "/data/mnm_db_backups/"
+    
+    cd /data/ && tar -cvzf mnm_db_backup.tar.gz mnm_db_backups/*
+
+(optionally copy to aws s3)
+
+
+<a id="orga0794ba"></a>
+
+### test restore
+
+    [postgres@host ~]$ dropdb loceval_dev -p <port>
+    [postgres@host ~]$ createdb loceval_dev -O <admin> -p <port>
+    [postgres@host ~]$ psql -p <port> -d loceval_dev
+    loceval_dev=# CREATE EXTENSION postgis;
+    loceval_dev=# CREATE EXTENSION postgis_topology;
+    loceval_dev=# CREATE EXTENSION fuzzystrmatch;
+    loceval_dev=# CREATE EXTENSION postgis_tiger_geocoder;
+    loceval_dev=# \q
+    [user@host backup_folder]$ psql -U <admin> -h <host> -p <port> -d loceval_dev < loceval_latest.sql
+
+everything seems to be in order!
+
+
+<a id="orgb94e16a"></a>
+
+## `.pgpass` for backups
+
+We use a [\`.pgpass\` file](<https://stackoverflow.com/a/2893979>) for credential handling.
+
+-   create the file
+-   chmod it to 600.
+
+
+<a id="org38f4068"></a>
+
+## backups (2): table surgery
+
+The more complex problem are table-wise backups and restores.
+Complex because of constraints (e.g. foreign keys).
+
+
+<a id="org743d122"></a>
+
+## selectively update table data
+
+
+<a id="org2768c63"></a>
+
+### concept
+
+i.e. change table content
+
+-   without losing connections to other tables
+-   without losing prior data and ist connection
+
+
+<a id="org3d59bec"></a>
+
+### DONE for Python
+
+
+<a id="orgfecd344"></a>
+
+### DONE for R
+
+-   can change table with content from \`.csv\`
+-   can change table with content from other database
+-   characteristic columns can be chosen
+-   can rename characteristic columns
+-   function documentation
+
+
+<a id="org9a8b3fb"></a>
+
+## data update on **production**
+
+&hellip; to get the latest columns
+
+-   [X] some change suggestions @FV
+    -   stratum -> type
+    -   <del>targetpanel</del>
+-   [X] apply changes
+
+
+<a id="orgce8d7ec"></a>
+
+## database changes with data persistence
+
+i.e. we can replace tables and keep the data
+as outlined above, but in one script
+
+
+<a id="org1b4ebb7"></a>
+
+## adjustments Orthophoto workpackage
+
+`LocationCalendar` -> `PriorEvaluations`
+
+DONE: exclude/hold columns -> Py
+DONE: Views store in file and adjust
+
+
+<a id="org7cebe85"></a>
+
+## store table relation structure
+
+I figured that we will need the [2.35](#org743d122) in R as well,
+but would have trouble getting the table relation structure.
+
+Solution:
+The structure is exported from python upon database creation and can now be read to R as well.
+*(Once more, I feel clumsy in R, but it does the job.)*
+
+
+<a id="orgafbf05d"></a>
+
+## extra layers qgis orthophoto assessment
+
+
+<a id="orgd251db1"></a>
+
+### orthophotos
+
+<https://geo.api.vlaanderen.be/okz/wcs>
+okz: orthofoto kleinschaal zomer
+omz: orthofoto midschaal zomer
+omw: orthofoto midschaal winter
+
+
+<a id="org4718cd9"></a>
+
+### beheer ANB
+
+<https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/2d9fe2d9-c204-4f02-b228-45658e7ff7fb>
+(as wfs)
+
+
+<a id="orgacc137a"></a>
+
+### preliminary habitat map
+
+(via Floris)
+
+
+<a id="org74e31b7"></a>
+
+### public habitat map
+
+from here: <https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/45cde39a-5421-85ec-d52c-4b46-3891-e876-549ea870>
+
+non-fluent (many features x wfs)
+
+
+<a id="orgdf1b2e0"></a>
+
+## copying a database
+
+-   via script `210_copy_database.org`
+-   sub-scripts are tangled from that file
+    -   `211_create_empty_testing.py`
+    -   `212_production_to_testing_example.R`
+    -   `213_populate_testing_db.R`
+-   e.g. &ldquo;production&rdquo; to &ldquo;testing&rdquo;
+
+
+<a id="org0f1045b"></a>
+
+## TODO issues with `Locations.ogc_fid` uniqueness
+
+-   problems with updating sample due to temporarily lost lookup
+    -   cascading of `location_id` is non-trivial (but would work)
+    -   yet then the `ogc_fid` is the official pk (for qgis compatibility)
+    -   however, `ogc_fid` produces duplicates when auto-filling
+
+-   grts address is sufficient and necessary
+-   historic field assessments (from prev samples) should also remain in the &ldquo;locations&rdquo;
+
+For some reason, I could apped to the &ldquo;Locations&rdquo; table.
+
+-   `location_id` is not the official pk
+-   reason: qgis requires `ogc_fid` for `wkb` geometry tables
+-   `ogc_fid` should be handled automatically (sequence!)
+    yet `dbplyr` fails trying to upload dublicates
+
+It might be that the &ldquo;append&rdquo; logic of dbplyr is wrong,
+or that I shoud rather use some sort of `sf::write`.
+
+**temporary solution:**
+
+-   disabled the fk constraints on dependent tables
+-   denial strategy: &ldquo;load to memory, delete all, re-upload&rdquo;
+
+
+<a id="org990830a"></a>
+
+## Permanent Data Captation
+
+**The database `loceval` is kind of transient (read: active, dynamic, beautiful).**
+Data prepared at home or generated in the field must be captured and moved to a completely different database: `mnmdb`.
+
+-   `LocationCalendar` is augmented and changed dynamically -> append diffs to `mnmdb`
+-   `Visits` have a field to indicate they are done, but should be moved/pruned regularly
+-   `FieldNotes` must be stored irrespective of the `hide` tag; images linked and moved to storage
+
+Solved for now:
+
+-   python script has optional `tabula_rasa` boolean arg; if `False`, data will be (re)stored during database adjustment.
+-   for R, `101_update_loceval_dev.R` was surgically adjusted
+-   we can copy data between databases, e.g. via a &ldquo;testing&rdquo;/&ldquo;staging&rdquo; database
+
+
+<a id="org0a1272a"></a>
+
+## orthophoto database project
+
+-   incorporated adjustments suggested by Ward
+-   help on-the-fly
+
+
+<a id="org5470232"></a>
+
+## n2khab type &ldquo;gh&rdquo;
+
+upon request by @WT,
+an extra type is added upon upload of `N2kHabTypes`:
+&ldquo;gh&rdquo; (&ldquo;geen habitat&rdquo;)
+to tag sample units in which the expected habitat is not present any more
+
+
+<a id="orgb3581b7"></a>
+
+## `location_id` implicit foreign key
+
+`location_id` is not instantiated as a foreign key to avoid conflicts due to `ON DELETE SET NULL`.
+
+Therefore, it remains as a false lookup upon data update.
+
+-   [X] adjusted `MNMDatabaseToolbox.py::dbTable.ListDependencies(...)`
+-   [X] TODO the &ldquo;old&rdquo; ones also require a new location<sub>id</sub> -> write a function to UPDATE the lookup key by grts<sub>address</sub>
+
+The location<sub>id</sub> can now be restored for tables with a grts<sub>address</sub>.
+
+
+<a id="org7a07092"></a>
+
+## major change `GroupedActivities`
+
+-   found duplicate error on work with field activity calendar
+-   `*_id` in `GroupedActivities` are no sequences!
+-   because they were sequences, they got overwritten upon INSERT
+-   which caused the same `activity_group` on different lines to get two different id&rsquo;s
+
+-> corrected.
+
+
+<a id="orgb158d92"></a>
+
+## field activity calendar
+
+critical request by @WT.
+
+-   [X] structure in place
+-   [X] excel sheet
+-   [X] qgis project
+-   [ ] forward updates to `ExtraVisits`
+
+
+<a id="org6946635"></a>
+
+## replacement locations
+
+critical request by @WT.
+
+-   [X] structure in place
+-   [X] view to show only active replacements
+-   [X] separate update rules for different fields -> double-rule
+-   [X] qgis project
+-   [ ] routine to keep previous replacements intact
+
+-   [X] re-try dev creation and then live update
+
+
+<a id="org8ec69b0"></a>
+
+## The Great Rename
+
+with some requests by Karen, I found it opportune to rename a lot of things.
+To be applied in
+
+-   [X] gsheet
+-   [X] upload script
+-   [X] sample update procedure
+-   [X] all sql query scripts (especially views)
+
+The following replacements:
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left">%s/SampleLocations/SampleUnits/%g</td>
+</tr>
+
+<tr>
+<td class="org-left">%s/samplelocation<sub>id</sub>/sampleunit<sub>id</sub>/%g</td>
+</tr>
+
+<tr>
+<td class="org-left">%s/SLOC/UNIT/%g</td>
+</tr>
+
+<tr>
+<td class="org-left">%s/SamplePolygons/SampleCells/%g</td>
+</tr>
+
+<tr>
+<td class="org-left">%s/ExtraVisits/Visits/%g</td>
+</tr>
+
+<tr>
+<td class="org-left">%s/extravisit<sub>id</sub>/visit<sub>id</sub>/%g</td>
+</tr>
+
+<tr>
+<td class="org-left">%s/ReplacementLocations/Replacements/%g</td>
+</tr>
+
+<tr>
+<td class="org-left">%s/lut<sub>N2k</sub>/N2k/%g</td>
+</tr>
+</tbody>
+</table>
+
+-   [X] testing on `dev`
+-   [X] go live
+-   [X] adjust qgis project
+
+
+<a id="org175e248"></a>
+
+## SampleUnitPolygons
+
+KW asked for polygons for WT.
+So I figured where to find the polygons.
+
+-   Floris loads polygons for replacements
+    from `file.path(locate_n2khab_data(), "10_raw/habitatmap/habitatmap.gpkg")`
+-   using `sf::.[]` subsetting, I get the SampleUnits polygons
+-   polygon is taken for each sampleunit
+    -   polygons are redundantly stored if they contain multiple sample units
+-   upload to table.
+
+Added to `EXPOST` statements:
+
+    ALTER TABLE "outbound"."SampleUnitPolygons" DROP CONSTRAINT IF EXISTS fk_SampleUnits_SampleUnitPolygons CASCADE;
+    ALTER TABLE "outbound"."SampleUnitPolygons" ADD CONSTRAINT fk_SampleUnits_SampleUnitPolygons FOREIGN KEY (sampleunit_id)
+    REFERENCES "outbound"."SampleUnits" (sampleunit_id) MATCH SIMPLE
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+<a id="org89d9a55"></a>
+
+## Replacement Archives
+
+Replacements are tabula-rasa&rsquo;d in the sample update process.
+We still want to keep the original information.
+
+The reason we move these aside is that the replacement information has to be post-processed to adjust the SampleUnits anyways, which makes the replacement visits obsolete.
+
+
+<a id="org95d799c"></a>
+
+## Replacement Cells
+
+Use of `UNION` to display the &ldquo;ongoing&rdquo; replacement cells together with the regular cells.
+
+
+<a id="org4b41733"></a>
+
+## CellMaps
+
+A new table for freestyle cell mapping.
+Happy drawing!
+
+
+<a id="org5336169"></a>
+
+## major update
+
+-   changes above pushed to production
+-   time to trash the qgis project&hellip; was not too bad
+-   uploaded and mail sent
+
+
+<a id="orga9da47b"></a>
+
+## mirror re-organization
+
+order and function to the database mirrors.
+
+
+<a id="org07c554b"></a>
+
+### development
+
+-   the dev database mirror is used for structural adjustments and development of
+-   new features, mostly empty, and unstable.
+
+
+<a id="orgd1136fa"></a>
+
+### staging
+
+-   &ldquo;staging&rdquo; is a rather accurate mirror of the production database,
+-   but used ad hoc in times of change to back-up the data or to test the effects
+-   of structural adjustments.
+
+
+<a id="orga118cc3"></a>
+
+### testing
+
+-   The testing mirror is an exact copy of the production database, and
+-   regularly re-copied over. Changes to the data on &ldquo;testing&rdquo; are non-permanent.
+
+
+<a id="org3e96004"></a>
+
+### production
+
+-   This is the live environment with real data.
+-   It is the least volatile, best backed-up of our database mirrors.
+
+
+<a id="org0b291fa"></a>
+
+## populate testing db
+
+-   qgis connection changing plugin
+-   extra permissions for test user
+
+
+<a id="org9ae135b"></a>
+
+## extra info for Ward
+
+e.g. ANB; from &ldquo;accessibility&rdquo; preliminary analysis
+
+
+<a id="org5cd52f8"></a>
+
+## MILESTONE: first field data by Ward
+
+
+<a id="orge68e0b7"></a>
+
+## minor change requests Ward
+
+-   ++ `recovery_hints`
+-   rename accessibility<sub>revisit</sub>
+-   colors
+-   accessibility to SampleUnits
+
+    rename_FieldActivityCalendar <- function(fac) {
+    fac <- fac %>% dplyr::rename(accessibility_revisit = acceccibility_revisit)
+    return(fac)
+    }
+    table_modification <- c(
+    "FieldActivityCalendar" = function (fac) rename_FieldActivityCalendar(fac) # (almost) anything you like
+    )
+
+
+<a id="org831ec69"></a>
+
+## accessibility across locations -> LocationInfos
+
+-   accessibility is <del>now stored on SampleUnits</del> THIS was a bad idea.
+-   but it is informative for all locations on a GRTS
+
+-> and therefore must be stored separately.
+<./surgery/20250722_accessibility_2loceval.sql>
+
+-   [X] prepare + test
+-   [X] apply
+-   [X] mail
+
+also moved `recovery_hints` to `LocationInfos`
+
+
+<a id="orgc0f1fe7"></a>
+
+## KILL rtkgps accuracy
+
+-   extra field
+
+
+<a id="orgb6e5a02"></a>
+
+## replacement notes to sample unit
+
+Ward is storing notes about the SampleUnits in Replacements.
+Now there is an extra field which is fed back to the unit (via view).
+
+
+<a id="org5bfa780"></a>
+
+## activity or activity<sub>group</sub>?
+
+What to filter for in the grouped<sub>activity</sub> table?
+-> now went for `activity_group`
+also confirmed with loceval tasks that there was none forgotten
+
+
+<a id="org65c2eb9"></a>
+
+## data type issues in sync FreeFieldNotes
+
+see `090_sync_FreeFieldNotes.py` -> refinement necessary
+
+
+<a id="orgf9a9481"></a>
+
+## type<sub>is</sub><sub>absent</sub>
+
+Locations where target type was not found are now flaggable.
+Questions by Floris ongoing.
+
+
+<a id="org28c76a4"></a>
+
+## TODO major overhaul: poc update
+
+<./surgery/20250924_poc_update_loceval.md>
+
+*post mortem*:
+
+-   [ ] cascaded updates via temp tables
+-   [ ] to<sub>archive</sub> / to<sub>update</sub> via temp table
+-   [X] `mnmgwdb` adjustment: 
+    `ALTER TABLE "outbound"."LocationEvaluations" RENAME COLUMN scheme TO schemes;`
+-   [ ] adjust maintenance scripts
+-   [ ] `mhq areas` new logic!
+-   [?!] 900<sub>database</sub><sub>organization</sub>/.dbinit/lib/python3.13/site-packages/pandas/io/sql.py:1737: SAWarning: Did not recognize type &rsquo;geometry&rsquo; of column &rsquo;wkb<sub>geometry</sub>&rsquo;
+    self.meta.reflect(bind=self.con, only=[table<sub>name</sub>], views=True)
+-   [X] Replacements
+-   [X] LocationCells and ReplacementCells
+-   [ ] ?? Habitatmap Polygons
+-   [ ] ?? LocationAssessments (ofo&rsquo;s)
+
+-   [ ] restore `testing` project
+
+-   TODO: new subprocess: copy RandomPoints to google sheet upon update
+-   TODO: there is still an issue with orphaned SpecialActivities; e.g. WHERE grts<sub>address</sub> = 437685 -> 8826293;
+
+-   TODO: location<sub>infos</sub> don&rsquo;t get replaced; re-work 094 in R?
+
+
+<a id="org1e1230d"></a>
+
+## sideloading: the lost replacement `84598/7150` to `871030`
+
+One of my favorite locations: `grts_address = 84598`.
+
+-   covers two types: `4010` and `7150`
+-   Double-replaced to `grts_address = 871030` by @WT (info via chat)
+
+This caused some trouble in the machinery, which was eventually solved.
+
+&hellip; Until POC upgrade to v0.14!
+
+Then, replacements changed, and the originally selected replacement table entry was removed for type `7150` (but not for type `4010`).
+
+**⇒ Sideloading needed to be implemented.**
+
+-   For the time being, I sideload from `.csv` files located in `./sideload`.
+-   supported by `load_table_sideload_content()` in `MNMDatabaseTesting.R`
+-   both extra loading script, as well as insert in `071_POC_update_loceval.qmd` (to be tested)
+-   On the way, I almost deleted all `"outbound"."Replacements"` by accidental `tabula_rasa`; weekend is due.
+
+    SELECT * FROM "outbound"."Replacements" WHERE grts_address = 84598 AND is_selected;
+
+
+<a id="orge5b5b24"></a>
+
+# mnmgwdb
+
+
+<a id="org1522c47"></a>
+
+## the next database
+
+copied `loceval` structure
+to re-activate the fieldwork calendar
+
+-   create databases `mnmfield` and `mnmfield_dev`
+-   create and authorize extra users
+
+    createuser  -p <port> -S <user>
+    
+    psql -p <port>
+    ALTER USER <user> WITH ENCRYPTED PASSWORD '<password>';
+    
+    vim /var/lib/postgres/data/pg_hba.conf
+    systemctl ...
+
+-   append `~/.pgpass`
+-   instantiate backups (extra script, cronjob, logs, tested)
+-   database creation script
+
+
+<a id="orgd6505bf"></a>
+
+## file renames
+
+for better organization.
+
+
+<a id="org282506e"></a>
+
+## debug init script
+
+working!
+
+
+<a id="org8dcd3a7"></a>
+
+## fill with data
+
+-   [X] Locations
+-   [X] LocationAssessments
+-   [X] FieldActivityCalendar
+-   [X] Visits
+
+
+<a id="org76091aa"></a>
+
+## create tester user
+
+(user who can only access the `_dev` databases,
+so that I do not have to hijack other people&rsquo;s accounts all the time)
+
+
+<a id="org9aefee6"></a>
+
+## qgis outbound app
+
+TODO:
+
+-   ++landowner
+-   re-upload bug
+
+
+<a id="org5dafc78"></a>
+
+## RESTART (5): mnmgwdb
+
+-   with experience and input from `loceval`
+-   new name: `mnmgwdb`
+
+-   remove local replacement logic
+-   all work based on `stratum`, not on `type`
+    -   e.g. `N2kHabType` &ndash;> `++stratum` &ndash;> `N2kHabStrata`
+-   `LocationEvaluations`
+    -   assembled notes on all prior notes and field visits
+    -   hung up on the SampleLocations, which is where they go
+-   unfilter GroupedActivities
+-   <del>CellMaps</del> (on hold)
+
+
+<a id="org9a4e8d4"></a>
+
+## adjusted db structure
+
+-   does not work on SampleUnits, but distinct SampleLocations
+-   sufficient to plan fieldwork by activity<sub>group</sub> for now,
+    -   later, there might be specific star-structure tables with extra data per activity group, linked to/branching from `Visits`
+-   `SSPSTaPas`, a simple lookup table.
+-   views
+-   data inflow from `loceval`
+-   `LocationInfos` to get permanent info about certain locations
+
+
+<a id="org95c278c"></a>
+
+## replacements: ad hoc solution
+
+-   via query from loceval and lookup
+
+`sample_locations <- sample_locations %>% relocate_grts_replacements()`
+
+
+<a id="org55c24f5"></a>
+
+## testing mirror
+
+-   a database mirror to work on
+-   script to copy data
+
+
+<a id="orgcd70b2d"></a>
+
+## sync FreeFieldNotes
+
+a script to copy back-and-forth FreeFieldNotes between the databases.
+
+
+<a id="org397708d"></a>
+
+## WAIT sync LocationInfos
+
+prepared a script to sync accessibility between the two databases
+but have to wait for `loceval` surgery.
+
+
+<a id="orgc2331f6"></a>
+
+## update LocationEvaluations and Replacements for `mnmgwdb`
+
+location evaluation work can now be script-pushed no `mnmgwdb`.
+
+
+<a id="org91cd0da"></a>
+
+## activity or activity<sub>group</sub>?
+
+What to filter for in the grouped<sub>activity</sub> table?
+-> now went for `activity_group` (confirmed by Floris)
+
+double checked with `loceval` that no activities were missing
+
+
+<a id="org394aa78"></a>
+
+## duplicate watina<sub>code</sub>
+
+-   added fields
+-   updated views
+-   removed old field
+
+
+<a id="org02e9107"></a>
+
+## FieldWork view
+
+major update.
+
+-   concept: multiple tables per activity group
+    -
+-   one view to rule them all
+-   shared index of `*Activities` tables
+    -   via `EXPOST` code
+    -   `COALESCE` in view
+
+
+<a id="orgd0d4c74"></a>
+
+## FieldWork &ldquo;app&rdquo;
+
+-   personalized
+-   translated
+-   dynamic
+
+
+<a id="org91a6d7a"></a>
+
+## missing `location_id` in `mnmgwdb`
+
+location<sub>id</sub> 527 / grts<sub>address</sub> 6314694
+had lost their connection.
+Probably in the course of [3.20](#org89b2283).
+Got manually re-established.
+
+
+<a id="org1a522c6"></a>
+
+## watina codes decision
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<tbody>
+<tr>
+<td class="org-left">even</td>
+<td class="org-right">2</td>
+<td class="org-left">piezometer</td>
+<td class="org-left">(filter on deep 60 cm)</td>
+</tr>
+
+<tr>
+<td class="org-left">odd</td>
+<td class="org-right">1</td>
+<td class="org-left">peilbuis</td>
+<td class="org-left">(filter almost whole length)</td>
+</tr>
+</tbody>
+</table>
+
+
+<a id="org89b2283"></a>
+
+## replacement duplication
+
+When local replacement is performed (`loceval`),
+it can happen that multiple (two or three) **sample units at the same location**
+end up in different places.
+For `mnmgwdb`, this means that
+
+-   the affected `SampleLocation`
+-   and all downstream items (`FieldworkCalender` planning, `Visits`, &hellip;)
+
+must be done for any of the split locations.
+
+This is now solved in a preliminary way with <./092_push_loceval_to_mnmgwdb.py> script.
+
+The script is complex, convoluted, and prone to fail.
+Embarassing, and not to my personal standards, but functioning.
+
+[!] the proper way to handle this will be an upstream adjustment in the POC, with a POC re-upload.
+
+
+<a id="org4d38882"></a>
+
+## better LocationCells sync/display
+
+upating the `LocationCells` (i.e. square polygons from GRTS raster)
+which now include replacement locations
+
+also, view adjusted to just show those currently in the sample.
+
+
+<a id="org15f7d86"></a>
+
+## replacement affects `LocationInfos`
+
+Replacements are now stored on the server: `archive.ReplacementData`.
+
+When pushing back and forth the `LocationInfos`, those are taken into account.
+
+    SELECT * FROM "outbound"."LocationInfos"
+    WHERE grts_address = 23238
+      OR grts_address = 23091910
+      OR grts_address = 6314694
+    ;
+
+
+<a id="org6693965"></a>
+
+## DONE a stray point in Chartreuzenbos/Holsbeek
+
+SELECT \* FROM &ldquo;outbound&rdquo;.&ldquo;FieldworkPlanning&rdquo; WHERE grts<sub>address</sub> = 115846;
+
+> Chartreuzenbos bij Holsbeek -> vervangcel gekozen, maar &ldquo;lokale vervanging nodig&rdquo; niet aan.
+> Is gepland als type `9190`, maar vervangcel `9130_end` vastgesteld.
+> 
+> Het is niet duidelijk waar de peilbuis naartoe moet:
+> 
+> -   ofvel op de originele cel (<- &ldquo;geen vervanging&rdquo;)
+> -   ofwel op de vervangcel 1 (<- &ldquo;vervangcel gekozen&rdquo;)
+> -   ofwel nergens (andere type dan gepland).
+
+> dat was mijn oefenpunt, maar blijkbaar niet alles netjes teruggezet. Bij deze staat alles normaal netjes terug op null/standaardinstelling
+
+
+<a id="org7031432"></a>
+
+## coordinates and google map navigation
+
+There is now a `Coordinates` table, and a view, providing links to start google navigation.
+Both `loceval` and `mnmgwdb`.
+
+
+<a id="orgd5ffc2d"></a>
+
+## fieldwork app v1
+
+minor feature requests implemented:
+
+-   `watina_code_used_1 TO watina_code_used_1_peilbuis`
+-   `watina_code_used_2 TO watina_code_used_2_piezometer`
+-   `photo_soil TO photo_soil_1_peilbuis`
+-   `"inbound"."WellInstallationActivities".photo_soil_2_piezometer`
+-   `lims_code TO recipient_code`
+-   `"inbound"."ChemicalSamplingActivities".project_code`
+-   `"inbound"."WellInstallationActivities".soilprofile_notes`
+-   `"inbound"."WellInstallationActivities".soilprofile_unclear`
+
+Further:
+views and qfield projects adjusted
+release veldwerk-app
+
+
+<a id="org2eb943f"></a>
+
+## random placement
+
+> give random positions in the vicinity of cell centre,
+> but not in the MHQ target area,
+> as polar coordinates.
+> Also provide cell mapping
+> and MHQ quadrant
+
+-   on non-forest sample units, we spare an MHQ square of 3x3m NorthWest plus 3m buffer
+-   on forest sample units,
+    -   we spare a 16x16 square centered plus 2m buffer
+    -   but only if assessment was done before
+-   all within the target polygon
+
+spatially balanced random sampling:
+
+-   use `spbal::BAS`
+-   on a 1x1 fake polygon
+-   scale to (radius, angle)
+-   use polygon coords as **polar** and re-transform back to cartesian
+    -   this will make central points more likely
+-   use `grts_address` as random seed for repro
+-   sample many points, then intersect with cell constraints
+-   keep first 20, ranked by order of appearance (not: distance)
+
+-   upload script
+-   view to only show the ones which have `loceval`
+
+
+<a id="org959f65f"></a>
+
+## cellmaps to mnmgwdb
+
+just a quick, raw transfer
+
+
+<a id="org4204fee"></a>
+
+## random points: refinement
+
+-   show Lambert for RTKGPS
+-   round values
+-   correct MHQ area
+
+
+<a id="org774438b"></a>
+
+## replacement f\*\*k-up
+
+-   single replacements were not moved due to a bug.
+-   e.g. 17318 -> 4211622
+
+
+<a id="org030369c"></a>
+
+## MHQ zone to polygons
+
+done.
+
+
+<a id="org4586f98"></a>
+
+## qfield audio attachments
+
+because why not?
+
+
+<a id="org6e28b38"></a>
+
+## multiple bugs in local replacement sync
+
+most notable,
+
+-   duplication was not applied for single type replacements -> replacements missing
+-   field activity calendar was plainly duplicated, which is wrong (it diverges per type)
+
+
+<a id="orgd261171"></a>
+
+## handling of sequences
+
+sequence handling is a bit tricky: they keep auto-incrementing, causing duplicates/replacements to keep counting; foreign keys did not always work (due to CASCADE on R table update workaround); resetting them is fishy
+
+But here we go
+
+    sequence_key <- glue::glue('"{table_key[[1]]}".seq_{pk}')
+    nextval_query <- glue::glue("SELECT last_value FROM {sequence_key};")
+    current_highest <- DBI::dbGetQuery(db_target, nextval_query)[[1, 1]]
+    execute_sql(
+      db_target,
+      glue::glue("SELECT setval('{sequence_key}', {nextval});"),
+      verbose = verbose
+    )
+
+    SET search_path TO public,"metadata","outbound","inbound","archive";
+    \ds+
+    
+    SELECT * FROM pg_get_serial_sequence('"outbound"."LocationInfos"', 'locationinfo_id');
+    SELECT nextval(pg_get_serial_sequence('"outbound"."LocationInfos"', 'locationinfo_id')) AS new_id;
+    SELECT setval(pg_get_serial_sequence('"outbound"."LocationInfos"', 'locationinfo_id'), 720);
+
+
+<a id="org9f42215"></a>
+
+## dynamic update field activity calendar
+
+replacements required return to field activity calendar
+because different types replaced to separate grts just duplicating FAC was insufficient
+FACal may diverge between types.
+
+
+<a id="org6883094"></a>
+
+## safety net: memory backup whilst upload/cascade
+
+typical errors to catch:
+
+-   column renames
+-   key duplicates
+-   null constraints
+
+should all be safe now: upload stops and restores previous data
+based on table and dependencies
+
+
+<a id="org4f5f92f"></a>
+
+## two replacements to the same grts
+
+special case where two replacements end up on the same GRTS
+produced duplicate location
+errors should be caught now, but keeping an eye open.
+
+Temporarily, this will cause double planning for Tom.
+
+
+<a id="org04f3b95"></a>
+
+## minor change requests Y
+
+-   correct google link for navigation
+-   type to FieldWork view
+
+
+<a id="orge892e8b"></a>
+
+## correct upload procedure
+
+some errors because SSPSTaPas had become NULL
+then, the &ldquo;identical&rdquo; request upon fieldwork calendar upload does not find items
+and erroneously re-uploads them
+
+work in progress..
+
+
+<a id="orga1df5e8"></a>
+
+## duplicate LocationInfos and disconnected Visits
+
+There was a quadruplicate row in LocationInfos for grts  871030
+mnmgwdb# DELETE FROM &ldquo;outbound&rdquo;.&ldquo;LocationInfos&rdquo; WHERE locationinfo<sub>id</sub> IN (698, 697, 696);
+
+the query
+loceval# SELECT \* FROM &ldquo;outbound&rdquo;.&ldquo;LocationInfos&rdquo; WHERE grts<sub>address</sub> = 871030;
+returns two identical rows, which is plausible, because they are two types on different `location_id`.
+
+There were visits without a fieldworkcalendar<sub>id</sub>; corrected in the 093\_ script.
+
+
+<a id="org5c3e931"></a>
+
+## disconnected FieldworkCalendar events
+
+during the update `093_`, fieldworkcalendar<sub>id</sub> is lost in some dependent tables;
+most importantly `Visits`.
+
+NOTES
+
+-   this happens NOT during `update_cascade_lookup` (UCL) of fieldworkcalendar
+-   UCL of `Visits` still fails for duplicates!
+-   some recovery procedures are assembled in 093 with `if (FALSE)`
+    might be good to outsource them (e.g. WIA and CSA)
+-   Deletion was one issue, because it did not CASCADE.
+-   [X] TODO there are still 99 WIA disconnected (also no visit<sub>id</sub>); should be restored via sloc/activity
+
+
+<a id="org1b322d9"></a>
+
+## WIA/CSA quickfix
+
+script `901_*` for temporary re-link
+as well as several recipes to delete missing connections
+yet they return by means of `093_*`
+
+
+<a id="org0250398"></a>
+
+## multi-polygon cell maps
+
+&hellip; now all get random points, by means of a simple `%>% sf::st_union()`.
+
+
+<a id="orgf03b1fe"></a>
+
+## Fieldwork Planning ++ `has_installation` and `count_days_ws`
+
+SCHEDULED: <span class="timestamp-wrapper"><span class="timestamp">&lt;2025-09-10 Wed&gt;</span></span>
+
+quick and welcome request by TDD
+then extra request to count days.
+
+
+<a id="org323d451"></a>
+
+## data consistency dashboard -> improved consistency
+
+-   <./040_consistency_dashboard.qmd>
+-   used immediately to re-link several disconnected entries <./surgery/20250922_missing_stratum_mnmgwdb.sql>
+
+
+<a id="org1b96555"></a>
+
+## TODO fieldwork<sub>id</sub> conflict
+
+For some reason, CSA and WIA got the same IDs.
+This should not have happened.
+I temporarily increased the CSA ID&rsquo;s by 10000;
+For a more permanent fix:
+
+-   [ ] `skip_sequence_reset` for those tables
+-   [ ] implement a check for fieldwork<sub>id</sub> uniqueness (check view `FieldWork`)
+-   [ ] find the error, putatively in poc update procedure
+
+
+<a id="org8d5449e"></a>
+
+## type<sub>is</sub><sub>absent</sub> -> excluded
+
+sample units where biotics could not find the target type are marked;
+those are now flagged as &ldquo;excluded&rdquo; in fieldwork planning
+
+
+<a id="org378da62"></a>
+
+## type<sub>is</sub><sub>not</sub><sub>absent</sub><sub>anymore</sub> -> unexcluded
+
+forgot to restore those that received a type in ex post correction.
+
+
+<a id="org257ec57"></a>
+
+## tap water!
+
+new columns to indicate the source of field water
+ALTER TABLE &ldquo;inbound&rdquo;.&ldquo;WellInstallationActivities&rdquo; ADD COLUMN used<sub>water</sub><sub>from</sub><sub>tap</sub> boolean DEFAULT NULL;
+COMMENT ON COLUMN &ldquo;inbound&rdquo;.&ldquo;WellInstallationActivities&rdquo;.used<sub>water</sub><sub>from</sub><sub>tap</sub> IS E&rsquo;whether or not tap water was used for installation&rsquo;;
+
+ALTER TABLE &ldquo;inbound&rdquo;.&ldquo;WellInstallationActivities&rdquo; ADD COLUMN used<sub>water</sub><sub>source</sub> varchar DEFAULT NULL;
+COMMENT ON COLUMN &ldquo;inbound&rdquo;.&ldquo;WellInstallationActivities&rdquo;.used<sub>water</sub><sub>source</sub> IS E&rsquo;source of the water used for facilitating installation&rsquo;;
+
+Ik heb aan de tab &ldquo;installatie&rdquo; toegevoegd
+
+1.  \`used<sub>water</sub><sub>from</sub><sub>tap</sub>\` = &ldquo;gebruik kraanwater&rdquo; -> gelieve aanvinken indien kraanwatergebruik
+2.  \`used<sub>water</sub><sub>source</sub>\` = &ldquo;gebruik water bron&rdquo; -> optioneel aangeven waar spoelwater vandaan kwam, ook bij niet-kraanwater uit de omgeving (bv. &ldquo;WC HT Brussel&rdquo;, &ldquo;beekje dichtbij&rdquo;, &ldquo;vlesje Spa van de colruyt&rdquo;)
+
+
+<a id="orgde7347b"></a>
+
+## non-absent placement 4163858
+
+(via Lise)
+
+-   4163858<29329682//7140<sub>mrd</sub> was &ldquo;excluded&rdquo; for &ldquo;type<sub>is</sub><sub>absent</sub>&rdquo;, because in `loceval` the note said &ldquo;Ander type binnen mozaïek&rdquo;; however replacement and mapping were good.
+-   conclusion: this was a victim of the auto-detection of &ldquo;absent&rdquo; cells.
+
+loceval=# UPDATE &ldquo;outbound&rdquo;.&ldquo;SampleUnits&rdquo; SET type<sub>is</sub><sub>absent</sub> = FALSE WHERE grts<sub>address</sub> = 4163858;
+mnmgwdb=# UPDATE &ldquo;outbound&rdquo;.&ldquo;FieldworkCalendar&rdquo; SET excluded = FALSE, excluded<sub>reason</sub> = NULL WHERE grts<sub>address</sub> IN (4163858, 29329682);
+
+
+<a id="orgcc609fa"></a>
+
+## QField Anormalities (I): Misplaced Archive Tags
+
+Some visits have been done but their table entry is flagged as archived, whereas an empty, updated version is unarchived but does not contain the `visit_done`.
+
+Strategy:
+
+-   first delete the empty, untouched, but &ldquo;non-archive&rdquo; activities of all types: <./surgery/20251128_reconnect_calendar.md>
+    -   this removed 148 calendar entries (and associated Special Activities)
+-   then, fix the calendar update: <./112_update_facalendar.R>
+
+GOOD TO KNOW:
+
+-   Entries can be reactivated AND changed in the same round.
+    -   Although, not exactly at the same round: had to run the calendar update script twice.
+-   In the case of date adjustments: `date_end` was updated afterwards. Makes sense.
+
+
+<a id="org5eadab7"></a>
+
+## QGIS mulit-layer style
+
+**Advanced cake symbology.**
+I tried around how to display the intersection of &ldquo;planning/done&rdquo;, &ldquo;visit/done&rdquo;, possible &ldquo;issues&rdquo;, and on the other hand the different ACTIVITYGROUPS.
+
+-   combinations of `done_planning` and `visit_done` now yield a symbol fill color
+-   symbol rotation by activity group; yet those are in different layers
+
+
+<a id="org659f32a"></a>
+
+## MHQ cells and Random Placement Points: wrong logic
+
+According to info from pocupdate 0.13.1,
+the MHQ area logic should be
+`is_mhq_samplelocation <- has_mhq_assessment | in_mhq_samples`.
+
+The previous version of the code neglected `in_mhq_samples` and just took those which had an assessment.
+
+Error Magnitude (I): 340 potential locations&hellip;
+
+mnmgwdb=> SELECT DISTINCT has<sub>mhq</sub><sub>assessment</sub>, in<sub>mhq</sub><sub>samples</sub>, COUNT(\*) AS n FROM &ldquo;outbound&rdquo;.&ldquo;SampleLocations&rdquo; GROUP BY has<sub>mhq</sub><sub>assessment</sub>, in<sub>mhq</sub><sub>samples</sub>;
+ has<sub>mhq</sub><sub>assessment</sub> | in<sub>mhq</sub><sub>samples</sub> |  n
+--------------------<del>----------------</del>-&ndash;&mdash;
+ f                  | f              | 1457
+ f                  | t              |  340
+ t                  | f              |   85
+ t                  | t              |  175
+
+Error Magnitude (II): 7 visited, thereof 2 in forest
+
+    SELECT
+      grts_address,
+      stratum,
+      date_visit
+    FROM "inbound"."Visits"
+    WHERE activity_group_id = 4
+      AND samplelocation_id IN (
+      SELECT DISTINCT samplelocation_id
+      FROM "outbound"."SampleLocations"
+      WHERE NOT has_mhq_assessment
+        AND in_mhq_samples
+        -- AND is_forest
+    )
+    AND visit_done;
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">grts<sub>address</sub></th>
+<th scope="col" class="org-left">stratum</th>
+<th scope="col" class="org-right">date<sub>visit</sub></th>
+<th scope="col" class="org-left">forest</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">24774</td>
+<td class="org-left">9160</td>
+<td class="org-right">2025-12-03</td>
+<td class="org-left">X</td>
+</tr>
+
+<tr>
+<td class="org-right">366225</td>
+<td class="org-left">6510<sub>hua</sub></td>
+<td class="org-right">2025-09-18</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-right">1280278</td>
+<td class="org-left">6510<sub>hus</sub></td>
+<td class="org-right">2025-07-30</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-right">1818369</td>
+<td class="org-left">6230<sub>hmo</sub></td>
+<td class="org-right">2025-08-13</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-right">3664630</td>
+<td class="org-left">7140<sub>meso</sub></td>
+<td class="org-right">2025-08-26</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+
+<tr>
+<td class="org-right">4241542</td>
+<td class="org-left">91E0<sub>vm</sub></td>
+<td class="org-right">2025-09-17</td>
+<td class="org-left">X</td>
+</tr>
+
+<tr>
+<td class="org-right">8826293</td>
+<td class="org-left">1330<sub>hpr</sub></td>
+<td class="org-right">2025-11-12</td>
+<td class="org-left">&nbsp;</td>
+</tr>
+</tbody>
+</table>
+
+
+<a id="org45ab3e1"></a>
+
+## LocationSoilInfos
+
+upon request by TDD;
+info from `soilmap_simple` to database to remove need of manual pasting.
+
+`"metadata"."LocationSoilInfos"`
+
+    locationsoilinfo_id
+    location_id
+    grts_address
+    region
+    converted
+    soil_unit_type_codes
+    substrate
+    texture
+    drainage
+    profile
+    profile_variant
+    parent_material
+    info
+
+info is the combination of four other columns:
+      drainage, texture, substrate, profile
+
+Append procedure to use `n2khab::read_soilmap()` and upload info for each location point
+to the end of `113_replaced_LocationCells.R`.
+
+Finally, adjusted views and qgis layer styles to incorporate `soil_info`
+
+
+<a id="org088e8ab"></a>
+
+# Major R Code Overhaul (202508)
+
+
+<a id="org0f68c0b"></a>
+
+## Code File Organization
+
+The former `MNMDatabaseToolbox` has been split into multiple files:
+
+-   `MNMLibraryCollection.R`: list of and import functions for common libraries
+-   `MNMDatabaseConnection.R` a &ldquo;sqiss army knife&rdquo; with tools for databank interaction
+-   `MNMDatabaseTesting.R`: collection of tests of the database connection
+-   `MNMDatabaseToolbox.R`: scripts for easier upload
+-   `MNMCodeCementary.R`: functions which are obsolete, but too good to throw away
+
+
+<a id="org4bc2ebe"></a>
+
+## Database Connection
+
+The database connection starts as a list with all the connection attributes which were there before.
+Then, functions are added for easier database interaction.
+
+Please refer to the &ldquo;table of contents&rdquo; in this file.
+
+
+<a id="org0d76a89"></a>
+
+## Handling Spatial Tables
+
+It turns out that handling of spatial data can be simplified by converting
+`sf` objects into `as_tibble`.
+They retain the spatial info but work exactly as tibbles in the conversion.
+
+
+<a id="org4b6219f"></a>
+
+## major overhaul
+
+Incorporating the new logic into the old scripts.
+
+-   [ ] `030_copy_database.org`
+-   [X] `070_update_POC.qmd`
+-   [X] `093_update_facalendar.R`
+-   [X] `094_replaced_LocationCells.R`
+-   [X] `116_update_wgs84_coordinates.R`
+-   [X] `120_upload_loceval.R`
+-   [X] `131_mhq_areas.R`
+-   [ ] `220_upload_mnmgwdb.R`
+-   [X] `230_random_placementpoints.R`
+-   [X] `231_mhq_areas.R`
+
+
+<a id="org56a014b"></a>
+
+## some issues on the way
+
+
+<a id="org016d75d"></a>
+
+### 871030
+
+-   double replacement by `loceval` (same cell, same target, two types)
+-   replaced for `mnmgwdb`
+-   gets fed back to `loceval` as two `LocationInfos`
+
+==> need to un-replace cells
+==> postponed: another overhaul is coming.
+
+manually removed; see <surgery/20250903_missing_871030.sql>
+
+
+<a id="org7e70ce5"></a>
+
+### DONE duplicate LocationCells
+
+Those were regular `LocationCells` which also turned in for a second time due to the `extra_cells` and replacement procedure.
+Solved by an extra extra-cell anti-join.
+
+    SELECT * FROM "metadata"."LocationCells" WHERE location_id IN (42, 181, 219, 409, 431, 468, 471, 476, 478);
+
+
+<a id="orga36a686"></a>
+
+### DONE Disconnected Visits
+
+none any more.
+
+    SELECT * FROM "inbound"."Visits" WHERE fieldworkcalendar_id IS NULL;
+
+
+<a id="org5d85e09"></a>
+
+### DONE Double Field Work
+
+gone.
+
+    SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
+
+
+<a id="org5f822cd"></a>
+
+## MILESTONE ran POC update for `mnmgwdb`
+
+Done. With some bumps.
+
+-   We now have a bunch of new field activities. I begin to think that, long term, a testing mirror with just a subset of the data would be good to have.
+-   871030 required manual adjustment of the stratum, because stratum initiation lookup faulted. Should be good now and forever.
+-   219694 produced duplicates in FieldWork by duplicate WIA/CSA; more trouble expected
+-   tables lost links repeatedly; will have to double check the `update_cascade_lookup`; but we can live with that given there now is a script to link them back
+-   some new sf::geometry issue crashes the MHQ Polygons and random points. Because why not.
+-   merge back dbinit<sub>pocupdate</sub>
+
+
+<a id="orgaac7be3"></a>
+
+# Major Structure Overhaul: Visits Inheritance
+
+concept: <./surgery/20260129_SpecialActivities_Inheritance.md>
+implementation: <./surgery/20260211_SpecialActivities_Inheritance_Visits_script.qmd>
+
+on the way: issues with maintenance script `091a_`
+
+-   `dbplyr` can only do select without ONLY
+    -   workaround: now UPDATE of grts<sub>address</sub> instead of duplicate+DELETE
+-   only storing actually replaced grts in ReplacementData
+
+
+<a id="org807bc8d"></a>
+
+# learning the hard way
+
+
+<a id="org09fa551"></a>
+
+## `dbWriteTable(..., overwrite = TRUE, ...)` is a bad idea!
+
+Overwriting a table is a &ldquo;DROP/CREATE&rdquo; procedure and therefore leads to a loss in access roles.
+
+-   Just don&rsquo;t do it!
+-   Instead, manually &ldquo;DELETE+INSERT&rdquo;,
+    wherein the insert can be `dbWriteTable(..., overwrite = FALSE, append = TRUE, ...)`.
+
+
+<a id="orgb2f0e0e"></a>
+
+## `dbReadTable(...)` is better avoided, too
+
+&hellip; as it leads to data table inconsistencies with `dplyr.`
+Specifically, there is trouble with combining `DBI::dbReadTable` and `dplyr::tbl` (example: get `grts_address` for combined `Locations`.
+
+-   `distinct` does not mean `unique` :/
+
+
+<a id="orged61f24"></a>
+
+## loss of links due to &ldquo;`append_tabledata`&rdquo;
+
+The function `append_tabledata` checks which data rows are present in the table,
+and only uploads the novel ones.
+Problem is that foreign keys are neglected:
+
+-   If the old data was linked to another table,
+-   and that table was also updated prior to the re-upload,
+-   then links will be lost.
+
+Actually, I had `update_datatable_and_dependent_keys()` in place for this.
+Time to use it.
+
+-   [X] defined `update_cascade_lookup` to bring the procedures together and handle reference columns.
+
+
+<a id="org3081b2a"></a>
+
+## KILL update rule avoidance
+
+Update rules are nice,
+but for some technical tasks, it is better to circumvent them.
+
+-   implement (de-)activating update rules
+    no better not
+
+
+<a id="org68247ad"></a>
+
+## TODO Polygon Memory Size
+
+The habitat map spatraster is quite big;
+and laptop memory is limited.
+
+I got trouble once because too little memory was left to get sample unit polygons.
+-> is there a long term solution?
+
+
+<a id="org704006d"></a>
+
+## appending locations
+
+creating a new locations works when explicitly passing the next `ogc_fid` AND `location_id`.
+Omitting either of them in the insert will fail. :shrug:
+
+
+<a id="orga4f2ead"></a>
+
+## take primary keys seriously
+
+During replacement relocation [(see above)](#org89b2283), I at some point deactivated pk checks for some tables.
+I later found out that the checks correctly triggered errors: rows were duplicated prior to upload, which was logically correct, but not general (and thus overlooked).
+
+Lesson repeated: pk constraints are good; always assume that they work well.
+
+
+<a id="org67eaec0"></a>
+
+## major programming bugs
+
+-   wrong IF clause (just switched arguments) on forest/assessment MHQ determination
+-   replacement procedure: obob <= instead of < 1 cell (was originally only for duplication)
+
+
+<a id="orgd9e0d7d"></a>
+
+## DONE fieldwork<sub>id</sub> conflict
+
+some script updates WIA and CSA,
+but neglects uniqueness of the `fieldwork_id`.
+Temporarily solved by increasing the fieldwork<sub>id</sub>
+
+see <./surgery/20250924_fieldwork_id_conflict.sql>
+
+done by implementing inheritance
+
+
+<a id="orgbe75836"></a>
+
+## restoring production database from dumps
+
+Times this happened: 𝍸𝍷
+
+-   POC update failure after successful test on staging
+    -   it might be that the connection was misconfigured to point to production, I cannot reproduce why
+-   too eager major version upgrade postgres v17 -> v18
+
+**Note** that dumps **do not contain functions** which are defined on the server; e.g. `sync_mod`.
+In consequence, triggers get lost (throw an error upon attempted recreation).
+
+To restore them, the database owner must get access to `pg_catalog`: `GRANT ALL ON SCHEMA pg_catalog TO <user>;`
+
+And then
+
+    CREATE FUNCTION sync_mod() RETURNS trigger AS $sync_mod$
+    BEGIN
+      NEW.log_update := current_timestamp;
+      NEW.log_user := current_user;
+    
+      RETURN NEW
+      ;
+    END;
+    $sync_mod$ LANGUAGE plpgsql;
+
+
+<a id="org3b0da0d"></a>
+
+## MHQ zone buffer widths were wrong
+
+was, each direction: 2m extra in forests; 3m extra in open habitats
+now, as intended (see &ldquo;\*maaiveldmetingen terrestrisch.pdf&rdquo;):
+
+-   open: 3x3 offset square +2m buffer
+-   forests: 16x16 centered square +1m buffer
+
+
+<a id="orgb78e46f"></a>
+
+# General (II)
+
+
+<a id="org343f853"></a>
+
+## REMINDER fk columns which allow NULL
+
+by default, all fk are allowed to take NULL value
+required because they are set NULL on cascaded update during re-upload
+general concept:
+
+-   there are &ldquo;characteristic columns&rdquo; which define unique entry
+-   these are used to keep keys up to date; consistency check is valuable
+-   key is used for quick joins
+
+
+<a id="org479f87b"></a>
+
+## DONE Replacement Unit logic
+
+*brainstorm:*
+
+-   LocationCalendar -> must be linked
+-   geometry -> must be updated
+-   Visits -> must be adjusted, e.g. by linking in `inbound.Replacements`
+-   join `Replacements` to `Visits` if they have an entry
+
+
+<a id="orge5cd8c6"></a>
+
+## python updates
+
+update all requirements:
+
+    cp python_requirements.txt python_requirements.bak
+    cat python_requirements.txt | cut -f1 -d= | xargs pip install -U
+    pip freeze > python_requirements.txt
+
+GDAL requires special attention:
+python bindings version always needs to match system version (which is not generally the latest one available on PyPI).
+Its line can be deleted from the `requirements.txt` prior to the update.
+
+    pip install --no-cache --force-reinstall gdal[numpy]=="$(gdal-config --version).*" --break-system-packages
+
+
+<a id="org00ecef5"></a>
+
+## quick checks
+
+    SET search_path TO public,"metadata","outbound","inbound";
+    SELECT DISTINCT assessment_done, COUNT(*) AS n FROM "outbound"."LocationAssessments" GROUP BY assessment_done;
+    SELECT * FROM "outbound"."FieldActivityCalendar" WHERE done_planning;
+    SELECT * FROM "outbound"."Replacements" WHERE is_inappropriate OR is_selected OR (notes IS NOT NULL);
+    SELECT * FROM "inbound"."Visits" WHERE NOT (log_user = 'update') AND NOT (log_user = 'falk');
+    SELECT * FROM "inbound"."FreeFieldNotes" WHERE NOT log_creator = 'falk';
+    SELECT * FROM "inbound"."CellMaps";
+    
+    
+    SELECT visit_id, log_update, sampleunit_id, notes FROM "inbound"."Visits"
+      WHERE visit_done
+      AND notes IS NOT NULL;
+    
+    SELECT sampleunit_id, recovery_hints FROM "outbound"."SampleUnits"
+      WHERE recovery_hints IS NOT NULL;
+    
+    -- replacements
+    SELECT
+      UNIT.sampleunit_id,
+      UNIT.grts_address,
+      REP.grts_address_replacement
+    FROM "outbound"."Replacements" AS REP
+    LEFT JOIN "outbound"."SampleUnits" AS UNIT
+      ON UNIT.sampleunit_id = REP.sampleunit_id
+    WHERE REP.is_selected
+      AND NOT REP.is_inappropriate
+      AND UNIT.is_replaced
+    ;
+
+    -- mnmgwdb
+    SELECT * FROM "outbound"."FieldworkPlanning" WHERE done_planning;
+    
+    SELECT * FROM "inbound"."FieldworkPlanning" WHERE samplelocation_id IS NULL;
+    
+    
+    SELECT
+      VST.log_user,
+      VST.log_update,
+      FWCAL.fieldworkcalendar_id,
+      SLOC.samplelocation_id,
+      -- LOC.location_id,
+      -- sspstapa_id,
+      SLOC.grts_address
+    FROM "inbound"."Visits" AS VST
+    LEFT JOIN "outbound"."FieldworkCalendar" AS FWCAL
+      ON FWCAL.fieldworkcalendar_id = VST.fieldworkcalendar_id
+    LEFT JOIN "outbound"."SampleLocations" AS SLOC
+      ON SLOC.samplelocation_id = VST.samplelocation_id
+    ;
+    
+    
+    SELECT DISTINCT eval_source, count(*) FROM "outbound"."LocationEvaluations" GROUP BY eval_source;
+
+
+<a id="org5b01340"></a>
+
+# Journal File Phase-Out
+
+With the PR / merge of the `dbinit` branch into `main`, I will deprecate this journal file and the `surgery` subfolder in favor of an obsidian graph.
+
+<https://obsidian.md>
+
+Testing and processing will be ad-hoc.
+
+There will also be a README and a new folder substructure.
+This file can be archived later; it remains a valuable documentation of the infancy of this projects database tooling.
+

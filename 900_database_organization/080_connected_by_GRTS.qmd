@@ -32,14 +32,15 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./inbopostgis_server.conf")
 
 suffix <- "-staging" # "-testing"
-suffix <- ""
+# suffix <- ""
 ```
 
 
 choose a GRTS
 
 ```{r choose-grts}
-grts <- c(826486, 51158134)
+grts <- c(11561, 8400169) # test case for 091a overhaul
+    # c(826486, 51158134)
     # c(23238, 6314694, 23091910) # Hellebos!
     # c(4229394) # an installed, but archived installation
     # c(50725598) # a loceval on archive: replacement required, but none selected
@@ -468,26 +469,17 @@ join_activity_groups <- function(df) {
 query_special_activity <- function(shorthand) {
 
   if (shorthand == "WIA") {
-    table_label <- "WellInstallationActivities"
+    table_label <- "InstallationVisits"
+    id_column <- "installationvisit_id"
   } else if (shorthand == "CSA") {
-    table_label <- "ChemicalSamplingActivities"
+    table_label <- "SamplingVisits"
+    id_column <- "samplingvisit_id"
   } else if (shorthand == "SPA") {
-    table_label <- "SpatialPositioningActivities"
+    table_label <- "PositioningVisits"
+    id_column <- "positioningvisit_id"
   }
 
-  mnmdb$query_columns(
-    table_label,
-    c(
-      "fieldwork_id",
-      "samplelocation_id",
-      "fieldworkcalendar_id",
-      "visit_id",
-      "grts_address",
-      "stratum",
-      "activity_group_id",
-      "date_start"
-    )
-  ) %>%
+  mnmdb$query_table(table_label) %>%
   dplyr::mutate(act = shorthand) %>%
   return()
 }
@@ -558,6 +550,7 @@ fwcal <- mnmdb$query_table("FieldworkCalendar") %>%
 gw_print_fwcal <- function() {
   fwcal %>%
     dplyr::rename(
+      grts = grts_address,
       fcid = fieldworkcalendar_id,
       slid = samplelocation_id,
       agid = activity_group_id,
@@ -565,6 +558,7 @@ gw_print_fwcal <- function() {
       done_p = done_planning
     ) %>%
     dplyr::select(
+      grts,
       stratum,
       slid,
       fcid,
@@ -639,12 +633,10 @@ gw_print_special_activities <- function() {
       slid = samplelocation_id,
       agid = activity_group_id,
       fcid = fieldworkcalendar_id,
-      fwid = fieldwork_id,
       vid = visit_id,
     ) %>%
     dplyr::select(
       act,
-      fwid,
       grts,
       stratum,
       fcid,

@@ -1,0 +1,800 @@
+---
+title: "Migrate Special Activities"
+date: "2026-03-01"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+# Structure
+
+
+:::{.callout-warning}
+Working on the structure is tricky,
+especially on `_staging`.
+
+Some structural changes on the mirror will prohibit the `pg_dump` update to work;
+re-initialization, dump, and re-run of the changes will fix it.
+
+:::
+
+## Create New Tables
+
+### `InstallationVisits`
+
+```{sql}
+--| eval: false
+
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"inbound";
+
+BEGIN;
+DROP TABLE IF EXISTS "inbound"."InstallationVisits" CASCADE;
+
+CREATE TABLE "inbound"."InstallationVisits"()
+INHERITS ("inbound"."Visits")
+;
+
+COMMENT ON TABLE "inbound"."InstallationVisits" IS E'extra information collected for certain activities (well installations); subset of Visits';
+
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN installationvisit_id int NOT NULL; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".installationvisit_id IS E'technical index (extra, on top of visit_id)';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN photo_soil_1_peilbuis varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".photo_soil_1_peilbuis IS E'photo of the soil drill profile: peilbuis';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN photo_soil_2_piezometer varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".photo_soil_2_piezometer IS E'photo of the soil drill profile: piezometer';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN photo_well varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".photo_well IS E'photo of the placed well/pair';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN watina_code_used_1_peilbuis varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".watina_code_used_1_peilbuis IS E'watina code of the `odd` subset of wells';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN watina_code_used_2_piezometer varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".watina_code_used_2_piezometer IS E'watina code of the `even` subset of wells';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN soilprofile_notes varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".soilprofile_notes IS E'notes about the soil profiles';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN soilprofile_unclear boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".soilprofile_unclear IS E'help requested for evaluation of the soil profile';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN random_point_number smallint; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".random_point_number IS E'if so, which random point was chosen';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN no_diver boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".no_diver IS E'highlight issues (use notes to specify)';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN diver_id varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".diver_id IS E'link to the table of available divers';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN free_diver varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".free_diver IS E'free field to enter a non-registered diver code';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN reused_existing_well boolean DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".reused_existing_well IS E'flag if an existing installation was reused';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN reused_with_replacement boolean DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".reused_with_replacement IS E'whether an existing installation was reused and refreshed';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN used_water_from_tap boolean; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".used_water_from_tap IS E'whether or not tap water was used for installation';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN used_water_source varchar; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".used_water_source IS E'source of the water used for facilitating installation';
+ALTER TABLE "inbound"."InstallationVisits" ADD COLUMN is_cattleproof boolean; 
+COMMENT ON COLUMN "inbound"."InstallationVisits".is_cattleproof IS E'indicate installations with extra cattle protection';
+
+COMMIT;
+
+-- sequence installationvisit_id
+CREATE SEQUENCE "inbound".seq_installationvisit_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "inbound"."InstallationVisits".installationvisit_id;
+ALTER TABLE "inbound"."InstallationVisits" ALTER COLUMN installationvisit_id
+ SET DEFAULT nextval('inbound.seq_installationvisit_id'::regclass);
+
+GRANT USAGE ON SEQUENCE "inbound"."seq_installationvisit_id" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+GRANT SELECT ON SEQUENCE "inbound"."seq_installationvisit_id" TO monkey;
+
+GRANT SELECT ON "inbound"."InstallationVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+
+GRANT INSERT ON "inbound"."InstallationVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT UPDATE ON "inbound"."InstallationVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT DELETE ON "inbound"."InstallationVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+
+```
+
+### `SamplingVisits`
+
+```{sql}
+--| eval: false
+
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"inbound";
+
+DROP TABLE IF EXISTS "inbound"."SamplingVisits" CASCADE;
+
+BEGIN;
+CREATE TABLE "inbound"."SamplingVisits"()
+INHERITS ("inbound"."Visits")
+;
+
+COMMENT ON TABLE "inbound"."SamplingVisits" IS E'extra information collected for certain activities (chemical sampling); subset of Visits';
+
+ALTER TABLE "inbound"."SamplingVisits" ADD COLUMN samplingvisit_id int NOT NULL; 
+COMMENT ON COLUMN "inbound"."SamplingVisits".samplingvisit_id IS E'technical index (extra, on top of visit_id)';
+ALTER TABLE "inbound"."SamplingVisits" ADD COLUMN project_code varchar; 
+COMMENT ON COLUMN "inbound"."SamplingVisits".project_code IS E'LIMS project code of this sample';
+ALTER TABLE "inbound"."SamplingVisits" ADD COLUMN recipient_code varchar; 
+COMMENT ON COLUMN "inbound"."SamplingVisits".recipient_code IS E'LIMS recipient code of this sample';
+
+COMMIT;
+
+-- sequence samplingvisit_id
+CREATE SEQUENCE "inbound".seq_samplingvisit_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "inbound"."SamplingVisits".samplingvisit_id;
+ALTER TABLE "inbound"."SamplingVisits" ALTER COLUMN samplingvisit_id
+ SET DEFAULT nextval('inbound.seq_samplingvisit_id'::regclass);
+
+GRANT USAGE ON SEQUENCE "inbound"."seq_samplingvisit_id" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+GRANT SELECT ON SEQUENCE "inbound"."seq_samplingvisit_id" TO monkey;
+
+GRANT SELECT ON "inbound"."SamplingVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+
+GRANT INSERT ON "inbound"."SamplingVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT UPDATE ON "inbound"."SamplingVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT DELETE ON "inbound"."SamplingVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+
+```
+
+
+### `PositioningVisits`
+
+```{sql}
+--| eval: false
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"inbound";
+
+DROP TABLE IF EXISTS "inbound"."PositioningVisits" CASCADE;
+
+BEGIN;
+CREATE TABLE "inbound"."PositioningVisits"()
+INHERITS ("inbound"."Visits")
+;
+
+COMMENT ON TABLE "inbound"."PositioningVisits" IS E'extra information collected for certain activities (spatial positioning); subset of Visits';
+
+ALTER TABLE "inbound"."PositioningVisits" ADD COLUMN positioningvisit_id int NOT NULL; 
+COMMENT ON COLUMN "inbound"."PositioningVisits".positioningvisit_id IS E'technical index (extra, on top of visit_id)';
+
+ALTER TABLE "inbound"."PositioningVisits" ADD COLUMN require_total_station boolean; 
+COMMENT ON COLUMN "inbound"."PositioningVisits".require_total_station IS E'whether or not total station will be / was required for sattelite connection upon positioning';
+
+COMMIT;
+
+-- sequence positioningvisit_id
+CREATE SEQUENCE "inbound".seq_positioningvisit_id
+INCREMENT BY 1
+MINVALUE 0
+MAXVALUE 2147483647
+START WITH 1
+CACHE 1
+NO CYCLE
+OWNED BY "inbound"."PositioningVisits".positioningvisit_id;
+ALTER TABLE "inbound"."PositioningVisits" ALTER COLUMN positioningvisit_id
+ SET DEFAULT nextval('inbound.seq_positioningvisit_id'::regclass);
+
+
+GRANT USAGE ON SEQUENCE "inbound"."seq_positioningvisit_id" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+GRANT SELECT ON SEQUENCE "inbound"."seq_positioningvisit_id" TO monkey;
+
+GRANT SELECT ON "inbound"."PositioningVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+
+GRANT INSERT ON "inbound"."PositioningVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT UPDATE ON "inbound"."PositioningVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT DELETE ON "inbound"."PositioningVisits" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+```
+
+
+## Fill With Data
+
+### prep
+
+> this is somewhat more complex;
+> I need to capture the data before DELETE FROM ONLY "inbound"."Visits" ;
+> or move the rows with INSERT... SELECT FROM ONLY;
+> but all that while respecting uniqueness constraints.
+> Maybe better have an R script? -> no, should work with "INSERT INTO"
+
+(that was past me... now everything seems to be good.)
+
+There were several _id linkage issues.
+!!! link tables (first, the old way)
+```{r}
+source("102_re_link_foreign_keys_old.R")
+```
+
+### fill `InstallationVisits`
+
+```{sql}
+--| eval: false
+-- BEGIN;
+
+INSERT INTO "inbound"."InstallationVisits" (
+  log_user,
+  log_update,
+  samplelocation_id,
+  fieldworkcalendar_id,
+  grts_address,
+  stratum,
+  activity_group_id,
+  date_start,
+  teammember_id,
+  date_visit,
+  notes,
+  photo,
+  issues,
+  visit_done,
+  archive_version_id,
+  photo_soil_1_peilbuis,
+  photo_soil_2_piezometer,
+  photo_well,
+  watina_code_used_1_peilbuis,
+  watina_code_used_2_piezometer,
+  soilprofile_notes,
+  soilprofile_unclear,
+  random_point_number,
+  no_diver,
+  diver_id,
+  free_diver,
+  reused_existing_well,
+  reused_with_replacement,
+  used_water_from_tap,
+  used_water_source
+)
+SELECT
+  WIA.log_user,
+  WIA.log_update,
+  VIS.samplelocation_id,
+  VIS.fieldworkcalendar_id,
+  VIS.grts_address,
+  VIS.stratum,
+  VIS.activity_group_id,
+  VIS.date_start,
+  VIS.teammember_id,
+  VIS.date_visit,
+  VIS.notes,
+  VIS.photo,
+  VIS.issues,
+  VIS.visit_done,
+  VIS.archive_version_id,
+  WIA.photo_soil_1_peilbuis,
+  WIA.photo_soil_2_piezometer,
+  WIA.photo_well,
+  WIA.watina_code_used_1_peilbuis,
+  WIA.watina_code_used_2_piezometer,
+  WIA.soilprofile_notes,
+  WIA.soilprofile_unclear,
+  WIA.random_point_number,
+  WIA.no_diver,
+  WIA.diver_id,
+  WIA.free_diver,
+  WIA.reused_existing_well,
+  WIA.reused_with_replacement,
+  WIA.used_water_from_tap,
+  WIA.used_water_source
+FROM "inbound"."WellInstallationActivities" AS WIA, "inbound"."Visits" AS VIS
+WHERE VIS.visit_id = WIA.visit_id
+  AND VIS.grts_address = WIA.grts_address
+  AND VIS.stratum = WIA.stratum
+  AND VIS.date_start = WIA.date_start
+  AND VIS.activity_group_id IN (3, 4, 5, 6)
+  AND WIA.activity_group_id IN (3, 4, 5, 6)
+  AND VIS.activity_group_id = WIA.activity_group_id
+  -- AND WIA.grts_address = 23238
+;
+
+
+DELETE
+-- SELECT *
+FROM ONLY "inbound"."Visits" 
+WHERE activity_group_id IN (3, 4, 5, 6)
+AND fieldworkcalendar_id IN (
+  SELECT DISTINCT fieldworkcalendar_id
+  FROM "inbound"."InstallationVisits"
+)
+;
+
+```
+
+
+### fill `SamplingVisits`
+
+```{sql}
+--| eval: false
+-- BEGIN;
+-- SELECT DISTINCT activity_group_id FROM "inbound"."ChemicalSamplingActivities" AS CSA;
+
+INSERT INTO "inbound"."SamplingVisits" (
+  log_user,
+  log_update,
+  samplelocation_id,
+  fieldworkcalendar_id,
+  grts_address,
+  stratum,
+  activity_group_id,
+  date_start,
+  teammember_id,
+  date_visit,
+  notes,
+  photo,
+  issues,
+  visit_done,
+  archive_version_id,
+  project_code,
+  recipient_code
+)
+SELECT
+  CSA.log_user,
+  CSA.log_update,
+  VIS.samplelocation_id,
+  VIS.fieldworkcalendar_id,
+  VIS.grts_address,
+  VIS.stratum,
+  VIS.activity_group_id,
+  VIS.date_start,
+  VIS.teammember_id,
+  VIS.date_visit,
+  VIS.notes,
+  VIS.photo,
+  VIS.issues,
+  VIS.visit_done,
+  VIS.archive_version_id,
+  CSA.project_code,
+  CSA.recipient_code
+FROM "inbound"."ChemicalSamplingActivities" AS CSA, "inbound"."Visits" AS VIS
+WHERE VIS.visit_id = CSA.visit_id
+  AND VIS.grts_address = CSA.grts_address
+  AND VIS.stratum = CSA.stratum
+  AND VIS.date_start = CSA.date_start
+  AND VIS.activity_group_id IN (12, 13, 16)
+  AND CSA.activity_group_id IN (12, 13, 16)
+  AND VIS.activity_group_id = CSA.activity_group_id
+  -- AND CSA.grts_address = 23238
+;
+
+
+DELETE
+-- SELECT *
+FROM ONLY "inbound"."Visits" 
+WHERE activity_group_id IN (12, 13, 16)
+AND fieldworkcalendar_id IN (
+  SELECT DISTINCT fieldworkcalendar_id
+  FROM "inbound"."SamplingVisits"
+)
+;
+
+```
+
+
+### fill `PositioningVisits`
+
+```{sql}
+--| eval: false
+-- BEGIN;
+-- SELECT DISTINCT activity_group_id FROM "inbound"."SpatialPositioningActivities" AS SPA;
+
+INSERT INTO "inbound"."PositioningVisits" (
+  log_user,
+  log_update,
+  samplelocation_id,
+  fieldworkcalendar_id,
+  grts_address,
+  stratum,
+  activity_group_id,
+  date_start,
+  teammember_id,
+  date_visit,
+  notes,
+  photo,
+  issues,
+  visit_done,
+  archive_version_id,
+  require_total_station
+)
+SELECT
+  SPA.log_user,
+  SPA.log_update,
+  VIS.samplelocation_id,
+  VIS.fieldworkcalendar_id,
+  VIS.grts_address,
+  VIS.stratum,
+  VIS.activity_group_id,
+  VIS.date_start,
+  VIS.teammember_id,
+  VIS.date_visit,
+  VIS.notes,
+  VIS.photo,
+  VIS.issues,
+  VIS.visit_done,
+  VIS.archive_version_id,
+  SPA.require_total_station
+FROM "inbound"."SpatialPositioningActivities" AS SPA, "inbound"."Visits" AS VIS
+WHERE VIS.visit_id = SPA.visit_id
+  AND VIS.grts_address = SPA.grts_address
+  AND VIS.stratum = SPA.stratum
+  AND VIS.date_start = SPA.date_start
+  AND VIS.activity_group_id IN (27, 28)
+  AND SPA.activity_group_id IN (27, 28)
+  AND VIS.activity_group_id = SPA.activity_group_id
+  -- AND SPA.grts_address = 23238
+;
+
+
+DELETE
+-- SELECT *
+FROM ONLY "inbound"."Visits" 
+WHERE activity_group_id IN (27, 28)
+AND fieldworkcalendar_id IN (
+  SELECT DISTINCT fieldworkcalendar_id
+  FROM "inbound"."PositioningVisits"
+)
+;
+
+```
+
+
+
+### post
+
+!!! link tables (the new way)
+```{r}
+source("102_re_link_foreign_keys.R")
+```
+
+
+## Redirect Traffic
+
+<https://stackoverflow.com/questions/12343984/insert-trigger-to-update-another-table-using-postgresql>
+
+All updates on the old table should be reflected in the new one.
+Users do not do inserts etc.
+
+
+```{sql redirect-wia}
+--| eval: false
+
+DROP FUNCTION IF EXISTS "metadata".sync_wia CASCADE;
+CREATE FUNCTION "metadata".sync_wia() RETURNS trigger AS $sync_wia$
+BEGIN
+
+  UPDATE "inbound"."InstallationVisits"
+  SET 
+      photo_soil_1_peilbuis = NEW.photo_soil_1_peilbuis,
+      photo_soil_2_piezometer = NEW.photo_soil_2_piezometer,
+      photo_well = NEW.photo_well,
+      watina_code_used_1_peilbuis = NEW.watina_code_used_1_peilbuis,
+      watina_code_used_2_piezometer = NEW.watina_code_used_2_piezometer,
+      soilprofile_notes = NEW.soilprofile_notes,
+      soilprofile_unclear = NEW.soilprofile_unclear,
+      random_point_number = NEW.random_point_number,
+      no_diver = NEW.no_diver,
+      diver_id = NEW.diver_id,
+      free_diver = NEW.free_diver,
+      reused_existing_well = NEW.reused_existing_well,
+      reused_with_replacement = NEW.reused_with_replacement,
+      used_water_from_tap = NEW.used_water_from_tap,
+      used_water_source = NEW.used_water_source
+  WHERE grts_address = NEW.grts_address
+    AND stratum = NEW.stratum
+    AND activity_group_id = 4
+    AND date_start = NEW.date_start
+  ;
+  
+  RETURN NEW;
+END;
+$sync_wia$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS wia_sync_trigger ON "inbound"."WellInstallationActivities";
+CREATE TRIGGER wia_sync_trigger
+BEFORE UPDATE ON "inbound"."WellInstallationActivities"
+FOR EACH ROW EXECUTE PROCEDURE "metadata".sync_wia();
+
+-- COMMIT;
+```
+
+
+
+```{sql redirect-csa}
+--| eval: false
+
+DROP FUNCTION IF EXISTS "metadata".sync_csa CASCADE;
+CREATE FUNCTION "metadata".sync_csa() RETURNS trigger AS $sync_csa$
+BEGIN
+
+  UPDATE "inbound"."SamplingVisits"
+  SET 
+    project_code = NEW.project_code,
+    recipient_code = NEW.recipient_code
+  WHERE grts_address = NEW.grts_address
+    AND stratum = NEW.stratum
+    AND activity_group_id IN (13, 16)
+    AND activity_group_id = NEW.activity_group_id
+    AND date_start = NEW.date_start
+  ;
+  
+  RETURN NEW;
+END;
+$sync_csa$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS csa_sync_trigger ON "inbound"."ChemicalSamplingActivities";
+CREATE TRIGGER csa_sync_trigger
+BEFORE UPDATE ON "inbound"."ChemicalSamplingActivities"
+FOR EACH ROW EXECUTE PROCEDURE "metadata".sync_csa();
+
+-- COMMIT;
+```
+
+
+
+```{sql redirect-spa}
+--| eval: false
+
+DROP FUNCTION IF EXISTS "metadata".sync_spa CASCADE;
+CREATE FUNCTION "metadata".sync_spa() RETURNS trigger AS $sync_spa$
+BEGIN
+
+  UPDATE "inbound"."PositioningVisits"
+  SET 
+    require_total_station = NEW.require_total_station
+  WHERE grts_address = NEW.grts_address
+    AND stratum = NEW.stratum
+    AND activity_group_id IN (27, 28)
+    AND activity_group_id = NEW.activity_group_id
+    AND date_start = NEW.date_start
+  ;
+  
+  RETURN NEW;
+END;
+$sync_spa$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS spa_sync_trigger ON "inbound"."SpatialPositioningActivities";
+CREATE TRIGGER spa_sync_trigger
+BEFORE UPDATE ON "inbound"."SpatialPositioningActivities"
+FOR EACH ROW EXECUTE PROCEDURE "metadata".sync_spa();
+
+-- COMMIT;
+```
+
+
+:::{.callout-note}
+Whoohoo, it works!
+:::
+
+
+
+Test redirect (on `_staging`):
+
+```{sql}
+--| eval: false
+SELECT grts_address, stratum, activity_group_id, date_start, date_visit
+FROM "inbound"."Visits" AS VIS
+WHERE VIS.grts_address = 23238 AND activity_group_id = 4;
+
+SELECT grts_address, stratum, activity_group_id, date_start, date_visit, random_point_number
+FROM "inbound"."InstallationVisits"
+WHERE grts_address = 23238;
+
+SELECT grts_address, stratum, activity_group_id, date_start, date_visit, project_code
+FROM "inbound"."SamplingVisits"
+WHERE grts_address = 23238;
+
+SELECT grts_address, stratum, activity_group_id, date_start, date_visit, require_total_station
+FROM "inbound"."PositioningVisits"
+WHERE grts_address = 23238;
+
+
+SELECT VIS.visit_id, WIA.grts_address, WIA.stratum, WIA.activity_group_id, WIA.date_start, VIS.date_visit, WIA.random_point_number
+FROM "inbound"."WellInstallationActivities" AS WIA
+LEFT JOIN "inbound"."Visits" AS VIS
+ON VIS.visit_id = WIA.visit_id
+WHERE WIA.grts_address = 23238;
+-- this one should be empty now; however, it somehow tripled on a prev attempt.
+
+
+
+-- all-in-one testing!
+SELECT grts_address, stratum, activity_group_id, date_start, date_visit,
+random_point_number, project_code, require_total_station
+FROM ONLY "inbound"."Visits"
+NATURAL FULL JOIN "inbound"."InstallationVisits"
+NATURAL FULL JOIN "inbound"."SamplingVisits"
+NATURAL FULL JOIN "inbound"."PositioningVisits"
+WHERE grts_address = 23238;
+
+
+UPDATE "inbound"."WellInstallationActivities"
+SET random_point_number = 1
+WHERE grts_address = 23238;
+
+UPDATE "inbound"."ChemicalSamplingActivities"
+SET project_code = 'abc123'
+WHERE grts_address = 23238;
+
+UPDATE "inbound"."SpatialPositioningActivities"
+SET require_total_station = TRUE
+WHERE grts_address = 23238;
+
+
+
+```
+
+:::{.callout-warning}
+... but the INSERT didn't :(
+
+- some columns from `Visits` were missing
+- duplicates not removed
+
+... but this is solved now via a better INSERT and a distinct DELETE.
+:::
+
+
+# USAGE
+
+## Adjust the VIEWs: 
+
+### `gw_FieldworkPlanning.sql`
+
+    [!] There was an unnecessary join of WIA...
+    
+seems to be correct...
+
+```{sql}
+--| eval: false
+SELECT * FROM "inbound"."Visits" WHERE activity_group_id = 4 AND grts_address = 23238;
+SELECT * FROM "outbound"."FieldworkPlanning"
+WHERE grts_address = 23238
+-- AND activity_group_id = 4
+;
+
+```
+
+
+### `gw_FieldWork.sql`
+
+adjusted to replace WIA by VISIT:
+
+```{sql}
+--| eval: false
+SELECT grts_address, stratum, date_start, activity_group_id, date_visit
+FROM "inbound"."Visits"
+WHERE grts_address = 23238
+; -- no dups on production; but dups on staging
+
+
+-- SELECT visit_id, soilprofile_unclear
+-- SELECT *
+SELECT grts_address, stratum, date_start, activity_group_id, date_visit, VISIT.date_visit, IVIS.date_visit,
+random_point_number, project_code, require_total_station
+FROM ONLY "inbound"."Visits" AS VISIT
+NATURAL FULL JOIN "inbound"."InstallationVisits" AS IVIS
+NATURAL FULL JOIN "inbound"."SamplingVisits"
+NATURAL FULL JOIN "inbound"."PositioningVisits"
+WHERE grts_address = 23238
+--  AND installationvisit_id IS NOT NULL
+;
+
+
+SELECT grts_address, type, date_start, activity_group, teammember_assigned, date_visit, random_point_number, project_code, require_total_station
+FROM "inbound"."FieldWork"
+WHERE grts_address = 23238
+;
+
+
+```
+
+// args... there are empty lines? -> duplicates of other activities...
+--> solved!
+
+
+```
+.______________________________.
+|    IMPORTANT REMINDER:       |
+|    the ONLY is crucual!      |
+!______________________________!
+```
+https://dba.stackexchange.com/questions/94050/query-parent-table-and-get-child-tables-columns/125028#125028
+https://stackoverflow.com/questions/40960162/natural-full-outer-join-or-using-if-common-attribute-is-null
+
+I have to really take care from which table the column is taken.
+-> best wrap the query.
+
+```{sql}
+--| eval: false
+
+SELECT *
+FROM "inbound"."FieldWork"
+WHERE grts_address = 23238
+;
+
+SELECT *
+FROM "outbound"."FieldworkPlanning"
+WHERE grts_address = 23238
+;
+
+```
+
+again, the issue was key linking -> link repeatedly.
+
+# Adjusting QGIS
+
+Works as expected. 
+All relevant fields update.
+
+-> just add `is_cattleproof` = "runderproef afgewerkt"
+
+
+# *post mortem*
+
+- [X] other daily scripts
+
+?? there are the `is_<activity>` columns... they should be integrated to the GAP table. 
+
+
+`<2026-02-27>` Update went smoothly!
+
+- started 07:30
+- done 08:40
+- all worked as tested, everyone was informed.
+- working on 091a afterwards; issues:
+  - `dbplyr` cannot do ONLY!
+  - workaround: now UPDATE of grts_address instead of duplicate+DELETE
+  - only storing actually replaced grts in `ReplacementData`
+
+`<2026-03-02>`
+- re-copied to staging
+- tested 091a thoroughly, e.g. with manual local replacement on `-staging`
+
+compared `ReplacementData` *pre/post*
+```
+\COPY (
+SELECT * FROM "archive"."ReplacementData"
+) TO '/data/mnm_db_backups/foefelen/replacement_data_pre_091_overhaul.csv' With CSV DELIMITER ',' HEADER
+;
+```
+
+`050_snippet_selection.R` gives a SEGFAULT
+
+# Cleanup
+
+after everything works,
+backup and then
+drop WIA/CSA/SPA tables
+
+```
+DROP TABLE "inbound"."WellInstallationActivities" CASCADE; 
+DROP TABLE "inbound"."ChemicalSamplingActivities" CASCADE; 
+DROP TABLE "inbound"."SpatialPositioningActivities" CASCADE; 
+DROP FUNCTION IF EXISTS "metadata".sync_wia CASCADE;
+DROP FUNCTION IF EXISTS "metadata".sync_csa CASCADE;
+DROP FUNCTION IF EXISTS "metadata".sync_spa CASCADE;
+```
+
+<!-- 
+to re-start testing:
+DROP TABLE "inbound"."InstallationVisits" CASCADE; 
+DROP TABLE "inbound"."SamplingVisits" CASCADE; 
+DROP TABLE "inbound"."PositioningVisits" CASCADE; 
+DROP FUNCTION IF EXISTS "metadata".sync_wia CASCADE;
+DROP FUNCTION IF EXISTS "metadata".sync_csa CASCADE;
+DROP FUNCTION IF EXISTS "metadata".sync_spa CASCADE;
+-->

@@ -560,7 +560,7 @@ ORDER BY location_id ASC
 
 * Script
 
-[[file:../091b_fill_location_journals.R]]
+[[file:../111b_fill_location_journals.R]]
 
 TODO:
 + [X] rollout
