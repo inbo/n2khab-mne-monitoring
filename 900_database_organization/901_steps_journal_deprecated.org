@@ -2238,3 +2238,25 @@ LEFT JOIN "outbound"."SampleLocations" AS SLOC
 
 SELECT DISTINCT eval_source, count(*) FROM "outbound"."LocationEvaluations" GROUP BY eval_source;
 #+end_src
+
+
+* Journal File Phase-Out
+SCHEDULED: <2026-03-02 Mon>
+
+With the PR / merge of the =dbinit= branch into =main=, I will deprecate this journal file and the =surgery= subfolder in favor of an obsidian graph.
+
+https://obsidian.md
+
+
+Testing and processing will be ad-hoc.
+
+There will also be a README and a new folder substructure.
+This file can be archived later; it remains a valuable documentation of the infancy of this projects database tooling.
+
+
+000_DOCUMENTATION
+100_MAINTENANCE
+200_STRUCTURE
+400_POC
+500_LOCEVALDB
+600_MNMGWDB
