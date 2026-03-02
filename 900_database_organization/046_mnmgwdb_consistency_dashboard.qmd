@@ -387,33 +387,6 @@ vervanging  437685 -> 8826293
 ```
 
 
-```{r csa-sloc}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "ChemicalSamplingActivities", fk = "samplelocation_id",
-  characteristic_columns = c("grts_address", "stratum"),
-  ref_table = "SampleLocations", pk = "samplelocation_id",
-  rename_ref = c("strata" = "stratum")
-  )
-
-```
-
-
-```{r spa-sloc}
-#| eval: true
-#| echo: false
-
-check_foreignkey_connection(
-  table_label = "SpatialPositioningActivities", fk = "samplelocation_id",
-  characteristic_columns = c("grts_address", "stratum"),
-  ref_table = "SampleLocations", pk = "samplelocation_id",
-  rename_ref = c("strata" = "stratum")
-  )
-
-```
-
 
 ## Fieldwork Calendar and Visits
 
