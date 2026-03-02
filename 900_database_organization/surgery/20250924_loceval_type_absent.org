@@ -1,0 +1,245 @@
+#+title: Loceval ++ Type Absent
+#+date: 20250924
+
+
+request by Tom / Ward to mark loceval where no local replacement cell was found.
+
+* new column
+
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."SampleUnits" ADD COLUMN type_is_absent boolean NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "outbound"."SampleUnits".type_is_absent IS E'unsuccessful local replacement / target type not found';
+
+#+end_src
+
+
+and on mnmgwdb:
+#+begin_src sql :eval no
+ALTER TABLE "outbound"."LocationEvaluations" ADD COLUMN type_is_absent bool;
+COMMENT ON COLUMN "outbound"."LocationEvaluations".type_is_absent IS E'target type not found in field assessment';
+#+end_src
+
+
+
+* hard-connect visits
+
+tooling:
+#+begin_src R
+
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+#+end_src
+
+
+connection:
+#+begin_src R
+config_filepath <- file.path("./inbopostgis_server.conf")
+mirror <- "-staging"
+# mirror <- ""
+
+# loceval database
+locevaldb_mirror <- glue::glue("loceval{mirror}")
+
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(glue::glue("connected: psql {locevaldb$shellstring}"))
+#+end_src
+
+
+#+begin_src sql
+-- ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id TYPE int USING fieldactivitycalendar_id::integer;
+ALTER TABLE "inbound"."Visits" ADD COLUMN fieldactivitycalendar_id int DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".fieldactivitycalendar_id IS E'link to calendar index (technical)';
+-- foreign key fieldactivitycalendar_id
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldActivityCalendar_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_FieldActivityCalendar_Visits FOREIGN KEY (fieldactivitycalendar_id)
+REFERENCES "outbound"."FieldActivityCalendar" (fieldactivitycalendar_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN stratum varchar DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".stratum IS E'stratum, as planned in the sampling procedure';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN activity_group_id smallint DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".activity_group_id IS E'a link to the activity metadata';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN date_start date DEFAULT NULL;
+COMMENT ON COLUMN "inbound"."Visits".date_start IS E'start of the panel activity sequence';
+
+#+end_src
+
+
+
+#+begin_src R
+visits <- locevaldb$query_table("Visits")
+gact_id <- locevaldb$query_table("GroupedActivities") %>%
+  filter(activity_group == "LOCEVALTERR") %>%
+  pull(activity_group_id)
+facal <- locevaldb$query_table("FieldActivityCalendar") %>%
+  filter(activity_group_id == gact_id)
+
+visits %>% count(grts_address, sampleunit_id) %>% arrange(desc(n))
+facal %>% count(grts_address, sampleunit_id) %>% arrange(desc(n))
+
+facal <- facal %>% filter(!is.na(stratum))
+
+visits_filled <- visits %>%
+  select(
+      -fieldactivitycalendar_id,
+      -stratum,
+      -activity_group_id,
+      -date_start
+         ) %>%
+  inner_join(
+    facal %>%
+    select(
+      grts_address,
+      sampleunit_id,
+      fieldactivitycalendar_id,
+      stratum,
+      activity_group_id,
+      date_start
+    ),
+    by = join_by(grts_address, sampleunit_id),
+    relationship = "one-to-one"
+  ) %>%
+  select(
+    visit_id,
+    grts_address,
+    sampleunit_id,
+    fieldactivitycalendar_id,
+    stratum,
+    activity_group_id,
+    date_start
+  )
+
+visits_filled %>%
+  filter(is.na(stratum)) %>%
+  knitr::kable()
+
+update_existing_data(
+    mnmdb = locevaldb,
+    table_label = "Visits",
+    changed_data = visits_filled,
+    input_precedence_columns = c(
+      "teammember_id",
+      "date_visit",
+      "type_assessed",
+      "notes",
+      "photo",
+      "visit_done"
+    ),
+    index_columns = c("visit_id"),
+    reference_columns = c("grts_address", "sampleunit_id")
+  )
+
+#+end_src
+
+
+#+begin_src R
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "FieldActivityCalendar",
+  link_key_column = "fieldactivitycalendar_id",
+  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+)
+
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(ref) ref %>% rename(stratum = type)
+)
+
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "FieldActivityCalendar",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(ref) ref %>% rename(stratum = type)
+)
+#+end_src
+
+
+--  DELETE FROM "inbound"."Visits" WHERE fieldactivitycalendar_id IS NULL;
+set NOT NULL:
+#+begin_src sql
+ALTER TABLE "inbound"."Visits" ALTER COLUMN fieldactivitycalendar_id SET NOT NULL;
+#+end_src
+
+
+* views
+
+adjusted LocationEvaluation and others
+
+* fill column
+
+#+begin_src sh
+psql -U <user> -h <host> -p <port> -d loceval -c "SELECT * FROM \"inbound\".\"Visits\" WHERE visit_done AND ((type_assessed is NULL) OR (type_assessed = 'gh') OR NOT (type_assessed = stratum));" -o type_niet_gevonden.txt
+
+
+#+end_src
+
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 455349) AND (type = '1330_hpr');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 511273) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 1646894) AND (type = '6230_hmo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 1576233) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 52170025) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 1838377) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 38187350) AND (type = '6410_ve');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 114454) AND (type = '6430_hf');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 47517086) AND (type = '6510_hus');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 845889) AND (type = '6410_mo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 4163858) AND (type = '7140_mrd');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 31910194) AND (type = '7150');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 51330817) AND (type = '6230_hmo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 7805714) AND (type = '6410_ve');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 289250) AND (type = '91E0_sf');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 5527750) AND (type = '9130_fm');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 46172434) AND (type = '7210');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 868790) AND (type = '6410_mo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 868790) AND (type = '6230_hmo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 24774) AND (type = '9160');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 253621) AND (type = '1330_hpr');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 790918) AND (type = '6410_mo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 51707433) AND (type = '6430_hw');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 6360757) AND (type = '1310_pol');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 8827222) AND (type = '6410_ve');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 613362) AND (type = '9190');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 51420278) AND (type = '6230_hmo');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 22726) AND (type = '9160');
+UPDATE "outbound"."SampleUnits" SET type_is_absent = TRUE WHERE (grts_address = 13688242) AND (type = '9130_fm');
+
+
+
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+source("MNMDatabaseConnection.R")
+
+loceval_db <- connect_mnm_database(
+  config_filepath = file.path("./inbopostgis_server.conf"),
+  database_mirror = "loceval",
+  user = "monkey",
+  password = NA
+)
+
+loceval_db$query_table("SampleUnits") %>%
+  filter(type_is_absent)
+
+* Data Flow
+also adjust 091 and 092

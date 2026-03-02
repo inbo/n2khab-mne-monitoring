@@ -1,0 +1,4 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+diver_id,int,True,,True,True,,,,diver index (technical)
+diver_batch,varchar,True,,False,False,,,,potential grouping of divers
+diver_serial,varchar,True,,False,False,,,,diver serial

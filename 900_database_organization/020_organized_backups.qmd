@@ -1,0 +1,638 @@
+---
+title: "Organized Backups and Data Persistence"
+date: "2025-06-16"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+Data persistence will tackle two aspects.
+
+1. long-term backups
+  - using `pg_dump`
+  - automated with `cronjob` and/or diffs
+  - tested restoration
+  - ... but hopefully never required
+2. ad-hoc re-uploads
+  - use case: changes in database structure
+  - want to be able to drop/create without loss of data
+  - crucial: identifier cascades
+  - via R scripts
+
+
+:::{.callout-note}
+We might use a [`.pgpass` file](https://stackoverflow.com/a/2893979) for credential handling.
+:::
+
+
+# Long-Term Backups
+
+## continuous
+
+:::{.callout-tip title="Strategy"}
+- Store the latest sql
+- also store diffs from previous dumps (so that we could go back in time)
+:::
+
+
+```{sh}
+#| eval: false
+
+# if not file.exists latest_dump.sql then touch latest_dump.sql
+
+# first: dump the diff to a patch file
+pg_dump -U <user> -h <host> -p <port> -d loceval_dev -N tiger -N public -W \
+    | diff latest_dump.sql - \
+    > $(date +"%Y%m%d")_loceval_diff.patch
+
+# then: patch the changes into `latest`
+patch latest_dump.sql -i $(date +"%Y%m%d")_loceval_diff.patch
+
+# # to reverse, apply in reversed order:
+# patch -R latest_dump.sql -i $(date +"%Y%m%d")_loceval_diff.patch
+
+```
+
+## monthly
+
+```{sh}
+#| eval: false
+
+# first: dump the diff to a patch file
+pg_dump -U <user> -h <host> -p <port> -d loceval_dev -N tiger -N public -W \
+    > $(date +"%Y%m")_loceval.sql
+
+```
+
+## test-restore
+
+> After latest structural changes are pushed to production, 
+> I should attempt to dump/restore the playground data.
+
+That was easy!
+
+```{sh}
+psql -U <user2> -h <host2> -p <port2> -d <source> -W \
+    < $(date +"%Y%m%d")_loceval.sql
+```
+
+
+# Ad-Hoc Backup/Restore
+
+## connection
+
+```{r libraries-and-paths}
+library("dplyr")
+library("dbplyr")
+library("rprojroot")
+library("keyring")
+library("configr")
+library("DBI")
+library("RPostgres")
+library("glue")
+
+projroot <- find_root(is_rstudio_project)
+working_dbname <- "loceval_dev" 
+dbstructure_folder <- "devdb_structure"
+connection_profile <- "inbopostgis-dev" 
+
+# unless the password is stored in the config,
+# you might want to run the following prior to sourcing or rendering this script:
+# keyring::key_set("DBPassword", "db_user_password") # read-only user
+config_filepath <- file.path("./inbopostgis_server.conf")
+
+source("MNMDatabaseToolbox.R")
+
+```
+
+
+For safe testing, I will query data from "production", and store it to "dev".
+
+```{r connect-database}
+#| eval: true
+
+db_source <- connect_database_configfile(
+  config_filepath,
+  database = "loceval",
+  profile = connection_profile
+)
+
+db_target <- connect_database_configfile(
+  config_filepath,
+  database = working_dbname,
+  profile = connection_profile
+)
+```
+
+
+## data re-loading challenge
+
+start simple, with the `Protocols` table.
+No foreign keys, static data.
+
+```{r test-table}
+#| eval: false
+
+db_table <- DBI::Id(schema = "metadata", table = "Protocols")
+protocols_backup <- dplyr::tbl(db_source, db_table) %>%
+  collect
+glimpse(protocols_backup)
+
+```
+
+Problem is: we need to keep the `protocol_id` persistent.
+
+If we change the protocols, and upload it, the indices will change because they are serials.
+
+```{r write-table-example}
+#| eval: false
+
+rs <- DBI::dbWriteTable(
+  db_target,
+  db_table,
+  protocols_backup,
+  row.names = FALSE,
+  overwrite = TRUE,
+  append = FALSE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+)
+
+```
+
+- we cannot append, because that changes the indices
+  > Error: COPY returned error : ERROR:  duplicate key value violates unique constraint "Protocols_pkey"
+  > DETAIL:  Key (protocol_id)=(1) already exists.
+  > CONTEXT:  COPY Protocols, line 1
+
+- we cannot overwrite, because there are dependent tables prohibiting the drop
+  > Error: Failed to fetch row : ERROR:  cannot drop table metadata."Protocols" because other objects depend on it
+  > DETAIL:  constraint fk_protocols_groupedactivities on table metadata."GroupedActivities" depends on table metadata."Protocols"
+  > HINT:  Use DROP ... CASCADE to drop the dependent objects too.
+
+
+:::{.callout-warning}
+We actually have `ON DELETE SET NULL [...]` in place for foreign keys, 
+so this *should* work.
+
+However, the problem is that `DBI::dbWriteTable` seems to drop/create the table with `overwrite = TRUE`; dropping is prohibited.
+
+:::
+
+
+## Solution
+
+:::{.callout-tip title="Strategy"}
+We need a framework to dump the whole data and lookup/re-establish connections.
+:::
+
+... which is too intricate to be solved in R.
+But, with a little help of the Python part... (see `MNMDatabaseToolbox.py::Database.GetDatabaseRelations()`)
+
+### (0) test case
+
+Here a test case for adjusting data in the database table.
+```{r testcase-parameters}
+
+table_key <- "Protocols"
+schemas <- read.csv(here::here("devdb_structure", "TABLES.csv")) %>%
+  select(table, schema, geometry)
+
+# These are clumsy, temporary, provisional helpers.
+# But, hey, there will be time later.
+get_schema <- function(tablelabel) {
+  return(schemas %>%
+    filter(table == tablelabel) %>%
+    pull(schema)
+  )
+}
+get_namestring <- function(tablelabel) glue::glue('"{get_schema(tablelabel)}"."{tablelabel}"')
+get_tableid <- function(tablelabel) DBI::Id(schema = get_schema(tablelabel), table = tablelabel)
+
+print(get_namestring(table_key))
+
+# new_data <- read.csv(here::here("dumps", "Protocols_new.csv"))
+
+# test data: just replace the data with itself (to ensure future compatibility)
+new_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
+
+```
+
+
+### (1) dump all data, for safety
+
+```{r step1-safety-dump}
+now <- format(Sys.time(), "%Y%m%d%H%M")
+dump_all(
+    here::here("dumps", glue::glue("safedump_{now}.sql")),
+    config_filepath = config_filepath,
+    database = working_dbname,
+    profile = "dumpall",
+    user = "monkey",
+    exclude_schema = c("tiger", "public")
+    )
+```
+
+### (2) load current data
+
+```{r step2-load-table-relations}
+
+table_relations <- read_table_relations_config(
+  storage_filepath = here::here("devdb_structure", "table_relations.conf")
+  ) %>%
+  filter(relation_table == tolower(table_key))
+
+dependent_tables <- table_relations %>% pull(dependent_table)
+
+table_existing_data_list <- query_tables_data(
+    db_target,
+    database = "loceval_dev",
+    tables = lapply(c(table_key, dependent_tables), FUN = get_tableid)
+)
+```
+
+### (3) store key lookup of dependent table
+
+```{r step3-store-lookups}
+# source("MNMDatabaseToolbox.R")
+
+get_primary_key <- function(tablelabel){
+  pk <- load_table_info(dbstructure_folder, tablelabel) %>%
+    filter(primary_key == "True") %>%
+    pull(column)
+  return(pk)
+}
+
+get_characteristic_columns <- function(tablelabel){
+
+  # excluded from checks
+  logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
+
+  full_table_info <- load_table_info(dbstructure_folder, tablelabel)
+
+  pk <- full_table_info %>%
+    filter(primary_key == "True") %>%
+    pull(column)
+
+  characteristic_columns <- full_table_info %>%
+    filter(
+      !(column %in% logging_columns),
+      !(column %in% pk),
+    ) %>%
+    pull(column)
+    
+  return(characteristic_columns)
+}
+
+
+# query_columns(db_connection, get_tableid(table_key), c("protocol_id", "description"))
+# deptab_key <- "GroupedActivities"
+query_dependent_columns <- function(table_key, deptab_key) {
+
+  # with a little help from my Python
+  deptab_pk <- get_primary_key(deptab_key)
+
+  # get the foreign key columns
+  dependent_key <- table_relations %>%
+    filter(
+      relation_table == tolower(table_key),
+      dependent_table == deptab_key
+    ) %>%
+    pull(dependent_column)
+
+  # lookup the key columns
+  key_lookup <- query_columns(
+    db_target,
+    get_tableid(deptab_key),
+    c(deptab_pk, dependent_key)
+  )
+
+  return(key_lookup)
+}
+
+lookups <- lapply(
+  dependent_tables,
+  FUN = function(deptab_key) query_dependent_columns(table_key, deptab_key)
+) %>% setNames(dependent_tables)
+
+```
+
+### (4) retrieve old data
+
+```{r step4-old-data}
+pk <- get_primary_key(table_key)
+characteristic_columns <- get_characteristic_columns("Protocols")
+
+old_data <- query_columns(
+  db_target,
+  get_tableid(table_key),
+  columns = c(characteristic_columns, pk)
+)
+
+
+lostrow_data <- dplyr::tbl(db_target, get_tableid(table_key)) %>% collect()
+# TODO: what about `sf` data?
+
+```
+
+### (5) UPLOAD/replace the data
+
+```{r step5-delete-existing}
+
+
+# DELETE existing data
+execute_sql(
+  db_target,
+  glue::glue("DELETE  FROM {get_namestring(table_key)};")
+)
+
+# TODO sf data example
+
+# INSERT new data, appending the empty table
+#    (to make use of the "ON DELETE SET NULL" rule)
+rs <- DBI::dbWriteTable(
+  db_target,
+  get_tableid(table_key),
+  new_data,
+  row.names = FALSE,
+  overwrite = FALSE,
+  append = TRUE,
+  factorsAsCharacter = TRUE,
+  binary = TRUE
+)
+
+new_redownload <- query_columns(
+  db_target,
+  get_tableid(table_key),
+  columns = c(characteristic_columns, pk)
+)
+
+pk_lookup <- old_data %>%
+  left_join(
+    new_redownload,
+    by = characteristic_columns,
+    relationship = "one-to-one",
+    suffix = c("_old", ""),
+    unmatched = "drop"
+  )
+
+```
+
+
+```{r save-non-recovered-rows}
+
+not_found <- pk_lookup %>%
+  select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>% 
+  filter(if_any(everything(), ~ is.na(.x)))
+
+lost_rows <- lostrow_data %>%
+  semi_join(
+    not_found,
+    by = pk
+  )
+
+
+if (nrow(lost_rows) > 0) {
+  warning("some previous data rows were not found back.")
+  knitr::kable(lost_rows)
+  write.csv(
+    lost_rows,
+    glue::glue("dumps/lostrows_{table_key}_{now}.csv"),
+    row.names = FALSE
+  )
+}
+
+
+```
+
+
+
+```{r update-dependent-tables}
+
+
+for (deptab in dependent_tables) {
+
+  # extract the associating columns
+  keycolumn_linkpair <- table_relations %>%
+    filter(
+      relation_table == tolower(table_key),
+      dependent_table == deptab
+    ) %>%
+    select(dependent_column, relation_column)
+  dependent_key <- keycolumn_linkpair[["dependent_column"]]
+  reference_key <- keycolumn_linkpair[["relation_column"]]
+
+  # the focus table, linking old and new pk values
+  # copied in case multiple deptabs have same key diff name
+  pk_link <- pk_lookup
+  # ensure `_old` suffix for joining below
+  suffix_col <- glue::glue("{dependent_key}_old")
+  if (!(suffix_col %in% names(pk_lookup))) {
+    names(pk_link)[names(pk_link) == dependent_key] <- suffix_col
+  }
+
+  # reduced to just the "old -> new" keys
+  pk_link <- pk_link %>% 
+    select(!!!rlang::syms(c(suffix_col, pk))) 
+
+  # names(pk_link)[names(pk_link) == dependent_key] <- reference_key
+
+
+  # finally, combine the lookup table
+  lookup <- lookups[[deptab]]
+  names(lookup)[names(lookup) == dependent_key] <- suffix_col
+
+  key_replacement <- lookup %>%
+    left_join(
+      pk_link,
+      by = suffix_col,
+      relationship = "many-to-one",
+      suffix = c("_old", "")
+    )
+
+  # dump-store look
+  write.csv(
+    key_replacement,
+    glue::glue("dumps/lookup_{now}_{table_key}_{deptab}.csv"),
+    row.names = FALSE
+  )
+
+
+  ### UPDATE the dependent table
+  # ... by looking up the dependent table pk 
+  dep_pk <- get_primary_key(deptab)
+
+  # repl_rownr <- 1
+  get_update_row_string <- function(repl_rownr){
+    dep_pk_val <- key_replacement[repl_rownr, dep_pk]
+    val <- key_replacement[repl_rownr, dependent_key]
+    if (is.na(val)) {
+      val <- "NULL"
+    }
+
+    update_string <- glue::glue("
+      UPDATE {get_namestring(deptab)}
+        SET {dependent_key} = {val}
+      WHERE {dep_pk} = {dep_pk_val}
+      ;
+    ")
+
+    return(update_string)
+  }
+
+  update_command <- lapply(
+    1:nrow(key_replacement),
+    FUN = get_update_row_string
+  )
+
+  # execute the update commands.
+  for (cmd in update_command) {
+    execute_sql(db_target, cmd)
+  }
+    
+}
+
+```
+
+
+# Testing
+
+## generalization
+
+The series of procedures outlined above was moved to the `MNMDatabaseToolbox.R` script collection.
+
+## test: reference data from *production* to `_dev`
+
+```{r re-upload-function}
+
+re_upload_tabledata <- function(
+    test_table,
+    new_data,
+    characteristic_columns,
+    rename_characteristics = NULL
+  ) {
+  source("MNMDatabaseToolbox.R")
+  working_dbname <- "loceval_dev" 
+  dbstructure_folder <- "devdb_structure"
+  connection_profile <- "inbopostgis-dev" 
+  config_filepath <- file.path("./inbopostgis_server.conf")
+  # keyring::key_set("DBPassword", "db_user_password") # read-only user
+  
+  update_datatable_and_dependent_keys(
+    config_filepath = config_filepath,
+    working_dbname = working_dbname,
+    table_key = test_table,
+    new_data = new_data,
+    profile = connection_profile,
+    dbstructure_folder = dbstructure_folder,
+    characteristic_columns = NULL,
+    rename_characteristics = rename_characteristics,
+    verbose = FALSE
+  ) 
+}
+```
+
+
+```{r table-data-update-cascade}
+
+# R reads NULLs from csv as "", unless `na.strings` is set.
+test_table = "Protocols"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = read.csv(here::here("dumps", "Protocols_new.csv")),
+  characteristic_columns = NULL
+)
+
+test_table = "TeamMembers"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = read.csv(here::here("dumps", "TeamMembers_new.csv"), na.strings = ""),
+  characteristic_columns = NULL
+)
+
+test_table = "LocationCalendar"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data =
+    dplyr::tbl(db_source, DBI::Id(schema = "outbound", table = test_table)) %>%
+      select(-targetpanel) %>% 
+      collect(),
+  characteristic_columns = c("scheme", "module_combo_code", "panel_set", "stratum", "grts_address"),
+  rename_characteristics = c("type" = "stratum", "type_adjusted" = "stratum_to_expect")
+)
+# TODO dropped NOT-NULL constraint in Visits
+
+test_table = "Visits"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = dplyr::tbl(db_source, DBI::Id(schema = "inbound", table = test_table)) %>% collect(),
+  characteristic_columns = c("locationcalendar_id", "activity_rank", "grouped_activity_id"),
+  rename_characteristics = c("activity_rank" = "activity_sequence", "type_assessed" = "stratum_corrected")
+)
+
+test_table = "FreeFieldNotes"
+re_upload_tabledata(
+  test_table = test_table,
+  new_data = dplyr::tbl(db_source, DBI::Id(schema = "inbound", table = test_table)) %>% collect(),
+  characteristic_columns = c("teammember_id", "note_date", "location", "activity")
+)
+```
+
+
+
+# TODO
+
+*(persistent backups = dumps)*
+
+- handle user permission exceptions 
+  - sterr `2>` to separate file
+  - check with cronjob or send an e-mail
+
+
+*(ad-hoc backups)*
+
+- [X] make sure this works with `sf` and geometries -> seems fine, but test
+- [X] `characteristic_columns` must be the intersect of possible columns in the case of slight db structure changes,
+  or a link of renamend columns (`join_by`?) -> can be passed as an argument
+  
+- [ ] complete db backup procedure: 
+  - store content to csv / sqlite
+  - re-create the database
+  - restore data
+  - (bonus) check `log_creation` persistence
+
+
+# ARCHIVE
+
+## notes
+
+- `pg_dumpall ...` -> apply pg_dump to all databases on a server
+
+
+## database connection
+
+Working out a way to load the config.
+Config has the following structure:
+
+```
+    [test]
+    host = localhost
+    port = 5439
+    user = test
+    database = playground
+    password = <optional: the password IN PLAIN TEXT>
+```
+
+:::{.callout-warning}
+That `.conf`/`.ini` file can contain password in plain text!
+
+- Do not print its content in this notebook.
+- Make sure to `.gitignore` it!
+:::

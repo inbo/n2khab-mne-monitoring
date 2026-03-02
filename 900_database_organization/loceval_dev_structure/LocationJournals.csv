@@ -1,0 +1,15 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+locationjournal_id,int,True,,True,True,,,,location info index (technical)
+location_id,int,False,,False,False,,,,the technical sequence of all locations
+grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+date,date,True,,False,False,,,,date of a journal entry
+source,varchar,True,,False,False,,,,source: MHQ/POC/LOCEVAL/REMOVALS/WIA/...
+type_subset,varchar,False,NULL,False,False,,,,indicating which if there are multiple types/strata only partially affected
+activity_group_id,smallint,False,NULL,False,False,,,,"a link to the activity metadata, but not for all journal activities"
+loceval_type,varchar,False,NULL,False,False,,,,type determined in location evaluation
+loceval_replacement,boolean,False,NULL,False,False,,,,local replacement during logeval
+loceval_type_absence,boolean,False,NULL,False,False,,,,type absence during loceval
+issues,boolean,False,NULL,False,False,,,,tag if there were issues during fieldwork activities
+removal_unplanned,boolean,False,NULL,False,False,,,,tag if removal was not scheduled/planned/wanted
+category,varchar,False,NULL,False,False,,,,"category: inst:=installation/removal, biot:=mhq/loceval, else `source`"
+is_latest,boolean,False,NULL,False,False,,,,"flags the latest events of a category, e.g. latest inst or biot"

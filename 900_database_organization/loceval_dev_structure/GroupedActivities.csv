@@ -1,0 +1,13 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+grouped_activity_id,smallint,True,,True,True,,,,grouped activity index (technical)
+activity_group_id,smallint,True,,False,False,,,,activity group index (technical)
+activity_group,varchar,True,,False,False,,,,
+activity_id,smallint,True,,False,False,,,,activity index (technical)
+activity,varchar,True,,False,False,,,,activity string shorthand
+activity_name,varchar,True,,False,False,,,,description of the activity
+is_datacollection_method,boolean,False,NULL,False,False,,,,
+is_field_activity,boolean,False,NULL,False,False,,,,
+is_prep_activity,boolean,False,NULL,False,False,,,,
+is_lab_activity,boolean,False,NULL,False,False,,,,
+is_loceval_activity,boolean,False,NULL,False,False,,,,
+protocol_id,smallint,False,NULL,False,False,Protocols.protocol_id,,,referencing the protocol table

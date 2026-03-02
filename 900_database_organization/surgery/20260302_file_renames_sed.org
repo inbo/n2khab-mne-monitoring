@@ -1,0 +1,35 @@
+#+title: File Renames =sed=
+#+date: 20260302
+
+some files have been renamed
+but are called from within scripts.
+
+With the shell code, I auto-replace their names within files.
+
+
+* =095_re_link_foreign_keys_optional.R=
+
+sd  102_re_link_foreign_keys.R
+
+
+grep -rlZ '095_re_link_foreign_keysXXX_optional.R' . | xargs -0 sed -i 's/095_re_link_foreign_keys_optional/102_re_link_foreign_keys/g'
+
+
+grep -rlZ '091a_push_loceval_to_mnmgwdb' . | xargs -0 sed -i 's/091a_push_loceval_to_mnmgwdb/111a_push_loceval_to_mnmgwdb/g'
+grep -rlZ '091b_fill_location_journals' . | xargs -0 sed -i 's/091b_fill_location_journals/111b_fill_location_journals/g'
+grep -rlZ '092_update_facalendar' . | xargs -0 sed -i 's/092_update_facalendar/112_update_facalendar/g'
+grep -rlZ '093_replaced_LocationCells' . | xargs -0 sed -i 's/093_replaced_LocationCells/113_replaced_LocationCells/g'
+grep -rlZ '094_sync_LocationInfos' . | xargs -0 sed -i 's/094_sync_LocationInfos/114_sync_LocationInfos/g'
+grep -rlZ '096_update_wgs84_coordinates' . | xargs -0 sed -i 's/096_update_wgs84_coordinates/116_update_wgs84_coordinates/g'
+grep -rlZ '097loceval_mhq_areas' . | xargs -0 sed -i 's/097loceval_mhq_areas/117loceval_mhq_areas/g'
+grep -rlZ '097mnmgwdb_mhq_areas' . | xargs -0 sed -i 's/097mnmgwdb_mhq_areas/117mnmgwdb_mhq_areas/g'
+grep -rlZ '098_random_placementpoints_mnmgwdb' . | xargs -0 sed -i 's/098_random_placementpoints_mnmgwdb/118_random_placementpoints_mnmgwdb/g'
+grep -rlZ '099_sync_FreeFieldNotes' . | xargs -0 sed -i 's/099_sync_FreeFieldNotes/119_sync_FreeFieldNotes/g'
+grep -rlZ '040l_loceval_consistency_dashboard' . | xargs -0 sed -i 's/040l_loceval_consistency_dashboard/045_loceval_consistency_dashboard/g'
+grep -rlZ '040m_mnmgwdb_consistency_dashboard' . | xargs -0 sed -i 's/040m_mnmgwdb_consistency_dashboard/046_mnmgwdb_consistency_dashboard/g'
+
+
+
+
+grep -rlZ '050_snippet_selection.R' . | xargs -0 sed -i 's/050_snippet_selection.R/401_snippet_selection.R/g'
+grep -rlZ '051_snippet_transformation_code.R' . | xargs -0 sed -i 's/051_snippet_transformation_code.R/402_snippet_transformation_code.R/g'

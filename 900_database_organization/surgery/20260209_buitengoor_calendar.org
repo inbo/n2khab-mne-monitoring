@@ -1,0 +1,464 @@
+#+title: 20260209 Buitengoor Calendar
+
+
+
+|                              |                                |                                 |
+|:-----------------------------|:-------------------------------|:--------------------------------|
+|scheme_ps_targetpanels        |GW_03.3:PS1PANEL09              |GW_03.3:PS1PANEL10               |
+|stratum                       |6230_hmo                        |7230                             |
+|grts_address                  |826486                          |826486                           |
+|is_forest                     |FALSE                           |FALSE                            |
+|in_mhq_samples                |TRUE                            |FALSE                            |
+|last_type_assessment_in_field |TRUE                            |FALSE                            |
+|domain_part                   |SAC_network_remainder           |SAC_network_remainder            |
+|date_start                    |2026-01-01                      |2026-04-01                       |
+|date_end                      |2026-03-31                      |2026-06-30                       |
+|date_interval                 |2026-01-01 CET--2026-03-31 CEST |2026-04-01 CEST--2026-06-30 CEST |
+|field_activity_group          |GWINSTPIEZWELL                  |GWINSTPIEZWELL                   |
+|rank                          |2                               |2                                |
+|grts_join_method              |cell_center                     |cell_center                      |
+|priority                      |3                               |2                                |
+|wait_any                      |FALSE                           |FALSE                            |
+|wait_watersurface             |FALSE                           |FALSE                            |
+|wait_3260                     |FALSE                           |FALSE                            |
+|wait_7220                     |FALSE                           |FALSE                            |
+|wait_floating                 |FALSE                           |FALSE                            |
+
+
+
+#+begin_src sql
+\COPY (
+SELECT *
+FROM "outbound"."FieldworkCalendar" FAC
+LEFT JOIN "inbound"."Visits" VIS ON FAC.fieldworkcalendar_id = VIS.fieldworkcalendar_id
+LEFT JOIN "inbound"."WellInstallationActivities" WIA ON WIA.visit_id = VIS.visit_id
+WHERE FAC.grts_address IN (826486, 51158134) AND FAC.activity_group_id = 4
+) TO '/data/mnm_db_backups/buitengoor.csv' With CSV DELIMITER ',' HEADER
+;
+\COPY (
+SELECT *
+FROM "outbound"."FieldworkPlanning"
+WHERE grts_address IN (826486, 51158134) AND activity_group_id = 4
+) TO '/data/mnm_db_backups/buitengoor2.csv' With CSV DELIMITER ',' HEADER
+;
+
+#+end_src
+
+
+* Duplicates in LOCEVAL
+
+
+SELECT *
+FROM "inbound"."LocationEvaluation"
+WHERE grts_address IN (826486, 51158134)
+
+okay, the issue was joining =LocationAssessments= on =location_id=, although the table is a =SampleUnits= derivative.
+
+SELECT *
+FROM "outbound"."LocationAssessments"
+WHERE grts_address IN (826486, 51158134)
+
+
++The whole view is a bit twisted.+
+It just seemed wrong; however, =LocationAssessments= actually refers to OrthofotoAssessments
+Yet a view with the better name EXISTS  "outbound"."OrthophotoAssessment"
+
+
+OLD view "inbound"."LocationEvaluation"
+#+begin_src sql
+SELECT
+  LOC.*,
+  VISIT.visit_id,
+  VISIT.teammember_id,
+  VISIT.date_visit,
+  VISIT.type_assessed,
+  VISIT.notes,
+  VISIT.photo,
+  VISIT.visit_done,
+  UNIT.sampleunit_id,
+  UNIT.grts_join_method,
+  UNIT.schemes,
+  UNIT.scheme_ps_targetpanels,
+  UNIT.type,
+  UNIT.has_mhq_assessment,
+  UNIT.mhq_assessment_date,
+  UNIT.is_replaced,
+  UNIT.replacement_ongoing,
+  UNIT.replacement_reason,
+  UNIT.replacement_permanence,
+  UNIT.type_is_absent,
+  INFO.locationinfo_id,
+  INFO.recovery_hints,
+  INFO.landowner,
+  INFO.accessibility_inaccessible,
+  INFO.accessibility_revisit,
+  LOCASS.assessment_done,
+  LOCASS.cell_disapproved,
+  LOCASS.notes AS location_assessment,
+  CASE WHEN (FAC.date_visit_planned IS NULL) THEN FALSE ELSE TRUE END AS is_scheduled,
+  FAC.teammember_assigned,
+  FAC.activity_group_id,
+  FAC.date_visit_planned,
+  FAC.date_visit_planned - current_date AS days_to_visit,
+  FAC.date_end - current_date AS days_to_deadline,
+  FAC.priority,
+  FAC.notes AS preparation_notes
+FROM "inbound"."Visits" AS VISIT
+LEFT JOIN "metadata"."Locations" AS LOC
+  ON LOC.location_id = VISIT.location_id
+LEFT JOIN "outbound"."LocationInfos" AS INFO
+  ON INFO.location_id = VISIT.location_id
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON VISIT.sampleunit_id = UNIT.sampleunit_id
+LEFT JOIN (
+  SELECT
+    fieldactivitycalendar_id,
+    sampleunit_id,
+    activity_group_id,
+    date_start,
+    date_end,
+    priority,
+    teammember_assigned,
+    date_visit_planned,
+    no_visit_planned,
+    notes,
+    archive_version_id
+  FROM "outbound"."FieldActivityCalendar" AS CAL
+  ) AS FAC
+  ON FAC.fieldactivitycalendar_id = VISIT.fieldactivitycalendar_id
+LEFT JOIN (
+  SELECT DISTINCT
+    location_id,
+    cell_disapproved,
+    assessment_done,
+    CONCAT(notes || ' ') AS notes
+  FROM "outbound"."LocationAssessments"
+  GROUP BY
+    location_id,
+    cell_disapproved,
+    assessment_done,
+    notes
+  ) AS LOCASS
+  ON VISIT.location_id = LOCASS.location_id
+WHERE TRUE
+  AND (UNIT.archive_version_id IS NULL)
+  AND (FAC.archive_version_id IS NULL)
+  AND (VISIT.archive_version_id IS NULL)
+  AND ((LOCASS.cell_disapproved IS NULL) OR (NOT LOCASS.cell_disapproved))
+  AND ((FAC.no_visit_planned IS NULL) OR (NOT FAC.no_visit_planned))
+  AND (FAC.activity_group_id IN
+  (SELECT DISTINCT activity_group_id FROM "metadata"."GroupedActivities"
+  WHERE is_loceval_activity)
+  )
+;
+#+end_src
+
+
+* gwTransfer
+
+#+begin_src
+SELECT *
+FROM "outbound"."gwTransfer"
+WHERE grts_address IN (826486, 51158134)
+;
+
+SELECT *
+FROM "outbound"."LocationAssessments"
+WHERE grts_address IN (826486, 51158134)
+;
+#+end_src
+
+Okay, 7230 is not done yet.
+
+* Back to MNMGWDB
+
+#+begin_src
+SELECT * FROM "outbound"."FieldworkPlanning"
+WHERE grts_address IN (826486, 51158134)
+;
+
+SELECT
+  grts_address,
+  type,
+  CAST(type AS TEXT),
+  eval_date,
+  eval_name AS loceval_colleague,
+  (  ((type_assessed IS NULL)
+     OR (type_assessed = type))
+     AND NOT type_is_absent
+  ) AS loceval_positive,
+  photo AS loceval_photo,
+  notes AS loceval_notes
+FROM "outbound"."LocationEvaluations"
+WHERE eval_source = 'loceval'
+AND grts_address IN (826486, 51158134)
+;
+
+
+SELECT
+*,
+  STRING_TO_ARRAY(type_subset, ',') AS types,
+  date AS loceval_latest_date,
+  loceval_replacement,
+  loceval_type_absence
+FROM "outbound"."LocationJournals"
+WHERE TRUE
+  -- AND category = 'biot'
+  AND is_latest
+AND grts_address IN (826486, 51158134)
+;
+
+
+SELECT
+  LJ.loceval_latest_date,
+  LJ.grts_address,
+  LE.type AS stratum,
+  CAST(LE.type AS TEXT),
+  LJ.loceval_replacement,
+  LE.loceval_colleague,
+  LE.loceval_photo,
+  LE.loceval_notes,
+  LJ.loceval_type_absence,
+  ( ((LE.type_assessed IS NULL)
+    OR (LE.type_assessed = LE.type))
+    AND (LJ.loceval_replacement OR NOT LE.type_is_absent)
+  ) AS loceval_positive
+FROM (
+  SELECT
+    location_id,
+    grts_address,
+    STRING_TO_ARRAY(type_subset, ',') AS types,
+    date AS loceval_latest_date,
+    loceval_replacement,
+    loceval_type_absence
+  FROM "outbound"."LocationJournals"
+  WHERE TRUE
+    AND category = 'biot'
+    AND is_latest
+    AND grts_address IN (826486, 51158134)
+) AS LJ
+LEFT JOIN (
+  SELECT
+    grts_address,
+    type,
+    eval_date,
+    eval_name AS loceval_colleague,
+    type_assessed,
+    type_is_absent,
+    photo AS loceval_photo,
+    notes AS loceval_notes
+  FROM "outbound"."LocationEvaluations"
+  WHERE eval_source = 'loceval'
+    AND grts_address IN (826486, 51158134)
+) AS LE
+  ON (LE.grts_address = LJ.grts_address)
+  AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
+  AND (LJ.loceval_latest_date = LE.eval_date)
+WHERE TRUE
+  -- AND NOT loceval_type_absence
+  AND LE.grts_address = 826486
+;
+
+#+end_src
+
+
+#+begin_src
+
+SELECT
+  LOC.*,
+  SLOC.scheme_ps_targetpanels,
+  SLOC.schemes,
+  SLOC.strata,
+  SLOC.is_forest,
+  SLOC.in_mhq_samples,
+  SLOC.has_mhq_assessment,
+  SLOC.is_replacement,
+  REP.grts_address_poc,
+  INFO.locationinfo_id,
+  INFO.accessibility_inaccessible,
+  INFO.accessibility_revisit,
+  INFO.landowner,
+  INFO.recovery_hints,
+  INFO.watina_code_1,
+  INFO.watina_code_2,
+  SOIL.soil_info,
+  FWCAL.fieldworkcalendar_id,
+  FWCAL.samplelocation_id,
+  FWCAL.date_start,
+  FWCAL.date_end,
+  FWCAL.date_interval,
+  FWCAL.date_end - current_date AS days_to_deadline,
+  FWCAL.activity_group_id,
+  ACT.activity_group,
+  ACT.is_gw_activity,
+  FWCAL.activity_rank,
+  FWCAL.priority,
+  FWCAL.wait_watersurface,
+  FWCAL.wait_3260,
+  FWCAL.wait_7220,
+  (FWCAL.wait_watersurface OR FWCAL.wait_3260 OR FWCAL.wait_7220) AS is_waiting,
+  FWCAL.excluded,
+  FWCAL.excluded_reason,
+  FWCAL.teammember_assigned,
+  FWCAL.date_visit_planned,
+  FWCAL.no_visit_planned,
+  FWCAL.notes,
+  FWCAL.done_planning,
+  VISIT.date_visit,
+  VISIT.photo,
+  VISIT.visit_done,
+  CASE WHEN VISIT.date_visit IS NULL THEN NULL
+       ELSE current_date - VISIT.date_visit
+  END AS count_days_ws,
+  INST.has_installation,
+  INST.installation_date,
+  INST.installation_issues,
+  LOCEVAL.loceval_positive,
+  LOCEVAL.loceval_latest_date,
+  -- LOCEVAL.loceval_replacement,
+  LOCEVAL.loceval_colleague,
+  LOCEVAL.loceval_photo,
+  LOCEVAL.loceval_notes
+FROM "outbound"."FieldworkCalendar" AS FWCAL
+LEFT JOIN "outbound"."SampleLocations" AS SLOC
+  ON SLOC.samplelocation_id = FWCAL.samplelocation_id
+LEFT JOIN "metadata"."Locations" AS LOC
+  ON LOC.location_id = SLOC.location_id
+LEFT JOIN "outbound"."LocationInfos" AS INFO
+  ON LOC.location_id = INFO.location_id
+LEFT JOIN ( -- soil infos
+  SELECT DISTINCT location_id, info AS soil_info
+  FROM "metadata"."LocationSoilInfos"
+  ) AS SOIL
+  ON LOC.location_id = SOIL.location_id
+LEFT JOIN "inbound"."Visits" AS VISIT
+  ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
+LEFT JOIN "inbound"."WellInstallationActivities" AS WIA
+    ON VISIT.visit_id = WIA.visit_id
+LEFT JOIN ( -- grouped activities
+  SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
+    FROM "metadata"."GroupedActivities"
+    GROUP BY activity_group_id, activity_group, is_gw_activity
+  ) AS ACT
+    ON ACT.activity_group_id = FWCAL.activity_group_id
+LEFT JOIN ( -- loceval
+  SELECT
+    LJ.loceval_latest_date,
+    LJ.grts_address,
+    LE.type AS stratum,
+    LJ.loceval_replacement,
+    LE.loceval_positive,
+    LE.loceval_colleague,
+    LE.loceval_photo,
+    LE.loceval_notes
+  FROM (
+    SELECT
+      location_id,
+      grts_address,
+      STRING_TO_ARRAY(type_subset, ',') AS types,
+      date AS loceval_latest_date,
+      loceval_replacement,
+      loceval_type_absence
+    FROM "outbound"."LocationJournals"
+    WHERE TRUE
+      AND category = 'biot'
+      AND is_latest
+  ) AS LJ
+  LEFT JOIN (
+    SELECT
+      grts_address,
+      type,
+      eval_date,
+      eval_name AS loceval_colleague,
+      (  ((type_assessed IS NULL)
+         OR (type_assessed = type))
+         AND NOT type_is_absent
+      ) AS loceval_positive,
+      photo AS loceval_photo,
+      notes AS loceval_notes
+    FROM "outbound"."LocationEvaluations"
+    WHERE eval_source = 'loceval'
+  ) AS LE
+    ON (LE.grts_address = LJ.grts_address)
+    AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
+    AND (LJ.loceval_latest_date = LE.eval_date)
+  WHERE TRUE
+    AND (loceval_replacement OR NOT loceval_type_absence)
+    AND LE.grts_address IS NOT NULL
+) AS LOCEVAL
+  ON SLOC.grts_address = LOCEVAL.grts_address
+  AND SLOC.strata = LOCEVAL.stratum
+LEFT JOIN ( -- replacements
+  SELECT DISTINCT
+    type,
+    grts_address AS grts_address_poc,
+    grts_address_replacement AS grts_address
+  FROM "archive"."ReplacementData"
+  GROUP BY type, grts_address, grts_address_replacement
+) AS REP
+  ON ((REP.grts_address = SLOC.grts_address)
+  AND (SLOC.strata = REP.type))
+LEFT JOIN ( -- journal/installations
+  SELECT
+    location_id,
+    (source = 'gwdb') AS has_installation,
+    CASE WHEN source = 'removal' THEN NULL ELSE date END AS installation_date,
+    issues AS installation_issues
+  FROM "outbound"."LocationJournals"
+  WHERE TRUE
+    AND category = 'inst'
+    AND is_latest
+) AS INST
+  ON (LOC.location_id = INST.location_id)
+WHERE is_gw_activity
+  AND FWCAL.archive_version_id IS NULL
+  AND FWCAL.grts_address IN (826486, 51158134)
+ORDER BY
+  FWCAL.date_end,
+  FWCAL.priority,
+  is_waiting,
+  SLOC.strata,
+  FWCAL.grts_address,
+  FWCAL.activity_rank,
+  FWCAL.activity_group_id
+;
+
+#+end_src
+
+
+*LoJos type absence is wrong!*
+
+
+* =LocationJournals= corrected
+
+#+begin_src sql
+\COPY (
+SELECT * FROM "outbound"."LocationJournals"
+) TO '/data/mnm_db_backups/buitengoor_lojos_pre.csv' With CSV DELIMITER ',' HEADER
+;
+#+end_src
+
+(669 rows)
+
+
+#+begin_src sql
+DELETE FROM "outbound"."LocationJournals";
+#+end_src
+
+-> re-run =RScript 111b_fill_location_journals.R -staging=
+
+
+#+begin_src sql
+\COPY (
+SELECT * FROM "outbound"."LocationJournals"
+) TO '/data/mnm_db_backups/buitengoor_lojos_post.csv' With CSV DELIMITER ',' HEADER
+;
+#+end_src
+
+(605 rows)
+
++ applied on =_staging=
++ just briefly checkt pre-/-post; seems good for "Buitengoor" en "Hellebos" on mnmgwdb
++ ran and deployed to =production.=
+  + looks correct on the actual apps
++ daily maintenance tasks
