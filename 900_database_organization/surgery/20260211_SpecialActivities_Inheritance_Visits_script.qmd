@@ -755,8 +755,24 @@ All relevant fields update.
 - started 07:30
 - done 08:40
 - all worked as tested, everyone was informed.
+- working on 091a afterwards; issues:
+  - `dbplyr` cannot do ONLY!
+  - workaround: now UPDATE of grts_address instead of duplicate+DELETE
+  - only storing actually replaced grts in `ReplacementData`
 
+`<2026-03-02>`
+- re-copied to staging
+- tested 091a thoroughly, e.g. with manual local replacement on `-staging`
 
+compared `ReplacementData` *pre/post*
+```
+\COPY (
+SELECT * FROM "archive"."ReplacementData"
+) TO '/data/mnm_db_backups/foefelen/replacement_data_pre_091_overhaul.csv' With CSV DELIMITER ',' HEADER
+;
+```
+
+`050_snippet_selection.R` gives a SEGFAULT
 
 # Cleanup
 
@@ -764,6 +780,14 @@ after everything works,
 backup and then
 drop WIA/CSA/SPA tables
 
+```
+DROP TABLE "inbound"."WellInstallationActivities" CASCADE; 
+DROP TABLE "inbound"."ChemicalSamplingActivities" CASCADE; 
+DROP TABLE "inbound"."SpatialPositioningActivities" CASCADE; 
+DROP FUNCTION IF EXISTS "metadata".sync_wia CASCADE;
+DROP FUNCTION IF EXISTS "metadata".sync_csa CASCADE;
+DROP FUNCTION IF EXISTS "metadata".sync_spa CASCADE;
+```
 
 <!-- 
 to re-start testing:

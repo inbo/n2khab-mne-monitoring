@@ -20,7 +20,7 @@ if (length(commandline_args) > 0) {
   suffix <- ""
   # suffix <- "-staging" # "-testing"
 }
-suffix <- "-staging"
+# suffix <- "-staging"
 
 ### connect to database
 mnmgwdb <- connect_mnm_database(

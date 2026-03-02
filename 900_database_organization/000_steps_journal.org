@@ -2003,9 +2003,16 @@ Done. With some bumps.
 
 
 * Major Structure Overhaul: Visits Inheritance
+SCHEDULED: <2026-02-27 Fri>
 
 concept: [[file:./surgery/20260129_SpecialActivities_Inheritance.org]]
 implementation: [[file:./surgery/20260211_SpecialActivities_Inheritance_Visits_script.qmd]]
+
+on the way: issues with maintenance script =091a_=
++ =dbplyr= can only do select without ONLY
+  - workaround: now UPDATE of grts_address instead of duplicate+DELETE
+- only storing actually replaced grts in ReplacementData
+
 
 
 * learning the hard way
@@ -2083,12 +2090,16 @@ SCHEDULED: <2025-07-31 Thu>
 + wrong IF clause (just switched arguments) on forest/assessment MHQ determination
 + replacement procedure: obob <= instead of < 1 cell (was originally only for duplication)
 
-** TODO [#A] fieldwork_id conflict
+
+** DONE [#A] fieldwork_id conflict
+CLOSED: [2026-03-02 Mon 09:36]
 some script updates WIA and CSA,
 but neglects uniqueness of the =fieldwork_id=.
 Temporarily solved by increasing the fieldwork_id
 
 see [[file:./surgery/20250924_fieldwork_id_conflict.sql]]
+
+done by implementing inheritance
 
 
 ** restoring production database from dumps

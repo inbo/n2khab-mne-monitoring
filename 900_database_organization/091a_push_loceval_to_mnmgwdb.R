@@ -21,7 +21,7 @@ if (length(commandline_args) > 0) {
   suffix <- ""
   # suffix <- "-staging" # "-testing"
 }
-suffix <- "-staging"
+# suffix <- "-staging"
 
 
 message("________________________________________________________________")
