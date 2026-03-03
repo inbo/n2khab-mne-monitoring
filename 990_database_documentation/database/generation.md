@@ -16,7 +16,6 @@ create database:
 	CREATE EXTENSION fuzzystrmatch;
 	CREATE EXTENSION postgis_tiger_geocoder;
   ```
-  ```
 
 structure is stored in google sheets [here](https://drive.google.com/drive/folders/1zwyNuQEPcfK_CmT4OjrBeJGH9yrTrbGN?usp=drive_link)
 - `locevaldb`: https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
