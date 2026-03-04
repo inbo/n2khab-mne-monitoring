@@ -19,7 +19,6 @@ DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", base_folder/"loceval_db_st
 
 if restore_dev:
     # database: loceval_dev
-
     db_connection = DTB.ConnectDatabase(
         base_folder/"inbopostgis_server.conf",
         connection_config = "loceval-dev",

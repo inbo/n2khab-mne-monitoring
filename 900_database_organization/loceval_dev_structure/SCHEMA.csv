@@ -1,6 +1,6 @@
 schema,owner,usage
-outbound,yoda,"tom,ward,floris,karen,janne,falk,tester,monkey"
-inbound,yoda,"tom,ward,floris,karen,janne,falk,tester,monkey"
-metadata,yoda,"tom,ward,floris,karen,janne,falk,tester,monkey"
-archive,yoda,"tester,monkey"
-analysis,yoda,"tom,ward,floris,karen,janne,falk,tester,monkey"
+outbound,yoda,"viewer_mnmdb, tester_mnmdb"
+inbound,yoda,"viewer_mnmdb, tester_mnmdb"
+metadata,yoda,"viewer_mnmdb, tester_mnmdb"
+archive,yoda,"reporter_mnmdb, viewer_mnmdb"
+analysis,yoda,"viewer_mnmdb, tester_mnmdb"

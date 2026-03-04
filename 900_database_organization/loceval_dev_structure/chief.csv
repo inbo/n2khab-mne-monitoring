@@ -1,3 +1,6 @@
-The superuser for this database is:,yoda,(tester included),Unnamed: 3,Unnamed: 4,Unnamed: 5,Unnamed: 6,Unnamed: 7
-list of other users:,"tom,ward,floris,karen,janne,falk,tester",tom,ward,floris,karen,janne,falk
-read-only users:,monkey,,,,,,
+The owner of this database mirror is:,yoda,(tester included)
+planners:,planner_loceval,
+list of other users:,user_loceval,
+read-only users:,viewer_mnmdb,
+reporter users:,reporter_mnmdb,
+testing user:,", tester_mnmdb",
