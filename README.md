@@ -21,8 +21,10 @@ Only its 'main' (internally accepted) branch is public, through the mirrored [n2
 
 Explanation of main directory structure:
 
-- _to be updated as needed_
-- 
+- `900_database_organization` contains database tooling under active development.
+- Folder `990_database_documentation` is an [obsidian](https://obsidian.md) vault with documentation about the MNE databases.
+- Folders with lower index numbers generally contain sub-projects and components to support or report about operative work on the MNE.
+
 
 ## Relation with N2KHAB packages and repositories
 
