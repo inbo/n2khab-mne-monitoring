@@ -4,10 +4,10 @@ tags:
   - roles
   - users
 started: 2026-03-04
-finished:
+finished: 2026-03-04
 execution:
   - "#FM"
-status: false
+status: true
 ---
 
 *cf.* <https://www.postgresql.org/docs/current/database-roles.html>
@@ -29,9 +29,9 @@ GRANT viewer_mnmdb TO user_gwdb;
 CREATE ROLE planner_gwdb;
 GRANT user_gwdb TO planner_gwdb;
 ```
-- [ ] reflect this in the [[locations/structure sheets]]
+- [x] reflect this in the [[locations/structure sheets]]
 	- [x] `mnmgwdb`
-	- [ ] `locevaldb`
+	- [x] `locevaldb`
 - [x] assign existing users to roles (they keep direct permissions for the moment)
 - [x] give the roles the correct database permissions
 	- [x] ... after python update
@@ -41,3 +41,4 @@ GRANT user_gwdb TO planner_gwdb;
 - [x] create new users and assign them only via roles
 	- [x] `postgres` user: create with password
 	- [x] adjust [[locations/pg_hba|pg_hba]] -> add new users
+- [x] documentation in `990_database_documentation/database/userroles.md`
