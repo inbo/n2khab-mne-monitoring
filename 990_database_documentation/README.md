@@ -17,6 +17,7 @@ This subfolder contains documentation about the `n2khab-mne-monitoring` database
 - [[database/backups|backups]]
 - [[database/structure|structure]]
 - [[database/design guidelines|design guidelines]]
+- [[database/userroles|user roles]]
 
 # [[maintenance/maintenance|maintenance]]
 - [[maintenance/creation|creation]]
@@ -29,8 +30,8 @@ This subfolder contains documentation about the `n2khab-mne-monitoring` database
 - [[usage/qgis|qgis]]
 - [[usage/qfield|qfield]]
 - [[R/R|R]]
-	- [R/MNMDatabaseConnection]([[MNMDatabaseConnection]] "object")
-	- [R/MNMDatabaseToolbox]([[MNMDatabaseToolbox]] "procedures")
+	- [[R/MNMDatabaseConnection]] "object"
+	- [[R/MNMDatabaseToolbox]] "procedures"
 - [[usage/python|python]]
 - [[usage/connection config file|connection config file]]
 

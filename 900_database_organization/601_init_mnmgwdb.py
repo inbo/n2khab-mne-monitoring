@@ -5,13 +5,13 @@ import MNMDatabaseToolbox as DTB
 # https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
 # SET search_path TO public,"metadata","outbound","inbound","archive";
 
-restore_dev = False
+restore_dev = True
 restore_staging = False
 restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
 base_folder = DTB.PL.Path(".")
 DTB.ODStoCSVs(base_folder/"mnmgwdb_dev_structure.ods", base_folder/"mnmgwdb_dev_structure")
-DTB.ODStoCSVs(base_folder/"mnmgwdb_db_structure.ods", base_folder/"mnmgwdb_db_structure")
+# DTB.ODStoCSVs(base_folder/"mnmgwdb_db_structure.ods", base_folder/"mnmgwdb_db_structure")
 
 ### (1) development
 # the dev database mirror is used for structural adjustments and development of

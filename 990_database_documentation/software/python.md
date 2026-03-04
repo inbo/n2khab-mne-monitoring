@@ -21,7 +21,7 @@ source .dbtools/bin/activate
 ```
 
 #### update
-(There are regular incompatibilities with the latest GDAL versions; consider keeping `GDAL==3.12.0.post1`.
+*(There are regular incompatibilities with the latest GDAL versions; consider keeping `GDAL==3.12.0.post1`.)*
 
 ```sh
 nvim python_requirements
@@ -30,4 +30,5 @@ nvim python_requirements
 pip install --upgrade pip -r python_requirements.txt
 # test functionality
 pip freeze > python_requirements.txt
+# Afterwards, make a git commit.
 ```

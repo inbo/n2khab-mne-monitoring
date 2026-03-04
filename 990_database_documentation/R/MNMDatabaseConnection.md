@@ -26,12 +26,10 @@ distinction: [[R/MNMDatabaseToolbox]] is a collection of procedures that work on
 	nor store data in R (though note that some functions do, of course, change
 	database content.
 	
-	```
-	+---------------------------------------------------------------------+
-	| `db$` / `mnmdb$` bring database structure and references with them. |
-	+---------------------------------------------------------------------+
-	```
-	no less, no more.
+> [!important] OOP
+> Connection objects `db$` / `mnmdb$` bring database structure and references with them.
+> No less, no more.
+
 
 # Methods
 - ## SQL Basics

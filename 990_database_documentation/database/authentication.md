@@ -15,6 +15,12 @@ psql -U <readonly_user> -h <host> -p <port> -d mnmgwdb -W
 ```
 tools like `pgAdmin` (not tested) or `pgModeler` could be used with those same credentials
 
+## protections
+some extra layers regulate login.
+- the [[software/ufw|firewall]] might block access
+- the [[server/postgresql|postgresql]] `pg_hba.conf` file must reflect user changes
+- password must be correct (case-sensitive)
+
 ## on passwords
 We favor complicated, high-entropy passwords. Nevertheless, there is an allocation between authentication security (having a strong password) and login convenience (having to type it over and over again).
 There are three options to enable "auto-login" / "passwordless" auth:
@@ -24,9 +30,8 @@ There are three options to enable "auto-login" / "passwordless" auth:
 - Via postgres: [create a `~/.pgpass` file](https://www.postgresql.org/docs/current/libpq-pgpass.html). Better don't use this for users with write access; it is plain text.
 
 # roles
-`<db_superuser>`: superuser on `_dev` and `_testing`
-`<db_admin>`: superuser on production
-`<readonly_user>`: read-only user, used for database sync, certain views, ad-hoc queries to avoid breaking things
+
+*cf.* [[database/userroles|user roles]]
 
 # user management
 ssh to server
@@ -40,11 +45,9 @@ ALTER USER <user> WITH ENCRYPTED PASSWORD '<password>';
 analogously, `deleteuser <user>`
 
 ## Permissions
-... must be granted and revoked by the database admin, like so:
-```sql
-GRANT SELECT ON "outbound"."MHQSafety" TO tester;
-REVOKE ALL PRIVILEGES ON "outbound"."MHQSafety" FROM tester;
-```
+
+- Are handled via [[database/userroles|userroles]] to specific tables/schemes.
+- Must be granted and revoked by the database admin.
 
 ## Troubleshooting
 If a user *cannot logon* to the database (e.g. via [[software/qfield|QField]], there are the following levels of login prevention to be considered faulty:
