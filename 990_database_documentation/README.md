@@ -1,4 +1,8 @@
-This subfolder contains documentation about the `n2khab-mne-monitoring` database structure. Please refer to the table of contents below.
+This subfolder contains documentation about the `n2khab-mne-monitoring` database structure. 
+It is an obsidian vault (*cf.* <https://obsidian.md>) to be used in that software.
+
+
+Please refer to the table of contents below.
 
 # [[server/server|server]]
 
