@@ -1,0 +1,12 @@
+{
+  "defaultViewMode": "preview",
+  "livePreview": false,
+  "vimMode": true,
+  "openBehavior": "file:README",
+  "newFileLocation": "root",
+  "attachmentFolderPath": "attachments",
+  "newLinkFormat": "absolute",
+  "alwaysUpdateLinks": true,
+  "trashOption": "local",
+  "readableLineLength": false
+}
