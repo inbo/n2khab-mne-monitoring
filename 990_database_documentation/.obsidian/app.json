@@ -1,0 +1,10 @@
+{
+  "defaultViewMode": "preview",
+  "useTab": false,
+  "openBehavior": "file:README",
+  "attachmentFolderPath": "attachments",
+  "newLinkFormat": "absolute",
+  "alwaysUpdateLinks": true,
+  "showUnsupportedFiles": true,
+  "readableLineLength": false
+}

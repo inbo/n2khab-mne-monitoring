@@ -1,0 +1,1 @@
+This folder assembles general information about the MNM postgis server.

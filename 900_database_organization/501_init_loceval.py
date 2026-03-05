@@ -5,7 +5,7 @@ import MNMDatabaseToolbox as DTB
 # https://docs.google.com/spreadsheets/d/12dWpyS2Wsjog3-z3q6-pUzlAnY4MuBbh6igDWH9bEZw/edit?usp=drive_link
 # SET search_path TO public,"metadata","outbound","inbound","archive";
 
-restore_dev = True
+restore_dev = False
 restore_staging = False
 restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
@@ -19,7 +19,6 @@ DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", base_folder/"loceval_db_st
 
 if restore_dev:
     # database: loceval_dev
-
     db_connection = DTB.ConnectDatabase(
         base_folder/"inbopostgis_server.conf",
         connection_config = "loceval-dev",
