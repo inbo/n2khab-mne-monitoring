@@ -21,3 +21,10 @@ This is fundamentally different from `990_database_documentation`, a *prospectiv
 [^1]: *cf.* <https://github.com/inbo/n2khab-mne-monitoring/tree/main/990_database_documentation>.
 
 Thank you for your contribution!
+
+---
+# TODOs
+```query
+["status":false]
+-path:"templates/"
+```
