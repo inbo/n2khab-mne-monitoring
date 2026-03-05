@@ -1,3 +1,8 @@
+---
+tags:
+  - RVP
+---
+
 scripts:
 + `510_loceval_update_RVP.qmd`
 + `610_mnmgwdb_update_RVP.qmd`

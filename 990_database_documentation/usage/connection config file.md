@@ -1,3 +1,8 @@
+---
+alias:
+  - inbopostgis_server.conf
+---
+
 `.conf`/`.ini` file to store login credentials
 to be accessed from within [[R/R]] or [[software/python]]
 

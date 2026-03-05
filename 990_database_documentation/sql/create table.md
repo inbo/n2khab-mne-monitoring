@@ -1,6 +1,8 @@
 ---
 aliases:
   - CREATE
+tags:
+  - example
 ---
 
 <https://www.postgresql.org/docs/current/sql-createtable.html>

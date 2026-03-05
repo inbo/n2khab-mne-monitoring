@@ -1,7 +1,9 @@
 ---
 aliases:
   - new column
-tags: examples
+tags: 
+  - example
+  - sql
 ---
 
 *The steps below are used to create a new column. They are not the only possible way, steps can be skipped, but the extensive procedural example is supposed to help remembering all required adjustments.*

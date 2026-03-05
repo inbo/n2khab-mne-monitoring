@@ -1,3 +1,8 @@
+---
+tags:
+  - example
+---
+
 dump table to `.csv` file
 
 ```sql
