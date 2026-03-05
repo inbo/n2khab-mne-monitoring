@@ -7,5 +7,6 @@
   "attachmentFolderPath": "attachments",
   "newLinkFormat": "absolute",
   "alwaysUpdateLinks": true,
-  "trashOption": "local"
+  "trashOption": "local",
+  "readableLineLength": false
 }
