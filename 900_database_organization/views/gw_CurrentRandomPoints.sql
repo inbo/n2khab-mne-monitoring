@@ -16,6 +16,6 @@ WHERE grts_address IN (
 ;
 
 
-GRANT SELECT ON  "outbound"."RandomCellPoints"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+GRANT SELECT ON  "outbound"."RandomCellPoints"  TO  viewer_mnmdb;
 
-GRANT SELECT ON  "outbound"."RandomCellPoints"  TO  tester;
+-- GRANT SELECT ON  "outbound"."RandomCellPoints"  TO  tester_mnmdb;

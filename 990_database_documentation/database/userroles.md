@@ -7,6 +7,7 @@ We use user roles to manage table-wise permissions and sort our users accordingl
 
 |                   |                                                          |
 |-------------------|----------------------------------------------------------|
+| `tester_mnmdb`    | *(testing)*                                              |
 | `viewer_mnmdb`    | read-only                                                |
 | `reporter_mnmdb`  | read-only, reporting purposes (i.e. with archive tables) |
 | `user_loceval`    | standard user of `locevaldb` (inbound data)              |
@@ -48,6 +49,9 @@ These "role classes" extend over databases: `viewer` is general enough to give a
 
 ## administration
 
+> [!warning] server-wide scope
+> Roles are attributed server-wide (user level attributes), spanning across database mirrors.
+
 To modify user roles, the following syntax applies.
 
 ```sql
@@ -63,3 +67,7 @@ Permissions of the roles are then granted as follows:
 GRANT SELECT ON "outbound"."MHQSafety" TO mnmdb_viewer;
 REVOKE ALL PRIVILEGES ON "outbound"."MHQSafety" FROM loceval_user;
 ```
+
+> [!question] granting
+> It seems that permissions are distributed upon the `GRANT` command.
+> Users added afterwards might not correctly receive the access rights. (Or so it seems...)

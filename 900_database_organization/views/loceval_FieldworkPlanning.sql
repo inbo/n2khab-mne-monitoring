@@ -136,5 +136,5 @@ DO ALSO
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO floris, karen, janne, ward, tom, monkey;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO floris, karen, janne, ward;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO viewer_mnmdb;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO planner_loceval;

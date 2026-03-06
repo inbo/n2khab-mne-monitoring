@@ -12,6 +12,6 @@ WHERE samplelocation_id IN (
 ;
 
 
-GRANT SELECT ON  "outbound"."MHQSafety"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+GRANT SELECT ON  "outbound"."MHQSafety"  TO  viewer_mnmdb;
 
-GRANT SELECT ON  "outbound"."MHQSafety"  TO  tester;
+-- GRANT SELECT ON  "outbound"."MHQSafety"  TO  tester_mnmdb;

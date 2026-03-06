@@ -193,11 +193,11 @@ DO ALSO
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, falk, monkey;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tom, floris, karen, falk;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  viewer_mnmdb;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  planner_gwdb
 
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester;
+GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
 
 
 -- REVOKE UPDATE ON  "outbound"."FieldworkPlanning"  FROM  tester;

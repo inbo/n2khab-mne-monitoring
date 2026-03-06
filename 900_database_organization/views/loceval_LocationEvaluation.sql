@@ -139,5 +139,5 @@ DO ALSO
 
 
 
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris, karen, janne, tom, ward, falk, monkey;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris, karen, ward, falk;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO user_loceval;

@@ -73,7 +73,4 @@ WHERE TRUE
 ;
 
 
-GRANT SELECT ON  "outbound"."gwTransfer"  TO  monkey;
-
--- GRANT SELECT ON  "outbound"."gwTransfer"  TO  yoda;
-
+GRANT SELECT ON  "outbound"."gwTransfer"  TO  reporter_mnmdb, viewer_mnmdb;

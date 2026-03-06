@@ -10,4 +10,4 @@ WHERE sampleunit_id IN (
   )
 ;
 
-GRANT SELECT ON  "outbound"."MHQSafety"  TO  tom, floris, karen, janne, falk, ward, monkey;
+GRANT SELECT ON  "outbound"."MHQSafety"  TO  viewer_mnmdb;

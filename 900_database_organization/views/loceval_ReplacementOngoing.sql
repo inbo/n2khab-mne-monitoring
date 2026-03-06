@@ -40,9 +40,9 @@ FROM (
   LEFT JOIN "outbound"."LocationInfos" AS INFO
     ON UNIT.location_id = INFO.location_id
   WHERE UNIT.replacement_ongoing
-    AND (
+    OR (
       REP.is_selected
-      OR NOT (UNIT.is_replaced OR UNIT.type_is_absent)
+      AND NOT (UNIT.is_replaced OR UNIT.type_is_absent)
     )
   ) AS REPU
 LEFT JOIN (
@@ -115,8 +115,9 @@ DO ALSO
 ;
 
 
-GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO ward, karen, janne, floris, tom, monkey;
-GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO ward, karen, janne, floris, tom;
+GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO user_loceval;
 
-GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO tester;
-GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO tester;
+-- only on testing:
+-- GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO tester_mnmdb;
+-- GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO tester_mnmdb;

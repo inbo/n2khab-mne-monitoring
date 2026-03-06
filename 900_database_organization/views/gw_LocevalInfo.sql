@@ -24,6 +24,6 @@ WHERE TRUE
 
 
 
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, monkey;
+GRANT SELECT ON  "outbound"."LocevalInfo"  TO  viewer_mnmdb;
 
-GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tester;
+-- GRANT SELECT ON  "outbound"."LocevalInfo"  TO  tester_mnmdb;

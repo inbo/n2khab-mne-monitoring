@@ -23,15 +23,15 @@ FROM "inbound"."FieldFollowUps"
 WHERE NOT done
 ;
 
-GRANT SELECT ON "inbound"."FollowUp" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, monkey;
-GRANT INSERT ON "inbound"."FollowUp" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward;
-GRANT UPDATE ON "inbound"."FollowUp" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward;
-GRANT DELETE ON "inbound"."FollowUp" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward;
+GRANT SELECT ON "inbound"."FollowUp" TO viewer_mnmdb;
+GRANT INSERT ON "inbound"."FollowUp" TO user_gwdb;
+GRANT UPDATE ON "inbound"."FollowUp" TO user_gwdb;
+GRANT DELETE ON "inbound"."FollowUp" TO user_gwdb;
 
-GRANT SELECT ON "inbound"."ToDos" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, monkey;
-GRANT INSERT ON "inbound"."ToDos" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward;
-GRANT UPDATE ON "inbound"."ToDos" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward;
-GRANT DELETE ON "inbound"."ToDos" TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward;
+GRANT SELECT ON "inbound"."ToDos" TO viewer_mnmdb;
+GRANT INSERT ON "inbound"."ToDos" TO user_gwdb;
+GRANT UPDATE ON "inbound"."ToDos" TO user_gwdb;
+GRANT DELETE ON "inbound"."ToDos" TO user_gwdb;
 
 
 --

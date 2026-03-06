@@ -225,11 +225,10 @@ WHERE teammember_assigned IN (
 
 
 
-GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
-GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT SELECT ON  "inbound"."MyFieldWork"  TO  viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  user_gwdb;
 
-
-
+-- only on testing:
 -- GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
 -- GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
 
