@@ -1,30 +1,18 @@
 # Below is a copy of a subset of the code snippets provided by @florisvdh
-# https://github.com/inbo/n2khab-mne-monitoring/tree/fieldworkdata_supportbyfloris
+# https://github.com/inbo/n2khab-mne-monitoring/tree/main/020_fieldwork_organization
 #
 # These specific snippets are used for updating the POC in the database.
 # UPDATE: I now copy essentially everything over,
 #     except for the header and google drive `.RData` download
 #     Note that all the "plot" functions below must be commented out manually.
 
-# # segfault:
-# habmap_gpkg <- file.path(n2khab::locate_n2khab_data(), "10_raw/habitatmap/habitatmap.gpkg")
-# habmap <- terra::vect(habmap_gpkg)
-#
-# # working, older version:
-# terra::vect(file.path(n2khab::locate_n2khab_data(), "10_raw/habitatmap/habitatmap.shp"))
-#
-# # working:
-# geopkg_file <- "/data/qgis_projects/geodata/amphibia_areas.gpkg" # works
-# test <- terra::vect(geopkg_file) # no segfault
-#
-# habmap_file <- "/home/falk/data/n2khab_data/10_raw/habitatmap/habitatmap.gpkg"
-# habmap_sf <- sf::st_read(habmap_file)
-# habmap <- terra::vect(habmap_sf)
-#
-# # workaround:
-# geopkg_file <- file.path(n2khab::locate_n2khab_data(), "99_converted/habmap.shp")
-# habmap <- terra::vect(geopkg_file) # segfault
-# mapview::mapview(habmap)
+# Set project root; works everywhere as the RStudio project file is in the repo
+gitroot <- find_root(is_git_root)
+# Checking the existence of the correct data source files in the correct
+# directories
+versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
+verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+
 
 
 
@@ -1417,3 +1405,42 @@ orthophoto_shortterm_cell_centers <-
     spatrast = grts_mh,
     spatrast_index = grts_mh_index
   )
+
+
+
+
+
+
+
+
+
+
+
+## Comparing object checksums with reference to verify reproducibility --------
+
+checksumfile <- file.path(gitroot, "fieldworg_checksums.csv")
+ref_checksums <- read_csv(checksumfile, col_types = "cc")
+available_obj <- ls()
+different_checksums <-
+  ref_checksums %>%
+  rename(xxh64sum_ref = xxh64sum) %>%
+  filter(name %in% available_obj) %>%
+  mutate(
+    xxh64sum_current = map_chr(name, \(x) {
+      # terra objects need special handling;
+      # https://github.com/rspatial/terra/issues/1844
+      if (inherits(eval(str2lang(x)), c("SpatRaster", "SpatVector"))) {
+        x <- paste0("terra::wrap(", x, ")")
+      }
+      digest::digest(eval(str2lang(x)), algo = "xxhash64")
+    })
+  ) %>%
+  filter(xxh64sum_current != xxh64sum_ref)
+if (nrow(different_checksums) > 0) {
+  warning(
+    "Different checksums detected than expected.",
+    "\nPlease inspect the object `different_checksums`."
+  )
+} else {
+  message("All loaded objects are identical to their reference :-)")
+}

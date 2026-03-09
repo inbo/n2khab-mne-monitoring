@@ -4,6 +4,8 @@ grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`fi
 type,varchar,True,,False,False,,,,"type (code), our latest best assessment"
 grts_address_replacement,int,True,,False,False,,CHECK (grts_address_replacement > 0),,"GRTS address (`final`, i.e. after corrections)"
 replacement_rank,smallint,True,,False,False,,CHECK (replacement_rank > 0),,replacement preference order
+date_visit,date,False,,False,False,,,,date of visit of this location
+teammember_id,smallint,False,NULL,False,False,,,,link to the colleague who performed the visit
 replacement_reason,text,False,NULL,False,False,,,,"explanation for replacement choice, e.g. inaccessibility"
 replacement_permanence,text,False,NULL,False,False,,,,whether or not the location is permanently unavailable
 type_is_absent,boolean,True,0,False,False,,,,unsuccessful local replacement / target type not found
