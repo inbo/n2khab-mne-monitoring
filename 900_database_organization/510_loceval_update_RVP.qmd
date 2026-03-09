@@ -1,6 +1,6 @@
 ---
-title: "POC Data Re-Upload - loceval"
-date: "2025-09-24"
+title: "RVP Data Re-Upload - loceval"
+date: "2025-09-24, 20260309"
 format:
   html:
     toc: true
@@ -32,7 +32,7 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
 ```{r libraries}
 # libraries
 source("MNMLibraryCollection.R")
-load_poc_common_libraries()
+load_rvp_common_libraries()
 load_database_interaction_libraries()
 
 # the database connection object
@@ -48,16 +48,16 @@ source("MNMDatabaseToolbox.R")
 ```
 
 
-## info stream from POC
+## info stream from RVP
 
 First, there is the `.RData` file.
 
 ```{r load-sample-rdata}
 tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_poc_rdata(reload = FALSE, to_env = parent.frame())
+load_rvp_rdata(reload = FALSE, to_env = parent.frame())
 message(glue::glue("Good morning!
-  Loading the POC data took {tic(toc)} seconds today."
+  Loading the RVP data took {tic(toc)} seconds today."
 ))
 
 ```
@@ -74,7 +74,7 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 
 toc <- Sys.time()
-load_poc_code_snippets(snippets_path)
+load_rvp_code_snippets(snippets_path)
 message(glue::glue(
   "... loading/executing the code snippets took {tic(toc)}s."
 ))
@@ -83,8 +83,8 @@ message(glue::glue(
 
 Finally, check that everything was loaded correctly.
 
-```{r poc-checks}
-verify_poc_objects()
+```{r rvp-checks}
+verify_rvp_objects()
 ```
 
 
@@ -127,7 +127,7 @@ now <- format(Sys.time(), "%Y%m%d%H%M")
 
 if (isFALSE(grepl("-staging", locevaldb_mirror))) {
   locevaldb$dump_all(
-    here::here("dumps", glue::glue("poc_pre_update_{locevaldb$database}_{now}.sql")),
+    here::here("dumps", glue::glue("rvp_pre_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }
@@ -146,7 +146,7 @@ if (FALSE) {
   # manually set a new version
   # version_tag <- "≤v0.11.0_poc0.13.1"
   # version_tag <- "v0.12.0_poc0.14.0"
-  version_tag <- "v0.12.0_poc0.14.0" # data_iteration = 2
+  version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
   version_notes <- "implement start date linkage"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
@@ -1172,7 +1172,7 @@ replacements_sideload <- load_table_sideload_content(
 
 ```{r new-replacements}
 
-replacements_poc <- 
+replacements_rvp <- 
   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   select(stratum, grts_address, replacement_cells) %>%
   unnest(replacement_cells) %>%
@@ -1191,7 +1191,7 @@ replacements_poc <-
     
     
 replacements <- bind_rows(
-    replacements_poc,
+    replacements_rvp,
     replacements_sideload 
   ) %>% 
   inner_join(
@@ -1442,7 +1442,7 @@ now <- format(Sys.time(), "%Y%m%d%H%M")
 
 if (isFALSE(grepl("-staging", locevaldb_mirror))) {
   locevaldb$dump_all(
-    here::here("dumps", glue::glue("poc_post_update_{locevaldb$database}_{now}.sql")),
+    here::here("dumps", glue::glue("rvp_post_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }

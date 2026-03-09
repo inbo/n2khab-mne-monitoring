@@ -2,7 +2,7 @@
 
 # libraries
 source("MNMLibraryCollection.R")
-# load_poc_common_libraries()
+# load_rvp_common_libraries()
 load_database_interaction_libraries()
 
 source("MNMDatabaseConnection.R")

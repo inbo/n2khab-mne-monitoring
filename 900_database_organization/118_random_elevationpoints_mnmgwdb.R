@@ -39,16 +39,16 @@ loceval_connection <- connect_mnm_database(
 # message(loceval_connection$shellstring)
 
 
-### info from POC
+### info from RVP
 if (TRUE){
-load_poc_common_libraries()
-load_poc_rdata(reload = FALSE, to_env = globalenv())
+load_rvp_common_libraries()
+load_rvp_rdata(reload = FALSE, to_env = globalenv())
 
 # ... and code snippets.
 snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-load_poc_code_snippets(snippets_path)
+load_rvp_code_snippets(snippets_path)
 
-verify_poc_objects()
+verify_rvp_objects()
 
 }
 
