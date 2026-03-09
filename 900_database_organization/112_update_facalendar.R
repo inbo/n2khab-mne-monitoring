@@ -529,7 +529,7 @@ append_defaults <- list(
     ) # /WIA
 )
 
-# TODO KILL STOP WAIT continue here
+# looped upload, retaining remainder
 remaining_new_visits <- visits_upload
 # table_label <- "InstallationVisits"
 for (table_label in names(selection_of_activities)) {
