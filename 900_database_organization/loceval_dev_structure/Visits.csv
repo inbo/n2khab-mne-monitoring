@@ -12,6 +12,7 @@ date_start,date,True,,False,False,,,,start of the panel activity sequence
 teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
 date_visit,date,False,,False,False,,,,date of the field activity
 type_assessed,varchar,False,CAST('onveranderd' AS VARCHAR),False,False,,,,"referring to ""N2kHabTypes"".""type""; any corrections from previous evaluation"
+is_well_developed_type,boolean,False,NULL,False,False,,,,"register cells which contain a well developed type, for info to adjacent teams/location research"
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
 visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
