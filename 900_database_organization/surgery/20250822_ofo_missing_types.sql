@@ -5,7 +5,7 @@ library("DBI")
 library("RPostgres")
 
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 # config <- configr::read.config(file = config_filepath)[[connection_profile]]
 source("MNMDatabaseToolbox.R")

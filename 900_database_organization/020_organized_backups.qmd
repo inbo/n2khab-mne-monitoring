@@ -106,7 +106,7 @@ connection_profile <- "inbopostgis-dev"
 # unless the password is stored in the config,
 # you might want to run the following prior to sourcing or rendering this script:
 # keyring::key_set("DBPassword", "db_user_password") # read-only user
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 source("MNMDatabaseToolbox.R")
 
@@ -522,7 +522,7 @@ re_upload_tabledata <- function(
   working_dbname <- "loceval_dev" 
   dbstructure_folder <- "devdb_structure"
   connection_profile <- "inbopostgis-dev" 
-  config_filepath <- file.path("./inbopostgis_server.conf")
+  config_filepath <- file.path("./mnm_database_connection.conf")
   # keyring::key_set("DBPassword", "db_user_password") # read-only user
   
   update_datatable_and_dependent_keys(

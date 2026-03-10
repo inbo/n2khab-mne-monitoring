@@ -10,7 +10,7 @@ source("MNMDatabaseToolbox.R")
 
 migrating_table_label <- "Protocols"
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 source_db <- connect_mnm_database(
   config_filepath,

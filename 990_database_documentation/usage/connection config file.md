@@ -1,12 +1,12 @@
 ---
 alias:
-  - inbopostgis_server.conf
+  - mnm_database_connection.conf
 ---
 
 `.conf`/`.ini` file to store login credentials
 to be accessed from within [[R/R]] or [[software/python]]
 
-## example `inbopostgis_server.conf`
+## example `mnm_database_connection.conf`
 
 ```ini
 	[dumpall]

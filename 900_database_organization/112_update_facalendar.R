@@ -8,7 +8,7 @@ source("MNMDatabaseToolbox.R")
 
 ## ----database-connection------------------------------------------------------
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 # TODO this does not yet work for `loceval` (based on SampleLocations)
 database_label <- "mnmgwdb"

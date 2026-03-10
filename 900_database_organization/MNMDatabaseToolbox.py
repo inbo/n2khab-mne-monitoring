@@ -1171,7 +1171,7 @@ class Database(dict):
 if __name__ == "__main__":
     # WriteExampleConfig(config_filename = "postgis_server.conf")
 
-    # srv = ReadSQLServerConfig(config_filename = "inbopostgis_server.conf")
+    # srv = ReadSQLServerConfig(config_filename = "mnm_database_connection.conf")
     # connstr = ConfigToConnectionString(srv)
     # print(connstr)
 
@@ -1197,7 +1197,7 @@ if __name__ == "__main__":
     if False:
         db_connection = None
         db_connection = ConnectDatabase( \
-            "inbopostgis_server.conf", \
+            "mnm_database_connection.conf", \
             connection_config = "mnmgwdb-dev", \
             database = "mnmgwdb_dev" \
            )

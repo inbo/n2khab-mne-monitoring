@@ -14,7 +14,7 @@ source("MNMDatabaseToolbox.R")
 
 
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {
   mirror <- commandline_args[1]

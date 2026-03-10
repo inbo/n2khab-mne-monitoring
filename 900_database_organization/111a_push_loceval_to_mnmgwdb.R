@@ -10,7 +10,7 @@ source("MNMDatabaseToolbox.R")
 # connect to the databases:
 # - mnmgwdb (chosen mirror)
 # - loceval (production, read-only)
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 database_label <- "mnmgwdb"
 

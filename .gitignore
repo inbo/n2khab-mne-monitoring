@@ -6,7 +6,7 @@
 .quarto
 n2khab-mne-monitoring.Rproj
 
-/900_database_organization/inbopostgis_server.conf
+/900_database_organization/mnm_database_connection.conf
 /900_database_organization/data/
 /900_database_organization/__pycache__/
 /900_database_organization/db_structure/*.ods
@@ -39,7 +39,7 @@ n2khab-mne-monitoring.Rproj
 /800_fwsupport_mapping_amphibiaprotection/data/*.rds
 /800_fwsupport_mapping_amphibiaprotection/data/
 /100_reporting/load_environment_dbinit.R
-/900_database_organization/inbopostgis_server.conf
+/900_database_organization/mnm_database_connection.conf
 /900_database_organization/data/
 /900_database_organization/__pycache__/
 /900_database_organization/.Rprofile

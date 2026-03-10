@@ -6,7 +6,7 @@ load_database_interaction_libraries()
 source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 # TODO also give coords for FreeFieldNotes
 

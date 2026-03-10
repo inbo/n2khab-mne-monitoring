@@ -23,7 +23,7 @@ verify_poc_objects()
 
 
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 mnmdb_mirror <- "mnmgwdb-staging"
 

@@ -126,7 +126,7 @@ verify_rvp_objects()
 
 ```{r connect-databases}
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 mirror <- "-staging"
 # mirror <- ""
 

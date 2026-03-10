@@ -38,7 +38,7 @@ source("MNMDatabaseToolbox.R")
 #| eval: true
 #| echo: false
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 # mirror <- "-testing"
 mirror <- ""
 mirror <- "-staging"

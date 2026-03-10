@@ -41,7 +41,7 @@ source("MNMDatabaseToolbox.R")
 
 ## ----database-connection------------------------------------------------------
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 # orthophoto-evaluation happens on `loceval`-db
 database_label <- "loceval"

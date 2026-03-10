@@ -19,7 +19,7 @@ source("MNMDatabaseToolbox.R")
 #_______________________________________________________________________________
 ### connect database?
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 # keyring::key_set("DBPassword", "db_user_password") # <- for source database
 
 test_db <- connect_mnm_database(

@@ -21,12 +21,12 @@ else:
 base_folder = DTB.PL.Path(".")
 
 loceval = DTB.ConnectDatabase(
-    base_folder/"inbopostgis_server.conf",
+    base_folder/"mnm_database_connection.conf",
     connection_config = f"loceval{suffix}"
     )
 
 mnmgwdb = DTB.ConnectDatabase(
-    base_folder/"inbopostgis_server.conf",
+    base_folder/"mnm_database_connection.conf",
     connection_config = f"mnmgwdb{suffix}"
     )
 # mnmgwdb.config["database"]

@@ -96,7 +96,7 @@ verify_rvp_objects()
 
 ```{r connect-databases}
 database <- "loceval"
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 suffix <- ""
 suffix <- "-staging"
 
