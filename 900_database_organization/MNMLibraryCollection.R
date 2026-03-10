@@ -71,7 +71,7 @@ load_inbo_libraries <- function(
 #_______________________________________________________________________________
 # RVP DATA AND CODE
 
-load_rvp_rdata <- function(data_basepath = "./data", reload = FALSE, to_env = parent.frame()) {
+load_rvp_rdata <- function(data_basepath = file.path(".", "data"), reload = FALSE, to_env = parent.frame()) {
 
   # Setup for googledrive authentication. Set the appropriate env vars in
   # .Renviron and make sure you ran drive_auth() interactively with these settings
@@ -113,8 +113,8 @@ load_rvp_code_snippets <- function(base_path = NA) {
     base_path <- rprojroot::find_root(is_git_root)
   }
 
-  source(file.path(base_path, "020_fieldwork_organization/R/grts.R"))
-  source(file.path(base_path, "020_fieldwork_organization/R/misc.R"))
+  source(file.path(base_path, "020_fieldwork_organization", "R", "grts.R"))
+  source(file.path(base_path, "020_fieldwork_organization", "R", "misc.R"))
 
   invisible(capture.output(source("401_snippet_selection.R")))
   source("402_snippet_transformation_code.R")

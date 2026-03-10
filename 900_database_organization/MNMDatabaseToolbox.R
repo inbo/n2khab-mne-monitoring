@@ -977,7 +977,7 @@ parametrize_cascaded_update <- function(mnmdb) {
           now <- format(Sys.time(), "%Y%m%d%H%M")
           write.csv(
             existing_removed,
-            file.path("dumps", glue::glue("lost_changerows_{table_label}_{now}.csv"),
+            file.path("dumps", glue::glue("lost_changerows_{table_label}_{now}.csv")),
             row.names = FALSE
           )
         }
