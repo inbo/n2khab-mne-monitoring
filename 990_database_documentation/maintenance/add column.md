@@ -15,6 +15,8 @@ the "database initialization" (db_tooldev) folder is `<project>/900_database_org
 - Afterwards, download the spreadsheet as an `.ods` file to the database initialization folder.
 	Make sure to set the correct users in the "chief" spreadsheet.
 
+New user input columns should be registered to the [[R/MNMDatabaseToolbox#precedence columns|precedence columns in `MNMDatabaseToolbox.R`]].
+
 #### (2) Dry-run database structure creation.
 - run the database initialization python script in the db_tooldev folder, after activating the virtual environment (meer over `venv` in de [INBO ICT intranet Python tutorial](https://ict-intranet.inbo.be/tutorials/software/Python.html)).
 	```sh
