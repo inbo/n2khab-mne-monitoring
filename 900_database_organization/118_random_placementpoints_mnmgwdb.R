@@ -264,7 +264,10 @@ generate_random_placement_points <- function(
   points_in_habitat <- outside_mhq[
     sf::st_intersects(outside_mhq, cellmap_polygons, sparse = FALSE)
     , ]
-  points_in_habitat <- points_in_habitat[1:n_points, ]
+  if (nrow(points_in_habitat) > n_points) {
+    # the sf[1:n, ] syntax will generate `empty` geometries if n<m
+    points_in_habitat <- points_in_habitat[seq_len(n_points), ]
+  }
 
   if (FALSE) {
     require("mapview")
@@ -324,6 +327,20 @@ randompoints_locationwise <- function(location_row) {
   #     target_radius <- 16 # NOT: 18 m # BUT: 10 is too little
   # }
 
+  # cells without cell mapping will never score
+  skip <- 0 == cellmaps_sf %>%
+    filter(
+      location_id == one_location$location_id,
+      type == one_location$stratum
+    ) %>%
+    sf::st_union() %>%
+    length()
+
+  if (skip) {
+    return(invisible(NULL))
+  }
+
+
   current_points <- 0
   limit_count <- 1
   while ((current_points < n_points) && (limit_count < 8)) {
@@ -349,7 +366,7 @@ randompoints_locationwise <- function(location_row) {
   if (is_forest && isFALSE(is_mhq_samplelocation)) {
     rnd20_points <- bind_rows(
       center_representation_point,
-      rnd20_points
+      rnd20_points %>% filter(!sf::st_is_empty(.))
       )
   }
 
@@ -358,7 +375,7 @@ randompoints_locationwise <- function(location_row) {
       samplelocation_id = one_location$samplelocation_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,
-      random_point_rank = 1:nrow(rnd20_points)
+      random_point_rank = seq_len(nrow(rnd20_points))
     )
 
   return(rnd20_points)
@@ -371,7 +388,9 @@ all_points <- lapply(
   FUN = randompoints_locationwise
 )
 close(pb) # close the progress bar
+
 all_points <- bind_rows(all_points)
+# any(all_points %>% sf::st_is_empty())
 
 
 
@@ -403,7 +422,7 @@ if (FALSE) {
 ## TODO northing - correct to magnetic north
 all_points <- all_points %>%
   mutate(
-    randompoint_id = 1:nrow(all_points),
+    randompoint_id = seq_len(nrow(all_points)),
     angle = -(phi+90) %% 360,
     # angle_look = (-angle) + 360, # wrong, updated 20250812
     angle_look = (angle + 180) %% 360,
