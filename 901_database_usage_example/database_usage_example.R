@@ -2,6 +2,7 @@
 # find the project root directory
 library("rprojroot")
 n2khab_mne_monitoring_root_folder <- find_root(is_git_root)
+n2khab_mne_monitoring_root_folder <- file.path("C:", "Users", "falk_mielke", "git", "n2khab-mne-monitoring")
 # OPTION: hardcode this path, or use `here::here()` or `file.path()`.
 
 # all required libraries are stored in our meta-library...
@@ -47,8 +48,8 @@ profile <- "test_connection"
 mnmdb <- connect_mnm_database(
   config_filepath = config_filepath,
   connection_profile = profile,
-  folder = db_structure_folder,
-  password = NA
+  folder = db_structure_folder
+  # , password = NA
 )
 
 

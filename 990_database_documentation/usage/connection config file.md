@@ -6,6 +6,16 @@ alias:
 `.conf`/`.ini` file to store login credentials
 to be accessed from within [[R/R]] or [[software/python]]
 
+Recommended fields required per connection profile (blocks with `[profile_name]`) are:
+- host
+- port
+- user
+- database
+- folder
+
+All of these can alternatively be provided at runtime via the `connect_mnm_database` function.
+A password may be provided either in the config file, or via `~/.pgpass` (in which case submit `password = NA` to suppress prompt), or at runtime.
+
 ## example `mnm_database_connection.conf`
 
 ```ini
@@ -13,6 +23,7 @@ to be accessed from within [[R/R]] or [[software/python]]
 	host = <host>
 	port = <port>
 	user = <readonly_user>
+	# folder and database provided at runtime
 	
 	#### LOCEVAL ####
 	
