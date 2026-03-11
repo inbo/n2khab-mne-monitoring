@@ -2,8 +2,8 @@
 # find the project root directory
 library("rprojroot")
 n2khab_mne_monitoring_root_folder <- find_root(is_git_root)
-n2khab_mne_monitoring_root_folder <- file.path("C:", "Users", "falk_mielke", "git", "n2khab-mne-monitoring")
-# OPTION: hardcode this path, or use `here::here()` or `file.path()`.
+## OPTION: hardcode this path, or use `here::here()` or `file.path()`:
+# n2khab_mne_monitoring_root_folder <- file.path("C:", "Users", "me", "git", "n2khab-mne-monitoring")
 
 # all required libraries are stored in our meta-library...
 source(file.path(
@@ -54,22 +54,22 @@ mnmdb <- connect_mnm_database(
 
 
 
-### examples
-# There are a number of convenience functions, cf.
-# https://github.com/inbo/n2khab-mne-monitoring/blob/main/990_database_documentation/R/MNMDatabaseConnection.md
-
-# query all data from a table
-mnmdb$query_table("N2kHabStrata") %>%
-  sample_n(2) %>% t() %>% knitr::kable()
-
-# query some columns from a table
-mnmdb$query_columns("RandomPoints", c("compass", "angle")) %>%
-  sample_n(10) %>% knitr::kable()
-
-# table attributes
-mnmdb$is_spatial("LocationCells")
-
-# organizational
-mnmdb$query_table("Versions") %>%
-  filter(version_id == mnmdb$load_latest_version_id()) %>%
-  t() %>% knitr::kable()
+# ### examples
+# # There are a number of convenience functions, cf.
+# # https://github.com/inbo/n2khab-mne-monitoring/blob/main/990_database_documentation/R/MNMDatabaseConnection.md
+# 
+# # query all data from a table
+# mnmdb$query_table("N2kHabStrata") %>%
+#   sample_n(2) %>% t() %>% knitr::kable()
+# 
+# # query some columns from a table
+# mnmdb$query_columns("RandomPoints", c("compass", "angle")) %>%
+#   sample_n(10) %>% knitr::kable()
+# 
+# # table attributes
+# mnmdb$is_spatial("LocationCells")
+# 
+# # organizational
+# mnmdb$query_table("Versions") %>%
+#   filter(version_id == mnmdb$load_latest_version_id()) %>%
+#   t() %>% knitr::kable()
