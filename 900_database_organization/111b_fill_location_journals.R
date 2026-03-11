@@ -22,7 +22,7 @@ todays_date <- strftime(as.POSIXct(Sys.time()), "%Y%m%d%H%M%S")
 ### connect to databases
 
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {

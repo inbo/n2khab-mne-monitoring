@@ -122,7 +122,7 @@ Trivially, you can just create the new database as you created the original one.
     DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
     
     db_target = DTB.ConnectDatabase(
-        "inbopostgis_server.conf",
+        "mnm_database_connection.conf",
         connection_config = "loceval-testing",
         database = "loceval_testing"
         )
@@ -216,7 +216,7 @@ Getting the data is as simple as establishing a connection and querying the tabl
     
     migrating_table_label <- "Protocols"
     
-    config_filepath <- file.path("./inbopostgis_server.conf")
+    config_filepath <- file.path("./mnm_database_connection.conf")
     
     source_db <- connect_mnm_database(
       config_filepath,
@@ -289,7 +289,7 @@ This requires minimal preparations, modification catalogue, and a loop.
     # keyring::key_set("DBPassword", "db_user_password")
     
     # credentials are stored for easy access
-    config_filepath <- file.path("./inbopostgis_server.conf")
+    config_filepath <- file.path("./mnm_database_connection.conf")
     
     # database_label <- "mnmgwdb"
     database_label <- "loceval"

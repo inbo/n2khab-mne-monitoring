@@ -4,7 +4,7 @@ source("MNMDatabaseToolbox.R")
 
 
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 db_name <- "loceval_testing"
 connection_profile <- "loceval-testing"

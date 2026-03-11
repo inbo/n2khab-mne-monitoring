@@ -17,7 +17,7 @@ distinction: [[R/MNMDatabaseToolbox]] is a collection of procedures that work on
 - `table_label` is just the case sensitive table name, e.g. `TeamMembers`
 - `table_key` is tha same as label, but can be all lowercase, e.g. `teammembers`
 - `table_id` is the DBI table identifier,
-	e.g. DBI::Id(schema = "metadata", table = "TeamMembers")
+	e.g. `DBI::Id(schema = "metadata", table = "TeamMembers")`
 - `db$` is the abstract variable name / `mnmdb$` is the same in applications
 	(analogous to class / object dualism)
 	
@@ -53,7 +53,7 @@ distinction: [[R/MNMDatabaseToolbox]] is a collection of procedures that work on
 		config_filepath,
 		database_mirror = NA,
 		skip_structure_assembly = FALSE,
-		[... -> connection_database_configfile]
+		...) -> connection_database_configfile
 		) -> mnmdb
 		- connection_profile
 		- folder
@@ -63,8 +63,8 @@ distinction: [[R/MNMDatabaseToolbox]] is a collection of procedures that work on
 		- user
 		- shellstring
 		- connection
-		- execute_sql(self, ...) -> [reparametrization]
-		- dump_all(self, ...) -> [reparametrization]
+		- execute_sql(self, ...) -> reparametrization
+		- dump_all(self, ...) -> reparametrization
 	- > mnmdb_assemble_structure_lookups(db) -> db
 		- tables
 		- has_table(table_label) -> bool

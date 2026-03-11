@@ -122,22 +122,5 @@ DO ALSO
 ;
 
 
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  tom;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  yglinga;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  jens;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  lise;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  wouter;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  floris;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  karen;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  tester;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  ward;
-GRANT SELECT ON  "inbound"."FieldVisit"  TO  monkey;
-
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  tom;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  yglinga;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  jens;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  lise;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  wouter;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  floris;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  karen;
-GRANT UPDATE ON  "inbound"."FieldVisit"  TO  tester;
+GRANT SELECT ON  "inbound"."FieldVisit"  TO  viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."FieldVisit"  TO  user_gwdb;

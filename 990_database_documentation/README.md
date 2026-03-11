@@ -24,7 +24,7 @@ path:"maintenance/"
 ---
 ## [[usage/usage|usage]]
 ```query
-path:"usage/" OR path:"R/"
+path:"usage/" OR (path:"R/" -path:"server/")
 ```
 ---
 ## [[sql/sql|sql]]

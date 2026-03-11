@@ -16,4 +16,4 @@ WHERE location_id IN (
 )
 ;
 
-GRANT SELECT ON  "outbound"."SampleCells"  TO tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, falk;
+GRANT SELECT ON  "outbound"."SampleCells"  TO viewer_mnmdb;

@@ -2,7 +2,7 @@
 
 # libraries
 source("MNMLibraryCollection.R")
-# load_poc_common_libraries()
+# load_rvp_common_libraries()
 load_database_interaction_libraries()
 
 source("MNMDatabaseConnection.R")
@@ -14,7 +14,7 @@ source("MNMDatabaseToolbox.R")
 
 
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {
   mirror <- commandline_args[1]

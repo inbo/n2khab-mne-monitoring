@@ -18,6 +18,9 @@ CREATE USER <username> WITH ENCRYPTED PASSWORD '<password>';
 ## via database
 *on each [[database/database|database]]:*
 + grant [[database/userroles|user roles]]
+```sql
+GRANT viewer_mnmdb TO monkey;
+```
 + fill `TeamMembers` table
 ```sql
 INSERT INTO "metadata"."TeamMembers" (username, family_name, given_name) VALUES ('<User>', 'Lastname', 'Firstname');

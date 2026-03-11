@@ -1,6 +1,6 @@
 ---
-title: "POC Data Re-Upload - loceval"
-date: "2025-09-24"
+title: "RVP Data Re-Upload - loceval"
+date: "2025-09-24, 20260309"
 format:
   html:
     toc: true
@@ -32,7 +32,7 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
 ```{r libraries}
 # libraries
 source("MNMLibraryCollection.R")
-load_poc_common_libraries()
+load_rvp_common_libraries()
 load_database_interaction_libraries()
 
 # the database connection object
@@ -48,16 +48,16 @@ source("MNMDatabaseToolbox.R")
 ```
 
 
-## info stream from POC
+## info stream from RVP
 
 First, there is the `.RData` file.
 
 ```{r load-sample-rdata}
 tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_poc_rdata(reload = FALSE, to_env = parent.frame())
+load_rvp_rdata(reload = FALSE, to_env = parent.frame())
 message(glue::glue("Good morning!
-  Loading the POC data took {tic(toc)} seconds today."
+  Loading the RVP data took {tic(toc)} seconds today."
 ))
 
 ```
@@ -74,28 +74,31 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 
 toc <- Sys.time()
-load_poc_code_snippets(snippets_path)
+load_rvp_code_snippets(snippets_path)
 message(glue::glue(
   "... loading/executing the code snippets took {tic(toc)}s."
 ))
+
+if (nrow(different_checksums) > 0) {
+  knitr::kable(different_checksums)
+}
 ```
 
 
 Finally, check that everything was loaded correctly.
 
-```{r poc-checks}
-verify_poc_objects()
+```{r rvp-checks}
+verify_rvp_objects()
 ```
-
 
 ## database connection
 
 
 ```{r connect-databases}
 database <- "loceval"
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 suffix <- ""
-# suffix <- "-staging"
+suffix <- "-staging"
 
 
 # connect loceval
@@ -127,7 +130,7 @@ now <- format(Sys.time(), "%Y%m%d%H%M")
 
 if (isFALSE(grepl("-staging", locevaldb_mirror))) {
   locevaldb$dump_all(
-    here::here("dumps", glue::glue("poc_pre_update_{locevaldb$database}_{now}.sql")),
+    here::here("dumps", glue::glue("rvp_pre_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }
@@ -146,8 +149,8 @@ if (FALSE) {
   # manually set a new version
   # version_tag <- "≤v0.11.0_poc0.13.1"
   # version_tag <- "v0.12.0_poc0.14.0"
-  version_tag <- "v0.12.0_poc0.14.0" # data_iteration = 2
-  version_notes <- "implement start date linkage"
+  version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
+  version_notes <- "revisit RVP script / ctd on Replacements"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- locevaldb$tag_new_version(
@@ -205,10 +208,9 @@ Now is the chance!
 ## prerequisite_lookups
 
 ```{r gather-lookups}
-grouped_activity_lookup <- locevaldb$query_lookup(
-  "GroupedActivities",
-  characteristic_columns = c("activity_group", "activity")
-)
+loceval_field_activities <- locevaldb$query_table("GroupedActivities") %>%
+  filter(is_loceval_activity, is_field_activity) %>%
+  distinct(activity_group, activity)
 
 n2khabstrata_lookup <- locevaldb$query_lookup(
   "N2kHabStrata",
@@ -226,7 +228,7 @@ activity_groupid_lookup <- locevaldb$query_columns(
   ) %>%
   distinct()
 
-field_activities <- locevaldb$query_table("GroupedActivities") %>%
+field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
   filter(is_loceval_activity, is_field_activity) %>%
   distinct(activity_group, activity)
 
@@ -321,6 +323,10 @@ sample_units <-
   ) 
 
 # sample_units %>%
+#   filter(grts_address == 23238) %>%
+#   t() %>% knitr::kable()
+
+# sample_units %>%
 #   filter(grts_address == 22107438) %>%
 #   t() %>% knitr::kable()
 # 
@@ -375,6 +381,8 @@ distribution <- categorize_data_update(
 )
 print_category_count(distribution, table_label)
 
+# distribution$to_upload %>% knitr::kable()
+
 ```
 
 
@@ -393,10 +401,7 @@ locations_lookup <- redistribute_calendar_data(
 ```
 
 
-... and wait.
-... and wait.
-... and wait.
-
+... and stitch
 ```{r reconnect-locations-to-sampleunits}
 
 stitch_table_connection(
@@ -548,8 +553,8 @@ locevaldb$insert_data(
 ## FieldActivityCalendar
 
 ```{sql there-be-duplicates-1}
-#| eval: false
-#| echo: false
+--| eval: false
+--| echo: false
 
 SELECT * FROM (
 SELECT DISTINCT
@@ -648,7 +653,7 @@ fieldwork_calendar <-
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(field_activities, by = join_by(activity_group)) %>%
+  semi_join(field_activities_db, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
@@ -790,7 +795,6 @@ fieldworkcalendar_lookup <- redistribute_calendar_data(
 
 ```{r re-inspect-fieldworkcalendar}
 
-
 locevaldb$query_table("FieldActivityCalendar") %>% 
   count(is.na(sampleunit_id)) %>%
   knitr::kable()
@@ -897,13 +901,11 @@ locevaldb$query_table("FieldActivityCalendar") %>%
    ) %>% t() %>% knitr::kable()
 
 
-
 ```
 
 
 
 ```{r assemble-new-visits}
-
 
 visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
 
@@ -1078,9 +1080,26 @@ update_landuse_in_locationinfos(locevaldb)
 
 # Replacements
 
+Updating local replacement candidates is tricky.
+
+- If cells have been selected previously, they should not be overwritten.
+- Type may be totally absent (`type_is_absent`). Then none of the replacements remains valid...
+- ... unless new replacement candidates appear in case of changed habitat polygons.
+- Inappropriateness of other cells is determined *en passant*, which is relevant information.
+- Random order might change, but the information of prior visits must be retained.
+- HOWEVER, there might be future `loceval` activities on the disapproved cells.
+
+A simple solution is to freeze replacements for cells where `visit_done == TRUE`.
+Only the others will be updated.
+
+TODO we will have to re-activate/refresh the frozen replacement candidates later.
+
+
 ## prepare
+
 ```{r stitch-replacements}
 
+# update the foreign key to match, for correct lookup
 stitch_table_connection(
   mnmdb = locevaldb,
   table_label = "Replacements",
@@ -1089,7 +1108,7 @@ stitch_table_connection(
   lookup_columns = c("grts_address", "type")
 )
 
-
+# characteristic columns of replacement candidate cells
 replacement_characols <- c(
     "grts_address",
     "type",
@@ -1102,9 +1121,18 @@ replacement_characols <- c(
 
 ## replacements archive
 
-```{r archive-previous_replacements}
+One could argue that "no message is also a message",
+but for data efficiency I opt to rather only keep the 
 
-previous_replacements <- locevaldb$query_table("Replacements") %>%
+```{r archive-previously-visited-replacements}
+
+previously_visited_replacements <- locevaldb$query_table("Replacements") %>%
+  inner_join(
+    locevaldb$query_table("Visits") %>%
+      filter(visit_done) %>%
+      select(grts_address, type, date_visit),
+    by = join_by(grts_address, type)
+  ) %>% 
   select(-wkb_geometry) %>%
   filter(
     is_inappropriate
@@ -1114,7 +1142,7 @@ previous_replacements <- locevaldb$query_table("Replacements") %>%
     | (!is.na(notes))
   )
 
-replacement_archives <- previous_replacements %>%
+replacement_archives <- previously_visited_replacements %>%
   inner_join(
     locevaldb$query_columns(
       "SampleUnits",
@@ -1134,7 +1162,7 @@ glimpse(replacement_archives)
 
 
 if (nrow(replacement_archives) > 0) {
-  # previous_replacements %>% select(starts_with("grts_address"))
+  # previously_visited_replacements %>% select(starts_with("grts_address"))
 
   replacement_archive_lookup <- update_cascade_lookup(
     table_label = "ReplacementArchives",
@@ -1156,23 +1184,30 @@ if (nrow(replacement_archives) > 0) {
 
 ## restore
 
+In principle, we can sideload replacements.
 
 ```{r STOP-sideload-replacements}
-stop("UNDER CONSTRUCTION: sideloaded replacements yet to be be included.")
-# TODO this is the place to sideload extra replacemetnts
-
+# NOTE this is the place to sideload extra replacements
+# e.g. the ones from the `archive`?
 
 replacements_sideload <- load_table_sideload_content(
   mnmdb = locevaldb,
   table_label = "Replacements",
   characteristic_columns = c("grts_address", "type", "grts_address_replacement"),
-  data_filepath = "sideload/loceval_replacements.csv"
+  data_filepath = "sideload/loceval_replacements.csv",
+  reload_previous = FALSE
 )
 ```
 
+
+Two original sources: 
+
+- replacements from RVP,
+- sideloaded replacements
+
 ```{r new-replacements}
 
-replacements_poc <- 
+replacements_rvp <- 
   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   select(stratum, grts_address, replacement_cells) %>%
   unnest(replacement_cells) %>%
@@ -1191,7 +1226,7 @@ replacements_poc <-
     
     
 replacements <- bind_rows(
-    replacements_poc,
+    replacements_rvp,
     replacements_sideload 
   ) %>% 
   inner_join(
@@ -1201,11 +1236,17 @@ replacements <- bind_rows(
     relationship = "many-to-many", # TODO
     unmatched = "drop"
   )
+```
 
+
+Join the `ReplacementArchives` to see which have been visited before.
+Keeping all relevant information from those previous Visits.
+
+```{r join-previously-visited}
 
 replacements_new <- replacements %>%
   left_join(
-    previous_replacements,
+    previously_visited_replacements,
     by = join_by(!!!rlang::syms(replacement_characols)),
     suffix = c("", "_prev")
   ) %>%
@@ -1214,12 +1255,29 @@ replacements_new <- replacements %>%
   # mutate(replacement_id = seq_len(n())) %>%
   # relocate(replacement_id)
   mutate(
-    is_inappropriate = coalesce(is_inappropriate, FALSE),
-    is_selected = coalesce(is_selected, FALSE),
-    implications_habitatmap = coalesce(implications_habitatmap, FALSE)
+    is_inappropriate = coalesce(is_inappropriate_prev, is_inappropriate, FALSE),
+    is_selected = coalesce(is_selected_prev, is_selected, FALSE),
+    implications_habitatmap = coalesce(
+      implications_habitatmap_prev,
+      implications_habitatmap,
+      FALSE
+    ),
+    notes = coalesce(notes_prev, notes),
+    type_suggested = coalesce(type_suggested_prev, type_suggested)
+  ) %>%
+  select(
+    -is_inappropriate_prev,
+    -is_selected_prev,
+    -implications_habitatmap_prev,
+    -notes_prev,
+    -type_suggested_prev,
+    -date_visit
   )
 
-glimpse(replacements_new %>% filter(is_selected))
+# previously_visited_replacements %>% filter(is_selected)
+# glimpse(replacements_new %>% filter(is_selected))
+# glimpse(replacements_new %>% filter(!is.na(type_suggested)))
+# glimpse(replacements_new %>% filter(!is.na(date_visit)))
 
 replacements_upload <- replacements_new %>%
   add_point_coords_grts(
@@ -1442,7 +1500,7 @@ now <- format(Sys.time(), "%Y%m%d%H%M")
 
 if (isFALSE(grepl("-staging", locevaldb_mirror))) {
   locevaldb$dump_all(
-    here::here("dumps", glue::glue("poc_post_update_{locevaldb$database}_{now}.sql")),
+    here::here("dumps", glue::glue("rvp_post_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }

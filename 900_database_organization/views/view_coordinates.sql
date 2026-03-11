@@ -31,4 +31,4 @@ WHERE LOC.location_id IS NOT NULL
   AND COORDS.location_id IS NOT NULL
 ;
 
-GRANT SELECT ON  "outbound"."LocationCoords"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, falk;
+GRANT SELECT ON  "outbound"."LocationCoords"  TO  viewer_mnmdb;

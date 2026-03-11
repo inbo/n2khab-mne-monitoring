@@ -180,7 +180,7 @@ source("MNMDatabaseToolbox.R")
 
 
 database <- "loceval"
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 mirror <- ""
 
 # connect loceval
@@ -400,7 +400,7 @@ UPDATE  "inbound"."Visits"  SET date_start = '2027-01-01' WHERE grts_address = 2
 
 ```{r mnmgwdb-connect}
 database <- "mnmgwdb"
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 mirror <- ""
 
 # connect loceval

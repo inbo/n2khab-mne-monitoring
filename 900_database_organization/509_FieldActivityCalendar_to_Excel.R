@@ -12,7 +12,7 @@ library("mapview")
 source("MNMDatabaseToolbox.R")
 
 projroot <- find_root(is_rstudio_project)
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 working_dbname <- "loceval"
 connection_profile <- "loceval"
 

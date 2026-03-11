@@ -7,7 +7,7 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 # NOTE: this is not relevant for `loceval`
 database_label <- "mnmgwdb"
@@ -52,16 +52,16 @@ locations_grts <- mnmgwdb$query_columns(
 # locations_grts %>% filter(location_id == 527)
 # locations_grts %>% filter(location_id == 42)
 
-## ----poc-data-----------------------------------------------------------------
-# re-load POC data
-load_poc_common_libraries()
-load_poc_rdata(reload = FALSE, to_env = globalenv())
+## ----rvp-data-----------------------------------------------------------------
+# re-load RVP data
+load_rvp_common_libraries()
+load_rvp_rdata(reload = FALSE, to_env = globalenv())
 
 # ... and code snippets.
 snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-load_poc_code_snippets(snippets_path)
+load_rvp_code_snippets(snippets_path)
 
-verify_poc_objects()
+verify_rvp_objects()
 
 ## ----location-cells-----------------------------------------------------------------
 

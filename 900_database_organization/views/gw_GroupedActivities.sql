@@ -9,5 +9,5 @@ ORDER BY activity_group_id
 ;
 
 
-GRANT SELECT ON  "metadata"."ActivityGroups"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, ward, monkey;
+GRANT SELECT ON  "metadata"."ActivityGroups"  TO  viewer_mnmdb;
 -- REVOKE UPDATE ON  "metadata"."ActivityGroups"  FROM  tom, yglinga, jens, lise, wouter, floris, karen;

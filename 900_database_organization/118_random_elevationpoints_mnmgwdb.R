@@ -8,7 +8,7 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 database_label <- "mnmgwdb"
 
@@ -39,16 +39,16 @@ loceval_connection <- connect_mnm_database(
 # message(loceval_connection$shellstring)
 
 
-### info from POC
+### info from RVP
 if (TRUE){
-load_poc_common_libraries()
-load_poc_rdata(reload = FALSE, to_env = globalenv())
+  load_rvp_common_libraries()
+  load_rvp_rdata(reload = FALSE, to_env = globalenv())
 
-# ... and code snippets.
-snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-load_poc_code_snippets(snippets_path)
+  # ... and code snippets.
+  snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
+  load_rvp_code_snippets(snippets_path)
 
-verify_poc_objects()
+  verify_rvp_objects()
 
 }
 
@@ -150,7 +150,8 @@ locations_all <- locations_sf %>%
 # TODO: work with a subset for testing
 locations <- locations_all %>%
   filter(!sf::st_is_empty(wkb_geometry)) # %>%
-# filter(grts_address %in% c(23238, 23091910, 6314694))
+  # filter(grts_address %in% c(1195701))
+#  filter(grts_address %in% c(23238, 23091910, 6314694))
 #  filter(grts_address %in% c(48897, 1818369))
 
 ## random sampling procedure
@@ -178,7 +179,7 @@ generate_random_elevation_points <- function(
         cell_center + make_a_point(16, 16)
       )
     )
-  # mapview(target_area)
+  # mapview::mapview(target_area)
 
   if (is_forest) {
 
@@ -204,7 +205,7 @@ generate_random_elevation_points <- function(
     )
     mhq_safety <- sf::st_buffer(mhq_zone, 2)
   }
-
+  # mapview::mapview(target_area) + mapview::mapview(mhq_safety)
 
   cellmap_polygons <- cellmaps_sf %>%
     filter(
@@ -212,6 +213,7 @@ generate_random_elevation_points <- function(
       type == one_location$stratum
     ) %>%
     sf::st_union() # often multiple subparts are chosen
+  # mapview::mapview(target_area) + mapview::mapview(mhq_safety) + mapview::mapview(cellmap_polygons)
 
 
   random_points <- generate_random_sampling_square(
@@ -228,10 +230,12 @@ generate_random_elevation_points <- function(
     coords = c("X", "Y"),
     crs = 31370
   )
+  # mapview::mapview(target_area) + mapview::mapview(mhq_safety) + mapview::mapview(cellmap_polygons) + mapview::mapview(random_points_sf)
 
   inside_cell <- random_points_sf[
     sf::st_intersects(random_points_sf, target_area, sparse = FALSE),
     ]
+  # mapview::mapview(target_area) + mapview::mapview(mhq_safety) + mapview::mapview(cellmap_polygons) + mapview::mapview(inside_cell)
 
   if (is_forest && isFALSE(is_mhq_samplelocation)) {
     # cell not assessed / not part of MHQ
@@ -242,10 +246,16 @@ generate_random_elevation_points <- function(
       sf::st_disjoint(inside_cell, mhq_safety, sparse = FALSE)
       , ]
   }
+  # mapview::mapview(target_area) + mapview::mapview(mhq_safety) + mapview::mapview(cellmap_polygons) + mapview::mapview(outside_mhq)
+
   points_in_habitat <- outside_mhq[
     sf::st_intersects(outside_mhq, cellmap_polygons, sparse = FALSE)
     , ]
-  points_in_habitat <- points_in_habitat[1:n_points, ]
+  if (nrow(points_in_habitat) > n_points) {
+    # the sf[1:n, ] syntax will generate `empty` geometries if n<m
+    points_in_habitat <- points_in_habitat[seq_len(n_points), ]
+  }
+  # mapview::mapview(target_area) + mapview::mapview(mhq_safety) + mapview::mapview(cellmap_polygons) + mapview::mapview(points_in_habitat)
 
   if (FALSE) {
     require("mapview")
@@ -278,7 +288,7 @@ pb <- txtProgressBar(
   initial = 0, style = 1
 )
 
-# location_row <- 234
+# location_row <- 234 #1 #234
 randompoints_locationwise <- function(location_row) {
 
   setTxtProgressBar(pb, location_row)
@@ -305,13 +315,28 @@ randompoints_locationwise <- function(location_row) {
   #     target_radius <- 16 # NOT: 18 m # BUT: 10 is too little
   # }
 
+  # cells without cell mapping will never score
+  skip <- 0 == cellmaps_sf %>%
+    filter(
+      location_id == one_location$location_id,
+      type == one_location$stratum
+    ) %>%
+    sf::st_union() %>%
+    length()
+
+  if (skip) {
+    return(invisible(NULL))
+  }
+
+  # counting points; max number of iterations
   current_points <- 0
   limit_count <- 1
+  max_iterations <- 10
 
   # seed set before loop otherwise always same draws in `while`
   set.seed(location_seed)
 
-  while ((current_points < n_points) && (limit_count < 16)) {
+  while ((current_points < n_points) && (limit_count < max_iterations)) {
 
     rnd50_points <- generate_random_elevation_points(
       one_location,
@@ -355,8 +380,9 @@ all_points <- lapply(
   FUN = randompoints_locationwise
 )
 close(pb) # close the progress bar
-all_points <- bind_rows(all_points)
 
+all_points <- bind_rows(all_points)
+# any(all_points %>% sf::st_is_empty())
 
 
 # https://en.wikipedia.org/wiki/Points_of_the_compass#/media/File:Compass-rose-32-pt.svg

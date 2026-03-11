@@ -6,7 +6,7 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 
 ### connect to database

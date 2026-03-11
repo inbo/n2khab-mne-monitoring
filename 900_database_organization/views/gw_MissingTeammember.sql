@@ -13,6 +13,5 @@ WHERE done_planning
   AND NOT no_visit_planned
 ;
 
-GRANT SELECT ON  "outbound"."MissingTeammember" TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
-
-GRANT UPDATE ON  "outbound"."MissingTeammember" TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT SELECT ON  "outbound"."MissingTeammember" TO  viewer_mnmdb;
+GRANT UPDATE ON  "outbound"."MissingTeammember" TO  planner_mnmdb;

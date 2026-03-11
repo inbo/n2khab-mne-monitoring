@@ -7,7 +7,7 @@ tags:
 ---
 
 *The steps below are used to create a new column. They are not the only possible way, steps can be skipped, but the extensive procedural example is supposed to help remembering all required adjustments.*
-the "database initialization" (dbinit) folder is `<project>/900_database_organization`.
+the "database initialization" (db_tooldev) folder is `<project>/900_database_organization`.
 
 #### (1) add the new column to the [[database/structure|structure]] google sheets.
 - Make sure to specify datatype, default value (new columns should allow `NULL` at first), and add a comment.
@@ -15,18 +15,20 @@ the "database initialization" (dbinit) folder is `<project>/900_database_organiz
 - Afterwards, download the spreadsheet as an `.ods` file to the database initialization folder.
 	Make sure to set the correct users in the "chief" spreadsheet.
 
+New user input columns should be registered to the [[R/MNMDatabaseToolbox#precedence columns|precedence columns in `MNMDatabaseToolbox.R`]].
+
 #### (2) Dry-run database structure creation.
-- run the database initialization python script in the dbinit folder, after activating the virtual environment (meer over `venv` in de [INBO ICT intranet Python tutorial](https://ict-intranet.inbo.be/tutorials/software/Python.html)).
+- run the database initialization python script in the db_tooldev folder, after activating the virtual environment (meer over `venv` in de [INBO ICT intranet Python tutorial](https://ict-intranet.inbo.be/tutorials/software/Python.html)).
 	```sh
 	# you would first want to git clone // cd to <project folder>
 	# pip install --upgrade -r python_requirements.txt
-	source .dbinit/bin/activate # (on Windows, use script in `.\Scripts\` subfolder)
+	source .dbtools/bin/activate # (on Windows, use script in `.\Scripts\` subfolder)
 	```
 - In the respective script (`501_init_loceval.py` or `601_init_mnmgwdb.py`), activate recreation of the `dev` mirror.
 	- ![image.png](attachments/image_1764666933172_0.png)
 - Run the script, but **redirect**/dump the output to a text file (see [here](https://helpdeskgeek.com/redirect-output-from-command-line-to-text-file/), you can also use [the `tee` command](https://man7.org/linux/man-pages/man1/tee.1.html)).
 	```sh
-	# source .dbinit/bin/activate
+	# source .dbtools/bin/activate
 	python 601_init_mnmgwdb.py > dump.txt
 	```
 - Find and copy *all* occurrences related to the new database field from the dump file.
@@ -36,7 +38,7 @@ the "database initialization" (dbinit) folder is `<project>/900_database_organiz
 - Read and understand the #SQL statement. Make sure it is correct. Double check the data type, constraints, indices/keys.
 
 #### (3) Adjust Views.
-- Adjust the required script files in `<dbinit>/views`.
+- Adjust the required script files in `<db_tooldev>/views`.
 - Make sure to also append the *update rules*!
 	- ![image.png](attachments/image_1764668529708_0.png)
 - There are derived views: views built on views (e.g. `MyFieldWork` is a filtered view to `FieldWork`). Remember that these get auto-dropped if you drop-update the upstream view.

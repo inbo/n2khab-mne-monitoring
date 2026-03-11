@@ -6,6 +6,7 @@ SELECT
   VISIT.teammember_id,
   VISIT.date_visit,
   VISIT.type_assessed,
+  VISIT.is_well_developed_type,
   VISIT.notes,
   VISIT.photo,
   VISIT.visit_done,
@@ -26,8 +27,6 @@ SELECT
   INFO.landowner,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
-  -- OPHO.assessment_done, -- used for filtering
-  -- OPHO.cell_disapproved, -- used for filtering
   OPHO.notes AS orthophoto_notes,
   CASE WHEN (FAC.date_visit_planned IS NULL) THEN FALSE ELSE TRUE END AS is_scheduled,
   FAC.teammember_assigned,
@@ -105,6 +104,7 @@ DO ALSO
   teammember_id = NEW.teammember_id,
   date_visit = NEW.date_visit,
   type_assessed = NEW.type_assessed,
+  is_well_developed_type = NEW.is_well_developed_type,
   notes = NEW.notes,
   photo = NEW.photo,
   visit_done = NEW.visit_done
@@ -139,5 +139,5 @@ DO ALSO
 
 
 
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO floris, karen, janne, tom, ward, falk, monkey;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO floris, karen, ward, falk;
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO user_loceval;

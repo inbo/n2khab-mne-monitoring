@@ -315,7 +315,7 @@ restore_location_id_by_grts <- function(
 update_landuse_in_locationinfos <- function(mnmdb) {
   # mnmdb <- locevaldb
 
-  landuse <- readRDS("data/landuse_export.rds")
+  landuse <- readRDS(file.path("data", "landuse_export.rds"))
 
   # forestry_area, # bosbeheerregio
   # fores_naam, # bosbeheer
@@ -433,7 +433,7 @@ update_landuse_in_locationinfos <- function(mnmdb) {
 #'
 #' @examples
 #' \dontrun{
-#'   config_filepath <- file.path("./postgis_server.conf")
+#'   config_filepath <- file.path(".", "postgis_server.conf")
 #'   # keyring::key_set("DBPassword", "db_user_password") # <- for source database
 #'   source("MNMDatabaseConnection.R")
 #'   source_db <- connect_mnm_database(
@@ -680,7 +680,7 @@ upload_data_and_update_dependencies <- function(
       knitr::kable(lost_rows)
       write.csv(
         lost_rows,
-        glue::glue("dumps/lostrows_{table_label}_{now}.csv"),
+        file.path("dumps", glue::glue("lostrows_{table_label}_{now}.csv")),
         row.names = FALSE
       )
     }
@@ -762,7 +762,7 @@ upload_data_and_update_dependencies <- function(
     # dump-store look
     write.csv(
       key_replacement,
-      glue::glue("dumps/lookup_{now}_{table_label}_{deptab}.csv"),
+      file.path("dumps", glue::glue("lookup_{now}_{table_label}_{deptab}.csv")),
       row.names = FALSE
     )
 
@@ -977,7 +977,7 @@ parametrize_cascaded_update <- function(mnmdb) {
           now <- format(Sys.time(), "%Y%m%d%H%M")
           write.csv(
             existing_removed,
-            glue::glue("dumps/lost_changerows_{table_label}_{now}.csv"),
+            file.path("dumps", glue::glue("lost_changerows_{table_label}_{now}.csv")),
             row.names = FALSE
           )
         }
@@ -1120,9 +1120,9 @@ associate_and_shift_start_dates <- function(
   }
 
   # TODO store this somewhere
-  output_filename <- glue::glue(
-      "./logs/{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
-    )
+  output_filename <- file.path(".", "logs", glue::glue(
+      "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
+    ))
   write_csv2(date_updates, output_filename)
 
 
@@ -2155,9 +2155,10 @@ precedence_columns <- list(
     "lims_code",
     "issues",
     "visit_done",
-    "type_assessed"
+    "type_assessed",
+    "is_well_developed_type"
   ),
-  "WellInstallationActivities" = c(
+  "InstallationVisits" = c(
     "photo_soil_1_peilbuis",
     "photo_soil_2_piezometer",
     "photo_well",
@@ -2172,13 +2173,14 @@ precedence_columns <- list(
     "reused_existing_well",
     "reused_with_replacement",
     "used_water_from_tap",
-    "used_water_source"
+    "used_water_source",
+    "is_cattleproof"
   ),
-  "ChemicalSamplingActivities" = c(
+  "SamplingVisits" = c(
     "project_code",
     "recipient_code"
   ),
-  "SpatialPositioningActivities" = c(
+  "PositioningVisits" = c(
     "require_total_station"
   ),
   "LocationInfos" = c(

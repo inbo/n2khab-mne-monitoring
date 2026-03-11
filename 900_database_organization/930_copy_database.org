@@ -96,7 +96,7 @@ structure_folder = base_folder/"loceval_db_structure"
 DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
 
 db_target = DTB.ConnectDatabase(
-    "inbopostgis_server.conf",
+    "mnm_database_connection.conf",
     connection_config = "loceval-testing",
     database = "loceval_testing"
     )
@@ -181,7 +181,7 @@ source("MNMDatabaseToolbox.R")
 
 migrating_table_label <- "Protocols"
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 source_db <- connect_mnm_database(
   config_filepath,
@@ -258,7 +258,7 @@ source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
 
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 # choose database via the command line
 commandline_args <- commandArgs(trailingOnly = TRUE)

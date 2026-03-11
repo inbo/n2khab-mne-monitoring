@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # regularly used sets of libraries
-# and POC data handling (interpreting POC prep as a library)
+# and RVP data handling (interpreting RVP prep as a library)
 
 #_______________________________________________________________________________
 # LIBRARIES
@@ -15,7 +15,7 @@ load_libraries <- function(libs) {
 }
 
 #_______________________________________________________________________________
-poc_common_libraries <- c(
+rvp_common_libraries <- c(
   "dplyr",
   "tidyr",
   "stringr",
@@ -28,9 +28,9 @@ poc_common_libraries <- c(
   "terra",
   "n2khab"
 )
-load_poc_common_libraries <- function(
-  ) load_libraries(poc_common_libraries)
-# load_poc_common_libraries()
+load_rvp_common_libraries <- function(
+  ) load_libraries(rvp_common_libraries)
+# load_rvp_common_libraries()
 
 #_______________________________________________________________________________
 database_interaction_libraries <- c(
@@ -69,9 +69,9 @@ load_inbo_libraries <- function(
 
 
 #_______________________________________________________________________________
-# POC DATA AND CODE
+# RVP DATA AND CODE
 
-load_poc_rdata <- function(data_basepath = "./data", reload = FALSE, to_env = parent.frame()) {
+load_rvp_rdata <- function(data_basepath = file.path(".", "data"), reload = FALSE, to_env = parent.frame()) {
 
   # Setup for googledrive authentication. Set the appropriate env vars in
   # .Renviron and make sure you ran drive_auth() interactively with these settings
@@ -84,47 +84,47 @@ load_poc_rdata <- function(data_basepath = "./data", reload = FALSE, to_env = pa
     options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
   }
 
-  # Download and load R objects from the POC into global environment
+  # Download and load R objects from the RVP into global environment
   # reload <- FALSE # in this one, we normally reload.
-  poc_rdata_path <- file.path(data_basepath, "objects_panflpan5.RData")
-  if (reload || !file.exists(poc_rdata_path)){
+  rvp_rdata_path <- file.path(data_basepath, "objects_panflpan5.RData")
+  if (reload || !file.exists(rvp_rdata_path)){
 
     # copy the old file
-    if (file.exists(poc_rdata_path)) {
+    if (file.exists(rvp_rdata_path)) {
       this_date <- format(Sys.time(), "%Y%m%d")
       backup_path <- file.path(data_basepath, glue::glue("objects_panflpan5_{this_date}.bak"))
-      file.copy(from = poc_rdata_path, to = backup_path, overwrite = TRUE)
+      file.copy(from = rvp_rdata_path, to = backup_path, overwrite = TRUE)
     }
 
     googledrive::drive_download(
       googledrive::as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
-      path = poc_rdata_path,
+      path = rvp_rdata_path,
       overwrite = reload
     )
   }
-  load(poc_rdata_path, envir = to_env)
+  load(rvp_rdata_path, envir = to_env)
 
-} # /load_poc_rdata
+} # /load_rvp_rdata
 
 
-load_poc_code_snippets <- function(base_path = NA) {
+load_rvp_code_snippets <- function(base_path = NA) {
 
   if (is.na(base_path)) {
     base_path <- rprojroot::find_root(is_git_root)
   }
 
-  source(file.path(base_path, "020_fieldwork_organization/R/grts.R"))
-  source(file.path(base_path, "020_fieldwork_organization/R/misc.R"))
+  source(file.path(base_path, "020_fieldwork_organization", "R", "grts.R"))
+  source(file.path(base_path, "020_fieldwork_organization", "R", "misc.R"))
 
   invisible(capture.output(source("401_snippet_selection.R")))
   source("402_snippet_transformation_code.R")
 
 
-} # /load_poc_code_snippets
+} # /load_rvp_code_snippets
 
 
 
-verify_poc_objects <- function() {
+verify_rvp_objects <- function() {
 
   versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
   verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
@@ -185,7 +185,7 @@ verify_poc_objects <- function() {
   # shout out success!
   message("All expected environment objects were found.")
 
-} # /verify_poc_objects
+} # /verify_rvp_objects
 
 
 #_______________________________________________________________________________

@@ -29,17 +29,19 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 suffix <- "-staging" # "-testing"
 # suffix <- ""
 ```
 
 
+
 choose a GRTS
 
 ```{r choose-grts}
-grts <- c(11561, 8400169) # test case for 091a overhaul
+grts <- c(111326, 881374) # MNM team praatje location -> fieldwork knowledge transfer 20260203
+    # c(11561, 8400169) # test case for 091a overhaul
     # c(826486, 51158134)
     # c(23238, 6314694, 23091910) # Hellebos!
     # c(4229394) # an installed, but archived installation

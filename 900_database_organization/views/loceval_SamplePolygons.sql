@@ -12,13 +12,5 @@ LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON UNIT.sampleunit_id = POL.sampleunit_id
 ;
 
-GRANT SELECT ON  "outbound"."SamplePolygons"  TO ward;
-GRANT SELECT ON  "outbound"."SamplePolygons"  TO karen;
-GRANT SELECT ON  "outbound"."SamplePolygons"  TO janne;
-GRANT SELECT ON  "outbound"."SamplePolygons"  TO floris;
-GRANT SELECT ON  "outbound"."SamplePolygons"  TO falk;
-GRANT UPDATE ON  "outbound"."SamplePolygons"  TO ward;
-GRANT UPDATE ON  "outbound"."SamplePolygons"  TO karen;
-GRANT UPDATE ON  "outbound"."SamplePolygons"  TO janne;
-GRANT UPDATE ON  "outbound"."SamplePolygons"  TO floris;
-GRANT UPDATE ON  "outbound"."SamplePolygons"  TO falk;
+GRANT SELECT ON  "outbound"."SamplePolygons"  TO viewer_mnmdb;
+GRANT UPDATE ON  "outbound"."SamplePolygons"  TO user_loceval;

@@ -9,7 +9,7 @@ source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
 
 # credentials are stored for easy access
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 # choose database via the command line
 commandline_args <- commandArgs(trailingOnly = TRUE)

@@ -122,7 +122,7 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
     message(sql_command)
   }
 
-  stopifnot("DBI" = require("DBI"))
+  stopifnot("DBI" = requireNamespace("DBI", quietly = TRUE))
 
   rs <- DBI::dbExecute(db_connection, sql_command)
 
@@ -149,9 +149,9 @@ execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
 #' \dontrun{
 #'   now <- format(Sys.time(), "%Y%m%d%H%M")
 #'   dump_all(
-#'     config_filepath = file.path("./postgis_server.conf"),
+#'     config_filepath = file.path(".", "mnm_database_connection.conf"),
 #'     database_to_dump = "mnmdb-testing",
-#'     here::here(glue::glue("dumps/safedump_{now}.sql")),
+#'     file.path("dumps", glue::glue("safedump_{now}.sql")),
 #'     exclude_schema = c("tiger", "public")
 #'   )
 #' }
@@ -166,9 +166,9 @@ dump_all <- function(
   # database_to_dump <- "loceval_dev"
 
   stopifnot(
-    "configr" = require("configr"),
-    "glue" = require("glue"),
-    "here" = require("here")
+    "configr" = requireNamespace("configr", quietly = TRUE),
+    "glue" =    requireNamespace("glue", quietly = TRUE),
+    "here" =    requireNamespace("here", quietly = TRUE)
   )
 
   config <- configr::read.config(file = config_filepath)[[connection_profile]]
@@ -230,8 +230,8 @@ append_tabledata <- function(
   ) {
 
 
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("DBI" = require("DBI"))
+  stopifnot("dplyr" = requireNamespace("dplyr", quietly = TRUE))
+  stopifnot("DBI" =   requireNamespace("DBI", quietly = TRUE))
 
   content <- DBI::dbReadTable(db_connection, table_id)
   # head(content)
@@ -291,13 +291,13 @@ append_tabledata <- function(
 #' \dontrun{
 #'   read_table_relations_config(
 #'     storage_filepath = file.path(
-#'       "./devdb_structure/table_relations.conf"
+#'       ".", "devdb_structure", "table_relations.conf"
 #'   ))
 #' }
 #'
 read_table_relations_config <- function(storage_filepath) {
 
-  stopifnot("configr" = require("configr"))
+  stopifnot("configr" = requireNamespace("configr", quietly = TRUE))
 
   # read the raw file
   table_relations <- configr::read.config(file = storage_filepath)
@@ -364,7 +364,7 @@ read_table_relations_config <- function(storage_filepath) {
 #'
 #' @examples
 #' \dontrun{
-#'     config_filepath <- file.path("./server.conf")
+#'     config_filepath <- file.path(".", "server.conf")
 #'     db_source <- connect_database_configfile(
 #'       config_filepath, # sort of provides default settings
 #'       database = "loceval",
@@ -499,11 +499,12 @@ connect_database_configfile <- function(
 #' lookup-tables and functions.
 #'
 #' @param config_filepath the path to the config file
-#' @param database_mirror database and mirror (equal to "config profile")
+#' @param connection_profile usually indicating database and mirror (equal to "config profile")
 #' @param ... further connection parameters, forwarded to connect_database_configfile
 #'
 connect_mnm_database <- function(
     config_filepath,
+    connection_profile = NA,
     database_mirror = NA,
     folder = NA,
     skip_structure_assembly = FALSE,
@@ -512,15 +513,21 @@ connect_mnm_database <- function(
   # database_mirror <- "mnmgwdb-staging"
 
   stopifnot(
-    "glue" = require("glue"),
-    "DBI" = require("DBI"),
-    "keyring" = require("keyring"),
-    "configr" = require("configr")
+    "glue" =    requireNamespace("glue", quietly = TRUE),
+    "DBI" =     requireNamespace("DBI", quietly = TRUE),
+    "keyring" = requireNamespace("keyring", quietly = TRUE),
+    "configr" = requireNamespace("configr", quietly = TRUE)
   )
-  stopifnot("provide database mirror" = isFALSE(is.na(database_mirror)))
 
   # collect db connection
   db <- list()
+
+  # the user may send a "profile", or a "mirror"
+  if (is.na(connection_profile)) {
+    stopifnot("provide database mirror" = isFALSE(is.na(database_mirror)))
+  } else {
+    database_mirror <- connection_profile
+  }
   db$connection_profile <- database_mirror
 
   # load profile
@@ -597,7 +604,7 @@ connect_mnm_database <- function(
 mnmdb_assemble_structure_lookups <- function(db) {
 
   # tables and their relations
-  db$tables <- read.csv(here::here(db$folder, "TABLES.csv")) %>%
+  db$tables <- read.csv(file.path(db$folder, "TABLES.csv")) %>% # !!!
     select(table, schema, geometry, excluded)
   # db$tables %>% knitr::kable()
 
@@ -606,7 +613,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
   # this one is created by python scripts
   db$table_relations <- read_table_relations_config(
-    storage_filepath = here::here(db$folder, "table_relations.conf")
+    storage_filepath = file.path(db$folder, "table_relations.conf")
     )
   # db$table_relations %>% knitr::kable()
 
@@ -680,7 +687,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
   # specific table info
   db$load_table_info <- function(table_label) {
     table_info <- read.csv(
-      here::here(db$folder, glue::glue("{table_label}.csv"))
+      file.path(db$folder, glue::glue("{table_label}.csv"))
     )
     return(table_info)
   }
@@ -763,7 +770,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
   # check whether a table is spatial, i.e. contains `wkb_geometry`
   db$is_spatial <- function(table_key) {
-    read.csv(here::here(db$folder, "TABLES.csv")) %>%
+    read.csv(file.path(db$folder, "TABLES.csv")) %>%
       select(table, geometry) %>%
       filter(tolower(table) == tolower(table_key)) %>%
       pull(geometry) %>%
@@ -1174,8 +1181,8 @@ mnmdb_versions_and_archiving <- function(db) {
 # terminate and clean up this keyring
 terminate_keyring <- function(keyring_label = "mnmdb_postgis") {
 
-  stopifnot("glue" = require("glue"))
-  stopifnot("keyring" = require("keyring"))
+  stopifnot("glue" =    requireNamespace("glue", quietly = TRUE))
+  stopifnot("keyring" = requireNamespace("keyring", quietly = TRUE))
 
   # repeatedly execute
   while (keyring_label %in% keyring::keyring_list()$keyring) {
@@ -1206,8 +1213,8 @@ terminate_keyring <- function(keyring_label = "mnmdb_postgis") {
 # lock the keyring after a delay
 lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 300) {
 
-  stopifnot("glue" = require("glue"))
-  stopifnot("keyring" = require("keyring"))
+  stopifnot("glue" =    requireNamespace("glue", quietly = TRUE))
+  stopifnot("keyring" = requireNamespace("keyring", quietly = TRUE))
 
   # string building blocks
   l <- glue::glue('\"{keyring_label}\"')
@@ -1234,7 +1241,7 @@ lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 300) {
 # unlock a keyring, and schedule locking for when the R session ends
 unlock_keyring <- function(keyring_label = "mnmdb_postgis", ...) {
 
-  stopifnot("keyring" = require("keyring"))
+  stopifnot("keyring" = requireNamespace("keyring", quietly = TRUE))
 
   # unlock the keyring
   keyring::keyring_unlock(keyring = keyring_label, ...)
@@ -1249,8 +1256,8 @@ unlock_keyring <- function(keyring_label = "mnmdb_postgis", ...) {
 # initialize the keyring
 init_keyring <- function(keyring_label = "mnmdb_postgis") {
 
-  stopifnot("glue" = require("glue"))
-  stopifnot("keyring" = require("keyring"))
+  stopifnot("glue" = requireNamespace("glue", quietly = TRUE))
+  stopifnot("keyring" = requireNamespace("keyring", quietly = TRUE))
 
   # note that you can create two keyrings of the same name! (shadowing)
   # avoid stacking keyrings with the same name
@@ -1281,9 +1288,9 @@ init_keyring <- function(keyring_label = "mnmdb_postgis") {
 # takes the arguments `service`, `username` and `keyring`
 set_password <- function(..., keyring = "mnmdb_postgis") {
 
-  stopifnot("glue" = require("glue"))
-  stopifnot("keyring" = require("keyring"))
-  stopifnot("getPass" = require("getPass"))
+  stopifnot("glue" =    requireNamespace("glue", quietly = FALSE))
+  stopifnot("keyring" = requireNamespace("keyring", quietly = FALSE))
+  stopifnot("getPass" = requireNamespace("getPass", quietly = FALSE))
 
   params <- toString(list(...))
 
@@ -1314,9 +1321,9 @@ get_mnm_password <- function(
     ...
   ) {
 
-  stopifnot("glue" = require("glue"))
-  stopifnot("keyring" = require("keyring"))
-  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("glue" =    requireNamespace("glue", quietly = FALSE))
+  stopifnot("keyring" = requireNamespace("keyring", quietly = FALSE))
+  stopifnot("dplyr" = requireNamespace("dplyr", quietly = FALSE))
 
   # does the keyring exist? otherwise initialize it
   if (!(keyring_label %in% keyring::keyring_list()$keyring)) {

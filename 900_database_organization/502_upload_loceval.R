@@ -35,7 +35,7 @@ verify_poc_objects()
 
 
 ## ----establish-connection-config----------------------------------------------
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 # keyring::key_set("DBPassword", "db_user_password") # <- for source database
 

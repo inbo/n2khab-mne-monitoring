@@ -48,7 +48,7 @@ connect to the server...
 
 ```{r connect-databases}
 
-config_filepath <- file.path("./inbopostgis_server.conf")
+config_filepath <- file.path("./mnm_database_connection.conf")
 
 locevaldb_mirror <- glue::glue("loceval")
 mnmgwdb_mirror <- glue::glue("mnmgwdb")
