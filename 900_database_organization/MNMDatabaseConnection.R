@@ -604,8 +604,13 @@ connect_mnm_database <- function(
 mnmdb_assemble_structure_lookups <- function(db) {
 
   # tables and their relations
-  db$tables <- read.csv(file.path(db$folder, "TABLES.csv")) %>% # !!!
-    select(table, schema, geometry, excluded)
+  db$tables <- bind_rows(
+      read.csv(file.path(db$folder, "TABLES.csv")) %>%
+        select(table, schema, geometry, excluded),
+      read.csv(file.path(db$folder, "VIEWS.csv")) %>%
+        select(table = view, schema, excluded) %>%
+        mutate(geometry = NA)
+    )
   # db$tables %>% knitr::kable()
 
   # check if a table exists
