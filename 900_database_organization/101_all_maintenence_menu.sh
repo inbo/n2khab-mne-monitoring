@@ -2,7 +2,7 @@
 
 MIRROR="$1"
 
-source .dbinit/bin/activate
+source .dbtools/bin/activate
 # Rscript 090_R_connect_background.R &
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 
@@ -15,7 +15,7 @@ yad --form \
   --title="MNM Database Maintenance (mirror $MIRROR)" \
   --center \
   --text-align="left" \
-  --text="<span font_weight='bold' font='14' color='#78c6dd'>Please select a maintenance task.</span>" \
+  --text="<span font_weight='bold' font='14' color='#78c6dd'>MNM Database Maintenance Tasks.</span>" \
   --columns=3 --align-buttons \
   --field="  staging":fbtn "echo '-staging'" \
   --field=" {staging} [loceval] -> [mnmgwdb]":fbtn "Rscript 111a_push_loceval_to_mnmgwdb.R -staging " \
