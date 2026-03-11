@@ -1,4 +1,3 @@
-## Purpose
 
 This list of steps extensively describes how to establish a connection to one of the MNM databases via R.
 (It is actually quite simple.)
@@ -30,19 +29,23 @@ git clone https://github.com/inbo/n2khab-mne-monitoring <local_folder>
 
 Third, [[usage/connection config file|connection config file]] must be prepared.
 
-The config file is best kept central, in the `900_database_organization` folder.
-There, it should be `.gitignore`'d, and it only has to be assembled once for various side projects.
+The config file is best kept central, in the `900_database_organization` folder; suggested name: `mnm_database_connection.conf`.
+The file should be `.gitignore`'d.
 It has the option to keep multiple profiles. 
+It only has to be assembled once for various side projects; the connection can be established from anywhere on the system.
 
-> [!warning]
+> [!warning] Confidential Credentials
 > Do not share your credentials!
 
-> [!warning]
-> Preferrably use a read-only connection to avoid accidental data manipulation.
-
+> [!warning] Manipulation Safety
+> Preferably use a read-only connection to avoid accidental data manipulation.
 
 
 ## Libraries and Functions
+
+> [!tip] Use a script!
+> You can create a simple script file with the following procedure in it for easy `source()` and repeated usage.
+> The file `901_database_usage_example/database_usage_example.R` might give you a start.
 
 First, find the project root directory.
 Options: hardcode this path, or use `here::here()` or `file.path()`.
@@ -108,17 +111,16 @@ With all these in place, the database can be connected as follows.
 mnmdb <- connect_mnm_database(
   config_filepath = config_filepath,
   connection_profile = profile,
-  folder = db_structure_folder,
-  password = NA
+  folder = db_structure_folder
+  # , password = NA ## the function uses `getpass()` to prompt password
 )
 ```
 
 
-
-## usage
+# Application
 There are a number of convenience functions, *cf.* [[R/MNMDatabaseConnection]].
 
-### query all data from a table
+## query all data from a table
 ```r
 mnmdb$query_table("N2kHabStrata") %>%
   sample_n(2) %>% t() %>% knitr::kable()
@@ -138,7 +140,7 @@ mnmdb$query_table("N2kHabStrata") %>%
     |sample_support_code |cell_conditioned_on_center                                  |cell_conditioned_on_center                                  |
 
 
-### query some columns from a table
+## query some columns from a table
 ```r
 mnmdb$query_columns("RandomPoints", c("compass", "angle")) %>%
   sample_n(10) %>% knitr::kable()
@@ -158,7 +160,7 @@ mnmdb$query_columns("RandomPoints", c("compass", "angle")) %>%
 |ENE     |  61.88|
 
 
-### table attributes
+## table attributes
 ```r
 mnmdb$is_spatial("LocationCells")
 ```
@@ -166,7 +168,7 @@ mnmdb$is_spatial("LocationCells")
     TRUE
 
 
-### organizational
+## organizational
 ```r
 mnmdb$query_table("Versions") %>%
   filter(version_id == mnmdb$load_latest_version_id()) %>%
