@@ -138,7 +138,7 @@ generate_mhq_polygon <- function(
         cell_center + make_a_point(8, 8)
       )
     )
-    mhq_safety <- sf::st_buffer(mhq_zone, 2)
+    mhq_safety <- sf::st_buffer(mhq_zone, 1)
   } else {
     mhq_zone <- make_polygon(
       rbind(
@@ -149,7 +149,7 @@ generate_mhq_polygon <- function(
         cell_center
       )
     )
-    mhq_safety <- sf::st_buffer(mhq_zone, 3)
+    mhq_safety <- sf::st_buffer(mhq_zone, 2)
   }
 
 
