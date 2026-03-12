@@ -164,7 +164,7 @@ stratum_schemepstargetpanel_spsamples <-
 # to be updated.
 scheme_moco_ps_stratum_targetpanel_spsamples %>%
   filter(grts_address != grts_address_final) %>%
-  glimpse
+  glimpse()
 
 
 
