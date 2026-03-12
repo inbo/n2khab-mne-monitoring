@@ -1019,6 +1019,7 @@ scheme_moco_fa_fieldvar <-
 
 # Derive the short-term FAG calendar at the stratum x location x FAG occasion, and
 # include some of the location attributes.
+main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
   select(
@@ -1031,18 +1032,10 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   ) %>%
   mutate(has_gw = map_lgl(
     scheme_moco_ps,
-    \(df) any(str_detect(df$scheme, "^GW"))
+    \(df) any(str_detect(df$scheme[df$is_current_occasion], "^GW"))
   )) %>%
   filter(
-    year(date_start) < 2026 |
-      # include groundwater cleaning & sampling activities from 2026
-      (
-        year(date_start) < 2027 &
-          str_detect(
-            field_activity_group,
-            "SHALL(CLEAN|SAMP)"
-          )
-      ) |
+    year(date_start) <= main_year |
       # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
       # next years to be executed:
       (
@@ -1057,17 +1050,46 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   ) %>%
   select(-has_gw) %>%
   # count(date_start, date_end, date_interval) %>%
-  # move the fieldwork that was kept for 2024, to 2025, since that is indeed
-  # its meaning
+  # move the LOCEVAL fieldwork that was kept for main_year - 1, to main_year,
+  # since that is indeed its meaning
   mutate(
     across(c(date_start, date_end), \(x) {
-      if_else(year(date_start) == 2024, x + years(1), x)
+      if_else(
+        year(date_start) == main_year - 1 &
+          str_detect(field_activity_group, "LOCEVAL"),
+        x + years(1),
+        x
+      )
     }),
     date_interval = interval(
       force_tz(date_start, "Europe/Brussels"),
       force_tz(date_end, "Europe/Brussels")
     )
   ) %>%
+  # drop past activities
+  filter(year(date_start) >= main_year) %>%
+  # generating some attributes of the FAG occasion with regard to associated
+  # schemes
+  mutate(
+    schemes_served_all = map_chr(scheme_moco_ps, function(df) {
+      str_flatten(df$scheme %>% sort(), collapse = "|")
+    }) %>%
+      factor(),
+    nr_schemes_current = map_int(scheme_moco_ps, function(df) {
+      sum(df$is_current_occasion)
+    }),
+    nr_schemes_later = map_int(scheme_moco_ps, function(df) {
+      sum(!df$is_current_occasion)
+    }),
+    scheme_moco_ps = map(scheme_moco_ps, function(df) {
+      df %>%
+        filter(is_current_occasion) %>%
+        select(scheme, module_combo_code, panel_set)
+    })
+  ) %>%
+  # unnesting schemes for which the FAG was originally planned in the current
+  # date interval (is_current_occasion is TRUE), in order to add their
+  # targetpanel attribute etc
   unnest(scheme_moco_ps) %>%
   # adding location attributes
   inner_join(
@@ -1093,13 +1115,44 @@ fag_stratum_grts_calendar_shortterm_attribs <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
+  # adding old targetpanel of the imported FAG occasions from rep_0.14.0. A part
+  # is dropped because of occasions that don't happen in the main year.
+  left_join(
+    cal_0.14.0_continuation %>%
+      unnest(scheme_moco_ps) %>%
+      mutate(
+        scheme_ps_oldtargetpanel = str_c(scheme, ":PS", panel_set, targetpanel)
+      ) %>%
+      select(
+        -ends_with("upcoming"),
+        -is_current_occasion,
+        -date_interval,
+        -targetpanel
+      ),
+    join_by(
+      scheme,
+      module_combo_code,
+      panel_set,
+      stratum,
+      grts_address,
+      date_start,
+      date_end,
+      field_activity_group,
+      rank
+    ),
+    relationship = "one-to-one",
+    unmatched = "drop"
+  ) %>%
+  mutate(scheme_ps_oldtargetpanel = factor(scheme_ps_oldtargetpanel)) %>%
   relocate(grts_address_final:domain_part, .after = grts_address) %>%
+  relocate(grts_join_method, .after = grts_address_final) %>%
+  relocate(scheme_ps_oldtargetpanel, .before = date_start) %>%
   select(-module_combo_code) %>%
   # flatten scheme x panel set x targetpanel to unique strings per stratum x
   # location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
   # shrinked version of the one at the level of the whole sample (see sampling
   # unit attributes in the beginning), since we limited the activities to those
-  # planned before 2026 (sometimes later), and then generate
+  # planned before main_year + 1 (sometimes later), and then generate
   # stratum_scheme_ps_targetpanels as a location attribute. So it says
   # specifically which schemes x panel sets x targetpanels are served by the
   # specific fieldwork at a specific date interval.
@@ -1117,7 +1170,11 @@ fag_stratum_grts_calendar_shortterm_attribs <-
     }) %>%
       factor()
   ) %>%
-  relocate(scheme_ps_targetpanels)
+  relocate(
+    scheme_ps_targetpanels,
+    schemes_served_all,
+    starts_with("nr_schemes")
+  )
 
 # Derive an object where stratum x scheme_ps_targetpanels is flattened per
 # location x FAG occasion. Beware that in reality, more locations will emerge
@@ -1142,6 +1199,10 @@ unite_stratum_and_schemepstargetpanels <- function(df) {
 }
 fag_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar_shortterm_attribs %>%
+  select(
+    -schemes_served_all,
+    -starts_with("nr_schemes")
+  ) %>%
   unite_stratum_and_schemepstargetpanels() %>%
   summarize(
     stratum_scheme_ps_targetpanels =
