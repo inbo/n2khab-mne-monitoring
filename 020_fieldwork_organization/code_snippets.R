@@ -1231,16 +1231,40 @@ fag_grts_calendar_shortterm_attribs_sf <-
 fieldwork_shortterm_prioritization_by_stratum <-
   fag_stratum_grts_calendar_shortterm_attribs %>%
   mutate(
-    priority = case_when(
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL12|PS2PANEL06)") ~ 7L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL11)") ~ 1L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL10|PS2PANEL05)") ~ 2L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL09)") ~ 3L,
-      str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL03") ~ 4L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 5L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 6L,
-      str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL0[56]") ~ 8L,
-      .default = 9L
+    priority_gw = case_when(
+      # no priority is given to imported FAGs from old versions (these
+      # READDIVER, CLEAN & SHALLSAMP FAGs can be done as it suits, in the
+      # locations where LOCEVAL is already executed)
+      !is.na(scheme_ps_oldtargetpanel) ~ NA_integer_,
+      # switch priorities for PS1PANEL02 and PS1PANEL03 from 15 April on!
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL02|PS2PANEL01)") ~ 1L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL03|PS2PANEL02)") ~ 2L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL04)") ~ 3L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL0[56]|PS2PANEL03)") ~ 4L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07)") ~ 6L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL01)") ~ 7L,
+      str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 8L,
+      str_detect(scheme_ps_targetpanels, "GW_05\\.") ~ 11L
+    ),
+    priority_surf = case_when(
+      str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL02") ~ 2L,
+      str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL01") ~ 4L
+    ),
+    priority_soil = case_when(
+      str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL02") ~ 7L,
+      str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL01") ~ 8L,
+      str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL03") ~ 9L,
+      str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL04") ~ 10L
+    ),
+    priority_mhq = case_when(
+      str_detect(scheme_ps_targetpanels, "HQ.+:PS\\dPANEL01") ~ 3L
+    ),
+    priority = pmin(
+      priority_gw,
+      priority_surf,
+      priority_soil,
+      priority_mhq,
+      na.rm = TRUE
     ),
     wait_watersurface = str_detect(stratum, "^31|^2190_a"),
     wait_3260 = stratum == "3260",
@@ -1248,6 +1272,7 @@ fieldwork_shortterm_prioritization_by_stratum <-
     wait_floating = stratum == "7140_mrd",
     wait_any = if_any(starts_with("wait"))
   ) %>%
+  select(-matches("priority_.+")) %>%
   relocate(wait_any, .before = wait_watersurface) %>%
   arrange(
     date_end,
