@@ -606,10 +606,10 @@ mnmdb_assemble_structure_lookups <- function(db) {
   # tables and their relations
   db$tables <- bind_rows(
       read.csv(file.path(db$folder, "TABLES.csv")) %>%
-        select(table, schema, geometry, excluded),
+        select(table, schema, geometry, inherits, excluded),
       read.csv(file.path(db$folder, "VIEWS.csv")) %>%
         select(table = view, schema, excluded) %>%
-        mutate(geometry = NA)
+        mutate(geometry = NA, inherits = NA)
     )
   # db$tables %>% knitr::kable()
 
@@ -666,6 +666,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
 
   ### table dependency structure
+  # table dependent by foreign key
   db$get_dependent_tables <- function(table_key) {
     return(c(
       table_key,
@@ -689,7 +690,17 @@ mnmdb_assemble_structure_lookups <- function(db) {
   }
   # db$get_dependent_table_ids("Locations")
 
-  # specific table info
+  # table dependent by inheritance
+  # table_label <- "Visits"
+  db$get_descendant_tables <- function(table_label) {
+    db$tables %>% filter(
+      inherits == db$get_namestring(table_label)
+    ) %>%
+    pull(table) %>%
+    return()
+  }
+
+  ### specific table info
   db$load_table_info <- function(table_label) {
     table_info <- read.csv(
       file.path(db$folder, glue::glue("{table_label}.csv"))
@@ -747,20 +758,62 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
 mnmdb_assemble_query_functions <- function(db) {
   ## testing:
-  # table_label <- "Locations"
+  # table_label <- "Visits"
   # table_key <- table_label
   # select_column <- "location_id"
-  # select_columns <- c("grts_address", "location_id")
+  # select_columns <- c("visit_id", "grts_address", "location_id")
+  # ONLY <- TRUE
 
   # load many columns
-  db$query_columns <- function(table_label, select_columns) {
-    dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
-      dplyr::select(!!!rlang::syms(select_columns)) %>%
+  db$query_columns <- function(table_label, select_columns, ONLY = FALSE) {
+    # TODO use query_table and then subset
+
+    # re-usable, non-collecting query function
+    query_inclusive <- function(tablab, selcol) {
+      dplyr::tbl(db$connection, db$get_table_id(tablab)) %>%
+        dplyr::select(!!!rlang::syms(selcol)) %>%
+        return()
+    }
+
+    # query the (common) primary key and selected columns
+    pk <- db$get_primary_key(table_label)
+    inclusive_data <- query_inclusive(
+      table_label,
+      unique(c(pk, select_columns))
+    )
+
+    # inclusive = ALL; exclusive = ONLY
+    exclusive_data <- inclusive_data
+
+    # anti-join descendant tables if ONLY is selected
+    if (ONLY) {
+      # listwise query
+      childtable_data <- lapply(
+        db$get_descendant_tables(table_label),
+        FUN = \(child_tablab) query_inclusive(child_tablab, c(pk))
+        )
+
+      # anti-join
+      for (ch_i in seq_len(length(childtable_data))) {
+        exclusive_data <- exclusive_data %>%
+          anti_join(
+            childtable_data[[ch_i]],
+            by = join_by(!!pk)
+          )
+      } # loop descendants
+
+    } # /ONLY
+
+    # remove pk if not selected, collect, return
+    exclusive_data %>%
+      select(!!!rlang::syms(select_columns)) %>%
+      grts_datatype_to_integer() %>%
       dplyr::collect() %>%
       return()
   } # /query_columns
   # db$query_columns(table_label, select_columns)
-  # db$query_columns("Protocols", c("protocol_id", "description"))
+  # db$query_columns(table_label, select_columns, ONLY = TRUE)
+  # db$query_columns("Protocols", c("protocol_id", "title"))
 
   # load one column
   db$pull_column <- function(table_label, select_column) {
@@ -788,45 +841,101 @@ mnmdb_assemble_query_functions <- function(db) {
   # db$is_spatial("LocationInfos")
 
   # load all table data
-  db$query_table <- function(table_label) {
-
-    # TODO this cannot handle ONLY for table inheritance.
-    # TODO views are not found
-
-    table_id <- db$get_table_id(table_label)
-    if (db$is_spatial(table_label)) {
-      data <- sf::st_read(db$connection, layer = table_id) %>%
-        select(-ogc_fid) %>%
-        grts_datatype_to_integer() %>%
-        collect
-      sf::st_geometry(data) <- "wkb_geometry"
-    } else {
-      data <- dplyr::tbl(db$connection, table_id) %>%
-        grts_datatype_to_integer() %>%
-        collect
+    # DONE this can now handle ONLY for table inheritance.
+    # DONE views are now found
+  db$query_table_uncollected <- function(table_label, ONLY = FALSE) {
+    # a generalizer (with `query_columns`)
+    #      which queries all data for then
+    #      either collecting,
+    #      or selecting and collecting
+    ## else: non-spatial tables
+    # complicated by the ONLY keyword
+    query_inclusive <- function(tablab) {
+      dplyr::tbl(db$connection, db$get_table_id(tablab)) %>%
+        return()
     }
-    data <- data %>% as_tibble
 
-    return(data)
+    pk <- db$get_primary_key(table_label)
+    inclusive_data <- query_inclusive(table_label)
+
+
+    # inclusive = ALL; exclusive = ONLY
+    exclusive_data <- inclusive_data
+
+    # anti-join descendant tables if ONLY is selected
+    if (ONLY) {
+      # listwise query
+      childtable_data <- lapply(
+        db$get_descendant_tables(table_label),
+        FUN = query_inclusive
+        )
+
+      # anti-join
+      for (ch_i in seq_len(length(childtable_data))) {
+        exclusive_data <- exclusive_data %>%
+          anti_join(
+            childtable_data[[ch_i]],
+            by = join_by(!!pk)
+          )
+      } # loop descendants
+
+    } # /ONLY
+
+    exclusive_data %>%
+      return()
+
+  } # /query_table_uncollected
+
+  db$query_table <- function(table_label, ONLY = FALSE) {
+
+    ## case 1: spatial table
+    if (db$is_spatial(table_label)) {
+
+      # currently, we do not use inheritance on spatial tables.
+      if (ONLY) message(
+        "WARNING: ONLY flag not available for spatial tables; returning ALL rows."
+      )
+
+      # load and return data
+      data <- sf::st_read(
+          db$connection,
+          layer = db$get_table_id(table_label)
+        ) %>%
+        dplyr::select(-ogc_fid)
+
+      sf::st_geometry(data) <- "wkb_geometry"
+
+    } else {
+
+      ## else: non-spatial
+      data <- db$query_table_uncollected(table_label, ONLY) %>%
+        dplyr::collect()
+    }
+
+    data %>%
+      grts_datatype_to_integer() %>%
+      dplyr::as_tibble() %>%
+      return()
   } # /query_table
-  # db$query_table("FreeFieldNotes") %>% head(2) %>% t() %>% knitr::kable()
+  # db$query_table(table_label = "FreeFieldNotes") %>% head(2) %>% t() %>% knitr::kable()
+  # db$query_table("Visits")
+  # db$query_table("Visits", ONLY = TRUE)
+
 
   # load lookup of a table (characteristics -> pk)
-  db$query_lookup <- function(table_label, characteristic_columns = NA) {
+  db$query_lookup <- function(table_label, characteristic_columns = NA, ...) {
 
     if (is.scalar.na(characteristic_columns)) {
       characteristic_columns <- db$get_characteristic_columns(table_label)
     }
 
-    pk <- db$get_primary_key(table_label)
-
-    return(
-      db$query_columns(
+    db$query_columns(
         table_label,
-        select_columns = c(characteristic_columns, pk)
+        select_columns = c(characteristic_columns, db$get_primary_key(table_label)),
+        ...
       ) %>%
-      grts_datatype_to_integer()
-    )
+      grts_datatype_to_integer() %>%
+      return()
   } # /query_lookup
 
   # load data from many, many tables

@@ -471,6 +471,7 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 #_______________________________________________________________________________
 
 ### TODO here it gets interesting.
+# db <- mnmgwdb
 
 visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
 
@@ -546,7 +547,7 @@ for (table_label in names(selection_of_activities)) {
 
   # append=upload data to the activity table
   # double-check existing to avoid dups
-  existing <- mnmgwdb$query_table(table_label)
+  existing <- mnmgwdb$query_table(table_label) #TODO!!!!
   sa_lookup <- upload_and_lookup(
     mnmgwdb,
     table_label = table_label,
