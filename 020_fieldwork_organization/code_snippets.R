@@ -1360,7 +1360,10 @@ if (FALSE) {
 fag_stratum_grts_calendar %>%
   filter(str_detect(field_activity_group, "INST")) %>%
   unnest(scheme_moco_ps) %>%
-  filter(str_detect(scheme, "^GW")) %>%
+  filter(
+    str_detect(scheme, "^GW"),
+    is_current_occasion
+  ) %>%
   distinct(stratum) %>%
   # adding type attributes
   inner_join(
