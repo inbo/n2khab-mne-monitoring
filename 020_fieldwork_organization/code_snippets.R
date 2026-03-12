@@ -1392,20 +1392,6 @@ fag_stratum_grts_calendar %>%
   )
 
 
-# Checking how many forest locations have temporarily been misjudged as not
-# being part of MHQ samples (because the in_mhq_samples column was not yet
-# present at the time)
-
-stratum_schemepstargetpanel_spsamples %>%
-  filter(is_forest) %>%
-  semi_join(
-    fag_stratum_grts_calendar_shortterm_attribs,
-    join_by(grts_address, stratum)
-  ) %>%
-  filter(!last_type_assessment_in_field, in_mhq_samples) %>%
-  count(stratum)
-
-
 
 
 
