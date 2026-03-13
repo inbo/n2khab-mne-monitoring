@@ -20,7 +20,7 @@ if (length(commandline_args) > 0) {
   suffix <- ""
   # suffix <- "-staging" # "-testing"
 }
-suffix <- "-staging"
+# suffix <- "-staging"
 
 ### connect to database
 mnmgwdb <- connect_mnm_database(
@@ -30,6 +30,9 @@ mnmgwdb <- connect_mnm_database(
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 
 message(mnmgwdb$shellstring)
+
+rowcounts_pre_update <- mnmgwdb$count_all_table_content()
+
 
 ## ----rvp-data-----------------------------------------------------------------
 # re-load RVP data
@@ -41,6 +44,18 @@ snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 load_rvp_code_snippets(snippets_path)
 
 verify_rvp_objects()
+
+
+## ----paranoia-dump------------------------------------------------------------
+# just because I figured that I irregularly use these backups.
+now <- format(Sys.time(), "%Y%m%d")
+
+if (suffix == "") {
+  mnmgwdb$dump_all(
+    here::here("dumps", glue::glue("{mnmgwdb$database}_{now}.sql")),
+    exclude_schema = c("tiger", "public")
+  )
+}
 
 
 ## ----update-propagate-lookup--------------------------------------------------
@@ -116,10 +131,11 @@ locations <- bind_rows(
     mnmgwdb$query_columns("ReplacementData", c("grts_address_replacement")) %>%
       rename(grts_address = grts_address_replacement),
     mnmgwdb$query_columns("FieldworkCalendar", c("grts_address")),
-    mnmgwdb$query_columns("Visits", c("grts_address"))
+    mnmgwdb$query_columns("Visits", c("grts_address"), ONLY = FALSE)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
+  arrange(grts_address) %>%
   # count(grts_address) %>%
   # arrange(desc(n))
   add_point_coords_grts(
@@ -129,6 +145,8 @@ locations <- bind_rows(
   )
 
 sf::st_geometry(locations) <- "wkb_geometry"
+
+# locations %>% count(grts_address) %>% filter(n>1)
 
 
 table_label <- "Locations"
@@ -470,8 +488,7 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 
 #_______________________________________________________________________________
 
-### TODO here it gets interesting.
-# db <- mnmgwdb
+### Visits: the "inbound" side of the calendar.
 
 visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
 
@@ -790,9 +807,22 @@ if (nrow(present_type_fwcals) > 0) {
 }
 
 
+#-------------------------------------------------------------------------------
+# double check row counts
+rowcounts_difference <- rbind(
+    rowcounts_pre_update,
+    mnmgwdb$count_all_table_content()
+  ) %>% t() %>%
+  as_tibble(rownames = "table") %>%
+  magrittr::set_colnames(c("table", "before", "after")) %>%
+  mutate(check = (before != after) | (after == 0))  %>%
+  arrange(check)
+
+rowcounts_difference %>%
+  knitr::kable()
+
 message("")
 message("________________________________________________________________")
 message(" >>>>> Finished updating FWCalendar.")
 message("       Make sure to inspect the log.")
 message("________________________________________________________________")
-

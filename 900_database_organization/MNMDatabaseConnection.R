@@ -88,6 +88,7 @@
 #   - store_table_deptree_in_memory(table_label) -> list("label", "data")
 #   - restore_table_data_from_memory(table_content_storage, verbose)
 #   - delete_unused(table_label, sql_filter_unused)
+#   - count_all_table_content() -> tibble
 # > mnmdb_versions_and_archiving(db) -> db
 #   - load_latest_version_id(version_tag, data_iteration) -> version_id
 #   - tag_new_version(version_tag, version_notes, date_applied) -> version_id
@@ -606,15 +607,19 @@ mnmdb_assemble_structure_lookups <- function(db) {
   # tables and their relations
   db$tables <- bind_rows(
       read.csv(file.path(db$folder, "TABLES.csv")) %>%
-        select(table, schema, geometry, inherits, excluded),
+        select(table, schema, geometry, inherits, excluded) %>%
+        mutate(is_view = FALSE),
       read.csv(file.path(db$folder, "VIEWS.csv")) %>%
         select(table = view, schema, excluded) %>%
-        mutate(geometry = NA, inherits = NA)
-    )
+        mutate(geometry = "", inherits = "", is_view = TRUE)
+    ) %>%
+    mutate(excluded = as.logical(coalesce(excluded, 0)))
+    # %>% filter(!excluded)
   # db$tables %>% knitr::kable()
 
   # check if a table exists
-  db$has_table <- function(table_label) table_label %in% (db$tables %>% pull(table))
+  db$has_table <- function(table_label) table_label %in%
+    (db$tables %>% filter(!excluded) %>% pull(table))
 
   # this one is created by python scripts
   db$table_relations <- read_table_relations_config(
@@ -787,12 +792,12 @@ mnmdb_assemble_query_functions <- function(db) {
     #      either collecting,
     #      or selecting and collecting
 
-    pk <- db$get_primary_key(table_label)
 
     # subset only if there are columns to subset
     select_subset <- function(df) {
       if (is.scalar.na(subselect)) return(df)
 
+      pk <- db$get_primary_key(table_label)
       df %>%
         dplyr::select(!!!rlang::syms(unique(c(pk, subselect)))) %>%
         return()
@@ -887,7 +892,19 @@ mnmdb_assemble_query_functions <- function(db) {
   db$query_columns <- function(table_label, select_columns, ONLY = FALSE) {
     # use query_table with the subset option
 
-    db$query_table(table_label, ONLY, subselect = select_columns) %>%
+    rs <- db$query_table(table_label, ONLY, subselect = select_columns)
+
+    # remove the geometry column in spatial tables unless ueried
+    if (db$is_spatial(table_label)) {
+      if (isFALSE("wkb_geometry" %in% select_columns)) {
+        rs <- rs %>%
+          select(-wkb_geometry)
+      } else {
+        sf::st_geometry(rs) <- "wkb_geometry"
+      }
+    }
+
+    rs %>%
       return()
   } # /query_columns
   # db$query_columns("Visits", c("grts_address", "stratum"))
@@ -897,6 +914,8 @@ mnmdb_assemble_query_functions <- function(db) {
   # db$query_table("FreeFieldNotes", ONLY = TRUE)
   # db$query_columns("FreeFieldNotes", c("log_creator", "log_creation"))
   # db$query_columns("FreeFieldNotes", c("log_creator", "log_creation"), ONLY = TRUE)
+  # db$query_columns("Locations", c("grts_address"))
+  # mapview::mapview(db$query_columns("Locations", c("grts_address", "wkb_geometry")))
 
   # load one column
   db$pull_column <- function(table_label, select_column, ONLY = FALSE) {
@@ -1185,6 +1204,22 @@ mnmdb_assemble_query_functions <- function(db) {
     db$execute_sql(cleanup_query, verbose = TRUE)
 
   } # /delete_unused
+
+
+  # count how many rows each table has
+  db$count_all_table_content <- function() {
+    lapply(
+      db$query_tables_data(
+        db$tables %>%
+          filter(!excluded) %>%
+          pull(table),
+        ONLY = FALSE
+      ),
+      FUN = nrow
+    ) %>%
+    as_tibble() %>%
+    return()
+  } # /count_all_table_content
 
 
   return(db)
