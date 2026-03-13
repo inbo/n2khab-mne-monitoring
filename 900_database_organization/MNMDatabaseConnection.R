@@ -826,6 +826,7 @@ mnmdb_assemble_query_functions <- function(db) {
         )
 
       # anti-join
+      pk <- db$get_primary_key(table_label)
       for (ch_i in seq_len(length(childtable_data))) {
         exclusive_data <- exclusive_data %>%
           anti_join(
@@ -852,8 +853,10 @@ mnmdb_assemble_query_functions <- function(db) {
     if (db$is_spatial(table_label)) {
 
       # currently, we do not use inheritance on spatial tables.
-      if (ONLY) message(
-        "WARNING: ONLY flag not available for spatial tables; returning ALL rows."
+      has_descendants <- 0 == length(db$get_descendant_tables(table_label))
+      if (ONLY & has_descendants) message(glue::glue(
+        "WARNING: ONLY flag not available for spatial tables; returning ALL rows of {table_label}."
+        )
       )
 
       # load and return data
@@ -1207,11 +1210,12 @@ mnmdb_assemble_query_functions <- function(db) {
 
 
   # count how many rows each table has
-  db$count_all_table_content <- function() {
+  db$count_all_table_content <- function(filter_function = \(x) x) {
     lapply(
       db$query_tables_data(
         db$tables %>%
           filter(!excluded) %>%
+          filter_function() %>%
           pull(table),
         ONLY = FALSE
       ),

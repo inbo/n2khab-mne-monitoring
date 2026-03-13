@@ -17,7 +17,7 @@ yad --form \
   --text-align="left" \
   --text="<span font_weight='bold' font='14' color='#78c6dd'>MNM Database Maintenance Tasks.</span>" \
   --columns=3 --align-buttons \
-  --field="  staging":fbtn "echo '-staging'" \
+  --field=" {staging} count":fbtn "Rscript 110_count_dbcontent.R -staging" \
   --field=" {staging} [loceval] -> [mnmgwdb]":fbtn "Rscript 111a_push_loceval_to_mnmgwdb.R -staging " \
   --field=" {staging} location journals":fbtn "Rscript 111b_fill_location_journals.R -staging " \
   --field=" {staging} update FA-Calendar [mnmgwdb]":fbtn "Rscript 112_update_facalendar.R -staging " \
@@ -31,7 +31,7 @@ yad --form \
   --field=" {staging} sync FreeFieldNotes":fbtn "python 119_sync_FreeFieldNotes.py -staging " \
   --field=" render consistency dashboard [loceval]":fbtn "quarto render 045_loceval_consistency_dashboard.qmd --to html" \
   --field=" render consistency dashboard [mnmgwdb]":fbtn "quarto render 046_mnmgwdb_consistency_dashboard.qmd --to html" \
-  --field="  mirror [$MIRROR]":fbtn "echo $MIRROR" \
+  --field=" [$MIRROR] count":fbtn "Rscript 110_count_dbcontent.R $MIRROR " \
   --field=" [loceval$MIRROR] -> [mnmgwdb$MIRROR]":fbtn "Rscript 111a_push_loceval_to_mnmgwdb.R $MIRROR " \
   --field=" location journals [$MIRROR]":fbtn "Rscript 111b_fill_location_journals.R $MIRROR " \
   --field=" update FA-Calendar [mnmgwdb$MIRROR]":fbtn "Rscript 112_update_facalendar.R $MIRROR " \
