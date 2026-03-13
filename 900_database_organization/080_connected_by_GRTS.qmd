@@ -60,7 +60,6 @@ grts <- c(111326, 881374) # MNM team praatje location -> fieldwork knowledge tra
     # c(13688242) # victim to the Dolle Dromedaris
     # c(53662, 4772254) # victim to the Dolle Dromedaris
     # c(41313630) # installed location, not planned anymore
-    # c(23238, 6314694, 23091910) # Hellebos!
     # c(49896893, 21323197)
 
     # c(1902553) # info INST op foute regel (planning oud: 2025-10-01; nieuw: 2025-07-01)
@@ -86,9 +85,7 @@ grts <- c(111326, 881374) # MNM team praatje location -> fieldwork knowledge tra
     # c(437685, 8826293)
     # c(24774)
     # c(1280278)
-    # c(23238, 23091910, 6314694) # Hellebos
     # c(4761777)
-    # c(23238)
     # c(10119474) # this is only LOCEVAL <- SURF_03.4_lentic
     # c(1202926, 10640110) more missed archives
     # c(219694, 9525806) # was partially replaced and therefore archived
