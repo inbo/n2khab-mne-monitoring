@@ -853,7 +853,7 @@ mnmdb_assemble_query_functions <- function(db) {
     if (db$is_spatial(table_label)) {
 
       # currently, we do not use inheritance on spatial tables.
-      has_descendants <- 0 == length(db$get_descendant_tables(table_label))
+      has_descendants <- 0 < length(db$get_descendant_tables(table_label))
       if (ONLY & has_descendants) message(glue::glue(
         "WARNING: ONLY flag not available for spatial tables; returning ALL rows of {table_label}."
         )
