@@ -1072,7 +1072,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   # schemes
   mutate(
     schemes_served_all = map_chr(scheme_moco_ps, function(df) {
-      str_flatten(df$scheme %>% sort(), collapse = "|")
+      str_flatten(df$scheme %>% unique() %>% sort(), collapse = "|")
     }) %>%
       factor(),
     nr_schemes_current = map_int(scheme_moco_ps, function(df) {
