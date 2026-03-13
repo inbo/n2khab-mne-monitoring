@@ -422,7 +422,6 @@ sf::st_write(all_points,
   layer = "random elevation points",
   append = FALSE
   )
-# saveRDS(forest_data, "data/forestnature.rds")
 
 
 all_points %>%
@@ -446,6 +445,6 @@ all_points %>%
     file = "./data/random_elevation_points.csv",
     row.names = FALSE,
     dec = ".",
-    sep = ";",
-    quote = TRUE
+    sep = ",",
+    quote = FALSE
   )

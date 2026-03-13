@@ -196,7 +196,8 @@ upload_and_lookup <- function(
   # collect the lookup (link characteristics to index)
   lookup <- mnmdb$query_columns(
     table_label,
-    c(characteristic_columns, index_columns)
+    c(characteristic_columns, index_columns),
+    ONLY = FALSE
   )
 
   return(lookup)
@@ -212,7 +213,9 @@ upload_and_lookup <- function(
 # This is necessary because previously assembled data is
 #   in some cases retained, but
 #   would loose links to the pruned "Locations" after rearrangement.
-restore_location_id_by_grts <- function(
+# <20260313> this function seems to be used in `502_` and `602_`,
+#    which are unmaintained -> labeled OBSOLETE
+OBSOLETE_restore_location_id_by_grts <- function(
       mnmdb,
       table_label,
       retain_log = FALSE,
@@ -579,29 +582,9 @@ upload_data_and_update_dependencies <- function(
 
 
   ## restore sequence
-  if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
-    mnmdb$set_sequence_key(table_label, "max")
-  }
-
   # On the occasion, we reset the sequence counter
   if ((length(pk) > 0) && isFALSE(skip_sequence_reset)) {
-    mnmdb$set_sequence_key(table_label)
-    if (table_label == "ChemicalSamplingActivities") {
-      mnmdb$execute_sql('
-        UPDATE "inbound"."ChemicalSamplingActivities"
-          SET fieldwork_id = fieldwork_id + 10000
-          WHERE fieldwork_id < 10000
-        ;
-      ')
-    }
-    if (table_label == "SpatialPositioningActivities") {
-      mnmdb$execute_sql('
-        UPDATE "inbound"."SpatialPositioningActivities"
-          SET fieldwork_id = fieldwork_id + 20000
-          WHERE fieldwork_id < 20000
-        ;
-      ')
-    }
+    mnmdb$set_sequence_key(table_label, "max")
   }
 
 
@@ -614,7 +597,8 @@ upload_data_and_update_dependencies <- function(
 
   new_redownload <- mnmdb$query_columns(
     table_label,
-    select_columns = cols_to_query
+    select_columns = cols_to_query,
+    ONLY = TRUE
   )
 
   # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
@@ -707,152 +691,6 @@ upload_data_and_update_dependencies <- function(
   }
   return(invisible(NULL))
 
-  ## OBSOLETE
-  for (deptab in dependent_tables) {
-
-    # extract the associating columns
-    # get_dependent_tables
-    keycolumn_linkpair <- mnmdb$table_relations %>%
-      filter(
-        tolower(relation_table) == tolower(table_label),
-        tolower(dependent_table) == tolower(deptab),
-      ) %>%
-      select(dependent_column, relation_column)
-
-    if (nrow(keycolumn_linkpair) == 0) next # the table itself
-
-    dependent_key <- keycolumn_linkpair[["dependent_column"]]
-    reference_key <- keycolumn_linkpair[["relation_column"]]
-
-    # the focus table, linking old and new pk values
-    # copied in case multiple deptabs have same key diff name
-    pk_link <- pk_lookup # copying for temporary renaming
-
-    # ensure `_old` suffix for joining below
-    # dependent_col_old <- glue::glue("{dependent_key}_old")
-    reference_col_old <- glue::glue("{reference_key}_old")
-    if (isFALSE(reference_col_old %in% names(pk_lookup))) {
-      names(pk_link)[names(pk_link) == reference_key] <- reference_col_old
-    }
-
-    # reduced to just the "old -> new" keys
-    pk_link <- pk_link %>%
-      select(!!!rlang::syms(c(reference_col_old, pk)))
-
-    # names(pk_link)[names(pk_link) == dependent_key] <- reference_key
-
-
-    # finally, combine the lookup table
-    lookup_deptab <- lookups[[deptab]]
-
-    # swap the table-specific names
-    names(lookup_deptab)[
-        names(lookup_deptab) == dependent_key
-      ] <- reference_col_old
-    names(pk_link)[names(pk_link) == reference_key] <- dependent_key
-
-    key_replacement <- lookup_deptab %>%
-      left_join(
-        pk_link,
-        by = reference_col_old,
-        relationship = "many-to-one",
-        suffix = c("_old", "")
-      )
-
-    # dump-store look
-    write.csv(
-      key_replacement,
-      file.path("dumps", glue::glue("lookup_{now}_{table_label}_{deptab}.csv")),
-      row.names = FALSE
-    )
-
-
-    # restrict this to modified data, ignore empty rows
-    # by FILTER for changed values
-    key_replacement <- bind_rows(
-      key_replacement[
-        !mapply(identical,
-          key_replacement[[reference_col_old]],
-          key_replacement[[dependent_key]]
-        )
-        , ],
-      key_replacement[
-        is.na(key_replacement[[reference_col_old]])
-        , ]
-      )
-
-    if (nrow(key_replacement) == 0) next # nothing to update
-
-    ### UPDATE the dependent table
-    # ... by looking up the dependent table pk
-    dep_pk <- mnmdb$get_primary_key(deptab)
-
-
-    if (length(dep_pk) == 0) next # special case, e.g. the LocationCells
-
-    if (!(length(dep_pk) == 1)) {
-      message(glue::glue(
-        "Table {deptab} registers more than one primary key?! {paste0(dep_pk, collapse = ', ')}"
-        ) )
-      stop()
-    }
-
-    # get the original foreign key values
-    fk_table <- fk_lookups[[deptab]]
-
-    # prepare rowwise update
-    # repl_rownr <- 1
-    get_update_row_string <- function(repl_rownr) {
-      dep_pk_val <- key_replacement[repl_rownr, dep_pk]
-      val <- key_replacement[repl_rownr, dependent_key][[1]]
-
-      # desparate attempt 1: check the previously saved data
-      fk_vals <- fk_table %>% pull(!!dep_pk)
-      if (is.na(val)) {
-        fk_val <- fk_table[fk_vals == dep_pk_val[[1]],] %>% pull(!!dependent_key)
-
-        if (isFALSE(is.na(fk_val))) {
-          old_vals <- pk_link %>% pull(!!reference_col_old)
-          find_val <- old_vals == fk_val
-          if (any(find_val)) {
-            val <- pk_link[find_val, 2][[1]]
-          }
-        }
-      }
-
-      # failure: set NULL
-      if (is.na(val)) {
-        val <- "NULL"
-      }
-
-      update_string <- glue::glue("
-        UPDATE {mnmdb$get_namestring(deptab)}
-          SET {dependent_key} = {val}
-        WHERE {dep_pk} = {dep_pk_val}
-        ;
-      ")
-
-      return(update_string)
-    }
-
-    update_command <- lapply(
-      1:nrow(key_replacement),
-      FUN = get_update_row_string
-    )
-
-    # execute the update commands.
-    message(
-      glue::glue(
-        "Updating {dependent_key} to {pk} of {deptab} (N={length(update_command)})."
-      )
-    )
-
-    for (cmd in update_command) {
-      mnmdb$execute_sql(cmd, verbose = FALSE)
-    }
-
-  } # /loop dependent tables
-
 
 } #/upload_data_and_update_dependencies
 
@@ -933,6 +771,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     # head(prior_content)
     # # TODO this just turned up a duplicate
     # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
+    # prior_content %>% filter(grts_address == 23238) %>% t() %>% knitr::kable()
 
 
     ## (1) optionally append
@@ -1049,7 +888,8 @@ parametrize_cascaded_update <- function(mnmdb) {
 
     lookup_deptab <- mnmdb$query_columns(
       table_label,
-      c(characteristic_columns, index_columns)
+      c(characteristic_columns, index_columns),
+      ONLY = FALSE
       )
 
     if (verbose){

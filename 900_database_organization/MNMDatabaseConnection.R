@@ -695,7 +695,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
   }
   # db$get_dependent_table_ids("Locations")
 
-  # table dependent by inheritance
+  # table descendants by inheritance
   # table_label <- "Visits"
   db$get_descendant_tables <- function(table_label) {
     db$tables %>% filter(
@@ -703,7 +703,25 @@ mnmdb_assemble_structure_lookups <- function(db) {
     ) %>%
     pull(table) %>%
     return()
-  }
+  } # /get_descendant_tables
+
+  # table ancestors by inheritance
+  # table_label <- "SamplingVisits"
+  db$get_ancestor_tables <- function(table_label) {
+
+    ancestors <- db$tables  %>%
+      filter(
+        table == table_label
+      ) %>%
+      pull(inherits)
+
+    db$tables %>%
+      mutate(namestring = db$get_namestring(table)) %>%
+      filter(namestring %in% ancestors) %>%
+      pull(table) %>%
+      return()
+  } # /get_ancestor_tables
+
 
   ### specific table info
   db$load_table_info <- function(table_label) {
@@ -728,22 +746,43 @@ mnmdb_assemble_structure_lookups <- function(db) {
     # excluded from checks
     logging_columns <- c("log_user", "log_update", "geometry", "wkb_geometry")
 
+    # table_label <- "PositioningVisits"
     full_table_info <- db$load_table_info(table_label)
 
-    pk <- full_table_info %>%
-      filter(primary_key == "True") %>%
+    # db$tables %>% filter(table == "PositioningVisits") %>% pull(inherits)
+    # db$tables %>% filter(table == "TeamMembers") %>% pull(inherits)
+    ancestors <- db$get_ancestor_tables(table_label)
+    if (length(ancestors) > 0) {
+      for (ancestor in ancestors) {
+        full_table_info <- bind_rows(
+          db$load_table_info(ancestors),
+          full_table_info
+        )
+      }
+    }
+
+
+    non_sequences <- full_table_info %>%
+      mutate(foreign_key = coalesce(foreign_key, "")) %>%
+      filter(
+        (sequence == "False") &
+        (foreign_key == "")
+        ) %>%
       pull(column)
+    # this misses non-linked sequences: samplelocation_id, location_id
 
     characteristic_columns <- full_table_info %>%
       filter(
         !(column %in% logging_columns),
-        !(column %in% pk),
+        (column %in% non_sequences),
       ) %>%
       pull(column)
 
     return(characteristic_columns)
   }
   # db$get_characteristic_columns("FreeFieldNotes")
+  # db$get_characteristic_columns("Visits")
+  # db$get_characteristic_columns("PositioningVisits")
 
 
   # or need a primary key?
@@ -811,7 +850,7 @@ mnmdb_assemble_query_functions <- function(db) {
     }
 
     # the whole table content
-    inclusive_data <- query_inclusive(table_label)
+    inclusive_data <- query_inclusive(table_label) %>% collect()
 
 
     # inclusive = ALL; exclusive = ONLY
@@ -822,12 +861,20 @@ mnmdb_assemble_query_functions <- function(db) {
       # listwise query
       childtable_data <- lapply(
         db$get_descendant_tables(table_label),
-        FUN = query_inclusive
+        FUN = \(table) query_inclusive(table) %>% collect()
         )
 
       # anti-join
       pk <- db$get_primary_key(table_label)
       for (ch_i in seq_len(length(childtable_data))) {
+        exclusive_data %>% nrow()
+        childtable_data[[ch_i]] %>% nrow()
+        exclusive_data %>%
+          semi_join(
+            childtable_data[[ch_i]],
+            by = join_by(!!!rlang::syms(c(pk)))
+          ) %>% nrow()
+
         exclusive_data <- exclusive_data %>%
           anti_join(
             childtable_data[[ch_i]],
@@ -847,6 +894,8 @@ mnmdb_assemble_query_functions <- function(db) {
   } # /query_table_uncollected
 
   # query a whole table
+  # db$query_table("Visits", ONLY = TRUE)
+  # db$query_table("Visits", ONLY = FALSE)
   db$query_table <- function(table_label, ONLY = FALSE, subselect = NA) {
 
     ## case 1: spatial table
@@ -993,6 +1042,13 @@ mnmdb_assemble_query_functions <- function(db) {
   # db$lookup_dependent_columns("Protocols", "GroupedActivities")
 
 
+  # query current value of a sequence key
+  db$get_sequence_last_value <- function(sequence_label) {
+    nextval_query <- glue::glue("SELECT last_value FROM {sequence_label};")
+    current_highest <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
+    return(current_highest)
+  }
+
   # Set table sequence key; defaults to "1" (=reset), can do "max" (current highest).
   # No keys are harmed when executing this function.
   db$set_sequence_key <- function(
@@ -1015,9 +1071,7 @@ mnmdb_assemble_query_functions <- function(db) {
     key_log <- list("label" = sequence_label)
 
     # check current value
-    nextval_query <- glue::glue("SELECT last_value FROM {sequence_label};")
-    current_highest <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
-    key_log$pre <- current_highest
+    key_log$pre <- db$get_sequence_last_value(sequence_label)
 
     if (is.null(new_key_value)) {
       new_key_value <- "1"
@@ -1035,8 +1089,8 @@ mnmdb_assemble_query_functions <- function(db) {
 
     } else if (new_key_value == "max") {
       # set to current max value in the database
-      nextval <- DBI::dbGetQuery(db$connection, nextval_query)[[1, 1]]
-      max_pk <- db$pull_column(table_label, pk) %>% max
+      nextval <- db$get_sequence_last_value(sequence_label)
+      max_pk <- db$pull_column(table_label, pk, ONLY = FALSE) %>% max
       new_key_value <- max(c(nextval, max_pk))
 
     }

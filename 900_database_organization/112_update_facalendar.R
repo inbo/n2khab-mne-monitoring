@@ -32,6 +32,7 @@ mnmgwdb <- connect_mnm_database(
 message(mnmgwdb$shellstring)
 
 rowcounts_pre_update <- mnmgwdb$count_all_table_content()
+# rowcounts_pre_update %>% t() %>% knitr::kable()
 
 
 ## ----rvp-data-----------------------------------------------------------------
@@ -64,7 +65,7 @@ if (suffix == "") {
 update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 
 
-### query true activity calendar
+### query some lookups for later
 activity_groupid_lookup <- mnmgwdb$query_columns(
     table_label = "GroupedActivities",
     c("activity_group", "activity_group_id")
@@ -119,9 +120,8 @@ replace_grts_local <- function(df, typecolumn = "stratum") {
     return()
 }
 
-
-### Locations - restoring
-# seems to be the new thing.
+#_______________________________________________________________________________
+### Locations
 
 locations <- bind_rows(
     mnmgwdb$query_columns("Locations", c("grts_address")),
@@ -146,7 +146,7 @@ locations <- bind_rows(
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
-# locations %>% count(grts_address) %>% filter(n>1)
+# locations %>% sf::st_drop_geometry() %>% count(grts_address) %>% filter(n>1)
 
 
 table_label <- "Locations"
@@ -173,6 +173,9 @@ locations_lookup <- redistribute_calendar_data(
   skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
 )
 
+
+#_______________________________________________________________________________
+### Calendar
 
 # fieldwork_shortterm_prioritization_by_stratum %>%
 # fieldwork_calendar %>%
@@ -411,7 +414,7 @@ current_calendar_db %>%
   t() %>% knitr::kable()
 
 
-data_future %>%
+data_nouveau %>%
   check(grts_address == select_grts, stratum == select_stratum) %>%
   t() %>% knitr::kable()
 
@@ -487,10 +490,9 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 
 
 #_______________________________________________________________________________
-
 ### Visits: the "inbound" side of the calendar.
 
-visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
+visits_characols <- c(fieldcalendar_characols) # "fieldworkcalendar_id",
 
 new_visits <- fieldworkcalendar_lookup %>%
   select(
@@ -510,7 +512,7 @@ new_visits <- fieldworkcalendar_lookup %>%
 
 visits_upload <- new_visits %>%
   anti_join(
-    mnmgwdb$query_table("Visits"),
+    mnmgwdb$query_table("Visits", ONLY = FALSE),
     by = join_by(!!!fieldcalendar_characols)
   ) %>%
   mutate(
@@ -549,6 +551,22 @@ append_defaults <- list(
 
 # looped upload, retaining remainder
 remaining_new_visits <- visits_upload
+
+# mnmgwdb$query_table("Visits", ONLY = TRUE) %>%
+#   count(visit_id) %>% filter(n>1)
+count_visitid_duplicates <- mnmgwdb$query_table("Visits", ONLY = FALSE) %>%
+  count(visit_id)
+stopifnot("There are duplicate visit_id's, stopping." =
+  (0 == count_visitid_duplicates %>%
+    filter(n > 1) %>%
+    nrow()
+  )
+)
+
+sequence_label <- glue::glue('"inbound".seq_visit_id')
+print(mnmgwdb$get_sequence_last_value(sequence_label))
+mnmgwdb$set_sequence_key("Visits", new_key_value = "max", verbose = TRUE )
+
 # table_label <- "InstallationVisits"
 for (table_label in names(selection_of_activities)) {
 
@@ -562,9 +580,11 @@ for (table_label in names(selection_of_activities)) {
     special_visits <- append_defaults[[table_label]](special_visits)
   }
 
+
+  print(mnmgwdb$get_sequence_last_value(sequence_label))
   # append=upload data to the activity table
   # double-check existing to avoid dups
-  existing <- mnmgwdb$query_table(table_label) #TODO!!!!
+  existing <- mnmgwdb$query_table(table_label, ONLY = TRUE) #TODO!!!!
   sa_lookup <- upload_and_lookup(
     mnmgwdb,
     table_label = table_label,
@@ -573,16 +593,26 @@ for (table_label in names(selection_of_activities)) {
     index_columns = c("visit_id"),
     verbose = TRUE
   )
+  print(mnmgwdb$get_sequence_last_value(sequence_label))
 
   # anti-join remaining_new_visits
   remaining_new_visits <- remaining_new_visits %>%
     anti_join(
       special_visits,
-      by = join_by(fieldworkcalendar_id, grts_address, stratum, activity_group_id, date_start)
+      by = join_by(!!!rlang::syms(visits_characols))
     )
 
 }
-# TODO will `update_cascade_lookup` require an `ONLY` switch?
+
+
+# link Visits back to FieldworkCalendar
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "Visits",
+  reference_table = "FieldworkCalendar",
+  link_key_column = "fieldworkcalendar_id",
+  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+)
 
 # upload the remainder of new visits
 visits_lookup <- update_cascade_lookup(
@@ -591,6 +621,7 @@ visits_lookup <- update_cascade_lookup(
   index_columns = c("visit_id"),
   characteristic_columns = visits_characols,
   tabula_rasa = FALSE,
+  skip_sequence_reset = TRUE,
   verbose = TRUE
 )
 
@@ -623,115 +654,6 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
     mnmgwdb$query_table("Visits"),
     by = join_by(fieldworkcalendar_id, archive_version_id)
   ) %>% nrow()
-
-
-
-#_______________________________________________________________________________
-# OBSOLETE Fieldwork "Special" Activity Tables
-
-# special_activity_tables <- c(
-#   "WellInstallationActivities",
-#   "ChemicalSamplingActivities",
-#   "SpatialPositioningActivities"
-# )
-#
-# speciact_characols <- c(
-#   "grts_address",
-#   "stratum",
-#   "activity_group_id",
-#   "date_start"
-# )
-#
-# selection_of_activities <- list(
-#   "WellInstallationActivities" = function(df) df %>%
-#     filter(grepl("^GWINST", activity_group)), # /WIA
-#   "ChemicalSamplingActivities" = function(df) df %>%
-#     filter(activity_group %in%
-#       c(gw_field_activities %>%
-#         filter(grepl("^GW.*SAMP", activity)) %>%
-#         pull(activity_group))
-#       ), # /CSA
-#   "SpatialPositioningActivities" = function(df) df %>%
-#     filter(activity_group %in%
-#       c(gw_field_activities %>%
-#         filter(grepl("^SPATPOSIT", activity)) %>%
-#         pull(activity_group))
-#       ) # /SPA
-# )
-#
-# empty_init <- list(
-#   "WellInstallationActivities" = function(df) df %>%
-#     mutate(
-#       no_diver = FALSE,
-#       soilprofile_unclear = FALSE,
-#       log_user = "maintenance",
-#       log_update = as.POSIXct(Sys.time())
-#     ), # /WIA
-#   "ChemicalSamplingActivities" = function(df) df %>%
-#     mutate(
-#       log_user = "maintenance",
-#       log_update = as.POSIXct(Sys.time())
-#     ), # /CSA
-#   "SpatialPositioningActivities" = function(df) df %>%
-#     mutate(
-#       log_user = "maintenance",
-#       log_update = as.POSIXct(Sys.time())
-#     ) # /SPA
-# )
-#
-#
-# visits_redownload <- mnmgwdb$query_table("Visits") %>%
-#   filter(is.na(archive_version_id)) %>%
-#   select(-archive_version_id)
-#
-# visits_redownload <- visits_redownload %>%
-#   left_join(
-#     mnmgwdb$query_columns(
-#         "GroupedActivities",
-#         c("activity_group_id", "activity_group")) %>%
-#       distinct(),
-#     by = join_by(activity_group_id)
-#   )
-#
-#
-# # table_label <- "WellInstallationActivities"
-# # table_label <- "ChemicalSamplingActivities"
-# # table_label <- "SpatialPositioningActivities"
-#
-# for (table_label in special_activity_tables) {
-#
-#   special_activities <- visits_redownload %>%
-#     selection_of_activities[[table_label]]()
-#
-#   # special_activities %>% head(3) %>% t() %>% knitr::kable()
-#
-#   existing <- mnmgwdb$query_table(table_label)
-#
-#   # no archiving necessary on these - they 1:1 depend on Visits
-#   novel <- special_activities %>%
-#     anti_join(
-#       existing,
-#       by = join_by(
-#         grts_address,
-#         stratum,
-#         activity_group_id,
-#         date_start
-#       )
-#     ) %>%
-#     select(!!!speciact_characols) %>%
-#     empty_init[[table_label]]()
-#
-#   lookup <- update_cascade_lookup(
-#     table_label = table_label,
-#     new_data = novel,
-#     index_columns = c("fieldwork_id"),
-#     characteristic_columns = speciact_characols,
-#     tabula_rasa = FALSE,
-#     skip_sequence_reset = TRUE, # fieldwork_id is tricky; see script 095b
-#     verbose = TRUE
-#   )
-#
-# }
 
 
 #-------------------------------------------------------------------------------
