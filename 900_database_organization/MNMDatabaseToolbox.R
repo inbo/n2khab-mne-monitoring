@@ -73,7 +73,7 @@ stitch_table_connection <- function(
   }
 
   # UPDATE... FROM method
-  stopifnot("glue" = require("glue"))
+  stopifnot("glue" = requireNamespace("glue"))
 
   trgtab <- mnmdb$get_namestring(table_label)
   srctab <- mnmdb$get_namestring(reference_table)
@@ -442,7 +442,7 @@ update_landuse_in_locationinfos <- function(mnmdb) {
 #'   )
 #'
 #'   test_table <- "LocationCalendar"
-#'   data_replacement <- source_db$query_table(test_table)
+#'   data_replacement <- source_db$query_table(test_table) # consider `, ONLY = TRUE`
 #'   characteristic_columns = \
 #'     c("scheme", "stratum", "grts_address", "column_newname")
 #'
@@ -470,10 +470,10 @@ upload_data_and_update_dependencies <- function(
   # mnmdb <- mnmgwdb
   # data_replacement <- new_data
 
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("DBI" = require("DBI"))
-  stopifnot("RPostgres" = require("RPostgres"))
-  stopifnot("glue" = require("glue"))
+  stopifnot("dplyr" = requireNamespace("dplyr"))
+  stopifnot("DBI" = requireNamespace("DBI"))
+  stopifnot("RPostgres" = requireNamespace("RPostgres"))
+  stopifnot("glue" = requireNamespace("glue"))
 
   # check if database connection is active
   # TODO mnmdb$connection_is_active
@@ -523,7 +523,7 @@ upload_data_and_update_dependencies <- function(
   # prior to deletion
   # in connection with `characteristic_columns`
 
-  old_data <- mnmdb$query_table(table_label)
+  old_data <- mnmdb$query_table(table_label, ONLY = TRUE)
 
   ### ERROR
   # the old data does not contain dependent table keys any more.
@@ -563,7 +563,7 @@ upload_data_and_update_dependencies <- function(
 
   ### (7) DELETE existing data -> DANGEROUS territory!
   mnmdb$execute_sql(
-    glue::glue("DELETE  FROM {mnmdb$get_namestring(table_label)};"),
+    glue::glue("DELETE FROM ONLY {mnmdb$get_namestring(table_label)};"),
     verbose = verbose
   )
 
@@ -896,7 +896,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     # mnmdb <- mnmgwdb
     # mnmdb <- locevaldb
 
-    stopifnot("glue" = require("glue"))
+    stopifnot("glue" = requireNamespace("glue"))
 
     if (nrow(new_data) == 0) {
       message(glue::glue("No data provided to update {table_label}."))
@@ -929,7 +929,7 @@ parametrize_cascaded_update <- function(mnmdb) {
       nrow(new_data) == nrow(new_characteristics))
 
     # existing content
-    prior_content <- mnmdb$query_table(table_label)
+    prior_content <- mnmdb$query_table(table_label, ONLY = TRUE)
     # head(prior_content)
     # # TODO this just turned up a duplicate
     # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
@@ -1092,7 +1092,7 @@ associate_and_shift_start_dates <- function(
   }
 
   # load previous data
-  data_previous <- mnmdb$query_table(table_label)
+  data_previous <- mnmdb$query_table(table_label, ONLY = TRUE)
 
 
   ## find the link
@@ -1232,9 +1232,9 @@ categorize_data_update <- function(
 
   ### PREPARATION
   ## general checks
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("glue" = require("glue"))
-  stopifnot("DBI" = require("DBI"))
+  stopifnot("dplyr" = requireNamespace("dplyr"))
+  stopifnot("glue" = requireNamespace("glue"))
+  stopifnot("DBI" = requireNamespace("DBI"))
 
   if (is.scalar.na(characteristic_columns)) {
     # ... or just take all characteristic columns
@@ -1253,7 +1253,7 @@ categorize_data_update <- function(
   }
 
   ## load database status
-  data_previous <- mnmdb$query_table(table_label)
+  data_previous <- mnmdb$query_table(table_label, ONLY = TRUE)
   # data_previous %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_previous.rds")
   # data_future %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_future.rds")
   # data_previous %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_previous.csv")
@@ -1537,7 +1537,7 @@ update_existing_data <- function(
     reference_columns = NA
   ) {
 
-  stopifnot("glue" = require("glue"))
+  stopifnot("glue" = requireNamespace("glue"))
 
   if (nrow(changed_data) == 0) {
     message(glue::glue("No data provided to update {table_label}."))
@@ -1719,7 +1719,7 @@ archive_ancient_data <- function(
     archive_flag_column = "archive_version_id"
   ) {
 
-  stopifnot("glue" = require("glue"))
+  stopifnot("glue" = requireNamespace("glue"))
 
   if (isFALSE(mnmdb$table_has_column(table_label, archive_flag_column))) {
     stop(glue::glue(
@@ -1828,8 +1828,8 @@ link_dates <- function(
     verbose = TRUE
   ) {
 
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("lubridate" = require("lubridate"))
+  stopifnot("dplyr" = requireNamespace("dplyr"))
+  stopifnot("lubridate" = requireNamespace("lubridate"))
 
   ### time selection options
   # do not allow a shift backwards in time by further than a min_dt
@@ -2062,7 +2062,7 @@ load_table_sideload_content <- function(
     reload_previous = FALSE
   ) {
 
-  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("dplyr" = requireNamespace("dplyr"))
 
   # load the new data
   inception_data <- read.csv2(data_filepath, sep = ",") %>%
@@ -2083,7 +2083,7 @@ load_table_sideload_content <- function(
   }
 
   # query existing data from database
-  existing_data <- mnmdb$query_table(table_label)
+  existing_data <- mnmdb$query_table(table_label, ONLY = TRUE)
     # %>% select(!!!rlang::syms(characteristic_columns))
 
   # existing_data %>%

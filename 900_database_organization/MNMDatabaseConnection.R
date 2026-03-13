@@ -77,11 +77,11 @@
 #   - get_characteristic_columns(table_label) -> c(column names)
 #   - get_primary_key(table_label) -> character(pk)
 # > mnmdb_assemble_query_functions(db) -> db
-#   - query_columns(table_label, select_columns) -> df(columns)
-#   - pull_column(table_label, select_column) -> c()
 #   - is_spatial(table_key) -> bool
 #   - query_table(table_label) -> df
 #   - query_tables_data(tables) -> list(df)
+#   - query_columns(table_label, select_columns) -> df(columns)
+#   - pull_column(table_label, select_column) -> c()
 #   - lookup_dependent_columns(table_label, deptab_label) -> df(pk, fk)
 #   - set_sequence_key(table_label, new_key_value, sequence_label, verbose)
 #   - insert_data(table_label, new_data)
@@ -764,68 +764,6 @@ mnmdb_assemble_query_functions <- function(db) {
   # select_columns <- c("visit_id", "grts_address", "location_id")
   # ONLY <- TRUE
 
-  # load many columns
-  db$query_columns <- function(table_label, select_columns, ONLY = FALSE) {
-    # TODO use query_table and then subset
-
-    # re-usable, non-collecting query function
-    query_inclusive <- function(tablab, selcol) {
-      dplyr::tbl(db$connection, db$get_table_id(tablab)) %>%
-        dplyr::select(!!!rlang::syms(selcol)) %>%
-        return()
-    }
-
-    # query the (common) primary key and selected columns
-    pk <- db$get_primary_key(table_label)
-    inclusive_data <- query_inclusive(
-      table_label,
-      unique(c(pk, select_columns))
-    )
-
-    # inclusive = ALL; exclusive = ONLY
-    exclusive_data <- inclusive_data
-
-    # anti-join descendant tables if ONLY is selected
-    if (ONLY) {
-      # listwise query
-      childtable_data <- lapply(
-        db$get_descendant_tables(table_label),
-        FUN = \(child_tablab) query_inclusive(child_tablab, c(pk))
-        )
-
-      # anti-join
-      for (ch_i in seq_len(length(childtable_data))) {
-        exclusive_data <- exclusive_data %>%
-          anti_join(
-            childtable_data[[ch_i]],
-            by = join_by(!!pk)
-          )
-      } # loop descendants
-
-    } # /ONLY
-
-    # remove pk if not selected, collect, return
-    exclusive_data %>%
-      select(!!!rlang::syms(select_columns)) %>%
-      grts_datatype_to_integer() %>%
-      dplyr::collect() %>%
-      return()
-  } # /query_columns
-  # db$query_columns(table_label, select_columns)
-  # db$query_columns(table_label, select_columns, ONLY = TRUE)
-  # db$query_columns("Protocols", c("protocol_id", "title"))
-
-  # load one column
-  db$pull_column <- function(table_label, select_column) {
-    dplyr::tbl(db$connection, db$get_table_id(table_label)) %>%
-      dplyr::select(!!select_column) %>%
-      dplyr::collect() %>%
-      grts_datatype_to_integer() %>%
-      dplyr::pull(!!select_column) %>%
-      return()
-  } # /pull_column
-  # db$pull_column(table_label, db$get_primary_key(table_label)) %>% max()
-
   # check whether a table is spatial, i.e. contains `wkb_geometry`
   db$is_spatial <- function(table_key) {
     read.csv(file.path(db$folder, "TABLES.csv")) %>%
@@ -843,19 +781,31 @@ mnmdb_assemble_query_functions <- function(db) {
   # load all table data
     # DONE this can now handle ONLY for table inheritance.
     # DONE views are now found
-  db$query_table_uncollected <- function(table_label, ONLY = FALSE) {
+  db$query_table_uncollected <- function(table_label, ONLY = FALSE, subselect = NA) {
     # a generalizer (with `query_columns`)
     #      which queries all data for then
     #      either collecting,
     #      or selecting and collecting
-    ## else: non-spatial tables
-    # complicated by the ONLY keyword
-    query_inclusive <- function(tablab) {
-      dplyr::tbl(db$connection, db$get_table_id(tablab)) %>%
+
+    pk <- db$get_primary_key(table_label)
+
+    # subset only if there are columns to subset
+    select_subset <- function(df) {
+      if (is.scalar.na(subselect)) return(df)
+
+      df %>%
+        dplyr::select(!!!rlang::syms(unique(c(pk, subselect)))) %>%
         return()
     }
 
-    pk <- db$get_primary_key(table_label)
+    # general query function with optional subset
+    query_inclusive <- function(tablab) {
+      dplyr::tbl(db$connection, db$get_table_id(tablab)) %>%
+        select_subset() %>%
+        return()
+    }
+
+    # the whole table content
     inclusive_data <- query_inclusive(table_label)
 
 
@@ -881,12 +831,17 @@ mnmdb_assemble_query_functions <- function(db) {
 
     } # /ONLY
 
+    if (!is.scalar.na(subselect)) {
+      exclusive_data <- exclusive_data %>%
+        dplyr::select(!!!rlang::syms(subselect))
+    }
+
     exclusive_data %>%
       return()
-
   } # /query_table_uncollected
 
-  db$query_table <- function(table_label, ONLY = FALSE) {
+  # query a whole table
+  db$query_table <- function(table_label, ONLY = FALSE, subselect = NA) {
 
     ## case 1: spatial table
     if (db$is_spatial(table_label)) {
@@ -905,10 +860,16 @@ mnmdb_assemble_query_functions <- function(db) {
 
       sf::st_geometry(data) <- "wkb_geometry"
 
+      if (!is.scalar.na(subselect)) {
+        data <- data %>%
+          dplyr::select(!!!rlang::syms(subselect))
+      }
+
+
     } else {
 
       ## else: non-spatial
-      data <- db$query_table_uncollected(table_label, ONLY) %>%
+      data <- db$query_table_uncollected(table_label, ONLY, subselect) %>%
         dplyr::collect()
     }
 
@@ -921,6 +882,31 @@ mnmdb_assemble_query_functions <- function(db) {
   # db$query_table("Visits")
   # db$query_table("Visits", ONLY = TRUE)
 
+
+  # load many columns
+  db$query_columns <- function(table_label, select_columns, ONLY = FALSE) {
+    # use query_table with the subset option
+
+    db$query_table(table_label, ONLY, subselect = select_columns) %>%
+      return()
+  } # /query_columns
+  # db$query_columns("Visits", c("grts_address", "stratum"))
+  # db$query_columns("Visits", c("grts_address", "stratum"), ONLY = TRUE)
+  # db$query_columns("Protocols", c("protocol_id", "title"))
+  # db$query_table("FreeFieldNotes")
+  # db$query_table("FreeFieldNotes", ONLY = TRUE)
+  # db$query_columns("FreeFieldNotes", c("log_creator", "log_creation"))
+  # db$query_columns("FreeFieldNotes", c("log_creator", "log_creation"), ONLY = TRUE)
+
+  # load one column
+  db$pull_column <- function(table_label, select_column, ONLY = FALSE) {
+    # TODO ONLY via query_table_uncollected
+    db$query_table(table_label, ONLY) %>%
+      dplyr::pull(!!select_column) %>%
+      return()
+  } # /pull_column
+  # db$pull_column(table_label, db$get_primary_key(table_label)) %>% max()
+  # db$pull_column("Visits", "visit_id", ONLY = TRUE) %>% mean()
 
   # load lookup of a table (characteristics -> pk)
   db$query_lookup <- function(table_label, characteristic_columns = NA, ...) {
@@ -939,15 +925,22 @@ mnmdb_assemble_query_functions <- function(db) {
   } # /query_lookup
 
   # load data from many, many tables
-  db$query_tables_data <- function(tables) {
+  db$query_tables_data <- function(tables, ...) {
     lapply(
         tables,
-        FUN = db$query_table
+        FUN = \(tab) db$query_table(tab, ...)
       ) %>%
       setNames(tables) %>%
       return()
   }
-  # db$query_tables_data(c("GroupedActivities", "Protocols", "TeamMembers"))
+  # do.call(
+  #   bind_rows,
+  #   db$query_tables_data(
+  #       c("Visits", "InstallationVisits", "PositioningVisits"),
+  #       ONLY = FALSE
+  #     )
+  #   ) %>%
+  #   count(visit_id) %>% filter(n>1)
 
   # all dependent lookup columns
   db$lookup_dependent_columns <- function(table_label, deptab_label) {
@@ -1113,7 +1106,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
     lapply(
         savetabs,
-        FUN = function(tablab) db$query_table(tablab)
+        FUN = function(tablab) db$query_table(tablab, ONLY = TRUE)
       ) %>%
       setNames(savetabs) %>%
       return()
@@ -1145,7 +1138,7 @@ mnmdb_assemble_query_functions <- function(db) {
       # Note that I neglect dependent table here, since they will be re-uploaded after
       # delete from table
       db$execute_sql(
-        glue::glue("DELETE FROM {db$get_namestring(table_label)};"),
+        glue::glue("DELETE FROM ONLY {db$get_namestring(table_label)};"),
         verbose = verbose
       )
 
@@ -1182,7 +1175,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
     # prepare query to delete all unused rows
     cleanup_query <- glue::glue(
-      "DELETE FROM {db$get_namestring(table_label)}
+      "DELETE FROM ONLY {db$get_namestring(table_label)}
         WHERE log_user IN ('{maintenance_users}')
           AND {sql_filter_unused}
       ;"
