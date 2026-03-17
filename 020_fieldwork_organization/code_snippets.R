@@ -56,10 +56,150 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
 
 
+## helper functions (draft) -----------------------------------------------------
+# work in progress
+
+### joins
+# these are just simple wrappers to avoid the flood of extra keywords
+# because I prefer one-liners.
+# Some combinations of keywords are not implemented (e.g. one-time usage).
+
+#' wrapper for any inner join with "unmatched: error/drop"
+ixxx_join <- \(...) inner_join(..., unmatched = c("error", "drop"))
+
+#' wrapper for the many-to-one inner join with "unmatched: error/drop"
+im21_join <- \(...) ixxx_join(..., relationship = "many-to-one")
+
+#' wrapper for the one-to-one inner join with "unmatched: error/drop"
+i121_join <- \(...) ixxx_join(..., relationship = "one-to-one")
+
+#' wrapper for the many-to-many inner join with "unmatched: error/drop"
+im2m_join <- \(...) ixxx_join(..., relationship = "many-to-many")
+
+#' wrapper for the one-to-one inner join with "unmatched: error/drop"
+i12m_join <- \(...) ixxx_join(..., relationship = "one-to-many")
+
+i12me_join <- \(...) inner_join(
+  ...,
+  relationship = "one-to-many",
+  unmatched = "error"
+  )
+
+#' wrapper for any left join with "unmatched: drop" ("drop" seems to be prefered for left_joins)
+lxxx_join <- \(...) left_join(..., unmatched = "drop")
+
+#' wrapper for the  one-to-one left join with "unmatched: drop"
+l121_join <- \(...) lxxx_join(..., relationship = "one-to-one")
+
+#' wrapper for the  many-to-one left join with "unmatched: drop"
+lm21_join <- \(...) lxxx_join(..., relationship = "many-to-one")
+
+#' wrapper for the  many-to-many left join with "unmatched: drop"
+lm2m_join <- \(...) lxxx_join(..., relationship = "many-to-many")
+
+#' Nesting scheme, panelset, targetpanel; optional unique flattening
+#'
+#' merging scheme:module_combo_code:panel_set:targetpanel, still distinguishing
+#' strata separately (even though they may share their location: this is unreal
+#' in the case of multiple cell-centered strata). For now, not distinguishing
+#' module_combo as explained above.
+#' OR:
+#' flatten scheme x panel set x targetpanel to unique strings per stratum x
+#' location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
+#' shrinked version of the one at the level of the whole sample (see sampling
+#' unit attributes in the beginning), since we limited the activities to those
+#' planned before main_year + 1 (sometimes later), and then generate
+#' stratum_scheme_ps_targetpanels as a location attribute. So it says
+#' specifically which schemes x panel sets x targetpanels are served by the
+#' specific fieldwork at a specific date interval.
+#'
+nest_scheme_ps_targetpanel <- function(.data, spt_flattening_function = NULL) {
+
+  if (is.null(spt_flattening_function)) {
+    spt_flattening_function <- function(df) {
+      str_flatten(df$scheme_ps_targetpanel, collapse = " | ")
+    }
+  }
+
+  .data %>%
+    mutate(scheme_ps_targetpanel = str_glue(
+      "{ scheme }:PS{ panel_set }{ targetpanel }"
+    )) %>%
+    select(-scheme, -panel_set, -targetpanel) %>%
+    nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
+    mutate(
+      scheme_ps_targetpanels = map_chr(
+        scheme_ps_targetpanels,
+        spt_flattening_function
+      ) %>%
+      factor()
+    ) %>%
+    return()
+}
+
+
+concatenate_stratum_scheme_ps_targetpanels <- function(.data) {
+  .data %>%
+    mutate(stratum_scheme_ps_targetpanels = str_c(
+      stratum,
+      " (",
+      grts_join_method,
+      ") ",
+      " [",
+      scheme_ps_targetpanels,
+      "]"
+    )) %>%
+    mutate(
+      stratum_scheme_ps_targetpanels =
+        str_flatten(stratum_scheme_ps_targetpanels, collapse = " \u2588 ") %>%
+        factor(),
+      .by = grts_address_final
+    ) %>%
+    return()
+}
+
+
+### grts cells and geometry
+grts_mh <- read_GRTSmh()
+# create a spatial index of the GRTS addresses
+grts_mh_index <- tibble(
+  id = seq_len(ncell(grts_mh)),
+  grts_address = values(grts_mh)[, 1]
+) %>%
+  filter(!is.na(grts_address))
+
+#' wrapper to perform `add_point_coords_grts` with the `_mh` objects
+append_point_coords_grts_mh <- function(...) {
+  add_point_coords_grts(
+    ...,
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  ) %>%
+  return()
+}
+
+#' wrapper to perform `filter_grtsraster_by_address` with the `_mh` objects
+filter_grtsraster_by_address_mh <- function(...) {
+  filter_grtsraster_by_address(
+    ...,
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  ) %>%
+  return()
+}
+
+
+#' subset data to proceed only on `cell`-type sample support code
+filter_for_cells <- function(.data) {
+  .data %>%
+    filter(
+      str_detect(sample_support_code, "cell")
+    ) %>%
+    return()
+}
 
 
 ## Sampling unit attributes -----------------------------
-
 
 # attributes of spatial sampling units (~grts_address_final), useful in maps,
 # selections and decisions. Note that we *identify* sampling units as stratum x
@@ -69,36 +209,21 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 # cells)
 scheme_moco_ps_stratum_targetpanel_spsamples <-
   scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar %>%
-  inner_join(
-    domainpart_grts_n2khab,
-    join_by(grts_address),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  ) %>%
-  inner_join(
-    n2khab_strata,
-    join_by(stratum),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  ) %>%
-  inner_join(
+  im21_join(domainpart_grts_n2khab, join_by(grts_address)) %>%
+  im21_join(n2khab_strata, join_by(stratum)) %>%
+  im21_join(
     n2khab_types_expanded_properties %>%
       select(type, grts_join_method, sample_support_code),
-    join_by(type),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
+    join_by(type)
   ) %>%
-  mutate(
-    is_forest = str_detect(type, "^9|^2180|^rbbppm")
-  ) %>%
-  left_join(
+  lm21_join(
     mhq_samples %>%
       mutate(in_mhq_samples = TRUE),
-    join_by(grts_address, stratum),
-    relationship = "many-to-one",
-    unmatched = "drop"
+    join_by(grts_address, stratum)
   ) %>%
   mutate(
+    is_forest = str_detect(type, "^9|^2180|^rbbppm"),
+    # in_mhq_samples = coalesce(in_mhq_samples, FALSE)
     in_mhq_samples = ifelse(is.na(in_mhq_samples), FALSE, in_mhq_samples)
   ) %>%
   distinct(
@@ -135,24 +260,12 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
   distinct(scheme, module_combo_code) %>%
   {nrow(.) == nrow(distinct(., scheme))}
 
-# merging scheme:module_combo_code:panel_set:targetpanel, still distinguishing
-# strata separately (even though they may share their location: this is unreal
-# in the case of multiple cell-centered strata). For now, not distinguishing
-# module_combo as explained above.
+
+# nest scheme, panelset, targetpanel for spsamples
 stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
   select(-module_combo_code) %>%
-  mutate(scheme_ps_targetpanel = str_glue(
-    "{ scheme }:PS{ panel_set }{ targetpanel }"
-  )) %>%
-  select(-scheme, -panel_set, -targetpanel) %>%
-  nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
-  mutate(
-    scheme_ps_targetpanels = map_chr(scheme_ps_targetpanels, \(df) {
-      str_flatten(df$scheme_ps_targetpanel, collapse = " | ")
-    }) %>%
-      factor()
-  ) %>%
+  nest_scheme_ps_targetpanel() %>%
   relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
 
@@ -168,19 +281,13 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
 
 
 
-
-
-
-
-
-
 ## Inspecting VBI locations that overlap sampling units --------------------------
 
 # vbi_overlaps represents the VBI plot centers that overlap MNE sampling units.
 # For privacy reasons, the full list of VBI locations is not stored publicly.
 
 vbi_overlaps %>%
-  inner_join(
+  i121_join(
     stratum_schemepstargetpanel_spsamples %>%
       filter(is_forest) %>%
       select(
@@ -188,20 +295,13 @@ vbi_overlaps %>%
         grts_address_final,
         scheme_ps_targetpanels
       ),
-    join_by(grts_address == grts_address_final),
-    relationship = "one-to-one",
-    unmatched = c("error", "drop")
+    join_by(grts_address == grts_address_final)
   )
 
 # representing as points object
 vbi_overlaps_sf <-
   vbi_overlaps %>%
   st_as_sf(coords = c("x", "y"), crs = 31370)
-
-
-
-
-
 
 
 
@@ -231,13 +331,11 @@ units_7220 <-
   .[flanders_buffer, ] %>%
   mutate(unit_id = as.character(unit_id)) %>%
   # replacing unit_id by the grts_address
-  inner_join(
+  i121_join(
     units_non_cell_n2khab_grts %>%
       filter(sample_support_code == "spring") %>%
       select(-sample_support_code),
-    join_by(unit_id),
-    relationship = "one-to-one",
-    unmatched = c("error", "drop")
+    join_by(unit_id)
   ) %>%
   # to be solved later; a hack which looses one unit for now:
   filter(!is.na(grts_address)) %>%
@@ -251,36 +349,25 @@ units_7220 <-
 # geometries of terrestrial types, excluding 7220: these are cells
 # ////////////////////////////////////////////////////////////////////////////
 
-grts_mh <- read_GRTSmh()
-# create a spatial index of the GRTS addresses
-grts_mh_index <- tibble(
-  id = seq_len(ncell(grts_mh)),
-  grts_address = values(grts_mh)[, 1]
-) %>%
-  filter(!is.na(grts_address))
-
 
 # cell centers of the terrestrial sampling units (excluding 7220):
 units_cell_cellcenter <-
   stratum_schemepstargetpanel_spsamples %>%
-  filter(str_detect(sample_support_code, "cell")) %>%
-  add_point_coords_grts(
-    grts_var = "grts_address_final",
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  )
+  filter_for_cells() %>%
+  append_point_coords_grts_mh(grts_var = "grts_address_final")
 
 # sampling units as raster cells:
 units_cell_rast <-
   stratum_schemepstargetpanel_spsamples %>%
-  filter(str_detect(sample_support_code, "cell")) %>%
+  filter_for_cells() %>%
   pull(grts_address_final) %>%
-  filter_grtsraster_by_address(spatrast = grts_mh, spatrast_index = grts_mh_index)
+  filter_grtsraster_by_address_mh()
+
 set.names(units_cell_rast, "grts_address_final")
 
 # the number of non-NA cells matches the number of unique GRTS addresses
 stratum_schemepstargetpanel_spsamples %>%
-  filter(str_detect(sample_support_code, "cell")) %>%
+  filter_for_cells() %>%
   distinct(grts_address_final) %>%
   nrow() %>%
   all.equal(global(units_cell_rast, "notNA")[1, 1])
@@ -301,12 +388,10 @@ units_cell_polygon <-
 # multiple strata!
 units_cell_polygon_stratum_attribs <-
   units_cell_polygon %>%
-  inner_join(
+  i12me_join(
     stratum_schemepstargetpanel_spsamples %>%
-      filter(str_detect(sample_support_code, "cell")),
-    join_by(grts_address_final),
-    relationship = "one-to-many",
-    unmatched = "error"
+      filter_for_cells(),
+    join_by(grts_address_final)
   ) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
@@ -316,38 +401,16 @@ units_cell_polygon_stratum_attribs <-
 # another location):
 schemepstargetpanel_spsamples_terr <-
   stratum_schemepstargetpanel_spsamples %>%
-  filter(str_detect(sample_support_code, "cell")) %>%
-  mutate(stratum_scheme_ps_targetpanels = str_c(
-    stratum,
-    " (",
-    grts_join_method,
-    ") ",
-    " [",
-    scheme_ps_targetpanels,
-    "]"
-  )) %>%
-  mutate(
-    stratum_scheme_ps_targetpanels =
-      str_flatten(stratum_scheme_ps_targetpanels, collapse = " \u2588 ") %>%
-      factor(),
-    .by = grts_address_final
-  ) %>%
+  filter_for_cells() %>%
+  concatenate_stratum_scheme_ps_targetpanels %>%
   distinct(stratum_scheme_ps_targetpanels, grts_address, grts_address_final)
 
 units_cell_polygon_attrib <-
   units_cell_polygon %>%
-  inner_join(
-    schemepstargetpanel_spsamples_terr,
-    join_by(grts_address_final),
-    relationship = "one-to-many",
-    unmatched = "error"
-  ) %>%
+  i12me_join(schemepstargetpanel_spsamples_terr, join_by(grts_address_final)) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(stratum_scheme_ps_targetpanels, grts_address)
-
-
-
 
 
 
@@ -393,14 +456,12 @@ hmt_pol_stratum_grts_cell_all_n2khab_collapsed <-
 # essentially, we use below object to be able to solve the problem.
 stratum_schemepstargetpanel_spsamples_terr_polygons <-
   stratum_schemepstargetpanel_spsamples %>%
-  filter(str_detect(sample_support_code, "cell")) %>%
+  filter_for_cells() %>%
   # adding polygon_id attribute (sometimes missing, sometimes more than one, as
   # explained above)
-  left_join(
+  lm2m_join(
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed,
-    join_by(stratum, grts_address),
-    relationship = "many-to-many",
-    unmatched = "drop"
+    join_by(stratum, grts_address)
   )
 
 # I.1. Solving the problem of missing polygons
@@ -414,19 +475,12 @@ stratum_schemepstargetpanel_spsamples_terr_polygons <-
 stratum_schemepstargetpanel_spsamples_terr_polygons %>%
   filter(is.na(polygon_id)) %>%
   distinct(stratum) %>%
-  inner_join(
-    n2khab_strata,
-    join_by(stratum),
-    relationship = "one-to-one",
-    unmatched = c("error", "drop")
-  ) %>%
+  i121_join(n2khab_strata, join_by(stratum)) %>%
   distinct(type) %>%
-  inner_join(
+  i121_join(
     n2khab_types_expanded_properties %>%
       select(type, grts_join_method),
-    join_by(type),
-    relationship = "one-to-one",
-    unmatched = c("error", "drop")
+    join_by(type)
   ) %>%
   filter(grts_join_method == "cell") %>%
   {nrow(.) == 0} %>%
@@ -437,11 +491,7 @@ stratum_grts_address_nopolygon_sf <-
   stratum_schemepstargetpanel_spsamples_terr_polygons %>%
   filter(is.na(polygon_id)) %>%
   select(stratum, grts_address) %>%
-  add_point_coords_grts(
-    grts_var = "grts_address",
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  )
+  append_point_coords_grts_mh(grts_var = "grts_address")
 
 # Selecting the missing polygons from the habitatmap. Up to terra 1.8-86, terra
 # was used to read and filter, because it can handle some exotic geometries from
@@ -469,15 +519,13 @@ missing_polygons <-
 missing_pol_grts <-
   extract(grts_mh, missing_polygons, small = FALSE) %>%
   as_tibble() %>%
-  inner_join(
+  i12me_join(
     tibble(
       ID = seq_len(nrow(missing_polygons)),
       polygon_id = missing_polygons$polygon_id
     ),
     .,
-    join_by(ID),
-    relationship = "one-to-many",
-    unmatched = "error"
+    join_by(ID)
   ) %>%
   select(-ID, grts_address = GRTSmaster_habitats) %>%
   # filtering is needed since all polygons are listed by extract():
@@ -491,12 +539,7 @@ missing_pol_stratum_grts <-
   filter(is.na(polygon_id)) %>%
   select(stratum, grts_address) %>%
   # joining polygon_id based on the sampling unit's grts_address
-  inner_join(
-    missing_pol_grts,
-    join_by(grts_address),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  ) %>%
+  im21_join(missing_pol_grts, join_by(grts_address)) %>%
   # joining all GRTS addresses based on polygon_id
   select(-grts_address) %>%
   inner_join(
@@ -527,7 +570,7 @@ hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended <-
 # polygons have been labelled to contain the specific type.
 stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
   stratum_schemepstargetpanel_spsamples %>%
-  filter(str_detect(sample_support_code, "cell")) %>%
+  filter_for_cells() %>%
   # We drop domain_part since its value can change within a polygon, which
   # otherwise requires extra attention in grouping operations. As we always
   # _identify_ the sampling units using grts_address x stratum (not
@@ -535,20 +578,16 @@ stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
   # domain_part attribute, regardless whether a local replacement took place.
   select(-domain_part) %>%
   # adding polygon_id attribute (sometimes more than one, as explained above)
-  inner_join(
+  im2m_join(
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended,
-    join_by(stratum, grts_address),
-    relationship = "many-to-many",
-    unmatched = c("error", "drop")
+    join_by(stratum, grts_address)
   ) %>%
   # adding all GRTS addresses of the polygon, taking into account the stratum's
   # GRTS join method
-  inner_join(
+  im2m_join(
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended %>%
       rename(grts_address_replac = grts_address),
-    join_by(stratum, polygon_id),
-    relationship = "many-to-many",
-    unmatched = c("error", "drop")
+    join_by(stratum, polygon_id)
   ) %>%
   select(-polygon_id) %>%
   # we also determine the 'next GRTS address' per grts_address x stratum, which
@@ -604,12 +643,10 @@ stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
   relocate(scheme_ps_targetpanels) %>%
   unnest(addr_replac, keep_empty = TRUE) %>%
   # get cell numbers of the replacement addresses (useful in visualization)
-  left_join(
+  lm21_join(
     grts_mh_index %>%
       rename(cellnr_replac = id),
-    join_by(grts_address_replac == grts_address),
-    relationship = "many-to-one",
-    unmatched = "drop"
+    join_by(grts_address_replac == grts_address)
   ) %>%
   # nesting polygon ids, cellnr & replacement addresses; the number of rows is
   # the same as before the first join above
@@ -855,12 +892,7 @@ fag_fa <-
   semi_join(mod_scheme_yrs_moco_ps, join_by(module, scheme)) %>%
   distinct(field_activity_group, field_activity) %>%
   arrange(field_activity_group, field_activity) %>%
-  inner_join(
-    field_activities,
-    join_by(field_activity),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  )
+  imt1_join(field_activities, join_by(field_activity))
 
 # Field activity sequences define the sequence of activities needed for some
 # objective (determining a variable). An activity sequence may be used by
@@ -880,24 +912,17 @@ faseqs <-
 faseqs_fag_fa <-
   field_activity_sequences %>%
   semi_join(faseqs, join_by(activity_sequence)) %>%
-  inner_join(
-    field_activities,
-    join_by(field_activity),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  )
+  imt1_join(field_activities, join_by(field_activity))
 
 # Note that following has a more elaborate set of (partially non-field)
 # activities:
 actseqs_actgroups_acts <-
   activity_sequences %>%
   semi_join(faseqs, join_by(activity_sequence)) %>%
-  inner_join(
+  imt1_join(
     activities %>%
       select(activity, activity_name),
-    join_by(activity),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
+    join_by(activity)
   )
 
 
@@ -912,11 +937,9 @@ fag_stratum_grts_calendar
 # Below code brings the FAG calendar at the resolution of each field activity.
 fag_fa_stratum_grts_calendar <-
   fag_stratum_grts_calendar %>%
-  inner_join(
+  im2m_join(
     fag_fa,
-    join_by(field_activity_group),
-    relationship = "many-to-many",
-    unmatched = c("error", "drop")
+    join_by(field_activity_group)
   ) %>%
   select(-c(typelevel_certain:inaccessible))
 
@@ -957,12 +980,10 @@ cal_0.14.0_continuation
 # Link between field activities and their protocol
 fa_protocol <-
   field_activities %>%
-  inner_join(
+  i121_join(
     activities %>%
       select(activity, protocol),
-    join_by(field_activity == activity),
-    relationship = "one-to-one",
-    unmatched = c("error", "drop")
+    join_by(field_activity == activity)
   )
 
 # List of variables / variable sets to be collected in the field (will expand
@@ -1092,7 +1113,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   # targetpanel attribute etc
   unnest(scheme_moco_ps) %>%
   # adding location attributes
-  inner_join(
+  im21_join(
     scheme_moco_ps_stratum_targetpanel_spsamples %>%
       select(
         scheme,
@@ -1111,13 +1132,11 @@ fag_stratum_grts_calendar_shortterm_attribs <-
       ) %>%
       # deduplicating 7220:
       distinct(),
-    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
+    join_by(scheme, module_combo_code, panel_set, stratum, grts_address)
   ) %>%
   # adding old targetpanel of the imported FAG occasions from rep_0.14.0. A part
   # is dropped because of occasions that don't happen in the main year.
-  left_join(
+  l121_join(
     cal_0.14.0_continuation %>%
       unnest(scheme_moco_ps) %>%
       mutate(
@@ -1139,36 +1158,18 @@ fag_stratum_grts_calendar_shortterm_attribs <-
       date_end,
       field_activity_group,
       rank
-    ),
-    relationship = "one-to-one",
-    unmatched = "drop"
+    )
   ) %>%
   mutate(scheme_ps_oldtargetpanel = factor(scheme_ps_oldtargetpanel)) %>%
   relocate(grts_address_final:domain_part, .after = grts_address) %>%
   relocate(grts_join_method, .after = grts_address_final) %>%
   relocate(scheme_ps_oldtargetpanel, .before = date_start) %>%
   select(-module_combo_code) %>%
-  # flatten scheme x panel set x targetpanel to unique strings per stratum x
-  # location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
-  # shrinked version of the one at the level of the whole sample (see sampling
-  # unit attributes in the beginning), since we limited the activities to those
-  # planned before main_year + 1 (sometimes later), and then generate
-  # stratum_scheme_ps_targetpanels as a location attribute. So it says
-  # specifically which schemes x panel sets x targetpanels are served by the
-  # specific fieldwork at a specific date interval.
-  mutate(scheme_ps_targetpanel = str_glue(
-    "{ scheme }:PS{ panel_set }{ targetpanel }"
-  )) %>%
-  select(-scheme, -panel_set, -targetpanel) %>%
-  nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
-  mutate(
-    scheme_ps_targetpanels = map_chr(scheme_ps_targetpanels, \(df) {
-      str_flatten(
-        unique(df$scheme_ps_targetpanel),
-        collapse = " | "
+  nest_scheme_ps_targetpanel(
+    spt_flattening_function = \(df) str_flatten(
+      unique(df$scheme_ps_targetpanel),
+      collapse = " | "
       )
-    }) %>%
-      factor()
   ) %>%
   relocate(
     scheme_ps_targetpanels,
@@ -1220,11 +1221,7 @@ fag_grts_calendar_shortterm_attribs <-
 # FAG values at the same location.
 fag_grts_calendar_shortterm_attribs_sf <-
   fag_grts_calendar_shortterm_attribs %>%
-  add_point_coords_grts(
-    grts_var = "grts_address_final",
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  )
+  append_point_coords_grts_mh(grts_var = "grts_address_final")
 
 # prioritization of short-term fieldwork with stratum distinguished (preferred for
 # counts and for planning):
@@ -1348,10 +1345,6 @@ if (FALSE) {
 
 
 
-
-
-
-
 ## Processing the FAG calendar wrt specific questions -------------------------
 
 # Classifying strata in groundwater schemes according to different allowed
@@ -1366,18 +1359,11 @@ fag_stratum_grts_calendar %>%
   ) %>%
   distinct(stratum) %>%
   # adding type attributes
-  inner_join(
-    n2khab_strata,
-    join_by(stratum),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  ) %>%
-  inner_join(
+  im21_join(n2khab_strata, join_by(stratum)) %>%
+  im21_join(
     n2khab_types_expanded_properties %>%
       select(type, grts_join_method, groundw_dep),
-    join_by(type),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
+    join_by(type)
   ) %>%
   mutate(
     max_depth_groups = case_when(
@@ -1390,9 +1376,6 @@ fag_stratum_grts_calendar %>%
       .default = 1L
     )
   )
-
-
-
 
 
 
@@ -1411,11 +1394,9 @@ orthophoto_shortterm_type_grts <-
   ) %>%
   # converting stratum to type (in the usual way, although for the cell-based
   # units the values - but not the factor levels - are identical)
-  inner_join(
+  im21_join(
     n2khab_strata,
-    join_by(stratum),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
+    join_by(stratum)
   ) %>%
   relocate(type, .after = stratum) %>%
   select(-stratum, -rank, -scheme_ps_oldtargetpanel) %>%
@@ -1429,12 +1410,7 @@ orthophoto_shortterm_type_grts <-
 # unit geometries (cells):
 orthophoto_shortterm_cells <-
   units_cell_polygon %>%
-  inner_join(
-    orthophoto_shortterm_type_grts,
-    join_by(grts_address_final),
-    relationship = "one-to-many",
-    unmatched = c("drop", "error")
-  ) %>%
+  i12m_join(orthophoto_shortterm_type_grts, join_by(grts_address_final)) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(
@@ -1447,19 +1423,7 @@ orthophoto_shortterm_cells <-
 # cell centers:
 orthophoto_shortterm_cell_centers <-
   orthophoto_shortterm_type_grts %>%
-  add_point_coords_grts(
-    grts_var = "grts_address_final",
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  )
-
-
-
-
-
-
-
-
+  append_point_coords_grts_mh(grts_var = "grts_address_final")
 
 
 
