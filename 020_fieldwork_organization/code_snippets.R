@@ -30,14 +30,18 @@ library(rprojroot)
 gitroot <- find_root(is_git_root)
 projroot <- file.path(gitroot, "020_fieldwork_organization")
 
+source_snippet_supplements <- function(file_name) {
+  source(file.path(projroot, "R", file_name))
+}
+
 ## helper functions -----------------------------------------------------
 # Load custom functions from source files
-source(file.path(projroot, "R/misc.R"))
-source(file.path(projroot, "R/repetitive_join_functions.R"))
-source(file.path(projroot, "R/grts.R"))
-source(file.path(projroot, "R/grts_mh.R"))
-source(file.path(projroot, "R/location_attribute_processing.R"))
-source(file.path(projroot, "R/calendar_operations_and_priorities.R"))
+source_snippet_supplements("misc.R")
+source_snippet_supplements("repetitive_join_functions.R")
+source_snippet_supplements("grts.R")
+source_snippet_supplements("grts_mh.R")
+source_snippet_supplements("location_attribute_processing.R")
+source_snippet_supplements("calendar_operations_and_priorities.R")
 
 
 # Setup for googledrive authentication. Set the appropriate env vars in
