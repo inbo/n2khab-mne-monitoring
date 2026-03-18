@@ -1077,7 +1077,15 @@ flag_groundwater_scheme_has_gw <- function(.data) {
 #' filter by year, but
 #' already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
 #' next years to be executed
-filter_max_year_and_preponable_activities <- function(.data, selected_year, remove_has_gw = FALSE) {
+filter_max_year_and_preponable_activities_gw <- function(
+    .data,
+    selected_year,
+    remove_has_gw = FALSE
+  ) {
+
+  stopifnot("stringr" = require("stringr"))
+  stopifnot("lubridate" = require("lubridate"))
+  stopifnot("dplyr" = require("dplyr"))
 
   # ensure gw activities are labeled
   if (!("has_gw" %in% names(.data))) {
@@ -1087,11 +1095,11 @@ filter_max_year_and_preponable_activities <- function(.data, selected_year, remo
 
   # filter
   .data %<>%
-    filter(
+    dplyr::filter(
       lubridate::year(date_start) <= selected_year |
         (
           has_gw &
-            str_detect(
+            stringr::str_detect(
               field_activity_group,
               "INST|LEVREAD|SPATPOSIT"
             ) &
@@ -1103,7 +1111,7 @@ filter_max_year_and_preponable_activities <- function(.data, selected_year, remo
   # optionally remove `has_gw` column
   if (remove_has_gw) {
     .data %<>%
-      select(-has_gw)
+      dplyr::select(-has_gw)
   }
 
   return(.data)
