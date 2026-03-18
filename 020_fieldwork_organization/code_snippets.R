@@ -106,6 +106,7 @@ lm21_join <- \(...) lxxx_join(..., relationship = "many-to-one")
 #' wrapper for the  many-to-many left join with "unmatched: drop"
 lm2m_join <- \(...) lxxx_join(..., relationship = "many-to-many")
 
+
 #' Nesting scheme, panelset, targetpanel; optional unique flattening
 #'
 #' merging scheme:module_combo_code:panel_set:targetpanel, still distinguishing
@@ -122,27 +123,56 @@ lm2m_join <- \(...) lxxx_join(..., relationship = "many-to-many")
 #' specifically which schemes x panel sets x targetpanels are served by the
 #' specific fieldwork at a specific date interval.
 #'
-nest_scheme_ps_targetpanel <- function(.data, spt_flattening_function = NULL) {
+nest_and_flatten_scheme_ps_targetpanel <- function(
+    .data,
+    spt_flattening_function = NULL,
+    use_unique = FALSE,
+    remove_scheme_column = TRUE
+  ) {
 
+  # select one of the default flattening methods
   if (is.null(spt_flattening_function)) {
-    spt_flattening_function <- function(df) {
-      str_flatten(df$scheme_ps_targetpanel, collapse = " | ")
+    if (use_unique) {
+      spt_flattening_function <- function(df) {
+        str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
+      }
+    } else {
+      spt_flattening_function <- function(df) {
+        str_flatten(df$scheme_ps_targetpanel, collapse = " | ")
+      }
     }
   }
 
-  .data %>%
+  # concatenate the target column, nest, and flatten it
+  .data %<>%
     mutate(scheme_ps_targetpanel = str_glue(
       "{ scheme }:PS{ panel_set }{ targetpanel }"
     )) %>%
-    select(-scheme, -panel_set, -targetpanel) %>%
-    nest(scheme_ps_targetpanels = scheme_ps_targetpanel) %>%
+    select(-panel_set, -targetpanel) %>%
+    nest(
+      schemes = scheme,
+      # panel_sets = panel_set,
+      # targetpanels = targetpanel,
+      scheme_ps_targetpanels = scheme_ps_targetpanel
+    ) %>%
     mutate(
+      schemes = map_chr(
+        schemes,
+        spt_flattening_function
+      ) %>% factor(),
       scheme_ps_targetpanels = map_chr(
         scheme_ps_targetpanels,
         spt_flattening_function
-      ) %>%
-      factor()
-    ) %>%
+      ) %>% factor()
+    )
+
+  # optionally remove `schemes`
+  if (remove_scheme_column) {
+    .data %<>%
+      select(-schemes, -scheme)
+  }
+
+  .data %>%
     return()
 }
 
@@ -274,7 +304,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
 stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
   select(-module_combo_code) %>%
-  nest_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel() %>%
   relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
 
@@ -1266,7 +1296,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   generate_extra_scheme_attributes() %>%
   join_location_attributes_via_moco() %>%
-  nest_scheme_ps_targetpanel(
+  nest_and_flatten_scheme_ps_targetpanel(
     spt_flattening_function = \(df) str_flatten(
       unique(df$scheme_ps_targetpanel),
       collapse = " | "
