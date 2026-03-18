@@ -30,9 +30,16 @@ library(rprojroot)
 gitroot <- find_root(is_git_root)
 projroot <- file.path(gitroot, "020_fieldwork_organization")
 
-# Load some custom functions
-source(file.path(projroot, "R/grts.R"))
+## helper functions -----------------------------------------------------
+# Load custom functions from source files
 source(file.path(projroot, "R/misc.R"))
+source(file.path(projroot, "R/repetitive_join_functions.R"))
+source(file.path(projroot, "R/grts.R"))
+source(file.path(projroot, "R/grts_mh.R"))
+source(file.path(projroot, "R/location_attribute_processing.R"))
+source(file.path(projroot, "R/calendar_operations_and_priorities.R"))
+source(file.path(projroot, "R/database_preparations.R"))
+
 
 # Setup for googledrive authentication. Set the appropriate env vars in
 # .Renviron and make sure you ran drive_auth() interactively with these settings
@@ -59,194 +66,6 @@ load(path)
 versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
 verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
-
-
-## helper functions (draft) -----------------------------------------------------
-# work in progress
-
-### joins
-# these are just simple wrappers to avoid the flood of extra keywords
-# because I prefer one-liners.
-# Some combinations of keywords are not implemented (e.g. one-time usage).
-
-#' wrapper for any inner join with "unmatched: error/drop"
-ixxx_join <- \(...) inner_join(..., unmatched = c("error", "drop"))
-
-#' wrapper for the many-to-one inner join with "unmatched: error/drop"
-im21_join <- \(...) ixxx_join(..., relationship = "many-to-one")
-
-#' wrapper for the one-to-one inner join with "unmatched: error/drop"
-i121_join <- \(...) ixxx_join(..., relationship = "one-to-one")
-
-#' wrapper for the many-to-many inner join with "unmatched: error/drop"
-im2m_join <- \(...) ixxx_join(..., relationship = "many-to-many")
-
-#' wrapper for the one-to-one inner join with "unmatched: drop>error"
-i12mde_join <- \(...) inner_join(
-  ...,
-  relationship = "one-to-many",
-  unmatched = c("drop", "error")
-  )
-
-i12me_join <- \(...) inner_join(
-  ...,
-  relationship = "one-to-many",
-  unmatched = "error"
-  )
-
-#' wrapper for any left join with "unmatched: drop" ("drop" seems to be prefered for left_joins)
-lxxx_join <- \(...) left_join(..., unmatched = "drop")
-
-#' wrapper for the  one-to-one left join with "unmatched: drop"
-l121_join <- \(...) lxxx_join(..., relationship = "one-to-one")
-
-#' wrapper for the  many-to-one left join with "unmatched: drop"
-lm21_join <- \(...) lxxx_join(..., relationship = "many-to-one")
-
-#' wrapper for the  many-to-many left join with "unmatched: drop"
-lm2m_join <- \(...) lxxx_join(..., relationship = "many-to-many")
-
-
-#' rename the column `grts_address_final` to `grts_address`
-#' (not used in these snippets, but afterwards)
-#'
-#' @param .data input data frame
-#' @param keep_original toggle retention of the `grts_address` as `grts_address_original`
-#'
-rename_grts_address_final_to_grts_address <- function(.data, keep_original = FALSE) {
-
-  .data %>%
-    relocate(grts_address_final, .after = grts_address) %>%
-    {
-      if (keep_original) {
-        # optionally rename the original grts address
-        . %>% rename(grts_address_original = grts_address)
-      } else {
-        # (otherwise, drop original)
-        . %>% select(-grts_address)
-      }
-    } %>%
-    # simply rename
-    rename(grts_address = grts_address_final) %>%
-    return()
-}
-
-
-#' Nesting scheme, panelset, targetpanel; optional unique flattening
-#'
-#' merging scheme:module_combo_code:panel_set:targetpanel, still distinguishing
-#' strata separately (even though they may share their location: this is unreal
-#' in the case of multiple cell-centered strata). For now, not distinguishing
-#' module_combo as explained above.
-#' OR:
-#' flatten scheme x panel set x targetpanel to unique strings per stratum x
-#' location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
-#' shrinked version of the one at the level of the whole sample (see sampling
-#' unit attributes in the beginning), since we limited the activities to those
-#' planned before main_year + 1 (sometimes later), and then generate
-#' stratum_scheme_ps_targetpanels as a location attribute. So it says
-#' specifically which schemes x panel sets x targetpanels are served by the
-#' specific fieldwork at a specific date interval.
-#'
-nest_and_flatten_scheme_ps_targetpanel <- function(
-    .data,
-    use_unique = FALSE,
-    spt_flattening_function = NULL
-  ) {
-
-  # select one of the default flattening methods
-  if (is.null(spt_flattening_function)) {
-    if (use_unique) {
-      spt_flattening_function <- function(df) {
-        str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
-      }
-    } else {
-      spt_flattening_function <- function(df) {
-        str_flatten(df$scheme_ps_targetpanel, collapse = " | ")
-      }
-    }
-  }
-
-  # concatenate the target column, nest, and flatten it
-  .data %<>%
-    mutate(scheme_ps_targetpanel = str_glue(
-      "{ scheme }:PS{ panel_set }{ targetpanel }"
-    )) %>%
-    select(-scheme, -panel_set, -targetpanel) %>%
-    nest(
-      scheme_ps_targetpanels = scheme_ps_targetpanel
-    ) %>%
-    mutate(
-      scheme_ps_targetpanels = map_chr(
-        scheme_ps_targetpanels,
-        spt_flattening_function
-      ) %>% factor()
-    )
-
-  .data %>%
-    return()
-}
-
-
-concatenate_stratum_scheme_ps_targetpanels <- function(.data) {
-  .data %>%
-    mutate(stratum_scheme_ps_targetpanels = str_c(
-      stratum,
-      " (",
-      grts_join_method,
-      ") ",
-      " [",
-      scheme_ps_targetpanels,
-      "]"
-    )) %>%
-    mutate(
-      stratum_scheme_ps_targetpanels =
-        str_flatten(stratum_scheme_ps_targetpanels, collapse = " \u2588 ") %>%
-        factor(),
-      .by = grts_address_final
-    ) %>%
-    return()
-}
-
-
-### grts cells and geometry
-grts_mh <- read_GRTSmh()
-# create a spatial index of the GRTS addresses
-grts_mh_index <- tibble(
-  id = seq_len(ncell(grts_mh)),
-  grts_address = values(grts_mh)[, 1]
-) %>%
-  filter(!is.na(grts_address))
-
-#' wrapper to perform `add_point_coords_grts` with the `_mh` objects
-append_point_coords_grts_mh <- function(...) {
-  add_point_coords_grts(
-    ...,
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  ) %>%
-  return()
-}
-
-#' wrapper to perform `filter_grtsraster_by_address` with the `_mh` objects
-filter_grtsraster_by_address_mh <- function(...) {
-  filter_grtsraster_by_address(
-    ...,
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  ) %>%
-  return()
-}
-
-
-#' subset data to proceed only on `cell`-type sample support code
-filter_for_cells <- function(.data) {
-  .data %>%
-    filter(
-      str_detect(sample_support_code, "cell")
-    ) %>%
-    return()
-}
 
 
 ## Sampling unit attributes -----------------------------
@@ -325,10 +144,12 @@ stratum_schemepstargetpanel_spsamples <-
 # place using grts_address as the anchor, provided that the type still occurs in
 # the polygon. If not, the absence must be noted and sampling frame + sample are
 # to be updated.
-scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  filter(grts_address != grts_address_final) %>%
-  glimpse()
+if(interactive()) {
+  scheme_moco_ps_stratum_targetpanel_spsamples %>%
+    filter(grts_address != grts_address_final) %>%
+    glimpse()
 
+}
 
 
 ## Inspecting VBI locations that overlap sampling units --------------------------
@@ -452,7 +273,7 @@ units_cell_polygon_stratum_attribs <-
 schemepstargetpanel_spsamples_terr <-
   stratum_schemepstargetpanel_spsamples %>%
   filter_for_cells() %>%
-  concatenate_stratum_scheme_ps_targetpanels %>%
+  concatenate_stratum_scheme_ps_targetpanels() %>%
   distinct(stratum_scheme_ps_targetpanels, grts_address, grts_address_final)
 
 units_cell_polygon_attrib <-
@@ -924,13 +745,6 @@ global(units_cell_replacement_rast, "notNA")[1, 1] == length(cellnrs_replacement
 
 
 
-
-
-
-
-
-
-
 ## FAG occasions, field activities and variables ------------------------
 
 # field activities (FAs) per field activity group (FAG) in the active modules
@@ -1078,213 +892,6 @@ scheme_moco_fa_fieldvar <-
 
 
 
-#' quick-select activities which are part of the groundwater scheme
-flag_groundwater_scheme_has_gw <- function(.data) {
-
-  stopifnot("stringr" = require("stringr"))
-  stopifnot("dplyr" = require("dplyr"))
-  stopifnot("magrittr" = require("magrittr"))
-
-  if ("scheme" %in% names(.data)) {
-    .data %<>%
-      dplyr::mutate(
-        has_gw = stringr::str_detect(scheme, "^GW")
-      )
-  } else if ("scheme_ps_targetpanels" %in% names(.data)) {
-    .data %<>%
-      dplyr::mutate(
-        has_gw = stringr::str_detect(scheme_ps_targetpanels, "^GW")
-      )
-
-  } else if ("scheme_moco_ps" %in% names(.data)) {
-
-    stopifnot("purrr" = require("purrr"))
-
-    .data %<>%
-      dplyr::mutate(
-        has_gw = purrr::map_lgl(
-          scheme_moco_ps,
-          \(df) any(stringr::str_detect(df$scheme, "^GW"))
-        )
-      )
-  } else {
-    stop("ERROR in `flag_groundwater_scheme_has_gw`:
-      no applicable `scheme*` column found in the provided data frame.")
-  }
-
-  return(.data)
-}
-
-
-#' filter by year, but
-#' already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
-#' next years to be executed
-filter_max_year_and_preponable_activities_gw <- function(
-    .data,
-    selected_year,
-    remove_has_gw = FALSE
-  ) {
-
-  stopifnot("stringr" = require("stringr"))
-  stopifnot("lubridate" = require("lubridate"))
-  stopifnot("dplyr" = require("dplyr"))
-
-  # ensure gw activities are labeled
-  if (!("has_gw" %in% names(.data))) {
-    .data %<>% flag_groundwater_scheme_has_gw()
-    remove_has_gw <- TRUE
-  }
-
-  # filter
-  .data %<>%
-    dplyr::filter(
-      lubridate::year(date_start) <= selected_year |
-        (
-          has_gw &
-            stringr::str_detect(
-              field_activity_group,
-              "INST|LEVREAD|SPATPOSIT"
-            ) &
-            date_start == min(date_start)
-        ),
-      .by = c(stratum, grts_address, field_activity_group)
-    )
-
-  # optionally remove `has_gw` column
-  if (remove_has_gw) {
-    .data %<>%
-      dplyr::select(-has_gw)
-  }
-
-  return(.data)
-}
-
-
-#' move the LOCEVAL fieldwork that was kept for main_year - 1, to main_year,
-#' since that is indeed its meaning
-format_dates_and_get_interval <- function(.data) {
-
-  # .data %>%
-  #   count(date_start, date_end, date_interval) %>%
-  #   knitr::kable()
-
-  .data %>%
-    mutate(
-      across(c(date_start, date_end), \(x) {
-        if_else(
-          year(date_start) == main_year - 1 &
-            str_detect(field_activity_group, "LOCEVAL"),
-          x + years(1),
-          x
-        )
-      }),
-      date_interval = interval(
-        force_tz(date_start, "Europe/Brussels"),
-        force_tz(date_end, "Europe/Brussels")
-      )
-    ) %>%
-    return()
-
-}
-
-
-#' drop past activities
-drop_past_activities <- function(.data, min_year) {
-  .data %>%
-    filter(year(date_start) >= min_year) %>%
-    return()
-}
-
-#' generate some attributes of the FAG occasion with regard to associated schemes
-generate_extra_scheme_attributes <- function(.data) {
-  .data %>%
-    mutate(
-      schemes_served_all = map_chr(scheme_moco_ps, function(df) {
-        str_flatten(df$scheme %>% unique() %>% sort(), collapse = "|")
-      }) %>%
-        factor(),
-      nr_schemes_current = map_int(scheme_moco_ps, function(df) {
-        sum(df$is_current_occasion)
-      }),
-      nr_schemes_later = map_int(scheme_moco_ps, function(df) {
-        sum(!df$is_current_occasion)
-      }),
-      scheme_moco_ps = map(scheme_moco_ps, function(df) {
-        df %>%
-          filter(is_current_occasion) %>%
-          select(scheme, module_combo_code, panel_set)
-      })
-    ) %>%
-    return()
-
-}
-
-
-#' unnest schemes for which the FAG was originally planned in the current
-#' date interval (is_current_occasion is TRUE), in order to add their
-#' targetpanel attribute etc
-join_location_attributes_via_moco <- function(.data) {
-
-  .data %>%
-    unnest(scheme_moco_ps) %>%
-    # adding location attributes
-    im21_join(
-      scheme_moco_ps_stratum_targetpanel_spsamples %>%
-        select(
-          scheme,
-          module_combo_code,
-          panel_set,
-          stratum,
-          grts_join_method,
-          grts_address,
-          grts_address_final,
-          # retaining 3 cols that drive subsampling location(s) in the unit:
-          is_forest,
-          in_mhq_samples,
-          last_type_assessment_in_field,
-          domain_part,
-          targetpanel
-        ) %>%
-        # deduplicating 7220:
-        distinct(),
-      join_by(scheme, module_combo_code, panel_set, stratum, grts_address)
-    ) %>%
-    # add old targetpanel of the imported FAG occasions from rep_0.14.0. A part
-    # is dropped because of occasions that don't happen in the main year.
-    l121_join(
-      cal_0.14.0_continuation %>%
-        unnest(scheme_moco_ps) %>%
-        mutate(
-          scheme_ps_oldtargetpanel = str_c(scheme, ":PS", panel_set, targetpanel)
-        ) %>%
-        select(
-          -ends_with("upcoming"),
-          -is_current_occasion,
-          -date_interval,
-          -targetpanel
-        ),
-      join_by(
-        scheme,
-        module_combo_code,
-        panel_set,
-        stratum,
-        grts_address,
-        date_start,
-        date_end,
-        field_activity_group,
-        rank
-      )
-    ) %>%
-    mutate(scheme_ps_oldtargetpanel = factor(scheme_ps_oldtargetpanel)) %>%
-    relocate(grts_address_final:domain_part, .after = grts_address) %>%
-    relocate(grts_join_method, .after = grts_address_final) %>%
-    relocate(scheme_ps_oldtargetpanel, .before = date_start) %>%
-    select(-module_combo_code) %>%
-    return()
-
-}
-
-
 ## Processing the FAG calendar wrt prioritizing short-term fieldwork ----
 
 # This section is primarily intended as support for fieldwork planning by the
@@ -1316,27 +923,6 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   )
 
 
-#' Derive an object where stratum x scheme_ps_targetpanels is flattened per
-#' location x FAG occasion. Beware that in reality, more locations will emerge
-#' due to local replacement, so this is misleading for counting & planning (but
-#' useful in spatial visualization).
-unite_stratum_and_schemepstargetpanels <- function(.data) {
-  .data %>%
-    mutate(
-      stratum_scheme_ps_targetpanels = str_c(
-        stratum,
-        " (",
-        grts_join_method,
-        ") ",
-        " [",
-        scheme_ps_targetpanels,
-        "]"
-      ),
-      .keep = "unused"
-    ) %>%
-    return()
-}
-
 fag_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar_shortterm_attribs %>%
   select(
@@ -1362,93 +948,6 @@ fag_grts_calendar_shortterm_attribs_sf <-
   fag_grts_calendar_shortterm_attribs %>%
   append_point_coords_grts_mh(grts_var = "grts_address_final")
 
-prioritize_gw_fieldwork <- function(.data) {
-  .data %>%
-    mutate(
-      priority_gw = case_when(
-        # no priority is given to imported FAGs from old versions (these
-        # READDIVER, CLEAN & SHALLSAMP FAGs can be done as it suits, in the
-        # locations where LOCEVAL is already executed)
-        !is.na(scheme_ps_oldtargetpanel) ~ NA_integer_,
-        # switch priorities for PS1PANEL02 and PS1PANEL03 from 15 April on!
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL02|PS2PANEL01)") ~ 1L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL03|PS2PANEL02)") ~ 2L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL04)") ~ 3L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL0[56]|PS2PANEL03)") ~ 4L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07)") ~ 6L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL01)") ~ 7L,
-        str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 8L,
-        str_detect(scheme_ps_targetpanels, "GW_05\\.") ~ 11L
-      )
-    ) %>%
-    return()
-}
-
-prioritize_surf_fieldwork <- function(.data) {
-  .data %>%
-    mutate(
-      priority_surf = case_when(
-        str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL02") ~ 2L,
-        str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL01") ~ 4L
-      )
-    ) %>%
-    return()
-}
-
-prioritize_soil_fieldwork <- function(.data) {
-  .data %>%
-    mutate(
-      priority_soil = case_when(
-        str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL02") ~ 7L,
-        str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL01") ~ 8L,
-        str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL03") ~ 9L,
-        str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL04") ~ 10L
-      )
-    ) %>%
-    return()
-}
-
-prioritize_mhq_fieldwork <- function(.data) {
-  .data %>%
-    mutate(
-      priority_mhq = case_when(
-        str_detect(scheme_ps_targetpanels, "HQ.+:PS\\dPANEL01") ~ 3L
-      )
-    ) %>%
-    return()
-}
-
-prioritize_all_fieldwork <- function(.data) {
-  .data %>%
-    prioritize_gw_fieldwork() %>%
-    prioritize_surf_fieldwork() %>%
-    prioritize_soil_fieldwork () %>%
-    prioritize_mhq_fieldwork () %>%
-    mutate(
-      priority = pmin(
-        priority_gw,
-        priority_surf,
-        priority_soil,
-        priority_mhq,
-        na.rm = TRUE
-      ),
-    ) %>%
-    select(-matches("priority_.+")) %>%
-    return()
-}
-
-generate_wait_columns <- function(.data) {
-  .data %>%
-    mutate(
-      wait_watersurface = str_detect(stratum, "^31|^2190_a"),
-      wait_3260 = stratum == "3260",
-      wait_7220 = str_detect(stratum, "^7220"),
-      wait_floating = stratum == "7140_mrd",
-      wait_any = if_any(starts_with("wait"))
-    ) %>%
-    relocate(wait_any, .before = wait_watersurface) %>%
-    return()
-}
 
 # prioritization of short-term fieldwork with stratum distinguished (preferred for
 # counts and for planning):
@@ -1567,19 +1066,6 @@ fag_stratum_grts_calendar %>%
 
 ## Making selections for short-term orthophoto assessments ---------------------
 
-#' converting stratum to type (in the usual way, although for the cell-based
-#' units the values - but not the factor levels - are identical)
-convert_stratum_to_type <- function(.data) {
-  .data %>%
-    im21_join(
-      n2khab_strata,
-      join_by(stratum)
-    ) %>%
-    relocate(type, .after = stratum) %>%
-    select(-stratum) %>%
-    return()
-}
-
 
 # Making a list of terrestrial locations to be assessed using orthophotos
 
@@ -1592,7 +1078,7 @@ orthophoto_shortterm_type_grts <-
     str_detect(grts_join_method, "cell")
   ) %>%
   convert_stratum_to_type() %>%
-  select(-stratum, -rank, -scheme_ps_oldtargetpanel) %>%
+  select(-rank, -scheme_ps_oldtargetpanel) %>%
   arrange(
     priority,
     type,

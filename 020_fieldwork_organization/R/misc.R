@@ -48,3 +48,14 @@ collapse_strata <- function(df) {
     ) %>%
     select(-subtype)
 }
+
+
+
+#' subset data to proceed only on `cell`-type sample support code
+filter_for_cells <- function(.data) {
+  .data %>%
+    filter(
+      str_detect(sample_support_code, "cell")
+    ) %>%
+    return()
+}
