@@ -38,7 +38,6 @@ source(file.path(projroot, "R/grts.R"))
 source(file.path(projroot, "R/grts_mh.R"))
 source(file.path(projroot, "R/location_attribute_processing.R"))
 source(file.path(projroot, "R/calendar_operations_and_priorities.R"))
-source(file.path(projroot, "R/database_preparations.R"))
 
 
 # Setup for googledrive authentication. Set the appropriate env vars in
