@@ -1542,6 +1542,20 @@ fag_stratum_grts_calendar %>%
 
 ## Making selections for short-term orthophoto assessments ---------------------
 
+#' converting stratum to type (in the usual way, although for the cell-based
+#' units the values - but not the factor levels - are identical)
+convert_stratum_to_type <- function(.data) {
+  .data %>%
+    im21_join(
+      n2khab_strata,
+      join_by(stratum)
+    ) %>%
+    relocate(type, .after = stratum) %>%
+    select(-stratum) %>%
+    return()
+}
+
+
 # Making a list of terrestrial locations to be assessed using orthophotos
 
 orthophoto_shortterm_type_grts <-
@@ -1552,13 +1566,7 @@ orthophoto_shortterm_type_grts <-
     # not possible to evaluate on orthophoto)
     str_detect(grts_join_method, "cell")
   ) %>%
-  # converting stratum to type (in the usual way, although for the cell-based
-  # units the values - but not the factor levels - are identical)
-  im21_join(
-    n2khab_strata,
-    join_by(stratum)
-  ) %>%
-  relocate(type, .after = stratum) %>%
+  convert_stratum_to_type() %>%
   select(-stratum, -rank, -scheme_ps_oldtargetpanel) %>%
   arrange(
     priority,
