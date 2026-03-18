@@ -17,13 +17,15 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
 ## helper functions -----------------------------------------------------
 # Load custom functions from source files
-source(file.path(projroot, "R/misc.R"))
-source(file.path(projroot, "R/repetitive_join_functions.R"))
-source(file.path(projroot, "R/grts.R"))
-source(file.path(projroot, "R/grts_mh.R"))
-source(file.path(projroot, "R/location_attribute_processing.R"))
-source(file.path(projroot, "R/calendar_operations_and_priorities.R"))
-source(file.path(projroot, "R/database_preparations.R"))
+source_snippet_supplements <- function(file_name) {
+  source(file.path(gitroot, "020_fieldwork_organization", "R", file_name))
+}
+source_snippet_supplements("misc.R")
+source_snippet_supplements("repetitive_join_functions.R")
+source_snippet_supplements("grts.R")
+source_snippet_supplements("grts_mh.R")
+source_snippet_supplements("location_attribute_processing.R")
+source_snippet_supplements("calendar_operations_and_priorities.R")
 
 
 ## Sampling unit attributes -----------------------------
