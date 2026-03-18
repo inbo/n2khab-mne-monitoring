@@ -125,9 +125,8 @@ lm2m_join <- \(...) lxxx_join(..., relationship = "many-to-many")
 #'
 nest_and_flatten_scheme_ps_targetpanel <- function(
     .data,
-    spt_flattening_function = NULL,
     use_unique = FALSE,
-    remove_scheme_column = TRUE
+    spt_flattening_function = NULL
   ) {
 
   # select one of the default flattening methods
@@ -148,29 +147,16 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
     mutate(scheme_ps_targetpanel = str_glue(
       "{ scheme }:PS{ panel_set }{ targetpanel }"
     )) %>%
-    select(-panel_set, -targetpanel) %>%
+    select(-scheme, -panel_set, -targetpanel) %>%
     nest(
-      schemes = scheme,
-      # panel_sets = panel_set,
-      # targetpanels = targetpanel,
       scheme_ps_targetpanels = scheme_ps_targetpanel
     ) %>%
     mutate(
-      schemes = map_chr(
-        schemes,
-        spt_flattening_function
-      ) %>% factor(),
       scheme_ps_targetpanels = map_chr(
         scheme_ps_targetpanels,
         spt_flattening_function
       ) %>% factor()
     )
-
-  # optionally remove `schemes`
-  if (remove_scheme_column) {
-    .data %<>%
-      select(-schemes, -scheme)
-  }
 
   .data %>%
     return()
@@ -1104,6 +1090,7 @@ flag_groundwater_scheme_has_gw <- function(.data) {
   return(.data)
 }
 
+
 #' filter by year, but
 #' already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
 #' next years to be executed
@@ -1291,17 +1278,12 @@ fag_stratum_grts_calendar_shortterm_attribs <-
     field_activity_group,
     rank
   ) %>%
-  filter_max_year_and_preponable_activities(main_year, remove_has_gw = TRUE) %>%
+  filter_max_year_and_preponable_activities_gw(main_year, remove_has_gw = TRUE) %>%
   format_dates_and_get_interval() %>%
   drop_past_activities(min_year = main_year) %>%
   generate_extra_scheme_attributes() %>%
   join_location_attributes_via_moco() %>%
-  nest_and_flatten_scheme_ps_targetpanel(
-    spt_flattening_function = \(df) str_flatten(
-      unique(df$scheme_ps_targetpanel),
-      collapse = " | "
-      )
-  ) %>%
+  nest_and_flatten_scheme_ps_targetpanel(use_unique = TRUE) %>%
   relocate(
     scheme_ps_targetpanels,
     schemes_served_all,
