@@ -1,7 +1,6 @@
 ---
 aliases:
   - python
-  - #python 
 tags:
   - python 
 ---

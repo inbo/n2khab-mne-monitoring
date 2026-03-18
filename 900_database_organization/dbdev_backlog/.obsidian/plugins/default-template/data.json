@@ -2,7 +2,8 @@
   "defaultTemplate": "templates/task.md",
   "folderTemplates": {
     "timeline": "templates/day.md",
-    "procedures": "templates/procedure.md"
+    "procedures": "templates/procedure.md",
+    "tags": "templates/tag.md"
   },
   "ignorePaths": [
     "attachments"
