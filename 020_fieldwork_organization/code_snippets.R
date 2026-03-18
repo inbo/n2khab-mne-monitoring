@@ -1039,12 +1039,39 @@ scheme_moco_fa_fieldvar <-
 
 #' quick-select activities which are part of the groundwater scheme
 flag_groundwater_scheme_has_gw <- function(.data) {
-  .data %>%
-    mutate(has_gw = map_lgl(
-      scheme_moco_ps,
-      \(df) any(str_detect(df$scheme[df$is_current_occasion], "^GW"))
-    )) %>%
-    return()
+
+  stopifnot("stringr" = require("stringr"))
+  stopifnot("dplyr" = require("dplyr"))
+  stopifnot("magrittr" = require("magrittr"))
+
+  if ("scheme" %in% names(.data)) {
+    .data %<>%
+      dplyr::mutate(
+        has_gw = stringr::str_detect(scheme, "^GW")
+      )
+  } else if ("scheme_ps_targetpanels" %in% names(.data)) {
+    .data %<>%
+      dplyr::mutate(
+        has_gw = stringr::str_detect(scheme_ps_targetpanels, "^GW")
+      )
+
+  } else if ("scheme_moco_ps" %in% names(.data)) {
+
+    stopifnot("purrr" = require("purrr"))
+
+    .data %<>%
+      dplyr::mutate(
+        has_gw = purrr::map_lgl(
+          scheme_moco_ps,
+          \(df) any(stringr::str_detect(df$scheme, "^GW"))
+        )
+      )
+  } else {
+    stop("ERROR in `flag_groundwater_scheme_has_gw`:
+      no applicable `scheme*` column found in the provided data frame.")
+  }
+
+  return(.data)
 }
 
 #' filter by year, but
