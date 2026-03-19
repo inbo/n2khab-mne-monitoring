@@ -2,9 +2,15 @@
 #+date: 20260319
 
 
-#+begin_src
+#+begin_src sh :eval no
 grep -rlZ '\<RVP\>' . | xargs -0 sed -i 's/\<RVP\>/REP/g'
 grep -rlZ '\<rvp\>' . | xargs -0 sed -i 's/\<rvp\>/rep/g'
 grep -rlZ '_rvp_' . | xargs -0 sed -i 's/_rvp_/_rep_/g'
 grep -rlZ 'rvp_' . | xargs -0 sed -i 's/rvp_/rep_/g'
+#+end_src
+
+
+... and filenames
+#+begin_src sh :eval no
+find . -iname "*RVP*"
 #+end_src
