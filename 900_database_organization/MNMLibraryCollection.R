@@ -15,7 +15,8 @@ load_libraries <- function(libs) {
 }
 
 #_______________________________________________________________________________
-rvp_common_libraries <- c(
+rep_common_libraries <- c(
+  "magrittr",
   "dplyr",
   "tidyr",
   "stringr",
@@ -29,7 +30,7 @@ rvp_common_libraries <- c(
   "n2khab"
 )
 load_rep_common_libraries <- function(
-  ) load_libraries(rvp_common_libraries)
+  ) load_libraries(rep_common_libraries)
 # load_rep_common_libraries()
 
 #_______________________________________________________________________________
@@ -86,39 +87,42 @@ load_rep_rdata <- function(data_basepath = file.path(".", "data"), reload = FALS
 
   # Download and load R objects from the REP into global environment
   # reload <- FALSE # in this one, we normally reload.
-  rvp_rdata_path <- file.path(data_basepath, "objects_panflpan5.RData")
-  if (reload || !file.exists(rvp_rdata_path)){
+  rep_rdata_path <- file.path(data_basepath, "objects_panflpan5.RData")
+  if (reload || !file.exists(rep_rdata_path)){
 
     # copy the old file
-    if (file.exists(rvp_rdata_path)) {
+    if (file.exists(rep_rdata_path)) {
       this_date <- format(Sys.time(), "%Y%m%d")
       backup_path <- file.path(data_basepath, glue::glue("objects_panflpan5_{this_date}.bak"))
-      file.copy(from = rvp_rdata_path, to = backup_path, overwrite = TRUE)
+      file.copy(from = rep_rdata_path, to = backup_path, overwrite = TRUE)
     }
 
     googledrive::drive_download(
       googledrive::as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"),
-      path = rvp_rdata_path,
+      path = rep_rdata_path,
       overwrite = reload
     )
   }
-  load(rvp_rdata_path, envir = to_env)
+  load(rep_rdata_path, envir = to_env)
 
 } # /load_rep_rdata
 
 
-load_rep_code_snippets <- function(base_path = NA) {
+reload_rep_code_snippets <- function(fresh_snippet_path = NULL, to_env = NULL) {
 
-  if (is.na(base_path)) {
-    base_path <- rprojroot::find_root(is_git_root)
+  if (is.null(to_env)) {
+    to_env = globalenv()
   }
 
-  source(file.path(base_path, "020_fieldwork_organization", "R", "grts.R"))
-  source(file.path(base_path, "020_fieldwork_organization", "R", "misc.R"))
+  if (is.null(fresh_snippet_path)) {
+    fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+  }
 
-  invisible(capture.output(source("401_snippet_selection.R")))
-  source("402_snippet_transformation_code.R")
+  # libraries must be re-loaded
+  load_rep_common_libraries()
 
+  # load variables into environment
+  load(fresh_snippet_path, envir = to_env)
 
 } # /load_rep_code_snippets
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 # Below is a copy of a subset of the code snippets provided by @florisvdh
 # https://github.com/inbo/n2khab-mne-monitoring/tree/main/020_fieldwork_organization
 #
@@ -7,7 +9,11 @@
 #     Note that all the "plot" functions below must be commented out manually.
 
 # Set project root; works everywhere as the RStudio project file is in the repo
-gitroot <- find_root(is_git_root)
+# the conditional allows for setting a different git root from other places
+# [!] the variable name `snippet_base_path` must be consistent with `MNMLibraryCollection.R`
+if (!exists("snippet_base_path")) {
+  snippet_base_path <- rprojroot::find_root(is_git_root)
+}
 # Checking the existence of the correct data source files in the correct
 # directories
 versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
@@ -18,7 +24,7 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 ## helper functions -----------------------------------------------------
 # Load custom functions from source files
 source_snippet_supplements <- function(file_name) {
-  source(file.path(gitroot, "020_fieldwork_organization", "R", file_name))
+  source(file.path(snippet_base_path, "020_fieldwork_organization", "R", file_name))
 }
 source_snippet_supplements("misc.R")
 source_snippet_supplements("repetitive_join_functions.R")
@@ -1068,7 +1074,7 @@ orthophoto_shortterm_cell_centers <-
 
 ## Comparing object checksums with reference to verify reproducibility --------
 
-checksumfile <- file.path(gitroot, "fieldworg_checksums.csv")
+checksumfile <- file.path(snippet_base_path, "fieldworg_checksums.csv")
 ref_checksums <- read_csv(checksumfile, col_types = "cc")
 available_obj <- ls()
 different_checksums <-
