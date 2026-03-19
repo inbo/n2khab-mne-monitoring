@@ -1,5 +1,5 @@
 ---
-title: "RVP Data Re-Upload - loceval"
+title: "REP Data Re-Upload - loceval"
 date: "2025-09-24, 20260309"
 format:
   html:
@@ -32,7 +32,7 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
 ```{r libraries}
 # libraries
 source("MNMLibraryCollection.R")
-load_rvp_common_libraries()
+load_rep_common_libraries()
 load_database_interaction_libraries()
 
 # the database connection object
@@ -48,16 +48,16 @@ source("MNMDatabaseToolbox.R")
 ```
 
 
-## info stream from RVP
+## info stream from REP
 
 First, there is the `.RData` file.
 
 ```{r load-sample-rdata}
 tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_rvp_rdata(reload = FALSE, to_env = parent.frame())
+load_rep_rdata(reload = FALSE, to_env = parent.frame())
 message(glue::glue("Good morning!
-  Loading the RVP data took {tic(toc)} seconds today."
+  Loading the REP data took {tic(toc)} seconds today."
 ))
 
 ```
@@ -74,7 +74,7 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 
 toc <- Sys.time()
-load_rvp_code_snippets(snippets_path)
+load_rep_code_snippets(snippets_path)
 message(glue::glue(
   "... loading/executing the code snippets took {tic(toc)}s."
 ))
@@ -87,8 +87,8 @@ if (nrow(different_checksums) > 0) {
 
 Finally, check that everything was loaded correctly.
 
-```{r rvp-checks}
-verify_rvp_objects()
+```{r rep-checks}
+verify_rep_objects()
 ```
 
 ## database connection
@@ -150,7 +150,7 @@ if (FALSE) {
   # version_tag <- "≤v0.11.0_poc0.13.1"
   # version_tag <- "v0.12.0_poc0.14.0"
   version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
-  version_notes <- "revisit RVP script / ctd on Replacements"
+  version_notes <- "revisit REP script / ctd on Replacements"
   date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
 
   version_id <- locevaldb$tag_new_version(
@@ -1202,7 +1202,7 @@ replacements_sideload <- load_table_sideload_content(
 
 Two original sources: 
 
-- replacements from RVP,
+- replacements from REP,
 - sideloaded replacements
 
 ```{r new-replacements}

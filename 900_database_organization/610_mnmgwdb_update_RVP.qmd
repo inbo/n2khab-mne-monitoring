@@ -1,5 +1,5 @@
 ---
-title: "RVP Data Re-Upload"
+title: "REP Data Re-Upload"
 date: "2025-06-27, 2025-09-04, 2026-03-09"
 format:
   html:
@@ -21,14 +21,14 @@ Let's bring the sample to the field - again!
 :::
 
 
-In all brevity, I collect steps here to get a new RVP to the database.
+In all brevity, I collect steps here to get a new REP to the database.
 
 # Notes and TODOs
 
 - <20260309> check that the order of sideloading is sufficient:
-  - first: get `Locations` GRTS list from {status quo database + rvp news}
+  - first: get `Locations` GRTS list from {status quo database + rep news}
   - much later: sideload
-  - sideloaded, ex-RVP locations should be uploaded, too
+  - sideloaded, ex-REP locations should be uploaded, too
   - but then, how would their `archive_version_id` status be?
 
 # preparation
@@ -65,7 +65,7 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
 ```{r libraries}
 # libraries
 source("MNMLibraryCollection.R")
-load_rvp_common_libraries()
+load_rep_common_libraries()
 load_database_interaction_libraries()
 
 # the database connection object
@@ -81,16 +81,16 @@ source("MNMDatabaseToolbox.R")
 ```
 
 
-## info stream from RVP
+## info stream from REP
 
 First, there is the `.RData` file.
 
 ```{r load-sample-rdata}
 tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_rvp_rdata(reload = FALSE, to_env = parent.frame())
+load_rep_rdata(reload = FALSE, to_env = parent.frame())
 message(glue::glue("Good morning!
-  Loading the RVP data took {tic(toc)} seconds today."
+  Loading the REP data took {tic(toc)} seconds today."
 ))
 
 ```
@@ -107,7 +107,7 @@ Some code snippets, possibly modified on the way, were provided by Floris.
 snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
 
 toc <- Sys.time()
-load_rvp_code_snippets(snippets_path)
+load_rep_code_snippets(snippets_path)
 message(glue::glue(
   "... loading/executing the code snippets took {tic(toc)}s."
 ))
@@ -116,8 +116,8 @@ message(glue::glue(
 
 Finally, check that everything was loaded correctly.
 
-```{r rvp-checks}
-verify_rvp_objects()
+```{r rep-checks}
+verify_rep_objects()
 ```
 
 
@@ -511,10 +511,10 @@ stitch_table_connection(
 Note to future me:
 
 Local Replacements are applied by directly modifying `grts_address` in calendar/visits.
-The original sample location gets archived during the next RVP update script - here.
+The original sample location gets archived during the next REP update script - here.
 
 At the time of writing, this seems to be a logical solution. 
-However, on a real RVP update, the locations to archive because of local replacement ("downstream" archives) get mixed with actual RVP changes ("upstream").
+However, on a real REP update, the locations to archive because of local replacement ("downstream" archives) get mixed with actual REP changes ("upstream").
 :::
 
 
@@ -1289,11 +1289,11 @@ system("quarto render 046_mnmgwdb_consistency_dashboard.qmd --to html")
 
 ```
 
-```{r done-updating-rvp}
+```{r done-updating-rep}
 
 message("")
 message("________________________________________________________________")
-message(" >>>>> Finished RVP data update. ")
+message(" >>>>> Finished REP data update. ")
 message("________________________________________________________________")
 ```
 

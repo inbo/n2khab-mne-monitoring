@@ -2,7 +2,7 @@
 aliases:
   - code snippets
 tags:
-  - RVP
+  - REP
 ---
 Script to prepare and check all the R data objects which comes from upstream.
 Delivered by #FV to `/020_fieldwork_organization`;

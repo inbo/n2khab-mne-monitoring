@@ -40,15 +40,15 @@ loceval_connection <- connect_mnm_database(
 
 
 if (TRUE){
-### info from RVP
-load_rvp_common_libraries()
-load_rvp_rdata(reload = FALSE, to_env = globalenv())
+### info from REP
+load_rep_common_libraries()
+load_rep_rdata(reload = FALSE, to_env = globalenv())
 
 # ... and code snippets.
 snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-load_rvp_code_snippets(snippets_path)
+load_rep_code_snippets(snippets_path)
 
-verify_rvp_objects()
+verify_rep_objects()
 
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # regularly used sets of libraries
-# and RVP data handling (interpreting RVP prep as a library)
+# and REP data handling (interpreting REP prep as a library)
 
 #_______________________________________________________________________________
 # LIBRARIES
@@ -28,9 +28,9 @@ rvp_common_libraries <- c(
   "terra",
   "n2khab"
 )
-load_rvp_common_libraries <- function(
+load_rep_common_libraries <- function(
   ) load_libraries(rvp_common_libraries)
-# load_rvp_common_libraries()
+# load_rep_common_libraries()
 
 #_______________________________________________________________________________
 database_interaction_libraries <- c(
@@ -69,9 +69,9 @@ load_inbo_libraries <- function(
 
 
 #_______________________________________________________________________________
-# RVP DATA AND CODE
+# REP DATA AND CODE
 
-load_rvp_rdata <- function(data_basepath = file.path(".", "data"), reload = FALSE, to_env = parent.frame()) {
+load_rep_rdata <- function(data_basepath = file.path(".", "data"), reload = FALSE, to_env = parent.frame()) {
 
   # Setup for googledrive authentication. Set the appropriate env vars in
   # .Renviron and make sure you ran drive_auth() interactively with these settings
@@ -84,7 +84,7 @@ load_rvp_rdata <- function(data_basepath = file.path(".", "data"), reload = FALS
     options(gargle_oauth_cache = Sys.getenv("GARGLE_OAUTH_CACHE"))
   }
 
-  # Download and load R objects from the RVP into global environment
+  # Download and load R objects from the REP into global environment
   # reload <- FALSE # in this one, we normally reload.
   rvp_rdata_path <- file.path(data_basepath, "objects_panflpan5.RData")
   if (reload || !file.exists(rvp_rdata_path)){
@@ -104,10 +104,10 @@ load_rvp_rdata <- function(data_basepath = file.path(".", "data"), reload = FALS
   }
   load(rvp_rdata_path, envir = to_env)
 
-} # /load_rvp_rdata
+} # /load_rep_rdata
 
 
-load_rvp_code_snippets <- function(base_path = NA) {
+load_rep_code_snippets <- function(base_path = NA) {
 
   if (is.na(base_path)) {
     base_path <- rprojroot::find_root(is_git_root)
@@ -120,11 +120,11 @@ load_rvp_code_snippets <- function(base_path = NA) {
   source("402_snippet_transformation_code.R")
 
 
-} # /load_rvp_code_snippets
+} # /load_rep_code_snippets
 
 
 
-verify_rvp_objects <- function() {
+verify_rep_objects <- function() {
 
   versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
   verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
@@ -185,7 +185,7 @@ verify_rvp_objects <- function() {
   # shout out success!
   message("All expected environment objects were found.")
 
-} # /verify_rvp_objects
+} # /verify_rep_objects
 
 
 #_______________________________________________________________________________
