@@ -168,16 +168,11 @@ verify_rep_objects <- function() {
       exists("n2khab_strata")
   )
 
-  stopifnot(
-    "snip snap >> `orthophoto grts` not found" =
-      exists("orthophoto_shortterm_type_grts")
-  )
-
   # fieldwork calendar
   stopifnot(
     "NOT FOUND: snip snap >> `fieldwork_shortterm_prioritization_by_stratum`" =
       exists("fieldwork_shortterm_prioritization_by_stratum")
-  )
+  ) # implies fag_stratum_grts_calendar_shortterm_attribs and fag_stratum_grts_calendar
 
   # replacements
   stopifnot(
@@ -185,6 +180,11 @@ verify_rep_objects <- function() {
       exists("stratum_schemepstargetpanel_spsamples_terr_replacementcells")
   )
 
+  # orthophotos
+  stopifnot(
+    "snip snap >> `orthophoto grts` not found" =
+      exists("orthophoto_shortterm_type_grts")
+  )
 
   # shout out success!
   message("All expected environment objects were found.")
