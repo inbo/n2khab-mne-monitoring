@@ -214,25 +214,16 @@ Now is the chance!
 
 
 
-
 # Let's Do This
 
 ## prerequisite_lookups
 
 ```{r gather-lookups}
-loceval_field_activities <- locevaldb$query_table("GroupedActivities") %>%
-  filter(is_loceval_activity, is_field_activity) %>%
-  distinct(activity_group, activity)
 
 n2khabstrata_lookup <- locevaldb$query_lookup(
   "N2kHabStrata",
   characteristic_columns = c("stratum")
 )
-
-```
-
-
-```{r load-activities}
 
 activity_groupid_lookup <- locevaldb$query_columns(
     "GroupedActivities",
@@ -240,12 +231,25 @@ activity_groupid_lookup <- locevaldb$query_columns(
   ) %>%
   distinct()
 
+```
+
+
+```{r load-activities}
+
 field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
   filter(is_loceval_activity, is_field_activity) %>%
-  distinct(activity_group, activity)
+  distinct(activity_group, activity, fag_is_preponable)
 
 ```
 
+
+## Freeze Past Fixture
+
+Here, it would be time to
+
+```
+    405_freeze_calendar.R
+```
 
 
 ## Sample Units
