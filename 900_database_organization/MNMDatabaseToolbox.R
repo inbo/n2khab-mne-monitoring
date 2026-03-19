@@ -1979,7 +1979,8 @@ precedence_columns <- list(
     "date_visit_planned",
     "no_visit_planned",
     "notes",
-    "done_planning"
+    "done_planning",
+    "is_frozen"
   ),
   "FieldActivityCalendar" = c(
     "excluded",
@@ -1988,7 +1989,8 @@ precedence_columns <- list(
     "date_visit_planned",
     "no_visit_planned",
     "notes",
-    "done_planning"
+    "done_planning",
+    "is_frozen"
   ),
   "Visits" = c(
     "teammember_id",
