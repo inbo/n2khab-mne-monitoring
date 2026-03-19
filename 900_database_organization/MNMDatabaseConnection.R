@@ -1331,7 +1331,8 @@ mnmdb_versions_and_archiving <- function(db) {
   db$tag_new_version <- function(
       new_version_tag,
       new_version_notes,
-      new_date_applied = NA
+      new_date_applied = NA,
+      new_date_fixing = NA
     ) {
 
     # determine the next counter
@@ -1351,6 +1352,7 @@ mnmdb_versions_and_archiving <- function(db) {
       "version_tag" = new_version_tag,
       "data_iteration" = data_iteration,
       "date_applied" = new_date_applied,
+      "date_fixing" = new_date_fixing,
       "notes" = new_version_notes
     ))
 

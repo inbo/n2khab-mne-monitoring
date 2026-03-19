@@ -21,6 +21,15 @@ knitr:
 
 # TODO
 
+
+- drop past activities `filter(year(date_start) >= main_year)` ~~main_year~~ `freeze_until_year`
+- `is_current_occasion`
+- `cal_0.14.0_continuation` 
+- `schemes_served_all` vs. previous `scheme_ps_targetpanel`
+- "auxiliary" FAGs
+  + via `fag_is_auxiliary = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT|LEVREADDIVER" )`
+  + and `fag_is_preponable = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT" )`
+
 - `is_gw_activity` / `is_loceval_activity`
 - `091_push_loceval_to_mnmgwdb.py` only on 070
 
@@ -37,7 +46,6 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
 ```{r libraries}
 # libraries
 source("MNMLibraryCollection.R")
-load_rep_common_libraries()
 load_database_interaction_libraries()
 
 # the database connection object
@@ -55,45 +63,32 @@ source("MNMDatabaseToolbox.R")
 
 ## info stream from REP
 
-First, there is the `.RData` file.
+First, there is the `.RData` file, along with proccessing outcome of the code snippets.
 
-```{r load-sample-rdata}
-tic <- function(toc) round(Sys.time() - toc, 1)
-toc <- Sys.time()
-load_rep_rdata(reload = FALSE, to_env = parent.frame())
-message(glue::glue("Good morning!
-  Loading the REP data took {tic(toc)} seconds today."
-))
-
-```
-
-Some code snippets, possibly modified on the way, were provided by Floris.
+::: {.callout-note snippets}
+- check for changes on every update, e.g. with `meld`:
+  `meld 020_fieldwork_organization/code_snippets.R 900_database_organization/401_snippet_selection.R`
+- bake fresh snippets every morning:
+  `Rscript 403_precalculate_fresh_snippets.R`
+:::
 
 ```{r source-code-snippets}
-# TODO: check for changes on every update, e.g. with `meld`:
-#       meld 020_fieldwork_organization/code_snippets.R 900_database_organization/401_snippet_selection.R
 
-# Load some custom GRTS functions
-# project_root <- find_root(is_git_root)
-# source(file.path(project_root, "R/grts.R"))
-snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-
+tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_rep_code_snippets(snippets_path)
-message(glue::glue(
-  "... loading/executing the code snippets took {tic(toc)}s."
+fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+reload_rep_code_snippets(fresh_snippet_path)
+message(glue::glue("Good morning!
+  Loading the REP data and snippets took {tic(toc)} seconds today."
 ))
+
+verify_rep_objects()
 
 if (nrow(different_checksums) > 0) {
   knitr::kable(different_checksums)
 }
-```
 
 
-Finally, check that everything was loaded correctly.
-
-```{r rep-checks}
-verify_rep_objects()
 ```
 
 ## database connection
@@ -152,16 +147,23 @@ if (isFALSE(grepl("-staging", locevaldb_mirror))) {
 if (FALSE) {
 
   # manually set a new version
+  # the first part indicates the "snippet" version tag, the second one the REP tag.
+  # see:
+  #   - https://github.com/inbo/n2khab-mne-monitoring/tags
+  #   - https://github.com/inbo/n2khab-mne-designs/tags
   # version_tag <- "≤v0.11.0_poc0.13.1"
   # version_tag <- "v0.12.0_poc0.14.0"
-  version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
-  version_notes <- "revisit REP script / ctd on Replacements"
-  date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+  # version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
+  version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
+  version_notes <- "REP update 0.15.0 (GRTS reset)"
+  version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+  version_date_fixing <- as.Date("2025-12-31")
 
   version_id <- locevaldb$tag_new_version(
     new_version_tag = version_tag,
     new_version_notes =  version_notes,
-    new_date_applied = date_applied
+    new_date_applied = version_date_applied,
+    new_date_fixing = version_date_fixing
   )
 
   # SELECT * FROM "metadata"."Versions";
@@ -174,16 +176,20 @@ if (FALSE) {
 if (FALSE) {
   # ... ad hoc / testing: delete version again
   table_label <- "Versions"
+  data_iteration = 1
   glue::glue("
   DELETE FROM {locevaldb$get_namestring(table_label)}
   WHERE version_tag = '{version_tag}'
     AND data_iteration = {data_iteration}
   ;
   ")
+  # locevaldb$set_sequence_key("Versions", "max", verbose = TRUE)
+  
   glue::glue("
   UPDATE {locevaldb$get_namestring(table_label)}
-  SET notes = E'{version_notes}'
-  WHERE version_tag = {version_tag}
+  SET notes = E'{version_notes}',
+      date_fixing = '{version_date_fixing}'
+  WHERE version_tag = '{version_tag}'
     AND data_iteration = {data_iteration}
   ;
   ")
@@ -205,6 +211,7 @@ if (FALSE) {
 Any news?
 Now is the chance!
 :::
+
 
 
 
