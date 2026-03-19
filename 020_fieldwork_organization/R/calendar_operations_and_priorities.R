@@ -11,6 +11,7 @@ filter_max_year_and_preponable_activities_gw <- function(
   stopifnot("stringr" = require("stringr"))
   stopifnot("lubridate" = require("lubridate"))
   stopifnot("dplyr" = require("dplyr"))
+  stopifnot("magrittr" = require("magrittr"))
 
   # ensure gw activities are labeled
   if (!("has_gw" %in% names(.data))) {
