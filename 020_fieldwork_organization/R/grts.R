@@ -186,18 +186,20 @@ convert_level0_to_level3 <- function(
 #'
 rename_grts_address_final_to_grts_address <- function(.data, keep_original = FALSE) {
 
+  stopifnot("dplyr" = require("dplyr"))
+
   .data %>%
-    relocate(grts_address_final, .after = grts_address) %>%
+    dplyr::relocate(grts_address_final, .after = grts_address) %>%
     {
       if (keep_original) {
         # optionally rename the original grts address
-        . %>% rename(grts_address_original = grts_address)
+        dplyr::rename(., grts_address_original = grts_address)
       } else {
         # (otherwise, drop original)
-        . %>% select(-grts_address)
+        dplyr::select(., -grts_address)
       }
     } %>%
     # simply rename
-    rename(grts_address = grts_address_final) %>%
+    dplyr::rename(grts_address = grts_address_final) %>%
     return()
 }
