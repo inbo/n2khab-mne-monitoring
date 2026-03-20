@@ -147,7 +147,7 @@ stratum_schemepstargetpanel_spsamples <-
 # place using grts_address as the anchor, provided that the type still occurs in
 # the polygon. If not, the absence must be noted and sampling frame + sample are
 # to be updated.
-if(interactive()) {
+if (interactive()) {
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
     filter(grts_address != grts_address_final) %>%
     glimpse()
