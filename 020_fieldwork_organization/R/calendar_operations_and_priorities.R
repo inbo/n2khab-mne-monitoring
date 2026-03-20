@@ -144,8 +144,8 @@ prioritize_all_fieldwork <- function(.data) {
   .data %>%
     prioritize_gw_fieldwork() %>%
     prioritize_surf_fieldwork() %>%
-    prioritize_soil_fieldwork () %>%
-    prioritize_mhq_fieldwork () %>%
+    prioritize_soil_fieldwork() %>%
+    prioritize_mhq_fieldwork() %>%
     dplyr::mutate(
       priority = pmin(
         priority_gw,
