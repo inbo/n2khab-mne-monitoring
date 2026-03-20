@@ -1132,11 +1132,11 @@ different_checksums <-
 if (nrow(different_checksums) > 0) {
   warning(
     "Different checksums detected than expected.",
-    "\nPlease inspect the object `different_checksums`."
+    "\nPlease inspect the object `different_checksums, shown below`."
   )
+  different_checksums %>%
+    knitr::kable()
 } else {
   message("All loaded objects are identical to their reference :-)")
 }
 
-different_checksums %>%
-  knitr::kable()
