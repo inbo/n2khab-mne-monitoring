@@ -176,7 +176,7 @@ if (FALSE) {
 if (FALSE) {
   # ... ad hoc / testing: delete version again
   table_label <- "Versions"
-  data_iteration = 1
+  data_iteration = 2
   glue::glue("
   DELETE FROM {locevaldb$get_namestring(table_label)}
   WHERE version_tag = '{version_tag}'
@@ -238,7 +238,7 @@ activity_groupid_lookup <- locevaldb$query_columns(
 
 field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
   filter(is_loceval_activity, is_field_activity) %>%
-  distinct(activity_group, activity, fag_is_preponable)
+  distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 ```
 
@@ -248,7 +248,7 @@ field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
 Here, it would be time to
 
 ```
-    405_freeze_calendar.R
+Rscript 405_freeze_calendar.R
 ```
 
 
@@ -256,11 +256,12 @@ Here, it would be time to
 
 TODO: need to sideload future units from LocationAssessments
   
-```{r assemble-sample-units}
+```{r assemble-sample-units-old}
+#| eval: false
 
-sample_units <-
+sample_units_old <-
   fag_stratum_grts_calendar %>%
-  common_current_calenderfilters() %>%
+  filter_max_year_and_preponable_activities_gw(2026) %>%
   distinct(
     scheme_moco_ps,
     stratum,
@@ -303,7 +304,7 @@ sample_units <-
     unmatched = c("error", "drop")
   ) %>%
   select(-module_combo_code, -sp_poststratum) %>%
-  nest_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel() %>%
   # # add MHQ assessment metadata
   # inner_join(
   #   stratum_grts_n2khab_phabcorrected_no_replacements %>%
@@ -315,7 +316,7 @@ sample_units <-
   distinct() %>%
   # database-related additions 
   # convert_stratum_to_type() %>%
-  rename_grts_address_final_to_grts_address() %>%
+  rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
   rename(
     has_mhq_assessment = last_type_assessment_in_field,
     mhq_assessment_date = last_type_assessment 
@@ -337,6 +338,54 @@ sample_units <-
       as.character
     )
   ) 
+
+```
+
+```{r assemble-sample-units}
+# `date_start`, `date_end`, `field_activity_group`, and `rank`
+# names(sample_units_old)
+sample_unit_columns <- c(
+  "grts_address",
+  "grts_join_method",
+  "date_start",
+  "date_end",
+  # "is_current_occasion", ???
+  "stratum",
+  "is_forest",
+  "in_mhq_samples",
+  # "mhq_assessment_date", ???
+  # "has_mhq_assessment", ???
+  "domain_part",
+  "scheme_ps_targetpanels",
+  "previous_notes"
+)
+
+sample_units <- fag_stratum_grts_calendar_shortterm_attribs %>%
+  rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
+  # rename(
+  #   has_mhq_assessment = last_type_assessment_in_field,
+  #   has_mhq_assessment = last_type_assessment_in_field,
+  #   mhq_assessment_date = last_type_assessment 
+  # ) %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  mutate(
+    previous_notes = NA # FUTURE TODO
+  ) %>% 
+  distinct(!!!rlang::syms(sample_unit_columns)) %>% 
+  mutate(
+    across(c(
+        grts_join_method,
+        scheme_ps_targetpanels,
+        # sp_poststratum,
+        stratum,
+        domain_part,
+        previous_notes
+      ),
+      as.character
+    )
+  )
+
 
 # sample_units %>%
 #   filter(grts_address == 23238) %>%

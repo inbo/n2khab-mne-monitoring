@@ -10,6 +10,7 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 
+# NOTE: this freeze date was set upon REP update 0.15.0, March 2026
 freeze_date <- as.Date("2025-12-31")
 
 
@@ -113,7 +114,7 @@ query_frozen_tables <- function(db) {
 
 # I have been thinking and working too long towards this variable definition
 # to apply this in a loop...
-gw_freeze <- query_frozen_tables("gw") # *chuckle*
+gw_freeze <- query_frozen_tables("gw")
 gw_freeze %>%
   write.csv(file = file.path("sideload", glue::glue("freeze_gw.csv")))
 
