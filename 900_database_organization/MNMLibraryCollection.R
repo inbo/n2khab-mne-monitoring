@@ -110,6 +110,33 @@ load_rep_rdata <- function(data_basepath = file.path(".", "data"), reload = FALS
 
 reload_rep_code_snippets <- function(fresh_snippet_path = NULL, to_env = NULL) {
 
+  # libraries must be re-loaded
+  load_rep_common_libraries()
+
+  # must source the original code as well to avoid outdated/wrong functions
+  if (!exists("snippet_base_path")) {
+    snippet_base_path <- rprojroot::find_root(is_git_root)
+  }
+
+  grts_mh <- n2khab::read_GRTSmh()
+
+  grts_mh_index <- dplyr::tibble(
+      id = seq_len(terra::ncell(grts_mh)),
+      grts_address = values(grts_mh)[, 1]
+    ) %>%
+    dplyr::filter(!is.na(grts_address))
+
+  source_snippet_supplements <- function(file_name) {
+    source(file.path(snippet_base_path, "020_fieldwork_organization", "R", file_name))
+  }
+  source_snippet_supplements("misc.R")
+  source_snippet_supplements("repetitive_join_functions.R")
+  source_snippet_supplements("grts.R")
+  source_snippet_supplements("grts_mh.R")
+  source_snippet_supplements("location_attribute_processing.R")
+  source_snippet_supplements("calendar_operations_and_priorities.R")
+
+
   if (is.null(to_env)) {
     to_env = globalenv()
   }
@@ -117,9 +144,6 @@ reload_rep_code_snippets <- function(fresh_snippet_path = NULL, to_env = NULL) {
   if (is.null(fresh_snippet_path)) {
     fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
   }
-
-  # libraries must be re-loaded
-  load_rep_common_libraries()
 
   # load variables into environment
   load(fresh_snippet_path, envir = to_env)

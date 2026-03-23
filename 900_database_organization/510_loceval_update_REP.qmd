@@ -76,6 +76,11 @@ First, there is the `.RData` file, along with proccessing outcome of the code sn
 
 tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
+
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# TEMPORARY adjustment pointing to adjacent branch (wip)
+snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
 fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
 reload_rep_code_snippets(fresh_snippet_path)
 message(glue::glue("Good morning!
@@ -248,7 +253,26 @@ field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
 Here, it would be time to
 
 ```
-Rscript 405_freeze_calendar.R
+source("405_freeze_calendar.R")
+```
+
+
+```{r load-freeze}
+
+loceval_freeze <-
+  read.csv(file = file.path("sideload", glue::glue("freeze_loceval.csv"))) %>%
+  mutate(across(c(
+      date_start,
+      date_end,
+      mhq_assessment_date
+    ), as.Date)
+  ) %>% 
+  mutate(across(c(
+      previous_notes
+    ), as.character)
+  )
+
+# loceval_freeze %>% glimpse()
 ```
 
 
@@ -259,6 +283,8 @@ TODO: need to sideload future units from LocationAssessments
 ```{r assemble-sample-units-old}
 #| eval: false
 
+# this is exclusively about structure;
+# the data loaded is already from the new REP
 sample_units_old <-
   fag_stratum_grts_calendar %>%
   filter_max_year_and_preponable_activities_gw(2026) %>%
@@ -326,12 +352,14 @@ sample_units_old <-
   mutate(
     previous_notes = NA # FUTURE TODO
   ) %>%
+  rename(type = stratum) %>% 
   mutate(
-    across(c(
+    across(
+      c(
         grts_join_method,
         scheme_ps_targetpanels,
         # sp_poststratum,
-        stratum,
+        type,
         domain_part,
         previous_notes
       ),
@@ -339,65 +367,132 @@ sample_units_old <-
     )
   ) 
 
+distinct_old_units <- sample_units_old %>%
+  distinct(grts_address, type)
+
+# 202603:
+# was: 8,635 × 13
+#  "grts_address"           "grts_join_method"       "date_start_upcoming"
+#  "date_end_upcoming"      "is_current_occasion"    "type"
+#  "is_forest"              "in_mhq_samples"         "mhq_assessment_date"
+#  "has_mhq_assessment"     "domain_part"            "scheme_ps_targetpanels"
+#  "previous_notes"
+
+# new: 7,956 × 12
+#  "grts_address"           "grts_join_method"       "date_start"
+#  "date_end"               "type"                   "is_forest"
+#  "in_mhq_samples"         "mhq_assessment_date"    "has_mhq_assessment"
+#  "domain_part"            "scheme_ps_targetpanels" "previous_notes"
+
+# "freeze" 1459 items but will be duplicates
+
 ```
+
+
 
 ```{r assemble-sample-units}
 # `date_start`, `date_end`, `field_activity_group`, and `rank`
 # names(sample_units_old)
 sample_unit_columns <- c(
   "grts_address",
+  "type",
+  "schemes",
   "grts_join_method",
-  "date_start",
-  "date_end",
-  # "is_current_occasion", ???
-  "stratum",
+  # "is_current_occasion",
+  # "schemes_served_all",
   "is_forest",
   "in_mhq_samples",
-  # "mhq_assessment_date", ???
-  # "has_mhq_assessment", ???
+  "mhq_assessment_date", 
+  "has_mhq_assessment", 
   "domain_part",
   "scheme_ps_targetpanels",
   "previous_notes"
 )
 
-sample_units <- fag_stratum_grts_calendar_shortterm_attribs %>%
+sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
-  # rename(
-  #   has_mhq_assessment = last_type_assessment_in_field,
-  #   has_mhq_assessment = last_type_assessment_in_field,
-  #   mhq_assessment_date = last_type_assessment 
-  # ) %>%
+  rename(
+    has_mhq_assessment = last_type_assessment_in_field,
+    mhq_assessment_date = last_type_assessment,
+    schemes = schemes_served_all
+  ) %>%
   relocate(grts_address) %>%
   relocate(grts_join_method, .after = grts_address) %>%
   mutate(
     previous_notes = NA # FUTURE TODO
   ) %>% 
+  rename(type = stratum) %>% 
   distinct(!!!rlang::syms(sample_unit_columns)) %>% 
-  mutate(
-    across(c(
-        grts_join_method,
-        scheme_ps_targetpanels,
-        # sp_poststratum,
-        stratum,
-        domain_part,
-        previous_notes
-      ),
-      as.character
-    )
+  mutate(across(c(
+      grts_join_method,
+      scheme_ps_targetpanels,
+      schemes,
+      type,
+      domain_part,
+      previous_notes
+    ), as.character)
   )
 
 
-# sample_units %>%
+# sample_units_updated %>% glimpse()
+# sample_units_updated %>% distinct(grts_address, type) %>% nrow()
+
+# sample_units_updated %>%
 #   filter(grts_address == 23238) %>%
 #   t() %>% knitr::kable()
 
-# sample_units %>%
+# sample_units_updated %>%
 #   filter(grts_address == 22107438) %>%
 #   t() %>% knitr::kable()
-# 
-# sample_units %>%
+
+# sample_units_updated %>%
 #   filter(grts_address == 47764190) %>%
 #   t() %>% knitr::kable()
+
+```
+
+
+Re-establish SampleUnits from `the freeze`.
+
+::: {.callout-note}
+Sample units can 
+
+- appear (only pesent in `_updated`)
+- disappear (only pesent in `_retained`)
+- stay or change (pesent in *both*, before and after update).
+
+We UNION the updated and retained; for *changed* units the novel plan (`_updated`) is the reference.
+Association with old schemes is not relevant.
+
+:::
+
+
+```{r frozen-units}
+# loceval_freeze %>% names()
+
+sample_units_retained <- loceval_freeze %>%
+  distinct(!!!rlang::syms(sample_unit_columns)) %>%
+  anti_join(
+    sample_units_updated,
+    by = join_by(grts_address, type)
+  )
+
+sample_units_retained %>% 
+  glimpse()
+
+```
+
+
+Join updated and frozen sample locations:
+
+```{r combined_sample_units}
+
+sample_units <- bind_rows(
+  sample_units_retained,
+  sample_units_updated
+)
+
+# sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
 
 ```
 
@@ -406,7 +501,7 @@ sample_units <- fag_stratum_grts_calendar_shortterm_attribs %>%
 
 ```{r assemble-locations}
 
-locations <- bind_rows(
+locations_grts_collection <- bind_rows(
     locevaldb$query_columns("Locations", c("grts_address")),
     sample_units %>% select(grts_address),
     locevaldb$query_columns("LocationInfos", c("grts_address")),
@@ -419,9 +514,22 @@ locations <- bind_rows(
       rename(grts_address = grts_address_replacement)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
-  distinct() %>%
-  # count(grts_address) %>%
-  # arrange(desc(n))
+  distinct() 
+
+# locations_grts_collection %>% 
+#   count(grts_address) %>%
+#   arrange(desc(n))
+
+# join geometry column
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+locations <- locations_grts_collection %>% 
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -481,7 +589,7 @@ stitch_table_connection(
 
 ## Sample Locations
 
-```{r porcess-sample-locations}
+```{r porcess-sample-units}
 
 if ("location_id" %in% names(sample_units)) {
   # should not be the case in a continuous script;
@@ -502,8 +610,7 @@ sample_units <- sample_units %>%
 #   t() %>% knitr::kable()
 
 table_label <- "SampleUnits"
-data_nouveau <- sample_units %>%
-  rename(type = stratum)
+data_nouveau <- sample_units
 characteristic_columns <- c("grts_address", "type") # , "location_id"
 index_column <- locevaldb$get_primary_key(table_label)
 # locevaldb$query_columns(table_label, characteristic_columns)
@@ -522,19 +629,23 @@ print_category_count(distribution, table_label)
 # distribution$to_archive
 # distribution$to_upload
 # data_nouveau %>% filter(grts_address == 48043282)
-distribution$to_archive %>%
-  select(grts_address, type) %>% 
-  arrange(grts_address) %>% knitr::kable()
-distribution$reactivate %>%
-  select(grts_address, type) %>% 
-  arrange(grts_address) %>% knitr::kable()
+# distribution$to_archive %>%
+#   select(grts_address, type) %>% 
+#   arrange(grts_address) %>% knitr::kable()
+# distribution$reactivate %>%
+#   select(grts_address, type) %>% 
+#   arrange(grts_address) %>% knitr::kable()
 ```
 
 ```{r detective-work}
 #| eval: false
 
 fag_stratum_grts_calendar %>%
-  rename(type = stratum, grts_address_original = grts_address, grts_address = grts_address_final) %>% 
+  rename(
+    type = stratum,
+    grts_address_original = grts_address,
+    grts_address = grts_address_final
+  ) %>% 
   semi_join(
     distribution$to_archive,
     by = join_by(grts_address, type)

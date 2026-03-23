@@ -40,4 +40,3 @@ save.image(file = fresh_snippet_path)
 # reload_rep_code_snippets(fresh_snippet_path)
 # verify_rep_objects()
 
-# TODO checksums again fail with a `! NULL value passed as symbol address`

@@ -110,7 +110,7 @@ stratum_schemepstargetpanel_spsamples <-
 # place using grts_address as the anchor, provided that the type still occurs in
 # the polygon. If not, the absence must be noted and sampling frame + sample are
 # to be updated.
-if(interactive()) {
+if (interactive()) {
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
     filter(grts_address != grts_address_final) %>%
     glimpse()
@@ -139,7 +139,6 @@ vbi_overlaps %>%
 vbi_overlaps_sf <-
   vbi_overlaps %>%
   st_as_sf(coords = c("x", "y"), crs = 31370)
-
 
 
 
@@ -209,6 +208,7 @@ stratum_schemepstargetpanel_spsamples %>%
   nrow() %>%
   all.equal(global(units_cell_rast, "notNA")[1, 1])
 
+
 # representing this limited number of cells as polygons: useful for plotting etc
 units_cell_polygon <-
   units_cell_rast %>%
@@ -219,6 +219,7 @@ units_cell_polygon <-
   # it appears that the CRS is actually retrieved from the tibble, but I don't
   # understand how (so the crs argument below isn't needed)
   st_as_sf(crs = "EPSG:31370")
+
 
 # adding the sampling unit attributes to these polygons, arranged as in
 # stratum_schemepstargetpanel_spsamples. Note that this duplicates cells with
@@ -234,6 +235,7 @@ units_cell_polygon_stratum_attribs <-
   relocate(geometry, .after = last_col()) %>%
   arrange(pick(stratum:grts_address))
 
+
 # merging strata as well for visualization (where we want each row to represent
 # another location):
 schemepstargetpanel_spsamples_terr <-
@@ -242,13 +244,13 @@ schemepstargetpanel_spsamples_terr <-
   concatenate_stratum_scheme_ps_targetpanels() %>%
   distinct(stratum_scheme_ps_targetpanels, grts_address, grts_address_final)
 
+
 units_cell_polygon_attrib <-
   units_cell_polygon %>%
   i12me_join(schemepstargetpanel_spsamples_terr, join_by(grts_address_final)) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(stratum_scheme_ps_targetpanels, grts_address)
-
 
 
 
@@ -300,6 +302,7 @@ stratum_schemepstargetpanel_spsamples_terr_polygons <-
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed,
     join_by(stratum, grts_address)
   )
+
 
 # I.1. Solving the problem of missing polygons
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
