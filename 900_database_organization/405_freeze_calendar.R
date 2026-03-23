@@ -84,10 +84,12 @@ units_table  <- c(
   "eva" = "SampleUnits"
 )
 
-remove_plural_s <- \(txt) substr(txt, 1, nchar(txt)-1)
+remove_plural_s <- \(txt) substr(txt, 1, nchar(txt) - 1)
 
 # update key links
 source("102_re_link_foreign_keys.R")
+
+TODO update `is_frozen` via SQL query with glue(date)
 
 #' query all relevant info of fixed calendar periods from a given MNM database
 query_frozen_tables <- function(db) {
@@ -126,7 +128,7 @@ query_frozen_tables <- function(db) {
     ) %>%
     return()
 
-}
+} # /query_frozen_tables
 
 
 # I have been thinking and working too long towards this variable definition

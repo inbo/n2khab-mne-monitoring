@@ -811,11 +811,15 @@ WHERE grts_address = 4344585
 ```
 
 
-```{r assemble-field-activity-calendar}
+Starting at `fieldwork_shortterm_prioritization_by_stratum`, which is already filtered and prioritized.
 
-fieldwork_calendar <-
+
+```{r assemble-field-activity-calendar}
+#| eval: false
+
+fieldwork_calendar_old <-
   fieldwork_shortterm_prioritization_by_stratum %>%
-  common_current_calenderfilters() %>% # should be filtered already!
+  # filter_max_year_and_preponable_activities_gw() %>% 
   rename_grts_address_final_to_grts_address() %>%
   relocate(grts_address) %>%
   rename(type = stratum) %>%
@@ -856,27 +860,113 @@ fieldwork_calendar <-
     done_planning = FALSE
   ) 
 
-fieldwork_calendar %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
+# fieldwork_calendar_old %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
+```
 
-fieldwork_calendar_new <- fieldwork_calendar %>%
-  select(
-    -grts_join_method,
-    -scheme_ps_targetpanels,
-    -domain_part,
-    -is_forest,
-    -in_mhq_samples,
-    -last_type_assessment_in_field
-  )
+
+```{r assemble-fieldwork-calendar}
+
+fieldwork_calendar_columns <- c(
+  "grts_address",
+  "type",
+  "sampleunit_id",
+  "activity_group_id",
+  "activity_rank",
+  "date_start",
+  "date_end",
+  "date_interval",
+  "priority",
+  "wait_any",
+  "wait_watersurface",
+  "wait_3260",
+  "wait_7220",
+  "wait_floating",
+  "is_frozen"
+)
+
 
 fieldcalendar_characols <- c(
-    "grts_address",
-    "type", 
-    "activity_group_id",
-    "date_start"
-  )
+  "grts_address",
+  "type", 
+  "activity_group_id",
+  "date_start"
+)
 
-# "sampleunit_id",
-# "sspstapa_id",
+
+
+fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
+  rename_grts_address_final_to_grts_address() %>%
+  rename(type = stratum) %>%
+  inner_join(
+    sampleunits_lookup,
+    by = join_by(grts_address, type),
+    relationship = "many-to-one"
+  ) %>%
+  relocate(grts_address, type, sampleunit_id) %>%
+  rename(
+    activity_rank = rank,
+    activity_group = field_activity_group
+  ) %>%
+  semi_join(field_activities_db, by = join_by(activity_group)) %>%
+  left_join(
+    activity_groupid_lookup,
+    by = join_by(activity_group),
+    relationship = "many-to-one"
+  ) %>%
+  select(-activity_group) %>%
+  mutate(
+    across(c(
+        type,
+        grts_join_method,
+        date_interval,
+        domain_part,
+        date_interval
+      ),
+      as.character
+    )
+  ) %>%
+  mutate(is_frozen = FALSE) %>% 
+  select(!!!rlang::syms(fieldwork_calendar_columns))
+
+# fieldwork_calendar_updated %>% glimpse()
+  
+#  # rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% 
+#  mutate(
+#    log_user = "maintenance",
+#    log_update = as.POSIXct(Sys.time()),
+#    excluded = FALSE,
+#    no_visit_planned = FALSE,
+#    done_planning = FALSE
+#  ) 
+
+```
+
+
+Normally, all calendar entries from the `freeze` have already be removed, so the `anti_join` is a no-op.
+
+```{r assemble-fieldwork-calendar-freeze}
+
+fieldwork_calendar_retained <- loceval_freeze %>%
+  select(!!!rlang::syms(fieldwork_calendar_columns)) %>% 
+  anti_join(
+    fieldwork_calendar_updated,
+    by = join_by(!!!rlang::syms(fieldcalendar_characols))
+  ) %>%
+  select(-is_frozen) %>%
+  mutate(is_frozen = TRUE)
+
+# fieldwork_calendar_retained %>% glimpse()
+
+```
+
+
+
+```{r union-fieldwork-calendar}
+
+fieldwork_calendar_new <- bind_rows(
+    fieldwork_calendar_retained,
+    fieldwork_calendar_updated
+  )
 
 ```
 
@@ -895,6 +985,20 @@ stitch_table_connection(
 ```
 
 
+Link dates of current calendar table to new calendar
+
+```{r link-dates}
+
+startdate_updates_happened <- associate_and_shift_start_dates(
+  mnmdb = locevaldb,
+  table_label = "FieldActivityCalendar",
+  data_future = fieldwork_calendar_new,
+  characteristic_columns = fieldcalendar_characols,
+  other_table_labels = c("Visits")
+) 
+
+```
+
 
 ```{r categorize-fieldworkcalendar}
 
@@ -904,15 +1008,6 @@ characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
 # data_nouveau %>% head(3) %>% t() %>% knitr::kable()
 # data_nouveau %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
-
-
-startdate_updates_happened <- associate_and_shift_start_dates(
-  mnmdb = locevaldb,
-  table_label = table_label,
-  data_future = data_nouveau,
-  characteristic_columns = characteristic_columns,
-  other_table_labels = c("Visits")
-) 
 
 
 distribution <- categorize_data_update(

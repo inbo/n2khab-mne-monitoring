@@ -934,13 +934,27 @@ associate_and_shift_start_dates <- function(
   # load previous data
   data_previous <- mnmdb$query_table(table_label, ONLY = TRUE)
 
+  # remove frozen calendar entries
+  if ("is_frozen" %in% names(data_previous)) {
+    data_previous <- data_previous %>%
+      filter(
+        !is_frozen
+      )
+  }
+  if ("is_frozen" %in% names(data_previous)) {
+    data_future <- data_future %>%
+      filter(
+        !is_frozen
+      )
+  }
 
   ## find the link
   data_previous_linked <- link_dates(
     data_pre = data_previous %>% select(!!!characteristic_columns),
     data_post = data_future %>% select(!!!characteristic_columns),
     characteristic_columns = characteristic_columns,
-    date_column = "date_start"
+    date_column = "date_start",
+    # date_threshold = freeze_date # TODO
   )
   # check_grts <- 9262
   # data_pre  %>%  filter(grts_address == check_grts)
