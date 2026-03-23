@@ -79,6 +79,12 @@ visit_table  <- c(
   "eva" = "Visits"
 )
 
+units_table  <- c(
+  "gw" = "SampleLocations",
+  "eva" = "SampleUnits"
+)
+
+remove_plural_s <- \(txt) substr(txt, 1, nchar(txt)-1)
 
 # update key links
 source("102_re_link_foreign_keys.R")
@@ -88,11 +94,16 @@ query_frozen_tables <- function(db) {
 
   calendar <- connections[[db]]$query_table(calendar_table[[db]])
   cal_pk <- glue::glue("{tolower(calendar_table[[db]])}_id")
+  unit_pk <- glue::glue("{remove_plural_s(tolower(units_table[[db]]))}_id")
+
   visits <- connections[[db]]$query_table(visit_table[[db]])
+
   activity_groups <- connections[[db]]$query_columns(
     "GroupedActivities",
     c("activity_group_id", "activity_group")
   ) %>% distinct()
+
+  sampleunits <- connections[[db]]$query_table(units_table[[db]])
 
   calendar %>%
     filter(date_start <= freeze_date) %>%
@@ -102,10 +113,16 @@ query_frozen_tables <- function(db) {
       relationship = "many-to-one"
     ) %>%
     left_join(
+      sampleunits,
+      by = join_by(!!!rlang::syms(unit_pk)),
+      relationship = "many-to-one",
+      suffix = c("", "_UNITS")
+    ) %>%
+    left_join(
       visits,
       by = join_by(!!!rlang::syms(cal_pk)),
       relationship = "one-to-one",
-      suffix = c("", "_visits")
+      suffix = c("", "_VISITS")
     ) %>%
     return()
 
