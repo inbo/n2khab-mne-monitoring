@@ -195,14 +195,15 @@ join_location_attributes_via_moco <- function(.data) {
           module_combo_code,
           panel_set,
           stratum,
+          domain_part,
           grts_join_method,
           grts_address,
           grts_address_final,
           # retaining 3 cols that drive subsampling location(s) in the unit:
           is_forest,
           in_mhq_samples,
+          last_type_assessment,
           last_type_assessment_in_field,
-          domain_part,
           targetpanel
         ) %>%
         # deduplicating 7220:
