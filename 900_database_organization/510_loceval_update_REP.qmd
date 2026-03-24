@@ -15,24 +15,29 @@ knitr:
 # Changelog
 
 - 20250924 init
-- 20260309 refresher (incl. Replacements)
-- 20260319 REP update - major overhaul
+- 20260309 refresher (incl. `Replacements` / `ReplacementArchives`)
+- 20260319 REP update - major overhaul:
+  - auxiliary FAGs
+  - data fixing / freeze
 
 
 # TODO
 
 
-- drop past activities `filter(year(date_start) >= main_year)` ~~main_year~~ `freeze_until_year`
-- `is_current_occasion`
+- [x] freeze past activities `filter(year(date_start) >= main_year)` ~~main_year~~ `is_frozen` + `date_fixing`
+- [ ] `is_current_occasion`
 - `cal_0.14.0_continuation` 
-- `schemes_served_all` vs. previous `scheme_ps_targetpanel`
-- "auxiliary" FAGs
+- [x] `schemes_served_all` vs. previous `scheme_ps_targetpanel` -> now integrated in `schemes`, causes changes
+- [x] "auxiliary" FAGs
   + via `fag_is_auxiliary = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT|LEVREADDIVER" )`
   + and `fag_is_preponable = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT" )`
 
-- `is_gw_activity` / `is_loceval_activity`
-- `091_push_loceval_to_mnmgwdb.py` only on 070
+- [x] `is_gw_activity` / `is_loceval_activity` -> now generally found in both databases
 
+
+# Preparations
+
+## sync staging mirror
   
 ```{sh sync-staging}
 #| eval: false
@@ -93,8 +98,24 @@ if (nrow(different_checksums) > 0) {
   knitr::kable(different_checksums)
 }
 
+```
+
+```{r check-surf-activities}
+#| eval: false
+
+check_schemeps <- fag_grts_calendar_shortterm_attribs %>%
+  count(stratum_scheme_ps_targetpanels) %>%
+  arrange(desc(stratum_scheme_ps_targetpanels)) %>%
+  pull(stratum_scheme_ps_targetpanels)
+check_schemeps <- gsub(".*\\[", "[", check_schemeps)
+check_schemeps <- gsub("\\[", "", check_schemeps)
+check_schemeps <- gsub("\\]", "", check_schemeps)
+
+check_schemeps %>% str_split("\\|") %>% unlist() %>% str_trim() %>% unique() %>% sort()
 
 ```
+*(there are soil events in here)*
+
 
 ## database connection
 
@@ -103,7 +124,7 @@ if (nrow(different_checksums) > 0) {
 database <- "loceval"
 config_filepath <- file.path("./mnm_database_connection.conf")
 suffix <- ""
-suffix <- "-staging"
+# suffix <- "-staging"
 
 
 # connect loceval
@@ -159,6 +180,8 @@ if (FALSE) {
   # version_tag <- "≤v0.11.0_poc0.13.1"
   # version_tag <- "v0.12.0_poc0.14.0"
   # version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
+  # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
+
   version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
   version_notes <- "REP update 0.15.0 (GRTS reset)"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
@@ -252,9 +275,14 @@ field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
 
 Here, it would be time to
 
-```R
+```{r generate_freeze_calendar}
 #| eval: false
-out <- processx::run("Rscript", "405_freeze_calendar.R", spinner = TRUE, echo = TRUE)
+out <- processx::run(
+  "Rscript",
+  c("405_freeze_calendar.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+  )
 # message(out$stderr)
 
 ```
@@ -263,7 +291,7 @@ out <- processx::run("Rscript", "405_freeze_calendar.R", spinner = TRUE, echo = 
 ```{r load-freeze}
 
 loceval_freeze <-
-  read.csv(file = file.path("sideload", glue::glue("freeze_loceval.csv"))) %>%
+  read.csv(file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv"))) %>%
   mutate(across(c(
       date_start,
       date_end,
@@ -395,7 +423,7 @@ distinct_old_units <- sample_units_old %>%
 
 ```{r assemble-sample-units}
 # `date_start`, `date_end`, `field_activity_group`, and `rank`
-# names(sample_units_old)
+
 sample_unit_columns <- c(
   "grts_address",
   "type",
@@ -655,7 +683,6 @@ fag_stratum_grts_calendar %>%
     by = join_by(grts_address, type)
   )
 
-
 distribution$changed %>% knitr::kable()
 ```
 
@@ -864,7 +891,7 @@ fieldwork_calendar_old <-
     done_planning = FALSE
   ) 
 
-# fieldwork_calendar_old %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
+# fieldwork_calendar_old %>% filter(grts_address == 23238) %>% t() %>% knitr::kable()
 ```
 
 
@@ -948,18 +975,33 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
 
 Normally, all calendar entries from the `freeze` have already be removed, so the `anti_join` is a no-op.
 
+
 ```{r assemble-fieldwork-calendar-freeze}
 
 fieldwork_calendar_retained <- loceval_freeze %>%
-  select(!!!rlang::syms(fieldwork_calendar_columns)) %>% 
+  select(!!!rlang::syms(c(fieldwork_calendar_columns, "done_planning"))) %>% 
   anti_join(
     fieldwork_calendar_updated,
     by = join_by(!!!rlang::syms(fieldcalendar_characols))
   ) %>%
   select(-is_frozen) %>%
-  mutate(is_frozen = TRUE)
+  mutate(is_frozen = TRUE) %>%
+  left_join(
+    field_activities_db %>%
+      distinct(activity_group) %>% 
+      left_join(activity_groupid_lookup, by = join_by(activity_group)) %>%
+      select(activity_group_id) %>%
+      mutate(is_loceval_activity = TRUE),
+    by = join_by(activity_group_id)
+  ) %>% 
+  filter(done_planning | is_loceval_activity) %>%
+  select(-done_planning, -is_loceval_activity)
+  
+
+
 
 # fieldwork_calendar_retained %>% glimpse()
+# loceval_freeze %>% count(activity_group_id, done_planning, visit_done)
 
 ```
 
@@ -1000,6 +1042,8 @@ startdate_updates_happened <- associate_and_shift_start_dates(
   characteristic_columns = fieldcalendar_characols,
   other_table_labels = c("Visits")
 ) 
+
+if (startdate_updates_happened) message("Startdate updates happened!")
 
 ```
 
@@ -1219,6 +1263,10 @@ visits_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
+```
+
+```{r post-update-check-visits}
+
 locevaldb$query_table("Visits") %>% 
   count(is.na(fieldactivitycalendar_id)) %>%
   knitr::kable()
@@ -1317,9 +1365,12 @@ locationinfo_lookup <- update_cascade_lookup(
   tabula_rasa = FALSE,
   verbose = TRUE
 )
+```
 
-if (FALSE) {
-'
+
+```{sql post-visit-update-checks}
+--| eval: false
+
 SELECT * FROM (
 SELECT DISTINCT
   grts_address, 
@@ -1339,9 +1390,6 @@ WHERE locationinfo_id IN (
   FROM "outbound"."LocationInfos"
   WHERE grts_address = 871030
 );
-
-'
-}
 
 ```
 
@@ -1473,6 +1521,7 @@ replacements_sideload <- load_table_sideload_content(
   data_filepath = "sideload/loceval_replacements.csv",
   reload_previous = FALSE
 )
+
 ```
 
 
@@ -1578,9 +1627,9 @@ replacements_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
-# 'if it fails: DELETE FROM "outbound"."Replacements";'
-
 ```
+
+if it fails: `DELETE FROM "outbound"."Replacements";`
 
 
 ## connect

@@ -28,7 +28,7 @@ if (length(commandline_args) > 0) {
   # suffix <- "-staging" # "-testing"
 }
 # suffix <- "-staging"
-suffix <- "-staging"
+# suffix <- "-staging"
 
 # connect loceval
 locevaldb_mirror <- glue::glue("loceval{suffix}")
@@ -101,7 +101,7 @@ out <- processx::run(
 #### update calendar flag
 #///////////////////////////////////////////////////////////////////////////////
 
-# db <- "gw"
+# db <- "eva"
 update_calendar_freeze_attribute <- function(db) {
 
   caltab <- calendar_table[[db]]
@@ -134,9 +134,13 @@ update_calendar_freeze_attribute <- function(db) {
   # FROM "outbound"."FieldworkCalendar"
   # GROUP BY is_frozen, date_start;
 
-  # SELECT DISTINCT date_start, is_frozen, count(*) AS N
+  # SELECT DISTINCT
+  #   date_start, is_frozen, count(*) AS N
   # FROM "outbound"."FieldActivityCalendar"
-  # GROUP BY is_frozen, date_start;
+  # WHERE archive_version_id IS NULL
+  # GROUP BY date_start, is_frozen
+  # ORDER BY date_start ASC
+  # ;
 
 } # /update_calendar_freeze_attribute
 
@@ -151,15 +155,27 @@ update_calendar_freeze_attribute("eva")
 #' query all relevant info of fixed calendar periods from a given MNM database
 query_frozen_tables <- function(db) {
 
+  # prepare calendar
   calendar <- connections[[db]]$query_table(calendar_table[[db]])
   cal_pk <- glue::glue("{tolower(calendar_table[[db]])}_id")
   unit_pk <- glue::glue("{remove_plural_s(tolower(units_table[[db]]))}_id")
 
+  # calendar %>%
+  #   filter(is.na(archive_version_id)) %>%
+  #   count(activity_group_id)
+
+  # query visits (1:1 to visits)
   visits <- connections[[db]]$query_table(visit_table[[db]])
 
+  # activity groups
   activity_groups <- connections[[db]]$query_columns(
     "GroupedActivities",
-    c("activity_group_id", "activity_group")
+    c(
+      "activity_group_id",
+      "activity_group",
+      "is_gw_activity",
+      "is_loceval_activity"
+    )
   ) %>% distinct()
 
   sampleunits <- connections[[db]]$query_table(units_table[[db]])
@@ -192,9 +208,9 @@ query_frozen_tables <- function(db) {
 # to apply this in a loop...
 gw_freeze <- query_frozen_tables("gw")
 gw_freeze %>%
-  write.csv(file = file.path("sideload", glue::glue("freeze_gw.csv")))
+  write.csv(file = file.path("sideload", glue::glue("freeze_mnmgwdb{suffix}.csv")))
 
 # also for loceval
 loceval_freeze <- query_frozen_tables("eva") # let it go!
 loceval_freeze %>%
-  write.csv(file = file.path("sideload", glue::glue("freeze_loceval.csv")))
+  write.csv(file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv")))

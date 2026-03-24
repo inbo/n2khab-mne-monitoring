@@ -1420,7 +1420,7 @@ terminate_keyring <- function(keyring_label = "mnmdb_postgis") {
 
 
 # lock the keyring after a delay
-lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 300) {
+lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 1800) {
 
   stopifnot("glue" =    requireNamespace("glue", quietly = TRUE))
   stopifnot("keyring" = requireNamespace("keyring", quietly = TRUE))

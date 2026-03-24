@@ -50,6 +50,7 @@ SELECT
   FAC.no_visit_planned,
   FAC.notes,
   FAC.done_planning,
+  FAC.is_frozen,
   UNIT.grts_join_method,
   UNIT.schemes,
   UNIT.scheme_ps_targetpanels,
@@ -89,6 +90,7 @@ LEFT JOIN (
 WHERE TRUE
   AND (UNIT.archive_version_id IS NULL)
   AND (FAC.archive_version_id IS NULL)
+  AND (done_planning OR (NOT FAC.is_frozen))
 ORDER BY
   FAC.date_end,
   FAC.priority,

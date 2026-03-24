@@ -22,7 +22,7 @@ snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
 snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
 
 # run code snippets
-source("401_snippet_selection.R")
+source("401_snippet_selection.R") # note: this one MUST be sourced
 # invisible(capture.output(source("401_snippet_selection.R")))
 
 verify_rep_objects()

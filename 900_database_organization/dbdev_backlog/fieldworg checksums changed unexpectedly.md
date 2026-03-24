@@ -3,12 +3,27 @@ aliases:
 tags:
   - checksums
   - snippets
-started: 2026-03-23
-finished:
-execution: FM
-status: false
+started: 2026-03-20
+finished: 2026-03-24
+execution:
+  - FM
+  - FV
+status: true
 ---
 
+[[tags/checksums]] suddenly changed
+reason turned out to be an R package update
+
+Solved by #FV after some research:
+- previous version of #snippets restored
+- downgraded R, then downgraded R package versions (`renv`!)
+- then compared old and new data via loading in different env's
+
+Adjusted checksum file PR'd to `main` for easy merge.
+
+
+---
+*initial observation #FM:*
 I do not remember what exactly started it
 
 was in the process of fixing an issue with  `reload_rep_code_snippets` in `MNMLibraryCollection.R`
@@ -47,4 +62,5 @@ recalculating `403_precalculate_fresh_snippets.R` then suddenly gave checksum er
 
 Further notes:
 - There was an R update in the morning
+- remarkably, all checksums changed at once
 - Should I store previous versions of `fresh_snippet_workspace.RData` for safety?

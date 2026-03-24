@@ -51,7 +51,7 @@ LEFT JOIN (
   WHERE activity_group_id IN (
       SELECT DISTINCT activity_group_id
       FROM "metadata"."GroupedActivities"
-      WHERE activity_group = 'LOCEVALTERR'
+      WHERE is_loceval_activity
     )
   ) AS VISIT
   ON REPU.sampleunit_id = VISIT.sampleunit_id

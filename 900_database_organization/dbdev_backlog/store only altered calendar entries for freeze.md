@@ -7,7 +7,7 @@ tags:
 started:
 finished:
 execution:
-  - "#FM"
+  - FM
 status: false
 ---
 

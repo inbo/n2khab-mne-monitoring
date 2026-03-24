@@ -458,3 +458,36 @@ archives %>%
 
 ```
 
+
+
+# further checks
+
+count loceval's by start date
+
+```sql
+--| eval: false
+
+SELECT DISTINCT
+  date_start, is_frozen, count(*) AS N
+FROM "outbound"."FieldActivityCalendar"
+WHERE archive_version_id IS NULL
+GROUP BY date_start, is_frozen
+ORDER BY date_start ASC
+;
+
+```
+
+check correct activity groups
+
+```sql
+--| eval: false
+
+SELECT DISTINCT
+  activity_group_id, done_planning, count(*) AS N
+FROM "outbound"."FieldActivityCalendar"
+WHERE archive_version_id IS NULL
+GROUP BY activity_group_id, done_planning
+ORDER BY activity_group_id ASC
+;
+
+```
