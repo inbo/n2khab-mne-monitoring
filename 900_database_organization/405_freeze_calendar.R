@@ -35,9 +35,7 @@ locevaldb_mirror <- glue::glue("loceval{suffix}")
 
 locevaldb <- connect_mnm_database(
   config_filepath,
-  database_mirror = locevaldb_mirror,
-  user = "monkey",
-  password = NA
+  database_mirror = locevaldb_mirror
 )
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 
@@ -49,9 +47,7 @@ mnmgwdb_mirror <- glue::glue("mnmgwdb{suffix}")
 
 mnmgwdb <- connect_mnm_database(
   config_filepath,
-  database_mirror = mnmgwdb_mirror,
-  user = "monkey",
-  password = NA
+  database_mirror = mnmgwdb_mirror
 )
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 
@@ -59,7 +55,7 @@ message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-#### export relevant data
+#### table and field catalogus
 #///////////////////////////////////////////////////////////////////////////////
 
 connections <- list(
@@ -89,7 +85,57 @@ remove_plural_s <- \(txt) substr(txt, 1, nchar(txt) - 1)
 # update key links
 source("102_re_link_foreign_keys.R")
 
-TODO update `is_frozen` via SQL query with glue(date)
+
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### update calendar flag
+#///////////////////////////////////////////////////////////////////////////////
+
+# db <- "gw"
+update_calendar_freeze_attribute <- function(db) {
+
+  caltab <- calendar_table[[db]]
+  caltab_namestring <- connections[[db]]$get_namestring(caltab)
+  freeze_date_str <- strftime(freeze_date, format = "%Y-%m-%d")
+
+
+  # check_command <- glue::glue("
+  #   SELECT * FROM {caltab_namestring}
+  #   WHERE date_start <= '{freeze_date_str}'
+  #     AND done_planning
+  #   ORDER BY date_start DESC
+  #   ;
+  # ")
+  # print(check_command)
+
+  # stitch the update command
+  freezing_command <- glue::glue("
+    UPDATE {caltab_namestring}
+      SET is_frozen = TRUE
+    WHERE date_start <= '{freeze_date_str}'
+    ;
+  ")
+
+  # execute update command
+  connections[[db]]$execute_sql(freezing_command)
+
+
+  # SELECT DISTINCT date_start, is_frozen, count(*) AS N
+  # FROM "outbound"."FieldworkCalendar"
+  # GROUP BY is_frozen, date_start;
+
+  # SELECT DISTINCT date_start, is_frozen, count(*) AS N
+  # FROM "outbound"."FieldActivityCalendar"
+  # GROUP BY is_frozen, date_start;
+
+} # /update_calendar_freeze_attribute
+
+update_calendar_freeze_attribute("gw")
+update_calendar_freeze_attribute("eva")
+
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### export relevant data
+#///////////////////////////////////////////////////////////////////////////////
+
 
 #' query all relevant info of fixed calendar periods from a given MNM database
 query_frozen_tables <- function(db) {
