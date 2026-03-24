@@ -252,8 +252,11 @@ field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
 
 Here, it would be time to
 
-```
-source("405_freeze_calendar.R")
+```R
+#| eval: false
+out <- processx::run("Rscript", "405_freeze_calendar.R", spinner = TRUE, echo = TRUE)
+# message(out$stderr)
+
 ```
 
 
@@ -587,7 +590,7 @@ stitch_table_connection(
 
 ```
 
-## Sample Locations
+## Sample Units
 
 ```{r porcess-sample-units}
 
@@ -635,6 +638,7 @@ print_category_count(distribution, table_label)
 # distribution$reactivate %>%
 #   select(grts_address, type) %>% 
 #   arrange(grts_address) %>% knitr::kable()
+# distribution$changed %>% filter(grts_address == 23238)
 ```
 
 ```{r detective-work}
@@ -1046,8 +1050,9 @@ distribution$to_upload <- distribution$to_upload %>%
     log_update = as.POSIXct(Sys.time()),
     excluded = FALSE,
     no_visit_planned = FALSE,
-    done_planning = FALSE
-  ) 
+    done_planning = FALSE,
+    is_frozen = FALSE
+  )
 
 
 fieldworkcalendar_lookup <- redistribute_calendar_data(
@@ -1478,7 +1483,7 @@ Two original sources:
 
 ```{r new-replacements}
 
-replacements_rvp <- 
+replacements_rep <- 
   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   select(stratum, grts_address, replacement_cells) %>%
   unnest(replacement_cells) %>%
@@ -1497,7 +1502,7 @@ replacements_rvp <-
     
     
 replacements <- bind_rows(
-    replacements_rvp,
+    replacements_rep,
     replacements_sideload 
   ) %>% 
   inner_join(
@@ -1507,6 +1512,7 @@ replacements <- bind_rows(
     relationship = "many-to-many", # TODO
     unmatched = "drop"
   )
+
 ```
 
 
@@ -1780,7 +1786,13 @@ if (isFALSE(grepl("-staging", locevaldb_mirror))) {
 
 
 ```{r launch-consistency-dashboard}
-system("quarto render 045_loceval_consistency_dashboard.qmd --to html")
+out <- processx::run(
+  "quarto",
+  c("render", "045_loceval_consistency_dashboard.qmd", "--to", "html"),
+  echo = TRUE,
+  spinner = TRUE
+)
+
 ```
 
 
