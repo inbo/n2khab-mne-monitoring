@@ -597,6 +597,13 @@ connect_mnm_database <- function(
     db <- mnmdb_versions_and_archiving(db)
   }
 
+  db$wake_keyring <- function(keyring = NA) {
+    if (is.na(keyring)) {
+      keyring <- "mnmdb_temp"
+    }
+    if (keyring::keyring_is_locked(keyring)) unlock_keyring(keyring_label = keyring)
+  }
+
   return(db)
 } # /connect_mnm_database
 

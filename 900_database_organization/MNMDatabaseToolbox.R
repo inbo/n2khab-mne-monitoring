@@ -563,6 +563,23 @@ upload_data_and_update_dependencies <- function(
     FUN = function(deptab) mnmdb$lookup_dependent_columns(table_label, deptab)
   ) %>% setNames(dependent_tables)
 
+  ### `Production` Protection Prompt
+  # locevaldb$shellstring
+  # mnmdb <- locevaldb
+  if (
+    (mnmdb$mirror_short == "") ||
+    (mnmdb$database %in% c("loceval", "mnmgwdb"))
+    ) {
+    prompt <- glue::glue("
+      You are working on *{mnmdb$connection_profile}*.
+      Are you sure you want to update *{table_label}*?
+    ")
+
+    # ask user for confirmation
+    check <-  askYesNo(prompt, default = FALSE)
+    if (is.scalar.na(check) || isFALSE(check)) return(invisible(NULL))
+
+  }
 
   ### (7) DELETE existing data -> DANGEROUS territory!
   mnmdb$execute_sql(
@@ -682,13 +699,22 @@ upload_data_and_update_dependencies <- function(
   # message(mnmdb$shellstring)
   # message(mnmdb$mirror_short)
 
+  # update key links by running script in the background
   if (mnmdb$mirror_short == "") {
-    source(glue::glue('102_re_link_foreign_keys.R'))
+    out <- processx::run(
+      "Rscript",
+      "102_re_link_foreign_keys.R",
+      spinner = TRUE
+    )
   } else {
-    system(glue::glue(
-      "Rscript 102_re_link_foreign_keys.R -{mnmdb$mirror_short}"
-    ))
+    # prefix a minus (as ine"-mirror")
+    out <- processx::run(
+      "Rscript",
+      c("102_re_link_foreign_keys.R", sprintf("-%s", mnmdb$mirror_short)),
+      spinner = TRUE
+    )
   }
+
   return(invisible(NULL))
 
 
@@ -2063,6 +2089,10 @@ redistribute_calendar_data <- function(
     skip = NA,
     version_id = NA
   ) {
+
+
+  # make sure the keyring is open to avoid subsequent segfault crash
+  mnmdb$wake_keyring()
 
   if (is.scalar.na(skip)) {
     skip <- list(

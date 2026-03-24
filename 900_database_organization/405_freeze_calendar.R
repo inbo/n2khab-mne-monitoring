@@ -82,8 +82,19 @@ units_table  <- c(
 
 remove_plural_s <- \(txt) substr(txt, 1, nchar(txt) - 1)
 
-# update key links
-source("102_re_link_foreign_keys.R")
+### update key links
+# keyring/getpass sometimes segfaults R;
+# this will make sure that either there is a key
+# or main process crashes (preferred)
+keyring <- "mnmdb_temp"
+if (keyring::keyring_is_locked(keyring)) unlock_keyring(keyring_label = keyring)
+
+# update key links by running script in the background
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE
+)
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\

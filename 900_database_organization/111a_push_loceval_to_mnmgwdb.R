@@ -64,7 +64,14 @@ if (FALSE) {
     lookup_columns = c("grts_address", "type"),
   )
 } else {
-  system(glue::glue("Rscript 102_re_link_foreign_keys.R {suffix}"))
+  keyring <- "mnmdb_temp"
+  if (keyring::keyring_is_locked(keyring)) unlock_keyring(keyring_label = keyring)
+
+  out <- processx::run(
+    "Rscript",
+    c("102_re_link_foreign_keys.R", suffix),
+    spinner = TRUE
+  )
 }
 
 # load the raw replacements
@@ -386,7 +393,12 @@ extra_filters <- c(
   "Visits" = visits_not_done_filter
 )
 
-system(glue::glue("Rscript 102_re_link_foreign_keys.R {suffix}"))
+# re-link keys once more
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE
+)
 
 # UPDATE the grts_address in FieldworkCalendar and Visits
 for (row_nr in seq_len(nrow(to_upload))) {
