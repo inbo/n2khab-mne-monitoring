@@ -100,22 +100,6 @@ if (nrow(different_checksums) > 0) {
 
 ```
 
-```{r check-surf-activities}
-#| eval: false
-
-check_schemeps <- fag_grts_calendar_shortterm_attribs %>%
-  count(stratum_scheme_ps_targetpanels) %>%
-  arrange(desc(stratum_scheme_ps_targetpanels)) %>%
-  pull(stratum_scheme_ps_targetpanels)
-check_schemeps <- gsub(".*\\[", "[", check_schemeps)
-check_schemeps <- gsub("\\[", "", check_schemeps)
-check_schemeps <- gsub("\\]", "", check_schemeps)
-
-check_schemeps %>% str_split("\\|") %>% unlist() %>% str_trim() %>% unique() %>% sort()
-
-```
-*(there are soil events in here)*
-
 
 ## database connection
 
@@ -123,8 +107,8 @@ check_schemeps %>% str_split("\\|") %>% unlist() %>% str_trim() %>% unique() %>%
 ```{r connect-databases}
 database <- "loceval"
 config_filepath <- file.path("./mnm_database_connection.conf")
-suffix <- ""
-# suffix <- "-staging"
+# suffix <- ""
+suffix <- "-staging"
 
 
 # connect loceval
@@ -469,16 +453,9 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
 # sample_units_updated %>% distinct(grts_address, type) %>% nrow()
 
 # sample_units_updated %>%
-#   filter(grts_address == 23238) %>%
+#   filter(grts_address == 21329) %>%
 #   t() %>% knitr::kable()
 
-# sample_units_updated %>%
-#   filter(grts_address == 22107438) %>%
-#   t() %>% knitr::kable()
-
-# sample_units_updated %>%
-#   filter(grts_address == 47764190) %>%
-#   t() %>% knitr::kable()
 
 ```
 
@@ -896,6 +873,8 @@ fieldwork_calendar_old <-
 
 
 ```{r assemble-fieldwork-calendar}
+
+# sampleunits_lookup <- locevaldb$query_columns("SampleUnits", c("grts_address", "type", "sampleunit_id"))
 
 fieldwork_calendar_columns <- c(
   "grts_address",

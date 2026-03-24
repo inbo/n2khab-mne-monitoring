@@ -1,3 +1,11 @@
+SELECT *
+FROM "outbound"."Replacements"
+WHERE grts_address = 190802
+;
+SELECT *
+FROM "inbound"."ReplacementOngoing"
+WHERE grts_address = 190802
+;
 
 -- *for testing*
 -- UPDATE "outbound"."SampleUnits"
@@ -9,6 +17,7 @@ DROP VIEW IF EXISTS  "inbound"."ReplacementOngoing" ;
 CREATE VIEW "inbound"."ReplacementOngoing" AS
 SELECT
   REPU.*,
+  VISIT.grts_address AS grts_parent,
   VISIT.notes AS unit_notes,
   VISIT.visit_id,
   VISIT.type_assessed,
@@ -51,11 +60,12 @@ LEFT JOIN (
   WHERE activity_group_id IN (
       SELECT DISTINCT activity_group_id
       FROM "metadata"."GroupedActivities"
-      WHERE is_loceval_activity
+      WHERE activity = 'LOCEVALTERR'
     )
   ) AS VISIT
   ON REPU.sampleunit_id = VISIT.sampleunit_id
-WHERE VISIT.archive_version_id IS NULL
+WHERE
+  VISIT.archive_version_id IS NULL
 ;
 
 
