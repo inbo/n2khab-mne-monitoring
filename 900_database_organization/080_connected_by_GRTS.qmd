@@ -40,7 +40,9 @@ suffix <- "-staging" # "-testing"
 choose a GRTS
 
 ```{r choose-grts}
-grts <- c(21329) # random SOIL_03.2 location
+grts <- c(2438198) 
+    # c(11561) # favorite testing location in Kruibeke
+    # c(21329) # random SOIL_03.2 location
     # c(111326, 881374) # MNM team praatje location -> fieldwork knowledge transfer 20260203
     # c(11561, 8400169) # test case for 091a overhaul
     # c(826486, 51158134)

@@ -4,7 +4,7 @@ tags:
   - REP
   - calendar
 started: 2026-03-19
-finished:
+finished: 
 execution:
   - "#FM"
 status: false
@@ -16,8 +16,9 @@ create a script to export data
    -> 405_freeze_calendar.R
 
 plan: store characteristic columns in a csv
+execution: generously dumped everything on the SampleUnits - Calendar - Visits axis.
 
-## column to flag calendar
+## add column to flag frozen entries, in calendar
 -> should be updated by the calendar update script (part of the user entry column? part of the [[dynamic implementation of precedence columns|precedence columns]] ?)
 
 ```sql
@@ -34,13 +35,22 @@ COMMENT ON COLUMN "outbound"."FieldworkCalendar".is_frozen IS E'tag calendar ent
 
 ## adjust update scripts
 ... to get the csv and retain existing data
+finished during [[data update/20260313 REP update 0.15.0|REP 0.15.0]] on [[timeline/2026-03-24|2026-03-24]]
 
 ### (1) REP update
-510_loceval_update_REP.qmd
-610_mnmgwdb_update_REP.qmd
+- [x] `510_loceval_update_REP.qmd`
+- [x] `610_mnmgwdb_update_REP.qmd`
 
 ### (2) calendar update
-112_update_facalendar.R
+- [ ] `112_update_facalendar.R`
 
 ## alternative backup procedure
 besides the characols, ALL input data of the frozen calendar entries should be dumped somewhere in case the db has to be re-installed
+
+## Practical implications #QGIS 
+Generally, `is_frozen` is an attribute of the calendar.
+It can be reproduced at any time by a date filter on `date_start`, e.g. `WHERE date_start <= '2025-12-31'`.
+
+For QGIS visibility, I imagine the following convention:
+- Frozen activities are NOT visible for #calendar planning
+- however, on the #Visits side (e.g. actual installations), they may stay visible.

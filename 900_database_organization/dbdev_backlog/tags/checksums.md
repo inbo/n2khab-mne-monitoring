@@ -12,4 +12,4 @@ A file with the current checksums is kept in `/fieldworg_checksums.csv`.
 Some possible reasons for changes:
 - data changed
 - order of columns in a data frame changed
-- R version update ([[fieldworg checksums changed unexpectedly]])
+- R version update ([[REP/fieldworg checksums changed unexpectedly]])

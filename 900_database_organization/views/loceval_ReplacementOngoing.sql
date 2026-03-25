@@ -4,7 +4,29 @@ WHERE grts_address = 190802
 ;
 SELECT *
 FROM "inbound"."ReplacementOngoing"
-WHERE grts_address = 190802
+WHERE grts_address = 11561
+;
+
+SELECT
+  UNIT.grts_address,
+  UNIT.type,
+  UNIT.is_replaced,
+  UNIT.type_is_absent AS absent,
+  UNIT.replacement_ongoing,
+  REP.is_selected AS sel,
+  REP.replacement_rank AS nr,
+  ( UNIT.replacement_ongoing
+  AND NOT (UNIT.is_replaced OR UNIT.type_is_absent)
+  ) AS vis_by_ongoing,
+  ( REP.is_selected
+  ) AS vis_by_selection
+FROM "outbound"."Replacements" AS REP
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON UNIT.sampleunit_id = REP.sampleunit_id
+LEFT JOIN "outbound"."LocationInfos" AS INFO
+  ON UNIT.location_id = INFO.location_id
+WHERE
+  UNIT.grts_address = 11561
 ;
 
 -- *for testing*
@@ -12,6 +34,7 @@ WHERE grts_address = 190802
 -- SET replacement_ongoing = TRUE
 -- WHERE sampleunit_id <= 42
 -- ;
+--
 
 DROP VIEW IF EXISTS  "inbound"."ReplacementOngoing" ;
 CREATE VIEW "inbound"."ReplacementOngoing" AS
@@ -23,14 +46,16 @@ SELECT
   VISIT.type_assessed,
   VISIT.photo,
   VISIT.visit_done
-FROM (
+FROM "inbound"."Visits" AS VISIT
+LEFT JOIN (
   SELECT
     REP.ogc_fid,
     REP.wkb_geometry,
     REP.replacement_id,
     UNIT.location_id,
     UNIT.sampleunit_id,
-    REP.grts_address_replacement AS grts_address,
+    UNIT.grts_address,
+    REP.grts_address_replacement,
     REP.replacement_rank,
     REP.is_selected,
     REP.is_inappropriate,
@@ -42,30 +67,28 @@ FROM (
     INFO.locationinfo_id,
     INFO.accessibility_inaccessible,
     INFO.accessibility_revisit,
-    INFO.recovery_hints
+    INFO.recovery_hints,
+    ( UNIT.replacement_ongoing
+      AND NOT (UNIT.is_replaced OR UNIT.type_is_absent)
+    ) AS visible_by_ongoing,
+    ( REP.is_selected
+    ) AS visible_by_selection
   FROM "outbound"."Replacements" AS REP
   LEFT JOIN "outbound"."SampleUnits" AS UNIT
     ON UNIT.sampleunit_id = REP.sampleunit_id
   LEFT JOIN "outbound"."LocationInfos" AS INFO
     ON UNIT.location_id = INFO.location_id
-  WHERE UNIT.replacement_ongoing
-    OR (
-      REP.is_selected
-      AND NOT (UNIT.is_replaced OR UNIT.type_is_absent)
-    )
-  ) AS REPU
-LEFT JOIN (
-  SELECT *
-  FROM "inbound"."Visits"
-  WHERE activity_group_id IN (
+  WHERE TRUE
+) AS REPU
+  ON REPU.sampleunit_id = VISIT.sampleunit_id
+WHERE TRUE
+  AND activity_group_id IN (
       SELECT DISTINCT activity_group_id
       FROM "metadata"."GroupedActivities"
       WHERE activity = 'LOCEVALTERR'
     )
-  ) AS VISIT
-  ON REPU.sampleunit_id = VISIT.sampleunit_id
-WHERE
-  VISIT.archive_version_id IS NULL
+  AND (visible_by_ongoing OR (visible_by_selection AND visit_done))
+  AND VISIT.archive_version_id IS NULL
 ;
 
 
