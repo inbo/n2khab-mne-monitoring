@@ -355,7 +355,7 @@ replacement_lookup <- mnmgwdb$query_columns(
   ) %>% 
   rename(stratum = type)
 
-replace_grts_local <- function(df, typecolumn = "stratum") {
+apply_local_replacement_to_grts <- function(df, typecolumn = "stratum") {
   lookup <- replacement_lookup %>%
     mutate(is_replacement = TRUE)
   names(lookup)[names(lookup) == "stratum"] <- typecolumn 
@@ -463,7 +463,7 @@ sample_units_old <-
     )
   ) %>%
   extract_and_flatten_scheme_from_scheme_ps_targetpanels()  %>%
-  replace_grts_local()
+  apply_local_replacement_to_grts()
 
 distinct_old_units <- sample_units_old %>%
   distinct(grts_address, type)
@@ -513,7 +513,7 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   mutate(
     previous_notes = NA # FUTURE TODO
   ) %>% 
-  replace_grts_local() %>% 
+  apply_local_replacement_to_grts() %>% 
   rename(strata = stratum) %>% 
   # extract_and_flatten_scheme_from_scheme_ps_targetpanels() %>% # rather take _all
   distinct(!!!rlang::syms(sample_unit_columns)) %>% 
@@ -742,7 +742,7 @@ Go figure that out!
 
 
 
-```{r porcess-sample-locations}
+```{r process-sample-locations}
 
 if ("location_id" %in% names(sample_units)) {
   # should not be the case in a continuous script;
@@ -824,7 +824,7 @@ fieldwork_calendar_old <-
   fieldwork_shortterm_prioritization_by_stratum %>%
   # filter_max_year_and_preponable_activities_gw() %>% 
   rename_grts_address_final_to_grts_address() %>%
-  replace_grts_local() %>% 
+  apply_local_replacement_to_grts() %>% 
   relocate(grts_address) %>%
   inner_join(
     samplelocations_lookup %>% rename(stratum = strata),
@@ -1458,6 +1458,18 @@ update_landuse_in_locationinfos(mnmgwdb)
 # post hoc
 
 
+```{r stitched-up}
+
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
+
+```
+
+
 ```{r step-n-safety-dump}
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
@@ -1478,6 +1490,7 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 ```
 
 
+
 ```{r launch-consistency-dashboard}
 
 out <- processx::run(
@@ -1491,6 +1504,19 @@ out <- processx::run(
 
 
 # Random Points
+
+```{r recalculate-random-points}
+
+out <- processx::run(
+  "Rscript",
+  c("118_random_placementpoints_mnmgwdb.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
+
+```
+
+
 
 ```{sql}
 #| eval: false

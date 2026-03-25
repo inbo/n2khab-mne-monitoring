@@ -1001,7 +1001,7 @@ associate_and_shift_start_dates <- function(
 
   # TODO store this somewhere
   output_filename <- file.path(".", "logs", glue::glue(
-      "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
+      "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates_{mnmdb$mirror_short}.csv"
     ))
   write_csv2(date_updates, output_filename)
 

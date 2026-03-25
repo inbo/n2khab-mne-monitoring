@@ -1792,6 +1792,18 @@ locevaldb$insert_data(
 # Wrap-up
 
 
+```{r stitched-up}
+
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
+
+```
+
+
 ```{r step-n-safety-dump}
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
