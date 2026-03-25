@@ -2,14 +2,21 @@
 # cf. https://github.com/inbo/n2khab/blob/main/R/GRTSmh.R
 
 
+stopifnot("dplyr" = require("dplyr"))
+stopifnot("n2khab" = require("n2khab"))
+
 ### grts cells and geometry
-grts_mh <- read_GRTSmh()
+if (!exists("grts_mh")) {
+  grts_mh <<- n2khab::read_GRTSmh()
+}
 # create a spatial index of the GRTS addresses
-grts_mh_index <- tibble(
-  id = seq_len(ncell(grts_mh)),
-  grts_address = values(grts_mh)[, 1]
-) %>%
-  filter(!is.na(grts_address))
+if (!exists("grts_mh_index")) {
+  grts_mh_index <<- dplyr::tibble(
+      id = seq_len(terra::ncell(grts_mh)),
+      grts_address = values(grts_mh)[, 1]
+    ) %>%
+    dplyr::filter(!is.na(grts_address))
+}
 
 #' wrapper to perform `add_point_coords_grts` with the `_mh` objects
 append_point_coords_grts_mh <- function(...) {
