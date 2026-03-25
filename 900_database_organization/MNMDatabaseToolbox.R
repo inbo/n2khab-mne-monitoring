@@ -2001,7 +2001,7 @@ load_table_sideload_content <- function(
 # Last update: 20251205
 precedence_columns <- list(
   "SampleLocations" = c(
-    "is_replacement"
+    # "is_replacement"
   ),
   "SampleUnits" = c(
     "previous_notes",
@@ -2020,6 +2020,7 @@ precedence_columns <- list(
     "no_visit_planned",
     "notes",
     "done_planning",
+    "is_sideloaded",
     "is_frozen"
   ),
   "FieldActivityCalendar" = c(

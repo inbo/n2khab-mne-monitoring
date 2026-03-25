@@ -496,7 +496,6 @@ replacements_lookup <- update_cascade_lookup(
 #### LocationEvaluations
 #///////////////////////////////////////////////////////////////////////////////
 
-# TODO views do not exist in the connection "object"
 view_id <- DBI::Id("outbound", "gwTransfer")
 transfer_data <- dplyr::tbl(loceval_connection$connection, view_id) %>%
   grts_datatype_to_integer() %>%

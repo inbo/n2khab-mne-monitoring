@@ -26,6 +26,7 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 source_snippet_supplements <- function(file_name) {
   source(file.path(snippet_base_path, "020_fieldwork_organization", "R", file_name))
 }
+source_snippet_supplements("system_helpers.R")
 source_snippet_supplements("misc.R")
 source_snippet_supplements("repetitive_join_functions.R")
 source_snippet_supplements("grts.R")

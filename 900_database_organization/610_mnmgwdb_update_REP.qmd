@@ -43,7 +43,7 @@ In all brevity, I collect steps here to get a new REP to the database.
 2. Mirrors: try everything on `testing` and then `staging`, first.
   - The `testing` mirror (data sync with `033_populate_testing_db.R`) is open for play and can taken even rough rides, and for that user permissions differ on there. No guarantee that the data is correct.
   - On `staging`, everything is exactly identical to the production server (even permissions and user roles), because it gets synced with the dump/restore commands below.
-  - use the `mirror` to control database connections below.
+  - use the `suffix` to control database connections below.
   
   
 Syncing the `*_staging` database mirrors:
@@ -65,7 +65,6 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
 ```{r libraries}
 # libraries
 source("MNMLibraryCollection.R")
-load_rep_common_libraries()
 load_database_interaction_libraries()
 
 # the database connection object
@@ -83,41 +82,36 @@ source("MNMDatabaseToolbox.R")
 
 ## info stream from REP
 
-First, there is the `.RData` file.
+First, there is the `.RData` file, along with proccessing outcome of the code snippets.
 
-```{r load-sample-rdata}
-tic <- function(toc) round(Sys.time() - toc, 1)
-toc <- Sys.time()
-load_rep_rdata(reload = FALSE, to_env = parent.frame())
-message(glue::glue("Good morning!
-  Loading the REP data took {tic(toc)} seconds today."
-))
-
-```
-
-Some code snippets, possibly modified on the way, were provided by Floris.
+::: {.callout-note snippets}
+- check for changes on every update, e.g. with `meld`:
+  `meld 020_fieldwork_organization/code_snippets.R 900_database_organization/401_snippet_selection.R`
+- bake fresh snippets every morning:
+  `Rscript 403_precalculate_fresh_snippets.R`
+:::
 
 ```{r source-code-snippets}
-# TODO: check for changes on every update, e.g. with `meld`:
-#       meld 020_fieldwork_organization/code_snippets.R 900_database_organization/401_snippet_selection.R
 
-# Load some custom GRTS functions
-# project_root <- find_root(is_git_root)
-# source(file.path(project_root, "R/grts.R"))
-snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-
+tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_rep_code_snippets(snippets_path)
-message(glue::glue(
-  "... loading/executing the code snippets took {tic(toc)}s."
+
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# TEMPORARY adjustment pointing to adjacent branch (wip)
+snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+reload_rep_code_snippets(fresh_snippet_path)
+message(glue::glue("Good morning!
+  Loading the REP data and snippets took {tic(toc)} seconds today."
 ))
-```
 
-
-Finally, check that everything was loaded correctly.
-
-```{r rep-checks}
 verify_rep_objects()
+
+if (nrow(different_checksums) > 0) {
+  knitr::kable(different_checksums)
+}
+
 ```
 
 
@@ -127,11 +121,11 @@ verify_rep_objects()
 ```{r connect-databases}
 
 config_filepath <- file.path("./mnm_database_connection.conf")
-mirror <- "-staging"
-# mirror <- ""
+suffix <- "-staging"
+# suffix <- ""
 
 # ... and mnmgwdb
-mnmgwdb_mirror <- glue::glue("mnmgwdb{mirror}")
+mnmgwdb_mirror <- glue::glue("mnmgwdb{suffix}")
 
 mnmgwdb <- connect_mnm_database(
   config_filepath,
@@ -140,6 +134,7 @@ mnmgwdb <- connect_mnm_database(
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 
 message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
+update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 
 ```
 
@@ -177,14 +172,18 @@ if (FALSE) {
   # manually set a new version
   #    v1 <- "≤v0.9.0_rvp0.13.0"
   #    v2 <- "v0.11.0_rvp0.13.1"
-  version_tag <- "v0.12.0_rvp0.14.0"
-  version_notes <- "correct filter for post 2026 locations"
-  date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+  # version_tag <- "v0.12.0_rvp0.14.0"
+
+  version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
+  version_notes <- "REP update 0.15.0 (GRTS reset)"
+  version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+  version_date_fixing <- as.Date("2025-12-31")
 
   version_id <- mnmgwdb$tag_new_version(
     new_version_tag = version_tag,
     new_version_notes =  version_notes,
-    new_date_applied = date_applied
+    new_date_applied = version_date_applied,
+    new_date_fixing = version_date_fixing
   )
 
   # SELECT * FROM "metadata"."Versions";
@@ -235,19 +234,11 @@ Even more important, the `precedence_columns` keep input fields from being consi
 ## prerequisite_lookups
 
 ```{r gather-lookups}
-gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
-  filter(is_gw_activity, is_field_activity) %>%
-  distinct(activity_group, activity)
 
 n2khabstrata_lookup <- mnmgwdb$query_lookup(
   "N2kHabStrata",
   characteristic_columns = c("stratum")
 )
-
-```
-
-
-```{r load-activities}
 
 activity_groupid_lookup <- mnmgwdb$query_columns(
     "GroupedActivities",
@@ -255,16 +246,101 @@ activity_groupid_lookup <- mnmgwdb$query_columns(
   ) %>%
   distinct()
 
-field_activities_db <- mnmgwdb$query_table("GroupedActivities") %>%
+```
+
+
+```{r load-activities}
+
+gw_field_activities_db <- mnmgwdb$query_table("GroupedActivities") %>%
   filter(is_gw_activity, is_field_activity) %>%
-  distinct(activity_group, activity)
+  distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 ```
+
+
+:::{.callout-note}
+`SSPSTaPas` are phasing out.
+:::
+
+I had the idea that `stratum_scheme_panelset_targetpanels` could be abbreviated to 
+`sspstapas`.
+Unfortunately, I did not keep up with the speed of things.
+
+```{r ssps-tapas-fake}
+# # TODO this is obsolete and fake
+# sspstapas <- update_cascade_lookup(
+#   table_label = "SSPSTaPas",
+#   new_data = fieldwork_calendar %>%
+#     distinct(stratum_scheme_ps_targetpanels) %>%
+#     arrange(stratum_scheme_ps_targetpanels),
+#   index_columns = c("sspstapa_id"),
+#   tabula_rasa = TRUE,
+#   verbose = TRUE
+# )
+
+replace_sspstapa_by_lookup <- function(df) {
+  df_new <- df %>%
+    mutate(sspstapa_id = NA) %>% 
+    # left_join(
+    #   sspstapas,
+    #   by = join_by(stratum_scheme_ps_targetpanels),
+    #   relationship = "many-to-one"
+    # ) %>%
+    relocate(
+      sspstapa_id,
+      .after = stratum_scheme_ps_targetpanels
+    ) %>%
+    select(-stratum_scheme_ps_targetpanels)
+
+  return(df_new)
+}
+
+```
+
+
+
+## Freeze Past Fixture
+
+Here, it would be time to generate the latest FREEZE,
+but only if the `date_fixing` changed in the latest `"metadata"."Versions"`.
+
+```{r generate_freeze_calendar}
+#| eval: false
+out <- processx::run(
+  "Rscript",
+  c("405_freeze_calendar.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+  )
+# message(out$stderr)
+
+```
+
+
+```{r load-freeze}
+
+mnmgwdb_freeze <-
+  read.csv(file = file.path("sideload", glue::glue("freeze_mnmgwdb{suffix}.csv"))) %>%
+  mutate(across(c(
+      date_start,
+      date_end
+    ), as.Date)
+  )
+
+# mnmgwdb_freeze %>% glimpse()
+```
+
 
 ## Replacements
 
 ```{r refresh-replacements}
-system(glue::glue("Rscript 111a_push_loceval_to_mnmgwdb.R {mirror}"))
+
+out <- processx::run(
+  "Rscript",
+  c("111a_push_loceval_to_mnmgwdb.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
 
 ```
 
@@ -280,7 +356,8 @@ replacement_lookup <- mnmgwdb$query_columns(
   rename(stratum = type)
 
 replace_grts_local <- function(df, typecolumn = "stratum") {
-  lookup <- replacement_lookup
+  lookup <- replacement_lookup %>%
+    mutate(is_replacement = TRUE)
   names(lookup)[names(lookup) == "stratum"] <- typecolumn 
 
   df %>%
@@ -289,55 +366,32 @@ replace_grts_local <- function(df, typecolumn = "stratum") {
       by = dplyr::join_by(!!!c("grts_address", typecolumn))
     ) %>%
     mutate(
-      grts_address = dplyr::coalesce(grts_address_replacement, grts_address)
+      grts_address = dplyr::coalesce(grts_address_replacement, grts_address),
+      is_replacement = dplyr::coalesce(is_replacement, FALSE)
     ) %>% 
     select(-grts_address_replacement) %>%
     return()
 }
+
 ```
 
 
 ## Sample Units
 
-```{r assemble-sample-units}
+```{r assemble-sample-units-old}
+#| eval: false
 # TODO I have to anticipate REPLACEMENT here!
 
-# fag_stratum_grts_calendar %>%
-#   common_current_calenderfilters() %>%
-#   filter(grts_address_final == 10119474,
-#          # field_activity_group == 'SPATPOSITGAUGE',
-#          # field_activity_group == 'SURFLENTLOCEVALSAMPLPOINT',
-#          date_start < as.Date('2027-01-01')
-#          ) %>%
-#   unnest(scheme_moco_ps) %>% 
-#   glimpse()
-# this one enters for the `loceval`, which is okay (sync location info etc.)
-# but it should not produce any calendar items.
-
-# fag_stratum_grts_calendar %>%
-#   filter(grts_address_final == 656798,
-#          field_activity_group == 'GWINSTPIEZWELL',
-#          date_start < as.Date('2027-01-01')
-#          ) %>%
-#   select(stratum, date_start, field_activity_group, rank)
-
-# fag_stratum_grts_calendar %>%
-#   filter(grts_address_final == 50988446,
-#          field_activity_group == 'GWINSTPIEZWELL',
-#          date_start < as.Date('2027-01-01')
-#          ) %>%
-#   select(stratum, date_start, field_activity_group, rank)
-
-sample_units <-
+sample_units_old <-
   fag_stratum_grts_calendar %>%
-  common_current_calenderfilters() %>%
+  filter_max_year_and_preponable_activities_gw(2026) %>%
   distinct(
     scheme_moco_ps,
     stratum,
     grts_address
   ) %>%
   unnest(scheme_moco_ps) %>%
-  # adding location attributes
+  # joining location attributes
   inner_join(
     scheme_moco_ps_stratum_targetpanel_spsamples %>%
       select(
@@ -373,7 +427,7 @@ sample_units <-
     unmatched = c("error", "drop")
   ) %>%
   select(-module_combo_code) %>%
-  nest_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel() %>%
   # # add MHQ assessment metadata
   # inner_join(
   #   stratum_grts_n2khab_phabcorrected_no_replacements %>%
@@ -385,7 +439,7 @@ sample_units <-
   distinct() %>%
   # database-related additions 
   # convert_stratum_to_type() %>%
-  rename_grts_address_final_to_grts_address() %>%
+  rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
   rename(
     has_mhq_assessment = last_type_assessment_in_field,
     mhq_assessment_date = last_type_assessment 
@@ -400,58 +454,147 @@ sample_units <-
         grts_join_method,
         scheme_ps_targetpanels,
         # targetpanel,
-        sp_poststratum,
         stratum,
         domain_part,
-        schemes
+        sp_poststratum,
+        previous_notes
       ),
       as.character
     )
   ) %>%
+  extract_and_flatten_scheme_from_scheme_ps_targetpanels()  %>%
   replace_grts_local()
 
+distinct_old_units <- sample_units_old %>%
+  distinct(grts_address, type)
+sample_units_old %>% names()
+sample_units_old %>% count(is_replacement)
 
 ```
 
-## Sample Locations
 
-```{r assemble-sample-locations}
+```{r assemble-sample-units}
 
-sample_locations <- sample_units %>%
-  summarize(
-    scheme_ps_targetpanels = str_flatten(
-      sort(unique(scheme_ps_targetpanels)),
-      collapse = " | "
-    ) %>% as.character(),
-    schemes = str_flatten(
-      sort(unique(schemes)),
-      collapse = ", "
-    ) %>% as.character(),
-    .by = c(
-      grts_address,
-      stratum,
-      domain_part,
-      is_forest,
-      in_mhq_samples,
-      has_mhq_assessment
-    )
+sample_unit_columns <- c(
+  "grts_address",
+  "strata",
+  "schemes",
+  # "schemes_served_all", # -> renamed to schemes
+  "scheme_ps_targetpanels",
+  "domain_part",
+  # "sp_poststratum",
+  # "grts_join_method",
+  # "is_current_occasion",
+  # "schemes_served_all",
+  "is_forest",
+  "in_mhq_samples",
+  # "mhq_assessment_date", 
+  "has_mhq_assessment", 
+  # "previous_notes",
+  "is_replacement"
+)
+
+
+sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
+  rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
+  # only retain the activities for this scheme
+  # otherwise there are duplicates (schemes filled differently on LOCEVAL)
+  semi_join(
+    gw_field_activities_db,
+    by = join_by(field_activity_group == activity_group)
+  ) %>% 
+  rename(
+    has_mhq_assessment = last_type_assessment_in_field,
+    mhq_assessment_date = last_type_assessment,
+    schemes = schemes_served_all
+  ) %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  mutate(
+    previous_notes = NA # FUTURE TODO
+  ) %>% 
+  replace_grts_local() %>% 
+  rename(strata = stratum) %>% 
+  # extract_and_flatten_scheme_from_scheme_ps_targetpanels() %>% # rather take _all
+  distinct(!!!rlang::syms(sample_unit_columns)) %>% 
+  mutate(across(c(
+      scheme_ps_targetpanels,
+      strata,
+      domain_part
+    ), as.character)
   )
 
 
 ```
 
+
+Re-establish SampleUnits from `the freeze`.
+
+::: {.callout-note}
+Sample units can 
+
+- appear (only pesent in `_updated`)
+- disappear (only pesent in `_retained`)
+- stay or change (pesent in *both*, before and after update).
+
+We UNION the updated and retained; for *changed* units the novel plan (`_updated`) is the reference.
+Association with old schemes is not relevant.
+
+:::
+
+```{r frozen-units}
+# mnmgwdb_freeze %>% names()
+
+sample_units_retained <- mnmgwdb_freeze %>%
+  distinct(!!!rlang::syms(sample_unit_columns)) %>%
+  anti_join(
+    sample_units_updated,
+    by = join_by(grts_address, strata)
+  )
+
+sample_units_retained %>% 
+  glimpse()
+
+```
+
+
+Join updated and frozen sample locations:
+
+```{r combined_sample_units}
+
+sample_units <- bind_rows(
+  sample_units_retained,
+  sample_units_updated
+)
+
+# sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
+
+```
+
+
 ## Locations
 
 ```{r assemble-locations}
 
-locations <- bind_rows(
+locations_grts_collection <- bind_rows(
     mnmgwdb$query_columns("Locations", c("grts_address")),
-    sample_locations %>% select(grts_address),
+    sample_units %>% select(grts_address),
+    mnmgwdb$query_columns("LocationInfos", c("grts_address"))
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
-  distinct() %>%
-  # count(grts_address) %>%
-  # arrange(desc(n))
+  distinct()
+
+
+# join geometry column
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+locations <- locations_grts_collection %>% 
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -477,6 +620,7 @@ distribution <- categorize_data_update(
 print_category_count(distribution, table_label)
 
 ```
+
 
 ```{r update-locations}
 
@@ -505,6 +649,82 @@ stitch_table_connection(
 ```
 
 
+## LocationCells
+
+```{r new-location-cells}
+
+units_cell_polygon[["grts_address_final"]] <-
+  as.integer(units_cell_polygon[["grts_address_final"]])
+
+# unit geometries (cells):
+location_cells <-
+  units_cell_polygon %>%
+  inner_join(
+    locations_lookup,
+    by = join_by(grts_address_final == grts_address),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(-grts_address_final) %>%
+  relocate(geometry, .after = last_col())
+
+sf::st_geometry(location_cells) <- "wkb_geometry"
+# glimpse(location_cells)
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
+
+mnmgwdb$execute_sql(
+  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
+  verbose = TRUE
+)
+
+mnmgwdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = location_cells
+)
+
+```
+
+extra cells from replacements
+
+```{r}
+
+loceval_sideload <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database = "loceval",
+  user = "monkey",
+  password = NA
+)
+
+extra_cells <- loceval_sideload$query_table("ReplacementCells") %>%
+  left_join(
+    loceval_sideload$query_table("Replacements") %>%
+      select(-wkb_geometry),
+    by = join_by(replacement_id)
+  ) %>%
+  select(-grts_address) %>%
+  rename(grts_address = grts_address_replacement) %>%
+  inner_join(
+    locations_lookup,
+    by = join_by(grts_address)
+  ) %>%
+  select(location_id, wkb_geometry) %>%
+  distinct %>%
+  anti_join(
+    location_cells,
+    by = join_by(location_id)
+  )
+
+mnmgwdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = extra_cells
+)
+
+
+```
+
+
 ## Sample Locations
 
 :::{.callout-note title="Replacements!"}
@@ -514,35 +734,39 @@ Local Replacements are applied by directly modifying `grts_address` in calendar/
 The original sample location gets archived during the next REP update script - here.
 
 At the time of writing, this seems to be a logical solution. 
-However, on a real REP update, the locations to archive because of local replacement ("downstream" archives) get mixed with actual REP changes ("upstream").
+However, on a real REP update, i.e. when the info of replacements has trickled up to the REP, 
+the locations to archive because of local replacement ("downstream" archives) get mixed with actual REP changes ("upstream").
+
+Go figure that out!
 :::
 
 
 
 ```{r porcess-sample-locations}
 
-if ("location_id" %in% names(sample_locations)) {
+if ("location_id" %in% names(sample_units)) {
   # should not be the case in a continuous script;
   # this is extra safety for debugging and de-serial execution
-  sample_locations <- sample_locations %>%
+  sample_units <- sample_units %>%
     select(-location_id)#, -location_id.x, -location_id.y)
 }
 
-sample_locations <- sample_locations %>%
+sample_units <- sample_units %>%
   left_join(
     locations_lookup,
     by = join_by(grts_address),
     relationship = "many-to-one"
-  ) %>% distinct 
+  ) %>%
+  distinct()
 
 ```
 
 
 ```{r prepare-slocs}
+
 table_label <- "SampleLocations"
-data_nouveau <- sample_locations %>%
-  rename(strata = stratum)
-characteristic_columns <- c("grts_address", "strata") # ERROR location_id was in here ☠
+data_nouveau <- sample_units
+sampleunit_characols <- c("grts_address", "strata") # ERROR location_id was in here ☠
 index_column <- mnmgwdb$get_primary_key(table_label)
 
 distribution <- categorize_data_update(
@@ -550,7 +774,7 @@ distribution <- categorize_data_update(
   table_label = table_label,
   data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
-  characteristic_columns = characteristic_columns,
+  characteristic_columns = sampleunit_characols,
 )
 print_category_count(distribution, table_label)
 
@@ -563,12 +787,12 @@ print_category_count(distribution, table_label)
 
 ```{r update-sample-locations}
 
-distribution$to_upload <- distribution$to_upload %>% 
+distribution$to_upload <- distribution$to_upload %>%
   mutate(
     # log_user = "maintenance",
     # log_update = as.POSIXct(Sys.time()),
-    is_replacement = FALSE
-  ) 
+    # is_replacement = FALSE
+  )
 
 # distribution$changed %>% t() %>% knitr::kable()
 # mnmgwdb$query_table("SampleLocations") %>%
@@ -582,41 +806,23 @@ samplelocations_lookup <- redistribute_calendar_data(
   table_label = table_label,
   distribution = distribution,
   index_columns = c(index_column),
-  characteristic_columns = characteristic_columns,
+  characteristic_columns = sampleunit_characols,
   skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
 )
 
-# OBSERVATION: samplelocation_id changed afterwards (?!)
-
-# TODO: return to `replacements` if necessary (091_push_loceval_to_mnmgwdb.py)
-
 ```
-
 
 
 
 ## FieldActivityCalendar
 
-```{r ad-hoc-checks-fwcal}
-#| eval: false
-# 84598 -> 871030
-if (FALSE) {
-fieldwork_shortterm_prioritization_by_stratum %>%
-  filter(grts_address == 84598, field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
-    
-fieldwork_calendar %>% 
-  filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
-  filter(grts_address %in% c(84598, 871030), field_activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
-}
-
-```
-
 
 ```{r assemble-field-activity-calendar}
+#| eval: false
 
-fieldwork_calendar <-
+fieldwork_calendar_old <-
   fieldwork_shortterm_prioritization_by_stratum %>%
-  common_current_calenderfilters() %>% # should be filtered already!
+  # filter_max_year_and_preponable_activities_gw() %>% 
   rename_grts_address_final_to_grts_address() %>%
   replace_grts_local() %>% 
   relocate(grts_address) %>%
@@ -630,21 +836,23 @@ fieldwork_calendar <-
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(field_activities_db, by = join_by(activity_group)) %>%
+  semi_join(gw_field_activities_db, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
     relationship = "many-to-one"
   ) %>%
-  select(-activity_group) %>%
+  select(-activity_group) %>% 
   mutate(
     across(c(
+        stratum,
+        grts_join_method,
+        domain_part,
         date_interval
       ),
       as.character
     )
   ) %>%
-  rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% 
   mutate(
     log_user = "maintenance",
     log_update = as.POSIXct(Sys.time()),
@@ -656,79 +864,127 @@ fieldwork_calendar <-
 
 # fieldwork_calendar %>% 
 #   filter(grts_address %in% c(84598, 871030), activity_group == "GWLEVREADDIVERMAN") %>% knitr::kable()
-
-# # TODO this is obsolete and fake
-# sspstapas <- update_cascade_lookup(
-#   table_label = "SSPSTaPas",
-#   new_data = fieldwork_calendar %>%
-#     distinct(stratum_scheme_ps_targetpanels) %>%
-#     arrange(stratum_scheme_ps_targetpanels),
-#   index_columns = c("sspstapa_id"),
-#   tabula_rasa = TRUE,
-#   verbose = TRUE
-# )
-
-replace_sspstapa_by_lookup <- function(df) {
-  df_new <- df %>%
-    mutate(sspstapa_id = NA) %>% 
-    # left_join(
-    #   sspstapas,
-    #   by = join_by(stratum_scheme_ps_targetpanels),
-    #   relationship = "many-to-one"
-    # ) %>%
-    relocate(
-      sspstapa_id,
-      .after = stratum_scheme_ps_targetpanels
-    ) %>%
-    select(-stratum_scheme_ps_targetpanels)
-
-  return(df_new)
-}
-
-fieldwork_calendar_new <- fieldwork_calendar %>%
-  replace_sspstapa_by_lookup() %>%
-  select(
-    # -location_id,
-    -grts_join_method,
-    -domain_part,
-    -is_forest,
-    -in_mhq_samples,
-    -last_type_assessment_in_field
-  )
-
 ```
 
 
-```{r}
+```{r assemble-fieldwork-calendar}
+# samplelocations_lookup <- mnmgwdb$query_columns("SampleLocations", c("grts_address", "type", "samplelocation_id"))
+
+fieldwork_calendar_columns <- c(
+  "grts_address",
+  "stratum",
+  "samplelocation_id",
+  "activity_group_id",
+  "activity_rank",
+  "date_start",
+  "date_end",
+  "date_interval",
+  "priority",
+  "wait_any",
+  "wait_watersurface",
+  "wait_3260",
+  "wait_7220",
+  "wait_floating",
+  "is_sideloaded",
+  "is_frozen"
+)
+
 
 fieldcalendar_characols <- c(
-    "grts_address",
-    "stratum", 
-    "activity_group_id",
-    "date_start"
-  )
-
-# "samplelocation_id",
-# "sspstapa_id",
-
-
-special_activity_tables <- c(
-    "WellInstallationActivities",
-    "ChemicalSamplingActivities",
-    "SpatialPositioningActivities"
-    )
-
-
-# stop("CONSIDER: these are not special activity characteristic columns!")
-speciact_characols <- c(
-  # "samplelocation_id",
-  # "fieldworkcalendar_id",
-  # "visit_id",
   "grts_address",
   "stratum",
   "activity_group_id",
   "date_start"
 )
+
+
+
+fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
+  rename_grts_address_final_to_grts_address() %>%
+  # rename(type = stratum) %>%
+  inner_join(
+    samplelocations_lookup %>% rename(stratum = strata),
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-one"
+  ) %>%
+  relocate(grts_address, stratum, samplelocation_id) %>%
+  rename(
+    activity_rank = rank,
+    activity_group = field_activity_group
+  ) %>%
+  semi_join(gw_field_activities_db, by = join_by(activity_group)) %>%
+  left_join(
+    activity_groupid_lookup,
+    by = join_by(activity_group),
+    relationship = "many-to-one"
+  ) %>%
+  select(-activity_group) %>%
+  mutate(
+    across(c(
+        stratum,
+        grts_join_method,
+        domain_part,
+        date_interval
+      ),
+      as.character
+    )
+  ) %>%
+  mutate(is_frozen = FALSE, is_sideloaded = FALSE) %>% 
+  select(!!!rlang::syms(fieldwork_calendar_columns))
+
+# fieldwork_calendar_updated %>% glimpse()
+# fieldwork_calendar_updated %>% count(priority)
+  
+#  # rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% 
+#  mutate(
+#    log_user = "maintenance",
+#    log_update = as.POSIXct(Sys.time()),
+#    excluded = FALSE,
+#    no_visit_planned = FALSE,
+#    done_planning = FALSE
+#  ) 
+
+```
+
+
+Normally, all calendar entries from the `freeze` have already be removed, so the `anti_join` is a no-op.
+
+
+```{r assemble-fieldwork-calendar-freeze}
+
+fieldwork_calendar_retained <- mnmgwdb_freeze %>%
+  select(!!!rlang::syms(c(fieldwork_calendar_columns, "done_planning"))) %>% 
+  anti_join(
+    fieldwork_calendar_updated,
+    by = join_by(!!!rlang::syms(fieldcalendar_characols))
+  ) %>%
+  select(-is_frozen) %>% mutate(is_frozen = TRUE) %>%
+  left_join(
+    gw_field_activities_db %>%
+      distinct(activity_group) %>% 
+      left_join(activity_groupid_lookup, by = join_by(activity_group)) %>%
+      select(activity_group_id) %>%
+      mutate(is_gw_activity = TRUE),
+    by = join_by(activity_group_id)
+  ) %>% 
+  filter(done_planning | is_gw_activity) %>%
+  select(-done_planning, -is_gw_activity)
+  
+
+
+# fieldwork_calendar_retained %>% glimpse()
+# mnmgwdb_freeze %>% count(activity_group_id, done_planning, visit_done)
+
+```
+
+
+```{r union-fieldwork-calendar}
+
+fieldwork_calendar_new <- bind_rows(
+    fieldwork_calendar_retained,
+    fieldwork_calendar_updated
+  ) %>% 
+  mutate(sspstapa_id = NA)
 
 ```
 
@@ -746,6 +1002,7 @@ stitch_table_connection(
 )
 
 ```
+
 
 
 ```{r sideload-extra-calendar-entries}
@@ -786,6 +1043,21 @@ fieldwork_calendar_new <- bind_rows(
 ```
 
 
+```{r link-dates}
+
+startdate_updates_happened <- associate_and_shift_start_dates(
+  mnmdb = mnmgwdb,
+  table_label = "FieldworkCalendar",
+  data_future = fieldwork_calendar_new,
+  characteristic_columns = fieldcalendar_characols,
+  other_table_labels = c("Visits")
+) 
+
+if (startdate_updates_happened) message("Startdate updates happened!")
+
+```
+
+
 
 ```{r categorize-fieldworkcalendar}
 
@@ -794,14 +1066,6 @@ data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
 
-
-startdate_updates_happened <- associate_and_shift_start_dates(
-  mnmdb = mnmgwdb,
-  table_label = table_label,
-  data_future = data_nouveau,
-  characteristic_columns = characteristic_columns,
-  other_table_labels = c("Visits", special_activity_tables)
-) 
 
 # data_nouveau %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_older.rds")
 # data_nouveau %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_older.csv")
@@ -827,6 +1091,33 @@ print_category_count(distribution, table_label)
 #     by = join_by(activity_group_id)
 #   )
 ```
+
+
+```{r sync-fieldworkcalendar}
+
+distribution$to_upload <- distribution$to_upload %>% 
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+    excluded = FALSE,
+    is_frozen = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  ) 
+
+
+fieldworkcalendar_lookup <- redistribute_calendar_data(
+  mnmdb = mnmgwdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
+)
+
+
+```
+
 
 ```{r compare-old-new-fwcal}
 #| eval: false
@@ -880,30 +1171,6 @@ if (FALSE) {
 ```
 
 
-```{r sync-fieldworkcalendar}
-
-distribution$to_upload <- distribution$to_upload %>% 
-  mutate(
-    log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
-    excluded = FALSE,
-    no_visit_planned = FALSE,
-    done_planning = FALSE
-  ) 
-
-
-fieldworkcalendar_lookup <- redistribute_calendar_data(
-  mnmdb = mnmgwdb,
-  table_label = table_label,
-  distribution = distribution,
-  index_columns = c(index_column),
-  characteristic_columns = characteristic_columns,
-  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
-)
-
-
-```
-
 
 intermediate check
 
@@ -927,16 +1194,48 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 
 ## Visits
 
+```{r stitch-visits}
+
+stitch_visits <- function() {
+
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = "Visits",
+    reference_table = "FieldworkCalendar",
+    link_key_column = "fieldworkcalendar_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+  
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = "Visits",
+    reference_table = "SampleLocations",
+    link_key_column = "samplelocation_id",
+    lookup_columns = c("grts_address", "stratum"), 
+    reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  )
+  
+  stitch_table_connection(
+    mnmdb = mnmgwdb,
+    table_label = "Visits",
+    reference_table = "Locations",
+    link_key_column = "location_id",
+    lookup_columns = c("grts_address")
+  )
+}
+stitch_visits()
+
+```
+
 
 ```{r assemble-new-visits}
 
-update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 
-visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
+visits_characols <- fieldcalendar_characols
 
 potential_visits <- fieldworkcalendar_lookup %>%
   select(
-    !!!rlang::syms(visits_characols)
+    !!!rlang::syms(c("fieldworkcalendar_id", visits_characols))
   ) %>%
   left_join(
     locations_lookup,
@@ -976,14 +1275,14 @@ selection_of_activities <- list(
     pull(activity_group_id) %>% unique, # /WIA
   "SamplingVisits" = activity_groupid_lookup %>%
     filter(activity_group %in%
-      c(gw_field_activities %>%
+      c(gw_field_activities_db %>%
         filter(grepl("^GW.*SAMP", activity)) %>%
         pull(activity_group))
       ) %>%
     pull(activity_group_id) %>% unique, # /CSA
   "PositioningVisits" = activity_groupid_lookup %>%
     filter(activity_group %in%
-      c(gw_field_activities %>%
+      c(gw_field_activities_db %>%
         filter(grepl("^SPATPOSIT", activity)) %>%
         pull(activity_group))
       ) %>%
@@ -1002,9 +1301,10 @@ append_defaults <- list(
 
 
 ```{r upload-special-visits}
-#| eval: false
+#| eval: true
 
 remaining_new_visits <- visits_upload
+
 # table_label <- "InstallationVisits"
 for (table_label in names(selection_of_activities)) {
 
@@ -1020,7 +1320,7 @@ for (table_label in names(selection_of_activities)) {
 
   # append=upload data to the activity table
   # double-check existing to avoid dups
-  existing <- mnmgwdb$query_table(table_label)
+  # existing <- mnmgwdb$query_table(table_label)
   sa_lookup <- upload_and_lookup(
     mnmgwdb,
     table_label = table_label,
@@ -1034,43 +1334,43 @@ for (table_label in names(selection_of_activities)) {
   remaining_new_visits <- remaining_new_visits %>%
     anti_join(
       special_visits,
-      by = join_by(fieldworkcalendar_id, grts_address, stratum, activity_group_id, date_start)
+      by = join_by(
+        fieldworkcalendar_id,
+        grts_address,
+        stratum,
+        activity_group_id,
+        date_start)
     )
 
 }
 
-
 ```
 
-```{r check-visits-upload}
-mnmgwdb$query_table("Visits") %>% 
-  count(is.na(fieldworkcalendar_id)) %>%
-  knitr::kable()
+```{r upload-non-special-visits}
+
+only_visits_lookup <- upload_and_lookup(
+  mnmgwdb,
+  table_label = "Visits",
+  data_to_append = remaining_new_visits,
+  characteristic_columns = visits_characols,
+  index_columns = c("visit_id"),
+  verbose = TRUE
+)
+
+
 ```
 
 
 ```{r reconnect-visits}
 
-stitch_table_connection(
-  mnmdb = mnmgwdb,
-  table_label = "Visits",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
-  lookup_columns = c("grts_address", "stratum"), 
-  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
-)
-
-stitch_table_connection(
-  mnmdb = mnmgwdb,
-  table_label = "Visits",
-  reference_table = "FieldworkCalendar",
-  link_key_column = "fieldworkcalendar_id",
-  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
-)
-
+stitch_visits()
 
 mnmgwdb$query_table("Visits") %>% 
-  count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+  count(
+    is.na(location_id),
+    is.na(samplelocation_id),
+    is.na(fieldworkcalendar_id)
+  ) %>%
   knitr::kable()
 
 
@@ -1080,27 +1380,27 @@ mnmgwdb$query_table("Visits") %>%
 archive visits of archived FWCals
 
 ```{r archive-visits-fwcal}
-table_label <- "Visits"
-visits_redownload <- mnmgwdb$query_table(table_label) %>% 
-  filter(is.na(archive_version_id)) %>%
-  select(-archive_version_id)
+trgtab <- mnmgwdb$get_namestring("Visits")
+srctab <- mnmgwdb$get_namestring("FieldworkCalendar")
+link_key_column <- "archive_version_id"
+lookup_criteria <- c("TRGTAB.fieldworkcalendar_id = SRCTAB.fieldworkcalendar_id")
 
-fwcal_lookup <- mnmgwdb$query_table("FieldworkCalendar") %>% 
-  filter(!is.na(archive_version_id)) %>%
-  select(fieldworkcalendar_id, archive_version_id)
+update_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      {link_key_column} = SRCTAB.{link_key_column}
+    FROM {srctab} AS SRCTAB
+    WHERE
+     ({paste0(lookup_criteria, collapse = ') AND (')})
+  ;")
 
-visits_archive <- visits_redownload %>%
-  left_join(fwcal_lookup, by = join_by(fieldworkcalendar_id)) %>%
-  select(visit_id, archive_version_id) %>%
-  filter(!is.na(archive_version_id))
+mnmgwdb$execute_sql(update_string)
 
-update_existing_data(
-  mnmdb = mnmgwdb,
-  table_label = table_label,
-  changed_data = visits_archive,
-  input_precedence_columns = precedence_columns[[table_label]],
-  reference_columns = c(mnmgwdb$get_primary_key(table_label))
-)
+mnmgwdb$query_table("FieldworkCalendar") %>%
+  anti_join(
+    mnmgwdb$query_table("Visits"),
+    by = join_by(fieldworkcalendar_id, archive_version_id)
+  ) %>% nrow()
 
 ```
 
@@ -1109,91 +1409,11 @@ update_existing_data(
 
 
 
-## LocationCells
-
-```{r update-location-cells}
-
-locations_grts <- mnmgwdb$query_columns(
-    table_label = "Locations",
-    select_columns = c("grts_address", "location_id")
-  )
-
-units_cell_polygon[["grts_address_final"]] <-
-  as.integer(units_cell_polygon[["grts_address_final"]])
-# units_cell_polygon %>% filter(grts_address_final == 922230)
-
-# unit geometries (cells):
-location_cells <-
-  units_cell_polygon %>%
-  inner_join(
-    locations_grts %>% distinct,
-    by = join_by(grts_address_final == grts_address),
-    relationship = "one-to-many",
-    unmatched = "drop"
-  ) %>%
-  select(-grts_address_final) %>%
-  relocate(geometry, .after = last_col())
-
-sf::st_geometry(location_cells) <- "wkb_geometry"
-# glimpse(location_cells)
-
-# location_cells %>%
-#   filter(location_id == 409)
-# location_cells %>%
-#   filter(location_id == 527)
-
-
-message("________________________________________________________________")
-message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
-
-mnmgwdb$execute_sql(
-  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
-  verbose = TRUE
-)
-
-mnmgwdb$insert_data(
-  table_label = "LocationCells",
-  upload_data = location_cells
-)
-
-
-loceval_connection <- connect_mnm_database(
-  config_filepath = config_filepath,
-  database = "loceval",
-  user = "monkey",
-  password = NA
-)
-
-extra_cells <- loceval_connection$query_table("ReplacementCells") %>%
-  left_join(
-    loceval_connection$query_table("Replacements") %>%
-      select(-wkb_geometry),
-    by = join_by(replacement_id)
-  ) %>%
-  select(-grts_address) %>%
-  rename(grts_address = grts_address_replacement) %>%
-  inner_join(
-    locations_grts,
-    by = join_by(grts_address)
-  ) %>%
-  select(location_id, wkb_geometry) %>%
-  distinct %>%
-  anti_join(
-    location_cells,
-    by = join_by(location_id)
-  )
-
-mnmgwdb$insert_data(
-  table_label = "LocationCells",
-  upload_data = extra_cells
-)
-```
-
 ## LocationInfos
 
 ```{r update-locationinfos}
 
-new_locinfos <- sample_locations %>%
+new_locinfos <- sample_units %>%
   distinct(
     grts_address
   ) %>%
@@ -1259,7 +1479,14 @@ if (isFALSE(grepl("-staging", mnmgwdb_mirror))) {
 
 
 ```{r launch-consistency-dashboard}
-system("quarto render 046_mnmgwdb_consistency_dashboard.qmd --to html")
+
+out <- processx::run(
+  "quarto",
+  c("render", "046_mnmgwdb_consistency_dashboard.qmd", "--to", "html"),
+  echo = TRUE,
+  spinner = TRUE
+)
+
 ```
 
 

@@ -248,7 +248,7 @@ activity_groupid_lookup <- locevaldb$query_columns(
 
 ```{r load-activities}
 
-field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
+loceval_field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
   filter(is_loceval_activity, is_field_activity) %>%
   distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
@@ -257,7 +257,8 @@ field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
 
 ## Freeze Past Fixture
 
-Here, it would be time to
+Here, it would be time to generate the latest FREEZE,
+but only if the `date_fixing` changed in the latest `"metadata"."Versions"`.
 
 ```{r generate_freeze_calendar}
 #| eval: false
@@ -298,7 +299,7 @@ TODO: need to sideload future units from LocationAssessments
 ```{r assemble-sample-units-old}
 #| eval: false
 
-# this is exclusively about structure;
+# this check exclusively about structure;
 # the data loaded is already from the new REP
 sample_units_old <-
   fag_stratum_grts_calendar %>%
@@ -309,7 +310,7 @@ sample_units_old <-
     grts_address
   ) %>%
   unnest(scheme_moco_ps) %>%
-  # adding location attributes
+  # joining location attributes
   inner_join(
     scheme_moco_ps_stratum_targetpanel_spsamples %>%
       select(
@@ -426,6 +427,13 @@ sample_unit_columns <- c(
 
 sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
+  # only retain the activities for biotic tasks
+  # otherwise there are duplicates
+  #     (`schemes` filled differently on other activities)
+  semi_join(
+    loceval_field_activities_db,
+    by = join_by(field_activity_group == activity_group)
+  ) %>% 
   rename(
     has_mhq_assessment = last_type_assessment_in_field,
     mhq_assessment_date = last_type_assessment,
@@ -595,6 +603,45 @@ stitch_table_connection(
 
 ```
 
+
+## location cells
+
+```{r new-location-cells}
+
+units_cell_polygon[["grts_address_final"]] <-
+  as.integer(units_cell_polygon[["grts_address_final"]])
+
+# unit geometries (cells):
+location_cells <-
+  units_cell_polygon %>%
+  inner_join(
+    locations_lookup,
+    by = join_by(grts_address_final == grts_address),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(-grts_address_final) %>%
+  relocate(geometry, .after = last_col())
+
+sf::st_geometry(location_cells) <- "wkb_geometry"
+# glimpse(location_cells)
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
+
+locevaldb$execute_sql(
+  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
+  verbose = TRUE
+)
+
+locevaldb$insert_data(
+  table_label = "LocationCells",
+  upload_data = location_cells
+)
+
+```
+
+
 ## Sample Units
 
 ```{r porcess-sample-units}
@@ -694,44 +741,6 @@ sampleunits_lookup <- redistribute_calendar_data(
 )
 
 ```
-
-## location cells
-
-```{r new-location-cells}
-
-units_cell_polygon[["grts_address_final"]] <-
-  as.integer(units_cell_polygon[["grts_address_final"]])
-
-# unit geometries (cells):
-location_cells <-
-  units_cell_polygon %>%
-  inner_join(
-    locations_lookup,
-    by = join_by(grts_address_final == grts_address),
-    relationship = "one-to-many",
-    unmatched = "drop"
-  ) %>%
-  select(-grts_address_final) %>%
-  relocate(geometry, .after = last_col())
-
-sf::st_geometry(location_cells) <- "wkb_geometry"
-# glimpse(location_cells)
-
-message("________________________________________________________________")
-message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
-
-locevaldb$execute_sql(
-  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
-  verbose = TRUE
-)
-
-locevaldb$insert_data(
-  table_label = "LocationCells",
-  upload_data = location_cells
-)
-
-```
-
 
 
 ## FieldActivityCalendar
@@ -841,7 +850,7 @@ fieldwork_calendar_old <-
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(field_activities_db, by = join_by(activity_group)) %>%
+  semi_join(loceval_field_activities_db, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
@@ -852,7 +861,6 @@ fieldwork_calendar_old <-
     across(c(
         type,
         grts_join_method,
-        date_interval,
         domain_part,
         date_interval
       ),
@@ -897,7 +905,7 @@ fieldwork_calendar_columns <- c(
 
 fieldcalendar_characols <- c(
   "grts_address",
-  "type", 
+  "type",
   "activity_group_id",
   "date_start"
 )
@@ -917,7 +925,7 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(field_activities_db, by = join_by(activity_group)) %>%
+  semi_join(loceval_field_activities_db, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
@@ -966,7 +974,7 @@ fieldwork_calendar_retained <- loceval_freeze %>%
   select(-is_frozen) %>%
   mutate(is_frozen = TRUE) %>%
   left_join(
-    field_activities_db %>%
+    loceval_field_activities_db %>%
       distinct(activity_group) %>% 
       left_join(activity_groupid_lookup, by = join_by(activity_group)) %>%
       select(activity_group_id) %>%
@@ -1113,30 +1121,33 @@ locevaldb$query_table("FieldActivityCalendar") %>%
 
 ```{r stitch-visits}
 
-# link Visits back to upstream tables
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "FieldActivityCalendar",
-  link_key_column = "fieldactivitycalendar_id",
-  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
-)
-
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type")
-)
-
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "Locations",
-  link_key_column = "location_id",
-  lookup_columns = c("grts_address")
-)
+stitch_visits <- function() {
+  # link Visits back to upstream tables
+  stitch_table_connection(
+    mnmdb = locevaldb,
+    table_label = "Visits",
+    reference_table = "FieldActivityCalendar",
+    link_key_column = "fieldactivitycalendar_id",
+    lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+  )
+  
+  stitch_table_connection(
+    mnmdb = locevaldb,
+    table_label = "Visits",
+    reference_table = "SampleUnits",
+    link_key_column = "sampleunit_id",
+    lookup_columns = c("grts_address", "type")
+  )
+  
+  stitch_table_connection(
+    mnmdb = locevaldb,
+    table_label = "Visits",
+    reference_table = "Locations",
+    link_key_column = "location_id",
+    lookup_columns = c("grts_address")
+  )
+}
+stitch_visits()
 
 ```
 
@@ -1205,12 +1216,14 @@ locevaldb$query_table("FieldActivityCalendar") %>%
 
 
 ```{r assemble-new-visits}
+stop("WAIT which wone was it?")
 
-visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
+visits_characols <- fieldcalendar_characols
+# visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
 
 potential_visits <- fieldworkcalendar_lookup %>%
   select(
-    !!!rlang::syms(visits_characols)
+    !!!rlang::syms(c("fieldactivitycalendar_id", visits_characols))
   ) %>%
   left_join(
     locations_lookup,
@@ -1255,21 +1268,7 @@ locevaldb$query_table("Visits") %>%
 
 ```{r reconnect-visits}
 
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type") 
-)
-
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "FieldActivityCalendar",
-  link_key_column = "fieldactivitycalendar_id",
-  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
-)
+stitch_visits()
 
 
 locevaldb$query_table("Visits") %>% 

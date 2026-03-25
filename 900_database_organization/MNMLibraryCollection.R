@@ -129,6 +129,7 @@ reload_rep_code_snippets <- function(fresh_snippet_path = NULL, to_env = NULL) {
   source_snippet_supplements <- function(file_name) {
     source(file.path(snippet_base_path, "020_fieldwork_organization", "R", file_name))
   }
+  source_snippet_supplements("system_helpers.R")
   source_snippet_supplements("misc.R")
   source_snippet_supplements("repetitive_join_functions.R")
   source_snippet_supplements("grts.R")
