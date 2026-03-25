@@ -250,9 +250,9 @@ join_location_attributes_via_moco <- function(.data) {
 #'
 extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
 
-  require_library_check("stringr")()
-  require_library_check("dplyr")()
-  require_library_check("purrr")()
+  check_presence_of_required_library("stringr")()
+  check_presence_of_required_library("dplyr")()
+  check_presence_of_required_library("purrr")()
 
   if (isFALSE("scheme_ps_targetpanels" %in% names(.data))) {
     message("WARNING: extraction of `schemes` requires the column `scheme_ps_targetpanels`.")

@@ -6,10 +6,10 @@
 #' @param package_name the name of the package
 #' @param load_namespace whether to use `require` (TRUE) to attach the package
 #'
-#' @example require_library_check("dplyr", load_namespace = TRUE)()
-#' @example require_library_check("uninstalled_package")()
+#' @example check_presence_of_required_library("dplyr", load_namespace = TRUE)()
+#' @example check_presence_of_required_library("uninstalled_package")()
 #'
-require_library_check <- function(package_name, load_namespace = FALSE) {
+check_presence_of_required_library <- function(package_name, load_namespace = FALSE) {
 
   if (load_namespace) {
     stopifnot("missing library `glue`" = require("glue"))
