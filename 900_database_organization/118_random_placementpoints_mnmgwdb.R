@@ -39,15 +39,27 @@ loceval_connection <- connect_mnm_database(
 
 
 ### info from REP
-if (TRUE){
-load_rep_common_libraries()
-load_rep_rdata(reload = FALSE, to_env = globalenv())
+if (TRUE) {
 
-# ... and code snippets.
-snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-load_rep_code_snippets(snippets_path)
+  tic <- function(toc) round(Sys.time() - toc, 1)
+  toc <- Sys.time()
 
-verify_rep_objects()
+  snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+  # TEMPORARY adjustment pointing to adjacent branch (wip)
+  snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+  fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+  reload_rep_code_snippets(fresh_snippet_path)
+  message(glue::glue("Good morning!
+    Loading the REP data and snippets took {tic(toc)} seconds today."
+  ))
+
+  verify_rep_objects()
+
+  if (nrow(different_checksums) > 0) {
+    knitr::kable(different_checksums)
+  }
+
 
 }
 
@@ -477,23 +489,23 @@ message("________________________________________________________________")
 
 if (FALSE) {
 
-"""
-\COPY (
-    SELECT samplelocation_id,
-      location_id,
-      grts_address,
-      random_point_rank,
-      compass,
-      angle,
-      angle_look,
-      distance_m,
-      lambert_lon,
-      lambert_lat
-    FROM "outbound"."RandomPoints"
-    WHERE angle IS NOT NULL
-    ORDER BY grts_address ASC, random_point_rank ASC
-) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
-;
-"""
+# """
+# \COPY (
+#     SELECT samplelocation_id,
+#       location_id,
+#       grts_address,
+#       random_point_rank,
+#       compass,
+#       angle,
+#       angle_look,
+#       distance_m,
+#       lambert_lon,
+#       lambert_lat
+#     FROM "outbound"."RandomPoints"
+#     WHERE angle IS NOT NULL
+#     ORDER BY grts_address ASC, random_point_rank ASC
+# ) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
+# ;
+# """
 
 }

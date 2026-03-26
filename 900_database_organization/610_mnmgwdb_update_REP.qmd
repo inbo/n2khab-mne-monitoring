@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload"
-date: "2025-06-27, 2025-09-04, 2026-03-09"
+date: "2025-06-27, 2025-09-04, 2026-03-09, 2026-03-26"
 format:
   html:
     toc: true
@@ -121,8 +121,8 @@ if (nrow(different_checksums) > 0) {
 ```{r connect-databases}
 
 config_filepath <- file.path("./mnm_database_connection.conf")
-suffix <- "-staging"
-# suffix <- ""
+# suffix <- "-staging"
+suffix <- ""
 
 # ... and mnmgwdb
 mnmgwdb_mirror <- glue::glue("mnmgwdb{suffix}")
@@ -334,6 +334,7 @@ mnmgwdb_freeze <-
 ## Replacements
 
 ```{r refresh-replacements}
+#| eval: false
 
 out <- processx::run(
   "Rscript",
@@ -345,6 +346,7 @@ out <- processx::run(
 ```
 
 ```{r load-replacement-lookup}
+
 replacement_lookup <- mnmgwdb$query_columns(
     "ReplacementData",
     c(
@@ -688,7 +690,7 @@ mnmgwdb$insert_data(
 
 extra cells from replacements
 
-```{r}
+```{r extra-ceplacement-locationcells}
 
 loceval_sideload <- connect_mnm_database(
   config_filepath = config_filepath,
@@ -1359,6 +1361,7 @@ only_visits_lookup <- upload_and_lookup(
 
 
 ```
+
 
 
 ```{r reconnect-visits}
