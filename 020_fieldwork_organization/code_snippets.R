@@ -978,6 +978,7 @@ fieldwork_shortterm_prioritization_by_stratum <-
     wait_3260,
     wait_7220,
     wait_floating,
+    wait_mhq,
     wait_any,
     stratum,
     grts_address,

@@ -166,6 +166,7 @@ generate_wait_columns <- function(.data) {
       wait_3260 = stratum == "3260",
       wait_7220 = str_detect(stratum, "^7220"),
       wait_floating = stratum == "7140_mrd",
+      wait_mhq = str_detect(scheme_ps_targetpanels, "^HQ.*?(?!\\|)"),
       wait_any = if_any(starts_with("wait"))
     ) %>%
     dplyr::relocate(wait_any, .before = wait_watersurface) %>%
