@@ -180,14 +180,15 @@ join_location_attributes_via_moco <- function(.data) {
           module_combo_code,
           panel_set,
           stratum,
+          domain_part,
           grts_join_method,
           grts_address,
           grts_address_final,
           # retaining 3 cols that drive subsampling location(s) in the unit:
           is_forest,
           in_mhq_samples,
+          last_type_assessment,
           last_type_assessment_in_field,
-          domain_part,
           targetpanel
         ) %>%
         # deduplicating 7220:
@@ -225,6 +226,44 @@ join_location_attributes_via_moco <- function(.data) {
     dplyr::relocate(grts_join_method, .after = grts_address_final) %>%
     dplyr::relocate(scheme_ps_oldtargetpanel, .before = date_start) %>%
     dplyr::select(-module_combo_code) %>%
+    return()
+
+}
+
+
+#' extract all `schemes` from the `scheme_ps_targetpanels` of a dataframe
+#'
+extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
+
+  check_presence_of_required_library("stringr")()
+  check_presence_of_required_library("dplyr")()
+  check_presence_of_required_library("purrr")()
+
+  if (isFALSE("scheme_ps_targetpanels" %in% names(.data))) {
+    message("WARNING: extraction of `schemes` requires the column `scheme_ps_targetpanels`.")
+    return(.data)
+  }
+
+  if ("schemes" %in% names(.data)) {
+    message("WARNING: column `schemes` is already found in the data -> NOOP.")
+    return(.data)
+  }
+
+  extract_and_flatten_scheme_ <- function(txt) {
+    txt %>%
+      stringr::str_split("\\|") %>%
+      purrr::map(stringr::str_trim) %>%
+      purrr::map(\(schpata) sub(":.*", "", schpata)) %>%
+      purrr::map(\(schpata) sort(unique(schpata))) %>%
+      purrr::map(stringr::str_flatten, "|") %>%
+      unlist() %>%
+      return()
+  }
+
+  .data %>%
+    dplyr::mutate(
+      schemes = extract_and_flatten_scheme_(scheme_ps_targetpanels )
+    ) %>%
     return()
 
 }

@@ -36,6 +36,7 @@ source_snippet_supplements <- function(file_name) {
 
 ## helper functions -----------------------------------------------------
 # Load custom functions from source files
+source_snippet_supplements("system_helpers.R")
 source_snippet_supplements("misc.R")
 source_snippet_supplements("repetitive_join_functions.R")
 source_snippet_supplements("grts.R")
