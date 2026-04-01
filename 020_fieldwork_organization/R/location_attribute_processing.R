@@ -2,20 +2,8 @@
 
 #' Nesting scheme, panelset, targetpanel; optional unique flattening
 #'
-#' merging scheme:module_combo_code:panel_set:targetpanel, still distinguishing
-#' strata separately (even though they may share their location: this is unreal
-#' in the case of multiple cell-centered strata). For now, not distinguishing
-#' module_combo as explained above.
-#' OR:
 #' flatten scheme x panel set x targetpanel to unique strings per stratum x
-#' location x FAG occasion. Note that the scheme_ps_targetpanels attribute is a
-#' shrinked version of the one at the level of the whole sample (see sampling
-#' unit attributes in the beginning), since we limited the activities to those
-#' planned before main_year + 1 (sometimes later), and then generate
-#' stratum_scheme_ps_targetpanels as a location attribute. So it says
-#' specifically which schemes x panel sets x targetpanels are served by the
-#' specific fieldwork at a specific date interval.
-#'
+#' location x FAG occasion.
 nest_and_flatten_scheme_ps_targetpanel <- function(
     .data,
     use_unique = FALSE,
@@ -143,10 +131,7 @@ generate_extra_scheme_attributes <- function(.data) {
 
 
 
-#' Derive an object where stratum x scheme_ps_targetpanels is flattened per
-#' location x FAG occasion. Beware that in reality, more locations will emerge
-#' due to local replacement, so this is misleading for counting & planning (but
-#' useful in spatial visualization).
+#' Unite stratum, GRTS join method and scheme_ps_targetpanels columns
 unite_stratum_and_schemepstargetpanels <- function(.data) {
   .data %>%
     mutate(
