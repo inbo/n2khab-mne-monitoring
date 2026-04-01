@@ -39,8 +39,14 @@ suffix <- "-staging" # "-testing"
 
 choose a GRTS
 
+
 ```{r choose-grts}
-grts <- c(2438198) 
+# filter(grts_address %in% c(1999406, 6417454))
+grts <- c(12401, 11825, 13686)
+    # c(1999406, 6417454) # replacement happened; but location went to archive 7
+    # c(50354734, 20994606) # replacement happened; but location went to archive 7
+    # c(22021842) # potential frozen duplicate
+    # c(437685, 8826293) # grts from shortterm gpkg which did not appear on database
     # c(11561) # favorite testing location in Kruibeke
     # c(21329) # random SOIL_03.2 location
     # c(111326, 881374) # MNM team praatje location -> fieldwork knowledge transfer 20260203

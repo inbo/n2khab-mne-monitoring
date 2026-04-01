@@ -14,6 +14,10 @@
 if (!exists("snippet_base_path")) {
   snippet_base_path <- rprojroot::find_root(is_git_root)
 }
+
+source_snippet_supplements <- function(file_name) {
+  source(file.path(snippet_base_path, "020_fieldwork_organization", "R", file_name))
+}
 # Checking the existence of the correct data source files in the correct
 # directories
 versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
@@ -23,9 +27,6 @@ verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
 ## helper functions -----------------------------------------------------
 # Load custom functions from source files
-source_snippet_supplements <- function(file_name) {
-  source(file.path(snippet_base_path, "020_fieldwork_organization", "R", file_name))
-}
 source_snippet_supplements("system_helpers.R")
 source_snippet_supplements("misc.R")
 source_snippet_supplements("repetitive_join_functions.R")
@@ -96,8 +97,10 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
   distinct(scheme, module_combo_code) %>%
   {nrow(.) == nrow(distinct(., scheme))}
 
-
-# nest scheme, panelset, targetpanel for spsamples
+# nesting scheme, panel set, targetpanel, still distinguishing strata separately
+# (even though they may share their location: this is unreal in the case of
+# multiple cell-centered strata). For now, not distinguishing module_combo as
+# explained above.
 stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
   select(-module_combo_code) %>%
@@ -111,7 +114,7 @@ stratum_schemepstargetpanel_spsamples <-
 # place using grts_address as the anchor, provided that the type still occurs in
 # the polygon. If not, the absence must be noted and sampling frame + sample are
 # to be updated.
-if(interactive()) {
+if (interactive()) {
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
     filter(grts_address != grts_address_final) %>%
     glimpse()
@@ -864,8 +867,16 @@ scheme_moco_fa_fieldvar <-
 # This section is primarily intended as support for fieldwork planning by the
 # compartment scheme responsible, who will use these R objects directly.
 
-# Derive the short-term FAG calendar at the stratum x location x FAG occasion, and
-# include some of the location attributes.
+# Derive the short-term FAG calendar at the stratum x location x FAG occasion,
+# and include some of the location attributes.
+#
+# Note that the scheme_ps_targetpanels attribute created below by
+# nest_and_flatten_scheme_ps_targetpanel() is a shrinked version of the one at
+# the level of the whole sample (see sampling unit attributes in the beginning),
+# since we limited the activities to those planned before main_year + 1
+# (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
+# location attribute. So it says specifically which schemes x panel sets x
+# targetpanels are served by the specific fieldwork at a specific date interval.
 main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
@@ -889,7 +900,10 @@ fag_stratum_grts_calendar_shortterm_attribs <-
     starts_with("nr_schemes")
   )
 
-
+# Derive an object where stratum x scheme_ps_targetpanels is flattened per
+# location x FAG occasion. Beware that in reality, more locations will emerge
+# due to local replacement, so this is misleading for counting & planning (but
+# useful in spatial visualization).
 fag_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar_shortterm_attribs %>%
   select(
@@ -929,6 +943,7 @@ fieldwork_shortterm_prioritization_by_stratum <-
     wait_3260,
     wait_7220,
     wait_floating,
+    wait_mhq,
     wait_any,
     stratum,
     grts_address,
@@ -1096,11 +1111,11 @@ different_checksums <-
 if (nrow(different_checksums) > 0) {
   warning(
     "Different checksums detected than expected.",
-    "\nPlease inspect the object `different_checksums`."
+    "\nPlease inspect the object `different_checksums, shown below`."
   )
+  different_checksums %>%
+    knitr::kable()
 } else {
   message("All loaded objects are identical to their reference :-)")
 }
 
-different_checksums %>%
-  knitr::kable()

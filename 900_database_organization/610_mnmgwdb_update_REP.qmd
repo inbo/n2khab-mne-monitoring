@@ -22,25 +22,7 @@ Let's bring the sample to the field - again!
 
 
 In all brevity, I collect steps here to get a new REP to the database.
-
-# Notes and TODOs
-
-- <20260309> check that the order of sideloading is sufficient:
-  - first: get `Locations` GRTS list from {status quo database + rep news}
-  - much later: sideload
-  - sideloaded, ex-REP locations should be uploaded, too
-  - but then, how would their `archive_version_id` status be?
-
-# preparation
-
-## backup
-
-1. Make sure to manually trigger backups.
-  - `ssh` to the server
-  - execute scripts in `~/backups`
-  - bring files home with `scp`
-
-2. Mirrors: try everything on `testing` and then `staging`, first.
+staging`, first.
   - The `testing` mirror (data sync with `033_populate_testing_db.R`) is open for play and can taken even rough rides, and for that user permissions differ on there. No guarantee that the data is correct.
   - On `staging`, everything is exactly identical to the production server (even permissions and user roles), because it gets synced with the dump/restore commands below.
   - use the `suffix` to control database connections below.
@@ -121,8 +103,8 @@ if (nrow(different_checksums) > 0) {
 ```{r connect-databases}
 
 config_filepath <- file.path("./mnm_database_connection.conf")
-# suffix <- "-staging"
-suffix <- ""
+suffix <- "-staging"
+# suffix <- ""
 
 # ... and mnmgwdb
 mnmgwdb_mirror <- glue::glue("mnmgwdb{suffix}")
@@ -314,6 +296,9 @@ mnmgwdb_freeze <-
   )
 
 # mnmgwdb_freeze %>% glimpse()
+# mnmgwdb_freeze %>%
+#   filter(grts_address %in% c(1999406, 6417454)) %>% 
+#   t() %>% knitr::kable()
 ```
 
 
@@ -418,6 +403,12 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
     ), as.character)
   )
 
+sample_units_updated %>% 
+  filter(grts_address %in% c(1999406, 6417454)) %>%
+  t() %>% knitr::kable()
+fag_stratum_grts_calendar_shortterm_attribs %>%
+  filter(grts_address %in% c(1999406, 6417454)) %>%
+  t() %>% knitr::kable()
 
 ```
 
@@ -462,6 +453,9 @@ sample_units <- bind_rows(
 )
 
 # sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
+sample_units_retained %>% 
+  filter(grts_address %in% c(1999406, 6417454)) %>%
+  t() %>% knitr::kable()
 
 ```
 
@@ -512,6 +506,8 @@ distribution <- categorize_data_update(
   exclude_columns = c("wkb_geometry")
 )
 print_category_count(distribution, table_label)
+
+# distribution$to_upload %>% glimpse()
 
 ```
 
@@ -653,6 +649,10 @@ sample_units <- sample_units %>%
   ) %>%
   distinct()
 
+
+sample_units %>% 
+  filter(grts_address %in% c(1999406, 6417454)) %>%
+  t() %>% knitr::kable()
 ```
 
 
@@ -734,9 +734,17 @@ fieldcalendar_characols <- c(
 )
 
 
+fieldwork_shortterm_prioritization_by_stratum %>%
+  apply_local_replacement_to_grts() %>% 
+  filter(grts_address %in% c(1999406, 6417454)) %>%
+  t() %>% knitr::kable()
+samplelocations_lookup %>% 
+  filter(grts_address %in% c(1999406, 6417454)) %>%
+  t() %>% knitr::kable()
 
 fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
+  apply_local_replacement_to_grts() %>% 
   # rename(type = stratum) %>%
   inner_join(
     samplelocations_lookup %>% rename(stratum = strata),
@@ -770,7 +778,11 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
 
 # fieldwork_calendar_updated %>% glimpse()
 # fieldwork_calendar_updated %>% count(priority)
-  
+
+fieldwork_calendar_updated %>% 
+  filter(grts_address %in% c(1999406, 6417454)) %>%
+  t() %>% knitr::kable()
+
 ```
 
 
@@ -1279,8 +1291,8 @@ out <- processx::run(
 
 
 ```{sql}
-#| eval: false
-#| echo: true
+--| eval: false
+--| echo: true
 
 -- to https://docs.google.com/spreadsheets/d/11_0sACvkvX_teOO_nJmTxYSV4-EzOWtxJYE1QNkStAc/edit
 \COPY (
