@@ -18,11 +18,6 @@ if (!exists("snippet_base_path")) {
 source_snippet_supplements <- function(file_name) {
   source(file.path(snippet_base_path, "020_fieldwork_organization", "R", file_name))
 }
-# Checking the existence of the correct data source files in the correct
-# directories
-versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
-verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
-
 
 
 ## helper functions -----------------------------------------------------
@@ -34,6 +29,12 @@ source_snippet_supplements("grts.R")
 source_snippet_supplements("grts_mh.R")
 source_snippet_supplements("location_attribute_processing.R")
 source_snippet_supplements("calendar_operations_and_priorities.R")
+
+# Checking the existence of the correct data source files in the correct
+# directories
+versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
+verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+
 
 
 ## Sampling unit attributes -----------------------------
@@ -67,6 +68,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
     scheme,
     module_combo_code,
     panel_set,
+    targetpanel,
     stratum,
     # 'aquatic' column will be improved for 7220 later on (now it simply has a
     # duplication (TRUE + FALSE) of all locations)
@@ -77,7 +79,6 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
     grts_address,
     grts_address_final,
     domain_part,
-    targetpanel,
     in_mhq_samples,
     last_type_assessment = assessment_date,
     last_type_assessment_in_field = assessed_in_field,
@@ -897,7 +898,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
   join_location_attributes_via_moco() %>%
-  nest_and_flatten_scheme_ps_targetpanel(use_unique = TRUE) %>%
+  nest_and_flatten_scheme_ps_targetpanel() %>%
   relocate(
     scheme_ps_targetpanels,
     schemes_served_all,
