@@ -186,7 +186,7 @@ convert_level0_to_level3 <- function(
 #'
 rename_grts_address_final_to_grts_address <- function(.data, keep_original = FALSE) {
 
-  stopifnot("dplyr" = require("dplyr"))
+  require_pkgs(c("dplyr"))
   stopifnot("magrittr" = require("magrittr"))
 
   .data %<>%

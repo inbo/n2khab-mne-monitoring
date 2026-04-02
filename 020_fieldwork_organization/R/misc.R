@@ -14,9 +14,20 @@
 #'
 #' @param df A data frame with a `stratum` column.
 collapse_strata <- function(df) {
+
+  require_pkgs("dplyr")
+
+  if (!exists("n2khab_strata_expanded")) {
+    stop(
+      " (in function `collapse_strata`)",
+      "\n\tlookup `n2khab_strata_expanded` is missing.",
+      "\n\tPlease load the REP `*.RData` file first."
+    )
+  }
+
   df %>%
-    mutate(
-      stratum = recode_values(
+    dplyr::mutate(
+      stratum = dplyr::recode_values(
         stratum,
         "5130_hei" ~ "5130",
         "5130_kalk" ~ "5130",
@@ -26,8 +37,8 @@ collapse_strata <- function(df) {
         default = stratum
       )
     ) %>%
-    left_join(
-      tribble(
+    dplyr::left_join(
+      dplyr::tribble(
         ~main_type, ~subtype,
         "2330", "2330_bu",
         "2330", "2330_dw",
@@ -41,21 +52,23 @@ collapse_strata <- function(df) {
       by = c("stratum" = "main_type"),
       relationship = "many-to-many"
     ) %>%
-    mutate(
+    dplyr::mutate(
       stratum = ifelse(is.na(subtype), stratum, subtype) %>%
         as.character() %>%
         factor(levels = levels(n2khab_strata_expanded$stratum))
     ) %>%
-    select(-subtype)
+    dplyr::select(-subtype)
 }
 
 
 
 #' subset data to proceed only on `cell`-type sample support code
 filter_for_cells <- function(.data) {
+  require_pkgs(c("stringr", "dplyr"))
+
   .data %>%
-    filter(
-      str_detect(sample_support_code, "cell")
+    dplyr::filter(
+      stringr::str_detect(sample_support_code, "cell")
     ) %>%
     return()
 }

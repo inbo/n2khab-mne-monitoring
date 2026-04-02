@@ -1,30 +1,62 @@
 
-#' require a library at some other place
+#' Check availability of required packages
 #'
-#' optionally loading it to namespace via `require`
+#' Takes a vector of package names and passes each name to
+#' \code{\link[base:ns-load]{requireNamespace()}};
+#' if package(s) are missing, returns an error message providing the basic
+#' \code{install.packages()} command to install them.
 #'
-#' @param package_name the name of the package
-#' @param load_namespace whether to use `require` (TRUE) to attach the package
+#' @param pkgs A character vector of package names.
+#' @param quietly logical: should progress and error messages be suppressed?
+#'                (from ?loadNamespace)
+#' @param ... further parameters passed to `require` or `requireNamespace`
 #'
-#' @example check_presence_of_required_library("dplyr", load_namespace = TRUE)()
-#' @example check_presence_of_required_library("uninstalled_package")()
+#' @examples
+#' \dontrun{
+#'   require_pkgs(c("a", "base", "b", "magrittr"))
+#'   # not_attached <- any(devtools::loaded_packages() == "magrittr") == FALSE
+#' }
 #'
-check_presence_of_required_library <- function(package_name, load_namespace = FALSE) {
+#' @keywords internal
+require_pkgs <- function(pkgs, quietly = TRUE, ...) {
 
-  if (load_namespace) {
-    stopifnot("missing library `glue`" = require("glue"))
+  # verify user input
+  assertthat::assert_that(is.character(pkgs))
+
+  # FAILED: select the loading function
+  # PROBLEM: require just attaches to this function's environment
+  #  @param attach Optionally attach the package namespace to search path.
+  if (FALSE) {
+    the_loading_function <- \(pkg) require(
+      pkg,
+      quietly = quietly,
+      character.only = TRUE,
+      ...
+    )
   } else {
-    stopifnot("missing library `glue`" = requireNamespace("glue"))
+    the_loading_function <- \(pkg) requireNamespace(
+      pkg,
+      quietly = quietly,
+      ...
+    )
   }
 
-  # ref: https://impaulchung.wordpress.com/2013/01/09/r-tip-str-command/
-  text_to_eval <- glue::glue(
-    ' stopifnot(
-        "missing library `{package_name}`" = requireNamespace("{package_name}")
-      )
-    ')
+  # check availability of the package
+  available <- vapply(pkgs, the_loading_function, FUN.VALUE = TRUE)
 
-  # this should better happen in the target function
-  return( \() eval(parse(text = text_to_eval)) )
+  # feedback availability
+  if (!all(available)) {
+    multiple <- sum(!available) > 1
+    stop(ifelse(multiple, "Multiple", "A"),
+         " package",
+         ifelse(multiple, "s", ""),
+         " needed for this function ",
+         ifelse(multiple, "are", "is"),
+         " missing.\nPlease install as follows: install.packages(",
+         deparse(pkgs[!available]),
+         ")",
+         call. = FALSE
+    )
+  }
 
-}
+} # /require_pkgs

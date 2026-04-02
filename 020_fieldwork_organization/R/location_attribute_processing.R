@@ -70,8 +70,7 @@ concatenate_stratum_scheme_ps_targetpanels <- function(.data) {
 #' quick-select activities which are part of the groundwater scheme
 flag_groundwater_scheme_has_gw <- function(.data) {
 
-  stopifnot("stringr" = require("stringr"))
-  stopifnot("dplyr" = require("dplyr"))
+  require_pkgs(c("stringr", "dplyr"))
   stopifnot("magrittr" = require("magrittr"))
 
   if ("scheme" %in% names(.data)) {
@@ -87,7 +86,7 @@ flag_groundwater_scheme_has_gw <- function(.data) {
 
   } else if ("scheme_moco_ps" %in% names(.data)) {
 
-    stopifnot("purrr" = require("purrr"))
+    require_pkgs(c("purrr"))
 
     .data %<>%
       dplyr::mutate(
@@ -235,9 +234,8 @@ join_location_attributes_via_moco <- function(.data) {
 #'
 extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
 
-  check_presence_of_required_library("stringr")()
-  check_presence_of_required_library("dplyr")()
-  check_presence_of_required_library("purrr")()
+  if (!exists("require_pkgs")) stop("Please source the `system_helpers.R` script first.")
+  require_pkgs(c("stringr", "dplyr", "purrr"))
 
   if (isFALSE("scheme_ps_targetpanels" %in% names(.data))) {
     message("WARNING: extraction of `schemes` requires the column `scheme_ps_targetpanels`.")
