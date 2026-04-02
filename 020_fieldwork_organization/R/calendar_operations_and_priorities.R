@@ -8,7 +8,6 @@ filter_until_year_max_except_first_auxiliary_activities_gw <- function(
     remove_has_gw = FALSE
   ) {
 
-
   require_pkgs(c("stringr", "lubridate", "dplyr"))
   stopifnot("magrittr" = require("magrittr"))
 
@@ -53,9 +52,31 @@ filter_until_year_max_except_first_auxiliary_activities_gw <- function(
 }
 
 
+#' update the `date_interval`,
+#' by simply overwriting it with `date_start` and `date_end`
+update_date_interval <- function(.data) {
+
+  require_pkgs(c("dplyr", "lubridate"))
+  stopifnot("magrittr" = require("magrittr"))
+
+  .data %>%
+    dplyr::mutate(
+      date_interval = lubridate::interval(
+        lubridate::force_tz(date_start, "Europe/Brussels"),
+        lubridate::force_tz(date_end, "Europe/Brussels")
+      )
+    ) %>%
+    return()
+
+}
+
+
 #' move the LOCEVAL fieldwork that was kept for main_year - 1, to main_year,
 #' since that is indeed its meaning
 postpone_selected_past_activities <- function(.data) {
+
+  require_pkgs(c("dplyr", "lubridate"))
+  stopifnot("magrittr" = require("magrittr"))
 
   # .data %>%
   #   count(date_start, date_end, date_interval) %>%
@@ -70,12 +91,9 @@ postpone_selected_past_activities <- function(.data) {
           x + lubridate::years(1),
           x
         )
-      }),
-      date_interval = lubridate::interval(
-        lubridate::force_tz(date_start, "Europe/Brussels"),
-        lubridate::force_tz(date_end, "Europe/Brussels")
-      )
+      })
     ) %>%
+    update_date_interval() %>%
     return()
 
 }
@@ -83,7 +101,9 @@ postpone_selected_past_activities <- function(.data) {
 
 #' drop past activities
 drop_past_activities <- function(.data, min_year) {
+
   require_pkgs("dplyr")
+  stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
     dplyr::filter(lubridate::year(date_start) >= min_year) %>%
@@ -99,6 +119,7 @@ drop_past_activities <- function(.data, min_year) {
 prioritize_gw_fieldwork <- function(.data) {
 
   require_pkgs(c("dplyr", "stringr"))
+  stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
     dplyr::mutate(
@@ -125,6 +146,7 @@ prioritize_gw_fieldwork <- function(.data) {
 prioritize_surf_fieldwork <- function(.data) {
 
   require_pkgs(c("dplyr", "stringr"))
+  stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
     dplyr::mutate(
@@ -140,6 +162,7 @@ prioritize_surf_fieldwork <- function(.data) {
 prioritize_soil_fieldwork <- function(.data) {
 
   require_pkgs(c("dplyr", "stringr"))
+  stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
     dplyr::mutate(
@@ -157,6 +180,7 @@ prioritize_soil_fieldwork <- function(.data) {
 prioritize_mhq_fieldwork <- function(.data) {
 
   require_pkgs(c("dplyr", "stringr"))
+  stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
     dplyr::mutate(
@@ -171,6 +195,7 @@ prioritize_mhq_fieldwork <- function(.data) {
 prioritize_all_fieldwork <- function(.data) {
 
   require_pkgs(c("dplyr", "stringr"))
+  stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
     prioritize_gw_fieldwork() %>%
@@ -194,6 +219,7 @@ prioritize_all_fieldwork <- function(.data) {
 add_wait_columns <- function(.data) {
 
   require_pkgs(c("dplyr", "stringr"))
+  stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
     dplyr::mutate(

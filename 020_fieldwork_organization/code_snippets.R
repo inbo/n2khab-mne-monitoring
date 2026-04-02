@@ -34,6 +34,7 @@ source_snippet_supplements <- function(file_name) {
   source(file.path(projroot, "R", file_name))
 }
 
+
 ## helper functions -----------------------------------------------------
 # Load custom functions from source files
 source_snippet_supplements("system_helpers.R")
@@ -103,6 +104,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
     scheme,
     module_combo_code,
     panel_set,
+    targetpanel,
     stratum,
     # 'aquatic' column will be improved for 7220 later on (now it simply has a
     # duplication (TRUE + FALSE) of all locations)
@@ -113,7 +115,6 @@ scheme_moco_ps_stratum_targetpanel_spsamples <-
     grts_address,
     grts_address_final,
     domain_part,
-    targetpanel,
     in_mhq_samples,
     last_type_assessment = assessment_date,
     last_type_assessment_in_field = assessed_in_field,
@@ -933,7 +934,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
   join_location_attributes_via_moco() %>%
-  nest_and_flatten_scheme_ps_targetpanel(use_unique = TRUE) %>%
+  nest_and_flatten_scheme_ps_targetpanel() %>%
   relocate(
     scheme_ps_targetpanels,
     schemes_served_all,
