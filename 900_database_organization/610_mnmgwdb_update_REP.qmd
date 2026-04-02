@@ -403,12 +403,12 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
     ), as.character)
   )
 
-sample_units_updated %>% 
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
-fag_stratum_grts_calendar_shortterm_attribs %>%
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
+# sample_units_updated %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+# fag_stratum_grts_calendar_shortterm_attribs %>%
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
 
 ```
 
@@ -452,10 +452,10 @@ sample_units <- bind_rows(
   sample_units_updated
 )
 
-# sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
-sample_units_retained %>% 
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
+# # sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
+# sample_units_retained %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
 
 ```
 
@@ -650,9 +650,9 @@ sample_units <- sample_units %>%
   distinct()
 
 
-sample_units %>% 
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
+# sample_units %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
 ```
 
 
@@ -779,9 +779,9 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
 # fieldwork_calendar_updated %>% glimpse()
 # fieldwork_calendar_updated %>% count(priority)
 
-fieldwork_calendar_updated %>% 
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
+# fieldwork_calendar_updated %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
 
 ```
 
