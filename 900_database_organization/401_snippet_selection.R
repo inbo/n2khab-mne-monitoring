@@ -46,14 +46,14 @@ source_snippet_supplements("calendar_operations_and_priorities.R")
 # cells)
 scheme_moco_ps_stratum_targetpanel_spsamples <-
   scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar %>%
-  im21_join(domainpart_grts_n2khab, join_by(grts_address)) %>%
-  im21_join(n2khab_strata, join_by(stratum)) %>%
-  im21_join(
+  inner_join_m21_ed(domainpart_grts_n2khab, join_by(grts_address)) %>%
+  inner_join_m21_ed(n2khab_strata, join_by(stratum)) %>%
+  inner_join_m21_ed(
     n2khab_types_expanded_properties %>%
       select(type, grts_join_method, sample_support_code),
     join_by(type)
   ) %>%
-  lm21_join(
+  left_join_m21_d(
     mhq_samples %>%
       mutate(in_mhq_samples = TRUE),
     join_by(grts_address, stratum)
@@ -128,7 +128,7 @@ if (interactive()) {
 # For privacy reasons, the full list of VBI locations is not stored publicly.
 
 vbi_overlaps %>%
-  i121_join(
+  inner_join_121_ed(
     stratum_schemepstargetpanel_spsamples %>%
       filter(is_forest) %>%
       select(
@@ -165,6 +165,10 @@ vbi_overlaps_sf <-
 flanders_buffer <-
   read_admin_areas(dsn = "flanders") %>%
   st_buffer(40)
+
+# pre-load grts-master habitat objects: `grts_mh` and `grts_mh_index`
+load_grts_mh_to_env(environment())
+
 # following function will be adapted to support the latest version of the data
 # source; for now use version habitatsprings_2020v2
 units_7220 <-
@@ -172,7 +176,7 @@ units_7220 <-
   .[flanders_buffer, ] %>%
   mutate(unit_id = as.character(unit_id)) %>%
   # replacing unit_id by the grts_address
-  i121_join(
+  inner_join_121_ed(
     units_non_cell_n2khab_grts %>%
       filter(sample_support_code == "spring") %>%
       select(-sample_support_code),
@@ -195,7 +199,7 @@ units_7220 <-
 units_cell_cellcenter <-
   stratum_schemepstargetpanel_spsamples %>%
   filter_for_cells() %>%
-  append_point_coords_grts_mh(grts_var = "grts_address_final")
+  add_point_coords_grts_mh(grts_var = "grts_address_final")
 
 # sampling units as raster cells:
 units_cell_rast <-
@@ -229,7 +233,7 @@ units_cell_polygon <-
 # multiple strata!
 units_cell_polygon_stratum_attribs <-
   units_cell_polygon %>%
-  i12me_join(
+  inner_join_12m_e(
     stratum_schemepstargetpanel_spsamples %>%
       filter_for_cells(),
     join_by(grts_address_final)
@@ -248,7 +252,7 @@ schemepstargetpanel_spsamples_terr <-
 
 units_cell_polygon_attrib <-
   units_cell_polygon %>%
-  i12me_join(schemepstargetpanel_spsamples_terr, join_by(grts_address_final)) %>%
+  inner_join_12m_e(schemepstargetpanel_spsamples_terr, join_by(grts_address_final)) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(stratum_scheme_ps_targetpanels, grts_address)
@@ -300,7 +304,7 @@ stratum_schemepstargetpanel_spsamples_terr_polygons <-
   filter_for_cells() %>%
   # adding polygon_id attribute (sometimes missing, sometimes more than one, as
   # explained above)
-  lm2m_join(
+  left_join_m2m_d(
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed,
     join_by(stratum, grts_address)
   )
@@ -316,9 +320,9 @@ stratum_schemepstargetpanel_spsamples_terr_polygons <-
 stratum_schemepstargetpanel_spsamples_terr_polygons %>%
   filter(is.na(polygon_id)) %>%
   distinct(stratum) %>%
-  i121_join(n2khab_strata, join_by(stratum)) %>%
+  inner_join_121_ed(n2khab_strata, join_by(stratum)) %>%
   distinct(type) %>%
-  i121_join(
+  inner_join_121_ed(
     n2khab_types_expanded_properties %>%
       select(type, grts_join_method),
     join_by(type)
@@ -332,7 +336,7 @@ stratum_grts_address_nopolygon_sf <-
   stratum_schemepstargetpanel_spsamples_terr_polygons %>%
   filter(is.na(polygon_id)) %>%
   select(stratum, grts_address) %>%
-  append_point_coords_grts_mh(grts_var = "grts_address")
+  add_point_coords_grts_mh(grts_var = "grts_address")
 
 # Selecting the missing polygons from the habitatmap. Up to terra 1.8-86, terra
 # was used to read and filter, because it can handle some exotic geometries from
@@ -360,7 +364,7 @@ missing_polygons <-
 missing_pol_grts <-
   extract(grts_mh, missing_polygons, small = FALSE) %>%
   as_tibble() %>%
-  i12me_join(
+  inner_join_12m_e(
     tibble(
       ID = seq_len(nrow(missing_polygons)),
       polygon_id = missing_polygons$polygon_id
@@ -380,7 +384,7 @@ missing_pol_stratum_grts <-
   filter(is.na(polygon_id)) %>%
   select(stratum, grts_address) %>%
   # joining polygon_id based on the sampling unit's grts_address
-  im21_join(missing_pol_grts, join_by(grts_address)) %>%
+  inner_join_m21_ed(missing_pol_grts, join_by(grts_address)) %>%
   # joining all GRTS addresses based on polygon_id
   select(-grts_address) %>%
   inner_join(
@@ -419,13 +423,13 @@ stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
   # domain_part attribute, regardless whether a local replacement took place.
   select(-domain_part) %>%
   # adding polygon_id attribute (sometimes more than one, as explained above)
-  im2m_join(
+  inner_join_m2m_ed(
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended,
     join_by(stratum, grts_address)
   ) %>%
   # adding all GRTS addresses of the polygon, taking into account the stratum's
   # GRTS join method
-  im2m_join(
+  inner_join_m2m_ed(
     hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended %>%
       rename(grts_address_replac = grts_address),
     join_by(stratum, polygon_id)
@@ -484,7 +488,7 @@ stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
   relocate(scheme_ps_targetpanels) %>%
   unnest(addr_replac, keep_empty = TRUE) %>%
   # get cell numbers of the replacement addresses (useful in visualization)
-  lm21_join(
+  left_join_m21_d(
     grts_mh_index %>%
       rename(cellnr_replac = id),
     join_by(grts_address_replac == grts_address)
@@ -726,7 +730,7 @@ fag_fa <-
   semi_join(mod_scheme_yrs_moco_ps, join_by(module, scheme)) %>%
   distinct(field_activity_group, field_activity) %>%
   arrange(field_activity_group, field_activity) %>%
-  im21_join(field_activities, join_by(field_activity))
+  inner_join_m21_ed(field_activities, join_by(field_activity))
 
 # Field activity sequences define the sequence of activities needed for some
 # objective (determining a variable). An activity sequence may be used by
@@ -746,14 +750,14 @@ faseqs <-
 faseqs_fag_fa <-
   field_activity_sequences %>%
   semi_join(faseqs, join_by(activity_sequence)) %>%
-  im21_join(field_activities, join_by(field_activity))
+  inner_join_m21_ed(field_activities, join_by(field_activity))
 
 # Note that following has a more elaborate set of (partially non-field)
 # activities:
 actseqs_actgroups_acts <-
   activity_sequences %>%
   semi_join(faseqs, join_by(activity_sequence)) %>%
-  im21_join(
+  inner_join_m21_ed(
     activities %>%
       select(activity, activity_name),
     join_by(activity)
@@ -771,7 +775,7 @@ fag_stratum_grts_calendar
 # Below code brings the FAG calendar at the resolution of each field activity.
 fag_fa_stratum_grts_calendar <-
   fag_stratum_grts_calendar %>%
-  im2m_join(
+  inner_join_m2m_ed(
     fag_fa,
     join_by(field_activity_group)
   ) %>%
@@ -814,7 +818,7 @@ cal_0.14.0_continuation
 # Link between field activities and their protocol
 fa_protocol <-
   field_activities %>%
-  i121_join(
+  inner_join_121_ed(
     activities %>%
       select(activity, protocol),
     join_by(field_activity == activity)
@@ -888,10 +892,10 @@ fag_stratum_grts_calendar_shortterm_attribs <-
     field_activity_group,
     rank
   ) %>%
-  filter_max_year_and_preponable_activities_gw(main_year, remove_has_gw = TRUE) %>%
-  format_dates_and_get_interval() %>%
+  filter_until_year_max_except_first_auxiliary_activities_gw(main_year, remove_has_gw = TRUE) %>%
+  postpone_selected_past_activities() %>%
   drop_past_activities(min_year = main_year) %>%
-  generate_extra_scheme_attributes() %>%
+  extend_and_update_scheme_attributes() %>%
   join_location_attributes_via_moco() %>%
   nest_and_flatten_scheme_ps_targetpanel(use_unique = TRUE) %>%
   relocate(
@@ -927,7 +931,7 @@ fag_grts_calendar_shortterm_attribs <-
 # FAG values at the same location.
 fag_grts_calendar_shortterm_attribs_sf <-
   fag_grts_calendar_shortterm_attribs %>%
-  append_point_coords_grts_mh(grts_var = "grts_address_final")
+  add_point_coords_grts_mh(grts_var = "grts_address_final")
 
 
 # prioritization of short-term fieldwork with stratum distinguished (preferred for
@@ -935,7 +939,7 @@ fag_grts_calendar_shortterm_attribs_sf <-
 fieldwork_shortterm_prioritization_by_stratum <-
   fag_stratum_grts_calendar_shortterm_attribs %>%
   prioritize_all_fieldwork() %>%
-  generate_wait_columns() %>%
+  add_wait_columns() %>%
   arrange(
     date_end,
     priority,
@@ -1025,8 +1029,8 @@ fag_stratum_grts_calendar %>%
   ) %>%
   distinct(stratum) %>%
   # adding type attributes
-  im21_join(n2khab_strata, join_by(stratum)) %>%
-  im21_join(
+  inner_join_m21_ed(n2khab_strata, join_by(stratum)) %>%
+  inner_join_m21_ed(
     n2khab_types_expanded_properties %>%
       select(type, grts_join_method, groundw_dep),
     join_by(type)
@@ -1071,7 +1075,7 @@ orthophoto_shortterm_type_grts <-
 # unit geometries (cells):
 orthophoto_shortterm_cells <-
   units_cell_polygon %>%
-  i12mde_join(orthophoto_shortterm_type_grts, join_by(grts_address_final)) %>%
+  inner_join_12m_de(orthophoto_shortterm_type_grts, join_by(grts_address_final)) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(
@@ -1084,7 +1088,7 @@ orthophoto_shortterm_cells <-
 # cell centers:
 orthophoto_shortterm_cell_centers <-
   orthophoto_shortterm_type_grts %>%
-  append_point_coords_grts_mh(grts_var = "grts_address_final")
+  add_point_coords_grts_mh(grts_var = "grts_address_final")
 
 
 

@@ -3,7 +3,7 @@
 # These temporary notes will find them back.
 
 # common_current_calenderfilters ->
-#   filter_max_year_and_preponable_activities_gw
+#   filter_until_year_max_except_first_auxiliary_activities_gw
 
 # common_current_samplefilters ->
 #   (obsolete)
