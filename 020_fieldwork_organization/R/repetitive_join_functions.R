@@ -5,38 +5,38 @@
 # Some combinations of keywords are not implemented (e.g. one-time usage).
 
 #' wrapper for any inner join with "unmatched: error/drop"
-ixxx_join <- \(...) dplyr::inner_join(..., unmatched = c("error", "drop"))
+inner_join_xxx_ed <- \(...) dplyr::inner_join(..., unmatched = c("error", "drop"))
 
 #' wrapper for the many-to-one inner join with "unmatched: error/drop"
-im21_join <- \(...) ixxx_join(..., relationship = "many-to-one")
+inner_join_m21_ed <- \(...) inner_join_xxx_ed(..., relationship = "many-to-one")
 
 #' wrapper for the one-to-one inner join with "unmatched: error/drop"
-i121_join <- \(...) ixxx_join(..., relationship = "one-to-one")
+inner_join_121_ed <- \(...) inner_join_xxx_ed(..., relationship = "one-to-one")
 
 #' wrapper for the many-to-many inner join with "unmatched: error/drop"
-im2m_join <- \(...) ixxx_join(..., relationship = "many-to-many")
+inner_join_m2m_ed <- \(...) inner_join_xxx_ed(..., relationship = "many-to-many")
 
 #' wrapper for the one-to-one inner join with "unmatched: drop>error"
-i12mde_join <- \(...) dplyr::inner_join(
+inner_join_12m_de <- \(...) dplyr::inner_join(
   ...,
   relationship = "one-to-many",
   unmatched = c("drop", "error")
-  )
+)
 
-i12me_join <- \(...) dplyr::inner_join(
+inner_join_12m_e <- \(...) dplyr::inner_join(
   ...,
   relationship = "one-to-many",
   unmatched = "error"
-  )
+)
 
 #' wrapper for any left join with "unmatched: drop" ("drop" seems to be prefered for left_joins)
-lxxx_join <- \(...) dplyr::left_join(..., unmatched = "drop")
+left_join_xxx_d <- \(...) dplyr::left_join(..., unmatched = "drop")
 
 #' wrapper for the  one-to-one left join with "unmatched: drop"
-l121_join <- \(...) lxxx_join(..., relationship = "one-to-one")
+left_join_121_d <- \(...) left_join_xxx_d(..., relationship = "one-to-one")
 
 #' wrapper for the  many-to-one left join with "unmatched: drop"
-lm21_join <- \(...) lxxx_join(..., relationship = "many-to-one")
+left_join_m21_d <- \(...) left_join_xxx_d(..., relationship = "many-to-one")
 
 #' wrapper for the  many-to-many left join with "unmatched: drop"
-lm2m_join <- \(...) lxxx_join(..., relationship = "many-to-many")
+left_join_m2m_d <- \(...) left_join_xxx_d(..., relationship = "many-to-many")

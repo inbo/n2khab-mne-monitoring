@@ -2,9 +2,9 @@
 #' filter by year, but
 #' already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
 #' next years to be executed
-filter_max_year_and_preponable_activities_gw <- function(
+filter_until_year_max_except_first_auxiliary_activities_gw <- function(
     .data,
-    selected_year,
+    the_year_max,
     remove_has_gw = FALSE
   ) {
 
@@ -13,9 +13,9 @@ filter_max_year_and_preponable_activities_gw <- function(
   stopifnot("magrittr" = require("magrittr"))
 
 
-  if (!exists("filter_max_year_and_preponable_activities_gw")) {
+  if (!exists("filter_until_year_max_except_first_auxiliary_activities_gw")) {
     stop(
-      " (in function `filter_max_year_and_preponable_activities_gw`)",
+      " (in function `filter_until_year_max_except_first_auxiliary_activities_gw`)",
       "\n\tlookup `flag_groundwater_scheme_has_gw` is missing.",
       "\n\tPlease `source('location_attribute_processing.R')` first."
     )
@@ -30,7 +30,7 @@ filter_max_year_and_preponable_activities_gw <- function(
   # filter
   .data %<>%
     dplyr::filter(
-      lubridate::year(date_start) <= selected_year |
+      lubridate::year(date_start) <= the_year_max |
         (
           has_gw &
             stringr::str_detect(
@@ -55,7 +55,7 @@ filter_max_year_and_preponable_activities_gw <- function(
 
 #' move the LOCEVAL fieldwork that was kept for main_year - 1, to main_year,
 #' since that is indeed its meaning
-format_dates_and_get_interval <- function(.data) {
+postpone_selected_past_activities <- function(.data) {
 
   # .data %>%
   #   count(date_start, date_end, date_interval) %>%
@@ -191,7 +191,7 @@ prioritize_all_fieldwork <- function(.data) {
 
 }
 
-generate_wait_columns <- function(.data) {
+add_wait_columns <- function(.data) {
 
   require_pkgs(c("dplyr", "stringr"))
 

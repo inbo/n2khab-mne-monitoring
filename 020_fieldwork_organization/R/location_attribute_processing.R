@@ -1,31 +1,27 @@
 
 
-#' Nesting scheme, panelset, targetpanel; optional unique flattening
+#' Nesting scheme, panelset, targetpanel; unique flattening
 #'
 #' flatten scheme x panel set x targetpanel to unique strings per stratum x
 #' location x FAG occasion.
 nest_and_flatten_scheme_ps_targetpanel <- function(
     .data,
-    use_unique = FALSE,
     spt_flattening_function = NULL
   ) {
 
+  require_pkgs(c("tidyr", "dplyr", "stringr", "purrr"))
+  stopifnot("magrittr" = require("magrittr"))
+
   # select one of the default flattening methods
   if (is.null(spt_flattening_function)) {
-    if (use_unique) {
-      spt_flattening_function <- function(df) {
-        stringr::str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
-      }
-    } else {
-      spt_flattening_function <- function(df) {
-        stringr::str_flatten(df$scheme_ps_targetpanel, collapse = " | ")
-      }
+    spt_flattening_function <- function(df) {
+      stringr::str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
     }
   }
 
   # concatenate the target column, nest, and flatten it
   .data %<>%
-    dplyr::mutate(scheme_ps_targetpanel = str_glue(
+    dplyr::mutate(scheme_ps_targetpanel = stringr::str_glue(
       "{ scheme }:PS{ panel_set }{ targetpanel }"
     )) %>%
     dplyr::select(-scheme, -panel_set, -targetpanel) %>%
@@ -33,7 +29,7 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
       scheme_ps_targetpanels = scheme_ps_targetpanel
     ) %>%
     dplyr::mutate(
-      scheme_ps_targetpanels = map_chr(
+      scheme_ps_targetpanels = purrr::map_chr(
         scheme_ps_targetpanels,
         spt_flattening_function
       ) %>% factor()
@@ -46,6 +42,10 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
 
 #' concatenating and flattening stratum, grts join method, and scheme-ps-tp
 concatenate_stratum_scheme_ps_targetpanels <- function(.data) {
+
+  require_pkgs("dplyr")
+  stopifnot("magrittr" = require("magrittr"))
+
   .data %>%
     dplyr::mutate(stratum_scheme_ps_targetpanels = str_c(
       stratum,
@@ -86,7 +86,7 @@ flag_groundwater_scheme_has_gw <- function(.data) {
 
   } else if ("scheme_moco_ps" %in% names(.data)) {
 
-    require_pkgs(c("purrr"))
+    require_pkgs(c("dplyr", "purrr"))
 
     .data %<>%
       dplyr::mutate(
@@ -105,23 +105,27 @@ flag_groundwater_scheme_has_gw <- function(.data) {
 
 
 #' generate some attributes of the FAG occasion with regard to associated schemes
-generate_extra_scheme_attributes <- function(.data) {
+extend_and_update_scheme_attributes <- function(.data) {
+
+  require_pkgs(c("dplyr", "purrr", "stringr"))
+  stopifnot("magrittr" = require("magrittr"))
+
   .data %>%
-    mutate(
-      schemes_served_all = map_chr(scheme_moco_ps, function(df) {
-        str_flatten(df$scheme %>% unique() %>% sort(), collapse = "|")
+    dplyr::mutate(
+      schemes_served_all = purrr::map_chr(scheme_moco_ps, function(df) {
+        stringr::str_flatten(df$scheme %>% unique() %>% sort(), collapse = "|")
       }) %>%
         factor(),
-      nr_schemes_current = map_int(scheme_moco_ps, function(df) {
+      nr_schemes_current = purrr::map_int(scheme_moco_ps, function(df) {
         sum(df$is_current_occasion)
       }),
-      nr_schemes_later = map_int(scheme_moco_ps, function(df) {
+      nr_schemes_later = purrr::map_int(scheme_moco_ps, function(df) {
         sum(!df$is_current_occasion)
       }),
-      scheme_moco_ps = map(scheme_moco_ps, function(df) {
+      scheme_moco_ps = purrr::map(scheme_moco_ps, function(df) {
         df %>%
-          filter(is_current_occasion) %>%
-          select(scheme, module_combo_code, panel_set)
+          dplyr::filter(is_current_occasion) %>%
+          dplyr::select(scheme, module_combo_code, panel_set)
       })
     ) %>%
     return()
@@ -132,9 +136,13 @@ generate_extra_scheme_attributes <- function(.data) {
 
 #' Unite stratum, GRTS join method and scheme_ps_targetpanels columns
 unite_stratum_and_schemepstargetpanels <- function(.data) {
+
+  require_pkgs(c("dplyr", "stringr"))
+  stopifnot("magrittr" = require("magrittr"))
+
   .data %>%
-    mutate(
-      stratum_scheme_ps_targetpanels = str_c(
+    dplyr::mutate(
+      stratum_scheme_ps_targetpanels = stringr::str_c(
         stratum,
         " (",
         grts_join_method,
@@ -152,10 +160,18 @@ unite_stratum_and_schemepstargetpanels <- function(.data) {
 #' converting stratum to type (in the usual way, although for the cell-based
 #' units the values - but not the factor levels - are identical)
 convert_stratum_to_type <- function(.data) {
+
+  require_pkgs("dplyr")
+  stopifnot("magrittr" = require("magrittr"))
+
+  if (!exists("inner_join_m21_ed")) stop(
+    "Please source the `repetitive_join_functions.R` script first."
+  )
+
   .data %>%
-    im21_join(
+    inner_join_m21_ed(
       n2khab_strata,
-      join_by(stratum)
+      dplyr::join_by(stratum)
     ) %>%
     dplyr::relocate(type, .after = stratum) %>%
     dplyr::select(-stratum) %>%
@@ -169,10 +185,16 @@ convert_stratum_to_type <- function(.data) {
 #' targetpanel attribute etc
 join_location_attributes_via_moco <- function(.data) {
 
+  require_pkgs("tidyr", "dplyr", "stringr")
+  stopifnot("magrittr" = require("magrittr"))
+  if (!exists("inner_join_m21_ed")) stop(
+    "Please source the `repetitive_join_functions.R` script first."
+  )
+
   .data %>%
     tidyr::unnest(scheme_moco_ps) %>%
     # adding location attributes
-    im21_join(
+    inner_join_m21_ed(
       scheme_moco_ps_stratum_targetpanel_spsamples %>%
         dplyr::select(
           scheme,
@@ -196,11 +218,12 @@ join_location_attributes_via_moco <- function(.data) {
     ) %>%
     # add old targetpanel of the imported FAG occasions from rep_0.14.0. A part
     # is dropped because of occasions that don't happen in the main year.
-    l121_join(
+    left_join_121_d(
       cal_0.14.0_continuation %>%
         tidyr::unnest(scheme_moco_ps) %>%
         dplyr::mutate(
-          scheme_ps_oldtargetpanel = str_c(scheme, ":PS", panel_set, targetpanel)
+          scheme_ps_oldtargetpanel =
+            stringr::str_c(scheme, ":PS", panel_set, targetpanel)
         ) %>%
         dplyr::select(
           -ends_with("upcoming"),
@@ -236,6 +259,7 @@ extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
 
   if (!exists("require_pkgs")) stop("Please source the `system_helpers.R` script first.")
   require_pkgs(c("stringr", "dplyr", "purrr"))
+  stopifnot("magrittr" = require("magrittr"))
 
   if (isFALSE("scheme_ps_targetpanels" %in% names(.data))) {
     message("WARNING: extraction of `schemes` requires the column `scheme_ps_targetpanels`.")
@@ -264,4 +288,4 @@ extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
     ) %>%
     return()
 
-}
+} # /extract_and_flatten_scheme_from_scheme_ps_targetpanels

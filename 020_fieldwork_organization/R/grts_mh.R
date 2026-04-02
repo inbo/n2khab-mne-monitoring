@@ -42,7 +42,7 @@ load_grts_mh_to_env <- function(env = NULL) {
 
 
 #' wrapper to perform `add_point_coords_grts` with the `_mh` objects
-append_point_coords_grts_mh <- function(..., env = NULL) {
+add_point_coords_grts_mh <- function(..., env = NULL) {
 
   require_pkgs("n2khab")
 
@@ -66,7 +66,7 @@ append_point_coords_grts_mh <- function(..., env = NULL) {
     spatrast_index = grts_mh_index
   ) %>%
   return()
-} # /append_point_coords_grts_mh
+} # /add_point_coords_grts_mh
 
 
 #' wrapper to perform `filter_grtsraster_by_address` with the `_mh` objects
