@@ -229,8 +229,18 @@ unnest_and_join_sampling_unit_attributes <- function(.data) {
       )
     ) %>%
     dplyr::mutate(scheme_ps_oldtargetpanel = factor(scheme_ps_oldtargetpanel)) %>%
-    dplyr::relocate(grts_address_final:domain_part, .after = grts_address) %>%
-    dplyr::relocate(grts_join_method, .after = grts_address_final) %>%
+    dplyr::relocate(targetpanel, .after = panel_set) %>%
+    dplyr::relocate(grts_join_method, sample_support_code, .after = stratum) %>%
+    dplyr::relocate(
+      grts_address_final,
+      domain_part,
+      is_forest,
+      in_mhq_samples,
+      last_type_assessment_in_field,
+      last_type_assessment,
+      last_inaccessible,
+      .after = grts_address
+    ) %>%
     dplyr::relocate(scheme_ps_oldtargetpanel, .before = date_start) %>%
     dplyr::select(-module_combo_code) %>%
     return()
