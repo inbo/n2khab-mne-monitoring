@@ -196,22 +196,7 @@ unnest_and_join_sampling_unit_attributes <- function(.data) {
     # adding location attributes
     inner_join_m21_ed(
       scheme_moco_ps_stratum_targetpanel_spsamples %>%
-        dplyr::select(
-          scheme,
-          module_combo_code,
-          panel_set,
-          stratum,
-          domain_part,
-          grts_join_method,
-          grts_address,
-          grts_address_final,
-          # retaining 3 cols that drive subsampling location(s) in the unit:
-          is_forest,
-          in_mhq_samples,
-          last_type_assessment,
-          last_type_assessment_in_field,
-          targetpanel
-        ) %>%
+        dplyr::select(-is_aquatic) %>%
         # deduplicating 7220:
         dplyr::distinct(),
       dplyr::join_by(scheme, module_combo_code, panel_set, stratum, grts_address)
