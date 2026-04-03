@@ -174,3 +174,37 @@ convert_level0_to_level3 <- function(
     ) %>%
     pull(lev3addr)
 }
+
+
+
+
+#' rename the column `grts_address_final` to `grts_address`
+#' (not used in these snippets, but for database preprocessing)
+#'
+#' @param .data input data frame
+#' @param keep_original toggle retention of the `grts_address` as `grts_address_original`
+#'
+rename_grts_address_final_to_grts_address <- function(.data, keep_original = FALSE) {
+
+  require_pkgs(c("dplyr"))
+  stopifnot("magrittr" = require("magrittr"))
+
+  .data %<>%
+    dplyr::relocate(grts_address_final, .after = grts_address) 
+
+  if (keep_original) {
+    # optionally rename the original grts address
+    .data %<>%
+      dplyr::rename(grts_address_original = grts_address)
+  } else {
+    # (otherwise, drop original)
+    .data %<>%
+      dplyr::select(-grts_address)
+  }
+
+
+  # simply rename and return
+  .data %>%
+    dplyr::rename(grts_address = grts_address_final) %>%
+    return()
+}
