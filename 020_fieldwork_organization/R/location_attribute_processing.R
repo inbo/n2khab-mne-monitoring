@@ -185,7 +185,7 @@ convert_stratum_to_type <- function(.data) {
 #' targetpanel attribute etc
 unnest_and_join_sampling_unit_attributes <- function(.data) {
 
-  require_pkgs("tidyr", "dplyr", "stringr")
+  require_pkgs(c("tidyr", "dplyr", "stringr"))
   stopifnot("magrittr" = require("magrittr"))
   if (!exists("inner_join_m21_ed")) stop(
     "Please source the `repetitive_join_functions.R` script first."
