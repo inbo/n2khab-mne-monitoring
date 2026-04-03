@@ -933,7 +933,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   postpone_selected_past_activities() %>%
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
-  join_location_attributes_via_moco() %>%
+  unnest_and_join_sampling_unit_attributes() %>%
   nest_and_flatten_scheme_ps_targetpanel() %>%
   relocate(
     scheme_ps_targetpanels,

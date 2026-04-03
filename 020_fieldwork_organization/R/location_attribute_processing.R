@@ -183,7 +183,7 @@ convert_stratum_to_type <- function(.data) {
 #' unnest schemes for which the FAG was originally planned in the current
 #' date interval (is_current_occasion is TRUE), in order to add their
 #' targetpanel attribute etc
-join_location_attributes_via_moco <- function(.data) {
+unnest_and_join_sampling_unit_attributes <- function(.data) {
 
   require_pkgs("tidyr", "dplyr", "stringr")
   stopifnot("magrittr" = require("magrittr"))
