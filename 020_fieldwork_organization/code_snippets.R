@@ -735,7 +735,7 @@ cellnrs_replacement <-
 
 # generate sf points object of all replacement cell centers
 coords <- xyFromCell(grts_mh, cellnrs_replacement)
-tibble(
+replacement_cellcenters <- tibble(
   cellnr = cellnrs_replacement,
   grts_address = grts_mh[cellnrs_replacement][, 1],
   x = coords[, "x"],
