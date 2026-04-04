@@ -1007,18 +1007,6 @@ fieldwork_shortterm_targetpanels_prioritization_count <-
     values_from = n
   )
 
-
-gs_id <- "1RXhqlK8nu_BdIiYEbjhjoNnu82wnn6zGfQSdzyi-afI"
-
-# WRITE PIVOT TABLE TO GSHEET:
-if (FALSE) {
-  fieldwork_shortterm_targetpanels_prioritization_count %>%
-    write_sheet(
-      ss = gs_id,
-      sheet = "fieldw_shortterm_targetpanels_prioritization_count"
-    )
-}
-
 # overview short-term fieldwork prioritization according to date intervals:
 fieldwork_shortterm_dates_prioritization_count <-
   fieldwork_shortterm_prioritization_by_stratum %>%
@@ -1036,16 +1024,6 @@ fieldwork_shortterm_dates_prioritization_count <-
     names_sort = TRUE,
     values_from = n
   )
-
-# WRITE PIVOT TABLE TO GSHEET:
-if (FALSE) {
-  fieldwork_shortterm_dates_prioritization_count %>%
-    mutate(date_interval = as.character(date_interval)) %>%
-    write_sheet(
-      ss = gs_id,
-      sheet = "fieldwork_shortterm_dates_prioritization_count"
-    )
-}
 
 
 
