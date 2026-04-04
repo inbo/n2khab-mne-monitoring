@@ -183,9 +183,9 @@ convert_stratum_to_type <- function(.data) {
 #' unnest schemes for which the FAG was originally planned in the current
 #' date interval (is_current_occasion is TRUE), in order to add their
 #' targetpanel attribute etc
-join_location_attributes_via_moco <- function(.data) {
+unnest_and_join_sampling_unit_attributes <- function(.data) {
 
-  require_pkgs("tidyr", "dplyr", "stringr")
+  require_pkgs(c("tidyr", "dplyr", "stringr"))
   stopifnot("magrittr" = require("magrittr"))
   if (!exists("inner_join_m21_ed")) stop(
     "Please source the `repetitive_join_functions.R` script first."
@@ -196,22 +196,7 @@ join_location_attributes_via_moco <- function(.data) {
     # adding location attributes
     inner_join_m21_ed(
       scheme_moco_ps_stratum_targetpanel_spsamples %>%
-        dplyr::select(
-          scheme,
-          module_combo_code,
-          panel_set,
-          stratum,
-          domain_part,
-          grts_join_method,
-          grts_address,
-          grts_address_final,
-          # retaining 3 cols that drive subsampling location(s) in the unit:
-          is_forest,
-          in_mhq_samples,
-          last_type_assessment,
-          last_type_assessment_in_field,
-          targetpanel
-        ) %>%
+        dplyr::select(-is_aquatic) %>%
         # deduplicating 7220:
         dplyr::distinct(),
       dplyr::join_by(scheme, module_combo_code, panel_set, stratum, grts_address)
@@ -244,8 +229,18 @@ join_location_attributes_via_moco <- function(.data) {
       )
     ) %>%
     dplyr::mutate(scheme_ps_oldtargetpanel = factor(scheme_ps_oldtargetpanel)) %>%
-    dplyr::relocate(grts_address_final:domain_part, .after = grts_address) %>%
-    dplyr::relocate(grts_join_method, .after = grts_address_final) %>%
+    dplyr::relocate(targetpanel, .after = panel_set) %>%
+    dplyr::relocate(grts_join_method, sample_support_code, .after = stratum) %>%
+    dplyr::relocate(
+      grts_address_final,
+      domain_part,
+      is_forest,
+      in_mhq_samples,
+      last_type_assessment_in_field,
+      last_type_assessment,
+      last_inaccessible,
+      .after = grts_address
+    ) %>%
     dplyr::relocate(scheme_ps_oldtargetpanel, .before = date_start) %>%
     dplyr::select(-module_combo_code) %>%
     return()
