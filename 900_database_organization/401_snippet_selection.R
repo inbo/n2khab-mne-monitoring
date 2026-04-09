@@ -20,7 +20,6 @@ source_snippet_supplements <- function(file_name) {
 }
 
 
-## helper functions -----------------------------------------------------
 # Load custom functions from source files
 source_snippet_supplements("system_helpers.R")
 source_snippet_supplements("misc.R")
@@ -700,7 +699,7 @@ cellnrs_replacement <-
 
 # generate sf points object of all replacement cell centers
 coords <- xyFromCell(grts_mh, cellnrs_replacement)
-tibble(
+replacement_cellcenters <- tibble(
   cellnr = cellnrs_replacement,
   grts_address = grts_mh[cellnrs_replacement][, 1],
   x = coords[, "x"],
@@ -709,13 +708,13 @@ tibble(
   st_as_sf(coords = c("x", "y"), crs = crs(grts_mh))
 
 # SpatRaster of all replacement cells; note the use of the cells argument:
-units_cell_replacement_rast <-
+replacement_cell_rast <-
   filter_grtsraster_by_address(
     spatrast = grts_mh,
     spatrast_index = grts_mh_index,
     cells = cellnrs_replacement
   )
-global(units_cell_replacement_rast, "notNA")[1, 1] == length(cellnrs_replacement)
+global(replacement_cell_rast, "notNA")[1, 1] == length(cellnrs_replacement)
 
 
 
@@ -897,7 +896,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   postpone_selected_past_activities() %>%
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
-  join_location_attributes_via_moco() %>%
+  unnest_and_join_sampling_unit_attributes() %>%
   nest_and_flatten_scheme_ps_targetpanel() %>%
   relocate(
     scheme_ps_targetpanels,
@@ -972,18 +971,6 @@ fieldwork_shortterm_targetpanels_prioritization_count <-
     values_from = n
   )
 
-
-gs_id <- "1RXhqlK8nu_BdIiYEbjhjoNnu82wnn6zGfQSdzyi-afI"
-
-# WRITE PIVOT TABLE TO GSHEET:
-if (FALSE) {
-  fieldwork_shortterm_targetpanels_prioritization_count %>%
-    write_sheet(
-      ss = gs_id,
-      sheet = "fieldw_shortterm_targetpanels_prioritization_count"
-    )
-}
-
 # overview short-term fieldwork prioritization according to date intervals:
 fieldwork_shortterm_dates_prioritization_count <-
   fieldwork_shortterm_prioritization_by_stratum %>%
@@ -1001,16 +988,6 @@ fieldwork_shortterm_dates_prioritization_count <-
     names_sort = TRUE,
     values_from = n
   )
-
-# WRITE PIVOT TABLE TO GSHEET:
-if (FALSE) {
-  fieldwork_shortterm_dates_prioritization_count %>%
-    mutate(date_interval = as.character(date_interval)) %>%
-    write_sheet(
-      ss = gs_id,
-      sheet = "fieldwork_shortterm_dates_prioritization_count"
-    )
-}
 
 
 
