@@ -20,6 +20,7 @@ rep_common_libraries <- c(
   "dplyr",
   "tidyr",
   "stringr",
+  "digest",
   "purrr",
   "lubridate",
   "googledrive",

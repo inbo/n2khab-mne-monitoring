@@ -1530,7 +1530,7 @@ get_mnm_password <- function(
     ...
   ) {
 
-  stopifnot("glue" =    requireNamespace("glue", quietly = FALSE))
+  stopifnot("glue" = requireNamespace("glue", quietly = FALSE))
   stopifnot("keyring" = requireNamespace("keyring", quietly = FALSE))
   stopifnot("dplyr" = requireNamespace("dplyr", quietly = FALSE))
 
