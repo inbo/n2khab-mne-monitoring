@@ -12,7 +12,7 @@
 # the conditional allows for setting a different git root from other places
 # [!] the variable name `snippet_base_path` must be consistent with `MNMLibraryCollection.R`
 if (!exists("snippet_base_path")) {
-  snippet_base_path <- rprojroot::find_root(is_git_root)
+  snippet_base_path <- rprojroot::find_root(rprojroot::is_git_root)
 }
 
 source_snippet_supplements <- function(file_name) {
