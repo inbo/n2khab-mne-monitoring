@@ -503,6 +503,8 @@ transfer_data <- dplyr::tbl(loceval_connection$connection, view_id) %>%
 # replacements are already integrated by the view
 # -> in the grts setting of the target mnmgwdb
 
+loceval_characols <- c("grts_address", "type", "eval_date", "eval_source")
+
 locevals_joined <- transfer_data %>%
   left_join(
     mnmgwdb$query_columns(
@@ -520,11 +522,22 @@ locevals_joined <- transfer_data %>%
     eval_date = coalesce(eval_date, as.Date(log_update))
   )
 
+duplicate_locevals <- locevals_joined %>%
+  count(!!!rlang::syms(loceval_characols)) %>%
+  arrange(desc(n)) %>%
+  filter(n > 1)
+
+if (nrow(duplicate_locevals) > 0) {
+  duplicate_locevals %>% t() %>% knitr::kable()
+  stop("there were duplicate locevals!")
+}
+
+
 locevals_lookup <- update_cascade_lookup(
   table_label = "LocationEvaluations",
   new_data = locevals_joined,
   index_columns = c("locationevaluation_id"),
-  characteristic_columns = c("grts_address", "type", "eval_date", "eval_source"),
+  characteristic_columns = loceval_characols,
   tabula_rasa = TRUE,
   verbose = TRUE
 )

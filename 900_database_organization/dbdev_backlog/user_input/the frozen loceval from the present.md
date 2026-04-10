@@ -63,3 +63,46 @@ Solved pragmatically by:
 loceval=# UPDATE "inbound"."Visits" SET visit_done = FALSE, photo = NULL, notes = NULL, type_assessed = NULL WHERE date_visit IS NULL AND visit_done AND grts_address = 6110;
 UPDATE 1
 ```
+
+
+Another one appeared; slightly different because the frozen visit is better filled (this month, retrospectively):
+```sql
+SELECT * FROM "inbound"."Visits" WHERE grts_address = 18986217 AND visit_done;
+ | visit_id           |       3556 |       3555 |
+ | log_user           | salamandra | salamandra |
+ | sampleunit_id      |       2387 |       2387 |
+ | location_id        |       2287 |       2287 |
+ | grts_address       |   18986217 |   18986217 |
+ | teammember_id      |          7 |          7 |
+ | date_visit         | 2026-04-09 | 2026-04-09 |
+ | type_assessed      |    91E0_sf |    91E0_sf |
+ | visit_done         |          t |          t |
+ | type               |    91E0_sf |    91E0_sf |
+ | activity_group_id  |         18 |         18 |
+ | date_start         | 2026-03-15 | 2025-03-15 |
+ | facalendar_id      |       3556 |       3555 |
+ | archive_version_id |            |            |
+ | is_wdt             |            |            |
+ 
+-- photo = 'loceval_20260409131037097.JPG', notes = 'Naiwkeurigheid 2 cm, wilgenbos uiteen gevallen
+ 
+(2 rows)
+```
+
+solved:
+```sql
+-- SELECT * FROM "inbound"."Visits"
+UPDATE "inbound"."Visits" SET
+notes = 'Naiwkeurigheid 2 cm, wilgenbos uiteen gevallen'
+WHERE grts_address = 18986217 AND date_start = '2026-03-15';
+
+-- SELECT * FROM "inbound"."Visits"
+UPDATE "inbound"."Visits" SET 
+  teammember_id = NULL,
+  date_visit = NULL,
+  type_assessed = NULL,
+  visit_done = FALSE,
+  photo = NULL,
+  notes = NULL
+WHERE visit_done AND grts_address = 18986217 AND date_start = '2025-03-15';
+```
