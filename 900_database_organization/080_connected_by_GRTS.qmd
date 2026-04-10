@@ -42,8 +42,8 @@ choose a GRTS
 
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
-# grts <- c(1999406, 6417454) # replacement happened; but location went to archive 7
-grts <- c(6110, 1118141) # accidental retrospective fill-in of a frozen location
+grts <- c(1999406, 6417454) # replacement happened; but location went to archive 7
+    # c(6110, 1118141,   18986217,  9366, 12592278) # accidental retrospective fill-in of a frozen location 
 # grts <- c(1946498, 4354946, 1353694, 1118141, 29258198, 7853673) # new uploads rep update snips 0.15.0
     # c(12401, 11825, 13686)
     # c(50354734, 20994606) # replacement happened; but location went to archive 7
