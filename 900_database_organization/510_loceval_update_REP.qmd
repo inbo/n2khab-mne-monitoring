@@ -270,8 +270,9 @@ out <- processx::run(
 
 ```{r load-freeze}
 
-loceval_freeze <-
-  read.csv(file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv"))) %>%
+loceval_freeze <- read.csv(
+    file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv"))
+  ) %>%
   mutate(across(c(
       date_start,
       date_end,
@@ -564,7 +565,11 @@ print_category_count(distribution, table_label)
 # distribution$to_archive
 # distribution$to_upload
 
+# TODO is -staging on the latest state?
+
 ```
+
+
 
 
 
@@ -1049,6 +1054,12 @@ previously_visited_replacements <- locevaldb$query_table("Replacements") %>%
     | (!is.na(notes))
   )
 
+
+
+previously_visited_replacements %>%
+  filter(grts_address %in% c(6110, 1118141)) %>%
+  t() %>% knitr::kable()
+
 replacement_archives <- previously_visited_replacements %>%
   inner_join(
     locevaldb$query_columns(
@@ -1067,21 +1078,25 @@ replacement_archives <- previously_visited_replacements %>%
  
 glimpse(replacement_archives)
 
+reparchs_characols = c(
+    "grts_address",
+    "grts_address_replacement",
+    "type",
+    "replacement_rank",
+    "version_id"
+  )
 
 if (nrow(replacement_archives) > 0) {
   # previously_visited_replacements %>% select(starts_with("grts_address"))
+  replacement_archives %>%
+    count(!!!rlang::syms(reparchs_characols)) %>%
+    arrange(desc(n))
 
   replacement_archive_lookup <- update_cascade_lookup(
     table_label = "ReplacementArchives",
     new_data = replacement_archives,
     index_columns = c("replacementarchive_id"),
-    characteristic_columns = c(
-      "grts_address",
-      "grts_address_replacement",
-      "type",
-      "replacement_rank",
-      "version_id"
-    ),
+    characteristic_columns = reparchs_characols,
     tabula_rasa = FALSE,
     verbose = TRUE
   )
