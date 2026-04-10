@@ -1,0 +1,28 @@
+---
+aliases:
+  - daily maintenance scripts
+tags:
+  - maintenance
+---
+*(assembly of scripts which keep the databases in sync and order.)*
+
+> [!note] YAD menu
+> Try `101_all_maintenence_menu.sh` - a [yad](https://github.com/v1cont/yad) script to launch the different tasks.
+
+
+```
+110_count_dbcontent.R
+111a_push_loceval_to_mnmgwdb.R
+111b_fill_location_journals.R
+112_update_facalendar.R
+113_replaced_LocationCells.R
+114_sync_LocationInfos.R
+116_update_wgs84_coordinates.R
+117loceval_mhq_areas.R
+117mnmgwdb_mhq_areas.R
+118_random_elevationpoints_mnmgwdb.R
+118_random_placementpoints_mnmgwdb.R
+119_sync_FreeFieldNotes.py
+```
+
+tested on `-staging` prior to application (usually)

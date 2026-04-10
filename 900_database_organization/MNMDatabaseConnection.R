@@ -597,6 +597,13 @@ connect_mnm_database <- function(
     db <- mnmdb_versions_and_archiving(db)
   }
 
+  db$wake_keyring <- function(keyring = NA) {
+    if (is.na(keyring)) {
+      keyring <- "mnmdb_temp"
+    }
+    if (keyring::keyring_is_locked(keyring)) unlock_keyring(keyring_label = keyring)
+  }
+
   return(db)
 } # /connect_mnm_database
 
@@ -1331,7 +1338,8 @@ mnmdb_versions_and_archiving <- function(db) {
   db$tag_new_version <- function(
       new_version_tag,
       new_version_notes,
-      new_date_applied = NA
+      new_date_applied = NA,
+      new_date_fixing = NA
     ) {
 
     # determine the next counter
@@ -1351,6 +1359,7 @@ mnmdb_versions_and_archiving <- function(db) {
       "version_tag" = new_version_tag,
       "data_iteration" = data_iteration,
       "date_applied" = new_date_applied,
+      "date_fixing" = new_date_fixing,
       "notes" = new_version_notes
     ))
 
@@ -1411,7 +1420,7 @@ terminate_keyring <- function(keyring_label = "mnmdb_postgis") {
 
 
 # lock the keyring after a delay
-lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 300) {
+lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 1800) {
 
   stopifnot("glue" =    requireNamespace("glue", quietly = TRUE))
   stopifnot("keyring" = requireNamespace("keyring", quietly = TRUE))
@@ -1521,7 +1530,7 @@ get_mnm_password <- function(
     ...
   ) {
 
-  stopifnot("glue" =    requireNamespace("glue", quietly = FALSE))
+  stopifnot("glue" = requireNamespace("glue", quietly = FALSE))
   stopifnot("keyring" = requireNamespace("keyring", quietly = FALSE))
   stopifnot("dplyr" = requireNamespace("dplyr", quietly = FALSE))
 

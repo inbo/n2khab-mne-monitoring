@@ -43,6 +43,7 @@ SELECT
   FWCAL.no_visit_planned,
   FWCAL.notes,
   FWCAL.done_planning,
+  FWCAL.is_frozen,
   VISIT.date_visit,
   VISIT.photo,
   VISIT.visit_done,
@@ -147,7 +148,8 @@ LEFT JOIN (
 ) AS INST
   ON (LOC.location_id = INST.location_id)
 WHERE is_gw_activity
-  AND FWCAL.archive_version_id IS NULL
+  AND (SLOC.archive_version_id IS NULL)
+  AND (FWCAL.archive_version_id IS NULL)
 ORDER BY
   FWCAL.date_end,
   FWCAL.priority,
@@ -194,10 +196,10 @@ DO ALSO
 ;
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  viewer_mnmdb;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  planner_gwdb
+GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  planner_gwdb;
 
-GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
-GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
+-- GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
+-- GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
 
 
 -- REVOKE UPDATE ON  "outbound"."FieldworkPlanning"  FROM  tester;

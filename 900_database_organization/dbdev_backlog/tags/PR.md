@@ -1,7 +1,6 @@
 ---
 aliases:
   - pull request
-  - #PR 
 tags:
   - PR  
   - git

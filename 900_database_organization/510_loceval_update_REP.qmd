@@ -1,6 +1,6 @@
 ---
-title: "RVP Data Re-Upload - loceval"
-date: "2025-09-24, 20260309"
+title: "REP Data Re-Upload - loceval"
+date: "20260319"
 format:
   html:
     toc: true
@@ -12,13 +12,32 @@ knitr:
     echo: true
 ---
 
+# Changelog
+
+- 20250924 init
+- 20260309 refresher (incl. `Replacements` / `ReplacementArchives`)
+- 20260319 REP update - major overhaul:
+  - auxiliary FAGs
+  - data fixing / freeze
 
 
 # TODO
 
-- `is_gw_activity` / `is_loceval_activity`
-- `091_push_loceval_to_mnmgwdb.py` only on 070
 
+- [x] freeze past activities `filter(year(date_start) >= main_year)` ~~main_year~~ `is_frozen` + `date_fixing`
+- [ ] `is_current_occasion`
+- `cal_0.14.0_continuation` 
+- [x] `schemes_served_all` vs. previous `scheme_ps_targetpanel` -> now integrated in `schemes`, causes changes
+- [x] "auxiliary" FAGs
+  + via `fag_is_auxiliary = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT|LEVREADDIVER" )`
+  + and `fag_is_preponable = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT" )`
+
+- [x] `is_gw_activity` / `is_loceval_activity` -> now generally found in both databases
+
+
+# Preparations
+
+## sync staging mirror
   
 ```{sh sync-staging}
 #| eval: false
@@ -32,7 +51,6 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
 ```{r libraries}
 # libraries
 source("MNMLibraryCollection.R")
-load_rvp_common_libraries()
 load_database_interaction_libraries()
 
 # the database connection object
@@ -48,56 +66,49 @@ source("MNMDatabaseToolbox.R")
 ```
 
 
-## info stream from RVP
+## info stream from REP
 
-First, there is the `.RData` file.
+First, there is the `.RData` file, along with proccessing outcome of the code snippets.
 
-```{r load-sample-rdata}
-tic <- function(toc) round(Sys.time() - toc, 1)
-toc <- Sys.time()
-load_rvp_rdata(reload = FALSE, to_env = parent.frame())
-message(glue::glue("Good morning!
-  Loading the RVP data took {tic(toc)} seconds today."
-))
-
-```
-
-Some code snippets, possibly modified on the way, were provided by Floris.
+::: {.callout-note snippets}
+- check for changes on every update, e.g. with `meld`:
+  `meld 020_fieldwork_organization/code_snippets.R 900_database_organization/401_snippet_selection.R`
+- bake fresh snippets every morning:
+  `Rscript 403_precalculate_fresh_snippets.R`
+:::
 
 ```{r source-code-snippets}
-# TODO: check for changes on every update, e.g. with `meld`:
-#       meld 020_fieldwork_organization/code_snippets.R 900_database_organization/401_snippet_selection.R
 
-# Load some custom GRTS functions
-# project_root <- find_root(is_git_root)
-# source(file.path(project_root, "R/grts.R"))
-snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-
+tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_rvp_code_snippets(snippets_path)
-message(glue::glue(
-  "... loading/executing the code snippets took {tic(toc)}s."
+
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# TEMPORARY adjustment pointing to adjacent branch (wip)
+snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+reload_rep_code_snippets(fresh_snippet_path)
+message(glue::glue("Good morning!
+  Loading the REP data and snippets took {tic(toc)} seconds today."
 ))
+
+verify_rep_objects()
 
 if (nrow(different_checksums) > 0) {
   knitr::kable(different_checksums)
 }
+
 ```
 
-
-Finally, check that everything was loaded correctly.
-
-```{r rvp-checks}
-verify_rvp_objects()
-```
 
 ## database connection
 
 
 ```{r connect-databases}
+
 database <- "loceval"
 config_filepath <- file.path("./mnm_database_connection.conf")
-suffix <- ""
+# suffix <- ""
 suffix <- "-staging"
 
 
@@ -121,16 +132,10 @@ update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
 ```{r step-1-safety-dump}
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
-# if (isFALSE(grepl("-staging", loceval_mirror))) {
-#   loceval$dump_all(
-#     here::here("dumps", glue::glue("safedump_{loceval$database}_{now}.sql")),
-#     exclude_schema = c("tiger", "public")
-#   )
-# }
 
 if (isFALSE(grepl("-staging", locevaldb_mirror))) {
   locevaldb$dump_all(
-    here::here("dumps", glue::glue("rvp_pre_update_{locevaldb$database}_{now}.sql")),
+    here::here("dumps", glue::glue("rep_pre_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }
@@ -147,16 +152,25 @@ if (isFALSE(grepl("-staging", locevaldb_mirror))) {
 if (FALSE) {
 
   # manually set a new version
+  # the first part indicates the "snippet" version tag, the second one the REP tag.
+  # see:
+  #   - https://github.com/inbo/n2khab-mne-monitoring/tags
+  #   - https://github.com/inbo/n2khab-mne-designs/tags
   # version_tag <- "≤v0.11.0_poc0.13.1"
   # version_tag <- "v0.12.0_poc0.14.0"
-  version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
-  version_notes <- "revisit RVP script / ctd on Replacements"
-  date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+  # version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
+  # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
+
+  version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
+  version_notes <- "REP update 0.15.0 (GRTS reset)"
+  version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+  version_date_fixing <- as.Date("2025-12-31")
 
   version_id <- locevaldb$tag_new_version(
     new_version_tag = version_tag,
     new_version_notes =  version_notes,
-    new_date_applied = date_applied
+    new_date_applied = version_date_applied,
+    new_date_fixing = version_date_fixing
   )
 
   # SELECT * FROM "metadata"."Versions";
@@ -169,16 +183,20 @@ if (FALSE) {
 if (FALSE) {
   # ... ad hoc / testing: delete version again
   table_label <- "Versions"
+  data_iteration = 2
   glue::glue("
   DELETE FROM {locevaldb$get_namestring(table_label)}
   WHERE version_tag = '{version_tag}'
     AND data_iteration = {data_iteration}
   ;
   ")
+  # locevaldb$set_sequence_key("Versions", "max", verbose = TRUE)
+  
   glue::glue("
   UPDATE {locevaldb$get_namestring(table_label)}
-  SET notes = E'{version_notes}'
-  WHERE version_tag = {version_tag}
+  SET notes = E'{version_notes}',
+      date_fixing = '{version_date_fixing}'
+  WHERE version_tag = '{version_tag}'
     AND data_iteration = {data_iteration}
   ;
   ")
@@ -186,7 +204,6 @@ if (FALSE) {
   # 'SELECT * FROM "metadata"."Versions";'
     
 }
-
 
 # TODO: I still have to make up my mind whether to archive everything.
 #       For now, I will preliminarily keep it with an "archive_id" column.
@@ -208,19 +225,11 @@ Now is the chance!
 ## prerequisite_lookups
 
 ```{r gather-lookups}
-loceval_field_activities <- locevaldb$query_table("GroupedActivities") %>%
-  filter(is_loceval_activity, is_field_activity) %>%
-  distinct(activity_group, activity)
 
 n2khabstrata_lookup <- locevaldb$query_lookup(
   "N2kHabStrata",
   characteristic_columns = c("stratum")
 )
-
-```
-
-
-```{r load-activities}
 
 activity_groupid_lookup <- locevaldb$query_columns(
     "GroupedActivities",
@@ -228,111 +237,162 @@ activity_groupid_lookup <- locevaldb$query_columns(
   ) %>%
   distinct()
 
-field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
+```
+
+
+```{r load-activities}
+
+loceval_field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
   filter(is_loceval_activity, is_field_activity) %>%
-  distinct(activity_group, activity)
+  distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 ```
 
+
+## Freeze Past Fixture
+
+Here, it would be time to generate the latest FREEZE,
+but only if the `date_fixing` changed in the latest `"metadata"."Versions"`.
+
+```{r generate_freeze_calendar}
+#| eval: false
+
+out <- processx::run(
+  "Rscript",
+  c("405_freeze_calendar.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+  )
+# message(out$stderr)
+
+```
+
+
+```{r load-freeze}
+
+loceval_freeze <- read.csv(
+    file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv"))
+  ) %>%
+  mutate(across(c(
+      date_start,
+      date_end,
+      mhq_assessment_date
+    ), as.Date)
+  ) %>% 
+  mutate(across(c(
+      previous_notes
+    ), as.character)
+  )
+
+# loceval_freeze %>% glimpse()
+# loceval_freeze %>%
+#   filter(grts_address == 6110) %>% 
+#   glimpse()
+```
 
 
 ## Sample Units
 
 TODO: need to sideload future units from LocationAssessments
-  
-```{r assemble-sample-units}
 
-sample_units <-
-  fag_stratum_grts_calendar %>%
-  common_current_calenderfilters() %>%
-  distinct(
-    scheme_moco_ps,
-    stratum,
-    grts_address
-  ) %>%
-  unnest(scheme_moco_ps) %>%
-  # adding location attributes
-  inner_join(
-    scheme_moco_ps_stratum_targetpanel_spsamples %>%
-      select(
-        scheme,
-        module_combo_code,
-        panel_set,
-        stratum,
-        grts_join_method,
-        grts_address,
-        grts_address_final,
-        # retaining 3 cols that drive subsampling location(s) in the unit:
-        is_forest,
-        in_mhq_samples,
-        last_type_assessment,
-        last_type_assessment_in_field,
-        domain_part,
-        targetpanel
-      ) %>%
-      # deduplicating 7220:
-      distinct(),
-    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
+```{r assemble-sample-units}
+# `date_start`, `date_end`, `field_activity_group`, and `rank`
+
+sample_unit_columns <- c(
+  "grts_address",
+  "type",
+  "schemes",
+  # "schemes_served_all", # renamed to schemes
+  "grts_join_method",
+  # "is_current_occasion", # TODO
+  "is_forest",
+  "in_mhq_samples",
+  "mhq_assessment_date", 
+  "has_mhq_assessment", 
+  "domain_part",
+  "scheme_ps_targetpanels",
+  "previous_notes"
+)
+
+sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
+  rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
+  # only retain the activities for biotic tasks
+  # otherwise there are duplicates
+  #     (`schemes` filled differently on other activities)
+  semi_join(
+    loceval_field_activities_db,
+    by = join_by(field_activity_group == activity_group)
   ) %>% 
-  # also join the spatial poststratum, since we need this in setting
-  # GRTS-address based priorities
-  inner_join(
-    scheme_moco_ps_stratum_sppost_spsamples %>%
-      unnest(sp_poststr_samples) %>%
-      select(-sample_status),
-    join_by(scheme, module_combo_code, panel_set, stratum, grts_address),
-    relationship = "many-to-one",
-    unmatched = c("error", "drop")
-  ) %>%
-  select(-module_combo_code, -sp_poststratum) %>%
-  nest_scheme_ps_targetpanel() %>%
-  # # add MHQ assessment metadata
-  # inner_join(
-  #   stratum_grts_n2khab_phabcorrected_no_replacements %>%
-  #     select(stratum, grts_address, assessed_in_field, assessment_date),
-  #   join_by(stratum, grts_address),
-  #   relationship = "many-to-one",
-  #   unmatched = c("error", "drop")
-  # ) %>%
-  distinct() %>%
-  # database-related additions 
-  # convert_stratum_to_type() %>%
-  rename_grts_address_final_to_grts_address() %>%
   rename(
     has_mhq_assessment = last_type_assessment_in_field,
-    mhq_assessment_date = last_type_assessment 
+    mhq_assessment_date = last_type_assessment,
+    schemes = schemes_served_all
   ) %>%
   relocate(grts_address) %>%
   relocate(grts_join_method, .after = grts_address) %>%
   mutate(
     previous_notes = NA # FUTURE TODO
-  ) %>%
-  mutate(
-    across(c(
-        grts_join_method,
-        scheme_ps_targetpanels,
-        # sp_poststratum,
-        stratum,
-        domain_part,
-        previous_notes
-      ),
-      as.character
-    )
-  ) 
+  ) %>% 
+  rename(type = stratum) %>% 
+  distinct(!!!rlang::syms(sample_unit_columns)) %>% 
+  mutate(across(c(
+      grts_join_method,
+      scheme_ps_targetpanels,
+      schemes,
+      type,
+      domain_part,
+      previous_notes
+    ), as.character)
+  )
 
-# sample_units %>%
-#   filter(grts_address == 23238) %>%
-#   t() %>% knitr::kable()
 
-# sample_units %>%
-#   filter(grts_address == 22107438) %>%
-#   t() %>% knitr::kable()
-# 
-# sample_units %>%
-#   filter(grts_address == 47764190) %>%
-#   t() %>% knitr::kable()
+# sample_units_updated %>% glimpse()
+# sample_units_updated %>% distinct(grts_address, type) %>% nrow()
+
+```
+
+
+Re-establish SampleUnits from `the freeze`.
+
+::: {.callout-note}
+Sample units can 
+
+- appear (only pesent in `_updated`)
+- disappear (only pesent in `_retained`)
+- stay or change (pesent in *both*, before and after update).
+
+We UNION the updated and retained; for *changed* units the novel plan (`_updated`) is the reference.
+Association with old schemes is not relevant.
+
+:::
+
+
+```{r frozen-units}
+# loceval_freeze %>% names()
+
+sample_units_retained <- loceval_freeze %>%
+  distinct(!!!rlang::syms(sample_unit_columns)) %>%
+  anti_join(
+    sample_units_updated,
+    by = join_by(grts_address, type)
+  )
+
+sample_units_retained %>% 
+  glimpse()
+
+```
+
+
+Join updated and frozen sample locations:
+
+```{r combined_sample_units}
+
+sample_units <- bind_rows(
+  sample_units_retained,
+  sample_units_updated
+)
+
+# sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
 
 ```
 
@@ -341,7 +401,7 @@ sample_units <-
 
 ```{r assemble-locations}
 
-locations <- bind_rows(
+locations_grts_collection <- bind_rows(
     locevaldb$query_columns("Locations", c("grts_address")),
     sample_units %>% select(grts_address),
     locevaldb$query_columns("LocationInfos", c("grts_address")),
@@ -354,9 +414,22 @@ locations <- bind_rows(
       rename(grts_address = grts_address_replacement)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
-  distinct() %>%
-  # count(grts_address) %>%
-  # arrange(desc(n))
+  distinct() 
+
+# locations_grts_collection %>% 
+#   count(grts_address) %>%
+#   arrange(desc(n))
+
+# join geometry column
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+locations <- locations_grts_collection %>% 
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -414,102 +487,6 @@ stitch_table_connection(
 
 ```
 
-## Sample Locations
-
-```{r porcess-sample-locations}
-
-if ("location_id" %in% names(sample_units)) {
-  # should not be the case in a continuous script;
-  # this is extra safety for debugging and de-serial execution
-  sample_units <- sample_units %>%
-    select(-location_id)#, -location_id.x, -location_id.y)
-}
-sample_units <- sample_units %>%
-  left_join(
-    locevaldb$query_columns("Locations", c("grts_address", "location_id")),
-    by = join_by(grts_address),
-    relationship = "many-to-one"
-  ) %>%
-  distinct()
-
-# sample_units %>%
-#   filter(grts_address == 22107438) %>%
-#   t() %>% knitr::kable()
-
-table_label <- "SampleUnits"
-data_nouveau <- sample_units %>%
-  rename(type = stratum)
-characteristic_columns <- c("grts_address", "type") # , "location_id"
-index_column <- locevaldb$get_primary_key(table_label)
-# locevaldb$query_columns(table_label, characteristic_columns)
-
-distribution <- categorize_data_update(
-  mnmdb = locevaldb,
-  table_label = table_label,
-  data_future = data_nouveau,
-  input_precedence_columns = precedence_columns[[table_label]],
-  characteristic_columns = characteristic_columns,
-)
-print_category_count(distribution, table_label)
-
-# distribution$to_archive
-# distribution$reactivate
-# distribution$to_archive
-# distribution$to_upload
-# data_nouveau %>% filter(grts_address == 48043282)
-distribution$to_archive %>%
-  select(grts_address, type) %>% 
-  arrange(grts_address) %>% knitr::kable()
-distribution$reactivate %>%
-  select(grts_address, type) %>% 
-  arrange(grts_address) %>% knitr::kable()
-```
-
-```{r detective-work}
-#| eval: false
-
-fag_stratum_grts_calendar %>%
-  rename(type = stratum, grts_address_original = grts_address, grts_address = grts_address_final) %>% 
-  semi_join(
-    distribution$to_archive,
-    by = join_by(grts_address, type)
-  )
-
-
-distribution$changed %>% knitr::kable()
-```
-
-
-```{r update-sample-locations}
-
-distribution$to_upload <- distribution$to_upload %>% 
-  mutate(
-    # log_user = "maintenance",
-    # log_update = as.POSIXct(Sys.time()),
-    replacement_ongoing = FALSE,
-    is_replaced = FALSE,
-    type_is_absent = FALSE
-  ) 
-
-# distribution$changed %>% t() %>% knitr::kable()
-# distribution$to_upload %>% select(!!!characteristic_columns) %>% knitr::kable()
-# distribution$to_upload %>% filter(grts_address == 47764190) %>% t() %>% knitr::kable()
-# locevaldb$query_table("SampleUnits") %>%
-#   semi_join(
-#     distribution$changed,
-#     by = join_by(grts_address)
-#   ) %>% knitr::kable()
-
-sampleunits_lookup <- redistribute_calendar_data(
-  mnmdb = locevaldb,
-  table_label = table_label,
-  distribution = distribution,
-  index_columns = c(index_column),
-  characteristic_columns = characteristic_columns,
-  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
-)
-
-```
 
 ## location cells
 
@@ -549,111 +526,130 @@ locevaldb$insert_data(
 ```
 
 
+## Sample Units
 
-## FieldActivityCalendar
+```{r porcess-sample-units}
 
-```{sql there-be-duplicates-1}
---| eval: false
---| echo: false
+if ("location_id" %in% names(sample_units)) {
+  # should not be the case in a continuous script;
+  # this is extra safety for debugging and de-serial execution
+  sample_units <- sample_units %>%
+    select(-location_id)#, -location_id.x, -location_id.y)
+}
+sample_units <- sample_units %>%
+  left_join(
+    locevaldb$query_columns("Locations", c("grts_address", "location_id")),
+    by = join_by(grts_address),
+    relationship = "many-to-one"
+  ) %>%
+  distinct()
 
-SELECT * FROM (
-SELECT DISTINCT
-  grts_address, type,
-  COUNT(DISTINCT sampleunit_id) AS n
-FROM "outbound"."FieldActivityCalendar"
-GROUP BY grts_address, type
-) WHERE n > 1;
+# sample_units %>%
+#   filter(grts_address == 22107438) %>%
+#   t() %>% knitr::kable()
 
-SELECT * FROM (
-SELECT DISTINCT
-  grts_address, type,
-  COUNT(DISTINCT sampleunit_id) AS n
-FROM "inbound"."Visits"
-GROUP BY grts_address, type
-) WHERE n > 1;
+table_label <- "SampleUnits"
+data_nouveau <- sample_units
+characteristic_columns <- c("grts_address", "type") # , "location_id"
+index_column <- locevaldb$get_primary_key(table_label)
+# locevaldb$query_columns(table_label, characteristic_columns)
 
-
-SELECT * FROM (
-SELECT DISTINCT
-  grts_address, type, activity_group_id, date_start,
-  string_agg(distinct CAST(visit_id AS VARCHAR), '|') as ids,
-  COUNT(*) AS n
-FROM "inbound"."Visits"
-GROUP BY grts_address, type, activity_group_id, date_start
-) WHERE n > 1;
-
-
-
-FROM "outbound"."FieldActivityCalendar"
-FROM "inbound"."Visits"
-
-
-SELECT *
-FROM "outbound"."FieldActivityCalendar"
-WHERE fieldactivitycalendar_id IN (
-  SELECT DISTINCT CAL.fieldactivitycalendar_id 
-  FROM "outbound"."FieldActivityCalendar" AS CAL
-  LEFT JOIN (
-    SELECT fieldactivitycalendar_id, visit_done, date_visit, notes
-    FROM "inbound"."Visits"
-  ) AS VIS
-    ON VIS.fieldactivitycalendar_id = CAL.fieldactivitycalendar_id
-  WHERE (CAST(CAL.fieldactivitycalendar_id AS VARCHAR) IN (
-    SELECT DISTINCT fieldactivitycalendar_id FROM (
-      SELECT *, UNNEST(STRING_TO_ARRAY(ids, '|')) AS fieldactivitycalendar_id
-      FROM (
-      SELECT DISTINCT
-        grts_address, type, activity_group_id, date_start,
-        STRING_AGG(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
-        COUNT(*) AS n
-      FROM "outbound"."FieldActivityCalendar"
-      GROUP BY grts_address, type, activity_group_id, date_start
-      )
-      WHERE n > 1
-    ) GROUP BY fieldactivitycalendar_id
-  ))
-  AND VIS.fieldactivitycalendar_id IS NULL
-  ORDER BY CAL.fieldactivitycalendar_id ASC
+distribution <- categorize_data_update(
+  mnmdb = locevaldb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = characteristic_columns,
 )
-;
+print_category_count(distribution, table_label)
 
+# distribution$to_archive
+# distribution$reactivate
+# distribution$to_archive
+# distribution$to_upload
 
-AND NOT done_planning
-- 914
-
-
-SELECT *
-FROM "outbound"."FieldActivityCalendar"
-WHERE grts_address = 4344585
-  AND fieldactivitycalendar_id NOT IN (
-    SELECT DISTINCT fieldactivitycalendar_id
-    FROM "inbound"."Visits"
-    GROUP BY fieldactivitycalendar_id
-  )
-;
+# TODO is -staging on the latest state?
 
 ```
 
 
-```{r assemble-field-activity-calendar}
 
-fieldwork_calendar <-
-  fieldwork_shortterm_prioritization_by_stratum %>%
-  common_current_calenderfilters() %>% # should be filtered already!
+
+
+```{r update-sample-locations}
+
+distribution$to_upload <- distribution$to_upload %>% 
+  mutate(
+    # log_user = "maintenance",
+    # log_update = as.POSIXct(Sys.time()),
+    replacement_ongoing = FALSE,
+    is_replaced = FALSE,
+    type_is_absent = FALSE
+  ) 
+
+sampleunits_lookup <- redistribute_calendar_data(
+  mnmdb = locevaldb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
+)
+
+```
+
+
+## FieldActivityCalendar
+
+Starting at `fieldwork_shortterm_prioritization_by_stratum`, which is already filtered and prioritized.
+
+
+```{r assemble-fieldwork-calendar}
+
+# sampleunits_lookup <- locevaldb$query_columns("SampleUnits", c("grts_address", "type", "sampleunit_id"))
+
+fieldwork_calendar_columns <- c(
+  "grts_address",
+  "type",
+  "sampleunit_id",
+  "activity_group_id",
+  "activity_rank",
+  "date_start",
+  "date_end",
+  "date_interval",
+  "priority",
+  "wait_any",
+  "wait_watersurface",
+  "wait_3260",
+  "wait_7220",
+  "wait_floating",
+  "is_frozen"
+)
+
+
+fieldcalendar_characols <- c(
+  "grts_address",
+  "type",
+  "activity_group_id",
+  "date_start"
+)
+
+
+
+fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
-  relocate(grts_address) %>%
   rename(type = stratum) %>%
   inner_join(
     sampleunits_lookup,
     by = join_by(grts_address, type),
     relationship = "many-to-one"
   ) %>%
-  relocate(sampleunit_id) %>%
+  relocate(grts_address, type, sampleunit_id) %>%
   rename(
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(field_activities_db, by = join_by(activity_group)) %>%
+  semi_join(loceval_field_activities_db, by = join_by(activity_group)) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
@@ -671,36 +667,52 @@ fieldwork_calendar <-
       as.character
     )
   ) %>%
-  # rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>% 
-  mutate(
-    log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
-    excluded = FALSE,
-    no_visit_planned = FALSE,
-    done_planning = FALSE
-  ) 
+  mutate(is_frozen = FALSE) %>% 
+  select(!!!rlang::syms(fieldwork_calendar_columns))
 
-fieldwork_calendar %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
+# fieldwork_calendar_updated %>% glimpse()
 
-fieldwork_calendar_new <- fieldwork_calendar %>%
-  select(
-    -grts_join_method,
-    -scheme_ps_targetpanels,
-    -domain_part,
-    -is_forest,
-    -in_mhq_samples,
-    -last_type_assessment_in_field
+```
+
+
+Normally, all calendar entries from the `freeze` have already be removed, so the `anti_join` is a no-op.
+
+
+```{r assemble-fieldwork-calendar-freeze}
+
+fieldwork_calendar_retained <- loceval_freeze %>%
+  select(!!!rlang::syms(c(fieldwork_calendar_columns, "done_planning"))) %>% 
+  anti_join(
+    fieldwork_calendar_updated,
+    by = join_by(!!!rlang::syms(fieldcalendar_characols))
+  ) %>%
+  select(-is_frozen) %>%
+  mutate(is_frozen = TRUE) %>%
+  left_join(
+    loceval_field_activities_db %>%
+      distinct(activity_group) %>% 
+      left_join(activity_groupid_lookup, by = join_by(activity_group)) %>%
+      select(activity_group_id) %>%
+      mutate(is_loceval_activity = TRUE),
+    by = join_by(activity_group_id)
+  ) %>% 
+  filter(done_planning | is_loceval_activity) %>%
+  select(-done_planning, -is_loceval_activity)
+  
+
+# fieldwork_calendar_retained %>% glimpse()
+# loceval_freeze %>% count(activity_group_id, done_planning, visit_done)
+
+```
+
+
+
+```{r union-fieldwork-calendar}
+
+fieldwork_calendar_new <- bind_rows(
+    fieldwork_calendar_retained,
+    fieldwork_calendar_updated
   )
-
-fieldcalendar_characols <- c(
-    "grts_address",
-    "type", 
-    "activity_group_id",
-    "date_start"
-  )
-
-# "sampleunit_id",
-# "sspstapa_id",
 
 ```
 
@@ -719,6 +731,22 @@ stitch_table_connection(
 ```
 
 
+Link dates of current calendar table to new calendar
+
+```{r link-dates}
+
+startdate_updates_happened <- associate_and_shift_start_dates(
+  mnmdb = locevaldb,
+  table_label = "FieldActivityCalendar",
+  data_future = fieldwork_calendar_new,
+  characteristic_columns = fieldcalendar_characols,
+  other_table_labels = c("Visits")
+) 
+
+if (startdate_updates_happened) message("Startdate updates happened!")
+
+```
+
 
 ```{r categorize-fieldworkcalendar}
 
@@ -728,15 +756,6 @@ characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
 # data_nouveau %>% head(3) %>% t() %>% knitr::kable()
 # data_nouveau %>% filter(grts_address == 1677870) %>% t() %>% knitr::kable()
-
-
-startdate_updates_happened <- associate_and_shift_start_dates(
-  mnmdb = locevaldb,
-  table_label = table_label,
-  data_future = data_nouveau,
-  characteristic_columns = characteristic_columns,
-  other_table_labels = c("Visits")
-) 
 
 
 distribution <- categorize_data_update(
@@ -754,19 +773,6 @@ print_category_count(distribution, table_label)
 ```
 
 
-```{r check-the-news}
-#| eval: false
-
-distribution$to_archive %>%
-  count(activity_group_id) %>%
-  left_join(
-    activity_groupid_lookup,
-    by = join_by(activity_group_id)
-  )
-
-```
-
-
 ```{r sync-fieldworkcalendar}
 
 distribution$to_upload <- distribution$to_upload %>% 
@@ -775,8 +781,9 @@ distribution$to_upload <- distribution$to_upload %>%
     log_update = as.POSIXct(Sys.time()),
     excluded = FALSE,
     no_visit_planned = FALSE,
-    done_planning = FALSE
-  ) 
+    done_planning = FALSE,
+    is_frozen = FALSE
+  )
 
 
 fieldworkcalendar_lookup <- redistribute_calendar_data(
@@ -814,104 +821,46 @@ locevaldb$query_table("FieldActivityCalendar") %>%
 
 ```{r stitch-visits}
 
-# link Visits back to upstream tables
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "FieldActivityCalendar",
-  link_key_column = "fieldactivitycalendar_id",
-  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
-)
-
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type")
-)
-
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "Locations",
-  link_key_column = "location_id",
-  lookup_columns = c("grts_address")
-)
-
-```
-
-
-```{r there-be-duplicates-2}
-#| eval: false
-#| echo: false
-SELECT * FROM (
-SELECT DISTINCT
-  grts_address, type, activity_group_id, date_start,
-  string_agg(distinct CAST(fieldactivitycalendar_id AS VARCHAR), '|') as ids,
-  COUNT(*) AS n
-FROM "outbound"."FieldActivityCalendar"
-GROUP BY grts_address, type, activity_group_id, date_start
-) WHERE n > 1;
-
-
-SELECT * FROM (
-SELECT DISTINCT
-  grts_address, type, activity_group_id, date_start,
-  COUNT(*) AS n
-FROM "inbound"."Visits"
-GROUP BY grts_address, type, activity_group_id, date_start
-) WHERE n > 1;
-
-e.g. 22107438 3110_1_5 19 2025-05-01
-FROM "inbound"."Visits"
-SELECT *
-FROM "outbound"."FieldActivityCalendar"
-WHERE (grts_address = 22107438)
-AND (type = '3110_1_5')
-AND (activity_group_id = 19)
-AND (date_start = '2025-05-01')
-;
-
-FROM "outbound"."FieldActivityCalendar"
-SELECT *
-FROM "inbound"."Visits"
-WHERE (grts_address = 2349833)
-AND (type = '6430_mr')
-AND (activity_group_id = 18)
-AND (date_start = '2025-05-01')
-;
-
-
-fieldwork_calendar %>% 
-  filter(
-   grts_address == 22107438,
-   type == '3110_1_5',
-   activity_group_id == 19,
-   date_start == as.Date('2025-05-01')
-   ) %>% t() %>% knitr::kable()
-
-
-locevaldb$query_table("FieldActivityCalendar") %>% 
-  filter(
-   grts_address == 22107438,
-   type == '3110_1_5',
-   activity_group_id == 19,
-   date_start == as.Date('2025-05-01')
-   ) %>% t() %>% knitr::kable()
-
+stitch_visits <- function() {
+  # link Visits back to upstream tables
+  stitch_table_connection(
+    mnmdb = locevaldb,
+    table_label = "Visits",
+    reference_table = "FieldActivityCalendar",
+    link_key_column = "fieldactivitycalendar_id",
+    lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+  )
+  
+  stitch_table_connection(
+    mnmdb = locevaldb,
+    table_label = "Visits",
+    reference_table = "SampleUnits",
+    link_key_column = "sampleunit_id",
+    lookup_columns = c("grts_address", "type")
+  )
+  
+  stitch_table_connection(
+    mnmdb = locevaldb,
+    table_label = "Visits",
+    reference_table = "Locations",
+    link_key_column = "location_id",
+    lookup_columns = c("grts_address")
+  )
+}
+stitch_visits()
 
 ```
-
 
 
 ```{r assemble-new-visits}
+# stop("WAIT which wone was it?")
 
-visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
+visits_characols <- fieldcalendar_characols
+# visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
 
 potential_visits <- fieldworkcalendar_lookup %>%
   select(
-    !!!rlang::syms(visits_characols)
+    !!!rlang::syms(c("fieldactivitycalendar_id", visits_characols))
   ) %>%
   left_join(
     locations_lookup,
@@ -943,6 +892,11 @@ visits_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
+```
+
+
+```{r post-update-check-visits}
+
 locevaldb$query_table("Visits") %>% 
   count(is.na(fieldactivitycalendar_id)) %>%
   knitr::kable()
@@ -952,21 +906,7 @@ locevaldb$query_table("Visits") %>%
 
 ```{r reconnect-visits}
 
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type") 
-)
-
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "Visits",
-  reference_table = "FieldActivityCalendar",
-  link_key_column = "fieldactivitycalendar_id",
-  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
-)
+stitch_visits()
 
 
 locevaldb$query_table("Visits") %>% 
@@ -980,6 +920,7 @@ locevaldb$query_table("Visits") %>%
 archive visits of archived FWCals
 
 ```{r archive-visits-fwcal}
+
 trgtab <- locevaldb$get_namestring("Visits")
 srctab <- locevaldb$get_namestring("FieldActivityCalendar")
 link_key_column <- "archive_version_id"
@@ -1041,32 +982,6 @@ locationinfo_lookup <- update_cascade_lookup(
   tabula_rasa = FALSE,
   verbose = TRUE
 )
-
-if (FALSE) {
-'
-SELECT * FROM (
-SELECT DISTINCT
-  grts_address, 
-  COUNT(DISTINCT locationinfo_id) AS n
-FROM "outbound"."LocationInfos"
-GROUP BY grts_address 
-) WHERE n > 1;
-
-SELECT *
-FROM "outbound"."LocationInfos"
-WHERE grts_address = 871030;
-
-SELECT *
-FROM "outbound"."LocationInfos"
-WHERE locationinfo_id IN (
-  SELECT MAX(locationinfo_id)  
-  FROM "outbound"."LocationInfos"
-  WHERE grts_address = 871030
-);
-
-'
-}
-
 ```
 
 
@@ -1142,6 +1057,12 @@ previously_visited_replacements <- locevaldb$query_table("Replacements") %>%
     | (!is.na(notes))
   )
 
+
+
+previously_visited_replacements %>%
+  filter(grts_address %in% c(6110, 1118141)) %>%
+  t() %>% knitr::kable()
+
 replacement_archives <- previously_visited_replacements %>%
   inner_join(
     locevaldb$query_columns(
@@ -1160,21 +1081,25 @@ replacement_archives <- previously_visited_replacements %>%
  
 glimpse(replacement_archives)
 
+reparchs_characols = c(
+    "grts_address",
+    "grts_address_replacement",
+    "type",
+    "replacement_rank",
+    "version_id"
+  )
 
 if (nrow(replacement_archives) > 0) {
   # previously_visited_replacements %>% select(starts_with("grts_address"))
+  replacement_archives %>%
+    count(!!!rlang::syms(reparchs_characols)) %>%
+    arrange(desc(n))
 
   replacement_archive_lookup <- update_cascade_lookup(
     table_label = "ReplacementArchives",
     new_data = replacement_archives,
     index_columns = c("replacementarchive_id"),
-    characteristic_columns = c(
-      "grts_address",
-      "grts_address_replacement",
-      "type",
-      "replacement_rank",
-      "version_id"
-    ),
+    characteristic_columns = reparchs_characols,
     tabula_rasa = FALSE,
     verbose = TRUE
   )
@@ -1186,7 +1111,7 @@ if (nrow(replacement_archives) > 0) {
 
 In principle, we can sideload replacements.
 
-```{r STOP-sideload-replacements}
+```{r sideload-replacements}
 # NOTE this is the place to sideload extra replacements
 # e.g. the ones from the `archive`?
 
@@ -1197,17 +1122,18 @@ replacements_sideload <- load_table_sideload_content(
   data_filepath = "sideload/loceval_replacements.csv",
   reload_previous = FALSE
 )
+
 ```
 
 
 Two original sources: 
 
-- replacements from RVP,
+- replacements from REP,
 - sideloaded replacements
 
 ```{r new-replacements}
 
-replacements_rvp <- 
+replacements_rep <- 
   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
   select(stratum, grts_address, replacement_cells) %>%
   unnest(replacement_cells) %>%
@@ -1226,7 +1152,7 @@ replacements_rvp <-
     
     
 replacements <- bind_rows(
-    replacements_rvp,
+    replacements_rep,
     replacements_sideload 
   ) %>% 
   inner_join(
@@ -1236,6 +1162,7 @@ replacements <- bind_rows(
     relationship = "many-to-many", # TODO
     unmatched = "drop"
   )
+
 ```
 
 
@@ -1301,9 +1228,9 @@ replacements_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
-# 'if it fails: DELETE FROM "outbound"."Replacements";'
-
 ```
+
+if it fails: `DELETE FROM "outbound"."Replacements";`
 
 
 ## connect
@@ -1488,19 +1415,25 @@ locevaldb$insert_data(
 # Wrap-up
 
 
+```{r stitched-up}
+
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
+
+```
+
+
 ```{r step-n-safety-dump}
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
-# if (isFALSE(grepl("-staging", loceval_mirror))) {
-#   loceval$dump_all(
-#     here::here("dumps", glue::glue("safedump_{loceval$database}_{now}.sql")),
-#     exclude_schema = c("tiger", "public")
-#   )
-# }
 
 if (isFALSE(grepl("-staging", locevaldb_mirror))) {
   locevaldb$dump_all(
-    here::here("dumps", glue::glue("rvp_post_update_{locevaldb$database}_{now}.sql")),
+    here::here("dumps", glue::glue("rep_post_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
   )
 }
@@ -1509,7 +1442,13 @@ if (isFALSE(grepl("-staging", locevaldb_mirror))) {
 
 
 ```{r launch-consistency-dashboard}
-system("quarto render 045_loceval_consistency_dashboard.qmd --to html")
+out <- processx::run(
+  "quarto",
+  c("render", "045_loceval_consistency_dashboard.qmd", "--to", "html"),
+  echo = TRUE,
+  spinner = TRUE
+)
+
 ```
 
 

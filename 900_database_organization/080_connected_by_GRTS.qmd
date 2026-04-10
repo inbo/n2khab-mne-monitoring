@@ -31,16 +31,27 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./mnm_database_connection.conf")
 
-suffix <- "-staging" # "-testing"
-# suffix <- ""
+# suffix <- "-staging" # "-testing"
+suffix <- ""
 ```
 
 
 
 choose a GRTS
 
+
 ```{r choose-grts}
-grts <- c(111326, 881374) # MNM team praatje location -> fieldwork knowledge transfer 20260203
+# filter(grts_address %in% c(1999406, 6417454))
+# grts <- c(1999406, 6417454) # replacement happened; but location went to archive 7
+grts <- c(6110, 1118141) # accidental retrospective fill-in of a frozen location
+# grts <- c(1946498, 4354946, 1353694, 1118141, 29258198, 7853673) # new uploads rep update snips 0.15.0
+    # c(12401, 11825, 13686)
+    # c(50354734, 20994606) # replacement happened; but location went to archive 7
+    # c(22021842) # potential frozen duplicate
+    # c(437685, 8826293) # grts from shortterm gpkg which did not appear on database
+    # c(11561) # favorite testing location in Kruibeke
+    # c(21329) # random SOIL_03.2 location
+    # c(111326, 881374) # MNM team praatje location -> fieldwork knowledge transfer 20260203
     # c(11561, 8400169) # test case for 091a overhaul
     # c(826486, 51158134)
     # c(23238, 6314694, 23091910) # Hellebos!

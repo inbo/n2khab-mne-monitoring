@@ -10,6 +10,6 @@ tags:
 ---
 
 main repository for conceptual components of the MNE
-such as the #RVP
+such as the #REP
 
 <https://github.com/inbo/n2khab-mne-designs>

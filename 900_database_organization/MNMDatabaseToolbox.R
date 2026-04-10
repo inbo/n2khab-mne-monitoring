@@ -563,6 +563,23 @@ upload_data_and_update_dependencies <- function(
     FUN = function(deptab) mnmdb$lookup_dependent_columns(table_label, deptab)
   ) %>% setNames(dependent_tables)
 
+  ### `Production` Protection Prompt
+  # locevaldb$shellstring
+  # mnmdb <- locevaldb
+  if (
+    (mnmdb$mirror_short == "") ||
+    (mnmdb$database %in% c("loceval", "mnmgwdb"))
+    ) {
+    prompt <- glue::glue("
+      You are working on *{mnmdb$connection_profile}*.
+      Are you sure you want to update *{table_label}*?
+    ")
+
+    # ask user for confirmation
+    check <-  askYesNo(prompt, default = FALSE)
+    if (is.scalar.na(check) || isFALSE(check)) return(invisible(NULL))
+
+  }
 
   ### (7) DELETE existing data -> DANGEROUS territory!
   mnmdb$execute_sql(
@@ -682,13 +699,22 @@ upload_data_and_update_dependencies <- function(
   # message(mnmdb$shellstring)
   # message(mnmdb$mirror_short)
 
+  # update key links by running script in the background
   if (mnmdb$mirror_short == "") {
-    source(glue::glue('102_re_link_foreign_keys.R'))
+    out <- processx::run(
+      "Rscript",
+      "102_re_link_foreign_keys.R",
+      spinner = TRUE
+    )
   } else {
-    system(glue::glue(
-      "Rscript 102_re_link_foreign_keys.R -{mnmdb$mirror_short}"
-    ))
+    # prefix a minus (as ine"-mirror")
+    out <- processx::run(
+      "Rscript",
+      c("102_re_link_foreign_keys.R", sprintf("-%s", mnmdb$mirror_short)),
+      spinner = TRUE
+    )
   }
+
   return(invisible(NULL))
 
 
@@ -934,13 +960,27 @@ associate_and_shift_start_dates <- function(
   # load previous data
   data_previous <- mnmdb$query_table(table_label, ONLY = TRUE)
 
+  # remove frozen calendar entries
+  if ("is_frozen" %in% names(data_previous)) {
+    data_previous <- data_previous %>%
+      filter(
+        !is_frozen
+      )
+  }
+  if ("is_frozen" %in% names(data_previous)) {
+    data_future <- data_future %>%
+      filter(
+        !is_frozen
+      )
+  }
 
   ## find the link
   data_previous_linked <- link_dates(
     data_pre = data_previous %>% select(!!!characteristic_columns),
     data_post = data_future %>% select(!!!characteristic_columns),
     characteristic_columns = characteristic_columns,
-    date_column = "date_start"
+    date_column = "date_start",
+    # date_threshold = freeze_date # TODO
   )
   # check_grts <- 9262
   # data_pre  %>%  filter(grts_address == check_grts)
@@ -961,7 +1001,7 @@ associate_and_shift_start_dates <- function(
 
   # TODO store this somewhere
   output_filename <- file.path(".", "logs", glue::glue(
-      "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates.csv"
+      "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates_{mnmdb$mirror_short}.csv"
     ))
   write_csv2(date_updates, output_filename)
 
@@ -1961,7 +2001,7 @@ load_table_sideload_content <- function(
 # Last update: 20251205
 precedence_columns <- list(
   "SampleLocations" = c(
-    "is_replacement"
+    # "is_replacement"
   ),
   "SampleUnits" = c(
     "previous_notes",
@@ -1979,7 +2019,9 @@ precedence_columns <- list(
     "date_visit_planned",
     "no_visit_planned",
     "notes",
-    "done_planning"
+    "done_planning",
+    "is_sideloaded",
+    "is_frozen"
   ),
   "FieldActivityCalendar" = c(
     "excluded",
@@ -1988,7 +2030,8 @@ precedence_columns <- list(
     "date_visit_planned",
     "no_visit_planned",
     "notes",
-    "done_planning"
+    "done_planning",
+    "is_frozen"
   ),
   "Visits" = c(
     "teammember_id",
@@ -2047,6 +2090,10 @@ redistribute_calendar_data <- function(
     skip = NA,
     version_id = NA
   ) {
+
+
+  # make sure the keyring is open to avoid subsequent segfault crash
+  mnmdb$wake_keyring()
 
   if (is.scalar.na(skip)) {
     skip <- list(
