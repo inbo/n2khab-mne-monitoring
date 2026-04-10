@@ -64,7 +64,14 @@ if (FALSE) {
     lookup_columns = c("grts_address", "type"),
   )
 } else {
-  system(glue::glue("Rscript 102_re_link_foreign_keys.R {suffix}"))
+  keyring <- "mnmdb_temp"
+  if (keyring::keyring_is_locked(keyring)) unlock_keyring(keyring_label = keyring)
+
+  out <- processx::run(
+    "Rscript",
+    c("102_re_link_foreign_keys.R", suffix),
+    spinner = TRUE
+  )
 }
 
 # load the raw replacements
@@ -386,7 +393,12 @@ extra_filters <- c(
   "Visits" = visits_not_done_filter
 )
 
-system(glue::glue("Rscript 102_re_link_foreign_keys.R {suffix}"))
+# re-link keys once more
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE
+)
 
 # UPDATE the grts_address in FieldworkCalendar and Visits
 for (row_nr in seq_len(nrow(to_upload))) {
@@ -484,13 +496,14 @@ replacements_lookup <- update_cascade_lookup(
 #### LocationEvaluations
 #///////////////////////////////////////////////////////////////////////////////
 
-# TODO views do not exist in the connection "object"
 view_id <- DBI::Id("outbound", "gwTransfer")
 transfer_data <- dplyr::tbl(loceval_connection$connection, view_id) %>%
   grts_datatype_to_integer() %>%
   collect
 # replacements are already integrated by the view
 # -> in the grts setting of the target mnmgwdb
+
+loceval_characols <- c("grts_address", "type", "eval_date", "eval_source")
 
 locevals_joined <- transfer_data %>%
   left_join(
@@ -509,11 +522,22 @@ locevals_joined <- transfer_data %>%
     eval_date = coalesce(eval_date, as.Date(log_update))
   )
 
+duplicate_locevals <- locevals_joined %>%
+  count(!!!rlang::syms(loceval_characols)) %>%
+  arrange(desc(n)) %>%
+  filter(n > 1)
+
+if (nrow(duplicate_locevals) > 0) {
+  duplicate_locevals %>% t() %>% knitr::kable()
+  stop("there were duplicate locevals!")
+}
+
+
 locevals_lookup <- update_cascade_lookup(
   table_label = "LocationEvaluations",
   new_data = locevals_joined,
   index_columns = c("locationevaluation_id"),
-  characteristic_columns = c("grts_address", "type", "eval_date", "eval_source"),
+  characteristic_columns = loceval_characols,
   tabula_rasa = TRUE,
   verbose = TRUE
 )

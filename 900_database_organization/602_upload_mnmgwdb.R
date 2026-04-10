@@ -1,6 +1,22 @@
 
 stop("OBSOLETE! This script has not been overhauled yet.")
 
+common_current_samplefilters <- function(.data) {
+  return(
+    "obsolete" &&
+    .data %>%
+      filter(
+        # only consider schemes scheduled in 2025:
+        str_detect(scheme, "^(GW|HQ)"),
+        # only keep cell-based types
+        # (aquatic & 7220 will be more reliable or simply
+        # not possible to evaluate on orthophoto)
+        # str_detect(grts_join_method, "cell")
+      )
+  )
+}
+
+
 ## libraries----------------------------------------------------------------
 library("dplyr")
 library("tidyr")

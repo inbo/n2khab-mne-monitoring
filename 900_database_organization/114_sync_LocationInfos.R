@@ -370,9 +370,11 @@ update_conflicting <- function(mnmdb, table_label) {
   mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
 
   # re-link location id
-  system(glue::glue(
-    "Rscript 102_re_link_foreign_keys.R {suffix}"
-  ))
+  out <- processx::run(
+    "Rscript",
+    c("102_re_link_foreign_keys.R", suffix),
+    spinner = TRUE
+  )
 
 }
 

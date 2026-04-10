@@ -273,13 +273,14 @@ locevaldb$insert_data(
 
 ## ----FK linkage---------------------------------------------------------------
 
-if (locevaldb$mirror_short == "") {
-  source(glue::glue('102_re_link_foreign_keys.R'))
-} else {
-  system(glue::glue(
-    "Rscript 102_re_link_foreign_keys.R -{locevaldb$mirror_short}"
-  ))
-}
+keyring <- "mnmdb_temp"
+if (keyring::keyring_is_locked(keyring)) unlock_keyring(keyring_label = keyring)
+
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE
+)
 
 
 

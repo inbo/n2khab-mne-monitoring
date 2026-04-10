@@ -1,7 +1,6 @@
 ---
 aliases:
   - issues
-  - #issue 
 tags:
   - issue  
   - git

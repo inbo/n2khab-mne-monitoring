@@ -1,3 +1,14 @@
+CASE WHEN "is_scheduled" THEN
+  CASE WHEN "visit_done" THEN 'scheduled+done'
+  ELSE 'scheduled' END
+ELSE
+  CASE WHEN "visit_done" THEN 'done'
+  ELSE 'not scheduled' END
+END
+
+'f=' || is_frozen || ' s=' || is_scheduled || ' v=' || visit_done
+
+
 DROP VIEW IF EXISTS  "inbound"."LocationEvaluation" ;
 CREATE VIEW "inbound"."LocationEvaluation" AS
 SELECT
@@ -35,7 +46,8 @@ SELECT
   FAC.date_visit_planned - current_date AS days_to_visit,
   FAC.date_end - current_date AS days_to_deadline,
   FAC.priority,
-  FAC.notes AS preparation_notes
+  FAC.notes AS preparation_notes,
+  FAC.is_frozen
 FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
@@ -55,6 +67,7 @@ LEFT JOIN (
     date_visit_planned,
     no_visit_planned,
     notes,
+    is_frozen,
     archive_version_id
   FROM "outbound"."FieldActivityCalendar" AS CAL
   ) AS FAC

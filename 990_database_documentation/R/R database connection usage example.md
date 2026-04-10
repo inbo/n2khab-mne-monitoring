@@ -178,7 +178,7 @@ mnmdb$query_table("Versions") %>%
 |               |                                       |
 |:--------------|:--------------------------------------|
 |version_id     |6                                      |
-|version_tag    |v0.12.0_rvp0.14.0                      |
+|version_tag    |v0.12.0_rep0.14.0                      |
 |data_iteration |4                                      |
 |date_applied   |20251210                               |
 |notes          |correct filter for post 2026 locations |

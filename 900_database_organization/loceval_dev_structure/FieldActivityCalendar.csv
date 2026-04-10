@@ -10,7 +10,7 @@ activity_rank,smallint,False,,False,False,,CHECK (activity_rank > 0),,execution 
 date_start,date,True,,False,False,,,,start of the panel activity sequence
 date_end,date,True,,False,False,,,,end date for the panel activity sequence
 date_interval,varchar,False,NULL,False,False,,,,experimenting with date intervals (yolo)
-priority,smallint,True,,False,False,,,,"priority, based on scheme, panel, and stratum"
+priority,smallint,False,NULL,False,False,,,,"priority, based on scheme, panel, and stratum"
 wait_any,boolean,False,,False,False,,,,"must I always be waiting, waiting on you? *whistle*"
 wait_watersurface,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
 wait_3260,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection
@@ -24,3 +24,4 @@ no_visit_planned,boolean,True,0,False,False,,,,whether or not a visit is planned
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 done_planning,boolean,True,0,False,False,,,,flag to indicate preparation status
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived calendar entries
+is_frozen,boolean,True,0,False,False,,,,tag calendar entries which are retained from before the current REP temporal scope

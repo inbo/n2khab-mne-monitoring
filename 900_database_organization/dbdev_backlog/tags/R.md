@@ -1,7 +1,6 @@
 ---
 aliases:
   - r
-  - #R  
 tags:
   - R  
 ---
