@@ -79,8 +79,8 @@ tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
 
 snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
-# TEMPORARY adjustment pointing to adjacent branch (wip)
-snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+# # TEMPORARY adjustment pointing to adjacent branch (wip)
+# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
 
 fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
 reload_rep_code_snippets(fresh_snippet_path)
