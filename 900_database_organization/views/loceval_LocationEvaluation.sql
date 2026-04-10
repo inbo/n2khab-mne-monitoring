@@ -42,6 +42,7 @@ SELECT
   CASE WHEN (FAC.date_visit_planned IS NULL) THEN FALSE ELSE TRUE END AS is_scheduled,
   FAC.teammember_assigned,
   FAC.activity_group_id,
+  FAC.date_start,
   FAC.date_visit_planned,
   FAC.date_visit_planned - current_date AS days_to_visit,
   FAC.date_end - current_date AS days_to_deadline,

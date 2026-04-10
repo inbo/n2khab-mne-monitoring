@@ -18,6 +18,8 @@ but then the maintenance scripts crashed for a new case.*
 > This initially seemed to be our very first case of [[Have I been here before? - return to a previous loceval location for a second time]]. 
 > However, the photo timestamp revealed that this was alteration of a frozen record - whether intentional or unintentional.
 
+## case zero.
+
 evidence:
 ```sql
 loceval_staging=> SELECT grts_address, type, date_start, activity_group_id, teammember_id, date_visit, type_assessed, photo, visit_done, archive_version_id FROM "inbound"."Visits" WHERE grts_address = 6110;
@@ -64,7 +66,7 @@ loceval=# UPDATE "inbound"."Visits" SET visit_done = FALSE, photo = NULL, notes 
 UPDATE 1
 ```
 
-
+## case 1.
 Another one appeared; slightly different because the frozen visit is better filled (this month, retrospectively):
 ```sql
 SELECT * FROM "inbound"."Visits" WHERE grts_address = 18986217 AND visit_done;
@@ -106,3 +108,55 @@ UPDATE "inbound"."Visits" SET
   notes = NULL
 WHERE visit_done AND grts_address = 18986217 AND date_start = '2025-03-15';
 ```
+
+## general quickfix.
+
+Agreed on the chat with WT that I will set those frozen virgin activities to `no_visit_planned`, so that they get filtered from their working view / layer.
+
+**RESULT:**
+```sql
+SELECT DISTINCT is_frozen, no_visit_planned, visit_done, COUNT(*) AS N
+FROM "outbound"."FieldActivityCalendar" FAC
+LEFT JOIN "inbound"."Visits" VIS
+  ON VIS.fieldactivitycalendar_id = FAC.fieldactivitycalendar_id
+GROUP BY is_frozen, no_visit_planned, visit_done
+;
+ is_frozen | no_visit_planned | visit_done |  n   
+-----------+------------------+------------+------
+ f         | f                | f          | 1065
+ f         | f                | t          |   59
+ t         | f                | f          |   17
+ t         | f                | t          |  321
+ t         | t                | f          | 1121
+(5 rows)
+```
+
+via:
+```sql
+-- SELECT is_frozen, no_visit_planned, notes, COUNT(*) AS N
+-- FROM "outbound"."FieldActivityCalendar"
+UPDATE "outbound"."FieldActivityCalendar"
+SET
+no_visit_planned = TRUE,
+notes = '(nvp by FM 20260410)'
+WHERE fieldactivitycalendar_id IN (
+  SELECT DISTINCT FAC.fieldactivitycalendar_id
+  FROM "outbound"."FieldActivityCalendar" FAC
+  LEFT JOIN "inbound"."Visits" VIS
+    ON VIS.fieldactivitycalendar_id = FAC.fieldactivitycalendar_id
+  WHERE FAC.is_frozen
+    AND NOT visit_done
+    AND NOT no_visit_planned
+    AND VIS.notes IS NULL
+    AND VIS.photo IS NULL
+    AND VIS.type_assessed IS NULL
+    AND VIS.date_visit IS NULL
+    AND VIS.teammember_id IS NULL
+  GROUP BY FAC.fieldactivitycalendar_id
+)
+-- GROUP BY is_frozen, no_visit_planned, notes
+;
+
+```
+
+*(I had checked that there were no notes on the overwritten ones; `||` concat would not work.)*
