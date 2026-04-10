@@ -16,18 +16,18 @@ load_libraries <- function(libs) {
 
 #_______________________________________________________________________________
 rep_common_libraries <- c(
-  "magrittr",
-  "dplyr",
-  "tidyr",
-  "stringr",
   "digest",
-  "purrr",
-  "lubridate",
+  "dplyr",
   "googledrive",
+  "lubridate",
+  "magrittr",
+  "purrr",
   "readr",
   "rprojroot",
   "sf",
+  "stringr",
   "terra",
+  "tidyr",
   "n2khab"
 )
 load_rep_common_libraries <- function(
@@ -36,15 +36,16 @@ load_rep_common_libraries <- function(
 
 #_______________________________________________________________________________
 database_interaction_libraries <- c(
-  "configr",
-  "keyring",
   "DBI",
   "RPostgres",
+  "configr",
   "dplyr",
-  "sf",
-  "here",
   "getPass",
-  "glue"
+  "glue",
+  "here",
+  "keyring",
+  "processx",
+  "sf"
 )
 load_database_interaction_libraries <- function(
   ) load_libraries(database_interaction_libraries)
@@ -61,9 +62,9 @@ load_spatial_data_handling_libraries <- function(
 
 #_______________________________________________________________________________
 inbo_libraries <- c(
-  "n2khab",
+  "inbodb",
   "inbospatial",
-  "inbodb"
+  "n2khab"
 )
 load_inbo_libraries <- function(
   ) load_libraries(inbo_libraries)
