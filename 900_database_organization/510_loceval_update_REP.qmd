@@ -285,6 +285,9 @@ loceval_freeze <- read.csv(
   )
 
 # loceval_freeze %>% glimpse()
+# loceval_freeze %>%
+#   filter(grts_address == 6110) %>% 
+#   glimpse()
 ```
 
 
@@ -850,7 +853,7 @@ stitch_visits()
 
 
 ```{r assemble-new-visits}
-stop("WAIT which wone was it?")
+# stop("WAIT which wone was it?")
 
 visits_characols <- fieldcalendar_characols
 # visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
@@ -1108,7 +1111,7 @@ if (nrow(replacement_archives) > 0) {
 
 In principle, we can sideload replacements.
 
-```{r STOP-sideload-replacements}
+```{r sideload-replacements}
 # NOTE this is the place to sideload extra replacements
 # e.g. the ones from the `archive`?
 
