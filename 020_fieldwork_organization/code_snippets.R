@@ -845,11 +845,11 @@ cal_0.14.0_continuation
 # cal_0.14.0_continuation is the only object that defines a second targetpanel
 # specifically for those FAG occasions; the format is OLDPANELxx (xx being the
 # number). These locations are at the same time part of a regular 'PANELyy',
-# which is not linked to specific FAG occasions, hence not part of the new
-# revisit design: it is just a location attribute. The regular targetpanels are
-# dynamic, i.e. their units can change, while this is not relevant for the FAG
-# occasions of cal_0.14.0, which got the frozen revisit pattern of the panels at
-# the time, which we now call OLDPANELxx.
+# which is not linked to specific FAG occasions: it is just a location
+# attribute. The regular targetpanels are dynamic, i.e. their units can change,
+# while this is not relevant for the FAG occasions of cal_0.14.0, which got the
+# frozen revisit pattern of the panels at the time, which we now call
+# OLDPANELxx.
 
 # Link between field activities and their protocol
 fa_protocol <-
