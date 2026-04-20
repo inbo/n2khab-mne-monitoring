@@ -19,7 +19,7 @@ status: true
 
 ## symptoms
 
-pacman would not update, no matter what.
+pacman would not update, no matter what. `pacman -Sy` or `pacman -Syu` would all fail:
 
 ```
 error: could not read db 'core' (Damaged tar archive (bad header checksum))
@@ -43,13 +43,16 @@ rm -f /var/lib/pacman/sync/*.db
 ```
 ... but error persists.
 
+(*edit: I should rather have moved them instead of deleting.*)
+
 ## keys up to date?
 Initially, the error also threw an invalid key (background: all packages are signed). 
 Time for a keyring update? Indeed!
 
 Again, applied strategy "download + scp + `pacman -U archlinux-keyring-20260409-1-any.pkg.tar.zst`".
 
-To no avail.
+To no avail:
+the `key` detail of the issue is gone, but the core issue remains.
 
 ## package cache?
 [This](https://forum.manjaro.org/t/issues-after-an-improper-shutdown/177604) post turned out to contain a good, stepwise approach.
