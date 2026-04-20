@@ -160,9 +160,11 @@ if (FALSE) {
   # version_tag <- "v0.12.0_poc0.14.0"
   # version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
+  # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
 
-  version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
-  version_notes <- "REP update 0.15.0 (GRTS reset)"
+  version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
+  version_notes <-
+    "snippets update 0.15.1 (revert temporal prioritization breeding season)"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -563,6 +565,7 @@ distribution <- categorize_data_update(
 )
 print_category_count(distribution, table_label)
 
+# distribution$changed
 # distribution$to_archive
 # distribution$reactivate
 # distribution$to_archive
@@ -768,6 +771,7 @@ distribution <- categorize_data_update(
 )
 print_category_count(distribution, table_label)
 
+# distribution$changed
 # distribution$to_archive %>% filter(grts_address == 3202741) %>% t() %>% knitr::kable()
 # distribution$reactivate %>% filter(grts_address == 3202741) %>% t() %>% knitr::kable()
 ```
