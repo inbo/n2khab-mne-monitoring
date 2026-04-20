@@ -16,7 +16,7 @@ but then the maintenance scripts crashed for a new case.*
 
 > [!note] **Summary:**
 > #WD had tagged a loceval from previous year, but incompletely worked it off.
-> This initially seemed to be our very first case of [[Have I been here before? - return to a previous loceval location for a second time]]. 
+> This initially seemed to be our very first case of [[Have I been here before - return to a previous loceval location for a second time]]. 
 > However, the photo timestamp revealed that this was alteration of a frozen record - whether intentional or unintentional.
 
 ## case zero.
