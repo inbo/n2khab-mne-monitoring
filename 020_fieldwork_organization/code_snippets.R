@@ -398,8 +398,8 @@ missing_polygons <-
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
 missing_pol_grts <-
-  extract(grts_mh, missing_polygons, small = FALSE) %>%
-  as_tibble() %>%
+  terra::extract(grts_mh, missing_polygons, small = FALSE) %>%
+  dplyr::as_tibble() %>%
   inner_join_12m_e(
     tibble(
       ID = seq_len(nrow(missing_polygons)),
