@@ -151,11 +151,10 @@ check <- replacement_data %>%
   filter(is.na(location_id))
 
 if (nrow(check) > 0) {
-  message("A location ID is missing!")
   check %>%
     filter(is.na(location_id)) %>%
     t() %>% knitr::kable()
-  stop()
+  stop("A location ID is missing!")
 }
 
 
@@ -232,10 +231,9 @@ check <- replacement_data %>%
   filter(is.na(samplelocation_id))
 
 if (nrow(check) > 0) {
-  message("A samplelocation_id is missing!")
   check %>%
     t() %>% knitr::kable()
-  stop()
+  stop("A samplelocation_id is missing!")
 }
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -569,7 +567,7 @@ cellmaps_lookup <- update_cascade_lookup(
 
 message("")
 message("________________________________________________________________")
-message(" >>>>> Finished transferring loceval -> mnmgwdb. ")
+message(" >>>>> Finished transferring `loceval{suffix}` to `mnmgwdb{suffix}`. ")
 message("________________________________________________________________")
 
 

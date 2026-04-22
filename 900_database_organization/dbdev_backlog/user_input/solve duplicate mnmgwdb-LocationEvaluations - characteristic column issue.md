@@ -30,7 +30,7 @@ The issue is a combination of two inaccuracies:
 ## adding `date_start` column to `LocationEvaluations`
 ... is a bit tricky because it should be NOT NULL, but only after filling.
 - initialized NULLable / even `DEFAULT NULL`
-- ~~later set constraint~~ not possible: view `gwTransfer` and `LocationEvaluations` also union the #orthophoto evaluation which has no scheduled date; but then, there is always only exactly one ofo entry by design.
+- ~~later set constraint~~ not possible: view `gwTransfer` and `LocationEvaluations` also union the #orthophoto evaluation which has no scheduled date; but then, there is always only exactly one #opho entry by design.
 
 Steps:
 1. adjust the view `loceval_gwTransfer.sql`: `++ VISIT.date_start,`
@@ -41,4 +41,14 @@ Steps:
 	```
 3. Update table data (`LocationEvaluations` gets `tabula_rasa`, so `date_start` will be overwritten).
 
-TODO check that other scripts can handle the new column.
+## check that other scripts can handle the new column
+
+- [x] `111a_push_loceval_to_mnmgwdb.R` works, obviously 
+- [x] `403_precalculate_fresh_snippets.R` completes without errors
+- [ ] `510_loceval_update_REP.qmd` tbd
+
+-> the issue also applies to the `ReplacementArchive` generation because `Visits` are joined based on `date_visit`.
+
+TODO:
+- remove duplicates manually
+- continue ReplacementArchives correction

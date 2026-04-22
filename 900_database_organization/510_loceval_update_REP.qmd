@@ -1045,12 +1045,34 @@ but for data efficiency I opt to rather only keep the
 
 ```{r archive-previously-visited-replacements}
 
+prior_loceval_visits <- locevaldb$query_table("Visits") %>%
+  filter(visit_done) %>%
+  semi_join(
+    # only LOCEVAL activities are considered (not: LSVI)
+    activity_groupid_lookup %>%
+      filter(stringr::str_detect(activity_group, "LOCEVAL")),
+    by = join_by(activity_group_id)
+  ) %>% 
+  select(grts_address, type, date_visit) # , date_start)
+
+prior_loceval_visit_duplicate_check <- prior_loceval_visits %>% 
+  count(grts_address, type, date_visit) %>%
+  filter(n > 1)
+
+if (nrow(prior_loceval_visit_duplicate_check) > 0) {
+  prior_loceval_visit_duplicate_check %>% knitr::kable()
+  stop("There are duplicate loceval visits (same date_visit on grts+type).")
+}
+
+# only the latest loceval visit will stay relevant for replacement
+latest_loceval_visits <- prior_loceval_visits %>% 
+  filter(date_visit == )
+
 previously_visited_replacements <- locevaldb$query_table("Replacements") %>%
   inner_join(
-    locevaldb$query_table("Visits") %>%
-      filter(visit_done) %>%
-      select(grts_address, type, date_visit),
-    by = join_by(grts_address, type)
+    latest_loceval_visits,
+    by = join_by(grts_address, type),
+    relationship = "one-to-many"
   ) %>% 
   select(-wkb_geometry) %>%
   filter(
