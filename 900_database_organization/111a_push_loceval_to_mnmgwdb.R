@@ -503,14 +503,23 @@ transfer_data <- dplyr::tbl(loceval_connection$connection, view_id) %>%
 # replacements are already integrated by the view
 # -> in the grts setting of the target mnmgwdb
 
-loceval_characols <- c("grts_address", "type", "eval_date", "eval_source")
+loceval_characols <- c(
+  "grts_address",
+  "type",
+  "date_start",
+  "eval_date",
+  "eval_source"
+)
 
 locevals_joined <- transfer_data %>%
   left_join(
     mnmgwdb$query_columns(
         table_label = "SampleLocations",
         select_columns = c(
-          "grts_address", "strata", "samplelocation_id", "location_id"
+          "grts_address",
+          "strata",
+          "samplelocation_id",
+          "location_id"
         )
       ),
     by = join_by(grts_address, type == strata)
@@ -543,7 +552,7 @@ locevals_lookup <- update_cascade_lookup(
 )
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-#### Cel Mapping
+#### Cell Mapping
 #///////////////////////////////////////////////////////////////////////////////
 
 cellmaps <- loceval_connection$query_table("CellMaps")

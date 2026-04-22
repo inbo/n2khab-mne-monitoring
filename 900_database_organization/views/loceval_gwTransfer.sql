@@ -10,6 +10,7 @@ SELECT
     THEN UNIT.grts_address
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
+  VISIT.date_start,
   VISIT.type_assessed,
   UNIT.type_is_absent,
   'loceval' AS eval_source,
@@ -45,6 +46,7 @@ SELECT
     THEN UNIT.grts_address
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
+  NULL AS date_start,
   LOCASS.type_suggested AS type_assessed,
   UNIT.type_is_absent,
   'orthophotos' AS eval_source,
