@@ -567,7 +567,9 @@ cellmaps_lookup <- update_cascade_lookup(
 
 message("")
 message("________________________________________________________________")
-message(" >>>>> Finished transferring `loceval{suffix}` to `mnmgwdb{suffix}`. ")
+message(glue::glue(
+  " >>>>> Finished transferring `loceval{suffix}` to `mnmgwdb{suffix}`. ")
+)
 message("________________________________________________________________")
 
 
