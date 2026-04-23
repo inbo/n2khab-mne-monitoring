@@ -1066,13 +1066,15 @@ if (nrow(prior_loceval_visit_duplicate_check) > 0) {
 
 # only the latest loceval visit will stay relevant for replacement
 latest_loceval_visits <- prior_loceval_visits %>% 
-  filter(date_visit == )
+  arrange(desc(date_visit)) %>% 
+  group_by(grts_address, type) %>% 
+  slice_head(n = 1)
 
 previously_visited_replacements <- locevaldb$query_table("Replacements") %>%
   inner_join(
     latest_loceval_visits,
     by = join_by(grts_address, type),
-    relationship = "one-to-many"
+    relationship = "many-to-one"
   ) %>% 
   select(-wkb_geometry) %>%
   filter(
@@ -1086,7 +1088,7 @@ previously_visited_replacements <- locevaldb$query_table("Replacements") %>%
 
 
 previously_visited_replacements %>%
-  filter(grts_address %in% c(6110, 1118141)) %>%
+  filter(grts_address %in% c(6110, 1118141, 1995222)) %>%
   t() %>% knitr::kable()
 
 replacement_archives <- previously_visited_replacements %>%
@@ -1130,6 +1132,7 @@ if (nrow(replacement_archives) > 0) {
     verbose = TRUE
   )
 }
+
 ```
 
 

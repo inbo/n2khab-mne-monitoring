@@ -41,14 +41,65 @@ Steps:
 	```
 3. Update table data (`LocationEvaluations` gets `tabula_rasa`, so `date_start` will be overwritten).
 
+## manually fix duplicates
+
+```sql
+SELECT 
+  grts_address, type, date_start, activity_group_id, 
+  teammember_id, date_visit, type_assessed, photo, 
+  visit_done, archive_version_id, notes
+FROM "inbound"."Visits" 
+WHERE TRUE
+  AND archive_version_id IS NULL
+  AND activity_group_id = 18 
+  AND grts_address IN (1126121, 1995222, 29258198);
+```
+
+
+    | grts_address  |                       1995222 |                       1995222 |    1126121 |    1126121 |
+    | type          |                       91E0_vm |                       91E0_vm |    91E0_vn |    91E0_vn |
+    | date_start    |                    2025-03-15 |                    2026-03-15 | 2025-03-15 | 2026-03-15 |
+    | teammember_id |                             7 |                             7 |          7 |          7 |
+    | date_visit    |                    2026-04-08 |                    2026-04-08 | 2026-04-09 | 2026-04-09 |
+    | type_assessed |                       91E0_vm |                       91E0_vm |         gh |         gh |
+    | photo         | loceval_20260408160510984.JPG | loceval_20260408160510984.JPG |            |            |
+    | visit_done    |                             t |                             t |          t |          t |
+
+```sql
+UPDATE "inbound"."Visits" SET  notes = 'Type niet aanwezig hier'
+-- SELECT * FROM "inbound"."Visits" 
+WHERE grts_address = 1126121 AND date_start = '2026-03-15';
+
+UPDATE "inbound"."Visits" 
+SET visit_done = FALSE, photo = NULL, notes = NULL, type_assessed = NULL 
+WHERE grts_address = 1126121  AND date_start = '2025-03-15';
+
+UPDATE "outbound"."FieldActivityCalendar" 
+SET no_visit_planned = TRUE
+WHERE grts_address = 1126121 AND activity_group_id = 18 AND date_start = '2025-03-15';
+
+```
+
+```sql
+UPDATE "inbound"."Visits" 
+SET visit_done = FALSE, photo = NULL, notes = NULL, type_assessed = NULL 
+WHERE grts_address = 1995222 AND date_start = '2025-03-15';
+
+UPDATE "outbound"."FieldActivityCalendar" 
+SET no_visit_planned = TRUE
+WHERE grts_address = 1995222 AND activity_group_id = 18 AND date_start = '2025-03-15';
+
+```
+
 ## check that other scripts can handle the new column
 
 - [x] `111a_push_loceval_to_mnmgwdb.R` works, obviously 
 - [x] `403_precalculate_fresh_snippets.R` completes without errors
-- [ ] `510_loceval_update_REP.qmd` tbd
+- [x] `510_loceval_update_REP.qmd` -> manual adjustments see above
+- [ ] `610_mnmgwdb_update_REP.qmd`
 
 -> the issue also applies to the `ReplacementArchive` generation because `Visits` are joined based on `date_visit`.
 
 TODO:
-- remove duplicates manually
-- continue ReplacementArchives correction
+- [x] remove duplicates manually
+- [x] continue ReplacementArchives correction
