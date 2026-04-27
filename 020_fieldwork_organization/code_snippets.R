@@ -262,7 +262,8 @@ units_cell_polygon <-
   as_tibble() %>%
   # it appears that the CRS is actually retrieved from the tibble, but I don't
   # understand how (so the crs argument below isn't needed)
-  st_as_sf(crs = "EPSG:31370")
+  st_as_sf(crs = "EPSG:31370", agr = "identity") %>%
+  mutate(grts_address_final = as.integer(grts_address_final))
 
 # adding the sampling unit attributes to these polygons, arranged as in
 # stratum_schemepstargetpanel_spsamples. Note that this duplicates cells with
