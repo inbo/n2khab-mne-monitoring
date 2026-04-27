@@ -432,7 +432,7 @@ missing_pol_grts <-
     join_by(ID)
   ) %>%
   select(-ID, grts_address = GRTSmaster_habitats) %>%
-  # filtering is needed since all polygons are listed by extract():
+  # filtering is needed since all polygons are listed by terra::extract():
   filter(!is.na(grts_address))
 
 # Finally, joining the stratum from the sampling-units-that-missed-their-polygon
