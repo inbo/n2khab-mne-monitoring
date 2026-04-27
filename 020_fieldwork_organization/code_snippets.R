@@ -158,32 +158,6 @@ if (interactive()) {
 }
 
 
-## Inspecting VBI locations that overlap sampling units --------------------------
-
-# vbi_overlaps represents the VBI plot centers that overlap MNE sampling units.
-# For privacy reasons, the full list of VBI locations is not stored publicly.
-
-vbi_overlaps %>%
-  inner_join_121_ed(
-    stratum_schemepstargetpanel_spsamples %>%
-      filter(is_forest) %>%
-      select(
-        stratum,
-        grts_address_final,
-        scheme_ps_targetpanels
-      ),
-    join_by(grts_address == grts_address_final)
-  )
-
-# representing as points object
-vbi_overlaps_sf <-
-  vbi_overlaps %>%
-  st_as_sf(coords = c("x", "y"), crs = 31370)
-
-
-
-
-
 ## Sampling unit geometries --------------------------------------
 
 # obtaining geometries of the sampling units themselves:
@@ -293,6 +267,32 @@ units_cell_polygon_attrib <-
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(stratum_scheme_ps_targetpanels, grts_address)
+
+
+
+
+
+## Inspecting VBI locations that overlap sampling units --------------------------
+
+# vbi_overlaps represents the VBI plot centers that overlap MNE sampling units.
+# For privacy reasons, the full list of VBI locations is not stored publicly.
+
+vbi_overlaps %>%
+  inner_join_121_ed(
+    stratum_schemepstargetpanel_spsamples %>%
+      filter(is_forest) %>%
+      select(
+        stratum,
+        grts_address_final,
+        scheme_ps_targetpanels
+      ),
+    join_by(grts_address == grts_address_final)
+  )
+
+# representing as points object
+vbi_overlaps_sf <-
+  vbi_overlaps %>%
+  st_as_sf(coords = c("x", "y"), crs = 31370)
 
 
 
