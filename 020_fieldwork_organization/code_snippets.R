@@ -274,25 +274,47 @@ units_cell_polygon_attrib <-
 
 ## Inspecting VBI locations that overlap sampling units --------------------------
 
-# vbi_overlaps represents the VBI plot centers that overlap MNE sampling units.
-# For privacy reasons, the full list of VBI locations is not stored publicly.
+# vbi_overlaps represents the center coordinates of VBI plots (circles with
+# radius 18 m) that overlap MNE sampling units. For privacy reasons, the full
+# list of VBI locations is not stored publicly.
+#
+# Below, some further processing is demonstrated.
 
+# joining attributes stratum and scheme_ps_targetpanels to vbi_overlaps:
 vbi_overlaps %>%
   inner_join_121_ed(
     stratum_schemepstargetpanel_spsamples %>%
-      filter(is_forest) %>%
       select(
         stratum,
         grts_address_final,
         scheme_ps_targetpanels
       ),
-    join_by(grts_address == grts_address_final)
+    join_by(grts_address_overlapped_cell == grts_address_final)
   )
 
-# representing as points object
+# some VBI locations may overlap more than one MNE sampling unit:
+vbi_overlaps %>%
+  count(plot_id) %>%
+  filter(n > 1)
+
+# representing the involved VBI locations as polygons object (circles)
 vbi_overlaps_sf <-
   vbi_overlaps %>%
-  st_as_sf(coords = c("x", "y"), crs = 31370)
+  distinct(plot_id, x, y) %>%
+  st_as_sf(
+    coords = c("x", "y"),
+    remove = FALSE,
+    crs = 31370,
+    agr = "identity"
+  ) %>%
+  st_buffer(18)
+
+# calculating the overlapped surface area per MNE sampling unit
+units_cell_polygon %>%
+  st_intersection(vbi_overlaps_sf) %>%
+  mutate(overlapped_cell_area = st_area(.)) %>%
+  st_drop_geometry() %>%
+  rename(grts_address_overlapped_cell = grts_address_final)
 
 
 
