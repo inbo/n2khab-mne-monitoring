@@ -1,0 +1,21 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+followup_id,int,True,,True,True,,,,follow-up index
+log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
+log_creation,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of creation
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
+teammember_id,smallint,False,,False,False,metadata.TeamMembers.teammember_id,,,link to the user who performed the visit
+issue_date,date,True,current_date,False,False,,,,date of observation
+location,varchar,False,NULL,False,False,,,,"free reference to the location (database id, watina location, grts address, ...)"
+todo,varchar,False,NULL,False,False,,,,what is to do?
+activity,varchar,False,NULL,False,False,,,,is this related to an activity? (free text)
+replacement,boolean,False,0,False,False,,,,mark necessary replacements
+repair,boolean,False,0,False,False,,,,mark necessary repairs
+desktop_only,boolean,False,0,False,False,,,,mark desktop work
+photo,varchar,False,NULL,False,False,,,,an optional photo of the desaster
+audio,varchar,False,NULL,False,False,,,,audio message to swear at the world and the circumstances
+deadline,date,False,NULL,False,False,,,,date to solve this
+solution_comment,varchar,False,NULL,False,False,,,,how was this solved?
+solved_date,date,False,NULL,False,False,,,,date of the field activity
+done,boolean,True,0,False,False,,,,to check once this task is done
+wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
