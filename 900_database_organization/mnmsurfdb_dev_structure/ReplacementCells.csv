@@ -1,0 +1,3 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+replacement_id,int,False,,False,False,Replacements.replacement_id,,,replacement index (technical)
+wkb_geometry,,False,,False,False,,,,polygon geometry (31370 / Lambert 72): target location

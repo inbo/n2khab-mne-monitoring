@@ -467,11 +467,12 @@ sample_units <- bind_rows(
 
 locations_grts_collection <- bind_rows(
     mnmgwdb$query_columns("Locations", c("grts_address")),
-    sample_units %>% select(grts_address),
+    sample_units %>% distinct(grts_address),
     mnmgwdb$query_columns("LocationInfos", c("grts_address"))
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
-  distinct()
+  distinct() %>%
+  arrange(grts_address)
 
 
 # join geometry column
@@ -492,6 +493,8 @@ locations <- locations_grts_collection %>%
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
+
+# TODO it is highly confusing that geometry must be dropped: actually, Locations are a geometry table (Point type) and this should fail for `distribution$to_upload`
 
 table_label <- "Locations"
 data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
