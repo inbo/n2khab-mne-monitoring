@@ -535,8 +535,6 @@ upload_data_and_update_dependencies <- function(
   # This happened with SSPSTapas on production already (20250825).
   # TODO review this, see also `lookups` above.
 
-  ### (5) adjust column names
-
   # use `rename_characteristics`
   # to rename cols in the data_replacement to the server data logic
   # data_replacement
@@ -611,12 +609,20 @@ upload_data_and_update_dependencies <- function(
   } else {
     cols_to_query <- c(characteristic_columns)
   }
+  if (length(cols_to_query) == 0) cols_to_query <- NA
 
   new_redownload <- mnmdb$query_columns(
     table_label,
     select_columns = cols_to_query,
     ONLY = TRUE
   )
+
+  # special case: LocationCells have no characteristic columns
+  #   and thus crash the following join
+  if (length(characteristic_columns) == 0) {
+    cols_to_query <- names(new_redownload)
+    characteristic_columns <- names(new_redownload)
+  }
 
   # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
   # entries which were not present prior to update are not in this lookup

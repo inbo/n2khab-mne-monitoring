@@ -25,18 +25,22 @@ dplyr::glimpse(source_data)
 ### ENTER YOUR CODE here to modify the data!
 
 sort_protocols <- function(prt) {
-  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol))
+  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_version))
   return(prt)
 }
 source_data <- sort_protocols(source_data)
 
-source_data <- source_data %>%
-  select(-protocol_id)
+# further modification are possible
+if ("protocol_id" %in% names(source_data)) {
+  source_data <- source_data %>%
+    select(-protocol_id)
+}
 #_______________________________________________________________________________
 
-upload_data_and_update_dependencies(
+upload_additional_data(
   source_db,
   table_label = migrating_table_label,
-  data_replacement = source_data,
+  new_data = source_data,
+  tabula_rasa = FALSE,
   verbose = FALSE
 )
