@@ -426,6 +426,7 @@ grts_mh_index <- dplyr::tibble(
   ) %>%
   dplyr::filter(!is.na(grts_address))
 
+
 locations <- locations_grts_collection %>%
   add_point_coords_grts(
     grts_var = "grts_address",
@@ -526,510 +527,255 @@ sample_units <- sample_units %>%
 
 # locations_lookup %>%
 #   filter(grts_address == 19205238)
-sample_units %>%
-  filter(grts_address == 19205238) %>%
-  distinct(schemes, scheme_ps_targetpanels)
+# test_units <- sample_units %>%
+#   filter(grts_address == 19205238)
+# test_units %>% glimpse
+# test_units %>%
+#   distinct(schemes, scheme_ps_targetpanels)
 
 # need to unwrap and re-wrap scheme_ps_targetpanels
 
+sample_units_upload <- sample_units %>%
+  mutate(
+    scheme_ps_targetpanels = stringr::str_split(scheme_ps_targetpanels, "\\|")
+  ) %>%
+  select(-schemes) %>%
+  unnest(scheme_ps_targetpanels) %>%
+  mutate(
+    scheme_ps_targetpanels = stringr::str_trim(scheme_ps_targetpanels, side = "both")
+  ) %>%
+  tidyr::separate_wider_delim(
+    scheme_ps_targetpanels,
+    delim = ":",
+    names = c("schemes", "ps_targetpanels"),
+    cols_remove = FALSE
+  ) %>%
+  select(-ps_targetpanels) %>%
+  group_by(across(c(-schemes, -scheme_ps_targetpanels))) %>%
+  summarize(
+    schemes = paste0(sort(unique(schemes)), collapse = "|"),
+    scheme_ps_targetpanels = paste0(sort(unique(scheme_ps_targetpanels)), collapse = "|"),
+    .groups = "drop_last"
+  ) %>%
+  ungroup() %>%
+  arrange(grts_address, stratum, schemes)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-stop("continue here")
 sampleunit_characols <- c("grts_address", "stratum")
-sample_units %>%
+sample_units_upload %>%
   count(!!!rlang::syms(sampleunit_characols)) %>%
-  arrange(desc(n))
+  arrange(desc(n)) %>%
+  filter(n>1)
 
-sampleunit_lookup <- update_cascade_lookup(
+sampleunits_lookup <- update_cascade_lookup(
   table_label = "SampleUnits",
-  new_data = sample_units,
+  new_data = sample_units_upload,
   index_columns = c("sampleunit_id"),
   characteristic_columns = sampleunit_characols,
   verbose = TRUE
 )
 
 
+## Field Calendar --------------------------------------------------------------
 
-
-## save previous location infos ---------------------------------------------
-table_str <- '"outbound"."LocationInfos"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE TRUE
-      AND log_user = ANY ({maintenance_users}::varchar[])
-      AND (accessibility_inaccessible IS NULL OR (NOT accessibility_inaccessible))
-      AND (accessibility_revisit IS NULL)
-      AND (recovery_hints IS NULL)
-      AND (watina_code_1 IS NULL)
-      AND (watina_code_2 IS NULL)
-  ;" # landowner will be script-updated (outbound)
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
-)
-
-previous_locinfos <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "LocationInfos"),
-  ) %>% collect()
-
-
-
-## ----save-previous-extra-visits----------------------------------------------
-## NOTE IMPORTANT: First, Visits are pruned and the relevant ones remain.
-##                 Then, FieldworkCalendar is pruned, and those which are
-##                 still linked to visits remain (even if empty).
-# analogous: clean Visits
-table_str <- '"inbound"."Visits"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE log_user = ANY ({maintenance_users}::varchar[])
-      AND (teammember_id IS NULL)
-      AND (date_visit IS NULL)
-      AND (notes IS NULL)
-      AND (photo IS NULL)
-      AND (lims_code IS NULL)
-      AND (NOT issues)
-      AND (NOT visit_done)
-   ;"
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
+fieldcalendar_columns <- c(
+  "grts_address",
+  "stratum",
+  "sampleunit_id",
+  "activity_group_id",
+  "activity_rank",
+  "date_start",
+  "date_end",
+  "date_interval",
+  "priority",
+  "wait_any",
+  "wait_watersurface",
+  "wait_3260",
+  "wait_7220",
+  "wait_floating",
+  "is_sideloaded",
+  "is_frozen",
+  "excluded",
+  "no_visit_planned",
+  "done_planning"
 )
 
-previous_visits <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "inbound", table = "Visits"),
-  ) %>% collect()
-
-
-
-## ----save-previous-FACs----------------------------------------------
-
-table_str <- '"outbound"."FieldworkCalendar"'
-table_str_visits <- '"inbound"."Visits"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE log_user = ANY ({maintenance_users}::varchar[])
-     AND (NOT excluded)
-     AND (excluded IS NULL)
-     AND (teammember_assigned IS NULL)
-     AND (date_visit_planned IS NULL)
-     AND (NOT no_visit_planned)
-     AND (notes IS NULL)
-     AND (NOT done_planning)
-     AND (fieldworkcalendar_id NOT IN (
-       SELECT DISTINCT fieldworkcalendar_id
-       FROM {table_str_visits}
-     ))
-   ;"
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
+fieldcalendar_characols <- c(
+  "grts_address",
+  "stratum",
+  "activity_group_id",
+  "date_start"
 )
 
-previous_calendar_plans <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "outbound", table = "FieldworkCalendar"),
+activity_groupid_lookup <- mnmsurfdb$query_columns(
+    "GroupedActivities",
+    c("activity_group", "activity_group_id")
   ) %>%
-  left_join(
-    dplyr::tbl(db_connection,
-      DBI::Id(schema = "metadata", table = "SSPSTaPas")),
-    by = join_by(sspstapa_id)
-  ) %>%
-  relocate(stratum_scheme_ps_targetpanels, .after = sspstapa_id) %>%
-  select(-sspstapa_id) %>%
-  collect()
-
-# glimpse(previous_calendar_plans)
+  distinct()
 
 
-
-## ----previous-activities----------------------------------------------
-table_str <- '"inbound"."WellInstallationActivities"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE TRUE
-      AND log_user = ANY ({maintenance_users}::varchar[])
-      AND (teammember_id IS NULL)
-      AND (date_visit IS NULL)
-      AND (photo_soil_1_peilbuis IS NULL)
-      AND (photo_soil_2_piezometer IS NULL)
-      AND (photo_well IS NULL)
-      AND (watina_code_used_1_peilbuis IS NULL)
-      AND (watina_code_used_2_piezometer IS NULL)
-      AND (soilprofile_notes IS NULL)
-      AND (soilprofile_unclear IS NULL OR (NOT soilprofile_unclear))
-      AND (random_point_number IS NULL)
-      AND (no_diver IS NULL OR (NOT no_diver))
-      AND (diver_id IS NULL)
-      AND (free_diver IS NULL)
-      AND (NOT visit_done)
-  ;"
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
-)
-
-previous_wellinstallations <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "inbound", table = "WellInstallationActivities"),
-  ) %>%
-  mutate(grts_address = as.integer(grts_address)) %>%
-  collect()
-
-
-table_str <- '"inbound"."ChemicalSamplingActivities"'
-maintenance_users <- sprintf("'{update,maintenance,%s}'", config$user)
-cleanup_query <- glue::glue(
-  "DELETE FROM {table_str}
-    WHERE TRUE
-      AND log_user = ANY ({maintenance_users}::varchar[])
-      AND (teammember_id IS NULL)
-      AND (date_visit IS NULL)
-      AND (project_code IS NULL)
-      AND (recipient_code IS NULL)
-      AND (NOT visit_done)
-  ;"
-)
-execute_sql(
-  db_connection,
-  cleanup_query,
-  verbose = TRUE
-)
-
-previous_chemicalsamplings <- dplyr::tbl(
-  db_connection,
-  DBI::Id(schema = "inbound", table = "ChemicalSamplingActivities"),
-  ) %>%
-  mutate(grts_address = as.integer(grts_address)) %>%
-  collect()
-
-
-
-## ----upload-locations----------------------------------------------
-# will be the union set of grts addresses in
-#    - sample_locations
-#    - previous visits
-#    - previous calendar plans
-# not accounting for fieldwork_calendar because that is derived from
-# the same source as sample_locations
-
-locations <- bind_rows(
-    sample_locations %>% select(grts_address),
-    previous_calendar_plans %>% select(grts_address),
-    previous_visits %>% select(grts_address),
-    previous_locinfos %>% select(grts_address)
-  ) %>%
-  mutate(grts_address = as.integer(grts_address)) %>%
-  distinct() %>%
-  # count(grts_address) %>%
-  # arrange(desc(n))
-  add_point_coords_grts(
-    grts_var = "grts_address",
-    spatrast = grts_mh,
-    spatrast_index = grts_mh_index
-  )
-
-sf::st_geometry(locations) <- "wkb_geometry"
-
-
-# TODO problem here if there are `Coordinates` left of locations which get deleted
-#      experienced 20250822 when working on `mnmsurfdb_staging` after clone and replacement.
-
-locations_lookup <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "Locations",
-  new_data = locations,
-  index_columns = c("location_id"),
-  characteristic_columns = c("grts_address"),
-  tabula_rasa = TRUE,
-  verbose = TRUE
-)
-# locations_lookup %>% write.csv("dumps/lookup_locations.csv")
-# locations are nuique.
-
-
-units_cell_polygon[["grts_address_final"]] <-
-  as.integer(units_cell_polygon[["grts_address_final"]])
-
-# unit geometries (cells):
-location_cells <-
-  units_cell_polygon %>%
-  inner_join(
-    locations_lookup,
-    by = join_by(grts_address_final == grts_address),
-    relationship = "one-to-many",
-    unmatched = "drop"
-  ) %>%
-  select(-grts_address_final) %>%
-  relocate(geometry, .after = last_col())
-
-sf::st_geometry(location_cells) <- "wkb_geometry"
-# glimpse(location_cells)
-
-message("________________________________________________________________")
-message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
-
-execute_sql(
-  db_connection,
-  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
-  verbose = TRUE
-)
-
-append_tabledata(
-  db_connection,
-  DBI::Id(schema = "metadata", table = "LocationCells"),
-  location_cells,
-  reference_columns = "location_id"
-)
-
-
-
-## ----upload-sample-locations----------------------------------------------
-
-if ("location_id" %in% names(sample_locations)) {
-  # should not be the case in a continuous script;
-  # this is extra safety for debugging and de-serial execution
-  sample_locations <- sample_locations %>%
-    select(-location_id)
-}
-sample_locations <- sample_locations %>%
-  left_join(
-    locations_lookup,
-    by = join_by(grts_address),
-    relationship = "many-to-one"
-  ) %>% distinct # TODO remove after stratum is in place
-
-
-# tabula rasa: might otherwise be duplicated due to missing fk and null constraint
-samplelocations_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "SampleLocations",
-  new_data = sample_locations,
-  index_columns = c("samplelocation_id"),
-  characteristic_columns = c("grts_address", "location_id"),
-  tabula_rasa = TRUE,
-  verbose = TRUE
-)
-
-
-# restore location_id's
-# restore_location_id_by_grts(
-#   db_connection,
-#   dbstructure_folder,
-#   target_schema = "outbound",
-#   table_key = "SampleLocations",
-#   retain_log = FALSE,
-#   verbose = TRUE
-# )
-
-
-# samplelocations_lookup %>% nrow()
-# samplelocations_lookup %>%
-#   select(!!!slocs_refcols) %>%
-#   distinct %>%
-#   nrow()
-
-## ----location-infos-------------------------------------------------
-
-# assemble new assessments
-new_locinfos <- sample_locations %>%
-  distinct(
-    grts_address
-  ) %>%
-  mutate(
-    log_creator = "maintenance",
-    log_creation = as.POSIXct(Sys.time()),
-    log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time())
-  )
-
-# previous_locinfos %>% write.csv("data/20250704_Wards_LocationAssessments.csv")
-
-new_locinfos <- new_locinfos %>%
-  anti_join(
-    previous_locinfos,
-    by = join_by(grts_address)
-  ) %>%
-  left_join(
-    locations_lookup,
-    by = join_by(grts_address),
-  )
-
-locationinfo_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "LocationInfos",
-  new_data = new_locinfos,
-  index_columns = c("locationinfo_id"),
-  characteristic_columns = c("grts_address"),
-  tabula_rasa = FALSE,
-  verbose = TRUE
-)
-
-
-## ----fieldwork-calendar-------------------------------------------------
-
-# grouped_activities %>% distinct(activity_group, activity_group_id) %>% count(activity_group) %>% print(n=Inf)
-
-
-activity_groupid_lookup <-
-  dplyr::tbl(
-    db_connection,
-    DBI::Id(schema = "metadata", table = "GroupedActivities"),
-  ) %>%
-  distinct(activity_group, activity_group_id) %>%
-  collect()
-
-# activity_groupid_lookup %>% distinct(activity_group, activity_group_id) %>% count(activity_group) %>% print(n=Inf)
-
-
-# prioritization of fieldwork shortterm with stratum collapsed
-# (preferred for planning of non-biotic FAGs)
-
-# TODO double check with Floris
-surf_field_activities <- grouped_activities %>%
-  filter(is_surf_activity, is_field_activity) %>%
-  distinct(activity_group)
-
-fieldwork_calendar <-
-  fieldwork_shortterm_prioritization_shorter %>%
+fieldcalendar_upload <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
-  relocate(grts_address) %>%
-  semi_join(
-    samplelocations_lookup,
-    by = join_by(grts_address),
+  apply_local_replacement_to_grts() %>%
+  # rename(type = stratum) %>%
+  inner_join(
+    sampleunits_lookup,
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-one"
   ) %>%
+  relocate(grts_address, stratum, sampleunit_id) %>%
   rename(
     activity_rank = rank,
     activity_group = field_activity_group
   ) %>%
-  semi_join(surf_field_activities, by = join_by(activity_group)) %>%
+  semi_join(
+    grouped_activities_upload %>%
+      filter(is_surf_activity, is_field_activity),
+    by = join_by(activity_group)
+  ) %>%
   left_join(
     activity_groupid_lookup,
     by = join_by(activity_group),
     relationship = "many-to-one"
   ) %>%
   select(-activity_group) %>%
-  left_join(
-    samplelocations_lookup %>% select(grts_address, samplelocation_id),
-    by = join_by(grts_address),
-    relationship = "many-to-one"
-  ) %>%
-  relocate(samplelocation_id) %>%
   mutate(
     across(c(
+        stratum,
+        grts_join_method,
+        domain_part,
         date_interval
       ),
       as.character
     )
   ) %>%
   mutate(
-    log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    is_frozen = FALSE,
+    is_sideloaded = FALSE,
     excluded = FALSE,
     no_visit_planned = FALSE,
     done_planning = FALSE
-  ) # ?! %>% glimpse
+  ) %>%
+  distinct(!!!rlang::syms(fieldcalendar_columns)) %>%
+  arrange(!!!rlang::syms(fieldcalendar_characols))
 
-# fieldwork_calendar %>% glimpse
+# fieldwork_shortterm_prioritization_by_stratum %>%
+#   filter(
+#     grts_address_final == 1675858,
+#     stratum == "3110_1_5",
+#     date_start == as.Date("2026-07-01")
+#   )
 
 
-## SSPSTaPas
+# fieldcalendar_upload %>%
+#   count(!!!rlang::syms(fieldcalendar_characols)) %>%
+#   filter(n>1) %>%
+#   arrange(desc(n))
+# fieldcalendar_upload %>%
+#   filter(
+#     grts_address %in% c(1675858), # , 22021842
+#     stratum %in% c("3110_1_5"), # "3110_0_1"
+#     activity_group_id %in% c(15, 16),
+#     date_start %in% (as.Date("2026-07-01")) #
+#   ) %>%
+#   knitr::kable()
 
-sspstapas <- update_cascade_lookup(
-  schema = "metadata",
-  table_key = "SSPSTaPas",
-  new_data = fieldwork_calendar %>%
-    distinct(stratum_scheme_ps_targetpanels) %>%
-    arrange(stratum_scheme_ps_targetpanels),
-  index_columns = c("sspstapa_id"),
-  tabula_rasa = TRUE,
-  verbose = TRUE
+
+## Freeze
+# fieldcalendar_retained <- mnmgwdb_freeze %>%
+#   select(!!!rlang::syms(c(fieldcalendar_columns, "done_planning"))) %>%
+#   anti_join(
+#     fieldcalendar_upload,
+#     by = join_by(!!!rlang::syms(fieldcalendar_characols))
+#   ) %>%
+#   select(-is_frozen) %>% mutate(is_frozen = TRUE) %>%
+#   left_join(
+#     gw_field_activities_db %>%
+#       distinct(activity_group) %>%
+#       left_join(activity_groupid_lookup, by = join_by(activity_group)) %>%
+#       select(activity_group_id) %>%
+#       mutate(is_gw_activity = TRUE),
+#     by = join_by(activity_group_id)
+#   ) %>%
+#   filter(done_planning | is_gw_activity) %>%
+#   select(-done_planning, -is_gw_activity)
+
+fieldcalendar_new <- bind_rows(
+    # fieldcalendar_retained,
+    fieldcalendar_upload
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time()),
+  )
+
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "FieldCalendar",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
 )
 
-replace_sspstapa_by_lookup <- function(df) {
-  df_new <- df %>%
-    left_join(
-      sspstapas,
-      by = join_by(stratum_scheme_ps_targetpanels),
-      relationship = "many-to-one"
-    ) %>%
-    relocate(
-      sspstapa_id,
-      .after = stratum_scheme_ps_targetpanels
-    ) %>%
-    select(-stratum_scheme_ps_targetpanels)
+# # sideloading: extra activities e.g. to follow up issues in the field
+# calendar_to_sideload <- load_table_sideload_content(
+#     mnmdb = mnmsurfdb,
+#     table_label = "FieldCalendar",
+#     characteristic_columns = fieldcalendar_characols,
+#     data_filepath = "sideload/mnmsurfdb_calendars.csv",
+#     reload_previous = TRUE
+#   ) %>%
+#   inner_join(
+#     sampleunits_lookup,
+#     by = join_by(grts_address, stratum),
+#     relationship = "many-to-many", # TODO
+#     unmatched = "drop"
+#   ) %>%
+#   mutate(
+#     log_user = "maintenance",
+#     log_update = as.POSIXct(Sys.time()),
+#     is_sideloaded = TRUE,
+#     excluded = FALSE,
+#     no_visit_planned = FALSE,
+#     done_planning = FALSE
+#   )
 
-  return(df_new)
-}
-
-fieldcalendar_characols <- c(
-    "samplelocation_id",
-    "sspstapa_id",
-    "grts_address",
-    "activity_group_id",
-    "date_start"
+fieldcalendar_new <- bind_rows(
+    # calendar_to_sideload,
+    fieldcalendar_new
   )
 
-# previous_calendar_test <- fieldwork_calendar[1:500,]
-# glimpse(previous_calendar_plans %>% replace_sspstapa_by_lookup())
-# TODO had an issue where sspstapas were lost...
+# TODO link dates? No, not here -> this script is just an initializer
 
-fieldwork_calendar_new <- fieldwork_calendar %>%
-  replace_sspstapa_by_lookup() %>%
-  anti_join(
-    previous_calendar_plans %>% replace_sspstapa_by_lookup(),
-    by = join_by(!!!fieldcalendar_characols)
-  )
-## ----upload-calendar----------------------------------------------
 
-fieldwork_calendar_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "FieldworkCalendar",
-  new_data = fieldwork_calendar_new,
-  index_columns = c("fieldworkcalendar_id"),
+# There be duplicates. What a great start for a database.
+fieldcalendar_new %>%
+  count(!!!rlang::syms(fieldcalendar_characols)) %>%
+  filter(n>1) %>%
+  arrange(desc(n))
+
+fieldcalendar_new %<>%
+  mutate(priority = coalesce(priority, 0))
+
+
+fieldcalendar_lookup <- update_cascade_lookup(
+  table_label = "FieldCalendar",
+  new_data = fieldcalendar_new,
+  index_columns = c("fieldcalendar_id"),
   characteristic_columns = fieldcalendar_characols,
-  tabula_rasa = FALSE,
   verbose = TRUE
 )
 
-# TODO are previous_calendar_plans retained correctly?
-# glimpse(fieldwork_calendar_lookup)
+
+## Visits ----------------------------------------------------------------------
 
 
-new_visits <- fieldwork_calendar_lookup %>%
+visits_characols <- fieldcalendar_characols
+
+potential_visits <- fieldcalendar_lookup %>%
   select(
-    fieldworkcalendar_id,
-    !!!fieldcalendar_characols
+    !!!rlang::syms(c("fieldcalendar_id", visits_characols))
   ) %>%
   left_join(
     locations_lookup,
@@ -1042,24 +788,66 @@ new_visits <- fieldwork_calendar_lookup %>%
     visit_done = FALSE
   )
 
-visits_characols <- c("fieldworkcalendar_id", fieldcalendar_characols)
 
-visits_upload <- new_visits %>%
+visits_upload <- potential_visits %>%
   anti_join(
-    previous_visits,
+    mnmsurfdb$query_table("Visits"),
     by = join_by(!!!visits_characols)
+  ) %>%
+  left_join(
+    sampleunits_lookup,#  %>% select(-location_id),
+    by = join_by(grts_address, stratum)
   )
 
 
-visits_lookup <- update_cascade_lookup(
-  schema = "inbound",
-  table_key = "Visits",
-  new_data = visits_upload,
-  index_columns = c("visit_id"),
-  characteristic_columns = visits_characols,
-  tabula_rasa = FALSE,
-  verbose = TRUE
+# Loop Special Activities
+selection_of_activities <- list(
+  "InstallationVisits" = activity_groupid_lookup %>%
+    filter(grepl("^GWINST", activity_group)) %>%
+    pull(activity_group_id) %>% unique, # /WIA
+  "SamplingVisits" = activity_groupid_lookup %>%
+    filter(activity_group %in%
+      c(gw_field_activities_db %>%
+        filter(grepl("^GW.*SAMP", activity)) %>%
+        pull(activity_group))
+      ) %>%
+    pull(activity_group_id) %>% unique, # /CSA
+  "PositioningVisits" = activity_groupid_lookup %>%
+    filter(activity_group %in%
+      c(gw_field_activities_db %>%
+        filter(grepl("^SPATPOSIT", activity)) %>%
+        pull(activity_group))
+      ) %>%
+    pull(activity_group_id) %>% unique # /SPA
 )
+
+append_defaults <- list(
+  "InstallationVisits" = function(df) df %>%
+    mutate(
+      no_diver = FALSE,
+      soilprofile_unclear = FALSE
+    ) # /WIA
+)
+
+stop("TODO: continue here!")
+
+
+
+
+
+
+
+
+
+
+# visits_lookup <- update_cascade_lookup(
+#   table_label = "Visits",
+#   new_data = visits_upload,
+#   index_columns = c("visit_id"),
+#   characteristic_columns = visits_characols,
+#   tabula_rasa = FALSE,
+#   verbose = TRUE
+# )
 
 
 ### TODO GWSHALLSAMP!!!

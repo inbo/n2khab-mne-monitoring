@@ -11,7 +11,7 @@ restore_testing = False # tabula rasa; note that it requires `dev` roles but wor
 
 base_folder = DTB.PL.Path(".")
 DTB.ODStoCSVs(base_folder/"mnmsurfdb_dev_structure.ods", base_folder/"mnmsurfdb_dev_structure")
-# DTB.ODStoCSVs(base_folder/"mnmsurfdb_db_structure.ods", base_folder/"mnmsurfdb_db_structure")
+DTB.ODStoCSVs(base_folder/"mnmsurfdb_db_structure.ods", base_folder/"mnmsurfdb_db_structure")
 
 ### (1) development
 # the dev database mirror is used for structural adjustments and development of
@@ -28,7 +28,7 @@ if restore_dev:
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
         db_connection = db_connection, \
-        tabula_rasa = False
+        tabula_rasa = True
         )
 
 

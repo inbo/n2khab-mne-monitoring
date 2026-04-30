@@ -705,7 +705,7 @@ samplelocations_lookup <- redistribute_calendar_data(
 
 
 
-## FieldActivityCalendar
+## FieldCalendar
 
 ```{r assemble-fieldwork-calendar}
 # samplelocations_lookup <- mnmgwdb$query_columns("SampleLocations", c("grts_address", "type", "samplelocation_id"))
@@ -1033,7 +1033,7 @@ potential_visits <- fieldworkcalendar_lookup %>%
 visits_upload <- potential_visits %>%
   anti_join(
     mnmgwdb$query_table("Visits"),
-    by = join_by(!!!fieldcalendar_characols)
+    by = join_by(!!!visits_characols)
   ) %>%
   left_join(
     samplelocations_lookup %>% rename(stratum = strata),#  %>% select(-location_id),
