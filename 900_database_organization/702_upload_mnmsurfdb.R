@@ -1,4 +1,3 @@
-
 ## libraries -------------------------------------------------------------------
 source("MNMLibraryCollection.R")
 load_database_interaction_libraries()
@@ -800,89 +799,141 @@ visits_upload <- potential_visits %>%
   )
 
 
+surf_field_activities <- grouped_activities %>%
+  filter(is_surf_activity, is_field_activity) %>%
+  distinct(activity_group_id, activity_group)
+
 # Loop Special Activities
 selection_of_activities <- list(
   "InstallationVisits" = activity_groupid_lookup %>%
-    filter(grepl("^GWINST", activity_group)) %>%
+    filter(grepl("^SURFINST", activity_group)) %>%
     pull(activity_group_id) %>% unique, # /WIA
+  # "PositioningVisits" = activity_groupid_lookup %>%
+  #   filter(grepl("^SPATPOSIT", activity_group)) %>%
+  #   pull(activity_group_id) %>% unique, # /SPA
   "SamplingVisits" = activity_groupid_lookup %>%
-    filter(activity_group %in%
-      c(gw_field_activities_db %>%
-        filter(grepl("^GW.*SAMP", activity)) %>%
-        pull(activity_group))
-      ) %>%
-    pull(activity_group_id) %>% unique, # /CSA
-  "PositioningVisits" = activity_groupid_lookup %>%
-    filter(activity_group %in%
-      c(gw_field_activities_db %>%
-        filter(grepl("^SPATPOSIT", activity)) %>%
-        pull(activity_group))
-      ) %>%
-    pull(activity_group_id) %>% unique # /SPA
+    filter(grepl("^SURF.*SAMP", activity_group)) %>%
+    pull(activity_group_id) %>% unique # /CSA
 )
 
 append_defaults <- list(
-  "InstallationVisits" = function(df) df %>%
-    mutate(
-      no_diver = FALSE,
-      soilprofile_unclear = FALSE
-    ) # /WIA
+  # "InstallationVisits" = function(df) df %>%
+  #   mutate(
+  #     no_diver = FALSE,
+  #     soilprofile_unclear = FALSE
+  #   ) # /WIA
 )
 
-stop("TODO: continue here!")
 
 
+# Note: "special" Visits must be distributed to the respective tables.
+# These tables inherit columns from `Visits`, adding extra ones.
 
+remaining_new_visits <- visits_upload
 
+# table_label <- "InstallationVisits"
+for (table_label in names(selection_of_activities)) {
 
+  # subset the data by using selection_of_activities -> activity_group_id's
+  select_activities <- selection_of_activities[[table_label]]
+  special_visits <- remaining_new_visits %>%
+    filter(activity_group_id %in% select_activities)
 
+  # extra columns
+  if (table_label %in% names(append_defaults)) {
+    special_visits <- append_defaults[[table_label]](special_visits)
+  }
 
+  # append=upload data to the activity table
+  # double-check existing to avoid dups
+  # existing <- mnmsurfdb$query_table(table_label)
+  sa_lookup <- upload_and_lookup(
+    mnmsurfdb,
+    table_label = table_label,
+    data_to_append = special_visits,
+    characteristic_columns = visits_characols,
+    index_columns = c("visit_id"),
+    verbose = TRUE
+  )
 
-
-
-# visits_lookup <- update_cascade_lookup(
-#   table_label = "Visits",
-#   new_data = visits_upload,
-#   index_columns = c("visit_id"),
-#   characteristic_columns = visits_characols,
-#   tabula_rasa = FALSE,
-#   verbose = TRUE
-# )
-
-
-### TODO GWSHALLSAMP!!!
-if (FALSE) {
-
-  grouped_activities  %>%
-    filter(is_gw_activity, grepl("^GW.*SAMP", activity_group)) %>%
-    select(
-      activity_group,
-      activity,
-      activity_name
+  # anti-join remaining_new_visits
+  remaining_new_visits <- remaining_new_visits %>%
+    anti_join(
+      special_visits,
+      by = join_by(
+        fieldcalendar_id,
+        grts_address,
+        stratum,
+        activity_group_id,
+        date_start
+      )
     )
 
-  visits_lookup %>%
-    distinct(activity_group_id) %>%
-    left_join(
-      grouped_activities,
-      by = join_by(activity_group_id)
-    ) %>%
-    select(
-      activity_group,
-      activity,
-      activity_name
-    )
-
-  fieldwork_shortterm_prioritization_shorter %>%
-    distinct(field_activity_group)
 }
 
-## (DONE: LocationEvaluations incl. recovery_hints)
 
-## (DONE sync FreeFieldNotes back and forth (extra script))
+# remaining visits: the default fallback
+other_visits_lookup <- upload_and_lookup(
+  mnmsurfdb,
+  table_label = "OtherVisits",
+  data_to_append = remaining_new_visits,
+  characteristic_columns = visits_characols,
+  index_columns = c("visit_id"),
+  verbose = TRUE
+)
 
 
-## TODO POC update?
+# TODO: stitch, sync fieldcal/visit archives
+
+
+## LocationInfos ---------------------------------------------------------------
+
+new_locinfos <- sample_units %>%
+  distinct(
+    grts_address
+  ) %>%
+  mutate(
+    log_creator = "maintenance",
+    log_creation = as.POSIXct(Sys.time()),
+    log_user = "maintenance",
+    log_update = as.POSIXct(Sys.time())
+  )
+
+new_locinfos <- new_locinfos %>%
+  anti_join(
+    mnmgwdb$query_table("LocationInfos"),
+    by = join_by(grts_address)
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+  )
+
+
+locationinfo_lookup <- update_cascade_lookup(
+  table_label = "LocationInfos",
+  new_data = new_locinfos,
+  index_columns = c("locationinfo_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+## Landuse ---------------------------------------------------------------------
+
+update_landuse_in_locationinfos(mnmsurfdb)
+
+
+## Done! -----------------------------------------------------------------------
+message("")
+message("________________________________________________________________")
+message(" >>>>> Finished SURFDB data upload. ")
+message("________________________________________________________________")
+
+
+
+stop("TODO: What else is there?")
 
 
 
