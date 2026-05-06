@@ -57,7 +57,7 @@ if (nrow(different_checksums) > 0) {
 #_______________________________________________________________________________
 ####   Metadata   ##############################################################
 
-## ----upload-teammembers-------------------------------------------------------
+## upload teammembers ----------------------------------------------------------
 members <- read_csv(
   here::here(mnmsurfdb$folder, "data_TeamMembers.csv"),
   show_col_types = FALSE
@@ -72,7 +72,7 @@ member_lookup <- update_cascade_lookup(
 )
 
 
-## ----upload-protocols---------------------------------------------------------
+## upload protocols ------------------------------------------------------------
 protocols <- read_csv(
   here::here(mnmsurfdb$folder, "data_Protocols.csv"),
   show_col_types = FALSE
@@ -205,7 +205,7 @@ grouped_activities <- grouped_activities %>%
 
 
 
-## ----upload-grouped-activities------------------------------------------------
+## upload grouped activities ---------------------------------------------------
 
 # protocol_latest <- protocol_lookup %>%
 #   arrange(protocol_version) %>%
@@ -266,7 +266,7 @@ surf_field_activities <- grouped_activities_upload %>%
   distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 
-## ----upload-n2khabtype--------------------------------------------------------
+## upload n2khabtype -----------------------------------------------------------
 ## n2khab type to stratum (below)
 
 n2khab_strata_upload <- n2khab_types_expanded_properties %>%
@@ -682,7 +682,7 @@ fieldcalendar_upload <- fieldwork_shortterm_prioritization_by_stratum %>%
 
 
 ## Freeze
-# fieldcalendar_retained <- mnmgwdb_freeze %>%
+# fieldcalendar_retained <- mnmsurfdb_freeze %>%
 #   select(!!!rlang::syms(c(fieldcalendar_columns, "done_planning"))) %>%
 #   anti_join(
 #     fieldcalendar_upload,
@@ -901,7 +901,7 @@ new_locinfos <- sample_units %>%
 
 new_locinfos <- new_locinfos %>%
   anti_join(
-    mnmgwdb$query_table("LocationInfos"),
+    mnmsurfdb$query_table("LocationInfos"),
     by = join_by(grts_address)
   ) %>%
   left_join(
@@ -920,9 +920,13 @@ locationinfo_lookup <- update_cascade_lookup(
 )
 
 
-## Landuse ---------------------------------------------------------------------
+## landuse ---------------------------------------------------------------------
 
+# TODO check if new locations arise due to surfdb
 update_landuse_in_locationinfos(mnmsurfdb)
+
+
+## location journals -----------------------------------------------------------
 
 
 ## Done! -----------------------------------------------------------------------
@@ -931,288 +935,12 @@ message("________________________________________________________________")
 message(" >>>>> Finished SURFDB data upload. ")
 message("________________________________________________________________")
 
+# In other scripts:
+# - LocationEvaluations
+# - CellMaps
+# - Coordinates
 
 
 stop("TODO: What else is there?")
 
-
-
-## ----collect-location-assessments----------------------------------------------
-# load previous in preatorio work from another database
-# TODO type_assessed -> must be adjusted upstream in the POC; kept now for double-check
-
-
-# this is slightly more complex: a UNION view form `loceval` database
-#      include `photos` and `recovery_hints`
-# TODO include MHQ assessments and other prior visits
-
-locationevaluation_input <- dplyr::tbl(
-    loceval_connection,
-    DBI::Id("outbound", "gwTransfer")
-  ) %>%
-  select(-grts_address_original) %>%
-  collect() # collecting is necessary to modify offline and to re-upload
-
-locationevaluation_input <- locationevaluation_input %>%
-  # relocate_grts_replacements(relationship = "many-to-many") %>%
-  distinct
-
-# locationevaluation_input %>% count(eval_source)
-# locationevaluation_input %>% distinct(eval_name)
-
-# before we upload, we need to collect all locations
-locationevaluations_upload <- locationevaluation_input %>%
-  left_join(
-    samplelocations_lookup %>% select(grts_address, samplelocation_id),
-    by = join_by(grts_address),
-    relationship = "many-to-one"
-  ) %>%
-  relocate(samplelocation_id) %>%
-  mutate(
-    eval_name = coalesce(eval_name, log_user)
-  )
-
-# locationevaluations_upload %>% filter(is.na(eval_name))
-
-locationevaluation_lookup <- update_cascade_lookup(
-  schema = "outbound",
-  table_key = "LocationEvaluations",
-  new_data = locationevaluations_upload,
-  index_columns = c("locationevaluation_id"),
-  tabula_rasa = TRUE,
-  verbose = TRUE
-)
-
-
-## ----land-use-------------------------------------------------
-
-
-landuse <- readRDS("data/landuse_export.rds")
-
-# forestry_area, # bosbeheerregio
-# fores_naam, # bosbeheer
-# np_type, # natuurpunt
-# lila_statuut,
-# durme_reservaat,
-# perc_rbh, # percelen // rbh
-# perc_naameig, # naam eigenaar
-# nbhp_type, # natuurbeheerplan
-# gewasgroep, # landbouw
-# lblhfdtlt # landbouw
-
-landinfo <- landuse %>%
-  mutate(anb = stringr::str_c("ANB: ", anb_rights)) %>%
-  mutate(mil = stringr::str_c("MIL: ", mdbd_naam, " (", mdbd_inbo, ")")) %>%
-  mutate(bos = stringr::str_c("BOS: ", forestry_area, " (", fores_naam, ")")) %>%
-  mutate(np = stringr::str_c("NP: ", np_type)) %>%
-  mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
-  mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
-  mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
-  mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
-  mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
-  tidyr::unite(landuse, c(
-      anb, mil, bos,
-      np, lila, durme,
-      perc, nbhp, lb
-    ),
-    sep = ", ",
-    na.rm = TRUE
-  ) %>%
-  distinct(
-    # schemegroup,
-    # stratum,
-    grts_address,
-    landuse
-  ) %>%
-  semi_join(
-    dplyr::tbl(
-      db_connection,
-      DBI::Id("outbound", "LocationInfos")
-    ) %>%
-    distinct(grts_address) %>%
-    collect,
-    by = join_by(grts_address)
-  )
-
-glimpse(landinfo)
-
-
-get_update_row_string_landuse <- function(landinfo_rownr){
-
-  grts <- landinfo[landinfo_rownr, "grts_address"]
-  info <- landinfo[landinfo_rownr, "landuse"]
-  if (is.na(info)) {
-    info <- "NULL"
-  }
-
-  info <- glue::glue("'{info}'")
-
-  target_namestring <- '"outbound"."LocationInfos"'
-  update_string <- glue::glue("
-    UPDATE {target_namestring}
-      SET landowner = {info}
-    WHERE grts_address = {grts}
-    ;
-  ")
-
-  return(update_string)
-}
-
-# concatenate update rows
-update_command <- lapply(
-  seq_len(nrow(landinfo)),
-  FUN = get_update_row_string_landuse
-)
-
-# spin up a progress bar
-pb <- txtProgressBar(
-  min = 0, max = nrow(landinfo),
-  initial = 0, style = 1
-)
-
-# execute the update commands.
-for (landinfo_rownr in 1:nrow(landinfo)) {
-  setTxtProgressBar(pb, landinfo_rownr)
-  cmd <- update_command[[landinfo_rownr]]
-  execute_sql(db_connection, cmd, verbose = FALSE)
-}
-
-close(pb) # close the progress bar
-
-
-landuse_reload <- dplyr::tbl(
-    db_connection,
-    DBI::Id("outbound", "LocationInfos")
-  ) %>%
-  distinct(grts_address, landowner) %>%
-  collect
-# landuse_reload %>% write.csv("dumps/landuse.csv")
-
-
-##//////////////////////////////////////////////////////////////////////////////
-#< ACTIVITIES <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-##\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-
-visits_reload <- dplyr::tbl(
-    db_connection,
-    DBI::Id("inbound", "Visits")
-  ) %>%
-  mutate(grts_address = as.integer(grts_address)) %>%
-  select(
-    samplelocation_id,
-    fieldworkcalendar_id,
-    visit_id,
-    grts_address,
-    activity_group_id,
-    date_start
-  ) %>%
-  collect()
-
-
-fieldwork_charcols <- c(
-    "samplelocation_id",
-    "fieldworkcalendar_id",
-    "visit_id",
-    "grts_address",
-    "activity_group_id",
-    "date_start"
-  )
-
-
-## ---- WellInstallationActivities ---------------------------------------------
-
-activity_subset <- grouped_activities_upload %>%
-  filter(grepl("^GWINST", activity_group))
-
-# visits_linked <- visits_upload %>%
-#   left_join(
-#     visits_lookup,
-#     by = join_by(!!!visits_characols)
-#   )
-
-wellinstallations <- visits_reload %>%
-  semi_join(
-    activity_subset,
-    by = join_by(activity_group_id)
-  )
-
-
-# TODO: re-download previous_wellinstallations?
-#       -> check whether duplicates appear due to failed anti-join after id renewal elsewhere
-
-wellinstallations_upload <- wellinstallations %>%
-  anti_join(
-    previous_wellinstallations,
-    by = join_by(!!!fieldwork_charcols)
-  ) %>%
-  mutate(
-    no_diver = FALSE,
-    soilprofile_unclear = FALSE,
-    visit_done = FALSE,
-    log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time())
-  )
-
-wellinstallation_lookup <- update_cascade_lookup(
-  schema = "inbound",
-  table_key = "WellInstallationActivities",
-  new_data = wellinstallations_upload,
-  index_columns = c("fieldwork_id"),
-  characteristic_columns = fieldwork_charcols,
-  skip_sequence_reset = TRUE,
-  verbose = TRUE
-)
-
-
-## ---- ChemicalSamplingActivities ---------------------------------------------
-
-activity_subset <- grouped_activities_upload %>%
-  filter(activity_group %in%
-    c(grouped_activities_upload %>%
-      filter(grepl("^GW.*SAMP", activity)) %>%
-      pull(activity_group))
-  )
-
-chemicalsamplings <- visits_reload %>%
-  semi_join(
-    activity_subset,
-    by = join_by(activity_group_id)
-  )
-
-chemicalsampling_upload <- chemicalsamplings %>%
-  anti_join(
-    previous_chemicalsamplings,
-    by = join_by(!!!fieldwork_charcols)
-  ) %>%
-  mutate(
-    visit_done = FALSE,
-    log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time())
-  )
-
-chemicalsampling_lookup <- update_cascade_lookup(
-  schema = "inbound",
-  table_key = "ChemicalSamplingActivities",
-  new_data = chemicalsampling_upload,
-  index_columns = c("fieldwork_id"),
-  characteristic_columns = fieldwork_charcols,
-  skip_sequence_reset = TRUE,
-  verbose = TRUE
-)
-
-
-
-## ----done!----------------------------------------------
-message("________________________________________________________________")
-message("All done. Hopefully well.")
-
-# python 210_init_mnmgwdb.py 2>&1 | tee dump1.log
-# Rscript 220_upload_mnmgwdb.R 2>&1 | tee dump2.log
-# source("220_upload_mnmgwdb.R")
-
-# fw_check <- dplyr::tbl(
-#   db_connection,
-#   DBI::Id("inbound", "FieldWork")
-# ) %>% collect
-#
-# fw_check %>% mutate(fwid_is_null = is.na(fieldwork_id)) %>% count(activity_group_id, fwid_is_null)
+# TODO check if new landuse locations arise due to surfdb
