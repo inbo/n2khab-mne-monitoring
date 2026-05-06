@@ -2,9 +2,9 @@
 
 import MNMDatabaseToolbox as DTB
 
-# SET search_path TO public,"metadata","outbound","inbound","archive";
+# SET search_path TO public,"metadata","outbound","inbound";
 
-restore_dev = True
+restore_dev = False
 restore_staging = False
 restore_testing = False # tabula rasa; note that it requires `dev` roles but works on `prod` structure
 
