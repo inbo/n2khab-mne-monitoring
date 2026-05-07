@@ -151,7 +151,7 @@ reload_rep_code_snippets <- function(fresh_snippet_path = NULL, to_env = NULL) {
   # load variables into environment
   load(fresh_snippet_path, envir = to_env)
 
-} # /load_rep_code_snippets
+} # /reload_rep_code_snippets
 
 
 

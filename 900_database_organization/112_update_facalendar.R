@@ -37,14 +37,25 @@ rowcounts_pre_update <- mnmgwdb$count_all_table_content()
 
 ## ----rep-data-----------------------------------------------------------------
 # re-load REP data
-load_rep_common_libraries()
-load_rep_rdata(reload = FALSE, to_env = globalenv())
+tic <- function(toc) round(Sys.time() - toc, 1)
+toc <- Sys.time()
 
-# ... and code snippets.
-snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
-load_rep_code_snippets(snippets_path)
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# # TEMPORARY adjustment pointing to adjacent branch (wip)
+# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+reload_rep_code_snippets(fresh_snippet_path)
+message(glue::glue("Good morning!
+  Loading the REP data and snippets took {tic(toc)} seconds today."
+))
 
 verify_rep_objects()
+
+if (nrow(different_checksums) > 0) {
+  knitr::kable(different_checksums)
+}
+
 
 
 ## ----paranoia-dump------------------------------------------------------------
@@ -89,6 +100,21 @@ samplelocations_lookup <- mnmgwdb$query_columns(
   )
 
 
+
+mnmgwdb_freeze <-
+  read.csv(file = file.path("sideload", glue::glue("freeze_mnmgwdb{suffix}.csv"))) %>%
+  mutate(across(c(
+      date_start,
+      date_end
+    ), as.Date)
+  )
+
+# mnmgwdb_freeze %>% glimpse()
+# mnmgwdb_freeze %>%
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+
+
 # requires 092 to be run / ReplacementData up to date
 replacement_lookup <- mnmgwdb$query_columns(
     "ReplacementData",
@@ -101,7 +127,7 @@ replacement_lookup <- mnmgwdb$query_columns(
   rename(stratum = type)
 
 
-replace_grts_local <- function(df, typecolumn = "stratum") {
+apply_local_replacement_to_grts <- function(df, typecolumn = "stratum") {
 
   stopifnot("dplyr" = require("dplyr"))
 
@@ -123,7 +149,7 @@ replace_grts_local <- function(df, typecolumn = "stratum") {
 #_______________________________________________________________________________
 ### Locations
 
-locations <- bind_rows(
+locations_grts_collection <- bind_rows(
     mnmgwdb$query_columns("Locations", c("grts_address")),
     # sample_units %>% select(grts_address),
     mnmgwdb$query_columns("LocationInfos", c("grts_address")),
@@ -135,9 +161,19 @@ locations <- bind_rows(
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
-  arrange(grts_address) %>%
-  # count(grts_address) %>%
-  # arrange(desc(n))
+  arrange(grts_address)
+
+
+# join geometry column
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+locations <- locations_grts_collection %>%
   add_point_coords_grts(
     grts_var = "grts_address",
     spatrast = grts_mh,
@@ -192,9 +228,8 @@ locations_lookup <- redistribute_calendar_data(
 
 fieldwork_calendar <-
   fieldwork_shortterm_prioritization_by_stratum %>%
-  common_current_calenderfilters() %>% # should be filtered already!
   rename_grts_address_final_to_grts_address() %>%
-  replace_grts_local() %>%
+  apply_local_replacement_to_grts() %>%
   relocate(grts_address) %>%
   inner_join(
     samplelocations_lookup %>% rename(stratum = strata),
