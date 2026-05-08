@@ -612,15 +612,26 @@ connect_mnm_database <- function(
 mnmdb_assemble_structure_lookups <- function(db) {
 
   # tables and their relations
+  # db$folder <- "mnmsyncdb_dev_structure"
   db$tables <- bind_rows(
-      read.csv(file.path(db$folder, "TABLES.csv")) %>%
+    read.csv(file.path(db$folder, "TABLES.csv")) %>%
         select(table, schema, geometry, inherits, excluded) %>%
-        mutate(is_view = FALSE),
-      read.csv(file.path(db$folder, "VIEWS.csv")) %>%
+        mutate(
+          is_view = FALSE,
+        ) %>%
+        mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
+        mutate_at(vars(excluded), as.logical),
+    read.csv(file.path(db$folder, "VIEWS.csv")) %>%
         select(table = view, schema, excluded) %>%
-        mutate(geometry = "", inherits = "", is_view = TRUE)
+        mutate(
+          geometry = "",
+          inherits = "",
+          is_view = TRUE,
+        ) %>%
+        mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
+        mutate_at(vars(excluded), as.logical)
     ) %>%
-    mutate(excluded = as.logical(coalesce(excluded, 0)))
+    mutate(excluded = as.logical(coalesce(excluded, FALSE)))
     # %>% filter(!excluded)
   # db$tables %>% knitr::kable()
 

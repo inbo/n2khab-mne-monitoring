@@ -2070,7 +2070,7 @@ precedence_columns <- list(
     "require_total_station"
   ),
   "LocationInfos" = c(
-    "landowner",
+    # "landowner", # content currently non-negotiable
     "accessibility_inaccessible",
     "accessibility_revisit",
     "recovery_hints",
@@ -2103,7 +2103,7 @@ redistribute_calendar_data <- function(
     )
   }
 
-  if (is.scalar.na(version_id)) {
+  if (is.scalar.na(version_id) & isFALSE(skip[["archive"]])) {
     version_id <- mnmdb$load_latest_version_id()
   }
 

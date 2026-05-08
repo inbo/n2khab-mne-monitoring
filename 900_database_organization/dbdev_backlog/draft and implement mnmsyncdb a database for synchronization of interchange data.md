@@ -32,6 +32,7 @@ Therefore, `mnmsyncdb` is started up as a central place to store chronological, 
 > In consequence, `Locations` can be omitted; everything stays connected by `grts_address`.
 > However, some tables (e.g. #FreeFieldNotes) must have a spatial position
 
+- `<table>_id` columns will be independent across databases
 - `log_origindb` (varchar(8)) introduced to reference the origin database
 - `log_*` columns are static and assemble data from the origin databases (the only user to fill #mnmsyncdb will be maintenance user)
 
@@ -61,4 +62,7 @@ CREATE EXTENSION postgis_tiger_geocoder;
 ## tooling
 - download structure sheet (`_dev`)
 - make folders `mnmsyncdb_dev_structure`; add to `.gitignore`
-- copy `301_init_mnmsyncdb.py`, execute, and fix bugs
+- copy `301_init_mnmsyncdb.py`, adjust, execute
+
+## data assembly
+### one-time assembly of existing data
