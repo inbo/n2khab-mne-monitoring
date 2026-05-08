@@ -145,6 +145,12 @@ locationinfos_lookup <- redistribute_calendar_data(
 
 
 ## location journals -----------------------------------------------------------
+# append-only: use distinct union set
+
+## FreeFieldNotes -----------------------------------------------------------
+# use distinct union set
+# but based on source_db delete if one note gets deleted
+# so this might always be the union of all sourcedb's
 
 
 ## Done! -----------------------------------------------------------------------
