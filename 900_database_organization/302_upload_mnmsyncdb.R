@@ -75,14 +75,6 @@ for (sdb in sourcedb_labels) {
 
 }
 
-test <- locationinfos_statusquo %>%
-  filter(grts_address %in% c(121)) # 121
-
-test %>% knitr::kable()
-test <- test %>% pull(accessibility_revisit)
-unique_non_na(test)
-
-# toString(unique(non_na(test)))
 
 non_na <- function(x){
   if (all(is.na(x))) {
@@ -93,8 +85,9 @@ non_na <- function(x){
 }
 unique_non_na <- \(x) unique(non_na(x))
 
+
 locationinfos_assembly <- locationinfos_statusquo %>%
-  arrange(log_update, log_creation) %>%
+  arrange(log_creation, log_update) %>%
   group_by(
     grts_address
   ) %>%
@@ -102,6 +95,10 @@ locationinfos_assembly <- locationinfos_statusquo %>%
     n = n_distinct(log_origindb),
     landowner = stringr::str_c(unique_non_na(landowner), sep = "; "),
     accessibility_inaccessible = coalesce(any(accessibility_inaccessible), FALSE),
+    log_creator = non_na(log_creator)[[1]],
+    log_creation = min(as.POSIXct(unique_non_na(log_creation))),
+    log_update = max(as.POSIXct(unique_non_na(log_creation))),
+    log_user = "sync",
     accessibility_revisit = min(as.Date(unique_non_na(accessibility_revisit))),
     recovery_hints = stringr::str_c(unique_non_na(recovery_hints), sep = "; "),
     watina_code_1 = stringr::str_c(unique_non_na(watina_code_1), sep = "; "),

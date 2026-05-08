@@ -66,3 +66,6 @@ CREATE EXTENSION postgis_tiger_geocoder;
 
 ## data assembly
 ### one-time assembly of existing data
+
+**LocationInfos:**
+was lucky that there were no conflicts at the time of upload.
