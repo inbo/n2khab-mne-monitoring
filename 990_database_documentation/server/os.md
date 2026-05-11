@@ -1,6 +1,7 @@
 ---
 aliases:
   - operating system
+  - arch linux
 ---
 
 **arch linux**
