@@ -29,7 +29,8 @@ some replacements seem to be unlinked to the target cells
 + `SELECT * FROM "metadata"."Locations" WHERE grts_address IN (2742, 18877110);` 
 	+ gives weird `wkb_geometry`: the replacement seems to be empty bits 
 	+ -> attempting [[procedures/REP update|REP update]] to fix this
-	  
+
+## quick global fix
 **solved:** locations do not work well with `redistribute_calendar_data(...)` 
 -> they must be re-uploaded each time
 -> switched to #update_cascade_lookup
@@ -46,4 +47,11 @@ locations_lookup <- update_cascade_lookup(
 
 ```
 
-also applied to loceval, just to make sure.
+(Also applied to loceval, just to make sure; but there should have been no empty geoms.)
+
+
+## **Core Issue** was in `111a_push_loceval_to_mnmgwdb.R`:
+
++ previously did not re-apply #grts_mh for upload of new replacements
++ fixed now by additional `add_point_coords_grts`
++ post-processing: re-ran all daily scripts
