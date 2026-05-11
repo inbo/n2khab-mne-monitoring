@@ -929,7 +929,8 @@ mnmdb_assemble_query_functions <- function(db) {
       # load and return data
       data <- sf::st_read(
           db$connection,
-          layer = db$get_table_id(table_label)
+          layer = db$get_table_id(table_label),
+          geometry_column = "wkb_geometry"
         ) %>%
         dplyr::select(-ogc_fid)
 
