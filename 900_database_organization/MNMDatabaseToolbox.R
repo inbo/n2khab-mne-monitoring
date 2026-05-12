@@ -1107,6 +1107,7 @@ categorize_data_update <- function(
     characteristic_columns = NA,
     archive_flag_column = NA,
     exclude_columns = NA,
+    include_logging_columns = FALSE,
     skip_archive = NULL
   ) {
 
@@ -1153,7 +1154,11 @@ categorize_data_update <- function(
   #   t() %>% knitr::kable()
 
   cols <- names(data_future)
-  cols <- cols[!(cols %in% logging_columns)]
+
+  # normally, the logging columns *must* be excluded
+  if (isFALSE(include_logging_columns)) {
+    cols <- cols[!(cols %in% logging_columns)]
+  }
   data_future <- data_future %>% select(!!!cols)
 
   ## ignore input precedence columns

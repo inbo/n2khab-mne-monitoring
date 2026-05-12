@@ -40,7 +40,7 @@ for (sdb in sourcedb_labels) {
 ## LocationInfos ---------------------------------------------------------------
 
 locationinfos_statusquo <- mnmsyncdb$query_table("LocationInfos") %>%
-  filter(FALSE) # select NO ROW
+  filter(FALSE) # select NO ROW -> just get the columns
   # select(
   #   grts_address,
   #   landowner,
@@ -97,14 +97,20 @@ locationinfos_assembly <- locationinfos_statusquo %>%
     accessibility_inaccessible = coalesce(any(accessibility_inaccessible), FALSE),
     log_creator = non_na(log_creator)[[1]],
     log_creation = min(as.POSIXct(unique_non_na(log_creation))),
-    log_update = max(as.POSIXct(unique_non_na(log_creation))),
+    log_update = max(as.POSIXct(unique_non_na(log_update))),
     log_user = "sync",
     accessibility_revisit = min(as.Date(unique_non_na(accessibility_revisit))),
     recovery_hints = stringr::str_c(unique_non_na(recovery_hints), sep = "; "),
     watina_code_1 = stringr::str_c(unique_non_na(watina_code_1), sep = "; "),
     watina_code_2 = stringr::str_c(unique_non_na(watina_code_2), sep = "; "),
   ) %>%
-  ungroup()
+  ungroup() %>%
+  mutate(
+    across(
+      c(log_creator, log_user),
+      ~tidyr::replace_na(.x, "unknown")
+    )
+  )
 
 
 duplicate_count <- locationinfos_assembly %>%
@@ -117,30 +123,31 @@ if (nrow(duplicate_count) > 0) {
   stop("duplicate locationinfos")
 }
 
+locationinfos_upload <- locationinfos_assembly %>% select(-n)
 
-table_label <- "LocationInfos"
-data_nouveau <- locationinfos_assembly %>% select(-n)
-index_column <- mnmsyncdb$get_primary_key(table_label)
-characteristic_columns <- c("grts_address")
-
-
-distribution <- categorize_data_update(
-  mnmdb = mnmsyncdb,
-  table_label = table_label,
-  data_future = data_nouveau,
-  input_precedence_columns = precedence_columns[[table_label]],
-  characteristic_columns = characteristic_columns
+update_cascade_lookup(
+  table_label = "LocationInfos",
+  new_data = locationinfos_upload,
+  index_columns = c("locationinfo_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
 )
-print_category_count(distribution, table_label)
 
-locationinfos_lookup <- redistribute_calendar_data(
-  mnmdb = mnmsyncdb,
-  table_label = table_label,
-  distribution = distribution,
-  index_columns = c(index_column),
-  characteristic_columns = characteristic_columns,
-  skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
-)
+# NOTE 20260512: NOT using "distribution/redistribute" machinery
+#      because the `precedence_columns` cause issues: they are to be updated
+#      in the sync table despite their function as input
+#
+# table_label <- "LocationInfos"
+# data_nouveau <- locationinfos_assembly %>% select(-n)
+# index_column <- mnmsyncdb$get_primary_key(table_label)
+# characteristic_columns <- c("grts_address")
+#
+# # NOTE: the input must come from the input databases; there is no precedence in this case
+# distribution <- categorize_data_update(...)
+# print_category_count(distribution, table_label)
+#
+# locationinfos_lookup <- redistribute_calendar_data(...)
 
 
 
