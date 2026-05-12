@@ -1,8 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 locationjournal_id,int,True,,True,True,,,,location info index (technical)
-log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
-log_creation,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of creation
-log_origindb,varchar(8),False,,False,False,,,,(technical) database which submitted the entry (loceval/gwdb/surfdb/...)
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
 date,date,True,,False,False,,,,date of a journal entry
 source,varchar,True,,False,False,,,,source: MHQ/POC/LOCEVAL/REMOVALS/WIA/...

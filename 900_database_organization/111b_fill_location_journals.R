@@ -1,11 +1,17 @@
 #!/usr/bin/env Rscript
 
-# TODO in case we get to more than two databases,
+# General Strategy in this script:
+# - load and assemble activity data from all tables
+# - then upload the common data to all databases
+#
+# On the way, this script sideloads/updates InstallationRemovals.
+
+# KILL in case we get to more than two databases,
 #      create a central place to store infos
 #      and check against that.
-#
-# TODO testing with
-# (826486, 51158134)
+# -> now we have the syncdb,
+#    I think the strategy implemented here is totally fine
+#    (robust, extensible)
 
 #_______________________________________________________________________________
 ### Libraries
@@ -313,7 +319,7 @@ load_mnmgwdb_visits <- function() {
 }
 
 
-loceval_outputs <- load_location_evaluations()
+# loceval_outputs <- load_location_evaluations()
 
 ## join all data sources
 location_journals <- bind_rows(
@@ -331,15 +337,24 @@ location_journals <- bind_rows(
 #_______________________________________________________________________________
 ### Upload and Update Data
 
+# mnmdb <- mnmsyncdb
 # mnmdb <- mnmgwdb
 # mnmdb <- locevaldb
 upload_LoJos <- function(mnmdb) {
 
+  is_sync_database <- isFALSE("Locations" %in% (mnmdb$tables %>% pull(table)))
+
   # join location ID
-  location_lookup <- mnmdb$query_columns(
-    "Locations",
-    c("grts_address", "location_id")
-  )
+  if (is_sync_database) {
+    location_lookup <- location_journals %>%
+      distinct(grts_address) %>%
+      mutate(location_id = NA)
+  } else {
+    location_lookup <- mnmdb$query_columns(
+      "Locations",
+      c("grts_address", "location_id")
+    )
+  }
 
 
   lojos_prep <- location_journals
@@ -350,13 +365,20 @@ upload_LoJos <- function(mnmdb) {
 
   lojos <- lojos_prep %>%
     anti_join(
-      mnmgwdb$query_table("LocationJournals"),
+      mnmdb$query_table("LocationJournals"),
       by = join_by(date, grts_address, source)
     ) %>%
     left_join(
       location_lookup,
       by = join_by(grts_address)
     )
+
+  if (is_sync_database) {
+    # mnmsyncdb omits the location id
+    lojos <- lojos %>%
+      select(-location_id)
+  }
+
 
   lojo_lookup <- upload_and_lookup(
     mnmdb = mnmdb,
@@ -375,14 +397,15 @@ upload_LoJos <- function(mnmdb) {
 
 
   # updates
-
-  stitch_table_connection(
-    mnmdb = mnmdb,
-    table_label = "LocationJournals",
-    reference_table = "Locations",
-    link_key_column = "location_id",
-    lookup_columns = c("grts_address")
-  )
+  if (isFALSE(is_sync_database)) {
+    stitch_table_connection(
+      mnmdb = mnmdb,
+      table_label = "LocationJournals",
+      reference_table = "Locations",
+      link_key_column = "location_id",
+      lookup_columns = c("grts_address")
+    )
+  }
 
 
   # update "is_latest" via sql `update from`
@@ -434,11 +457,11 @@ upload_LoJos <- function(mnmdb) {
 
   mnmdb$execute_sql(update_command, verbose = FALSE)
 
-  ## update `visit_id` for quick linkage
-  table_label <- "LocationJournals"
-  reference_table <- "Visits"
-  trgtab <- mnmdb$get_namestring(table_label)
-  srctab <- mnmdb$get_namestring(reference_table)
+  # ## update `visit_id` for quick linkage
+  # table_label <- "LocationJournals"
+  # reference_table <- "Visits"
+  # trgtab <- mnmdb$get_namestring(table_label)
+  # srctab <- mnmdb$get_namestring(reference_table)
 
 
   # REJECTED: visit_id link to Visits
@@ -460,8 +483,15 @@ upload_LoJos <- function(mnmdb) {
   # ;")
 
 
-}
+} # /upload_LoJos
 
+
+# mnmsyncdb
+mnmsyncdb <- connect_mnm_database(
+    config_filepath = config_filepath,
+    database_mirror = glue::glue("mnmsyncdb{suffix}")
+  )
+upload_LoJos(mnmsyncdb)
 
 # loceval
 upload_LoJos(locevaldb)

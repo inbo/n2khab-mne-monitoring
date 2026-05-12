@@ -8,6 +8,23 @@ source("MNMDatabaseConnection.R")
 # more specific database tools
 source("MNMDatabaseToolbox.R")
 
+
+
+## data consolidation functions ------------------------------------------------
+# some general functions to enable data aggregation further down
+
+non_na <- function(x){
+  if (all(is.na(x))) {
+    return(invisible(NA))
+  } else {
+    return(x[!is.na(x)])
+  }
+}
+
+unique_non_na <- \(x) unique(non_na(x))
+
+
+
 ## database connection ---------------------------------------------------------
 config_filepath <- file.path("./mnm_database_connection.conf")
 
@@ -74,16 +91,6 @@ for (sdb in sourcedb_labels) {
   )
 
 }
-
-
-non_na <- function(x){
-  if (all(is.na(x))) {
-    return(invisible(NA))
-  } else {
-    return(x[!is.na(x)])
-  }
-}
-unique_non_na <- \(x) unique(non_na(x))
 
 
 locationinfos_assembly <- locationinfos_statusquo %>%
@@ -154,10 +161,44 @@ update_cascade_lookup(
 ## location journals -----------------------------------------------------------
 # append-only: use distinct union set
 
+# NOTE: the primary upload of LoJos to syncdb
+#       is handled in script `111b_fill_location_journals.R`
+
 ## FreeFieldNotes -----------------------------------------------------------
 # use distinct union set
 # but based on source_db delete if one note gets deleted
 # so this might always be the union of all sourcedb's
+
+
+locationjournals_statusquo <- mnmsyncdb$query_table("LocationJournals") %>%
+  filter(FALSE) # select NO ROW -> just get the columns
+
+### find overlap
+# column-specific:
+#   - accessibility_* is difficult
+#   - recovery_hints must be merged
+#   - gw::watina_code_* can be taken from mnmgwdb
+
+
+for (sdb in sourcedb_labels) {
+  # sdb <- "mnmgwdb"
+
+  db <- sourcedb_connections[[sdb]]
+
+  locationjournals_eval <- db$query_table("LocationJournals") %>%
+    mutate(
+      log_origindb = sdb,
+    )
+
+  locationjournals_statusquo <- bind_rows(
+    locationjournals_statusquo,
+    locationjournals_eval
+  )
+
+}
+
+
+locationjournals_statusquo %>% distinct(log_origindb)
 
 
 ## Done! -----------------------------------------------------------------------
