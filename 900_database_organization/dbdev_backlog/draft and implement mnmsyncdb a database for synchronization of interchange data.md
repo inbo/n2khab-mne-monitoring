@@ -19,6 +19,7 @@ Some tables require regular synchronization between databases.
 | `LocationInfos`    | persistent infos about specific locations, e.g. accessibility; synced between databases    |
 | `LocationJournals` | lifecycle information of a sample unit; chronological, append-only                                   |
 | `FreeFieldNotes`   | free notes to be placed on a point on the map, can be related to field visits or prepared in the lab |
+| `ReplacementData`  | TODO is there any need for this database to also store the selected `Replacements`? |
 
 For others, irregular or indirect sync is sufficient, although they would profit from centralization (e.g. `TeamMembers`, `GroupedActivities`, `Versions`, ...)
 
@@ -64,8 +65,22 @@ CREATE EXTENSION postgis_tiger_geocoder;
 - make folders `mnmsyncdb_dev_structure`; add to `.gitignore`
 - copy `301_init_mnmsyncdb.py`, adjust, execute
 
-## data assembly
-### one-time assembly of existing data
+# data assembly
 
-**LocationInfos:**
-was lucky that there were no conflicts at the time of upload.
+## LocationInfos
+### one-time assembly of existing data
+... was lucky that there were no conflicts at the time of upload.
+
+brief *failure* in attempting to use `categorize_data_update(...)` and `redistribute_calendar_data(...)`
+because of the (clumsy) way that #precedence_columns are defined and filtered everywhere by default.
+The `precedence_columns` cause issues here: they must be updated in the sync table despite their function as user input (the sync table has no input by itself, and therefore input precedence does not apply).
+
+### continuous update
+TODO: [[review correctness of the sync_mod function application]]; it must be correct in order to get the latest info by users.
+
+## LocationJournals
+These are just an assembly of the activities which are found in the different databases; they are assembled on-the-fly and immediately distributed to databases by the script `111b_fill_location_journals.R`.
+LoJos serve a "double check" function; already now I see that there were [[LoJo activities which are not recovered any more for the new upload]].
+
+## FreeFieldNotes
+(these are not immediately urgent; `log_` columns should work well; but I might replace the current python script.)
