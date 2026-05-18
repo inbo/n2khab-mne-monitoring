@@ -37,7 +37,7 @@ mnmsyncdb <- connect_mnm_database(
 )
 
 message(glue::glue("connected: psql {mnmsyncdb$shellstring}"))
-update_cascade_lookup <- parametrize_cascaded_update(mnmsyncdb)
+syncdb_update_cascade_lookup <- parametrize_cascaded_update(mnmsyncdb)
 
 
 sourcedb_labels <- c("loceval", "mnmgwdb") #, mnmsurfdb)
@@ -132,7 +132,7 @@ if (nrow(duplicate_count) > 0) {
 
 locationinfos_upload <- locationinfos_assembly %>% select(-n)
 
-update_cascade_lookup(
+syncdb_update_cascade_lookup(
   table_label = "LocationInfos",
   new_data = locationinfos_upload,
   index_columns = c("locationinfo_id"),
@@ -164,11 +164,6 @@ update_cascade_lookup(
 # NOTE: the primary upload of LoJos to syncdb
 #       is handled in script `111b_fill_location_journals.R`
 
-## FreeFieldNotes -----------------------------------------------------------
-# use distinct union set
-# but based on source_db delete if one note gets deleted
-# so this might always be the union of all sourcedb's
-
 
 locationjournals_statusquo <- mnmsyncdb$query_table("LocationJournals") %>%
   filter(FALSE) # select NO ROW -> just get the columns
@@ -198,7 +193,46 @@ for (sdb in sourcedb_labels) {
 }
 
 
-locationjournals_statusquo %>% distinct(log_origindb)
+# locationjournals_statusquo %>% glimpse()# distinct(log_origindb, source)
+
+locationjournals_consolidated <- locationjournals_statusquo %>%
+  distinct(
+    grts_address,
+    date,
+    source,
+    type_subset,
+    activity_group_id,
+    loceval_type,
+    loceval_replacement,
+    loceval_type_absence,
+    issues,
+    removal_unplanned,
+    category,
+    is_latest
+  #   location_id
+  )
+
+locationjournals_consolidated %>%
+  count(
+    grts_address,
+    date,
+    source,
+    type_subset,
+    activity_group_id
+  ) %>%
+  filter(n > 1) %>%
+  # filter(grts_address == 826486) %>%
+  inner_join(locationjournals_statusquo) %>%
+  knitr::kable()
+
+
+## FreeFieldNotes -----------------------------------------------------------
+# use distinct union set
+# but based on source_db delete if one note gets deleted
+# so this might always be the union of all sourcedb's
+# TODO unclear whether deletion works;
+#      maybe some kind of transfer to sync is necessary
+
 
 
 ## Done! -----------------------------------------------------------------------

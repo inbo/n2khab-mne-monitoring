@@ -78,10 +78,16 @@ The `precedence_columns` cause issues here: they must be updated in the sync tab
 DONE: [[tooling/review correctness of the sync_mod function application]]; it had to be corrected in order to get the latest info by users.
 
 
-
 ## LocationJournals
+### general
 These are just an assembly of the activities which are found in the different databases; they are assembled on-the-fly and immediately distributed to databases by the script `111b_fill_location_journals.R`.
 LoJos serve a "double check" function; already now I see that there were [[LoJo activities which are not recovered any more for the new upload]].
+
+### issue: uniqueness
++ There were duplicates due to the `location_id` differences across databases.
++ There were more duplicates because the `loceval_type_absence` column seems to have changed.
+
+[[structure/add nolog columns to LocationJournals]]
 
 ## FreeFieldNotes
 (these are not immediately urgent; `log_` columns should work well; but I might replace the current python script.)
