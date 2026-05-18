@@ -13,6 +13,7 @@ status: false
 ---
 
 Some tables require regular synchronization between databases.
+Therefore, `mnmsyncdb` is started up as a central place to store chronological, common information.
 
 | table | comment |
 |:------|-----|
@@ -21,17 +22,14 @@ Some tables require regular synchronization between databases.
 | `FreeFieldNotes`   | free notes to be placed on a point on the map, can be related to field visits or prepared in the lab |
 | `ReplacementData`  | TODO is there any need for this database to also store the selected `Replacements`? |
 
-For others, irregular or indirect sync is sufficient, although they would profit from centralization (e.g. `TeamMembers`, `GroupedActivities`, `Versions`, ...)
-
-Therefore, `mnmsyncdb` is started up as a central place to store chronological, common information.
-
+For other tables, irregular or indirect sync is sufficient, although they would profit from centralization (e.g. `TeamMembers`, `GroupedActivities`, `Versions`, ...)
 
 # design decisions
 
 > [!important] Limited [[tags/postgis|postGIS]] db:
-> There is no need for the postGIS extension in this table.
-> In consequence, `Locations` can be omitted; everything stays connected by `grts_address`.
-> However, some tables (e.g. #FreeFieldNotes) must have a spatial position
+> There is limited need for the postGIS extension in this table.
+> `Locations` can be omitted; everything stays connected by `grts_address`.
+> However, some tables (e.g. #FreeFieldNotes) must have a spatial position and therefore require GIS capabilities.
 
 - `<table>_id` columns will be independent across databases
 - `log_origindb` (varchar(8)) introduced to reference the origin database
@@ -49,6 +47,7 @@ Therefore, `mnmsyncdb` is started up as a central place to store chronological, 
     GRANT user_syncdb TO <****>;
 
     ```
+	
 - activate #postgis extension ∀ new databases 
 ```sql
 CREATE EXTENSION postgis;
@@ -76,7 +75,9 @@ because of the (clumsy) way that #precedence_columns are defined and filtered ev
 The `precedence_columns` cause issues here: they must be updated in the sync table despite their function as user input (the sync table has no input by itself, and therefore input precedence does not apply).
 
 ### continuous update
-TODO: [[review correctness of the sync_mod function application]]; it must be correct in order to get the latest info by users.
+DONE: [[tooling/review correctness of the sync_mod function application]]; it had to be corrected in order to get the latest info by users.
+
+
 
 ## LocationJournals
 These are just an assembly of the activities which are found in the different databases; they are assembled on-the-fly and immediately distributed to databases by the script `111b_fill_location_journals.R`.
