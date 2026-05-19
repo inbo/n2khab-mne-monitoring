@@ -57,12 +57,16 @@ CREATE EXTENSION postgis_tiger_geocoder;
 ```
 - add auth conf #authentication (`connection.conf` and `~/.pgpass`)
 
-- TODO activate #backups
+- DONE activate #backups
 
 ## tooling
 - download structure sheet (`_dev`)
 - make folders `mnmsyncdb_dev_structure`; add to `.gitignore`
 - copy `301_init_mnmsyncdb.py`, adjust, execute
+- initial data assembly with 
+    - `302f_upload_mnmsyncdb_FreeFieldNotes.R` (noop)
+    - `302i_upload_mnmsyncdb_LocationInfos.R`
+    - `302j_upload_mnmsyncdb_LocationJournals.R`
 
 # data assembly
 
@@ -90,4 +94,4 @@ LoJos serve a "double check" function; already now I see that there were [[LoJo 
 [[structure/add nolog columns to LocationJournals]]
 
 ## FreeFieldNotes
-(these are not immediately urgent; `log_` columns should work well; but I might replace the current python script.)
+(these are not immediately urgent; `log_` columns should work well; but I will replace the current python script.)

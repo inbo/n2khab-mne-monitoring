@@ -29,6 +29,8 @@ unique_non_na <- \(x) unique(non_na(x))
 config_filepath <- file.path("./mnm_database_connection.conf")
 
 suffix <- "-dev"
+suffix <- ""
+
 mnmsyncdb_mirror <- glue::glue("mnmsyncdb{suffix}")
 
 mnmsyncdb <- connect_mnm_database(
@@ -157,86 +159,8 @@ syncdb_update_cascade_lookup(
 # locationinfos_lookup <- redistribute_calendar_data(...)
 
 
-
-## location journals -----------------------------------------------------------
-# append-only: use distinct union set
-
-# NOTE: the primary upload of LoJos to syncdb
-#       is handled in script `111b_fill_location_journals.R`
-
-
-locationjournals_statusquo <- mnmsyncdb$query_table("LocationJournals") %>%
-  filter(FALSE) # select NO ROW -> just get the columns
-
-### find overlap
-# column-specific:
-#   - accessibility_* is difficult
-#   - recovery_hints must be merged
-#   - gw::watina_code_* can be taken from mnmgwdb
-
-
-for (sdb in sourcedb_labels) {
-  # sdb <- "mnmgwdb"
-
-  db <- sourcedb_connections[[sdb]]
-
-  locationjournals_eval <- db$query_table("LocationJournals") %>%
-    mutate(
-      log_origindb = sdb,
-    )
-
-  locationjournals_statusquo <- bind_rows(
-    locationjournals_statusquo,
-    locationjournals_eval
-  )
-
-}
-
-
-# locationjournals_statusquo %>% glimpse()# distinct(log_origindb, source)
-
-locationjournals_consolidated <- locationjournals_statusquo %>%
-  distinct(
-    grts_address,
-    date,
-    source,
-    type_subset,
-    activity_group_id,
-    loceval_type,
-    loceval_replacement,
-    loceval_type_absence,
-    issues,
-    removal_unplanned,
-    category,
-    is_latest
-  #   location_id
-  )
-
-locationjournals_consolidated %>%
-  count(
-    grts_address,
-    date,
-    source,
-    type_subset,
-    activity_group_id
-  ) %>%
-  filter(n > 1) %>%
-  # filter(grts_address == 826486) %>%
-  inner_join(locationjournals_statusquo) %>%
-  knitr::kable()
-
-
-## FreeFieldNotes -----------------------------------------------------------
-# use distinct union set
-# but based on source_db delete if one note gets deleted
-# so this might always be the union of all sourcedb's
-# TODO unclear whether deletion works;
-#      maybe some kind of transfer to sync is necessary
-
-
-
 ## Done! -----------------------------------------------------------------------
 message("")
 message("________________________________________________________________")
-message(" >>>>> Finished SYNCDB initial upload. ")
+message(" >>>>> Finished LocationInfos initial upload to SYNCDB. ")
 message("________________________________________________________________")
