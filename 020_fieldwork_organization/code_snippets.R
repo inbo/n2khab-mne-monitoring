@@ -67,7 +67,10 @@ load(path)
 
 # Checking the existence of the correct data source files in the correct
 # directories
-versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
+versions_required <- c(
+  versions_required,
+  habitatmap = "habitatmap_2024_v99_interim"
+)
 verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
 
@@ -179,10 +182,11 @@ flanders_buffer <-
 # pre-load grts-master habitat objects: `grts_mh` and `grts_mh_index`
 load_grts_mh_to_env(environment())
 
-# following function will be adapted to support the latest version of the data
-# source; for now use version habitatsprings_2020v2
 units_7220 <-
-  read_habitatsprings(units_7220 = TRUE) %>%
+  read_habitatsprings(
+    units_7220 = TRUE,
+    version = versions_required["habitatsprings"]
+  ) %>%
   .[flanders_buffer, ] %>%
   mutate(unit_id = as.character(unit_id)) %>%
   # replacing unit_id by the grts_address
