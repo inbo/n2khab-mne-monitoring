@@ -128,6 +128,10 @@ prioritize_gw_fieldwork <- function(.data) {
         # READDIVER, CLEAN & SHALLSAMP FAGs can be done as it suits, in the
         # locations where LOCEVAL is already executed)
         !is.na(scheme_ps_oldtargetpanels) ~ NA_integer_,
+        # no priority is given to FAG occasions for types that will be obsoleted,
+        # if the panel set is panel set 2 accross the targeted schemes
+        stratum %in% c("6410_ve", "6510_hus") &
+          !stringr::str_detect(scheme_ps_targetpanels, ":PS1") ~ NA_integer_,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL03|PS2PANEL01)") ~ 1L,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL02|PS2PANEL02)") ~ 2L,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL04)") ~ 3L,
@@ -166,6 +170,10 @@ prioritize_soil_fieldwork <- function(.data) {
   .data %>%
     dplyr::mutate(
       priority_soil = dplyr::case_when(
+        # no priority is given to FAG occasions for types that will be obsoleted,
+        # if the panel set is panel set 2 accross the targeted schemes
+        stratum %in% c("6410_ve", "6510_hus") &
+          !stringr::str_detect(scheme_ps_targetpanels, ":PS1") ~ NA_integer_,
         stringr::str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL02") ~ 7L,
         stringr::str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL01") ~ 8L,
         stringr::str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL03") ~ 9L,
@@ -184,6 +192,10 @@ prioritize_mhq_fieldwork <- function(.data) {
   .data %>%
     dplyr::mutate(
       priority_mhq = dplyr::case_when(
+        # no priority is given to FAG occasions for types that will be obsoleted,
+        # if the panel set is panel set 2 accross the targeted schemes
+        stratum %in% c("6410_ve", "6510_hus") &
+          !stringr::str_detect(scheme_ps_targetpanels, ":PS1") ~ NA_integer_,
         stringr::str_detect(scheme_ps_targetpanels, "HQ.+:PS\\dPANEL01") ~ 3L
       )
     ) %>%
@@ -227,6 +239,19 @@ add_wait_columns <- function(.data) {
       wait_7220 = stringr::str_detect(stratum, "^7220"),
       wait_floating = stratum == "7140_mrd",
       wait_mhq = stringr::str_detect(scheme_ps_targetpanels, "^HQ.*?(?!\\|)"),
+      wait_obsolete_types = stratum %in% c("6410_ve", "6510_hus") &
+        (
+          # don't pursue locations (including LOCEVAL FAGs) that only belong to
+          # panel set 2, except for planned READDIVER, CLEAN & SHALLSAMP FAGs
+          # (i.e. applicable to already installed locations)
+          (
+            !stringr::str_detect(scheme_ps_targetpanels, ":PS1") &
+              !stringr::str_detect(field_activity_group, "^GW.*(LEVREADDIVER|SHALL)")
+          ) |
+            # for panel set 1, don't perform new installations in these types, but
+            # other activities including LOCEVAL can still be planned
+            stringr::str_detect(field_activity_group, "INST")
+        ),
       wait_any = dplyr::if_any(dplyr::starts_with("wait"))
     ) %>%
     dplyr::relocate(wait_any, .before = wait_watersurface) %>%
