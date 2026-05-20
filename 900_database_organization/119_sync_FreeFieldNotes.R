@@ -122,16 +122,57 @@ upload_new_fieldnotes_append <- function(db, fieldnotes_to_upload) {
 #     looking them up via characteristic columns
 update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
 
-  # TODO continue here
-  if (any(characteristic_columns) not in names(updated_fieldnotes)) ...
+  # table pointers
+  srctab <- "temp_upd_freefieldnotes"
+  trgtab <- db$get_namestring("FreeFieldNotes")
 
-  create temptable
+  # lookup columns
+  if (!all(characteristic_columns %in% names(updated_fieldnotes))) {
+    stop("Cannot update: characteristic columns missing from update data.")
+  }
 
-  concat update query
-  execute
+  lookup_criteria <- unlist(lapply(
+    c(characteristic_columns),
+    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
+  ))
 
-  drop temptable
 
+  ### build update query
+  # updated columns
+  update_columns <- names(updated_fieldnotes)
+  update_columns <- update_columns[!(update_columns %in% characteristic_columns)]
+  ucolumnames <- unlist(lapply(
+    update_columns,
+    FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
+  ))
+
+
+  # create temp table
+  DBI::dbWriteTable(
+    db$connection,
+    name = srctab,
+    value = updated_fieldnotes,
+    overwrite = TRUE,
+    temporary = TRUE
+  )
+
+  # concat update query
+  update_string <- glue::glue("
+    UPDATE {trgtab} AS TRGTAB
+      SET
+       {paste0(ucolumnames, collapse = ', ')}
+      FROM {srctab} AS SRCTAB
+      WHERE
+       ({paste0(lookup_criteria, collapse = ') AND (')})
+    ;")
+
+  # execute update
+  db$execute_sql(update_string, verbose = TRUE)
+
+  # drop temptable
+  db$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
+
+  return(invisible(NULL))
 }
 
 
@@ -200,6 +241,11 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
 
   # (3) update changed fieldnotes (bi-directional)
   #     by slicing the latest log_update
+
+  freefieldnotes_userdb %>%
+    count(log_creation) %>%
+    filter(n>1)
+
   finos_timestamp_comparison <- existing_fieldnotes_userdb %>%
     dplyr::inner_join(
       freefieldnotes_statusquo %>%
