@@ -1,5 +1,3 @@
-
-
 #' Nesting scheme, panelset, targetpanel; unique flattening
 #'
 #' flatten scheme x panel set x targetpanel to unique strings per stratum x
@@ -7,7 +5,7 @@
 nest_and_flatten_scheme_ps_targetpanel <- function(
     .data,
     spt_flattening_function = NULL
-  ) {
+) {
 
   require_pkgs(c("tidyr", "dplyr", "stringr", "purrr"))
   stopifnot("magrittr" = require("magrittr"))
@@ -33,6 +31,61 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
         scheme_ps_targetpanels,
         spt_flattening_function
       ) %>% factor()
+    )
+
+  .data %>%
+    return()
+}
+
+
+
+#' Nesting current and old scheme, panelset, targetpanel; unique flattening
+#'
+#' flatten current and old scheme x panel set x targetpanel to unique strings
+#' per stratum x location x FAG occasion.
+nest_and_flatten_scheme_ps_targetpanel_include_old <- function(
+    .data,
+    spt_flattening_function = NULL
+  ) {
+
+  require_pkgs(c("tidyr", "dplyr", "stringr", "purrr"))
+  stopifnot("magrittr" = require("magrittr"))
+
+  # select one of the default flattening methods
+  if (is.null(spt_flattening_function)) {
+    spt_flattening_function <- function(df) {
+      stringr::str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
+    }
+  }
+
+  # concatenate the target column, nest, and flatten it
+  .data %<>%
+    dplyr::mutate(scheme_ps_targetpanel = ifelse(
+      is.na(targetpanel),
+      as.character(scheme_ps_oldtargetpanel),
+      stringr::str_glue("{ scheme }:PS{ panel_set }{ targetpanel }")
+    )) %>%
+    dplyr::select(-scheme, -panel_set, -targetpanel) %>%
+    tidyr::nest(
+      scheme_ps_targetpanels = scheme_ps_targetpanel,
+      scheme_ps_oldtargetpanels = scheme_ps_oldtargetpanel
+    ) %>%
+    dplyr::mutate(
+      scheme_ps_targetpanels = purrr::map_chr(
+        scheme_ps_targetpanels,
+        spt_flattening_function
+      ) %>%
+        factor(),
+      scheme_ps_oldtargetpanels = purrr::map_chr(
+        scheme_ps_oldtargetpanels,
+        \(df) {
+          stringr::str_flatten(
+            unique(df$scheme_ps_oldtargetpanel),
+            collapse = " | "
+          )
+        }
+      ) %>%
+        factor()
     )
 
   .data %>%
@@ -141,6 +194,7 @@ unite_stratum_and_schemepstargetpanels <- function(.data) {
   stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
+    dplyr::select(-scheme_ps_oldtargetpanels) %>%
     dplyr::mutate(
       stratum_scheme_ps_targetpanels = stringr::str_c(
         stratum,
@@ -193,18 +247,39 @@ unnest_and_join_sampling_unit_attributes <- function(.data) {
 
   .data %>%
     tidyr::unnest(scheme_moco_ps) %>%
-    # adding location attributes
-    inner_join_m21_ed(
+    # adding location attributes; using a left join since
+    # fag_stratum_grts_calendar contains units adopted from old REP versions that
+    # are not present in the sample objects (this can e.g. be checked using
+    # count(., is.na(targetpanel)), count(., is.na(is_forest)) etc on the
+    # intermediate result). Please note that this also means that those locations
+    # (outside current sample) have missing values for several location
+    # attributes. Note that this also adds the targetpanel attribute of the
+    # current spatiotemporal sample to appended old FAG occasions that apply to
+    # sampling units still present in the current spatial sample. This will be
+    # reverted after joining the old targetpanel attribute (as
+    # scheme_ps_oldtargetpanel) from cal_old_continuation, further below.
+    left_join_m21_d(
       scheme_moco_ps_stratum_targetpanel_spsamples %>%
         dplyr::select(-is_aquatic) %>%
         # deduplicating 7220:
         dplyr::distinct(),
       dplyr::join_by(scheme, module_combo_code, panel_set, stratum, grts_address)
     ) %>%
-    # add old targetpanel of the imported FAG occasions from rep_0.14.0. A part
-    # is dropped because of occasions that don't happen in the main year.
+    # restoring several of the location attributes from the phab-corrected base
+    # sampling frame, since the extra units (outside current sample) don't have
+    # them in scheme_moco_ps_stratum_targetpanel_spsamples
+    dplyr::select(-starts_with("last_"), -grts_address_final) %>%
+    add_assessment_data() %>%
+    dplyr::select(-typelevel_certain) %>%
+    dplyr::rename(
+      last_type_assessment_in_field = assessed_in_field,
+      last_type_assessment = assessment_date,
+      last_inaccessible = inaccessible
+    ) %>%
+    # adding old targetpanel of the imported FAG occasions from old REP versions.
+    # A part is dropped because of occasions that don't happen in the main year.
     left_join_121_d(
-      cal_0.14.0_continuation %>%
+      cal_old_continuation %>%
         tidyr::unnest(scheme_moco_ps) %>%
         dplyr::mutate(
           scheme_ps_oldtargetpanel =
@@ -228,7 +303,19 @@ unnest_and_join_sampling_unit_attributes <- function(.data) {
         rank
       )
     ) %>%
-    dplyr::mutate(scheme_ps_oldtargetpanel = factor(scheme_ps_oldtargetpanel)) %>%
+    dplyr::mutate(
+      scheme_ps_oldtargetpanel = factor(scheme_ps_oldtargetpanel),
+      # always set targetpanel values missing if the occasion is appended from an
+      # older REP version (since for spatial units common with the current REP,
+      # the targetpanel has been inherited from the the current REP, but this
+      # should not be the case). Note that this ASSUMES that no FAG occasions are
+      # common between the FAG calendar designed by the current REP, and the FAG
+      # occasions that were appended from older REP versions!
+      targetpanel = dplyr::replace_when(
+        targetpanel,
+        !is.na(scheme_ps_oldtargetpanel) ~ NA
+      )
+    ) %>%
     dplyr::relocate(targetpanel, .after = panel_set) %>%
     dplyr::relocate(grts_join_method, sample_support_code, .after = stratum) %>%
     dplyr::relocate(
