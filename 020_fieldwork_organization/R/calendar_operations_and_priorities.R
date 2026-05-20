@@ -127,7 +127,7 @@ prioritize_gw_fieldwork <- function(.data) {
         # no priority is given to imported FAGs from old versions (these
         # READDIVER, CLEAN & SHALLSAMP FAGs can be done as it suits, in the
         # locations where LOCEVAL is already executed)
-        !is.na(scheme_ps_oldtargetpanel) ~ NA_integer_,
+        !is.na(scheme_ps_oldtargetpanels) ~ NA_integer_,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL03|PS2PANEL01)") ~ 1L,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL02|PS2PANEL02)") ~ 2L,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL04)") ~ 3L,

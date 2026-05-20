@@ -859,24 +859,24 @@ fag_fa_stratum_grts_calendar <-
 # during which the auxiliary FAG (in the scheduled time interval) is still
 # relevant to subsequent FAGs in that scheme.
 
-cal_0.14.0_continuation
+cal_old_continuation
 
-# cal_0.14.0_continuation is a subset of fag_stratum_grts_calendar (without
+# cal_old_continuation is a subset of fag_stratum_grts_calendar (without
 # assessment columns) that represents GWSHALL* and READDIVER FAG occasions in
-# 2026 and 2027 from rep_0.14.0, that are retained in newer FAG calendar
+# 2026 and 2027 from older REP versions, that are retained in newer FAG calendar
 # versions regardless of the fact that those FAG occasions are no part of the
-# new revisit design. So they are supplementary. Their timing will be kept
-# fixed; however units may still be dropped as they disappear from later
-# versions of the new FAG calendar.
+# new revisit design or even the spatial sample. So they are supplementary.
+# Their timing will be kept fixed; however units may still be dropped in future
+# revisit cycles as they disappear from later versions of the new FAG calendar.
 
-# cal_0.14.0_continuation is the only object that defines a second targetpanel
+# cal_old_continuation is the only object that defines a second targetpanel
 # specifically for those FAG occasions; the format is OLDPANELxx (xx being the
 # number). These locations are at the same time part of a regular 'PANELyy',
-# which is not linked to specific FAG occasions: it is just a location
-# attribute. The regular targetpanels are dynamic, i.e. their units can change,
-# while this is not relevant for the FAG occasions of cal_0.14.0, which got the
-# frozen revisit pattern of the panels at the time, which we now call
-# OLDPANELxx.
+# which is not linked to specific FAG occasions, hence not part of the new
+# revisit design: it is just a location attribute. The regular targetpanels are
+# dynamic, i.e. their units can change, while this is not relevant for the FAG
+# occasions of cal_old_continuation, which got the frozen revisit pattern of the
+# panels at the time, which we now call OLDPANELxx.
 
 # Link between field activities and their protocol
 fa_protocol <-
@@ -938,12 +938,16 @@ scheme_moco_fa_fieldvar <-
 # and include some of the location attributes.
 #
 # Note that the scheme_ps_targetpanels attribute created below by
-# nest_and_flatten_scheme_ps_targetpanel() is a shrinked version of the one at
-# the level of the whole sample (see sampling unit attributes in the beginning),
-# since we limited the activities to those planned before main_year + 1
-# (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
+# nest_and_flatten_scheme_ps_targetpanel_include_old() is a shrinked version of
+# the one at the level of the whole sample (see sampling unit attributes in the
+# beginning), since we limited the activities to those planned before main_year
+# + 1 (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
 # location attribute. So it says specifically which schemes x panel sets x
 # targetpanels are served by the specific fieldwork at a specific date interval.
+# Note that we substitute the targetpanel with the OLD targetpanel if the
+# targetpanel is missing, i.e. for sampling units missing from the current FAG
+# calendar. This is done to avoid missing values in derived objects or
+# overviews.
 main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
@@ -960,7 +964,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
   unnest_and_join_sampling_unit_attributes() %>%
-  nest_and_flatten_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel_include_old() %>%
   relocate(
     scheme_ps_targetpanels,
     schemes_served_all,
@@ -1105,7 +1109,7 @@ orthophoto_shortterm_type_grts <-
     str_detect(grts_join_method, "cell")
   ) %>%
   convert_stratum_to_type() %>%
-  select(-rank, -scheme_ps_oldtargetpanel) %>%
+  select(-rank, -scheme_ps_oldtargetpanels) %>%
   arrange(
     priority,
     type,
