@@ -10,6 +10,7 @@
  END
 
 
+DROP VIEW "inbound"."LocevalFieldwork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."LocevalFieldwork" AS
 SELECT
   LOC.*,
@@ -139,7 +140,7 @@ DO ALSO
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
   no_visit_planned = NEW.no_visit_planned,
-  notes = NEW.notes,
+  notes = NEW.preparation_notes,
   done_planning = NEW.done_planning
  WHERE fieldactivitycalendar_id = OLD.fieldactivitycalendar_id
 ;
