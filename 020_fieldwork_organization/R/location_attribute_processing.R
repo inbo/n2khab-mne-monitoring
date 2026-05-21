@@ -1,10 +1,12 @@
 #' Nesting scheme, panelset, targetpanel; unique flattening
 #'
-#' flatten scheme x panel set x targetpanel to unique strings per stratum x
-#' location x FAG occasion.
+#' flatten scheme x panel set x targetpanel to unique strings
+#' per stratum x location x FAG occasion.
+#' the "old scheme" is included by default (`include_old`)
 nest_and_flatten_scheme_ps_targetpanel <- function(
-    .data,
-    spt_flattening_function = NULL
+  .data,
+  spt_flattening_function = NULL,
+  include_old = TRUE
 ) {
 
   require_pkgs(c("tidyr", "dplyr", "stringr", "purrr"))
@@ -18,10 +20,27 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
   }
 
   # concatenate the target column, nest, and flatten it
-  .data %<>%
-    dplyr::mutate(scheme_ps_targetpanel = stringr::str_glue(
-      "{ scheme }:PS{ panel_set }{ targetpanel }"
-    )) %>%
+  if (include_old) {
+    # if old panels are included, NA targetpanel must be fixed
+    data_spst <- .data %>%
+      dplyr::mutate(
+        scheme_ps_targetpanel = ifelse(
+          is.na(targetpanel),
+          as.character(scheme_ps_oldtargetpanel),
+          stringr::str_glue("{ scheme }:PS{ panel_set }{ targetpanel }")
+        )
+      )
+  } else {
+    data_spst <- .data %>%
+      dplyr::mutate(
+        scheme_ps_targetpanel = stringr::str_glue(
+          "{ scheme }:PS{ panel_set }{ targetpanel }"
+        )
+      )
+  }
+
+  # nest and flatten scheme_ps_targetpanel
+  data_spst <- data_spst %>%
     dplyr::select(-scheme, -panel_set, -targetpanel) %>%
     tidyr::nest(
       scheme_ps_targetpanels = scheme_ps_targetpanel
@@ -33,7 +52,25 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
       ) %>% factor()
     )
 
-  .data %>%
+
+  if (isFALSE(include_old)) {
+    # if old panels are not included, they are retained as separate column
+    data_spst <- data_spst %>%
+      dplyr::mutate(
+        scheme_ps_oldtargetpanels = purrr::map_chr(
+          scheme_ps_oldtargetpanels,
+          \(df) {
+            stringr::str_flatten(
+              unique(df$scheme_ps_oldtargetpanel),
+              collapse = " | "
+            )
+          }
+        ) %>%
+        factor()
+      )
+  }
+
+  data_spst %>%
     return()
 }
 
@@ -43,7 +80,7 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
 #'
 #' flatten current and old scheme x panel set x targetpanel to unique strings
 #' per stratum x location x FAG occasion.
-nest_and_flatten_scheme_ps_targetpanel_include_old <- function(
+nest_and_flatten_scheme_ps_targetpanel_include_old_OBSOLETE <- function(
     .data,
     spt_flattening_function = NULL
   ) {
