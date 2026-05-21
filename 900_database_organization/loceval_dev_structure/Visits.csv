@@ -13,7 +13,11 @@ teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed 
 date_visit,date,False,,False,False,,,,date of the field activity
 type_assessed,varchar,False,CAST('onveranderd' AS VARCHAR),False,False,,,,"referring to ""N2kHabTypes"".""type""; any corrections from previous evaluation"
 is_well_developed_type,boolean,False,NULL,False,False,,,,"register cells which contain a well developed type, for info to adjacent teams/location research"
+replacement_recovery_notes,varchar,False,NULL,False,False,,,,extra recovery notes for local replacements
+gps_type,varchar,False,NULL,False,False,,,,which type of GPS was used
+gps_accuracy_cm,double precision,False,NULL,False,False,,,,"measurement accuracy of the RTK GPS, expressed in centimeters"
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
+issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
 visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived visits
