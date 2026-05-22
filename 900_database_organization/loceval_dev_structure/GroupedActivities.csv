@@ -1,16 +1,17 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 grouped_activity_id,smallint,True,,True,True,,,,grouped activity index (technical)
 activity_group_id,smallint,True,,False,False,,,,activity group index (technical)
-activity_group,varchar,True,,False,False,,,,
+activity_group,varchar,True,,False,False,,,,label for a group of activities
 activity_id,smallint,True,,False,False,,,,activity index (technical)
 activity,varchar,True,,False,False,,,,activity string shorthand
 activity_name,varchar,True,,False,False,,,,description of the activity
-is_datacollection_method,boolean,False,NULL,False,False,,,,
-is_field_activity,boolean,False,NULL,False,False,,,,
-is_prep_activity,boolean,False,NULL,False,False,,,,
-is_lab_activity,boolean,False,NULL,False,False,,,,
-is_loceval_activity,boolean,False,NULL,False,False,,,,convenience flag for loceval activities
-is_gw_activity,boolean,False,NULL,False,False,,,,convenience flag for groundwater-scheme activities
+is_datacollection_method,boolean,False,NULL,False,False,,,,flag: datacollection methods
+is_field_activity,boolean,False,NULL,False,False,,,,flag: field activities
+is_prep_activity,boolean,False,NULL,False,False,,,,flag: preparative activities
+is_lab_activity,boolean,False,NULL,False,False,,,,flag: laboratory activity
+is_loceval_activity,boolean,False,NULL,False,False,,,,flag: loceval activities
+is_gw_activity,boolean,False,NULL,False,False,,,,flag: groundwater scheme activities
+is_surf_activity,boolean,False,NULL,False,False,,,,flag: surface water scheme activities
 fag_is_auxiliary,boolean,False,NULL,False,False,,,,"FAGs that are not linked one-to-one to the collection of data that apply to a specific point in time (sampling, measuring), but that potentially apply to a time series of data"
 fag_is_preponable,boolean,False,NULL,False,False,,,,subset of auxiliary FAGs which can be preponed or prepended
 protocol_id,smallint,False,NULL,False,False,Protocols.protocol_id,,,referencing the protocol table

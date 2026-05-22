@@ -7,9 +7,11 @@ source,varchar,True,,False,False,,,,source: MHQ/POC/LOCEVAL/REMOVALS/WIA/...
 type_subset,varchar,False,NULL,False,False,,,,indicating which if there are multiple types/strata only partially affected
 activity_group_id,smallint,False,NULL,False,False,,,,"a link to the activity metadata, but not for all journal activities"
 loceval_type,varchar,False,NULL,False,False,,,,type determined in location evaluation
-loceval_replacement,boolean,False,NULL,False,False,,,,local replacement during logeval
+loceval_replacement,boolean,False,NULL,False,False,,,,local replacement during loceval
 loceval_type_absence,boolean,False,NULL,False,False,,,,type absence during loceval
 issues,boolean,False,NULL,False,False,,,,tag if there were issues during fieldwork activities
 removal_unplanned,boolean,False,NULL,False,False,,,,tag if removal was not scheduled/planned/wanted
+nolog_user,varchar,False,,False,False,,,,(technical) user who modified the entry as noted in source table
+nolog_update,timestamp,False,,False,False,,,,(technical) timestamp of last modification as noted in source table
 category,varchar,False,NULL,False,False,,,,"category: inst:=installation/removal, biot:=mhq/loceval, else `source`"
 is_latest,boolean,False,NULL,False,False,,,,"flags the latest events of a category, e.g. latest inst or biot"
