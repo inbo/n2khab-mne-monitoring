@@ -5,8 +5,8 @@
 #' the "old scheme" is included by default (`include_old`)
 nest_and_flatten_scheme_ps_targetpanel <- function(
   .data,
-  spt_flattening_function = NULL,
-  include_old = TRUE
+  include_old,
+  spt_flattening_function = NULL
 ) {
 
   require_pkgs(c("tidyr", "dplyr", "stringr", "purrr"))
@@ -14,8 +14,12 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
 
   # select one of the default flattening methods
   if (is.null(spt_flattening_function)) {
-    spt_flattening_function <- function(df) {
-      stringr::str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
+    # spt_flattening_function <- function(df) {
+    #   stringr::str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
+    # }
+
+    spt_flattening_function <- function(x) {
+      stringr::str_flatten(unique(x), collapse = " | ")
     }
   }
 
@@ -40,34 +44,59 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
   }
 
   # nest and flatten scheme_ps_targetpanel
-  data_spst <- data_spst %>%
-    dplyr::select(-scheme, -panel_set, -targetpanel) %>%
-    tidyr::nest(
-      scheme_ps_targetpanels = scheme_ps_targetpanel
-    ) %>%
+  test <- data_spst %>%
+    dplyr::mutate(scheme_ps_oldtargetpanel = as.character(seq_len(nrow(data_spst)))) %>%
+    dplyr::select(-scheme, -panel_set, -targetpanel)
+
+  # test %>% glimpse()
+
+  test %>%
+    dplyr::group_by(dplyr::across(-tidyselect::matches("^scheme_ps_(?:old)?targetpanel"))) %>%
+    tidyr::nest() %>%
+    tidyr::unnest_wider(data) %>%
     dplyr::mutate(
       scheme_ps_targetpanels = purrr::map_chr(
-        scheme_ps_targetpanels,
+        scheme_ps_targetpanel,
+        spt_flattening_function
+      ) %>% factor(),
+      scheme_ps_oldtargetpanels = purrr::map_chr(
+        scheme_ps_oldtargetpanel,
         spt_flattening_function
       ) %>% factor()
-    )
+    ) # %>% glimpse()
+
+  # stop("breakpoint")
+
+  data_spst <- data_spst %>%
+    dplyr::select(-scheme, -panel_set, -targetpanel) %>%
+    dplyr::group_by(
+      dplyr::across(-tidyselect::matches("^scheme_ps_(?:old)?targetpanel"))
+    ) %>%
+    tidyr::nest() %>%
+    tidyr::unnest_wider(data) %>%
+    ungroup() %>%
+    dplyr::mutate(
+      scheme_ps_targetpanels = purrr::map_chr(
+        scheme_ps_targetpanel,
+        spt_flattening_function
+      ) %>% factor()
+    ) %>%
+    select(-scheme_ps_targetpanel)
+
+  for (i in seq_len(3)) data_spst %>% sample_n(1) %>% t() %>% knitr::kable()
 
 
-  if (isFALSE(include_old)) {
-    # if old panels are not included, they are retained as separate column
+  if (include_old) {
+    # if old panels are included, retain them as separate column
     data_spst <- data_spst %>%
       dplyr::mutate(
         scheme_ps_oldtargetpanels = purrr::map_chr(
-          scheme_ps_oldtargetpanels,
-          \(df) {
-            stringr::str_flatten(
-              unique(df$scheme_ps_oldtargetpanel),
-              collapse = " | "
-            )
-          }
+          scheme_ps_oldtargetpanel,
+          spt_flattening_function
         ) %>%
         factor()
-      )
+      ) %>%
+      select(-scheme_ps_oldtargetpanel)
   }
 
   data_spst %>%
