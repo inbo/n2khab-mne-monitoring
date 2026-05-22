@@ -14,10 +14,6 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
 
   # select one of the default flattening methods
   if (is.null(spt_flattening_function)) {
-    # spt_flattening_function <- function(df) {
-    #   stringr::str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
-    # }
-
     spt_flattening_function <- function(x) {
       stringr::str_flatten(unique(x), collapse = " | ")
     }
@@ -43,30 +39,7 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
       )
   }
 
-  # nest and flatten scheme_ps_targetpanel
-  test <- data_spst %>%
-    dplyr::mutate(scheme_ps_oldtargetpanel = as.character(seq_len(nrow(data_spst)))) %>%
-    dplyr::select(-scheme, -panel_set, -targetpanel)
-
-  # test %>% glimpse()
-
-  test %>%
-    dplyr::group_by(dplyr::across(-tidyselect::matches("^scheme_ps_(?:old)?targetpanel"))) %>%
-    tidyr::nest() %>%
-    tidyr::unnest_wider(data) %>%
-    dplyr::mutate(
-      scheme_ps_targetpanels = purrr::map_chr(
-        scheme_ps_targetpanel,
-        spt_flattening_function
-      ) %>% factor(),
-      scheme_ps_oldtargetpanels = purrr::map_chr(
-        scheme_ps_oldtargetpanel,
-        spt_flattening_function
-      ) %>% factor()
-    ) # %>% glimpse()
-
-  # stop("breakpoint")
-
+  # nest and flatten scheme_ps_{targetpanel, oldtargetpanel}
   data_spst <- data_spst %>%
     dplyr::select(-scheme, -panel_set, -targetpanel) %>%
     dplyr::group_by(
@@ -74,16 +47,14 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
     ) %>%
     tidyr::nest() %>%
     tidyr::unnest_wider(data) %>%
-    ungroup() %>%
+    dplyr::ungroup() %>%
     dplyr::mutate(
       scheme_ps_targetpanels = purrr::map_chr(
         scheme_ps_targetpanel,
         spt_flattening_function
       ) %>% factor()
     ) %>%
-    select(-scheme_ps_targetpanel)
-
-  for (i in seq_len(3)) data_spst %>% sample_n(1) %>% t() %>% knitr::kable()
+    dplyr::select(-scheme_ps_targetpanel)
 
 
   if (include_old) {
@@ -101,62 +72,8 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
 
   data_spst %>%
     return()
-}
+} # /nest_and_flatten_scheme_ps_targetpanel
 
-
-
-#' Nesting current and old scheme, panelset, targetpanel; unique flattening
-#'
-#' flatten current and old scheme x panel set x targetpanel to unique strings
-#' per stratum x location x FAG occasion.
-nest_and_flatten_scheme_ps_targetpanel_include_old_OBSOLETE <- function(
-    .data,
-    spt_flattening_function = NULL
-  ) {
-
-  require_pkgs(c("tidyr", "dplyr", "stringr", "purrr"))
-  stopifnot("magrittr" = require("magrittr"))
-
-  # select one of the default flattening methods
-  if (is.null(spt_flattening_function)) {
-    spt_flattening_function <- function(df) {
-      stringr::str_flatten(unique(df$scheme_ps_targetpanel), collapse = " | ")
-    }
-  }
-
-  # concatenate the target column, nest, and flatten it
-  .data %<>%
-    dplyr::mutate(scheme_ps_targetpanel = ifelse(
-      is.na(targetpanel),
-      as.character(scheme_ps_oldtargetpanel),
-      stringr::str_glue("{ scheme }:PS{ panel_set }{ targetpanel }")
-    )) %>%
-    dplyr::select(-scheme, -panel_set, -targetpanel) %>%
-    tidyr::nest(
-      scheme_ps_targetpanels = scheme_ps_targetpanel,
-      scheme_ps_oldtargetpanels = scheme_ps_oldtargetpanel
-    ) %>%
-    dplyr::mutate(
-      scheme_ps_targetpanels = purrr::map_chr(
-        scheme_ps_targetpanels,
-        spt_flattening_function
-      ) %>%
-        factor(),
-      scheme_ps_oldtargetpanels = purrr::map_chr(
-        scheme_ps_oldtargetpanels,
-        \(df) {
-          stringr::str_flatten(
-            unique(df$scheme_ps_oldtargetpanel),
-            collapse = " | "
-          )
-        }
-      ) %>%
-        factor()
-    )
-
-  .data %>%
-    return()
-}
 
 
 #' concatenating and flattening stratum, grts join method, and scheme-ps-tp
@@ -398,7 +315,7 @@ unnest_and_join_sampling_unit_attributes <- function(.data) {
     dplyr::select(-module_combo_code) %>%
     return()
 
-}
+} # /unnest_and_join_sampling_unit_attributes
 
 
 #' extract all `schemes` from the `scheme_ps_targetpanels` of a dataframe
