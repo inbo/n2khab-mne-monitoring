@@ -65,6 +65,20 @@ drive_download(
 )
 load(path)
 
+# Note that loading the RData file also exports a few functions from the REP to
+# the global environment. At the time of writing (26 May 2026), these are:
+#
+# verify_n2khab_data, add_point_coords_grts, filter_grtsraster_by_address,
+# get_level3replacement_cellnrs, convert_level0_to_level3 collapse_strata,
+# add_assessment_data
+#
+# If you want to check again, load the RData file into a separate environment
+# and explore the objects with ls() and is.function().
+#
+# The functions' source can be seen by printing them. The functions are defined
+# in the R/functions.R file from the REP workflow.
+
+
 # Checking the existence of the correct data source files in the correct
 # directories
 versions_required <- c(
