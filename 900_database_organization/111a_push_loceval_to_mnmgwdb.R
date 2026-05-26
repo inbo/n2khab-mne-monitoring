@@ -119,9 +119,37 @@ new_locations <- replacement_data %>%
   )
 
 # upload new locations
-locations_upload <- new_locations %>% # replacement_data  %>% #
+locations_grts_collection <- new_locations %>% # replacement_data  %>% #
   sf::st_drop_geometry() %>%
   select(grts_address = grts_address_replacement)
+
+
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# # TEMPORARY adjustment pointing to adjacent branch (wip)
+# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+require("terra")
+source(file.path(snippet_base_path, "020_fieldwork_organization", "R", "grts.R"))
+# source(file.path(snippet_base_path, "020_fieldwork_organization", "R", "grts_mh.R"))
+
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = terra::values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+
+locations_upload <- locations_grts_collection %>%
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(locations_upload) <- "wkb_geometry"
+
 
 locations_lookup <- update_cascade_lookup(
   table_label = "Locations",
@@ -131,7 +159,6 @@ locations_lookup <- update_cascade_lookup(
   tabula_rasa = FALSE,
   verbose = TRUE
 )
-
 
 ## join the new, corrected location id to the list of replacements
 existing_again <- mnmgwdb$query_table("Locations") %>%
