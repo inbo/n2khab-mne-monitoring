@@ -2012,6 +2012,13 @@ precedence_columns <- list(
     "is_replaced",
     "type_is_absent"
   ),
+  "Replacements" = c(
+    "is_inappropriate",
+    "is_selected",
+    "type_suggested",
+    "implications_habitatmap",
+    "notes"
+  ),
   "FieldworkCalendar" = c(
     "excluded",
     "excluded_reason",
@@ -2036,13 +2043,16 @@ precedence_columns <- list(
   "Visits" = c(
     "teammember_id",
     "date_visit",
+    "lims_code",
+    "type_assessed",
+    "is_well_developed_type",
+    "replacement_recovery_notes",
+    "gps_type",
+    "gps_accuracy_cm",
     "notes",
     "photo",
-    "lims_code",
     "issues",
-    "visit_done",
-    "type_assessed",
-    "is_well_developed_type"
+    "visit_done"
   ),
   "InstallationVisits" = c(
     "photo_soil_1_peilbuis",

@@ -23,9 +23,6 @@ inbound,InstallationVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_
 inbound,SamplingVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (chemical sampling); subset of Visits
 inbound,PositioningVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (spatial positioning); subset of Visits
 inbound,InstallationRemovals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"logging removals of an installation, planned or by vandalism"
-inbound,WellInstallationActivities,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,1,information collected for certain activities (well installations); linked to a subset of Visits
-inbound,ChemicalSamplingActivities,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,1,information collected for certain activities (chemical sampling); linked to a subset of Visits
-inbound,SpatialPositioningActivities,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,1,information collected for certain activities (spatial positioning); linked to a subset of Visits
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
 archive,ReplacementData,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,storing info about replacements (temporary solution)

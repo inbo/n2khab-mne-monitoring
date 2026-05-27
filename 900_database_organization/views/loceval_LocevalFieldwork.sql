@@ -43,7 +43,7 @@ SELECT
   FAC.wait_3260,
   FAC.wait_7220,
   FAC.wait_floating,
-  FAC.wait_obsolete_type,
+  FAC.wait_obsolete_types,
   FAC.excluded,
   FAC.excluded_reason,
   FAC.teammember_assigned,
