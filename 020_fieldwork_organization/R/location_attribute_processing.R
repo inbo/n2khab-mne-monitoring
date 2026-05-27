@@ -251,7 +251,12 @@ unnest_and_join_sampling_unit_attributes <- function(.data) {
     # restoring several of the location attributes from the phab-corrected base
     # sampling frame, since the extra units (outside current sample) don't have
     # them in scheme_moco_ps_stratum_targetpanel_spsamples
-    dplyr::select(-starts_with("last_"), -grts_address_final) %>%
+    dplyr::select(
+      -last_type_assessment,
+      -last_type_assessment_in_field,
+      -last_inaccessible,
+      -grts_address_final
+    ) %>%
     add_assessment_data() %>%
     dplyr::select(-typelevel_certain) %>%
     dplyr::rename(
