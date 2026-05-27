@@ -27,6 +27,10 @@ knitr:
 
 # Preparations
 
+## structure changes
+Download the latest structure sheets for the production mirror.
+Otherwise, the list of update columns might be incomplete.
+
 ## sync staging mirror
   
 ```{sh sync-staging}
