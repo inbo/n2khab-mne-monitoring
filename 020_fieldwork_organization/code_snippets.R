@@ -157,7 +157,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
 stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
   select(-module_combo_code) %>%
-  nest_and_flatten_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = FALSE) %>%
   relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
 
@@ -952,7 +952,7 @@ scheme_moco_fa_fieldvar <-
 # and include some of the location attributes.
 #
 # Note that the scheme_ps_targetpanels attribute created below by
-# nest_and_flatten_scheme_ps_targetpanel_include_old() is a shrinked version of
+# nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked version of
 # the one at the level of the whole sample (see sampling unit attributes in the
 # beginning), since we limited the activities to those planned before main_year
 # + 1 (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
@@ -978,7 +978,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
   unnest_and_join_sampling_unit_attributes() %>%
-  nest_and_flatten_scheme_ps_targetpanel_include_old() %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) %>%
   relocate(
     scheme_ps_targetpanels,
     schemes_served_all,
