@@ -15,65 +15,77 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
   # select one of the default flattening methods
   if (is.null(spt_flattening_function)) {
     spt_flattening_function <- function(x) {
-      stringr::str_flatten(unique(x), collapse = " | ")
+      stringr::str_flatten(unique(unlist(x)), collapse = " | ")
     }
   }
 
-  # concatenate the target column, nest, and flatten it
-  if (include_old) {
-    # if old panels are included, NA targetpanel must be fixed
+  # if it is not there, create a (fake) column for `*_oldtargetpanel`
+  # to make the functions below work generally (i.e. independent
+  # of the `include_old` choice)
+  # using an intermediate working copy data frame `data_spst`
+  #    (spst as in "Scheme, PS, Targetpanel")
+  if (isFALSE("scheme_ps_oldtargetpanel" %in% names(.data))) {
     data_spst <- .data %>%
-      dplyr::mutate(
-        scheme_ps_targetpanel = ifelse(
-          is.na(targetpanel),
-          as.character(scheme_ps_oldtargetpanel),
-          stringr::str_glue("{ scheme }:PS{ panel_set }{ targetpanel }")
-        )
-      )
+      dplyr::mutate(scheme_ps_oldtargetpanel = NA)
   } else {
-    data_spst <- .data %>%
-      dplyr::mutate(
-        scheme_ps_targetpanel = stringr::str_glue(
-          "{ scheme }:PS{ panel_set }{ targetpanel }"
-        )
-      )
+    data_spst <- .data
   }
 
+  # concatenate scheme_ps_targetpanel
+  # (the *_oldtargetpanel comes pre-concatenated and is optionally
+  # used to replace NA targetpanels)
+  data_spst <- data_spst %>%
+    dplyr::mutate(
+      scheme_ps_targetpanel = stringr::str_glue(
+        "{ scheme }:PS{ panel_set }{ targetpanel }",
+        .na = NULL # otherwise, NAs are replaced by string NA
+        ),
+      scheme_ps_targetpanel = coalesce(
+        scheme_ps_targetpanel,
+        as.character(scheme_ps_oldtargetpanel)
+      )
+    )
+
+
   # nest and flatten scheme_ps_{targetpanel, oldtargetpanel}
+  # and add a plural-s
+  # oldpanels are flattened anyways, even if they were not part
+  # of the data and thus NA
   data_spst <- data_spst %>%
     dplyr::select(-scheme, -panel_set, -targetpanel) %>%
-    dplyr::group_by(
-      dplyr::across(-tidyselect::matches("^scheme_ps_(?:old)?targetpanel"))
+    tidyr::nest(
+      scheme_ps_targetpanels = scheme_ps_targetpanel,
+      scheme_ps_oldtargetpanels = tidyselect::any_of("scheme_ps_oldtargetpanel")
     ) %>%
-    tidyr::nest() %>%
-    tidyr::unnest_wider(data) %>%
-    dplyr::ungroup() %>%
     dplyr::mutate(
       scheme_ps_targetpanels = purrr::map_chr(
-        scheme_ps_targetpanel,
+        scheme_ps_targetpanels,
         spt_flattening_function
-      ) %>% factor()
+      ) %>% factor(),
+      scheme_ps_oldtargetpanels = purrr::map_chr(
+        scheme_ps_oldtargetpanels,
+        spt_flattening_function
+      ) %>%
+      factor()
     ) %>%
-    dplyr::select(-scheme_ps_targetpanel)
+    dplyr::select(
+      -tidyselect::any_of(
+        c("scheme_ps_targetpanel", "scheme_ps_oldtargetpanel")
+      )
+    )
 
+  # data_spst %>% distinct(scheme_ps_targetpanels) %>% knitr::kable()
 
-  if (include_old) {
+  if (isFALSE(include_old)) {
     # if old panels are included, retain them as separate column
     data_spst <- data_spst %>%
-      dplyr::mutate(
-        scheme_ps_oldtargetpanels = purrr::map_chr(
-          scheme_ps_oldtargetpanel,
-          spt_flattening_function
-        ) %>%
-        factor()
-      ) %>%
-      select(-scheme_ps_oldtargetpanel)
+      select(-scheme_ps_oldtargetpanels)
   }
 
   data_spst %>%
     return()
-} # /nest_and_flatten_scheme_ps_targetpanel
 
+} # /nest_and_flatten_scheme_ps_targetpanel
 
 
 #' concatenating and flattening stratum, grts join method, and scheme-ps-tp
