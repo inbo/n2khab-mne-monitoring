@@ -2,7 +2,9 @@
 #'
 #' flatten scheme x panel set x targetpanel to unique strings
 #' per stratum x location x FAG occasion.
-#' the "old scheme" is included by default (`include_old`)
+#'
+#' The "old" scheme x panel set x targetpanel (adopted from previous
+#' REP versions) is handled if `include_old` is set as `TRUE`.
 nest_and_flatten_scheme_ps_targetpanel <- function(
   .data,
   include_old,
