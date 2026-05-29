@@ -75,11 +75,41 @@ copy_over_single_table <- function(table_label, new_data, ...) {
   # parametrization of the `upload_data_and_update_dependencies` functions
   # just to make the loop code below look a little less convoluted.
 
+  if (table_label == "LocationCells") {
+    message("skipping LocationCells for some crs mismatch bug.")
+    return(invisible(NULL))
+  }
+
+  characteristic_columns <- target_db$get_characteristic_columns(table_label)
+
+  if (is.scalar.na(characteristic_columns)) {
+    # just take all columns
+    characteristic_columns <- names(new_data)
+  }
+
+  # if all else fails (e.g. LocationCells), use the target columns
+  if (length(characteristic_columns) == 0) {
+    # pk <- target_db$get_primary_key(table_label)
+    # characteristic_columns <- c(pk)
+    characteristic_columns <-
+      target_db$load_table_info(table_label) %>%
+        pull(column)
+    print(characteristic_columns)
+
+    if (target_db$is_spatial(table_label)) {
+      new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+      sf::st_crs(new_data) <- 31370
+      sf::st_geometry(new_data) <- "wkb_geometry"
+    }
+  }
+
   # push the update
   upload_data_and_update_dependencies(
     mnmdb = target_db,
     table_label = table_label,
     data_replacement = new_data,
+    characteristic_columns = characteristic_columns,
     verbose = FALSE,
     ...
   )
@@ -111,7 +141,10 @@ process_db_table_copy <- function(table_idx) {
     new_data <- source_data
   }
 
-  copy_over_single_table(table_label, new_data)
+  copy_over_single_table(
+    table_label,
+    new_data
+  )
 
 }
 
