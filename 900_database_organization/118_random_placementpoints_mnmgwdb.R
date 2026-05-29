@@ -412,9 +412,9 @@ randompoints_locationwise <- function(location_row) {
   }
 
 
-  current_points <- 0
+  n_points_currently <- 0
   limit_count <- 1
-  while ((current_points < n_points) && (limit_count < 8)) {
+  while ((n_points_currently < n_points) && (limit_count < 8)) {
 
     rnd20_points <- generate_random_placement_points(
       one_location,
@@ -424,7 +424,7 @@ randompoints_locationwise <- function(location_row) {
       location_seed = location_seed
     )
 
-    current_points <- nrow(rnd20_points)
+    n_points_currently <- nrow(rnd20_points)
     n_samples <- n_samples * 2 # just get more samples
     limit_count <- limit_count + 1 # but don't go too big
   }
