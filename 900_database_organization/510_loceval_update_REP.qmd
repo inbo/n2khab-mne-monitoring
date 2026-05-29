@@ -251,6 +251,9 @@ loceval_field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
 Here, it would be time to generate the latest FREEZE,
 but only if the `date_fixing` changed in the latest `"metadata"."Versions"`.
 
+TODO: new columns to work into the freeze (need to get set with a correct value)
++ `wait_obsolete_types` (20260521)
+
 ```{r generate_freeze_calendar}
 #| eval: false
 
