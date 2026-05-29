@@ -183,11 +183,42 @@ locations <- locations_all %>%
 #  filter(grts_address %in% c(48897, 1818369))
 #  filter(grts_address %in% c(23238, 23091910, 6314694))
 
-grts_addresses_of_monitoring_cells <- units_cell_polygon %>%
-  st_intersection(vbi_overlaps_sf) %>%
-  mutate(overlapped_cell_area = st_area(.)) %>%
+
+## other monitoring
+# other institutes are monitoring, and we avoid placing installations in their
+# sampling areas.
+# cf. `n2khab-mne-designs/100_design_common/010_revisitplan/R/update_vbi_overlaps.R`
+
+drive_download(
+  as_id("1pYvpC58-GnUvIWW96hWElUq1D5O9YCg9"),
+  path = file.path(tempdir(), "coordinates.tsv")
+)
+drive_download(
+  as_id("1qbpW73audXrDhFtGkYHUhdtrLUIAfbk_"),
+  path = file.path(tempdir(), "coordinates.yml")
+)
+coordinates_monitoring <- git2rdata::read_vc("coordinates", root = tempdir()) %>% as_tibble()
+
+monitoring_areas <-
+  coordinates_monitoring %>%
+  filter(type_coord == "ingemeten coo") %>%
+  filter(vbi_cycle == max(vbi_cycle), .by = plot_id) %>%
+  select(plot_id, x, y) %>%
+  mutate(plot_id = as.integer(plot_id)) %>%
+  st_as_sf(
+    coords = c("x", "y"),
+    remove = FALSE,
+    crs = 31370,
+    agr = "identity"
+  ) %>%
+  st_buffer(18)
+
+
+grts_addresses_of_monitoring_cells <- locations %>%
+  sf::st_buffer(dist = 16, endCapStyle = "SQUARE") %>%
+  st_intersection(monitoring_areas) %>%
   st_drop_geometry() %>%
-  pull(grts_address_final)
+  pull(grts_address)
 
 ## random sampling procedure
 
@@ -293,7 +324,7 @@ generate_random_placement_points <- function(
     outside_monitoring <- outside_mhq[
       sf::st_disjoint(
         outside_mhq,
-        target_area %>% sf::st_intersection(vbi_overlaps_sf),
+        target_area %>% sf::st_intersection(monitoring_areas),
         sparse = FALSE
       )
       , ]
