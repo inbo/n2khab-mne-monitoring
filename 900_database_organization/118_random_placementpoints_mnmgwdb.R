@@ -178,9 +178,16 @@ locations_all <- locations_sf %>%
 
 # TODO: work with a subset for testing
 locations <- locations_all %>%
-  filter(!sf::st_is_empty(wkb_geometry)) # %>%
+  filter(!sf::st_is_empty(wkb_geometry)) #%>%
+#  filter(grts_address %in% c(83694))
 #  filter(grts_address %in% c(48897, 1818369))
 #  filter(grts_address %in% c(23238, 23091910, 6314694))
+
+grts_addresses_of_monitoring_cells <- units_cell_polygon %>%
+  st_intersection(vbi_overlaps_sf) %>%
+  mutate(overlapped_cell_area = st_area(.)) %>%
+  st_drop_geometry() %>%
+  pull(grts_address_final)
 
 ## random sampling procedure
 
@@ -209,7 +216,7 @@ generate_random_placement_points <- function(
         cell_center + make_a_point(16, 16)
       )
     )
-  # mapview(target_area)
+  # mapview::mapview(target_area)
 
   if (is_forest) {
 
@@ -260,10 +267,13 @@ generate_random_placement_points <- function(
     crs = 31370
   )
 
+  # (1) is point inside the target area = 16x16 cell?
   inside_cell <- random_points_sf[
     sf::st_intersects(random_points_sf, target_area, sparse = FALSE),
     ]
 
+  # (2) filter out candidate points which
+  #     fell into the MHQ sampling area
   if (is_forest && isFALSE(is_mhq_samplelocation)) {
     # cell not assessed / not part of MHQ
     outside_mhq <- inside_cell
@@ -273,8 +283,25 @@ generate_random_placement_points <- function(
       sf::st_disjoint(inside_cell, mhq_safety, sparse = FALSE)
       , ]
   }
-  points_in_habitat <- outside_mhq[
-    sf::st_intersects(outside_mhq, cellmap_polygons, sparse = FALSE)
+
+  # (3) likewise exclude other monitoring areas
+  if (isFALSE(
+    one_location$grts_address %in% grts_addresses_of_monitoring_cells
+  )) {
+    outside_monitoring <- outside_mhq
+  } else {
+    outside_monitoring <- outside_mhq[
+      sf::st_disjoint(
+        outside_mhq,
+        target_area %>% sf::st_intersection(vbi_overlaps_sf),
+        sparse = FALSE
+      )
+      , ]
+  }
+
+  # (4) only keep points in areas indicated by cell mapping
+  points_in_habitat <- outside_monitoring[
+    sf::st_intersects(outside_monitoring, cellmap_polygons, sparse = FALSE)
     , ]
   if (nrow(points_in_habitat) > n_points) {
     # the sf[1:n, ] syntax will generate `empty` geometries if n<m
@@ -312,7 +339,8 @@ pb <- txtProgressBar(
   initial = 0, style = 1
 )
 
-# location_row <- 234
+# location_row <- 1 # 234
+# location_row <- which(locations$grts_address == 83694)
 randompoints_locationwise <- function(location_row) {
 
   setTxtProgressBar(pb, location_row)
@@ -375,7 +403,14 @@ randompoints_locationwise <- function(location_row) {
     mutate(r = 0, phi = 0) %>%
     sf::st_as_sf(coords = c("X", "Y"), crs = sf::st_crs(one_location))
 
-  if (is_forest && isFALSE(is_mhq_samplelocation)) {
+  # some more centers may not be used as placement point
+  center_intersects_monitoring <- any(center_representation_point %>%
+    sf::st_intersects(vbi_overlaps_sf, sparse = FALSE))
+
+  if (is_forest &&
+      isFALSE(is_mhq_samplelocation) &&
+      isFALSE(center_intersects_monitoring)
+    ) {
     rnd20_points <- bind_rows(
       center_representation_point,
       rnd20_points %>% filter(!sf::st_is_empty(.))
