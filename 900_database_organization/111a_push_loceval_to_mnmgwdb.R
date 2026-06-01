@@ -166,7 +166,6 @@ locations_lookup <- update_cascade_lookup(
   verbose = TRUE
 )
 
-
 ## join the new, corrected location id to the list of replacements
 existing_again <- mnmgwdb$query_table("Locations") %>%
   select(grts_address_replacement = grts_address, location_id)

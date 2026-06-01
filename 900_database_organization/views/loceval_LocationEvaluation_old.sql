@@ -99,9 +99,6 @@ WHERE TRUE
   )
 ;
 
-
--- https://stackoverflow.com/q/44005446
-
 DROP RULE IF EXISTS LocationEvaluation_upd0 ON "inbound"."LocationEvaluation";
 CREATE RULE LocationEvaluation_upd0 AS
 ON UPDATE TO "inbound"."LocationEvaluation"
@@ -150,8 +147,3 @@ DO ALSO
   accessibility_revisit = NEW.accessibility_revisit
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
-
-
-
-GRANT SELECT ON  "inbound"."LocationEvaluation"  TO viewer_mnmdb;
-GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO user_loceval;

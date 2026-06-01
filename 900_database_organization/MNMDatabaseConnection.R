@@ -922,7 +922,7 @@ mnmdb_assemble_query_functions <- function(db) {
       # currently, we do not use inheritance on spatial tables.
       has_descendants <- 0 < length(db$get_descendant_tables(table_label))
       if (ONLY & has_descendants) message(glue::glue(
-        "WARNING: ONLY flag not available for spatial tables; returning ALL rows of {table_label}."
+        "WARNING: ONLY flag not available for spatial tables; returning ALL rows of #{table_label}."
         )
       )
 
@@ -932,11 +932,12 @@ mnmdb_assemble_query_functions <- function(db) {
           layer = db$get_table_id(table_label),
           geometry_column = "wkb_geometry"
         ) %>%
-        dplyr::select(-ogc_fid)
+        dplyr::select(-ogc_fid) %>%
+        sf::st_as_sf(crs = 31370)
 
       sf::st_geometry(data) <- "wkb_geometry"
 
-      if (!is.scalar.na(subselect)) {
+      if (isFALSE(is.scalar.na(subselect))) {
         data <- data %>%
           dplyr::select(!!!rlang::syms(subselect))
       }
@@ -1138,7 +1139,7 @@ mnmdb_assemble_query_functions <- function(db) {
     # upload_data <- data_replacement
 
     if (isFALSE(db$has_table(table_label))) {
-      stop(glue::glue("There is no table called {table_label}"))
+      stop(glue::glue("There is no table called #{table_label}"))
     }
 
     if ("ogc_fid" %in% names(upload_data)) {

@@ -43,6 +43,8 @@ choose a GRTS
 # filter(grts_address %in% c(1999406, 6417454))
 #
 grts <- c(2742, 18877110) # loceval not passed through to mnmgwdb
+  # c(50120690, 51169266) # delayed push of locevals 20260601
+  # c(83694, 364822, 1519830) #, 70530, 25236354) # in monitoring zones of other institute
   # c(31414) # loceval not possible due to erroneous ofo disapproval
   # c(1126121, 1995222, 29258198) # yet another loceval double registration (the latter two are local replacement)
 # grts <- c(1999406, 6417454) # replacement happened; but location went to archive 7

@@ -41,7 +41,7 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./mnm_database_connection.conf")
 # mirror <- "-testing"
 mirror <- ""
-mirror <- "-staging"
+# mirror <- "-staging"
 
 # connect mnmgwdb
 mnmgwdb_database <- glue::glue("mnmgwdb{mirror}")
