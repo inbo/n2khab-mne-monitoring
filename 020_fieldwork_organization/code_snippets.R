@@ -65,9 +65,26 @@ drive_download(
 )
 load(path)
 
+# Note that loading the RData file also exports a few functions from the REP to
+# the global environment. At the time of writing (26 May 2026), these are:
+#
+# verify_n2khab_data, add_point_coords_grts, filter_grtsraster_by_address,
+# get_level3replacement_cellnrs, convert_level0_to_level3 collapse_strata,
+# add_assessment_data
+#
+# If you want to check again, load the RData file into a separate environment
+# and explore the objects with ls() and is.function().
+#
+# The functions' source can be seen by printing them. The functions are defined
+# in the R/functions.R file from the REP workflow.
+
+
 # Checking the existence of the correct data source files in the correct
 # directories
-versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
+versions_required <- c(
+  versions_required,
+  habitatmap = "habitatmap_2024_v99_interim"
+)
 verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
 
@@ -140,7 +157,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
 stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
   select(-module_combo_code) %>%
-  nest_and_flatten_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = FALSE) %>%
   relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
 
@@ -156,32 +173,6 @@ if (interactive()) {
     glimpse()
 
 }
-
-
-## Inspecting VBI locations that overlap sampling units --------------------------
-
-# vbi_overlaps represents the VBI plot centers that overlap MNE sampling units.
-# For privacy reasons, the full list of VBI locations is not stored publicly.
-
-vbi_overlaps %>%
-  inner_join_121_ed(
-    stratum_schemepstargetpanel_spsamples %>%
-      filter(is_forest) %>%
-      select(
-        stratum,
-        grts_address_final,
-        scheme_ps_targetpanels
-      ),
-    join_by(grts_address == grts_address_final)
-  )
-
-# representing as points object
-vbi_overlaps_sf <-
-  vbi_overlaps %>%
-  st_as_sf(coords = c("x", "y"), crs = 31370)
-
-
-
 
 
 ## Sampling unit geometries --------------------------------------
@@ -205,10 +196,11 @@ flanders_buffer <-
 # pre-load grts-master habitat objects: `grts_mh` and `grts_mh_index`
 load_grts_mh_to_env(environment())
 
-# following function will be adapted to support the latest version of the data
-# source; for now use version habitatsprings_2020v2
 units_7220 <-
-  read_habitatsprings(units_7220 = TRUE) %>%
+  read_habitatsprings(
+    units_7220 = TRUE,
+    version = versions_required["habitatsprings"]
+  ) %>%
   .[flanders_buffer, ] %>%
   mutate(unit_id = as.character(unit_id)) %>%
   # replacing unit_id by the grts_address
@@ -262,7 +254,8 @@ units_cell_polygon <-
   as_tibble() %>%
   # it appears that the CRS is actually retrieved from the tibble, but I don't
   # understand how (so the crs argument below isn't needed)
-  st_as_sf(crs = "EPSG:31370")
+  st_as_sf(crs = "EPSG:31370", agr = "identity") %>%
+  mutate(grts_address_final = as.integer(grts_address_final))
 
 # adding the sampling unit attributes to these polygons, arranged as in
 # stratum_schemepstargetpanel_spsamples. Note that this duplicates cells with
@@ -292,6 +285,54 @@ units_cell_polygon_attrib <-
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(stratum_scheme_ps_targetpanels, grts_address)
+
+
+
+
+
+## Inspecting VBI locations that overlap sampling units --------------------------
+
+# vbi_overlaps represents the center coordinates of VBI plots (circles with
+# radius 18 m) that overlap MNE sampling units. For privacy reasons, the full
+# list of VBI locations is not stored publicly.
+#
+# Below, some further processing is demonstrated.
+
+# joining attributes stratum and scheme_ps_targetpanels to vbi_overlaps:
+vbi_overlaps %>%
+  inner_join_121_ed(
+    stratum_schemepstargetpanel_spsamples %>%
+      select(
+        stratum,
+        grts_address_final,
+        scheme_ps_targetpanels
+      ),
+    join_by(grts_address_overlapped_cell == grts_address_final)
+  )
+
+# some VBI locations may overlap more than one MNE sampling unit:
+vbi_overlaps %>%
+  count(plot_id) %>%
+  filter(n > 1)
+
+# representing the involved VBI locations as polygons object (circles)
+vbi_overlaps_sf <-
+  vbi_overlaps %>%
+  distinct(plot_id, x, y) %>%
+  st_as_sf(
+    coords = c("x", "y"),
+    remove = FALSE,
+    crs = 31370,
+    agr = "identity"
+  ) %>%
+  st_buffer(18)
+
+# calculating the overlapped surface area per MNE sampling unit
+units_cell_polygon %>%
+  st_intersection(vbi_overlaps_sf) %>%
+  mutate(overlapped_cell_area = st_area(.)) %>%
+  st_drop_geometry() %>%
+  rename(grts_address_overlapped_cell = grts_address_final)
 
 
 
@@ -398,8 +439,8 @@ missing_polygons <-
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
 missing_pol_grts <-
-  extract(grts_mh, missing_polygons, small = FALSE) %>%
-  as_tibble() %>%
+  terra::extract(grts_mh, missing_polygons, small = FALSE) %>%
+  dplyr::as_tibble() %>%
   inner_join_12m_e(
     tibble(
       ID = seq_len(nrow(missing_polygons)),
@@ -409,7 +450,7 @@ missing_pol_grts <-
     join_by(ID)
   ) %>%
   select(-ID, grts_address = GRTSmaster_habitats) %>%
-  # filtering is needed since all polygons are listed by extract():
+  # filtering is needed since all polygons are listed by terra::extract():
   filter(!is.na(grts_address))
 
 # Finally, joining the stratum from the sampling-units-that-missed-their-polygon
@@ -832,24 +873,24 @@ fag_fa_stratum_grts_calendar <-
 # during which the auxiliary FAG (in the scheduled time interval) is still
 # relevant to subsequent FAGs in that scheme.
 
-cal_0.14.0_continuation
+cal_old_continuation
 
-# cal_0.14.0_continuation is a subset of fag_stratum_grts_calendar (without
+# cal_old_continuation is a subset of fag_stratum_grts_calendar (without
 # assessment columns) that represents GWSHALL* and READDIVER FAG occasions in
-# 2026 and 2027 from rep_0.14.0, that are retained in newer FAG calendar
+# 2026 and 2027 from older REP versions, that are retained in newer FAG calendar
 # versions regardless of the fact that those FAG occasions are no part of the
-# new revisit design. So they are supplementary. Their timing will be kept
-# fixed; however units may still be dropped as they disappear from later
-# versions of the new FAG calendar.
+# new revisit design or even the spatial sample. So they are supplementary.
+# Their timing will be kept fixed; however units may still be dropped in future
+# revisit cycles as they disappear from later versions of the new FAG calendar.
 
-# cal_0.14.0_continuation is the only object that defines a second targetpanel
+# cal_old_continuation is the only object that defines a second targetpanel
 # specifically for those FAG occasions; the format is OLDPANELxx (xx being the
 # number). These locations are at the same time part of a regular 'PANELyy',
 # which is not linked to specific FAG occasions, hence not part of the new
 # revisit design: it is just a location attribute. The regular targetpanels are
 # dynamic, i.e. their units can change, while this is not relevant for the FAG
-# occasions of cal_0.14.0, which got the frozen revisit pattern of the panels at
-# the time, which we now call OLDPANELxx.
+# occasions of cal_old_continuation, which got the frozen revisit pattern of the
+# panels at the time, which we now call OLDPANELxx.
 
 # Link between field activities and their protocol
 fa_protocol <-
@@ -911,12 +952,16 @@ scheme_moco_fa_fieldvar <-
 # and include some of the location attributes.
 #
 # Note that the scheme_ps_targetpanels attribute created below by
-# nest_and_flatten_scheme_ps_targetpanel() is a shrinked version of the one at
-# the level of the whole sample (see sampling unit attributes in the beginning),
-# since we limited the activities to those planned before main_year + 1
-# (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
+# nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked version of
+# the one at the level of the whole sample (see sampling unit attributes in the
+# beginning), since we limited the activities to those planned before main_year
+# + 1 (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
 # location attribute. So it says specifically which schemes x panel sets x
 # targetpanels are served by the specific fieldwork at a specific date interval.
+# Note that we substitute the targetpanel with the OLD targetpanel if the
+# targetpanel is missing, i.e. for sampling units missing from the current FAG
+# calendar. This is done to avoid missing values in derived objects or
+# overviews.
 main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
@@ -933,7 +978,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
   unnest_and_join_sampling_unit_attributes() %>%
-  nest_and_flatten_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) %>%
   relocate(
     scheme_ps_targetpanels,
     schemes_served_all,
@@ -984,6 +1029,7 @@ fieldwork_shortterm_prioritization_by_stratum <-
     wait_7220,
     wait_floating,
     wait_mhq,
+    wait_obsolete_types,
     wait_any,
     stratum,
     grts_address,
@@ -1078,7 +1124,7 @@ orthophoto_shortterm_type_grts <-
     str_detect(grts_join_method, "cell")
   ) %>%
   convert_stratum_to_type() %>%
-  select(-rank, -scheme_ps_oldtargetpanel) %>%
+  select(-rank, -scheme_ps_oldtargetpanels) %>%
   arrange(
     priority,
     type,
@@ -1129,7 +1175,7 @@ different_checksums <-
 if (nrow(different_checksums) > 0) {
   warning(
     "Different checksums detected than expected.",
-    "\nPlease inspect the object `different_checksums, shown below`."
+    "\nPlease inspect the object `different_checksums`, shown below."
   )
   different_checksums %>%
     knitr::kable()
