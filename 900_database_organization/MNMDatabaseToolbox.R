@@ -472,6 +472,13 @@ upload_data_and_update_dependencies <- function(
 
   # mnmdb <- mnmgwdb
   # data_replacement <- new_data
+  if (FALSE) {
+    ### DEBUG
+    print(mnmdb$shellstring)
+    print(table_label)
+    print(characteristic_columns)
+    data_replacement %>% head(3) %>% knitr::kable()
+  }
 
   stopifnot("dplyr" = requireNamespace("dplyr"))
   stopifnot("DBI" = requireNamespace("DBI"))
@@ -631,6 +638,18 @@ upload_data_and_update_dependencies <- function(
   # cols <- characteristic_columns
   # new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
   # old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+  # message("--------------------")
+  # message(mnmdb$shellstring)
+  # message(skip_sequence_reset)
+  # message(table_label)
+  # message(characteristic_columns)
+  # message(cols_to_query)
+  # message(old_data %>% head(3) %>% knitr::kable())
+  # message(nrow(old_data))
+  # message(new_redownload %>% head(3) %>% knitr::kable())
+
+  if (nrow(old_data) > 0) {
+
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,
@@ -639,6 +658,13 @@ upload_data_and_update_dependencies <- function(
       suffix = c("_old", ""),
       unmatched = "drop"
     )
+
+  } else {
+    pk_lookup <- old_data %>%
+      select(
+        tidyselect::any_of(unique(c(characteristic_columns, cols_to_query)))
+      )
+  }
 
   # if (FALSE) {
   #   # TODO return here to inspect the repercussions of previous errors
@@ -663,7 +689,7 @@ upload_data_and_update_dependencies <- function(
 
 
   ## save non-recovered rows
-  if (length(pk) > 0) {
+  if ((length(pk) > 0) && (nrow(old_data) > 0)) {
     not_found <- pk_lookup %>%
       select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>%
       filter(if_any(everything(), ~ is.na(.x)))

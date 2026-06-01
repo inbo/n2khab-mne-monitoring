@@ -920,11 +920,12 @@ mnmdb_assemble_query_functions <- function(db) {
           db$connection,
           layer = db$get_table_id(table_label)
         ) %>%
-        dplyr::select(-ogc_fid)
+        dplyr::select(-ogc_fid) %>%
+        sf::st_as_sf(crs = 31370)
 
       sf::st_geometry(data) <- "wkb_geometry"
 
-      if (!is.scalar.na(subselect)) {
+      if (isFALSE(is.scalar.na(subselect))) {
         data <- data %>%
           dplyr::select(!!!rlang::syms(subselect))
       }

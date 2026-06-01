@@ -75,11 +75,7 @@ copy_over_single_table <- function(table_label, new_data, ...) {
   # parametrization of the `upload_data_and_update_dependencies` functions
   # just to make the loop code below look a little less convoluted.
 
-  if (table_label == "LocationCells") {
-    message("skipping LocationCells for some crs mismatch bug.")
-    return(invisible(NULL))
-  }
-
+  ## infer characteristic columns
   characteristic_columns <- target_db$get_characteristic_columns(table_label)
 
   if (is.scalar.na(characteristic_columns)) {
@@ -93,15 +89,15 @@ copy_over_single_table <- function(table_label, new_data, ...) {
     # characteristic_columns <- c(pk)
     characteristic_columns <-
       target_db$load_table_info(table_label) %>%
-        pull(column)
-    print(characteristic_columns)
+      pull(column)
+    # print(characteristic_columns)
+  }
 
-    if (target_db$is_spatial(table_label)) {
-      new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+  if (target_db$is_spatial(table_label)) {
+    new_data <- new_data %>% sf::st_as_sf(crs = 31370)
 
-      sf::st_crs(new_data) <- 31370
-      sf::st_geometry(new_data) <- "wkb_geometry"
-    }
+    # sf::st_crs(new_data) <- 31370
+    sf::st_geometry(new_data) <- "wkb_geometry"
   }
 
   # push the update
@@ -110,11 +106,11 @@ copy_over_single_table <- function(table_label, new_data, ...) {
     table_label = table_label,
     data_replacement = new_data,
     characteristic_columns = characteristic_columns,
-    verbose = FALSE,
+    verbose = TRUE,
     ...
   )
 
-}
+} # /copy_over_single_table
 
 table_list_file <- file.path(glue::glue("{source_db$folder}/TABLES.csv"))
 table_list <- read.csv(table_list_file)
@@ -124,7 +120,6 @@ process_db_table_copy <- function(table_idx) {
   table_label <- table_list[[table_idx, "table"]]
   # table_label <- "ReplacementCells"
 
-  # print(table_list[[table_idx, "excluded"]])
   table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
   if (table_exclusion) return()
 
@@ -144,9 +139,10 @@ process_db_table_copy <- function(table_idx) {
   copy_over_single_table(
     table_label,
     new_data
+    #, skip_sequence_reset = TRUE
   )
 
-}
+} # /process_db_table_copy
 
 #_______________________________________________________________________________
 # Finally, COPY ALL DATA
