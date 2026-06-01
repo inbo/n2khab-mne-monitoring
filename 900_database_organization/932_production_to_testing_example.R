@@ -31,7 +31,7 @@ dplyr::glimpse(source_data)
 new_data <- source_data
 
 sort_protocols <- function(prt) {
-  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol))
+  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code))
   return(prt)
 }
 new_data <- sort_protocols(new_data)

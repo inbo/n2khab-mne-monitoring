@@ -93,12 +93,21 @@ copy_over_single_table <- function(table_label, new_data, ...) {
     # print(characteristic_columns)
   }
 
-  if (target_db$is_spatial(table_label)) {
-    new_data <- new_data %>% sf::st_as_sf(crs = 31370)
-
-    # sf::st_crs(new_data) <- 31370
-    sf::st_geometry(new_data) <- "wkb_geometry"
+  # fix characteristic columns of `ReplacementArchives`
+  if (table_label == "ReplacementArchives") {
+    characteristic_columns <- c(
+      characteristic_columns,
+      "version_id"
+    )
   }
+
+  # # fix crs of table
+  # if (target_db$is_spatial(table_label)) {
+  #   new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+  #   # sf::st_crs(new_data) <- 31370
+  #   sf::st_geometry(new_data) <- "wkb_geometry"
+  # }
 
   # push the update
   upload_data_and_update_dependencies(
@@ -106,7 +115,7 @@ copy_over_single_table <- function(table_label, new_data, ...) {
     table_label = table_label,
     data_replacement = new_data,
     characteristic_columns = characteristic_columns,
-    verbose = TRUE,
+    verbose = FALSE,
     ...
   )
 

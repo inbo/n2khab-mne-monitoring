@@ -214,7 +214,7 @@ In the example case, we will just sort the protocols.
 new_data <- source_data
 
 sort_protocols <- function(prt) {
-  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol))
+  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code))
   return(prt)
 }
 new_data <- sort_protocols(new_data)
@@ -391,12 +391,21 @@ copy_over_single_table <- function(table_label, new_data, ...) {
     # print(characteristic_columns)
   }
 
-  if (target_db$is_spatial(table_label)) {
-    new_data <- new_data %>% sf::st_as_sf(crs = 31370)
-
-    # sf::st_crs(new_data) <- 31370
-    sf::st_geometry(new_data) <- "wkb_geometry"
+  # fix characteristic columns of `ReplacementArchives`
+  if (table_label == "ReplacementArchives") {
+    characteristic_columns <- c(
+      characteristic_columns,
+      "version_id"
+    )
   }
+
+  # # fix crs of table
+  # if (target_db$is_spatial(table_label)) {
+  #   new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+  #   # sf::st_crs(new_data) <- 31370
+  #   sf::st_geometry(new_data) <- "wkb_geometry"
+  # }
 
   # push the update
   upload_data_and_update_dependencies(
