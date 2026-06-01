@@ -42,7 +42,9 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 #
-grts <- c(31414) # loceval not possible due to erroneous ofo disapproval
+grts <- c(50120690, 51169266)
+  # c(83694, 364822, 1519830) #, 70530, 25236354) # in monitoring zones of other institute
+  # c(31414) # loceval not possible due to erroneous ofo disapproval
   # c(1126121, 1995222, 29258198) # yet another loceval double registration (the latter two are local replacement)
 # grts <- c(1999406, 6417454) # replacement happened; but location went to archive 7
     # c(6110, 1118141,   18986217,  9366, 12592278) # accidental retrospective fill-in of a frozen location 

@@ -12,7 +12,7 @@ SELECT
   SLOC.in_mhq_samples,
   SLOC.has_mhq_assessment,
   SLOC.is_replacement,
-  REP.grts_address_poc,
+  REP.grts_address_rep,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
@@ -128,7 +128,7 @@ LEFT JOIN (
 LEFT JOIN (
   SELECT DISTINCT
     type,
-    grts_address AS grts_address_poc,
+    grts_address AS grts_address_rep,
     grts_address_replacement AS grts_address
   FROM "archive"."ReplacementData"
   GROUP BY type, grts_address, grts_address_replacement

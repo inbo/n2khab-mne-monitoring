@@ -29,15 +29,6 @@ mnmdb <- connect_mnm_database(
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 message(mnmdb$shellstring)
 
-### connect to databases
-loceval_connection <- connect_mnm_database(
-  config_filepath = config_filepath,
-  database = "loceval",
-  user = "monkey",
-  password = NA
-)
-# message(loceval_connection$shellstring)
-
 
 ### info from REP
 if (TRUE) {
@@ -168,6 +159,7 @@ generate_mhq_polygon <- function(
   if (is_forest && isFALSE(is_mhq_samplelocation)) {
     return(NA)
   } else {
+    # mapview::mapview(sf::st_as_sf(mhq_safety, crs = 31370))
     return(sf::st_as_sf(mhq_safety, crs = 31370))
   }
 
