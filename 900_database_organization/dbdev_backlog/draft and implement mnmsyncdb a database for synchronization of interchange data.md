@@ -105,6 +105,7 @@ Special foor #FreeFieldNotes, `log_` columns are used for identification (and sh
 + update updated notes based on `log_update`:
 	+ any database can change any note, but only the latest change is kept
 + distribute latest data to user databases
++ [[users/REVOKE - GRANT sync change prevention for FreeFieldNotes]]
 
 # Implications
 + check [[LocationInfos from other schemes require double execution of REP update scripts]]

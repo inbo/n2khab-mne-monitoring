@@ -58,6 +58,71 @@ for (sdb in sourcedb_labels) {
 }
 
 
+## Permission Safety --------------------------------------------------------------
+# to avoid parallel work during the update procedure,
+# permissions are temporarily revoked, and restored afterwards.
+#    \dp "inbound"."FreeFieldNotes"
+
+# store user roles with write access
+writeaccess_userroles <- list(
+  "mnmgwdb" = "user_gwdb",
+  "mnmsurfdb" = "user_surfdb",
+  "loceval" = "user_loceval"
+)
+
+# Batch REVOKE or GRANT all permissions on FreeFieldNotes on all databases
+batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
+
+  # check input: either REVOKE, or GRANT
+  verb <- match.arg(verb)
+
+  # loop databases
+  for (sdb in sourcedb_labels) {
+
+    mnmdb <- sourcedb_connections[[sdb]]
+    role <- writeaccess_userroles[[sdb]]
+    table_namestring <- mnmdb$get_namestring("FreeFieldNotes")
+
+    # extra syntactical spice
+    preposition <- dplyr::case_when(
+      verb == "REVOKE" ~ "FROM",
+      verb == "GRANT" ~ "TO"
+    )
+
+    # loop critical actions
+    for (action in c("INSERT", "UPDATE", "DELETE")) {
+
+      # stitch the query
+      permission_query <- glue::glue(
+        "{verb} {action} ON {table_namestring} {preposition} {role};"
+      )
+
+      # execute the query
+      mnmdb$execute_sql(permission_query, verbose = FALSE)
+    } # /loop actions
+
+  } # /loop databases
+
+  message(glue::glue("[!!!] {verb}'d all access from FreeFieldNotes."))
+
+
+  # finalize
+  if (verb == "REVOKE") {
+    ## ensure that permissions are restored if the script fails.
+    # does this count as a special type of recursion? ;)
+    reg.finalizer(
+      .GlobalEnv,
+      function(e) batch_manage_ffn_write_permissions("GRANT"),
+      onexit = TRUE
+    )
+  }
+
+} # /manage_write_permissions
+
+batch_manage_ffn_write_permissions("REVOKE")
+
+
+
 ## FreeFieldNotes --------------------------------------------------------------
 
 characteristic_columns <- c(
@@ -448,6 +513,8 @@ for (sdb in sourcedb_labels) {
   distribute_fieldnote_updates_to_sources(sdb)
 }
 
+# restore permissions
+batch_manage_ffn_write_permissions("GRANT")
 
 # TODO TODOs:
 # - update / reset table primary keys
