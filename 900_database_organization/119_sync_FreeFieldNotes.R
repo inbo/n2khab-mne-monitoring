@@ -89,7 +89,7 @@ round_creation_date <- function(tbl) {
   # With `round_date`, the same issue happens if `log_creation == 0.4999`, but I
   # find this less likely.
   tbl %>%
-    mutate(log_creation = lubridate::round_date(log_creation, "seconds")) %>%
+    mutate(log_creation = lubridate::round_date(log_creation, "milliseconds")) %>%
     return()
 }
 
@@ -98,7 +98,7 @@ query_freefieldnotes <- function(db) {
   db$query_table("FreeFieldNotes") %>%
     dplyr::arrange(log_creation, log_creator) %>%
     ensure_nonna_crs() %>%
-    round_creation_date() %>%
+    # round_creation_date() %>% # OBSOLETE: rounded (truncated) on server side
     return()
 }
 

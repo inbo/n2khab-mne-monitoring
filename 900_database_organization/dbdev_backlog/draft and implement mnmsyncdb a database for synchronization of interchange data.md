@@ -95,3 +95,6 @@ LoJos serve a "double check" function; already now I see that there were [[LoJo 
 
 ## FreeFieldNotes
 (these are not immediately urgent; `log_` columns should work well; but I will replace the current python script.)
+
++ flow chart to make sure I miss no cases
++ [[applied date rounding to FreeFieldNotes log_creation on ALL servers and mirrors]]
