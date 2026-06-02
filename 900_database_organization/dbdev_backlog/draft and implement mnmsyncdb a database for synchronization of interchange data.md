@@ -97,4 +97,9 @@ LoJos serve a "double check" function; already now I see that there were [[LoJo 
 (these are not immediately urgent; `log_` columns should work well; but I will replace the current python script.)
 
 + flow chart to make sure I miss no cases
-+ [[applied date rounding to FreeFieldNotes log_creation on ALL servers and mirrors]]
++ implement removal of deleted notes - will only delete if the origin db deletes it
++ [[datatypes/applied date rounding to FreeFieldNotes log_creation on ALL servers and mirrors]]
+
+
+# Implications
++ check [[LocationInfos from other schemes require double execution of REP update scripts]]

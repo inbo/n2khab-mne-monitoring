@@ -224,7 +224,7 @@ remove_archived_fieldnotes_from_inputdbs <- function(finos_to_remove) {
     ## execute - DELETE!
     mnmdb$execute_sql(deletion_string, verbose = TRUE)
   }
-}
+} # /remove_archived_fieldnotes_from_inputdbs
 
 
 # Sync Procedure, per database
@@ -281,7 +281,7 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
       freefieldnotes_userdb,
       by = dplyr::join_by(!!!rlang::syms(characteristic_columns))
     ) %>%
-    select(!!!rlang::syms(characteristic_columns)) %>%
+    dplyr::select(!!!rlang::syms(characteristic_columns)) %>%
     dplyr::mutate(archive_date = date_today)
   # IMPORTANT: these removals must be reflected in
   #            all the other sdb's (see below)

@@ -4,10 +4,11 @@ tags:
   - FreeFieldNotes
   - log_creation
   - timestamps
-started:
-finished:
+started: 2026-06-02
+finished: 2026-06-02
 execution:
-status: false
+  - FM
+status: true
 ---
 
 in the context of [[draft and implement mnmsyncdb a database for synchronization of interchange data|draft mnmsyncdb]]
@@ -24,5 +25,21 @@ FROM (
   SELECT fieldnote_id, DATE_TRUNC('millisecond', log_creation) AS log_creation
   FROM "inbound"."FreeFieldNotes" 
 ) AS SRCTAB WHERE SRCTAB.fieldnote_id = TRGTAB.fieldnote_id
+;
+```
+
+However, I forgot to alter the data type on the first round.
+```sql
+ALTER TABLE "inbound"."FreeFieldNotes"
+ALTER COLUMN log_creation
+TYPE timestamp(3) USING (DATE_TRUNC('millisecond', log_creation));
+```
+
+For double-checking:
+```sql
+SELECT fieldnote_id, log_creation, EXTRACT(milliseconds FROM log_creation) 
+FROM "inbound"."FreeFieldNotes" 
+WHERE fieldnote_id < 10 
+ORDER BY fieldnote_id ASC
 ;
 ```

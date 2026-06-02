@@ -17,6 +17,8 @@ tags:
 | **log_creation** | *(technical)* timestamp of creation                                       |
 | log_user         | *(technical)* user who modified the entry                                 |
 | log_update       | *(technical)* timestamp of last modification                              |
+| log_origindb #mnmsyncdb  | *(technical)* database which submitted the entry (loceval/mnmgwdb/...)    |
+| archive_date #mnmsyncdb  | the day (YYYYMMDD) when this note was removed                     |
 | hide             | used to hide completed notes                                              |
 | teammember_id    | link to the user who performed the visit                                  |
 | field_note       | description of the issue                                                  |
@@ -33,20 +35,21 @@ One way to interpret the *free* nature of these notes is that they are not coupl
 Notes can be set at any point on the map.
 This also means that the table **does not contain [[glossary/characteristic columns|characteristic columns]] *sensu stricto***. 
 We use `characteristic_columns <- c("log_creator", "log_creation")` to work around this[^1]. 
-These are tied to the sql [[server/users|user]] who created it, and the creation timestamp (rounded to seconds) is what uniquely defines a note.
-Rounding was necessary because `join`s would fail due to finite numeric accuracy.
+These are tied to the SQL [[server/users|user]] who created it, and the creation timestamp (in milliseconds) is what uniquely defines a note.
 
 [^1]: Although the place of a note might qualify as an identifier, our data model allows for moving of notes, and thus `wkb_geometry` is not considered characteristic of `FreeFieldNotes`.
 
 The user can enter and edit most of the fields; photo and audio media entry is encouraged (as in: "free to store what you want") to simplify information capture.
 
-
-## Syncronization
+## Synchronization
 
 This table is shared across databases, but has to be synchronized to make sure notes spread to all colleagues.
-The script in charge is `119_sync_FreeFieldNotes.R` (historically, there was a Python script with the same name).
+The script in charge is `119_sync_FreeFieldNotes.R` (historically, there was a Python script with the same name, with much less thorough comparisons).
 
 All input databases sync against #mnmsyncdb, and changes are distributed.
 Handling the `fieldnote_id` is particularly tricky, and care must be taken that all indices/sequences are adjusted upon sync.
+The `log_update` field is crucial to determine which database carries the most recent changes.
+Field notes can be deleted, but only if the deletion happens on their original database (stored as `log_origindb` on #mnmsyncdb).
+Those notes will remain in the synchronization database, but with an `archive_date` flag.
 
 Sharing of photos happens like with regular [[procedures/photo sharing and distribution|photos]]; sharing of audio recordings will work analogously but has not occurred yet.

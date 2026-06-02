@@ -1,7 +1,7 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 fieldnote_id,int,True,,True,True,,,,note index
 log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
-log_creation,timestamp,True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
+log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp,True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
 hide,boolean,True,0,False,False,,,,used to hide completed notes
