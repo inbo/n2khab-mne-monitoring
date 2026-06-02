@@ -22,13 +22,13 @@ date_today <- as.integer(format(Sys.time(), "%Y%m%d"))
 config_filepath <- file.path("./mnm_database_connection.conf")
 
 
-# commandline_args <- commandArgs(trailingOnly = TRUE)
-# if (length(commandline_args) > 0) {
-#   suffix <- commandline_args[1]
-# } else {
-#   suffix <- ""
-#   # suffix <- "-staging" # "-testing"
-# }
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  suffix <- commandline_args[1]
+} else {
+  suffix <- ""
+  # suffix <- "-staging" # "-testing"
+}
 suffix <- "-staging"
 
 
@@ -42,7 +42,7 @@ mnmsyncdb <- connect_mnm_database(
 )
 
 message(glue::glue("connected: psql {mnmsyncdb$shellstring}"))
-syncdb_update_cascade_lookup <- parametrize_cascaded_update(mnmsyncdb)
+# syncdb_update_cascade_lookup <- parametrize_cascaded_update(mnmsyncdb)
 
 
 ## connect source databases
@@ -90,7 +90,7 @@ batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
     )
 
     # loop critical actions
-    for (action in c("INSERT", "UPDATE", "DELETE")) {
+    for (action in c("SELECT", "INSERT", "UPDATE", "DELETE")) {
 
       # stitch the query
       permission_query <- glue::glue(
@@ -103,7 +103,7 @@ batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
 
   } # /loop databases
 
-  message(glue::glue("[!!!] {verb}'d all access from FreeFieldNotes."))
+  message(glue::glue("[!!!] {verb}'d all access from FreeFieldNotes on {suffix}."))
 
 
   # finalize
@@ -117,6 +117,7 @@ batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
     )
   }
 
+  return(invisible(NULL))
 } # /manage_write_permissions
 
 batch_manage_ffn_write_permissions("REVOKE")
@@ -178,13 +179,21 @@ upload_new_fieldnotes_append <- function(db, fieldnotes_to_upload) {
     verbose = FALSE
   )
 
-  append_tabledata(
-    db$connection,
-    table_id = db$get_table_id("FreeFieldNotes"),
-    data_to_append = fieldnotes_to_upload %>%
-    sf::st_as_sf(crs = 31370),
-    characteristic_columns = characteristic_columns,
-    verbose = TRUE
+#  append_tabledata(
+#    db$connection,
+#    table_id = db$get_table_id("FreeFieldNotes"),
+#    data_to_append = fieldnotes_to_upload %>%
+#    sf::st_as_sf(crs = 31370),
+#    characteristic_columns = characteristic_columns,
+#    verbose = TRUE
+
+  # the clumsy way: direct insert
+  upload_sf <- fieldnotes_to_upload %>% sf::st_as_sf(crs = 31370)
+  sf::st_geometry(upload_sf) <- "wkb_geometry"
+
+  db$insert_data(
+    table_label = "FreeFieldNotes",
+    upload_data = upload_sf
   )
 
 } # /upload_new_fieldnotes_append
@@ -212,26 +221,42 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
   # updated columns
   update_columns <- names(updated_fieldnotes)
   update_columns <- update_columns[!(update_columns %in% characteristic_columns)]
-  ucolumnames <- unlist(lapply(
+  ucolumnamed <- unlist(lapply(
     update_columns,
     FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
   ))
 
 
   # create temp table
-  DBI::dbWriteTable(
-    db$connection,
-    name = srctab,
-    value = updated_fieldnotes,
-    overwrite = TRUE,
-    temporary = TRUE
-  )
+  if ("wkb_geometry" %in% update_columns) {
+    # well-known-binary solution
+    rs <- sf::st_write(
+      updated_fieldnotes,
+      db$connection,
+      srctab,
+      row.names = FALSE,
+      delete_layer = TRUE, # "overwrite"
+      factorsAsCharacter = TRUE,
+      binary = TRUE,
+      temporary = TRUE
+    )
+  } else {
+    # general solution
+    DBI::dbWriteTable(
+      db$connection,
+      name = srctab,
+      value = updated_fieldnotes,
+      overwrite = TRUE,
+      temporary = TRUE
+    )
+  }
+
 
   # concat update query
   update_string <- glue::glue("
     UPDATE {trgtab} AS TRGTAB
       SET
-       {paste0(ucolumnames, collapse = ', ')}
+       {paste0(ucolumnamed, collapse = ', ')}
       FROM {srctab} AS SRCTAB
       WHERE
        ({paste0(lookup_criteria, collapse = ') AND (')})
@@ -322,6 +347,8 @@ characteristic_join_ffn <- function(
 
 } # /characteristic_join_ffn
 
+
+
 ### Sync Procedure, per database
 
 # Step 1: user input assembled in syncdb
@@ -354,14 +381,15 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
       join_function = dplyr::anti_join
     ) %>%
     dplyr::select(-fieldnote_id) %>%
-    dplyr::mutate(log_origindb = sdb) %>%
-    head(10) # TODO remove testing limit
+    dplyr::mutate(log_origindb = sdb)
 
   # ==> upload novel notes
-  upload_new_fieldnotes_append(
-    mnmsyncdb,
-    novel_fieldnotes
-  )
+  if (nrow(novel_fieldnotes) > 0) {
+    upload_new_fieldnotes_append(
+      mnmsyncdb,
+      novel_fieldnotes
+    )
+  }
 
 
   ### (2) find deleted fieldnotes
@@ -381,14 +409,6 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
     dplyr::mutate(archive_date = date_today)
   # IMPORTANT: these removals must be reflected in
   #            all the other sdb's (see below)
-
-  if (FALSE) {
-    # guerilla testing
-    removed_fieldnotes <- novel_fieldnotes %>%
-      head(3) %>%
-      dplyr::select(!!!rlang::syms(characteristic_columns)) %>%
-      dplyr::mutate(archive_date = date_today)
-  }
 
   ## handle deleted fieldnotes
   if (nrow(removed_fieldnotes) > 0) {
@@ -521,7 +541,6 @@ batch_manage_ffn_write_permissions("GRANT")
 #   - also make sure that `ogc_id` (and related seq's) are MAXed!
 #   - e.g. by checking that the geometry updates
 # - test on `-dev` with actual fieldnote changes
-# - REVOKE before, GRANT after updates to avoid simultaneous writing
 
 # NOTE:
 # The approach above has limited coverage of simultaneous changes.

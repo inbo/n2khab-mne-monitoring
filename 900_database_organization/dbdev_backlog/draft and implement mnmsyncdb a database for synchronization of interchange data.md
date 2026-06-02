@@ -106,6 +106,8 @@ Special foor #FreeFieldNotes, `log_` columns are used for identification (and sh
 	+ any database can change any note, but only the latest change is kept
 + distribute latest data to user databases
 + [[users/REVOKE - GRANT sync change prevention for FreeFieldNotes]]
++ general testing on `staging` with a special import to qgis
+	+ temptable update of spatial table!
 
 # Implications
 + check [[LocationInfos from other schemes require double execution of REP update scripts]]
