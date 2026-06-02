@@ -50,9 +50,7 @@ sourcedb_connections <- list()
 for (sdb in sourcedb_labels) {
   sourcedb_connections[[sdb]] <- connect_mnm_database(
     config_filepath = config_filepath,
-    database = glue::glue("{sdb}{suffix}"),
-    user = "monkey",
-    password = NA
+    database = glue::glue("{sdb}{suffix}")
   )
 
 }
@@ -107,6 +105,13 @@ query_freefieldnotes <- function(db) {
 # simply appending them to the existing data
 upload_new_fieldnotes_append <- function(db, fieldnotes_to_upload) {
 
+  db$set_sequence_key(
+    "FreeFieldNotes",
+    new_key_value = "max",
+    sequence_label = "inbound.seq_fieldnote_id",
+    verbose = FALSE
+  )
+
   append_tabledata(
     db$connection,
     table_id = db$get_table_id("FreeFieldNotes"),
@@ -116,7 +121,7 @@ upload_new_fieldnotes_append <- function(db, fieldnotes_to_upload) {
     verbose = TRUE
   )
 
-}
+} # /upload_new_fieldnotes_append
 
 # update all fields in the FreeFieldNotes,
 #     looking them up via characteristic columns
@@ -182,10 +187,14 @@ remove_archived_fieldnotes_from_inputdbs <- function(finos_to_remove) {
 
   table_label <- "FreeFieldNotes"
 
+  # ensure that the filtering is not skipped due to empty dataframe
+  if (nrow(finos_to_remove) == 0) return(invisible(NULL))
+
   ### prepare deletion filter sting
   fino2rem <- finos_to_remove %>%
     select(!!!rlang::syms(characteristic_columns))
 
+  # prepend name of column (SQL conditionals)
   for (charcol in characteristic_columns) {
     fino2rem[, charcol] <- lapply(
       fino2rem[, charcol],
@@ -197,13 +206,14 @@ remove_archived_fieldnotes_from_inputdbs <- function(finos_to_remove) {
   } # TODO this only covers varchar/date/"'" columns
   # fino2rem %>% glimpse
 
+  # combine columns
   fino2rem <- fino2rem %>%
     tidyr::unite(
-      filter_all,
+      all_filters_concatenated,
       tidyselect::all_of(characteristic_columns),
       sep = ") AND ("
     ) %>%
-    pull(filter_all)
+    pull(all_filters_concatenated)
 
 
   ### loop databases and delete
@@ -242,6 +252,7 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
 
   # query source: user input from databases
   freefieldnotes_userdb <- query_freefieldnotes(mnmdb) %>%
+    arrange(log_creation, log_update, fieldnote_id) %>%
     dplyr::mutate(
       archive_date = NA
     ) %>%
@@ -261,6 +272,7 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
       freefieldnotes_statusquo,
       by = dplyr::join_by(!!!rlang::syms(characteristic_columns))
     ) %>%
+    dplyr::select(-fieldnote_id) %>%
     dplyr::mutate(log_origindb = sdb) %>%
     head(10) # TODO remove testing limit
 
@@ -276,7 +288,10 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
   #     -> only the source db can remove fieldnotes
   #     flagging an archive date to freefieldnotes on SYNCDB
   removed_fieldnotes <- freefieldnotes_statusquo %>%
-    filter(log_origindb == sdb) %>%
+    filter(
+      log_origindb == sdb,
+      is.na(archive_date)
+    ) %>%
     dplyr::anti_join(
       freefieldnotes_userdb,
       by = dplyr::join_by(!!!rlang::syms(characteristic_columns))
@@ -286,6 +301,14 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
   # IMPORTANT: these removals must be reflected in
   #            all the other sdb's (see below)
 
+  if (FALSE) {
+    # guerilla testing
+    removed_fieldnotes <- novel_fieldnotes %>%
+      head(3) %>%
+      dplyr::select(!!!rlang::syms(characteristic_columns)) %>%
+      dplyr::mutate(archive_date = date_today)
+  }
+
   ## handle deleted fieldnotes
   if (nrow(removed_fieldnotes) > 0) {
 
@@ -293,7 +316,17 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
     output_filename <- file.path(".", "logs", glue::glue(
         "{format(Sys.time(), '%Y%m%d%H%M')}_deleted_freefieldnotes_{sdb}.csv"
       ))
-    readr::write_csv2(removed_fieldnotes, output_filename)
+    message(glue::glue("
+    [!!!] N={nrow(removed_fieldnotes)} notes REMOVED from {sdb};
+      \tbackup dumped to {output_filename}.
+    "))
+
+    freefieldnotes_statusquo %>%
+      dplyr::semi_join(
+        removed_fieldnotes,
+        by = dplyr::join_by(!!!rlang::syms(characteristic_columns))
+      ) %>%
+      readr::write_csv2(output_filename)
 
     # ==> flag removed notes (by update)
     update_fields_in_fieldnotes(mnmsyncdb, removed_fieldnotes)
@@ -305,10 +338,6 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
 
   ### (3) update changed fieldnotes (bi-directional)
   #     by slicing the latest log_update
-
-  freefieldnotes_userdb %>%
-    count(log_creation) %>%
-    filter(n>1)
 
   finos_timestamp_comparison <- existing_fieldnotes_userdb %>%
     dplyr::inner_join(

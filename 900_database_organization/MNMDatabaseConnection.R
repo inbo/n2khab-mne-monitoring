@@ -1109,9 +1109,12 @@ mnmdb_assemble_query_functions <- function(db) {
 
     } else if (new_key_value == "max") {
       # set to current max value in the database
-      nextval <- db$get_sequence_last_value(sequence_label)
-      max_pk <- db$pull_column(table_label, pk, ONLY = FALSE) %>% max
-      new_key_value <- max(c(nextval, max_pk))
+      new_key_value <- db$get_sequence_last_value(sequence_label)
+
+      current_pk <- db$pull_column(table_label, pk, ONLY = FALSE)
+      if (length(current_pk) > 0) {
+        new_key_value <- max(c(new_key_value, max(current_pk)))
+      }
 
     }
 
