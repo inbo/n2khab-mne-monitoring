@@ -43,3 +43,5 @@ WHERE fieldnote_id < 10
 ORDER BY fieldnote_id ASC
 ;
 ```
+
+... applied the same to `log_update`
