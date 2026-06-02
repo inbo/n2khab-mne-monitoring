@@ -10,6 +10,8 @@ load_database_interaction_libraries()
 source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
+require("magrittr") # for the `%>%`
+
 
 date_today <- as.integer(format(Sys.time(), "%Y%m%d"))
 
@@ -54,7 +56,6 @@ for (sdb in sourcedb_labels) {
   )
 
 }
-
 
 
 ## FreeFieldNotes --------------------------------------------------------------
@@ -180,6 +181,7 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
   return(invisible(NULL))
 } # /update_fields_in_fieldnotes
 
+
 # field notes which disappear from their source database
 # will be removed from all other databases
 # however, they remain archived in the syncdb table
@@ -237,24 +239,41 @@ remove_archived_fieldnotes_from_inputdbs <- function(finos_to_remove) {
 } # /remove_archived_fieldnotes_from_inputdbs
 
 
-# Sync Procedure, per database
-synchronize_syncdb_with_freefieldnotes <- function(sdb) {
+# a flexible join with sensible defaults for FreeFieldNotes
+characteristic_join_ffn <- function(
+    data1,
+    data2,
+    join_function = dplyr::semi_join,
+    ...
+  ) {
+
+  data1 %>%
+    join_function(
+      data2,
+      by = dplyr::join_by(!!!rlang::syms(characteristic_columns)),
+      ...
+    ) %>%
+    return()
+
+} # /characteristic_join_ffn
+
+### Sync Procedure, per database
+
+# Step 1: user input assembled in syncdb
+synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # sdb <- "mnmgwdb"
 
   # load the status quo from SYNCDB
   freefieldnotes_statusquo <- query_freefieldnotes(mnmsyncdb)
-  # observation: datetime in `log_creation` does not
-  #   work well for filtering joins -> rounded explicitly
-
 
   # choose the current database connection
   mnmdb <- sourcedb_connections[[sdb]]
 
-  # query source: user input from databases
+  # query sources: user input from databases
   freefieldnotes_userdb <- query_freefieldnotes(mnmdb) %>%
     arrange(log_creation, log_update, fieldnote_id) %>%
     dplyr::mutate(
-      archive_date = NA
+      archive_date = as.character(NA)
     ) %>%
     dplyr::relocate(archive_date, .before = wkb_geometry)
 
@@ -262,15 +281,12 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
 
   ### (1) distinguish existing and novel field notes
   existing_fieldnotes_userdb <- freefieldnotes_userdb %>%
-    dplyr::semi_join(
-      freefieldnotes_statusquo,
-      by = dplyr::join_by(!!!rlang::syms(characteristic_columns))
-    )
+    characteristic_join_ffn(freefieldnotes_statusquo)
 
   novel_fieldnotes <- freefieldnotes_userdb %>%
-    dplyr::anti_join(
+    characteristic_join_ffn(
       freefieldnotes_statusquo,
-      by = dplyr::join_by(!!!rlang::syms(characteristic_columns))
+      join_function = dplyr::anti_join
     ) %>%
     dplyr::select(-fieldnote_id) %>%
     dplyr::mutate(log_origindb = sdb) %>%
@@ -285,16 +301,16 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
 
   ### (2) find deleted fieldnotes
   #     taking log_origindb into account to check which notes are removed
-  #     -> only the source db can remove fieldnotes
+  #     -> only the userdb can remove fieldnotes
   #     flagging an archive date to freefieldnotes on SYNCDB
   removed_fieldnotes <- freefieldnotes_statusquo %>%
     filter(
       log_origindb == sdb,
       is.na(archive_date)
     ) %>%
-    dplyr::anti_join(
+    characteristic_join_ffn(
       freefieldnotes_userdb,
-      by = dplyr::join_by(!!!rlang::syms(characteristic_columns))
+      join_function = dplyr::anti_join
     ) %>%
     dplyr::select(!!!rlang::syms(characteristic_columns)) %>%
     dplyr::mutate(archive_date = date_today)
@@ -322,10 +338,7 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
     "))
 
     freefieldnotes_statusquo %>%
-      dplyr::semi_join(
-        removed_fieldnotes,
-        by = dplyr::join_by(!!!rlang::syms(characteristic_columns))
-      ) %>%
+      characteristic_join_ffn(removed_fieldnotes) %>%
       readr::write_csv2(output_filename)
 
     # ==> flag removed notes (by update)
@@ -336,35 +349,116 @@ synchronize_syncdb_with_freefieldnotes <- function(sdb) {
   }
 
 
-  ### (3) update changed fieldnotes (bi-directional)
-  #     by slicing the latest log_update
-
-  finos_timestamp_comparison <- existing_fieldnotes_userdb %>%
-    dplyr::inner_join(
+  ### (3) update changed fieldnotes
+  #   one-directional: changes come from source_db's,
+  #   determining latest updates by updating entries with more recent log_update
+  #   this is independent of `log_origindb`: any database tool may
+  #       change any note. If many databases changed in parallel,
+  #       only the latest update will be kept.
+  #
+  #   distribution from syncdb to sourcedb's will
+  #       happen after all news are aggregated.
+  #
+  finos_with_timestamp_differences <- existing_fieldnotes_userdb %>%
+    characteristic_join_ffn(
       freefieldnotes_statusquo %>%
         dplyr::select(!!!rlang::syms(c(characteristic_columns, "log_update"))),
-      by = dplyr::join_by(!!!rlang::syms(characteristic_columns)),
+      join_function = dplyr::inner_join,
       suffix = c("", "_syncdb") # CRITICAL to get this right
+    ) %>%
+    dplyr::filter_out(log_update_syncdb == log_update) %>%
+    select(
+      -archive_date,
+      -fieldnote_id
     )
 
-  # issue again: very small rounding differences can occur
-  finos_with_user_updates <- finos_timestamp_comparison %>%
-    filter((log_update - log_update_syncdb) > lubridate::seconds(0.0001)) %>%
-    select(-log_update_syncdb)
+  # extract the news from user-side sourcedb's
+  finos_with_user_updates <- finos_with_timestamp_differences %>%
+    dplyr::filter(log_update > log_update_syncdb) %>%
+    dplyr::select(-log_update_syncdb)
 
-  # # update from syncdb to userdb's will happen after all news are aggregated.
-  # fino_newer_on_sync <- finos_timestamp_comparison %>%
-  #   filter((log_update_syncdb - log_update_userdb) > lubridate::seconds(0.0001))
+  # ==> reflect all decentral updates on the SYNCDB
+  if (nrow(finos_with_user_updates) > 0) {
+    message(glue::glue("
+    >>> Updating N={nrow(finos_with_user_updates)} FieldNotes from {sdb}.
+    "))
+    update_fields_in_fieldnotes(mnmsyncdb, finos_with_user_updates)
+  }
 
-  # ==> reflect all updates from fieldnotes
+
+} # /synchronize_syncdb_with_data_from_sources
+
+# Step 2: distribute latest version to source databases
+distribute_fieldnote_updates_to_sources <- function(sdb) {
+
+  # load the status quo from SYNCDB
+  freefieldnotes_statusquo <- query_freefieldnotes(mnmsyncdb) %>%
+    dplyr::filter(is.na(archive_date)) %>%
+    dplyr::select(-archive_date, -log_origindb, -fieldnote_id)
+
+  mnmdb <- sourcedb_connections[[sdb]]
+  freefieldnotes_userdb <- query_freefieldnotes(mnmdb)
+
+  # (1) distribute novel notes
+  novel_fieldnotes <- freefieldnotes_statusquo %>%
+    characteristic_join_ffn(
+      freefieldnotes_userdb,
+      join_function = dplyr::anti_join
+    )
+
+  if (nrow(novel_fieldnotes) > 0) {
+    upload_new_fieldnotes_append(
+      mnmdb,
+      novel_fieldnotes
+    )
+  }
+
+  # (2) update existing notes
+  updated_fieldnotes <- freefieldnotes_statusquo %>%
+    characteristic_join_ffn(
+      freefieldnotes_userdb %>%
+        dplyr::select(!!!rlang::syms(c(characteristic_columns, "log_update"))),
+      join_function = dplyr::inner_join,
+      suffix = c("", "_userdb")
+    ) %>%
+    filter(log_update > log_update_userdb) %>%
+    select(
+      -log_update_userdb
+    )
+
+  # ==> reflect all decentral updates on the SYNCDB
+  if (nrow(updated_fieldnotes) > 0) {
+    message(glue::glue("
+    >>> Updating N={nrow(updated_fieldnotes)} FieldNotes in {sdb}.
+    "))
+    update_fields_in_fieldnotes(mnmdb, updated_fieldnotes)
+  }
+
+}
 
 
+#_______________________________________________________________________________
+### Execution: loop databases
 
-} # /synchronize_syncdb_with_freefieldnotes
+for (sdb in sourcedb_labels) {
+  synchronize_syncdb_with_data_from_sources(sdb)
+}
+
+for (sdb in sourcedb_labels) {
+  distribute_fieldnote_updates_to_sources(sdb)
+}
 
 
 # TODO TODOs:
-# - turn around: feedback to soruce-db's (must happen quick)
-#     - while removing all FFNs with !is.na(archive_date)
 # - update / reset table primary keys
+#   - also make sure that `ogc_id` (and related seq's) are MAXed!
+#   - e.g. by checking that the geometry updates
 # - test on `-dev` with actual fieldnote changes
+# - REVOKE before, GRANT after updates to avoid simultaneous writing
+
+# NOTE:
+# The approach above has limited coverage of simultaneous changes.
+# Information may be lost if different endpoints trigger changes on the same
+# day. For example, if between a backup and the consecutive sync action, both
+# `loceval` (09:58) and `mnmsurfdb` (10:37) edit the same notes, then only the
+# version with later timestamp (in this example: `mnmsurfdb`) will be kept.

@@ -94,12 +94,17 @@ LoJos serve a "double check" function; already now I see that there were [[LoJo 
 [[structure/add nolog columns to LocationJournals]]
 
 ## FreeFieldNotes
-(these are not immediately urgent; `log_` columns should work well; but I will replace the current python script.)
+These were in bad shape and required overhaul; the original Python script was a quick production.
+Special foor #FreeFieldNotes, `log_` columns are used for identification (and should work well now).
 
-+ flow chart to make sure I miss no cases
++ sketched flow chart to make sure I miss no cases
++ existing and novel notes are separated
++ novel notes are uploaded
 + implement removal of deleted notes - will only delete if the origin db deletes it
 + [[datatypes/applied date rounding to FreeFieldNotes log_creation on ALL servers and mirrors]]
-
++ update updated notes based on `log_update`:
+	+ any database can change any note, but only the latest change is kept
++ distribute latest data to user databases
 
 # Implications
 + check [[LocationInfos from other schemes require double execution of REP update scripts]]
