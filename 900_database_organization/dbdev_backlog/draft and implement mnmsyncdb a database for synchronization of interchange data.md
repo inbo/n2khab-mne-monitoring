@@ -108,6 +108,9 @@ Special foor #FreeFieldNotes, `log_` columns are used for identification (and sh
 + [[users/REVOKE - GRANT sync change prevention for FreeFieldNotes]]
 + general testing on `staging` with a special import to qgis
 	+ temptable update of spatial table!
+	+ TODO: geometry does not update.
+	+ TODO: three notes keep being updated (date rounding issue?)
 
+	
 # Implications
 + check [[LocationInfos from other schemes require double execution of REP update scripts]]

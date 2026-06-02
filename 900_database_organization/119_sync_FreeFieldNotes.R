@@ -42,7 +42,6 @@ mnmsyncdb <- connect_mnm_database(
 )
 
 message(glue::glue("connected: psql {mnmsyncdb$shellstring}"))
-# syncdb_update_cascade_lookup <- parametrize_cascaded_update(mnmsyncdb)
 
 
 ## connect source databases
@@ -54,6 +53,7 @@ for (sdb in sourcedb_labels) {
     config_filepath = config_filepath,
     database = glue::glue("{sdb}{suffix}")
   )
+  message(glue::glue("connected: psql {sourcedb_connections[[sdb]]$shellstring}"))
 
 }
 
@@ -263,7 +263,7 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
     ;")
 
   # execute update
-  db$execute_sql(update_string, verbose = TRUE)
+  db$execute_sql(update_string, verbose = FALSE)
 
   # drop temptable
   db$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
@@ -360,6 +360,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
 
   # choose the current database connection
   mnmdb <- sourcedb_connections[[sdb]]
+  # mnmdb$shellstring
 
   # query sources: user input from databases
   freefieldnotes_userdb <- query_freefieldnotes(mnmdb) %>%
@@ -370,6 +371,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
     dplyr::relocate(archive_date, .before = wkb_geometry)
 
   # mapview::mapview(freefieldnotes_userdb %>% sf::st_as_sf())
+  # freefieldnotes_userdb %>% arrange(desc(log_update))
 
   ### (1) distinguish existing and novel field notes
   existing_fieldnotes_userdb <- freefieldnotes_userdb %>%
