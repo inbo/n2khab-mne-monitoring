@@ -10,7 +10,7 @@ execution:
 status: true
 ---
 
-During [[draft and implement mnmsyncdb a database for synchronization of interchange data]], one work package was to create a sync script for #FreeFieldNotes. 
+During [[structure/draft and implement mnmsyncdb a database for synchronization of interchange data]], one work package was to create a sync script for #FreeFieldNotes. 
 Some of the pre-existing fieldnotes were duplicates.
 I suspect that this happened if notes were altered by another user in the other database.
 
