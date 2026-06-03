@@ -146,7 +146,8 @@ ensure_nonna_crs <- function(tbl) {
 
 # to enable (filtering) joins, the `log_creation` datetime must be rounded to
 # full seconds
-round_creation_date <- function(tbl) {
+# OBSOLETE: timestamps are now `timestamp(3)` type and accurate milliseconds
+round_creation_date_obsolete <- function(tbl) {
 
   # note: there is also `?lubridate::floor_date`, but besides the slightly funny
   # function name I fear that float accuracy of seconds can also make it come
@@ -154,7 +155,9 @@ round_creation_date <- function(tbl) {
   # With `round_date`, the same issue happens if `log_creation == 0.4999`, but I
   # find this less likely.
   tbl %>%
-    mutate(log_creation = lubridate::round_date(log_creation, "milliseconds")) %>%
+    dplyr::mutate(
+      log_creation = lubridate::round_date(log_creation, "milliseconds")
+    ) %>%
     return()
 }
 
@@ -226,6 +229,13 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
     FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
   ))
 
+  timestamp_types <- c(
+    "log_creation" = "timestamp(3)",
+    "log_update" = "timestamp(3)"
+  )
+  timestamp_types <- timestamp_types[
+    names(timestamp_types) %in% names(updated_fieldnotes)
+  ]
 
   # create temp table
   if ("wkb_geometry" %in% update_columns) {
@@ -238,7 +248,8 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
       delete_layer = TRUE, # "overwrite"
       factorsAsCharacter = TRUE,
       binary = TRUE,
-      temporary = TRUE
+      temporary = TRUE,
+      field.types = timestamp_types
     )
   } else {
     # general solution
@@ -247,7 +258,8 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
       name = srctab,
       value = updated_fieldnotes,
       overwrite = TRUE,
-      temporary = TRUE
+      temporary = TRUE,
+      field.types = timestamp_types
     )
   }
 
@@ -354,6 +366,7 @@ characteristic_join_ffn <- function(
 # Step 1: user input assembled in syncdb
 synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # sdb <- "mnmgwdb"
+  # sdb <- "loceval"
 
   # load the status quo from SYNCDB
   freefieldnotes_statusquo <- query_freefieldnotes(mnmsyncdb)
@@ -387,6 +400,10 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
 
   # ==> upload novel notes
   if (nrow(novel_fieldnotes) > 0) {
+    message(glue::glue("
+    >>> N={nrow(novel_fieldnotes)} notes captured from {sdb}.
+    "))
+
     upload_new_fieldnotes_append(
       mnmsyncdb,
       novel_fieldnotes
