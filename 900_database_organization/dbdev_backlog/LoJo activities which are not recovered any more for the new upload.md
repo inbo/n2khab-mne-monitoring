@@ -9,7 +9,7 @@ finished:
 execution: 
 status: false
 ---
-When adding #mnmsyncdb to the script `111b_fill_location_journals.R`, I noticed that fewer rows remain in that database than in the others.
+When adding #mnmsyncdb to the script `112_fill_location_journals.R`, I noticed that fewer rows remain in that database than in the others.
 
 This is to be investigated.
 ```

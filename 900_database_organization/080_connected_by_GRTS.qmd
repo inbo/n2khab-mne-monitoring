@@ -42,7 +42,8 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 #
-grts <- c(2742, 18877110) # loceval not passed through to mnmgwdb
+grts <- c(1995094) # question by @TDD via chat 20260428 loceval not forwarded
+  # c(2742, 18877110) # loceval not passed through to mnmgwdb
   # c(50120690, 51169266) # delayed push of locevals 20260601
   # c(83694, 364822, 1519830) #, 70530, 25236354) # in monitoring zones of other institute
   # c(31414) # loceval not possible due to erroneous ofo disapproval

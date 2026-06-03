@@ -14,7 +14,7 @@ status: true
 ## future prevention
 - [[locations/MNMDatabaseConnection.R|DatabaseConnection]] updated to allow `ONLY` queries (which had repercussions, but works)
 - automatic dump prior to update; also in YAD GUI
-- count table rows pre/post in `112_update_facalendar.R` to see issues
+- count table rows pre/post in `113_update_facalendar.R` to see issues
 
 ## follow-up
 
@@ -42,7 +42,7 @@ SELECT DISTINCT 'v' AS tbl, visit_done, COUNT(*) FROM ONLY "inbound"."Visits" GR
      v   | t          |    36
     (8 rows)
 
-The issue is caused by `900_database_organization/112_update_facalendar.R`
+The issue is caused by `900_database_organization/113_update_facalendar.R`
     -> probably a missing `ONLY` somewhere down the `update_cascade` function.
 
 - sorted backup files and compared differences
@@ -69,7 +69,7 @@ However, there must be a place in the
 	- affects `**Visits`, those were moved to plain `Visits` with loss of data
 	- reverse [[procedures/backups]] to restore 11:12 backup
 - <14:20> restore backup, green light for changes
-- <14:53> confirmation: the issue is caused by `900_database_organization/112_update_facalendar.R`
+- <14:53> confirmation: the issue is caused by `900_database_organization/113_update_facalendar.R`
 - afterwards: various update attempts and testing
 
 [[timeline/2026-03-13|2026-03-13]]

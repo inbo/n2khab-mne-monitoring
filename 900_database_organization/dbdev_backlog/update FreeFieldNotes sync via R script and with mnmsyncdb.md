@@ -1,6 +1,6 @@
 ---
 aliases:
-  - migrate 119_sync_FreeFieldNotes.R to Python
+  - migrate 110_sync_FreeFieldNotes.R to Python
   - sync FreeFieldNotes against the mnmsyncdb
 tags:
   - FreeFieldNotes

@@ -84,7 +84,7 @@ DONE: [[tooling/review correctness of the sync_mod function application]]; it ha
 
 ## LocationJournals
 ### general
-These are just an assembly of the activities which are found in the different databases; they are assembled on-the-fly and immediately distributed to databases by the script `111b_fill_location_journals.R`.
+These are just an assembly of the activities which are found in the different databases; they are assembled on-the-fly and immediately distributed to databases by the script `112_fill_location_journals.R`.
 LoJos serve a "double check" function; already now I see that there were [[LoJo activities which are not recovered any more for the new upload]].
 
 ### issue: uniqueness
