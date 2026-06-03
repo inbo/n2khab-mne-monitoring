@@ -14,7 +14,7 @@ status: true
 
 There is a `sync_mod` function which captures logging information (i.e. which user changed a db entry at what time).
 This function should be conditional on `current_user` to avoid that technical table operations trigger it.
-Rather urgent requirement since #mnmsyncdb [[draft and implement mnmsyncdb a database for synchronization of interchange data|implementation]].
+Rather urgent requirement since #mnmsyncdb [[structure/draft and implement mnmsyncdb a database for synchronization of interchange data|implementation]].
 
 ```sql
 CREATE OR REPLACE FUNCTION "metadata".sync_mod()

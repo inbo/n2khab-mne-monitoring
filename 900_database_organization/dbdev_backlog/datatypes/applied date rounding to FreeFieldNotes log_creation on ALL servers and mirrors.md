@@ -11,7 +11,7 @@ execution:
 status: true
 ---
 
-in the context of [[draft and implement mnmsyncdb a database for synchronization of interchange data|draft mnmsyncdb]]
+in the context of [[structure/draft and implement mnmsyncdb a database for synchronization of interchange data|draft mnmsyncdb]]
 it turned out that computer accuracy for timestamps is limited
 and it makes sense to round off the creation timestamps to milliseconds.
 
