@@ -100,6 +100,7 @@ WHERE TRUE
   AND VISIT.type = FAC.type
   AND VISIT.date_start = FAC.date_start
   AND VISIT.activity_group_id = FAC.activity_group_id
+  AND FAC.wait_any IS FALSE
   AND (UNIT.archive_version_id IS NULL)
   AND (FAC.archive_version_id IS NULL)
   AND (VISIT.archive_version_id IS NULL)

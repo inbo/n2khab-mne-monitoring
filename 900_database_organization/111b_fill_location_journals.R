@@ -1,11 +1,17 @@
 #!/usr/bin/env Rscript
 
-# TODO in case we get to more than two databases,
+# General Strategy in this script:
+# - load and assemble activity data from all tables
+# - then upload the common data to all databases
+#
+# On the way, this script sideloads/updates InstallationRemovals.
+
+# KILL in case we get to more than two databases,
 #      create a central place to store infos
 #      and check against that.
-#
-# TODO testing with
-# (826486, 51158134)
+# -> now we have the syncdb,
+#    I think the strategy implemented here is totally fine
+#    (robust, extensible)
 
 #_______________________________________________________________________________
 ### Libraries
@@ -224,7 +230,9 @@ load_location_evaluations <- function() {
       type_subset = type,
       loceval_type = type_assessed,
       loceval_replacement = is_replaced,
-      loceval_type_absence = type_is_absent
+      loceval_type_absence = type_is_absent,
+      nolog_user = log_user,
+      nolog_update = log_update
     ) %>%
     mutate(source = "loceval") %>%
     group_by(
@@ -236,7 +244,11 @@ load_location_evaluations <- function() {
       loceval_type_absence,
       loceval_type
     ) %>%
-    reframe(type_subset = stringr::str_c(type_subset, collapse = ",")) %>%
+    reframe(
+      type_subset = stringr::str_c(type_subset, collapse = ", "),
+      nolog_user = stringr::str_c(unique(nolog_user), collapse = ", "),
+      nolog_update = max(nolog_update)
+    ) %>%
     arrange(date, grts_address)
 
   no_dates <- loceval_visits %>%
@@ -286,6 +298,8 @@ load_mnmgwdb_visits <- function() {
       date = date_visit,
       activity_group_id,
       issues,
+      nolog_user = log_user,
+      nolog_update = log_update
     ) %>%
     mutate(source = "gwdb") %>%
     group_by(
@@ -295,7 +309,11 @@ load_mnmgwdb_visits <- function() {
       activity_group_id,
       issues
     ) %>%
-    reframe(type_subset = stringr::str_c(type_subset, collapse = ",")) %>%
+    reframe(
+      type_subset = stringr::str_c(type_subset, collapse = ","),
+      nolog_user = stringr::str_c(unique(nolog_user), collapse = ", "),
+      nolog_update = max(nolog_update)
+    ) %>%
     arrange(date, grts_address)
 
   no_dates <- gw_visits %>%
@@ -313,7 +331,10 @@ load_mnmgwdb_visits <- function() {
 }
 
 
-loceval_outputs <- load_location_evaluations()
+# loceval_outputs <- load_location_evaluations()
+# loceval_outputs %>%
+#   filter(grts_address == 826486)
+
 
 ## join all data sources
 location_journals <- bind_rows(
@@ -324,22 +345,32 @@ location_journals <- bind_rows(
   arrange(date, grts_address, source)
 
 
-# location_journals %>%
+location_journals %>%
+  filter(grts_address %in% c(826486)) %>%
+  t() %>% knitr::kable()
 #   filter(grts_address %in% c(826486, 51158134)) %>%
-#   t() %>% knitr::kable()
 
 #_______________________________________________________________________________
 ### Upload and Update Data
 
+# mnmdb <- mnmsyncdb
 # mnmdb <- mnmgwdb
 # mnmdb <- locevaldb
 upload_LoJos <- function(mnmdb) {
 
+  is_sync_database <- isFALSE("Locations" %in% (mnmdb$tables %>% pull(table)))
+
   # join location ID
-  location_lookup <- mnmdb$query_columns(
-    "Locations",
-    c("grts_address", "location_id")
-  )
+  if (is_sync_database) {
+    location_lookup <- location_journals %>%
+      distinct(grts_address) %>%
+      mutate(location_id = NA)
+  } else {
+    location_lookup <- mnmdb$query_columns(
+      "Locations",
+      c("grts_address", "location_id")
+    )
+  }
 
 
   lojos_prep <- location_journals
@@ -348,9 +379,9 @@ upload_LoJos <- function(mnmdb) {
   #   lojos_prep <- replacements_to_loceval(lojos_prep)
   # }
 
-  lojos <- lojos_prep %>%
+  lojos_new <- lojos_prep %>%
     anti_join(
-      mnmgwdb$query_table("LocationJournals"),
+      mnmdb$query_table("LocationJournals"),
       by = join_by(date, grts_address, source)
     ) %>%
     left_join(
@@ -358,31 +389,119 @@ upload_LoJos <- function(mnmdb) {
       by = join_by(grts_address)
     )
 
-  lojo_lookup <- upload_and_lookup(
-    mnmdb = mnmdb,
-    table_label = "LocationJournals",
-    data_to_append = lojos,
-    characteristic_columns =
-      c("grts_address", "date", "source", "activity_group_id"),
-    index_columns = "locationjournal_id",
-    verbose = TRUE
-  )
+  # lojos_new %>%
+  #   filter(grts_address == 826486)
 
-  if (nrow(lojos) > 0) {
-    message(glue::glue("Registered {nrow(lojos)} new journal entries for {mnmdb$database}."))
-    lojos %>% knitr::kable()
+  if (is_sync_database) {
+    # mnmsyncdb omits the location id
+    lojos_new <- lojos_new %>%
+      select(-location_id)
   }
 
 
-  # updates
-
-  stitch_table_connection(
+  lojo_lookup <- upload_and_lookup(
     mnmdb = mnmdb,
     table_label = "LocationJournals",
-    reference_table = "Locations",
-    link_key_column = "location_id",
-    lookup_columns = c("grts_address")
+    data_to_append = lojos_new,
+    characteristic_columns =
+      c("grts_address", "type_subset", "date", "source", "activity_group_id"),
+    index_columns = "locationjournal_id",
+    verbose = TRUE
   )
+  # lojo_lookup %>%
+  #   filter(grts_address == 826486)
+
+  if (nrow(lojos_new) > 0) {
+    message(glue::glue("Registered {nrow(lojos_new)} new journal entries for {mnmdb$database}."))
+    lojos_new %>% knitr::kable()
+  }
+
+  # join does not go well with NAs -> temporarily replace
+  replace_key_nas <- function(df) {
+    df %>%
+      mutate(
+        activity_group_id = tidyr::replace_na(activity_group_id, 0),
+        type_subset = tidyr::replace_na(type_subset, "none")
+      ) %>%
+      return()
+  }
+
+  restore_key_nas <- function(df) {
+    df %>%
+      mutate(
+        activity_group_id = dplyr::na_if(activity_group_id, 0),
+        type_subset = dplyr::na_if(type_subset, "none")
+      ) %>%
+      return()
+  }
+
+  # filter updates
+  lojos_update <- lojos_prep %>%
+    replace_key_nas() %>%
+    semi_join(
+      mnmdb$query_table("LocationJournals") %>%
+        replace_key_nas(),
+      by = join_by(date, grts_address, source, activity_group_id, type_subset)
+    ) %>%
+    restore_key_nas()
+
+  # temptable strategy
+  srctab <- glue::glue("temp_lojos_update")
+  trgtab <- mnmdb$get_namestring("LocationJournals")
+  lookup_criteria <- unlist(lapply(
+    c("date", "grts_address", "source", "activity_group_id", "type_subset"),
+    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
+  ))
+  update_columns <- unlist(lapply(
+    c(
+        "loceval_type",
+        "loceval_replacement",
+        "loceval_type_absence",
+        "issues",
+        "removal_unplanned",
+        "nolog_user",
+        "nolog_update"
+    ),
+    FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
+  ))
+
+
+  # store updates in temp table
+  DBI::dbWriteTable(
+    mnmdb$connection,
+    name = srctab,
+    value = lojos_update,
+    overwrite = TRUE,
+    temporary = TRUE
+  )
+
+
+  update_string <- glue::glue("
+    UPDATE {trgtab} AS TRGTAB
+      SET {paste0(update_columns, collapse = ', ')}
+      FROM {srctab} AS SRCTAB
+      WHERE
+        ({paste0(lookup_criteria, collapse = ') AND (')})
+    ;")
+
+  mnmdb$execute_sql(update_string, verbose = FALSE)
+
+
+  mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
+
+
+
+
+  # updates
+  if (isFALSE(is_sync_database)) {
+    stitch_table_connection(
+      mnmdb = mnmdb,
+      table_label = "LocationJournals",
+      reference_table = "Locations",
+      link_key_column = "location_id",
+      lookup_columns = c("grts_address")
+    )
+  }
 
 
   # update "is_latest" via sql `update from`
@@ -434,11 +553,11 @@ upload_LoJos <- function(mnmdb) {
 
   mnmdb$execute_sql(update_command, verbose = FALSE)
 
-  ## update `visit_id` for quick linkage
-  table_label <- "LocationJournals"
-  reference_table <- "Visits"
-  trgtab <- mnmdb$get_namestring(table_label)
-  srctab <- mnmdb$get_namestring(reference_table)
+  # ## update `visit_id` for quick linkage
+  # table_label <- "LocationJournals"
+  # reference_table <- "Visits"
+  # trgtab <- mnmdb$get_namestring(table_label)
+  # srctab <- mnmdb$get_namestring(reference_table)
 
 
   # REJECTED: visit_id link to Visits
@@ -460,8 +579,15 @@ upload_LoJos <- function(mnmdb) {
   # ;")
 
 
-}
+} # /upload_LoJos
 
+
+# mnmsyncdb
+mnmsyncdb <- connect_mnm_database(
+    config_filepath = config_filepath,
+    database_mirror = glue::glue("mnmsyncdb{suffix}")
+  )
+upload_LoJos(mnmsyncdb)
 
 # loceval
 upload_LoJos(locevaldb)

@@ -612,15 +612,26 @@ connect_mnm_database <- function(
 mnmdb_assemble_structure_lookups <- function(db) {
 
   # tables and their relations
+  # db$folder <- "mnmsyncdb_dev_structure"
   db$tables <- bind_rows(
-      read.csv(file.path(db$folder, "TABLES.csv")) %>%
+    read.csv(file.path(db$folder, "TABLES.csv")) %>%
         select(table, schema, geometry, inherits, excluded) %>%
-        mutate(is_view = FALSE),
-      read.csv(file.path(db$folder, "VIEWS.csv")) %>%
+        mutate(
+          is_view = FALSE,
+        ) %>%
+        mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
+        mutate_at(vars(excluded), as.logical),
+    read.csv(file.path(db$folder, "VIEWS.csv")) %>%
         select(table = view, schema, excluded) %>%
-        mutate(geometry = "", inherits = "", is_view = TRUE)
+        mutate(
+          geometry = "",
+          inherits = "",
+          is_view = TRUE,
+        ) %>%
+        mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
+        mutate_at(vars(excluded), as.logical)
     ) %>%
-    mutate(excluded = as.logical(coalesce(excluded, 0)))
+    mutate(excluded = as.logical(coalesce(excluded, FALSE)))
     # %>% filter(!excluded)
   # db$tables %>% knitr::kable()
 
@@ -918,7 +929,8 @@ mnmdb_assemble_query_functions <- function(db) {
       # load and return data
       data <- sf::st_read(
           db$connection,
-          layer = db$get_table_id(table_label)
+          layer = db$get_table_id(table_label),
+          geometry_column = "wkb_geometry"
         ) %>%
         dplyr::select(-ogc_fid) %>%
         sf::st_as_sf(crs = 31370)
@@ -1097,9 +1109,12 @@ mnmdb_assemble_query_functions <- function(db) {
 
     } else if (new_key_value == "max") {
       # set to current max value in the database
-      nextval <- db$get_sequence_last_value(sequence_label)
-      max_pk <- db$pull_column(table_label, pk, ONLY = FALSE) %>% max
-      new_key_value <- max(c(nextval, max_pk))
+      new_key_value <- db$get_sequence_last_value(sequence_label)
+
+      current_pk <- db$pull_column(table_label, pk, ONLY = FALSE)
+      if (length(current_pk) > 0) {
+        new_key_value <- max(c(new_key_value, max(current_pk)))
+      }
 
     }
 

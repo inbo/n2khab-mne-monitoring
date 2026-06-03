@@ -37,6 +37,12 @@ mnmgwdb <- connect_mnm_database(
 
 message(mnmgwdb$shellstring)
 
+# parametrize cascaded update function
+update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
+
+
+
+# also connect loceval
 
 loceval_connection <- connect_mnm_database(
   config_filepath = config_filepath,
@@ -45,8 +51,6 @@ loceval_connection <- connect_mnm_database(
   password = NA
 )
 
-
-update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -110,6 +114,8 @@ replacement_data <- replacements_raw %>%
 
 # load locations status quo
 existing_locations <- mnmgwdb$query_table("Locations")
+# existing_locations <- existing_locations %>%
+#   filter(grts_address != 1286278, grts_address != 18063494) # testing a local replacement
 
 # identify novel locations
 new_locations <- replacement_data %>%

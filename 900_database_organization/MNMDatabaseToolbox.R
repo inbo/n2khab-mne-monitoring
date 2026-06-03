@@ -1133,6 +1133,7 @@ categorize_data_update <- function(
     characteristic_columns = NA,
     archive_flag_column = NA,
     exclude_columns = NA,
+    include_logging_columns = FALSE,
     skip_archive = NULL
   ) {
 
@@ -1179,7 +1180,11 @@ categorize_data_update <- function(
   #   t() %>% knitr::kable()
 
   cols <- names(data_future)
-  cols <- cols[!(cols %in% logging_columns)]
+
+  # normally, the logging columns *must* be excluded
+  if (isFALSE(include_logging_columns)) {
+    cols <- cols[!(cols %in% logging_columns)]
+  }
   data_future <- data_future %>% select(!!!cols)
 
   ## ignore input precedence columns
@@ -2106,7 +2111,7 @@ precedence_columns <- list(
     "require_total_station"
   ),
   "LocationInfos" = c(
-    "landowner",
+    # "landowner", # content currently non-negotiable
     "accessibility_inaccessible",
     "accessibility_revisit",
     "recovery_hints",
@@ -2139,7 +2144,7 @@ redistribute_calendar_data <- function(
     )
   }
 
-  if (is.scalar.na(version_id)) {
+  if (is.scalar.na(version_id) & isFALSE(skip[["archive"]])) {
     version_id <- mnmdb$load_latest_version_id()
   }
 
