@@ -10,10 +10,15 @@ load_database_interaction_libraries()
 source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
-require("magrittr") # for the `%>%`
+require("magrittr") %>% suppressPackageStartupMessages() # for the `%>%`
 
 
 date_today <- as.integer(format(Sys.time(), "%Y%m%d"))
+
+message("________________________________________________________________")
+message("<<<<< Syncing FreeFieldNotes [all]. ")
+message("________________________________________________________________")
+
 
 #_______________________________________________________________________________
 ### connect to databases
@@ -29,7 +34,7 @@ if (length(commandline_args) > 0) {
   suffix <- ""
   # suffix <- "-staging" # "-testing"
 }
-suffix <- "-staging"
+# suffix <- "-staging"
 
 
 
@@ -41,7 +46,7 @@ mnmsyncdb <- connect_mnm_database(
   database_mirror = mnmsyncdb_mirror
 )
 
-message(glue::glue("connected: psql {mnmsyncdb$shellstring}"))
+message(glue::glue("\tconnected: psql {mnmsyncdb$shellstring}"))
 
 
 ## connect source databases
@@ -53,7 +58,7 @@ for (sdb in sourcedb_labels) {
     config_filepath = config_filepath,
     database = glue::glue("{sdb}{suffix}")
   )
-  message(glue::glue("connected: psql {sourcedb_connections[[sdb]]$shellstring}"))
+  message(glue::glue("\tconnected: psql {sourcedb_connections[[sdb]]$shellstring}"))
 
 }
 
@@ -103,7 +108,7 @@ batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
 
   } # /loop databases
 
-  message(glue::glue("[!!!] {verb}'d all access from FreeFieldNotes on {suffix}."))
+  message(glue::glue("\t[{verb}'d all access from FreeFieldNotes on {suffix}.]"))
 
 
   # finalize
@@ -401,7 +406,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # ==> upload novel notes
   if (nrow(novel_fieldnotes) > 0) {
     message(glue::glue("
-    >>> N={nrow(novel_fieldnotes)} notes captured from {sdb}.
+    \t<<< Retrieving N={nrow(novel_fieldnotes)} novel FieldNotes entered by {sdb}.
     "))
 
     upload_new_fieldnotes_append(
@@ -437,8 +442,8 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
         "{format(Sys.time(), '%Y%m%d%H%M')}_deleted_freefieldnotes_{sdb}.csv"
       ))
     message(glue::glue("
-    [!!!] N={nrow(removed_fieldnotes)} notes REMOVED from {sdb};
-      \tbackup dumped to {output_filename}.
+    \t[><] N={nrow(removed_fieldnotes)} notes REMOVED from {sdb};
+    \t\tbackup dumped to {output_filename}.
     "))
 
     freefieldnotes_statusquo %>%
@@ -484,7 +489,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # ==> reflect all decentral updates on the SYNCDB
   if (nrow(finos_with_user_updates) > 0) {
     message(glue::glue("
-    >>> Updating N={nrow(finos_with_user_updates)} FieldNotes from {sdb}.
+    \t<<< Syncing N={nrow(finos_with_user_updates)} changed FieldNotes from {sdb}.
     "))
     update_fields_in_fieldnotes(mnmsyncdb, finos_with_user_updates)
   }
@@ -511,6 +516,10 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
     )
 
   if (nrow(novel_fieldnotes) > 0) {
+    message(glue::glue("
+    \t<<< Distributing N={nrow(novel_fieldnotes)} novel FieldNotes to {sdb}.
+    "))
+
     upload_new_fieldnotes_append(
       mnmdb,
       novel_fieldnotes
@@ -533,7 +542,7 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
   # ==> reflect all decentral updates on the SYNCDB
   if (nrow(updated_fieldnotes) > 0) {
     message(glue::glue("
-    >>> Updating N={nrow(updated_fieldnotes)} FieldNotes in {sdb}.
+    \t<<< Updating N={nrow(updated_fieldnotes)} changed FieldNotes on {sdb}.
     "))
     update_fields_in_fieldnotes(mnmdb, updated_fieldnotes)
   }
@@ -559,7 +568,6 @@ batch_manage_ffn_write_permissions("GRANT")
 # - update / reset table primary keys
 #   - also make sure that `ogc_id` (and related seq's) are MAXed!
 #   - e.g. by checking that the geometry updates
-# - test on `-dev` with actual fieldnote changes
 
 # NOTE:
 # The approach above has limited coverage of simultaneous changes.
@@ -567,3 +575,7 @@ batch_manage_ffn_write_permissions("GRANT")
 # day. For example, if between a backup and the consecutive sync action, both
 # `loceval` (09:58) and `mnmsurfdb` (10:37) edit the same notes, then only the
 # version with later timestamp (in this example: `mnmsurfdb`) will be kept.
+
+message("________________________________________________________________")
+message(" >>>>> Finished syncing FreeFieldNotes [all]. ")
+message("________________________________________________________________")

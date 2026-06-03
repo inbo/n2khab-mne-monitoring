@@ -106,11 +106,16 @@ Special foor #FreeFieldNotes, `log_` columns are used for identification (and sh
 	+ any database can change any note, but only the latest change is kept
 + distribute latest data to user databases
 + [[users/REVOKE - GRANT sync change prevention for FreeFieldNotes]]
-+ general testing on `staging` with a special import to qgis
-	+ temptable update of spatial table!
-	+ TODO: geometry does not update.
-	+ TODO: three notes keep being updated (date rounding issue?)
++ keys belong to the database and are not sync'd
++ general testing on #staging with a special QGIS project
+	+ temptable update of a spatial table! (caused timestamp rounding issues, again!)
+	+ fixed: geometry does not update (timestamp rounding issue)
+	+ fixed: three notes keep being updated (timestamp rounding issue)
++ roll-out on #production:
+	+ initial fail: supposedly some timestamp was not set to timestamp(3)
+	+ indeed; #mnmsyncdb was not set correctly.
 
 	
 # Implications
 + check [[LocationInfos from other schemes require double execution of REP update scripts]]
++ [[hacks/resetting primary key column|reset id]] for FreeFieldNotes
