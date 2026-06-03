@@ -45,3 +45,6 @@ If everything was done correctly, the app should now automatically log in to our
 - in the menu of the DCIM folder (three vertical dots on the right)
 - send compressed folder to... e.g. Drive
 - store the `zip` file on our shared drive under "photos"
+- notes for self: 
+    - grap all photos via `adb pull "/storage/emulated/0/Android/data/ch.opengis.qfield/"`
+    - zip only image files with `find . -iname \*.jpg -o -iname \*.png | zip -9 -@ photos.zip`

@@ -472,6 +472,13 @@ upload_data_and_update_dependencies <- function(
 
   # mnmdb <- mnmgwdb
   # data_replacement <- new_data
+  if (FALSE) {
+    ### DEBUG
+    print(mnmdb$shellstring)
+    print(table_label)
+    print(characteristic_columns)
+    data_replacement %>% head(3) %>% knitr::kable()
+  }
 
   stopifnot("dplyr" = requireNamespace("dplyr"))
   stopifnot("DBI" = requireNamespace("DBI"))
@@ -637,6 +644,18 @@ upload_data_and_update_dependencies <- function(
   # cols <- characteristic_columns
   # new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
   # old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+  # message("--------------------")
+  # message(mnmdb$shellstring)
+  # message(skip_sequence_reset)
+  # message(table_label)
+  # message(characteristic_columns)
+  # message(cols_to_query)
+  # message(old_data %>% head(3) %>% knitr::kable())
+  # message(nrow(old_data))
+  # message(new_redownload %>% head(3) %>% knitr::kable())
+
+  if (nrow(old_data) > 0) {
+
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,
@@ -645,6 +664,13 @@ upload_data_and_update_dependencies <- function(
       suffix = c("_old", ""),
       unmatched = "drop"
     )
+
+  } else {
+    pk_lookup <- old_data %>%
+      select(
+        tidyselect::any_of(unique(c(characteristic_columns, cols_to_query)))
+      )
+  }
 
   # if (FALSE) {
   #   # TODO return here to inspect the repercussions of previous errors
@@ -669,7 +695,7 @@ upload_data_and_update_dependencies <- function(
 
 
   ## save non-recovered rows
-  if (length(pk) > 0) {
+  if ((length(pk) > 0) && (nrow(old_data) > 0)) {
     not_found <- pk_lookup %>%
       select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>%
       filter(if_any(everything(), ~ is.na(.x)))
@@ -1113,6 +1139,7 @@ categorize_data_update <- function(
     characteristic_columns = NA,
     archive_flag_column = NA,
     exclude_columns = NA,
+    include_logging_columns = FALSE,
     skip_archive = NULL
   ) {
 
@@ -1159,7 +1186,11 @@ categorize_data_update <- function(
   #   t() %>% knitr::kable()
 
   cols <- names(data_future)
-  cols <- cols[!(cols %in% logging_columns)]
+
+  # normally, the logging columns *must* be excluded
+  if (isFALSE(include_logging_columns)) {
+    cols <- cols[!(cols %in% logging_columns)]
+  }
   data_future <- data_future %>% select(!!!cols)
 
   ## ignore input precedence columns
@@ -2018,6 +2049,13 @@ precedence_columns <- list(
     "is_replaced",
     "type_is_absent"
   ),
+  "Replacements" = c(
+    "is_inappropriate",
+    "is_selected",
+    "type_suggested",
+    "implications_habitatmap",
+    "notes"
+  ),
   "FieldworkCalendar" = c(
     "excluded",
     "excluded_reason",
@@ -2042,13 +2080,16 @@ precedence_columns <- list(
   "Visits" = c(
     "teammember_id",
     "date_visit",
+    "lims_code",
+    "type_assessed",
+    "is_well_developed_type",
+    "replacement_recovery_notes",
+    "gps_type",
+    "gps_accuracy_cm",
     "notes",
     "photo",
-    "lims_code",
     "issues",
-    "visit_done",
-    "type_assessed",
-    "is_well_developed_type"
+    "visit_done"
   ),
   "InstallationVisits" = c(
     "photo_soil_1_peilbuis",
@@ -2076,7 +2117,7 @@ precedence_columns <- list(
     "require_total_station"
   ),
   "LocationInfos" = c(
-    "landowner",
+    # "landowner", # content currently non-negotiable
     "accessibility_inaccessible",
     "accessibility_revisit",
     "recovery_hints",
@@ -2109,7 +2150,7 @@ redistribute_calendar_data <- function(
     )
   }
 
-  if (is.scalar.na(version_id)) {
+  if (is.scalar.na(version_id) & isFALSE(skip[["archive"]])) {
     version_id <- mnmdb$load_latest_version_id()
   }
 

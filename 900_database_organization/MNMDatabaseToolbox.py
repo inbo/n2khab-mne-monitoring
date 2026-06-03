@@ -395,6 +395,8 @@ def EnsureNestedQuerySpacing(query: str) -> str:
             , "DISTINCT", "GROUP BY", "ORDER BY" \
             , "CASE WHEN", "THEN", "ELSE", "END" \
             , "BEFORE", "BEGIN", "END" \
+            , "RETURNS", "DECLARE", "INTO" \
+            , "$sync_mod$" \
             , "CREATE", "DROP", "FOR EACH", "EXECUTE" \
             , "MATCH", "SIMPLE", "ON DELETE", "ON UPDATE", "CASCADE" \
             , "INCREMENT", "MINVALUE", "MAXVALUE", "START WITH", "CACHE", "NO CYCLE" \

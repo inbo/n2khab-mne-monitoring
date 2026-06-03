@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload"
-date: "2025-06-27, 2025-09-04, 2026-03-09, 2026-03-26"
+date: "2026-05-27"
 format:
   html:
     toc: true
@@ -20,6 +20,23 @@ Let's bring the sample to the field - again!
 (... and again, and again, and again...)
 :::
 
+
+# Changelog
+
+- 20250627, 20250904, 20260309, 20260326: <undocumented>
+- 20260527 REP update
+
+
+# TODO
+
+
+# Preparations
+
+## structure changes
+Download the latest structure sheets for the production mirror.
+Otherwise, the list of update columns might be incomplete.
+
+## sync staging mirror
 
 In all brevity, I collect steps here to get a new REP to the database.
 staging`, first.
@@ -41,6 +58,10 @@ pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c
         && psql -U <database_user> -h <host> -p <port> -d <database>_staging -W < /tmp/<database>_db_dump.txt \
         && rm /tmp/<database>_db_dump.txt
 ```
+
+## structure changes?
+Download the latest structure sheets for the production mirror.
+Otherwise, the list of update columns might be incomplete.
 
 ## libraries and variables
 
@@ -113,8 +134,12 @@ mnmgwdb <- connect_mnm_database(
   config_filepath,
   database_mirror = mnmgwdb_mirror
 ) 
-# keyring::keyring_delete(keyring = "mnmdb_temp")
 
+```
+
+```{r connect-databases}
+
+# keyring::keyring_delete(keyring = "mnmdb_temp")
 message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
 update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 
@@ -150,10 +175,12 @@ if (FALSE) {
   #    v2 <- "v0.11.0_rvp0.13.1"
   # version_tag <- "v0.12.0_rvp0.14.0"
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
+  # version_tag <- "snip:0.15.1_rep:0.15.0"
+  #   # "snippets update 0.15.1 (revert temporal prioritization breeding season)"
 
-  version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
+  version_tag <- "snip:0.16_rep:0.16" # data_iteration = 1
   version_notes <-
-    "snippets update 0.15.1 (revert temporal prioritization breeding season)"
+    "REP + snippets update 0.16"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -272,6 +299,9 @@ replace_sspstapa_by_lookup <- function(df) {
 
 Here, it would be time to generate the latest FREEZE,
 but only if the `date_fixing` changed in the latest `"metadata"."Versions"`.
+
+TODO: new columns to work into the freeze (need to get set with a correct value)
++ `wait_obsolete_types` (20260521)
 
 ```{r generate_freeze_calendar}
 #| eval: false
@@ -493,23 +523,46 @@ locations <- locations_grts_collection %>%
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
+# TODO directly update locations?
+stop("location update not clear (merge conflict 20260603)")
 
-# TODO it is highly confusing that geometry must be dropped: actually, Locations are a geometry table (Point type) and this should fail for `distribution$to_upload`
+### 20260511 testing direct write
+#       upload_data <- sf::st_as_sf(locations)
+#       # type_count <- as_tibble(sf::st_geometry_type(upload_data)) %>%
+#       #   count(value)
+#       sf::st_geometry(upload_data) <- "wkb_geometry"
+# 
+#   mnmgwdb$execute_sql(
+#     glue::glue("DELETE FROM ONLY {mnmgwdb$get_namestring(table_label)};"),
+#     verbose = TRUE
+#   )
+# 
+#       rs <- sf::st_write(
+#         upload_data,
+#         mnmgwdb$connection,
+#         mnmgwdb$get_table_id(table_label),
+#         row.names = FALSE,
+#         delete_layer = FALSE, # "overwrite"
+#         append = TRUE,
+#         factorsAsCharacter = TRUE,
+#         binary = TRUE
+#       )
 
-table_label <- "Locations"
-data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
-index_column <- mnmgwdb$get_primary_key(table_label)
-characteristic_columns <- c("grts_address")
 
-distribution <- categorize_data_update(
-  mnmdb = mnmgwdb,
-  table_label = table_label,
-  data_future = data_nouveau,
-  input_precedence_columns = precedence_columns[[table_label]],
-  characteristic_columns = characteristic_columns,
-  exclude_columns = c("wkb_geometry")
-)
-print_category_count(distribution, table_label)
+# table_label <- "Locations"
+# data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+# index_column <- mnmgwdb$get_primary_key(table_label)
+# characteristic_columns <- c("grts_address")
+# 
+# distribution <- categorize_data_update(
+#   mnmdb = mnmgwdb,
+#   table_label = table_label,
+#   data_future = data_nouveau,
+#   input_precedence_columns = precedence_columns[[table_label]],
+#   characteristic_columns = characteristic_columns,
+#   exclude_columns = c("wkb_geometry")
+# )
+# print_category_count(distribution, table_label)
 
 # distribution$to_upload %>% glimpse()
 
@@ -518,27 +571,55 @@ print_category_count(distribution, table_label)
 
 ```{r update-locations}
 
-locations_lookup <- redistribute_calendar_data(
-  mnmdb = mnmgwdb,
-  table_label = table_label,
-  distribution = distribution,
-  index_columns = c(index_column),
-  characteristic_columns = characteristic_columns,
-  skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
+
+locations_lookup <- update_cascade_lookup(
+  table_label = "Locations",
+  new_data = locations,
+  index_columns = c("location_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
 )
+
+```
+
+
+20260511: the "redistribution" seems to ignore empty geometries
+
+```{r update-locations-erroneous}
+#| eval: false
+
+## the putatively wrong, indirect way
+# locations_lookup <- redistribute_calendar_data(
+#   mnmdb = mnmgwdb,
+#   table_label = table_label,
+#   distribution = distribution,
+#   index_columns = c(index_column),
+#   characteristic_columns = characteristic_columns,
+#   skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
+# )
+
+# check <- mnmgwdb$query_table("Locations")
 
 ```
 
 ... and stitch
 ```{r stitch}
 
-stitch_table_connection(
-  mnmdb = mnmgwdb,
-  table_label = "SampleLocations",
-  reference_table = "Locations",
-  link_key_column = "location_id",
-  lookup_columns = c("grts_address")
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
 )
+
+# stitch_table_connection(
+#   mnmdb = mnmgwdb,
+#   table_label = "SampleLocations",
+#   reference_table = "Locations",
+#   link_key_column = "location_id",
+#   lookup_columns = c("grts_address")
+# )
 
 ```
 
@@ -651,6 +732,10 @@ sample_units <- sample_units %>%
     by = join_by(grts_address),
     relationship = "many-to-one"
   ) %>%
+  mutate_at(
+    # some locations on `oldpanels` have as.character('NA') values in bool columns
+    vars(is_forest, in_mhq_samples), \(x) ifelse(is.na(x) | grepl('NA', x), FALSE, x)
+  ) %>%
   distinct()
 
 
@@ -676,9 +761,10 @@ distribution <- categorize_data_update(
 )
 print_category_count(distribution, table_label)
 
-# distribution$to_archive
-# distribution$reactivate
-# distribution$to_upload
+# distribution$to_archive %>% knitr::kable()
+# distribution$reactivate %>% knitr::kable()
+# distribution$to_upload %>% knitr::kable()
+# distribution$changed %>% knitr::kable()
 
 ```
 
@@ -691,6 +777,7 @@ distribution$to_upload <- distribution$to_upload %>%
     # log_update = as.POSIXct(Sys.time()),
     # is_replacement = FALSE
   )
+
 
 samplelocations_lookup <- redistribute_calendar_data(
   mnmdb = mnmgwdb,
@@ -725,6 +812,7 @@ fieldwork_calendar_columns <- c(
   "wait_3260",
   "wait_7220",
   "wait_floating",
+  "wait_obsolete_types",
   "is_sideloaded",
   "is_frozen"
 )
@@ -796,7 +884,7 @@ Normally, all calendar entries from the `freeze` have already be removed, so the
 ```{r assemble-fieldwork-calendar-freeze}
 
 fieldwork_calendar_retained <- mnmgwdb_freeze %>%
-  select(!!!rlang::syms(c(fieldwork_calendar_columns, "done_planning"))) %>% 
+  select(tidyselect::any_of(c(fieldwork_calendar_columns, "done_planning"))) %>% 
   anti_join(
     fieldwork_calendar_updated,
     by = join_by(!!!rlang::syms(fieldcalendar_characols))

@@ -67,7 +67,7 @@ However, there must be a place in the
 - <13:45> issues observed first by Yglinga
 - <13:49> investigation started: 
 	- affects `**Visits`, those were moved to plain `Visits` with loss of data
-	- reverse [[backup patching]] to restore 11:12 backup
+	- reverse [[procedures/backups]] to restore 11:12 backup
 - <14:20> restore backup, green light for changes
 - <14:53> confirmation: the issue is caused by `900_database_organization/112_update_facalendar.R`
 - afterwards: various update attempts and testing

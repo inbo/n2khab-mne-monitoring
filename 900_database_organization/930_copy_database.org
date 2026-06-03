@@ -179,16 +179,21 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
 
-migrating_table_label <- "Protocols"
+table_label <- "Protocols" #"LocationCells"# "Protocols"
 
 config_filepath <- file.path("./mnm_database_connection.conf")
 
 source_db <- connect_mnm_database(
   config_filepath,
-  database_mirror = "loceval-dev"
+  database_mirror = "loceval"
 )
 
-source_data <- source_db$query_table(migrating_table_label)
+target_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = "loceval-testing"
+)
+
+source_data <- source_db$query_table(table_label)
 
 dplyr::glimpse(source_data)
 
@@ -206,12 +211,13 @@ In the example case, we will just sort the protocols.
 #+begin_src R :eval no :tangle 932_production_to_testing_example.R
 #_______________________________________________________________________________
 ### ENTER YOUR CODE here to modify the data!
+new_data <- source_data
 
 sort_protocols <- function(prt) {
-  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_version))
+  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code))
   return(prt)
 }
-source_data <- sort_protocols(source_data)
+new_data <- sort_protocols(new_data)
 
 # further modification are possible
 if ("protocol_id" %in% names(source_data)) {
@@ -230,11 +236,36 @@ and the =MNMDatabaseToolbox.R= contains a convenient function for it.
 
 #+begin_src R :eval no :tangle 932_production_to_testing_example.R
 
-upload_additional_data(
-  source_db,
-  table_label = migrating_table_label,
-  new_data = source_data,
-  tabula_rasa = FALSE,
+characteristic_columns <- target_db$get_characteristic_columns(table_label)
+
+if (is.scalar.na(characteristic_columns)) {
+  # just take all columns
+  characteristic_columns <- names(new_data)
+}
+
+# if all else fails (e.g. LocationCells), use the target columns
+if (length(characteristic_columns) == 0) {
+  # pk <- target_db$get_primary_key(table_label)
+  # characteristic_columns <- c(pk)
+  characteristic_columns <-
+    target_db$load_table_info(table_label) %>%
+      pull(column)
+  print(characteristic_columns)
+
+  if (target_db$is_spatial(table_label)) {
+    new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+    sf::st_crs(new_data) <- 31370
+    sf::st_geometry(new_data) <- "wkb_geometry"
+  }
+}
+
+
+upload_data_and_update_dependencies(
+  target_db,
+  table_label = table_label,
+  data_replacement = new_data,
+  characteristic_columns = characteristic_columns,
   verbose = FALSE
 )
 #+end_src
@@ -345,16 +376,51 @@ copy_over_single_table <- function(table_label, new_data, ...) {
   # parametrization of the `upload_data_and_update_dependencies` functions
   # just to make the loop code below look a little less convoluted.
 
+  ## infer characteristic columns
+  characteristic_columns <- target_db$get_characteristic_columns(table_label)
+
+  if (is.scalar.na(characteristic_columns)) {
+    # just take all columns
+    characteristic_columns <- names(new_data)
+  }
+
+  # if all else fails (e.g. LocationCells), use the target columns
+  if (length(characteristic_columns) == 0) {
+    # pk <- target_db$get_primary_key(table_label)
+    # characteristic_columns <- c(pk)
+    characteristic_columns <-
+      target_db$load_table_info(table_label) %>%
+      pull(column)
+    # print(characteristic_columns)
+  }
+
+  # fix characteristic columns of `ReplacementArchives`
+  if (table_label == "ReplacementArchives") {
+    characteristic_columns <- c(
+      characteristic_columns,
+      "version_id"
+    )
+  }
+
+  # # fix crs of table
+  # if (target_db$is_spatial(table_label)) {
+  #   new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+  #   # sf::st_crs(new_data) <- 31370
+  #   sf::st_geometry(new_data) <- "wkb_geometry"
+  # }
+
   # push the update
   upload_data_and_update_dependencies(
     mnmdb = target_db,
     table_label = table_label,
     data_replacement = new_data,
+    characteristic_columns = characteristic_columns,
     verbose = FALSE,
     ...
   )
 
-}
+} # /copy_over_single_table
 
 #+end_src
 
@@ -373,7 +439,6 @@ process_db_table_copy <- function(table_idx) {
   # table_label <- "LocationCells"
   # table_idx <- table_list %>% mutate(table_idx = seq_len(nrow(table_list))) %>% filter(table == table_label) %>% pull(table_idx)
 
-  # print(table_list[[table_idx, "excluded"]])
   table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
   if (table_exclusion) return()
 
@@ -390,9 +455,13 @@ process_db_table_copy <- function(table_idx) {
     new_data <- source_data
   }
 
-  copy_over_single_table(table_label, new_data)
+  copy_over_single_table(
+    table_label,
+    new_data
+    #, skip_sequence_reset = TRUE
+  )
 
-}
+} # /process_db_table_copy
 
 
 #+end_src
@@ -424,9 +493,69 @@ SET search_path TO public,"metadata","outbound","inbound","archive","analysis";
 
 GRANT USAGE ON SCHEMA "metadata" TO tester;
 GRANT SELECT ON ALL TABLES IN SCHEMA "metadata" TO tester;
+-- ...
 
 #+end_src
 
+
+* Debugging
+
+*** fix crs mismatch when copying polygon cells
+CLOSED: <2026-06-01 Mon>
+
+The issue here was a combination of cascaded deletion and therefore an unexpected empty table.
+
+The loop above did not work (it cascade-deleted LocationCells each time I tested), whereas the code below would execute flawlessly:
+
+#+begin_src R :eval no :tangle no
+# to be run after manual `populate_testing_db.R`
+
+table_idx = 8
+table_label <- "LocationCells"
+source_data <- source_db$query_table(table_label)
+target_data <- target_db$query_table(table_label)
+
+new_data <- source_data
+characteristic_columns <-
+  target_db$load_table_info(table_label) %>%
+  pull(column)
+
+
+# infer characteristic columns
+characteristic_columns <- target_db$get_characteristic_columns(table_label)
+if (length(characteristic_columns) == 0) {
+  # pk <- target_db$get_primary_key(table_label)
+  # characteristic_columns <- c(pk)
+  characteristic_columns <-
+    target_db$load_table_info(table_label) %>%
+    pull(column)
+  print(characteristic_columns)
+}
+
+
+# correct crs
+if (target_db$is_spatial(table_label)) {
+  new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+  # sf::st_crs(new_data) <- 31370
+  sf::st_geometry(new_data) <- "wkb_geometry"
+}
+
+
+
+upload_data_and_update_dependencies(
+  mnmdb = target_db,
+  table_label = table_label,
+  data_replacement = new_data,
+  characteristic_columns = characteristic_columns,
+  skip_sequence_reset = TRUE,
+  verbose = FALSE
+)
+
+#+end_src
+
+
+** fix =location_id IS NULL=
 
 #+begin_src python :eval no :tangle no :echo no
 

@@ -1,6 +1,8 @@
 ---
 aliases:
   - views
+tags:
+  - Views
 ---
 
 found here: <https://github.com/inbo/n2khab-mne-monitoring/tree/main/900_database_organization/views>

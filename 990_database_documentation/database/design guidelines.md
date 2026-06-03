@@ -15,4 +15,5 @@ SELECT * FROM "inbound"."Visits" WHERE visit_done;
 
 - Tables are capital/camel with plural `s`, e.g. `Activities` (*exception:* `~Calendar`)
 - primary keys are singular, with suffix `_id` (*cf.* [[database/sequences and keys|primary keys]]),
-- [[sql/views|views]] do not get a prefix, because from query side it does not matter whether a table is a view or a real table
+- [[sql/views|Views]] do not get a prefix, because from query side it does not matter whether a table is a view or a real table
+- always define an explicit accuracy for timestamp data types (e.g. `timestamp(0)` for seconds, `timestamp(3)` for milliseconds, *cf.* [[sql/sql queries on dates|queries on dates]]); otherwise implicit rounding at computer accuracy might lead to inaccurate units (e.g. `EXTRACT(milliseconds FROM log_creation)` -> `2464.999`)

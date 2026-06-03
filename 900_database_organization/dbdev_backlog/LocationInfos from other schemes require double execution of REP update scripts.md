@@ -3,6 +3,7 @@ aliases:
 tags:
   - REP
   - update
+  - LocationInfos
 started:
 finished:
 execution:

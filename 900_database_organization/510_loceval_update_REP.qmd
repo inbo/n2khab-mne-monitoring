@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload - loceval"
-date: "20260319"
+date: "20260527"
 format:
   html:
     toc: true
@@ -19,23 +19,17 @@ knitr:
 - 20260319 REP update - major overhaul:
   - auxiliary FAGs
   - data fixing / freeze
+- 20260527 REP update
 
 
 # TODO
 
 
-- [x] freeze past activities `filter(year(date_start) >= main_year)` ~~main_year~~ `is_frozen` + `date_fixing`
-- [ ] `is_current_occasion`
-- `cal_0.14.0_continuation` 
-- [x] `schemes_served_all` vs. previous `scheme_ps_targetpanel` -> now integrated in `schemes`, causes changes
-- [x] "auxiliary" FAGs
-  + via `fag_is_auxiliary = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT|LEVREADDIVER" )`
-  + and `fag_is_preponable = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT" )`
-
-- [x] `is_gw_activity` / `is_loceval_activity` -> now generally found in both databases
-
-
 # Preparations
+
+## structure changes
+Download the latest structure sheets for the production mirror.
+Otherwise, the list of update columns might be incomplete.
 
 ## sync staging mirror
   
@@ -161,10 +155,11 @@ if (FALSE) {
   # version_tag <- "v0.12.0_rvp0.14.0" # data_iteration = 2
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
+  # version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
 
-  version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
+  version_tag <- "snip:0.16_rep:0.16" # data_iteration = 1
   version_notes <-
-    "snippets update 0.15.1 (revert temporal prioritization breeding season)"
+    "REP + snippets update 0.16"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -255,6 +250,9 @@ loceval_field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
 
 Here, it would be time to generate the latest FREEZE,
 but only if the `date_fixing` changed in the latest `"metadata"."Versions"`.
+
+TODO: new columns to work into the freeze (need to get set with a correct value)
++ `wait_obsolete_types` (20260521)
 
 ```{r generate_freeze_calendar}
 #| eval: false
@@ -441,36 +439,52 @@ locations <- locations_grts_collection %>%
 sf::st_geometry(locations) <- "wkb_geometry"
 
 
-table_label <- "Locations"
-data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
-index_column <- locevaldb$get_primary_key(table_label)
-characteristic_columns <- c("grts_address")
-
-distribution <- categorize_data_update(
-  mnmdb = locevaldb,
-  table_label = table_label,
-  data_future = data_nouveau,
-  input_precedence_columns = precedence_columns[[table_label]],
-  characteristic_columns = characteristic_columns,
-  exclude_columns = c("wkb_geometry")
-)
-print_category_count(distribution, table_label)
-
-# distribution$to_upload %>% knitr::kable()
+# table_label <- "Locations"
+# data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+# index_column <- locevaldb$get_primary_key(table_label)
+# characteristic_columns <- c("grts_address")
+# 
+# distribution <- categorize_data_update(
+#   mnmdb = locevaldb,
+#   table_label = table_label,
+#   data_future = data_nouveau,
+#   input_precedence_columns = precedence_columns[[table_label]],
+#   characteristic_columns = characteristic_columns,
+#   exclude_columns = c("wkb_geometry")
+# )
+# print_category_count(distribution, table_label)
+# 
+# # distribution$to_upload %>% knitr::kable()
 
 ```
 
 
 ```{r update-locations}
-
-locations_lookup <- redistribute_calendar_data(
-  mnmdb = locevaldb,
-  table_label = table_label,
-  distribution = distribution,
-  index_columns = c(index_column),
-  characteristic_columns = characteristic_columns,
-  skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
+locations_lookup <- update_cascade_lookup(
+  table_label = "Locations",
+  new_data = locations,
+  index_columns = c("location_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
 )
+
+
+```
+
+20260511: the "redistribution" seems to ignore empty geometries
+
+```{r update-locations-erroneous}
+#| eval: false
+
+# locations_lookup <- redistribute_calendar_data(
+#   mnmdb = locevaldb,
+#   table_label = table_label,
+#   distribution = distribution,
+#   index_columns = c(index_column),
+#   characteristic_columns = characteristic_columns,
+#   skip = list("update" = FALSE, "upload" = FALSE, "archive" = TRUE)
+# )
 
 
 ```
@@ -479,12 +493,11 @@ locations_lookup <- redistribute_calendar_data(
 ... and stitch
 ```{r reconnect-locations-to-sampleunits}
 
-stitch_table_connection(
-  mnmdb = locevaldb,
-  table_label = "SampleUnits",
-  reference_table = "Locations",
-  link_key_column = "location_id",
-  lookup_columns = c("grts_address")
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
 )
 
 ```
@@ -626,6 +639,7 @@ fieldwork_calendar_columns <- c(
   "wait_3260",
   "wait_7220",
   "wait_floating",
+  "wait_obsolete_types",
   "is_frozen"
 )
 
@@ -684,7 +698,7 @@ Normally, all calendar entries from the `freeze` have already be removed, so the
 ```{r assemble-fieldwork-calendar-freeze}
 
 fieldwork_calendar_retained <- loceval_freeze %>%
-  select(!!!rlang::syms(c(fieldwork_calendar_columns, "done_planning"))) %>% 
+  select(tidyselect::any_of(c(fieldwork_calendar_columns, "done_planning"))) %>% 
   anti_join(
     fieldwork_calendar_updated,
     by = join_by(!!!rlang::syms(fieldcalendar_characols))
@@ -771,7 +785,7 @@ distribution <- categorize_data_update(
 )
 print_category_count(distribution, table_label)
 
-# distribution$changed
+# distribution$changed %>% head(3) %>% knitr::kable()
 # distribution$to_archive %>% filter(grts_address == 3202741) %>% t() %>% knitr::kable()
 # distribution$reactivate %>% filter(grts_address == 3202741) %>% t() %>% knitr::kable()
 ```

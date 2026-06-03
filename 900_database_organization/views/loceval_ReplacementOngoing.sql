@@ -1,47 +1,15 @@
-SELECT *
-FROM "outbound"."Replacements"
-WHERE grts_address = 190802
-;
-SELECT *
-FROM "inbound"."ReplacementOngoing"
-WHERE grts_address = 11561
-;
 
-SELECT
-  UNIT.grts_address,
-  UNIT.type,
-  UNIT.is_replaced,
-  UNIT.type_is_absent AS absent,
-  UNIT.replacement_ongoing,
-  REP.is_selected AS sel,
-  REP.replacement_rank AS nr,
-  ( UNIT.replacement_ongoing
-  AND NOT (UNIT.is_replaced OR UNIT.type_is_absent)
-  ) AS vis_by_ongoing,
-  ( REP.is_selected
-  ) AS vis_by_selection
-FROM "outbound"."Replacements" AS REP
-LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON UNIT.sampleunit_id = REP.sampleunit_id
-LEFT JOIN "outbound"."LocationInfos" AS INFO
-  ON UNIT.location_id = INFO.location_id
-WHERE
-  UNIT.grts_address = 11561
-;
+DROP VIEW "inbound"."ReplacementOngoing" CASCADE;
 
--- *for testing*
--- UPDATE "outbound"."SampleUnits"
--- SET replacement_ongoing = TRUE
--- WHERE sampleunit_id <= 42
--- ;
---
-
-DROP VIEW IF EXISTS  "inbound"."ReplacementOngoing" ;
-CREATE VIEW "inbound"."ReplacementOngoing" AS
+CREATE OR REPLACE VIEW "inbound"."ReplacementOngoing" AS
 SELECT
   REPU.*,
   VISIT.grts_address AS grts_parent,
   VISIT.notes AS unit_notes,
+  VISIT.issues,
+  VISIT.replacement_recovery_notes,
+  VISIT.gps_type,
+  VISIT.gps_accuracy_cm,
   VISIT.visit_id,
   VISIT.type_assessed,
   VISIT.photo,
@@ -55,14 +23,17 @@ LEFT JOIN (
     UNIT.location_id,
     UNIT.sampleunit_id,
     UNIT.grts_address,
+    UNIT.replacement_ongoing,
+    UNIT.replacement_reason,
+    UNIT.replacement_permanence,
+    UNIT.is_replaced,
+    UNIT.type_is_absent,
     REP.grts_address_replacement,
     REP.replacement_rank,
     REP.is_selected,
     REP.is_inappropriate,
     REP.implications_habitatmap,
     REP.type_suggested,
-    UNIT.is_replaced,
-    UNIT.type_is_absent,
     REP.notes AS rep_notes,
     INFO.locationinfo_id,
     INFO.accessibility_inaccessible,
@@ -92,14 +63,12 @@ WHERE TRUE
 ;
 
 
-DROP RULE IF EXISTS ReplacementOngoing_upd0 ON "inbound"."ReplacementOngoing";
-CREATE RULE ReplacementOngoing_upd0 AS
+CREATE OR REPLACE RULE ReplacementOngoing_upd_reset AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
 DO INSTEAD NOTHING
 ;
 
-DROP RULE IF EXISTS ReplacementOngoing_upd1 ON "inbound"."ReplacementOngoing";
-CREATE RULE ReplacementOngoing_upd1 AS
+CREATE OR REPLACE RULE ReplacementOngoing_upd_replacements AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
 DO ALSO
  UPDATE "outbound"."Replacements"
@@ -112,8 +81,7 @@ DO ALSO
  WHERE replacement_id = OLD.replacement_id
 ;
 
-DROP RULE IF EXISTS ReplacementOngoing_upd4 ON "inbound"."ReplacementOngoing";
-CREATE RULE ReplacementOngoing_upd4 AS
+CREATE OR REPLACE RULE ReplacementOngoing_upd_locationinfos AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
@@ -124,18 +92,20 @@ DO ALSO
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
-DROP RULE IF EXISTS ReplacementOngoing_upd3 ON "inbound"."ReplacementOngoing";
-CREATE RULE ReplacementOngoing_upd3 AS
+CREATE OR REPLACE RULE ReplacementOngoing_upd_sampleunits AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
 DO ALSO
  UPDATE "outbound"."SampleUnits"
  SET
+  replacement_ongoing = NEW.replacement_ongoing,
+  replacement_reason = NEW.replacement_reason,
+  replacement_permanence = NEW.replacement_permanence,
+  type_is_absent = NEW.type_is_absent,
   is_replaced = NEW.is_replaced
  WHERE sampleunit_id = OLD.sampleunit_id
 ;
 
-DROP RULE IF EXISTS ReplacementOngoing_upd2 ON "inbound"."ReplacementOngoing";
-CREATE RULE ReplacementOngoing_upd2 AS
+CREATE OR REPLACE RULE ReplacementOngoing_upd_visits AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
 DO ALSO
  UPDATE "inbound"."Visits"
@@ -143,6 +113,10 @@ DO ALSO
   type_assessed = NEW.type_assessed,
   notes = NEW.unit_notes,
   photo = NEW.photo,
+  issues = NEW.issues,
+  replacement_recovery_notes = NEW.replacement_recovery_notes,
+  gps_type = NEW.gps_type,
+  gps_accuracy_cm = NEW.gps_accuracy_cm,
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
