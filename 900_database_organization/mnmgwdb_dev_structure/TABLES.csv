@@ -25,4 +25,4 @@ inbound,PositioningVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_m
 inbound,InstallationRemovals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"logging removals of an installation, planned or by vandalism"
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
-archive,ReplacementData,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,storing info about replacements (temporary solution)
+archive,ReplacementData,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,storing info about replacements (from `mnmsyncdb`)

@@ -21,4 +21,4 @@ inbound,InstallationRemovals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"logging 
 outbound,MHQPolygons,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,MHQ sample areas NO TRESPASSING!
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
-archive,ReplacementData,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,storing info about local replacements (from loceval)
+archive,ReplacementData,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,storing info about replacements (from `mnmsyncdb`)
