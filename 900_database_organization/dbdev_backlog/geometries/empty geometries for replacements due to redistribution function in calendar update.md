@@ -55,7 +55,7 @@ locations_lookup <- update_cascade_lookup(
 (Also applied to loceval, just to make sure; but there should have been no empty geoms.)
 
 
-## **Core Issue** was in `111a_push_loceval_to_mnmgwdb.R`:
+## **Core Issue** was in `111_push_loceval_to_mnmgwdb.R`:
 
 + previously did not re-apply #grts_mh for upload of new replacements
 + fixed now by additional `add_point_coords_grts`

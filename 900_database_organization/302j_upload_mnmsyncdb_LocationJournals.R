@@ -60,7 +60,7 @@ for (sdb in sourcedb_labels) {
 # append-only: use distinct union set
 
 # NOTE: the primary upload of LoJos to syncdb
-#       is handled in script `111b_fill_location_journals.R`
+#       is handled in script `112_fill_location_journals.R`
 
 
 locationjournals_statusquo <- mnmsyncdb$query_table("LocationJournals") %>%

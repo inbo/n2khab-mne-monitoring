@@ -40,5 +40,5 @@ GRANT REVOKE ON "inbound"."FreeFieldNotes" TO user_loceval;
 (This was necessary because after revoking for all users, the groups were also missing.)
 
 ## batch permission modification
-... is available in `900_database_organization/119_sync_FreeFieldNotes.R`.
+... is available in `900_database_organization/110_sync_FreeFieldNotes.R`.
 Includes a `reg.finalizer` to restore permissions at any weird end of a ride.
