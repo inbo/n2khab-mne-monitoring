@@ -51,7 +51,7 @@ status: false
 		- added `is_surf_activity` for #alldatabases 
 		- pulled in status quo from #loceval due to [[structure/flag auxiliary FAGs|fag flag tag]]
 	- open [[N2kHabStrata table is inconsistently used across databases]]; in this scheme's database, #N2kHabStrata are used for the more extensive meta table
-	- #Replacements: queried directly from `gwTransfer`; [[consider adjusting the naming of gwTransfer view to LocevalTransfer because it also serves mnmsurfdb]]
+	- #Replacements: queried directly from `gwTransfer`; [[distribute loceval information via mnmsyncdb]]
 	- #Locations: worked almost as expected
 	- #SampleUnits: `scheme_ps_targetpanel` is doubled; must make [[hacks/functions to unify scheme_ps_targetpanels]]
 	- #FieldCalendar: 
@@ -64,7 +64,8 @@ status: false
 	       ```
 		- TODO: priority is not defined yet for part of the calendar; set to zero
 	- #Visits:
-		- 
+		- changed to visits interface and #OtherVisits
+	 - #LocationInfos, #LocationJournals and #FreeFieldNotes queried from #mnmsyncdb
 
 # major changes
 - rename to #FieldCalendar (no more work or activity implied)
@@ -86,6 +87,7 @@ status: false
 - realized that the cascade_upload functions in `702_upload_mnmsurfdb.R` already trigger `102_re_link_foreign_keys.R`, which therefore must be adjusted with priority
 
 # relevant other steps
+- [ ] TODO [[distribute loceval information via mnmsyncdb]]
 - [ ] new user #roles: `planner_surfdb`, `user_surfdb`; granted to the specific users
 - [ ] new entry in #TeamMembers: `all_surfers`
 - [ ] also add columns in #GroupedActivities to all other databases: `is_surf_activity`
@@ -93,7 +95,7 @@ status: false
 - [ ] adjust `Expost` queries for new table logic
 - [x] add cronjob for backups
 - [ ] adjust #views
-- [ ] rename `gwTransfer` to `LocevalTransfer` (on all databases) [[consider adjusting the naming of gwTransfer view to LocevalTransfer because it also serves mnmsurfdb]]
 - [ ] #MHQPolygons need not link to `sampleunit_id` #mnmgwdb 
 - [x] [[structure/add nolog columns to LocationJournals|add nolog columns to LocationJournals]]
 - [ ] review and adjust all scripts in categories `000_DOCUMENTATION` and `100_MAINTENANCE`
+- [ ] `update_landuse_in_locationinfos` -> works for new locations?

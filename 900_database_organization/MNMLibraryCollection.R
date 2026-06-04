@@ -44,8 +44,10 @@ database_interaction_libraries <- c(
   "glue",
   "here",
   "keyring",
+  "lubridate",
   "processx",
-  "sf"
+  "sf",
+  "tidyselect"
 )
 load_database_interaction_libraries <- function(
   ) load_libraries(database_interaction_libraries)

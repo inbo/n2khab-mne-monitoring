@@ -35,6 +35,7 @@ if (length(commandline_args) > 0) {
   # suffix <- "-staging" # "-testing"
 }
 # suffix <- "-staging"
+suffix <- "-dev"
 
 
 
@@ -50,7 +51,7 @@ message(glue::glue("\tconnected: psql {mnmsyncdb$shellstring}"))
 
 
 ## connect source databases
-sourcedb_labels <- c("loceval", "mnmgwdb") #, mnmsurfdb)
+sourcedb_labels <- c("loceval", "mnmgwdb", "mnmsurfdb")
 sourcedb_connections <- list()
 
 for (sdb in sourcedb_labels) {

@@ -12,6 +12,7 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./mnm_database_connection.conf")
 
 suffix <- "-dev"
+suffix_refs <- "" # TODO temporary reference to production
 mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
 
 mnmsurfdb <- connect_mnm_database(
@@ -26,11 +27,19 @@ update_cascade_lookup <- parametrize_cascaded_update(mnmsurfdb)
 # to also query latest data from loceval
 loceval_connection <- connect_mnm_database(
   config_filepath = config_filepath,
-  database = "loceval",
+  database = glue::glue("loceval{suffix_refs}"),
   user = "monkey",
   password = NA
 )
 
+
+# to also query latest data from mnmsyncdb
+mnmsyncdb_connection <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database = glue::glue("mnmsyncdb{suffix_refs}"),
+  user = "monkey",
+  password = NA
+)
 
 ## load REP data ---------------------------------------------------------------
 
@@ -56,6 +65,24 @@ if (nrow(different_checksums) > 0) {
 
 #_______________________________________________________________________________
 ####   Metadata   ##############################################################
+
+## Versions --------------------------------------------------------------------
+
+if (nrow(mnmsurfdb$query_table("Versions")) == 0) {
+
+  version_tag <- "mnmsurfdb initialization"
+  version_notes <- "REP + snippets update 0.16"
+  version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+  # version_date_fixing <- as.Date("2025-12-31")
+
+  version_id <- mnmsurfdb$tag_new_version(
+    new_version_tag = version_tag,
+    new_version_notes =  version_notes,
+    new_date_applied = version_date_applied
+    # new_date_fixing = version_date_fixing
+  )
+
+}
 
 ## upload teammembers ----------------------------------------------------------
 members <- read_csv(
@@ -267,6 +294,8 @@ n2khabstrata_lookup <- update_cascade_lookup(
 )
 
 
+#_______________________________________________________________________________
+####   Calendar   ##############################################################
 
 ## Replacements ----------------------------------------------------------------
 
@@ -842,9 +871,23 @@ mnmsurfdb$query_table("Visits") %>%
 # (all `archive_version_id`s should be zero at this point;
 #  no archive sync necessary)
 
+
+#_______________________________________________________________________________
+####   Auxiliaries   ###########################################################
+
+## landuse ---------------------------------------------------------------------
+
+# TODO check if new locations arise due to surfdb
+update_landuse_in_locationinfos(mnmsurfdb)
+
+
 ## LocationInfos ---------------------------------------------------------------
 
-stop("TODO - continue here: trigger re_sync")
+locationinfos_reference <- mnmsyncdb_connection$query_table("LocationInfos") %>%
+  select(tidyselect::any_of(
+    mnmsurfdb$load_table_info("LocationInfos") %>% pull(column)
+  )) %>%
+  select(-locationinfo_id)
 
 
 new_locinfos <- sample_units %>%
@@ -856,9 +899,17 @@ new_locinfos <- sample_units %>%
     log_creation = as.POSIXct(Sys.time()),
     log_user = "maintenance",
     log_update = as.POSIXct(Sys.time())
+  ) %>%
+  anti_join(
+    locationinfos_reference,
+    by = join_by(grts_address)
   )
 
-new_locinfos <- new_locinfos %>%
+
+new_locinfos <- bind_rows(
+    locationinfos_reference,
+    new_locinfos
+  ) %>%
   anti_join(
     mnmsurfdb$query_table("LocationInfos"),
     by = join_by(grts_address)
@@ -879,13 +930,44 @@ locationinfo_lookup <- update_cascade_lookup(
 )
 
 
-## landuse ---------------------------------------------------------------------
-
-# TODO check if new locations arise due to surfdb
-update_landuse_in_locationinfos(mnmsurfdb)
-
-
 ## location journals -----------------------------------------------------------
+lojo_characols <- c(
+  "grts_address",
+  "date",
+  "source",
+  "type_subset",
+  "activity_group_id"
+)
+
+locationjournal_reference <- mnmsyncdb_connection$query_table("LocationJournals") %>%
+  select(tidyselect::any_of(
+    mnmsurfdb$load_table_info("LocationJournals") %>% pull(column)
+  )) %>%
+  select(-locationjournal_id, -location_id)
+
+locationjournal_reference %>%
+  count(!!!rlang::syms(lojo_characols)) %>%
+  filter(n > 1) %>%
+  knitr::kable()
+
+locationjournal_lookup <- update_cascade_lookup(
+  table_label = "LocationJournals",
+  new_data = locationjournal_reference,
+  index_columns = c("locationjournal_id"),
+  characteristic_columns = lojo_characols,
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+## FreeFieldNotes --------------------------------------------------------------
+
+out <- processx::run(
+  "Rscript",
+  c("110_sync_FreeFieldNotes.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
+
 
 
 ## Done! -----------------------------------------------------------------------
@@ -897,7 +979,13 @@ message("________________________________________________________________")
 # In other scripts:
 # - LocationEvaluations
 # - CellMaps
+# - ReplacementData
 # - Coordinates
+# - MHQAreas
+#
+# Not Relevant (yet):
+# - InstallationRemovals
+# - FieldFollowUps
 
 
 stop("TODO: What else is there?")

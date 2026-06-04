@@ -12,6 +12,7 @@ tags:
 
 ```
 103_count_dbcontent.R
+110_sync_FreeFieldNotes.R
 111_push_loceval_to_mnmgwdb.R
 112_fill_location_journals.R
 113_update_facalendar.R
@@ -22,7 +23,6 @@ tags:
 117mnmgwdb_mhq_areas.R
 118_random_elevationpoints_mnmgwdb.R
 118_random_placementpoints_mnmgwdb.R
-119_sync_FreeFieldNotes.py
 ```
 
 tested on `-staging` prior to application (usually)
