@@ -8,7 +8,7 @@ panel_set,int,False,,False,False,,,,panel reference
 targetpanel,varchar,False,,False,False,,,,panel reference
 type,varchar(16),True,,False,False,,,,natura 2000 habitat (sub-)type short label
 grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
-type_assessed,varchar,False,NULL,False,False,,,,must be adjusted upstream in the POC; kept now for double-check
+type_assessed,varchar,False,NULL,False,False,,,,must be adjusted upstream in the REP; kept now for double-check
 type_is_absent,bool,False,,False,False,,,,target type not found in field assessment
 eval_source,varchar,False,,False,False,,,,`orthophoto` or `loceval`
 eval_name,varchar,True,,False,False,,,,(technical) user who modified the entry
