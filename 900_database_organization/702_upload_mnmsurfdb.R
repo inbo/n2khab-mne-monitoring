@@ -166,6 +166,7 @@ grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
 # grouped_activities %>%
 #   count(is_loceval_activity, is_gw_activity, is_surf_activity)
 
+
 ## upload grouped activities ---------------------------------------------------
 
 # protocol_latest <- protocol_lookup %>%

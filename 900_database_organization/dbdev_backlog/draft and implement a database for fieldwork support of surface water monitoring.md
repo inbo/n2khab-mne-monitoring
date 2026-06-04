@@ -41,11 +41,15 @@ status: false
 - download structure sheet (`_dev`)
 - make folders `mnmsurfdb_dev_structure`; add to `.gitignore`
 - copy `701_init_mnmsurfdb.py`, execute, and fix bugs
+- append `102_re_link_foreign_keys.R` as other scripts depend on it
+	- added #InstallationRemovals to `102_re_link_foreign_keys.R`
+	- added #MHQPolygons to `102_re_link_foreign_keys.R`
+	- not added #Coordinates to `102_re_link_foreign_keys.R`
 - work on `702_upload_mnmsurfdb.R`
-	- #Protocols: cf. `410_update_protocols.qmd`
+	- #Protocols: cf. `410_update_protocols.qmd` [[Visits need to be linked or tagged with Protocols versions]]
 	- #GroupedActivities: added `is_surf_activity` for #alldatabases 
 	- open [[N2kHabStrata table is inconsistently used across databases]]; in this scheme's database, #N2kHabStrata are used for the more extensive meta table
-	- #Replacements: queried directly from `gwTransfer`; [[consider adjusting the naming of gwTransfer view which also serves mnmsurfdb]]
+	- #Replacements: queried directly from `gwTransfer`; [[consider adjusting the naming of gwTransfer view to LocevalTransfer because it also serves mnmsurfdb]]
 	- #Locations: worked almost as expected
 	- #SampleUnits: `scheme_ps_targetpanel` is doubled; must make [[hacks/functions to unify scheme_ps_targetpanels]]
 	- #FieldCalendar: 
@@ -75,13 +79,16 @@ status: false
     );
     ```
 - removed `SSPSTaPas` and references via `sspstapa_id`, which are bound for overhaul anyways
+- realized that the cascade_upload functions in `702_upload_mnmsurfdb.R` already trigger `102_re_link_foreign_keys.R`, which therefore must be adjusted with priority
 
 # relevant other steps
-- new user #roles: `planner_surfdb`, `user_surfdb`; granted to the specific users
-- new entry in #TeamMembers: `all_surfers`
-- also add columns in #GroupedActivities to all other databases: `is_surf_activity`
-- `SampleLocations` are more usefully labeled #SampleUnits
-- adjust `Expost` queries for new table logic
-- add cronjob for backups
-- adjust #views
-- rename `gwTransfer` to `LocevalTransfer`
+- [ ] new user #roles: `planner_surfdb`, `user_surfdb`; granted to the specific users
+- [ ] new entry in #TeamMembers: `all_surfers`
+- [ ] also add columns in #GroupedActivities to all other databases: `is_surf_activity`
+- [x] `SampleLocations` are more usefully labeled #SampleUnits / *cf.* [[consistent table and field names across databases]]
+- [ ] adjust `Expost` queries for new table logic
+- [x] add cronjob for backups
+- [ ] adjust #views
+- [ ] rename `gwTransfer` to `LocevalTransfer` (on all databases) [[consider adjusting the naming of gwTransfer view to LocevalTransfer because it also serves mnmsurfdb]]
+- [ ] #MHQPolygons need not link to `sampleunit_id` #mnmgwdb 
+- [x] [[structure/add nolog columns to LocationJournals|add nolog columns to LocationJournals]]
