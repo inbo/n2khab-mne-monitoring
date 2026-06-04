@@ -175,10 +175,12 @@ grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
 #   dplyr::slice_max(as.numeric(as.factor(protocol_version)))
 # grouped_activities %>% distinct(protocol)
 
-
+# to find the correct fag auxiliary/preponable flags, it is efficient to
+# just copy over info from `loceval`.
+# This stems from `loceval`, except for `protocol_id`.
 protocol_refs <- loceval_connection$query_table("GroupedActivities") %>%
-  filter(!is.na(protocol_id)) %>%
-  distinct(activity_group, protocol_id, fag_is_auxiliary, fag_is_preponable) %>%
+  filter_out(is.na(protocol_id)) %>%
+  distinct(activity_group, protocol_id) %>%
   left_join(
     loceval_connection$query_columns(
       "Protocols",
@@ -194,6 +196,8 @@ protocol_refs <- loceval_connection$query_table("GroupedActivities") %>%
   ) %>%
   select(activity_group, protocol_id)
 
+
+# protocol info and fag attributes are joined
 grouped_activities_upload <- grouped_activities %>%
   left_join(
     protocol_refs,
@@ -317,7 +321,7 @@ sample_unit_columns <- c(
   "is_replacement"
 )
 
-sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
+sample_units <- fag_stratum_grts_calendar_shortterm_attribs %>%
   rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
   # only retain the activities for this scheme
   # otherwise there are duplicates (schemes filled differently on LOCEVAL)
@@ -344,26 +348,6 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
       domain_part
     ), as.character)
   )
-
-# sample_units_updated %>%
-#   distinct(scheme_ps_targetpanels) %>%
-#   print(n=Inf)
-
-
-# FREEZE: not applicable for novel database
-#
-# sample_units_retained <- mnmsurfdb_freeze %>%
-#   distinct(!!!rlang::syms(sample_unit_columns)) %>%
-#   anti_join(
-#     sample_units_updated,
-#     by = join_by(grts_address, strata)
-#   )
-
-
-sample_units <- bind_rows(
-  # sample_units_retained,
-  sample_units_updated
-)
 
 
 
@@ -540,21 +524,23 @@ sampleunits_lookup <- update_cascade_lookup(
 
 ## Field Calendar --------------------------------------------------------------
 
+# all technical fields, plus non-null user entry
 fieldcalendar_columns <- c(
+  "sampleunit_id",
   "grts_address",
   "stratum",
-  "sampleunit_id",
   "activity_group_id",
-  "activity_rank",
   "date_start",
   "date_end",
   "date_interval",
+  "activity_rank",
   "priority",
   "wait_any",
   "wait_watersurface",
   "wait_3260",
   "wait_7220",
   "wait_floating",
+  "wait_obsolete_types",
   "is_sideloaded",
   "is_frozen",
   "excluded",
@@ -579,7 +565,6 @@ activity_groupid_lookup <- mnmsurfdb$query_columns(
 fieldcalendar_upload <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
   apply_local_replacement_to_grts() %>%
-  # rename(type = stratum) %>%
   inner_join(
     sampleunits_lookup,
     by = join_by(grts_address, stratum),
@@ -668,7 +653,7 @@ fieldcalendar_new <- bind_rows(
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = lubridate::floor_date(as.POSIXct(Sys.time()), unit = "second"),
   )
 
 stitch_table_connection(
@@ -713,7 +698,7 @@ fieldcalendar_new <- bind_rows(
 # There be duplicates. What a great start for a database.
 fieldcalendar_new %>%
   count(!!!rlang::syms(fieldcalendar_characols)) %>%
-  filter(n>1) %>%
+  filter(n > 1) %>%
   arrange(desc(n))
 
 fieldcalendar_new %<>%
@@ -845,10 +830,22 @@ other_visits_lookup <- upload_and_lookup(
 )
 
 
-# TODO: stitch, sync fieldcal/visit archives
 
+mnmsurfdb$query_table("Visits") %>%
+  count(
+    is.na(location_id),
+    is.na(sampleunit_id),
+    is.na(fieldcalendar_id)
+  ) %>%
+  knitr::kable()
+
+# (all `archive_version_id`s should be zero at this point;
+#  no archive sync necessary)
 
 ## LocationInfos ---------------------------------------------------------------
+
+stop("TODO - continue here: trigger re_sync")
+
 
 new_locinfos <- sample_units %>%
   distinct(

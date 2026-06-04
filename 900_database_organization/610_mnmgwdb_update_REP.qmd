@@ -523,8 +523,10 @@ locations <- locations_grts_collection %>%
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
-# TODO directly update locations?
-stop("location update not clear (merge conflict 20260603)")
+# DONE directly update locations?
+# stop("location update not clear (merge conflict 20260603)")
+# -> in accordance with `510_loceval_update_REP.qmd`,
+#    update_cascade_lookup should do fine
 
 ### 20260511 testing direct write
 #       upload_data <- sf::st_as_sf(locations)

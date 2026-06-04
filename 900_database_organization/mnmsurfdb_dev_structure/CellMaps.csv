@@ -1,9 +1,9 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 cellmap_id,int,True,,True,True,,,,cellmap polygon index
 log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
-log_creation,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of creation
+log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
-log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
+log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
 label,varchar,False,NULL,False,False,,,,short label to classify the polygon (optional)
 type,varchar,True,,False,False,,,,type (code) of this polygon
 location,varchar,False,NULL,False,False,,,,free reference to the location (database id or grts address)

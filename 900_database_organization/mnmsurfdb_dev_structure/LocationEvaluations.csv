@@ -2,7 +2,7 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 locationevaluation_id,int,True,,True,True,,,,calendar index (technical)
 sampleunit_id,int,False,,False,False,,,,the technical sequence of sample locations
 log_user,varchar,False,,False,False,,,,"(technical, but NOT auto-created in this db) user who modified the entry"
-log_update,timestamp,False,,False,False,,,,"(technical, but NOT auto-created in this db) timestamp of last modification"
+log_update,timestamp(3),False,,False,False,,,,"(technical, but NOT auto-created in this db) timestamp of last modification"
 schemes,varchar,True,,False,False,,,,monitoring scheme
 panel_set,int,False,,False,False,,,,panel reference
 targetpanel,varchar,False,,False,False,,,,panel reference

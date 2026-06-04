@@ -161,7 +161,7 @@ round_creation_date_obsolete <- function(tbl) {
   # find this less likely.
   tbl %>%
     dplyr::mutate(
-      log_creation = lubridate::round_date(log_creation, "milliseconds")
+      log_creation = lubridate::round_date(log_creation, "second")
     ) %>%
     return()
 }

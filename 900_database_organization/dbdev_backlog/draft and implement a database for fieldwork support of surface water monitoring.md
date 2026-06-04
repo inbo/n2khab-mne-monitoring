@@ -45,9 +45,11 @@ status: false
 	- added #InstallationRemovals to `102_re_link_foreign_keys.R`
 	- added #MHQPolygons to `102_re_link_foreign_keys.R`
 	- not added #Coordinates to `102_re_link_foreign_keys.R`
-- work on `702_upload_mnmsurfdb.R`
+- work on `702_upload_mnmsurfdb.R` (following `610_mnmgwdb_update_REP.qmd`)
 	- #Protocols: cf. `410_update_protocols.qmd` [[Visits need to be linked or tagged with Protocols versions]]
-	- #GroupedActivities: added `is_surf_activity` for #alldatabases 
+	- #GroupedActivities: 
+		- added `is_surf_activity` for #alldatabases 
+		- pulled in status quo from #loceval due to [[structure/flag auxiliary FAGs|fag flag tag]]
 	- open [[N2kHabStrata table is inconsistently used across databases]]; in this scheme's database, #N2kHabStrata are used for the more extensive meta table
 	- #Replacements: queried directly from `gwTransfer`; [[consider adjusting the naming of gwTransfer view to LocevalTransfer because it also serves mnmsurfdb]]
 	- #Locations: worked almost as expected
@@ -61,6 +63,8 @@ status: false
              # filter( grts_address_final == 22021842, stratum == "3110_0_1", date_start == as.Date("2026-04-01") )
 	       ```
 		- TODO: priority is not defined yet for part of the calendar; set to zero
+	- #Visits:
+		- 
 
 # major changes
 - rename to #FieldCalendar (no more work or activity implied)
@@ -78,7 +82,7 @@ status: false
       'SURFLEVREADDIVER', 'SURFLOTDATACOLL', 'SURFLOTLOCEVALSAMPLPOINT'
     );
     ```
-- removed `SSPSTaPas` and references via `sspstapa_id`, which are bound for overhaul anyways
+- removed `SSPSTaPas` and references via `sspstapa_id`, which [[overhaul or remove SSPSTaPas and FieldCalendar sspstapa_id from mnmgwdb|are bound for overhaul anyways]]
 - realized that the cascade_upload functions in `702_upload_mnmsurfdb.R` already trigger `102_re_link_foreign_keys.R`, which therefore must be adjusted with priority
 
 # relevant other steps
@@ -92,3 +96,4 @@ status: false
 - [ ] rename `gwTransfer` to `LocevalTransfer` (on all databases) [[consider adjusting the naming of gwTransfer view to LocevalTransfer because it also serves mnmsurfdb]]
 - [ ] #MHQPolygons need not link to `sampleunit_id` #mnmgwdb 
 - [x] [[structure/add nolog columns to LocationJournals|add nolog columns to LocationJournals]]
+- [ ] review and adjust all scripts in categories `000_DOCUMENTATION` and `100_MAINTENANCE`

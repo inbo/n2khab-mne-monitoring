@@ -22,7 +22,6 @@ if (length(commandline_args) > 0) {
   mirror <- ""
   # mirror <- "-staging" # "-testing"
 }
-mirror <- "-dev"
 
 
 #_______________________________________________________________________________
@@ -352,7 +351,8 @@ stitch_table_connection(
   table_label = "LocationEvaluations",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type")
+  lookup_columns = c("grts_address", "type"),
+  reference_mod = function(x) if (x == "type") {"stratum"} else {x}
 )
 
 
@@ -439,7 +439,7 @@ UPDATE {trgtab} AS TRGTAB
     new_sampleunit_id = SRCTAB.sampleunit_id
   FROM {srctab} AS SRCTAB
   WHERE
-   (TRGTAB.grts_address = SRCTAB.grts_address)
+   (TRGTAB.grts_address_replacement = SRCTAB.grts_address)
    AND (TRGTAB.type = SRCTAB.stratum)
 ;")
 
