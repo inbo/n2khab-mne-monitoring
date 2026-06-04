@@ -181,20 +181,13 @@ grouped_activities <- grouped_activities %>%
 # glimpse(grouped_activities)
 
 # tag activities for biotic location evaluation
-grouped_activities <- grouped_activities %>%
-  mutate(
-    is_loceval_activity =
-      activity_group %in% c(
-        "LOCEVALAQ",
-        "LOCEVALTERR",
-        "LSVIAQ",
-        "LSVITERR",
-        "SURFLENTLOCEVALSAMPLPOINT",
-        "SURFLOTLOCEVALSAMPLPOINT",
-        "SURFLENTSAMPLPOINT",
-        "SURFLOTSAMPLPOINT"
-        )
-  )
+source(here::here(
+  "metadata",
+  "associate_grouped_activities_with_fieldtaskforces.R"
+))
+
+grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
+
 #    , wrong_loceval_activity =
 #       activity %in% c(
 #         "LOCEVALAQ",

@@ -155,55 +155,16 @@ grouped_activities <- grouped_activities %>%
 
 # SELECT DISTINCT activity_group FROM "metadata"."GroupedActivities" WHERE is_gw_activity;
 
-# tag activities for groundwater monitoring
-grouped_activities <- grouped_activities %>%
-  mutate(
-    is_loceval_activity = activity_group %in% c(
-      "LOCEVALAQ",
-      "LOCEVALTERR",
-      "LSVIAQ",
-      "LSVITERR",
-      "SURFLENTLOCEVALSAMPLPOINT",
-      "SURFLOTLOCEVALSAMPLPOINT"
-    ),
-    is_gw_activity = activity_group %in% c(
-      "GWINSTWELLDIVER",
-      "GWINSTPIEZNODIVER",
-      "GWINSTPIEZWELL",
-      "GWINSTWELLDIVERDEEP",
-      "GWLEVREADDIVER",
-      "GWLEVREADDIVERMAN",
-      "GWLEVREADDIVERDEEP",
-      "GWSHALLCLEAN",
-      "GWSHALLSAMP",
-      "GWSHALLSAMPREADMAN",
-      "GWSURFLEVREADDIVERMAN",
-      "GWSURFSHALLSAMPREADMAN",
-      "SPATPOSITPIPE",
-      "SPATPOSITGAUGE",
-      "ADHOCDIVERREPLACE",
-      "ADHOCPIPEREPLACE"
-    ),
-    is_surf_activity = activity_group %in% c(
-      "ADHOCDIVERREPLACE",
-      "ADHOCPIPEREPLACE",
-      "GWSURFINSTALLMAT",
-      "GWSURFLEVREADDIVERMAN",
-      "GWSURFSHALLSAMPREADMAN",
-      "SPATPOSITGAUGE",
-      "SPATPOSITPIPE",
-      "SURFADHOCGAUGEREPLACE",
-      "SURFINSTGAUGE",
-      "SURFINSTWELLDIVER",
-      "SURFLENTDATACOLL",
-        "SURFLENTLOCEVALSAMPLPOINT",
-      "SURFLEVREADDIVER",
-      "SURFLOTDATACOLL",
-        "SURFLOTLOCEVALSAMPLPOINT"
-    )
-  )
+# tag activities for the different monitoring taskforces
+source(here::here(
+  "metadata",
+  "associate_grouped_activities_with_fieldtaskforces.R"
+))
 
+grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
 
+# grouped_activities %>%
+#   count(is_loceval_activity, is_gw_activity, is_surf_activity)
 
 ## upload grouped activities ---------------------------------------------------
 
