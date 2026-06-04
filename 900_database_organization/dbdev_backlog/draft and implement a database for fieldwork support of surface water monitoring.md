@@ -1,6 +1,7 @@
 ---
 aliases:
   - draft mnmsurfdb
+  - draft and implement mnmsurfdb
 tags:
   - mnmsurfdb
   - initialization
@@ -42,9 +43,9 @@ status: false
 - copy `701_init_mnmsurfdb.py`, execute, and fix bugs
 - work on `702_upload_mnmsurfdb.R`
 	- #Protocols: cf. `410_update_protocols.qmd`
-	- #GroupedActivities: added `is_surf_activity` for all databases
-	- #N2kHabStrata: found that this is confusingly used with different meaning in #locevaldb (lookup types -> strata which makes some sense but the naming is subideal); in this scheme's database, this is used for the more extensive meta table
-	- #Replacements: queried directly from `gwTransfer`
+	- #GroupedActivities: added `is_surf_activity` for #alldatabases 
+	- open [[N2kHabStrata table is inconsistently used across databases]]; in this scheme's database, #N2kHabStrata are used for the more extensive meta table
+	- #Replacements: queried directly from `gwTransfer`; [[consider adjusting the naming of gwTransfer view which also serves mnmsurfdb]]
 	- #Locations: worked almost as expected
 	- #SampleUnits: `scheme_ps_targetpanel` is doubled; must make [[hacks/functions to unify scheme_ps_targetpanels]]
 	- #FieldCalendar: 
@@ -55,7 +56,7 @@ status: false
              # filter( grts_address_final == 22021842, stratum == "3110_0_1", date_start == as.Date("2026-10-01") )
              # filter( grts_address_final == 22021842, stratum == "3110_0_1", date_start == as.Date("2026-04-01") )
 	       ```
-		- TODO: priority is not defined for part of the calendar; set to zero
+		- TODO: priority is not defined yet for part of the calendar; set to zero
 
 # major changes
 - rename to #FieldCalendar (no more work or activity implied)
