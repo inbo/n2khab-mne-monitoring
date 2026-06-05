@@ -16,7 +16,7 @@ status: false
 - part I: #ReplacementData 
 - part II: #LocationEvaluations 
 
-## Notes
+## migration plan
 - new schema `transfer` in mnmsyncdb
 - exapt `is_replaced` (*triv.*):
 	- `is_replaced` column was trivially `TRUE` due to a filter in R `111_distribute_loceval_via_mnmsyncdb.R` 
@@ -26,7 +26,8 @@ status: false
 	- `loceval_date` for uniqueness in case of repeated visits
 	- `is_latest_replacement` as indication of the most relevant replacement
 
-## steps
+## structure
+### steps
 - on #mnmsyncdb: 
 	- add schema `transfer`
 	 - create table and derivatives
@@ -43,9 +44,7 @@ status: false
 	- purpose 2: distribute from sync to other user databases
 		- column to fill upon distribution: `samplelocation_id`
 
-## code
-
-### mnmsyncdb
+### code mnmsyncdb
 ```sql
 -- create schema
 DROP SCHEMA IF EXISTS "transfer" CASCADE;
@@ -105,7 +104,7 @@ GRANT SELECT ON "transfer"."ReplacementData" TO viewer_mnmdb;
 ```
 
 
-### mnmgwdb
+### code mnmgwdb
 ```sql
 DROP SCHEMA IF EXISTS "transfer" CASCADE;
 CREATE SCHEMA "transfer";
@@ -139,7 +138,7 @@ ALTER TABLE "transfer"."ReplacementData" RENAME new_samplelocation_id TO samplel
 ```
 
 
-## archive
+### archive
 historic structure of #ReplacementData:
 ```sql
 mnmgwdb=> \d "archive"."ReplacementData"
@@ -157,3 +156,14 @@ mnmgwdb=> \d "archive"."ReplacementData"
 Indexes:
     "ReplacementData_pkey" PRIMARY KEY, btree (replacementdata_id)
 ```
+
+## tooling / R code
+- [x] reflect changes in `102_re_link_foreign_keys.R`
+- [ ] work on `111_distribute_loceval_via_mnmsyncdb.R`
+	- [x] rename
+	- [x] two step procedure: (i) `loceval` -> `mnmsyncdb`; (ii) `mnmsyncdb` -> *effectors*
+	- [x] (i) `loceval` -> `mnmsyncdb`
+	- [ ] (ii) mnmsyncdb -> *effectors* (following previous, but functionalized and repeated)
+		- [ ] create new Locations and SampleUnits
+		- [ ] shift `grts_address` in all tables?
+- [ ] {?} are there other scripts affected?

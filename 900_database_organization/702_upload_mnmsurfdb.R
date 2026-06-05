@@ -11,8 +11,8 @@ source("MNMDatabaseToolbox.R")
 ## database connection ---------------------------------------------------------
 config_filepath <- file.path("./mnm_database_connection.conf")
 
-suffix <- "-dev"
-suffix_refs <- "" # TODO temporary reference to production
+suffix <- "-staging"
+suffix_refs <- "-staging" # TODO temporary reference to production
 mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
 
 mnmsurfdb <- connect_mnm_database(
@@ -943,7 +943,7 @@ locationjournal_reference <- mnmsyncdb_connection$query_table("LocationJournals"
   select(tidyselect::any_of(
     mnmsurfdb$load_table_info("LocationJournals") %>% pull(column)
   )) %>%
-  select(-locationjournal_id, -location_id)
+  select(-locationjournal_id)# , -location_id)
 
 locationjournal_reference %>%
   count(!!!rlang::syms(lojo_characols)) %>%

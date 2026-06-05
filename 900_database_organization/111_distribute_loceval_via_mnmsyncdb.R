@@ -8,11 +8,18 @@ source("MNMDatabaseToolbox.R")
 
 
 # connect to the databases:
-# - mnmgwdb (chosen mirror)
-# - loceval (production, read-only)
+# - loceval (production, read-only) = the source
+# - mnmsyncdb (chosen mirror) = the central broadcaster
+# - mnmgwdb, mnmsurfdb (chosen mirror) = the receiver
+#
+# This should and will be split into two separate scripts.
+
+
+### Part 1: loceval -> mnmsyncdb
+
 config_filepath <- file.path("./mnm_database_connection.conf")
 
-database_label <- "mnmgwdb"
+database_label <- "mnmsyncdb"
 
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {
@@ -21,29 +28,16 @@ if (length(commandline_args) > 0) {
   suffix <- ""
   # suffix <- "-staging" # "-testing"
 }
-# suffix <- "-staging"
+suffix <- "-staging"
 
 
 message("________________________________________________________________")
-message(glue::glue(" <<<<< Transferring `loceval{suffix}` to `mnmgwdb{suffix}`. "))
+message(glue::glue(" <<<<< Transferring `loceval{suffix}` to `mnmsyncdb{suffix}`. "))
 
 
-### connect to database
-mnmgwdb <- connect_mnm_database(
-  config_filepath,
-  database_mirror = glue::glue("{database_label}{suffix}")
-)
-# keyring::keyring_delete(keyring = "mnmdb_temp")
+### connect to databases
 
-message(mnmgwdb$shellstring)
-
-# parametrize cascaded update function
-update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
-
-
-
-# also connect loceval
-
+# source: connect loceval
 loceval_connection <- connect_mnm_database(
   config_filepath = config_filepath,
   database = glue::glue("loceval{suffix}"),
@@ -52,60 +46,121 @@ loceval_connection <- connect_mnm_database(
 )
 
 
+# intermediate destination:
+mnmsyncdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = glue::glue("{database_label}{suffix}")
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(mnmsyncdb$shellstring)
+
+# parametrize cascaded update function
+update_cascade_lookup_syncdb <- parametrize_cascaded_update(mnmsyncdb)
+
+
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### load loceval local replacements
 #///////////////////////////////////////////////////////////////////////////////
 
-# re-link loceval
-if (FALSE) {
-  # ☇ monkey permissions
-  stitch_table_connection(
-    mnmdb = loceval_connection,
-    table_label = "Replacements",
-    reference_table = "SampleUnits",
-    link_key_column = "sampleunit_id",
-    lookup_columns = c("grts_address", "type"),
-  )
-} else {
-  keyring <- "mnmdb_temp"
-  if (keyring::keyring_is_locked(keyring)) unlock_keyring(keyring_label = keyring)
-
-  out <- processx::run(
-    "Rscript",
-    c("102_re_link_foreign_keys.R", suffix),
-    spinner = TRUE
-  )
-}
-
-# load the raw replacements
+### load the raw replacements
 replacements_raw <- loceval_connection$query_table("Replacements") %>%
   filter(is_selected, !is_inappropriate) %>%
   select(
-    grts_address,
+    grts_address_original = grts_address,
     type,
-    sampleunit_id,
     grts_address_replacement,
-    replacement_rank,
-    notes,
-    wkb_geometry
+    replacement_rank
   )
 
-# join location and sampleunit info from `locevaldb`
-replacement_data <- replacements_raw %>%
-  inner_join(
-    loceval_connection$query_table("Locations"),
-    by = join_by(grts_address),
-    suffix = c("_repl", "_loc_loceval")
+# replacements_raw %>%
+#   filter(grts_address_original == 3662038) %>%
+#   t() %>% knitr::kable()
+
+### get the `loceval_date`
+# NOTE: we currently assume that there was only one replacement, and
+#       that that replacement is the latest and accurate reference.
+
+loceval_visits <- loceval_connection$query_table("Visits") %>%
+  filter(visit_done) %>%
+  semi_join(
+    replacements_raw,
+    by = join_by(
+      grts_address == grts_address_original,
+      type
+    )
   ) %>%
-  left_join(
-    loceval_connection$query_table("SampleUnits"),
-    by = join_by(grts_address, type),
-    suffix = c("", "_unit_loceval")
+  select(
+    grts_address_original = grts_address,
+    type,
+    date_visit,
+    log_user,
+    log_update
   )
 
-# NOTE: this still has both geometries
-# NOTE: these are the id's from `locevaldb`
+na_visit_dates <- loceval_visits %>%
+  filter(
+    is.na(date_visit),
+    log_update < as.Date('2026-06-01')
+  )  %>%
+  mutate(date_visit = as.Date('2024-12-24'))
+
+n_datemissers <- nrow(na_visit_dates)
+if (n_datemissers > 0) {
+  message(glue::glue(
+    "\t[!!!] Heads up: there are {n_datemissers} locevals without a date_visit."
+  ))
+}
+
+loceval_dates <- loceval_visits %>%
+  filter_out(is.na(date_visit)) %>%
+  select(grts_address_original, type, date_visit)
+
+duplicate_check <- loceval_dates %>%
+  count(grts_address_original, type) %>%
+  filter(n > 1)
+
+if (nrow(duplicate_check) > 0) {
+  duplicate_check %>% knitr::kable()
+  stop("A location was replaced twice by `loceval`.")
+}
+
+replacementdata_upload <- replacements_raw %>%
+  left_join(
+    loceval_dates,
+    by = join_by(grts_address_original, type),
+    relationship = "one-to-one"
+  ) %>%
+  rename(loceval_date = date_visit) %>%
+  mutate(is_latest_replacement = TRUE)
+
+
+update_cascade_lookup_syncdb(
+  table_label = "ReplacementData",
+  new_data = replacementdata_upload,
+  index_columns = c("replacementdata_id"),
+  characteristic_columns = c("grts_address_original", "type", "grts_address_replacement"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+
+
+# # join location and sampleunit info from `locevaldb`
+# replacement_data <- replacements_raw %>%
+#   inner_join(
+#     loceval_connection$query_table("Locations"),
+#     by = join_by(grts_address),
+#     suffix = c("_repl", "_loc_loceval")
+#   ) %>%
+#   left_join(
+#     loceval_connection$query_table("SampleUnits"),
+#     by = join_by(grts_address, type),
+#     suffix = c("", "_unit_loceval")
+#   )
+#
+# # NOTE: this still has both geometries
+# # NOTE: these are the id's from `locevaldb`
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
