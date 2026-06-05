@@ -276,7 +276,7 @@ UPDATE {trgtab} AS TRGTAB
     samplelocation_id = SRCTAB.samplelocation_id
   FROM {srctab} AS SRCTAB
   WHERE
-   (TRGTAB.grts_address = SRCTAB.grts_address)
+   (TRGTAB.grts_address_replacement = SRCTAB.grts_address)
    AND (TRGTAB.type = SRCTAB.strata)
 ;")
 
