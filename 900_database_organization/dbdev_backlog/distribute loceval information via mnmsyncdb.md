@@ -164,6 +164,8 @@ Indexes:
 	- [x] two step procedure: (i) `loceval` -> `mnmsyncdb`; (ii) `mnmsyncdb` -> *effectors*
 	- [x] (i) `loceval` -> `mnmsyncdb`
 	- [ ] (ii) mnmsyncdb -> *effectors* (following previous, but functionalized and repeated)
+		- [ ] forward ReplacementData
 		- [ ] create new Locations and SampleUnits
-		- [ ] shift `grts_address` in all tables?
+		- [ ] shift `grts_address` in all tables
+		- [ ] also push `LocationEvaluations` and `CellMaps`
 - [ ] {?} are there other scripts affected?

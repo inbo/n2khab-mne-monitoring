@@ -7,15 +7,38 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 
+
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### a tiny bit of REP data...
+#///////////////////////////////////////////////////////////////////////////////
+# (required for novel locations which appear via local replacement)
+
+require("terra") %>% suppressPackageStartupMessages()
+
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# TEMPORARY adjustment pointing to adjacent branch (wip)
+# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+source(file.path(snippet_base_path, "020_fieldwork_organization", "R", "grts.R"))
+# source(file.path(snippet_base_path, "020_fieldwork_organization", "R", "grts_mh.R"))
+
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = terra::values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+
+
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### connect to databases
+#///////////////////////////////////////////////////////////////////////////////
 # connect to the databases:
 # - loceval (production, read-only) = the source
-# - mnmsyncdb (chosen mirror) = the central broadcaster
-# - mnmgwdb, mnmsurfdb (chosen mirror) = the receiver
-#
-# This should and will be split into two separate scripts.
+# - mnmsyncdb (chosen mirror) = the central broadcaster ("syncdb")
+# - mnmgwdb, mnmsurfdb (chosen mirror) = the receiver ("userdb")
 
-
-### Part 1: loceval -> mnmsyncdb
 
 config_filepath <- file.path("./mnm_database_connection.conf")
 
@@ -31,13 +54,7 @@ if (length(commandline_args) > 0) {
 suffix <- "-staging"
 
 
-message("________________________________________________________________")
-message(glue::glue(" <<<<< Transferring `loceval{suffix}` to `mnmsyncdb{suffix}`. "))
-
-
-### connect to databases
-
-# source: connect loceval
+# source: loceval
 loceval_connection <- connect_mnm_database(
   config_filepath = config_filepath,
   database = glue::glue("loceval{suffix}"),
@@ -46,7 +63,7 @@ loceval_connection <- connect_mnm_database(
 )
 
 
-# intermediate destination:
+# intermediate destination: syncdb
 mnmsyncdb <- connect_mnm_database(
   config_filepath,
   database_mirror = glue::glue("{database_label}{suffix}")
@@ -60,9 +77,28 @@ update_cascade_lookup_syncdb <- parametrize_cascaded_update(mnmsyncdb)
 
 
 
+## connect userdb databases
+userdb_labels <- c("mnmgwdb", "mnmsurfdb")
+userdb_connections <- list()
+
+for (udbx in userdb_labels) {
+  userdb_connections[[udbx]] <- connect_mnm_database(
+    config_filepath = config_filepath,
+    database = glue::glue("{udbx}{suffix}")
+  )
+  message(glue::glue("\tconnected: psql {userdb_connections[[udbx]]$shellstring}"))
+
+}
+
+
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### load loceval local replacements
 #///////////////////////////////////////////////////////////////////////////////
+### Part 1: loceval -> mnmsyncdb
+
+message("________________________________________________________________")
+message(glue::glue(" <<<<< Transferring `loceval{suffix}` to `mnmsyncdb{suffix}`. "))
+
 
 ### load the raw replacements
 replacements_raw <- loceval_connection$query_table("Replacements") %>%
@@ -164,11 +200,47 @@ update_cascade_lookup_syncdb(
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-#### prepare locations
+#### distribute replacements to effector databases
 #///////////////////////////////////////////////////////////////////////////////
+### Part 2: mnmsyncdb -> {mnmgwdb, mnmsurfdb}
+
+## general data
+replacement_data <- mnmsyncdb$query_table("ReplacementData") %>%
+  select(-replacementdata_id)
+
+sampleunit_tablelabels <- c(
+  "mnmgwdb" = "SampleLocations",
+  "mnmsurfdb" = "SampleUnits"
+)
+
+sampleunit_indices <- c(
+  "mnmgwdb" = "samplelocation_id",
+  "mnmsurfdb" = "sampleunit_id"
+)
+
+sampleunit_typecolumns <- c(
+  "mnmgwdb" = "strata",
+  "mnmsurfdb" = "stratum"
+)
+
+# udb <- "mnmgwdb"
+
+distribute_replacementdata_to_userdatabases <- function(udb) {
+
+message("________________________________________________________________")
+message(glue::glue(" <<< Transferring `mnmsyncdb{suffix}` to `{udb}{suffix}`. "))
+
+
+mnmdb <- userdb_connections[[udb]]
+update_cascade_lookup_userdb <- parametrize_cascaded_update(mnmdb)
+
+su_tablab <- sampleunit_tablelabels[[udb]]
+su_idx <- sampleunit_indices[[udb]]
+su_type <- sampleunit_typecolumns[[udb]]
+
 
 # load locations status quo
-existing_locations <- mnmgwdb$query_table("Locations")
+existing_locations <- mnmdb$query_table("Locations")
 # existing_locations <- existing_locations %>%
 #   filter(grts_address != 1286278, grts_address != 18063494) # testing a local replacement
 
@@ -180,26 +252,9 @@ new_locations <- replacement_data %>%
   )
 
 # upload new locations
-locations_grts_collection <- new_locations %>% # replacement_data  %>% #
+locations_grts_collection <- new_locations %>%
   sf::st_drop_geometry() %>%
   select(grts_address = grts_address_replacement)
-
-
-snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
-# # TEMPORARY adjustment pointing to adjacent branch (wip)
-# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
-
-require("terra")
-source(file.path(snippet_base_path, "020_fieldwork_organization", "R", "grts.R"))
-# source(file.path(snippet_base_path, "020_fieldwork_organization", "R", "grts_mh.R"))
-
-grts_mh <- n2khab::read_GRTSmh()
-
-grts_mh_index <- dplyr::tibble(
-    id = seq_len(terra::ncell(grts_mh)),
-    grts_address = terra::values(grts_mh)[, 1]
-  ) %>%
-  dplyr::filter(!is.na(grts_address))
 
 
 locations_upload <- locations_grts_collection %>%
@@ -212,7 +267,7 @@ locations_upload <- locations_grts_collection %>%
 sf::st_geometry(locations_upload) <- "wkb_geometry"
 
 
-locations_lookup <- update_cascade_lookup(
+locations_lookup <- update_cascade_lookup_userdb(
   table_label = "Locations",
   new_data = locations_upload,
   index_columns = c("location_id"),
@@ -222,11 +277,11 @@ locations_lookup <- update_cascade_lookup(
 )
 
 ## join the new, corrected location id to the list of replacements
-existing_again <- mnmgwdb$query_table("Locations") %>%
+existing_again <- mnmdb$query_table("Locations") %>%
   select(grts_address_replacement = grts_address, location_id)
 
-# join [mnmgwdb] location ID to the replacement data
-replacement_data <- replacement_data %>%
+# join [mnmdb] location ID to the replacement data
+replacement_upload <- replacement_data %>%
   select(-location_id) %>%
   left_join(
     existing_again,
@@ -235,7 +290,7 @@ replacement_data <- replacement_data %>%
   )
 
 # check whether location IDs are missing (triv. not)
-check <- replacement_data %>%
+check <- replacement_upload %>%
   filter(is.na(location_id))
 
 if (nrow(check) > 0) {
@@ -250,8 +305,11 @@ if (nrow(check) > 0) {
 #### prepare locations
 #///////////////////////////////////////////////////////////////////////////////
 
+# TODO continue here
+stop("there are more troublesome occurrences of 'strata' prohibiting generalization")
+
 # load locations status quo
-existing_samplelocations <- mnmgwdb$query_table("SampleLocations")
+existing_samplelocations <- mnmdb$query_table(su_tablab)
 
 # identify novel locations
 new_samplelocations <- replacement_data %>%
@@ -289,39 +347,48 @@ if (nrow(samplelocations_upload) > 0) {
     knitr::kable()
 }
 
-samplelocations_lookup <- update_cascade_lookup(
-  table_label = "SampleLocations",
+sampleunits_lookup <- update_cascade_lookup_userdb(
+  table_label = su_tablab,
   new_data = samplelocations_upload,
-  index_columns = c("samplelocation_id"),
+  index_columns = c(su_idx),
   characteristic_columns = c("grts_address", "strata"),
   tabula_rasa = FALSE,
   verbose = TRUE
 )
 
 # a better lookup (of all slocs)
-samplelocations_lookup <- mnmgwdb$query_columns(
-    table_label = "SampleLocations",
-    select_columns = c("grts_address", "strata", "samplelocation_id")
+sampleunits_lookup <- mnmdb$query_columns(
+    table_label = su_tablab,
+    select_columns = c("grts_address", su_type, su_idx)
   ) %>% rename(stratum = strata)
 
 ## join the new, corrected sample location id to the list of replacements
-existing_again <- mnmgwdb$query_table("SampleLocations") %>%
-  select(grts_address_replacement = grts_address, type = strata, samplelocation_id)
+existing_units <- mnmdb$query_table(su_tablab)
 
-replacement_data <- replacement_data %>%
+# HOTFIX: rename columns for uniformity
+if (udb == "mnmgwdb") {
+  existing_units <- existing_units %>%
+    rename(
+      sampleunit_id = samplelocation_id,
+      stratum = strata
+    )
+}
+
+
+replacement_upload <- replacement_upload %>%
   left_join(
-    existing_again,
-    by = join_by(grts_address_replacement, type),
-    suffix = c("_obsolete", "")
+    existing_units,
+    by = join_by(grts_address_original == grts_address, type == stratum),
+    relationship = "one-to-one"
   )
 
-check <- replacement_data %>%
-  filter(is.na(samplelocation_id))
+check <- replacement_upload %>%
+  filter(is.na(sampleunit_id))
 
 if (nrow(check) > 0) {
   check %>%
     t() %>% knitr::kable()
-  stop("A samplelocation_id is missing!")
+  stop("A sampleunit_id is missing!")
 }
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -431,15 +498,21 @@ duplicate_table_row <- function(
 
 to_upload <- new_samplelocations %>%
   left_join(
-    samplelocations_lookup,
+    sampleunits_lookup,
     by = join_by(grts_address_replacement == grts_address, type == stratum)
   ) %>%
   select(
     grts_address,
     grts_address_replacement,
-    strata = type,
-    samplelocation_id
+    type,
+    sampleunit_id
   )
+
+# HOTFIX again
+if (udb == "mnmgwdb") {
+  to_upload <- to_upload %>%
+    rename(strata = type)
+}
 
 # # This safety break was used for the very first local replacement
 # stopifnot("Careful now: there is a local replacement!" =
@@ -496,7 +569,7 @@ for (row_nr in seq_len(nrow(to_upload))) {
     table_namestring <- mnmgwdb$get_namestring(table_label)
     grts_address_replacement <- row[["grts_address_replacement"]]
     grts_address_original <- row[["grts_address"]]
-    stratum <- row[["strata"]]
+    stratum <- row[[su_type]]
 
     # historic visits may not be replaced
     # -> use NOT IN {visit_done} structure
@@ -556,19 +629,24 @@ for (row_nr in seq_len(nrow(to_upload))) {
 # this is just an overview table
 #   in which all the replacements are stored for later reference
 
+
 replacements_upload <- replacement_data %>%
   select(
     type,
-    grts_address,
+    grts_address_original,
+    loceval_date,
     grts_address_replacement,
-    is_replaced,
-    new_location_id = location_id,
-    new_samplelocation_id = samplelocation_id,
-    replacement_rank
+    replacement_rank,
+    is_latest_replacement
+  ) %>%
+  left_join(
+    sampleunits_lookup %>%
+      rename(grts_address_replacement = grts_address),
+    by = join_by(!!!rlang::syms(c("grts_address_replacement", su_type, su_idx)))
   )
 
 
-replacements_lookup <- update_cascade_lookup(
+replacements_lookup <- update_cascade_lookup_userdb(
   table_label = "ReplacementData",
   new_data = replacements_upload,
   index_columns = c("replacementdata_id"),
@@ -589,6 +667,11 @@ transfer_data <- dplyr::tbl(loceval_connection$connection, view_id) %>%
 # replacements are already integrated by the view
 # -> in the grts setting of the target mnmgwdb
 
+if (udb == "mnmgwdb") {
+  transfer_data <- transfer_data %>%
+    rename(strata = type)
+}
+
 loceval_characols <- c(
   "grts_address",
   "type",
@@ -600,17 +683,17 @@ loceval_characols <- c(
 locevals_joined <- transfer_data %>%
   left_join(
     mnmgwdb$query_columns(
-        table_label = "SampleLocations",
+        table_label = su_tablab,
         select_columns = c(
           "grts_address",
-          "strata",
-          "samplelocation_id",
+          su_type,
+          su_idx,
           "location_id"
         )
       ),
-    by = join_by(grts_address, type == strata)
+    by = join_by(!!!rlang::syms(c("grts_address", su_type)))
   ) %>%
-  filter_at(vars(location_id, samplelocation_id), ~!is.na(.)) %>%
+  filter_at(vars(!!!rlang::syms(c("location_id", su_idx)), ~!is.na(.)) %>%
   select(-grts_address_original, -location_id) %>%
   mutate(
     eval_name = coalesce(eval_name, "maintenance"),
@@ -653,81 +736,12 @@ cellmaps_lookup <- update_cascade_lookup(
 )
 
 
+} # /distribute_replacementdata_to_userdatabases
+
 message("")
 message("________________________________________________________________")
 message(glue::glue(
-  " >>>>> Finished transferring `loceval{suffix}` to `mnmgwdb{suffix}`. ")
+  ">>> Finished distributing `loceval{suffix}` information to databases. ")
 )
 message("________________________________________________________________")
 
-
-#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-#### ARCHIVE - wrong old lead
-#///////////////////////////////////////////////////////////////////////////////
-# upload_nr <- 1
-# for (upload_nr in seq_len(nrow(to_upload))) {
-#   one_upload <- to_upload[upload_nr, ]
-#
-#   fwcalendar_to_duplicate <- fwcal_statusquo %>%
-#     semi_join(
-#       one_upload,
-#       by = join_by(grts_address, stratum == strata)
-#     )
-#   fwcalendar_to_duplicate %>% head(2) %>% t() %>% knitr::kable()
-#
-#   # cal_nr <- 1
-#   for (cal_nr in seq_len(nrow(fwcalendar_to_duplicate))) {
-#
-#     fwcal_latest <- fwcal_latest + 1
-#     cal_row <- fwcalendar_to_duplicate[cal_nr, ]
-#
-#     duplicate_table_row(
-#       mnmdb = mnmgwdb,
-#       table_label = "FieldworkCalendar",
-#       row_origin_identification = c(
-#         "grts_address" = make_string(one_upload[["grts_address"]]),
-#         "stratum" = wrap_string(one_upload[["strata"]]),
-#         "fieldworkcalendar_id" = make_string(cal_row[["fieldworkcalendar_id"]])
-#       ),
-#       fix_values = c(
-#         "grts_address" = make_string(one_upload[["grts_address_replacement"]]),
-#         "samplelocation_id" = make_string(cal_row[["samplelocation_id"]]),
-#         "fieldworkcalendar_id" = make_string(fwcal_latest)
-#       ),
-#       exclude_columns = c("log_user", "log_update")
-#     )
-#
-#     # switch activities
-#     activity_group_id <- cal_row[["activity_group_id"]]
-#     date_start <- wrap_string(cal_row[["date_start"]])
-#
-#     if (activity_group_id %in% selection_of_activities[["InstallationVisits"]]) {
-#
-#       duplicate_table_row(
-#         mnmdb = mnmgwdb,
-#         table_label = "InstallationVisits",
-#         row_origin_identification = c(
-#           "grts_address" = make_string(one_upload[["grts_address"]]),
-#           "stratum" = wrap_string(one_upload[["strata"]]),
-#           "activity_group_id" = make_string(activity_group_id),
-#           "date_start" = date_start,
-#           "fieldworkcalendar_id" = make_string(cal_row[["fieldworkcalendar_id"]])
-#         ),
-#         fix_values = c(
-#           "grts_address" = make_string(one_upload[["grts_address_replacement"]]),
-#           "stratum" = wrap_string(one_upload[["strata"]]),
-#           "activity_group_id" = make_string(activity_group_id),
-#           "date_start" = date_start,
-#           "samplelocation_id" = make_string(cal_row[["samplelocation_id"]]),
-#           "fieldworkcalendar_id" = make_string(fwcal_latest)
-#         ),
-#         exclude_columns = c("log_user", "log_update")
-#       )
-#
-#     }
-#
-#     [...]
-#
-#   } # /loop calendar entries to duplicate
-#
-# } # /loop uploads
