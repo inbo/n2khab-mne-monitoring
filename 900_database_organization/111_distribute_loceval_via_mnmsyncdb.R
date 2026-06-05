@@ -14,6 +14,7 @@ source("MNMDatabaseToolbox.R")
 # (required for novel locations which appear via local replacement)
 
 require("terra") %>% suppressPackageStartupMessages()
+require("magrittr") %>% suppressPackageStartupMessages()
 
 snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
 # TEMPORARY adjustment pointing to adjacent branch (wip)
@@ -282,7 +283,7 @@ existing_again <- mnmdb$query_table("Locations") %>%
 
 # join [mnmdb] location ID to the replacement data
 replacement_upload <- replacement_data %>%
-  select(-location_id) %>%
+  # select(-location_id) %>%
   left_join(
     existing_again,
     by = join_by(grts_address_replacement),
@@ -305,75 +306,97 @@ if (nrow(check) > 0) {
 #### prepare locations
 #///////////////////////////////////////////////////////////////////////////////
 
-# TODO continue here
-stop("there are more troublesome occurrences of 'strata' prohibiting generalization")
-
 # load locations status quo
-existing_samplelocations <- mnmdb$query_table(su_tablab)
+existing_samplelocations <- mnmdb$query_table(su_tablab) %>%
+  rename(grts_address_original = grts_address) %>%
+  select(-location_id, -is_replacement)
+
+# HOTFIX rename that damn old `strata` column
+if (udb == "mnmgwdb") {
+  existing_samplelocations %<>% rename(stratum = strata)
+}
 
 # identify novel locations
 new_samplelocations <- replacement_data %>%
+  select(type, grts_address_original, grts_address_replacement) %>%
   anti_join(
     existing_samplelocations,
-    by = join_by(grts_address_replacement == grts_address, type == strata)
+    by = join_by(
+      grts_address_replacement == grts_address_original,
+      type == stratum
+    )
+  ) %>%
+  rename(
+    grts_address = grts_address_replacement
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address)
   )
 # these `new_samplelocations` are still needed below!
 
-
-# upload new locations
-samplelocations_upload <- new_samplelocations %>% # replacement_data  %>% #
-  sf::st_drop_geometry() %>%
-  select(
-    location_id,
-    grts_address = grts_address_replacement,
-    scheme_ps_targetpanels,
-    schemes,
-    strata = type,
-    domain_part,
-    is_forest,
-    in_mhq_samples,
-    has_mhq_assessment,
-    archive_version_id
-  ) %>%
-  mutate(
-    is_replacement = TRUE
+# Column `scheme_ps_targetpanels` doesn't exist.
+new_samplelocations %<>%
+  rename(stratum = type) %>%
+  left_join(
+    existing_samplelocations,
+    by = join_by(grts_address_original, stratum)
   )
 
+# upload new locations
+samplelocations_upload <- new_samplelocations %>%
+  select(-grts_address_original) %>%
+  mutate(is_replacement = TRUE)
+
+# HOTFIX revert
+if (udb == "mnmgwdb") {
+  samplelocations_upload %<>% rename(strata = stratum)
+}
 
 # verbose
 if (nrow(samplelocations_upload) > 0) {
   message("New sample locations to be uploaded:")
   samplelocations_upload %>%
-    knitr::kable()
+    t() %>% knitr::kable()
 }
 
 sampleunits_lookup <- update_cascade_lookup_userdb(
   table_label = su_tablab,
   new_data = samplelocations_upload,
   index_columns = c(su_idx),
-  characteristic_columns = c("grts_address", "strata"),
+  characteristic_columns = c("grts_address", su_type),
   tabula_rasa = FALSE,
   verbose = TRUE
 )
+
 
 # a better lookup (of all slocs)
 sampleunits_lookup <- mnmdb$query_columns(
     table_label = su_tablab,
     select_columns = c("grts_address", su_type, su_idx)
-  ) %>% rename(stratum = strata)
+  )
+
+# HOTFIX again
+if (udb == "mnmgwdb") {
+  sampleunits_lookup %<>% rename(stratum = strata)
+}
+
 
 ## join the new, corrected sample location id to the list of replacements
 existing_units <- mnmdb$query_table(su_tablab)
 
 # HOTFIX: rename columns for uniformity
 if (udb == "mnmgwdb") {
-  existing_units <- existing_units %>%
+  existing_units %<>%
     rename(
       sampleunit_id = samplelocation_id,
       stratum = strata
     )
 }
 
+
+# TODO continue here
+stop("the following is not ready yet.")
 
 replacement_upload <- replacement_upload %>%
   left_join(
@@ -510,8 +533,7 @@ to_upload <- new_samplelocations %>%
 
 # HOTFIX again
 if (udb == "mnmgwdb") {
-  to_upload <- to_upload %>%
-    rename(strata = type)
+  to_upload %<>% rename(strata = type)
 }
 
 # # This safety break was used for the very first local replacement
@@ -667,9 +689,9 @@ transfer_data <- dplyr::tbl(loceval_connection$connection, view_id) %>%
 # replacements are already integrated by the view
 # -> in the grts setting of the target mnmgwdb
 
+# HOTFIX revert
 if (udb == "mnmgwdb") {
-  transfer_data <- transfer_data %>%
-    rename(strata = type)
+  transfer_data %<>% rename(strata = type)
 }
 
 loceval_characols <- c(
