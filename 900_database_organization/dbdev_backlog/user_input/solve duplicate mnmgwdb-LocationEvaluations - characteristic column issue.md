@@ -12,7 +12,7 @@ execution: FM
 status: false
 ---
 *(Follow-up of [[user_input/the frozen loceval from the present|the frozen loceval from the present]], because it happened again.)*
-Sometimes, duplicates appear in #mnmgwdb `LocationEvaluations` upon transfer via `111_push_loceval_to_mnmgwdb.R`.
+Sometimes, duplicates appear in #mnmgwdb `LocationEvaluations` upon transfer via `111_distribute_loceval_via_mnmsyncdb.R`.
 
 ```r
 > duplicate_locevals
@@ -93,7 +93,7 @@ WHERE grts_address = 1995222 AND activity_group_id = 18 AND date_start = '2025-0
 
 ## check that other scripts can handle the new column
 
-- [x] `111_push_loceval_to_mnmgwdb.R` works, obviously 
+- [x] `111_distribute_loceval_via_mnmsyncdb.R` works, obviously 
 - [x] `403_precalculate_fresh_snippets.R` completes without errors
 - [x] `510_loceval_update_REP.qmd` -> manual adjustments see above
 - [ ] `610_mnmgwdb_update_REP.qmd`

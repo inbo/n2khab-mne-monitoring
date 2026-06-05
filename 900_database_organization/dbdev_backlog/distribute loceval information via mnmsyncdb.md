@@ -19,7 +19,7 @@ status: false
 ## Notes
 - new schema `transfer` in mnmsyncdb
 - exapt `is_replaced` (*triv.*):
-	- `is_replaced` column was trivially `TRUE` due to a filter in R `111_push_loceval_to_mnmgwdb.R` 
+	- `is_replaced` column was trivially `TRUE` due to a filter in R `111_distribute_loceval_via_mnmsyncdb.R` 
 	- grepped no other use of it 
 	- -> field renamed to more meaningful `is_latest_replacement`
 - add control columns:

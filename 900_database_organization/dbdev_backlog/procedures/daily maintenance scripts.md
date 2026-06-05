@@ -13,7 +13,7 @@ tags:
 ```
 103_count_dbcontent.R
 110_sync_FreeFieldNotes.R
-111_push_loceval_to_mnmgwdb.R
+111_distribute_loceval_via_mnmsyncdb.R
 112_fill_location_journals.R
 113_update_facalendar.R
 114_replaced_LocationCells.R

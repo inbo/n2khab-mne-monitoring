@@ -23,5 +23,5 @@ There is a #tutorial:
 # Issues
 - #R / `dbplyr` cannot handle the `ONLY` relevant keyword
 - maintenance scripts needed to be overhauled
-	- particular attention for script `111_push_loceval_to_mnmgwdb.R` (was: #python)
+	- particular attention for script `111_distribute_loceval_via_mnmsyncdb.R` (was: #python)
 	- logical change: [[procedures/local replacements|local replacements]] now work by `UPDATE` of the `grts_address` in Calendar tables (previously: duplicate/delete)

@@ -340,7 +340,7 @@ mnmgwdb_freeze <-
 
 out <- processx::run(
   "Rscript",
-  c("111_push_loceval_to_mnmgwdb.R", suffix),
+  c("111_distribute_loceval_via_mnmsyncdb.R", suffix),
   spinner = TRUE,
   echo = TRUE
 )
