@@ -352,12 +352,15 @@ out <- processx::run(
 replacement_lookup <- mnmgwdb$query_columns(
     "ReplacementData",
     c(
-      "grts_address",
+      "grts_address_original",
       "type",
       "grts_address_replacement"
     )
   ) %>% 
-  rename(stratum = type)
+  rename(
+    grts_address = grts_address_original,
+    stratum = type
+  )
 
 apply_local_replacement_to_grts <- function(df, typecolumn = "stratum") {
   lookup <- replacement_lookup %>%

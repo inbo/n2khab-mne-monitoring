@@ -266,15 +266,14 @@ stitch_table_connection(
 # REMOVED WIA/CSA/SPA
 
 
-# there are `new_location_id` and `new_samplelocation_id` in "archive"."ReplacementData"
+# there is `samplelocation_id` in "transfer"."ReplacementData"
 # column names are non-standard, hence the "gefoefel".
-trgtab <- '"archive"."ReplacementData"'
+trgtab <- '"transfer"."ReplacementData"'
 srctab <- '"outbound"."SampleLocations"'
 update_string <- glue::glue("
 UPDATE {trgtab} AS TRGTAB
   SET
-    new_location_id = SRCTAB.location_id,
-    new_samplelocation_id = SRCTAB.samplelocation_id
+    samplelocation_id = SRCTAB.samplelocation_id
   FROM {srctab} AS SRCTAB
   WHERE
    (TRGTAB.grts_address = SRCTAB.grts_address)
@@ -428,15 +427,14 @@ stitch_table_connection(
 # REMOVED WIA/CSA/SPA
 
 
-# there are `new_location_id` and `new_samplelocation_id` in "archive"."ReplacementData"
+# there is `samplelocation_id` in "transfer"."ReplacementData"
 # column names are non-standard, hence the "gefoefel".
-trgtab <- '"archive"."ReplacementData"'
+trgtab <- '"transfer"."ReplacementData"'
 srctab <- '"outbound"."SampleUnits"'
 update_string <- glue::glue("
 UPDATE {trgtab} AS TRGTAB
   SET
-    new_location_id = SRCTAB.location_id,
-    new_sampleunit_id = SRCTAB.sampleunit_id
+    sampleunit_id = SRCTAB.sampleunit_id
   FROM {srctab} AS SRCTAB
   WHERE
    (TRGTAB.grts_address_replacement = SRCTAB.grts_address)

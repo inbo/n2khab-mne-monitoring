@@ -555,7 +555,7 @@ class dbTable(dict):
                 """
 
             create_string += f"""
-                GRANT SELECT ON SEQUENCE "{self.schema}"."{self.table}_ogc_fid_seq" TO monkey;
+                GRANT SELECT ON SEQUENCE "{self.schema}"."{self.table}_ogc_fid_seq" TO viewer_mnmdb;
             """
 
         # each column gets its own creation lines
@@ -604,7 +604,7 @@ class dbTable(dict):
                 """
 
             create_string += f"""
-                GRANT SELECT ON SEQUENCE "{self.schema}"."seq_{col}" TO monkey;
+                GRANT SELECT ON SEQUENCE "{self.schema}"."seq_{col}" TO viewer_mnmdb;
             """
 
         # foreign keys link to other tables

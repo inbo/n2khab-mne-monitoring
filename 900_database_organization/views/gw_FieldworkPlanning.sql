@@ -2,7 +2,7 @@
 --
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
-CREATE VIEW "outbound"."FieldworkPlanning" AS
+CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
   SLOC.scheme_ps_targetpanels,
@@ -128,10 +128,10 @@ LEFT JOIN (
 LEFT JOIN (
   SELECT DISTINCT
     type,
-    grts_address AS grts_address_rep,
+    grts_address_original AS grts_address_rep,
     grts_address_replacement AS grts_address
-  FROM "archive"."ReplacementData"
-  GROUP BY type, grts_address, grts_address_replacement
+  FROM "transfer"."ReplacementData"
+  GROUP BY type, grts_address_original, grts_address_replacement
 ) AS REP
   ON ((REP.grts_address = SLOC.grts_address)
   AND (SLOC.strata = REP.type))

@@ -2,3 +2,4 @@ schema,owner,usage
 outbound,yoda,"viewer_mnmdb, tester_mnmdb"
 inbound,yoda,"viewer_mnmdb, tester_mnmdb"
 metadata,yoda,"viewer_mnmdb, tester_mnmdb"
+transfer,yoda,"viewer_mnmdb, tester_mnmdb"
