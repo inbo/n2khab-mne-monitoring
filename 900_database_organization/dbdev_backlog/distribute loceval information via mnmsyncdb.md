@@ -159,16 +159,16 @@ Indexes:
 
 ## tooling / R code
 - [x] reflect changes in `102_re_link_foreign_keys.R`
-- [ ] work on `111_distribute_loceval_via_mnmsyncdb.R`
+- [x] work on `111_distribute_loceval_via_mnmsyncdb.R`
 	- [x] rename
 	- [x] two step procedure: (i) `loceval` -> `mnmsyncdb`; (ii) `mnmsyncdb` -> *effectors*
 	- [x] (i) `loceval` -> `mnmsyncdb`
-	- [ ] (ii) mnmsyncdb -> *effectors* (following previous, but functionalized and repeated)
+	- [x] (ii) mnmsyncdb -> *effectors* (following previous, but functionalized and repeated)
 		- [x] forward ReplacementData
 		- [x] create new Locations and SampleUnits
 		- [x] shift `grts_address` in all tables
 		- [x] also push `LocationEvaluations` and `CellMaps`
-		- [ ] testing with actual data on `-staging` -> issues `mnmsurfdb`
+		- [x] testing with actual data on `-staging` -> issues `mnmsurfdb`
 - [ ] {?} are there other scripts affected?
 
 [[handle historic entries in LocationJournals when a replacement is applied by 111_distribute_loceval_via_mnmsyncdb]]

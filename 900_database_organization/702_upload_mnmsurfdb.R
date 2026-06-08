@@ -11,8 +11,8 @@ source("MNMDatabaseToolbox.R")
 ## database connection ---------------------------------------------------------
 config_filepath <- file.path("./mnm_database_connection.conf")
 
-suffix <- "-staging"
-suffix_refs <- "-staging" # TODO temporary reference to production
+suffix <- "" # "-staging"
+suffix_refs <- "" # "-staging" # TODO temporary reference to production
 mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
 
 mnmsurfdb <- connect_mnm_database(
@@ -977,17 +977,15 @@ message(" >>>>> Finished SURFDB data upload. ")
 message("________________________________________________________________")
 
 # In other scripts:
-# - LocationEvaluations
-# - CellMaps
-# - ReplacementData
-# - Coordinates
-# - MHQAreas
+# - [x] LocationEvaluations
+# - [x] CellMaps
+# - [x] ReplacementData
+# - [ ] Coordinates
+# - [ ] MHQAreas
 #
 # Not Relevant (yet):
 # - InstallationRemovals
 # - FieldFollowUps
 
-
-stop("TODO: What else is there?")
 
 # TODO check if new landuse locations arise due to surfdb

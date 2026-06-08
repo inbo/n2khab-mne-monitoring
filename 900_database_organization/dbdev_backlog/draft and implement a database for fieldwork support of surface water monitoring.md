@@ -99,3 +99,5 @@ status: false
 - [x] [[structure/add nolog columns to LocationJournals|add nolog columns to LocationJournals]]
 - [ ] review and adjust all scripts in categories `000_DOCUMENTATION` and `100_MAINTENANCE`
 - [ ] `update_landuse_in_locationinfos` -> works for new locations?
+- [ ] Coordinates
+- [ ] MHQAreas

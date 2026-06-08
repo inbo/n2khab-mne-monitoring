@@ -47,14 +47,14 @@ config_filepath <- file.path("./mnm_database_connection.conf")
 
 database_label <- "mnmsyncdb"
 
-# commandline_args <- commandArgs(trailingOnly = TRUE)
-# if (length(commandline_args) > 0) {
-#   suffix <- commandline_args[1]
-# } else {
-#   suffix <- ""
-#   # suffix <- "-staging" # "-testing"
-# }
-suffix <- "-staging"
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  suffix <- commandline_args[1]
+} else {
+  suffix <- ""
+  # suffix <- "-staging" # "-testing"
+}
+# suffix <- "-staging"
 
 
 # source: loceval
