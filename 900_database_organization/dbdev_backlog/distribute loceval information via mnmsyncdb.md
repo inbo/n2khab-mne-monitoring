@@ -164,8 +164,11 @@ Indexes:
 	- [x] two step procedure: (i) `loceval` -> `mnmsyncdb`; (ii) `mnmsyncdb` -> *effectors*
 	- [x] (i) `loceval` -> `mnmsyncdb`
 	- [ ] (ii) mnmsyncdb -> *effectors* (following previous, but functionalized and repeated)
-		- [ ] forward ReplacementData
-		- [ ] create new Locations and SampleUnits
-		- [ ] shift `grts_address` in all tables
-		- [ ] also push `LocationEvaluations` and `CellMaps`
+		- [x] forward ReplacementData
+		- [x] create new Locations and SampleUnits
+		- [x] shift `grts_address` in all tables
+		- [x] also push `LocationEvaluations` and `CellMaps`
+		- [ ] testing with actual data on `-staging` -> issues `mnmsurfdb`
 - [ ] {?} are there other scripts affected?
+
+[[handle historic entries in LocationJournals when a replacement is applied by 111_distribute_loceval_via_mnmsyncdb]]
