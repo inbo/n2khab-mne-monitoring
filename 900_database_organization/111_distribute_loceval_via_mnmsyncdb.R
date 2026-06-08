@@ -869,7 +869,7 @@ for (udb in userdb_labels) {
   # udb <- "mnmgwdb"
   # udb <- "mnmsyncdb"
   message("________________________________________________________________")
-  message(glue::glue(">>> Transferring `mnmsyncdb{suffix}` to `{udb}{suffix}`: "))
+  message(glue::glue(">>>>> Transferring `mnmsyncdb{suffix}` to `{udb}{suffix}`: "))
   distribute_replacementdata_to_userdatabases(udb)
   distribute_locationevaluations_to_userdatabases(udb)
   distribute_cellmaps_to_userdatabases(udb)

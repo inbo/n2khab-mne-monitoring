@@ -87,17 +87,19 @@ status: false
 - realized that the cascade_upload functions in `702_upload_mnmsurfdb.R` already trigger `102_re_link_foreign_keys.R`, which therefore must be adjusted with priority
 
 # relevant other steps
-- [ ] TODO [[distribute loceval information via mnmsyncdb]]
-- [ ] new user #roles: `planner_surfdb`, `user_surfdb`; granted to the specific users
-- [ ] new entry in #TeamMembers: `all_surfers`
-- [ ] also add columns in #GroupedActivities to all other databases: `is_surf_activity`
+- [x] TODO [[distribute loceval information via mnmsyncdb]]
+- [x] new user #roles: `planner_surfdb`, `user_surfdb`; granted to the specific users
+- [x] new entry in #TeamMembers: `all_surfers`
+- [x] also add columns in #GroupedActivities to all other databases: `is_surf_activity`
 - [x] `SampleLocations` are more usefully labeled #SampleUnits / *cf.* [[consistent table and field names across databases]]
 - [ ] adjust `Expost` queries for new table logic
 - [x] add cronjob for backups
 - [ ] adjust #views
-- [ ] #MHQPolygons need not link to `sampleunit_id` #mnmgwdb 
+- [ ] does #MHQPolygons need not link to `sampleunit_id` #mnmgwdb 
 - [x] [[structure/add nolog columns to LocationJournals|add nolog columns to LocationJournals]]
 - [ ] review and adjust all scripts in categories `000_DOCUMENTATION` and `100_MAINTENANCE`
+	- [ ] 080
+	- [ ] 047
+	- [ ] Coordinates
+	- [ ] MHQAreas
 - [ ] `update_landuse_in_locationinfos` -> works for new locations?
-- [ ] Coordinates
-- [ ] MHQAreas
