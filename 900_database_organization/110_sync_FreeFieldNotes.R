@@ -35,7 +35,7 @@ if (length(commandline_args) > 0) {
   # suffix <- "-staging" # "-testing"
 }
 # suffix <- "-staging"
-suffix <- "-dev"
+# suffix <- "-dev"
 
 
 
@@ -176,6 +176,76 @@ query_freefieldnotes <- function(db) {
     return()
 }
 
+# teammember_id may differ between databases
+assemble_teammember_id_lookup_table <- function() {
+  teammembers <- mnmsyncdb$query_columns(
+      "TeamMembers",
+      c("username", "teammember_id")
+    )
+
+  for (sdb in sourcedb_labels) {
+    teammembers <- teammembers %>%
+      dplyr::full_join(
+        sourcedb_connections[[sdb]]$query_columns(
+          "TeamMembers",
+          c("username", "teammember_id")
+        ),
+        by = dplyr::join_by("username"),
+        suffix = c("", glue::glue("_{sdb}"))
+      )
+  }
+
+  teammembers <- teammembers %>%
+    dplyr::rename(
+      teammember_id_mnmsyncdb = teammember_id
+    )
+
+  return(teammembers)
+
+}
+
+teammember_lookup <- assemble_teammember_id_lookup_table()
+# teammember_lookup %>% knitr::kable()
+
+# adjust the content of the teammenber_id column
+#     to match the target database
+switch_teammember_id_to_database <- function(.data, db_from, db_to) {
+
+  # trivial case
+  if (db_from == db_to) {
+    return(.data)
+  }
+
+  # store the two column names as.character
+  intermediate_name <- glue::glue("teammember_id_{db_from}")
+  replacement_name  <-  glue::glue("teammember_id_{db_to}")
+
+  # replacement by rename-join-unrename
+  .data <- .data %>%
+    dplyr::rename({{intermediate_name}} := teammember_id) %>%
+    dplyr::left_join(
+      teammember_lookup %>%
+        dplyr::select(tidyselect::all_of(c(intermediate_name, replacement_name))),
+      by = dplyr::join_by(!!!rlang::syms(c(intermediate_name))),
+      relationship = "many-to-many",
+      na_matches = "never"
+    ) %>%
+    dplyr::relocate(
+      tidyselect::any_of(c(replacement_name)), .after = intermediate_name
+    ) %>%
+    dplyr::select(-tidyselect::all_of(c(intermediate_name))) %>%
+    dplyr::rename(teammember_id := {{replacement_name}})
+
+  return(.data)
+}
+
+# test <- teammember_lookup %>%
+#   select(teammember_id_mnmsyncdb, username) %>%
+#   rename(teammember_id = teammember_id_mnmsyncdb)
+#
+# test_2 <- switch_teammember_id_to_database(test, db_from = "mnmsyncdb", db_to = "mnmsurfdb")
+# switch_teammember_id_to_database(test_2, db_from = "mnmsurfdb", db_to = "mnmgwdb")
+# switch_teammember_id_to_database(test, db_from = "mnmsyncdb", db_to = "mnmsyncdb")
 
 # there... and back again: upload new fieldnotes,
 # simply appending them to the existing data
@@ -371,6 +441,7 @@ characteristic_join_ffn <- function(
 
 # Step 1: user input assembled in syncdb
 synchronize_syncdb_with_data_from_sources <- function(sdb) {
+  # sdb <- "mnmsurfdb"
   # sdb <- "mnmgwdb"
   # sdb <- "loceval"
 
@@ -383,11 +454,12 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
 
   # query sources: user input from databases
   freefieldnotes_userdb <- query_freefieldnotes(mnmdb) %>%
-    arrange(log_creation, log_update, fieldnote_id) %>%
+    dplyr::arrange(log_creation, log_update, fieldnote_id) %>%
     dplyr::mutate(
       archive_date = as.character(NA)
     ) %>%
-    dplyr::relocate(archive_date, .before = wkb_geometry)
+    dplyr::relocate(archive_date, .before = wkb_geometry) %>%
+    switch_teammember_id_to_database(sdb, "mnmsyncdb")
 
   # mapview::mapview(freefieldnotes_userdb %>% sf::st_as_sf())
   # freefieldnotes_userdb %>% arrange(desc(log_update))
@@ -504,6 +576,7 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
   # load the status quo from SYNCDB
   freefieldnotes_statusquo <- query_freefieldnotes(mnmsyncdb) %>%
     dplyr::filter(is.na(archive_date)) %>%
+    switch_teammember_id_to_database("mnmsyncdb", sdb) %>%
     dplyr::select(-archive_date, -log_origindb, -fieldnote_id)
 
   mnmdb <- sourcedb_connections[[sdb]]

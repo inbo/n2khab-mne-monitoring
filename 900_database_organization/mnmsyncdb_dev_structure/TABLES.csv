@@ -1,4 +1,5 @@
 schema,table,owner,read_access,write_access,geometry,constraint,inherits,freesql,persistent,excluded,comment
+metadata,TeamMembers,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,0,list of team members
 outbound,LocationInfos,yoda,"viewer_mnmdb, tester_mnmdb","user_syncdb, tester_mnmdb",,,,,1,0,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
 outbound,LocationJournals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,0,"lifecycle information of a sample unit; chronological, append-only"
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_syncdb, tester_mnmdb",POINT,,,,1,0,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
