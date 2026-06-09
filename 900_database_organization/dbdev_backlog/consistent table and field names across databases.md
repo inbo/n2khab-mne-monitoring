@@ -25,7 +25,7 @@ These should be corrected.
 	+ ```sql
 ALTER TABLE "outbound"."LocationEvaluations" SET SCHEMA "transfer";
 ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
--- adjust views!
+-- adjust views! (Fw, FwP, LocevalInfo)
 ```
 + [x] #mnmgwdb #ReplacementData:
 	+ [x] `grts_address` -> `grts_address_original`

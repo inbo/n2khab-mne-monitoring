@@ -92,11 +92,20 @@ status: false
 - [x] new entry in #TeamMembers: `all_surfers`
 - [x] also add columns in #GroupedActivities to all other databases: `is_surf_activity`
 - [x] `SampleLocations` are more usefully labeled #SampleUnits / *cf.* [[consistent table and field names across databases]]
-- [ ] adjust `Expost` queries for new table logic
+- [x] adjust `Expost` queries for new table logic
 - [x] add cronjob for backups
-- [ ] adjust #views
-- [ ] does #MHQPolygons need not link to `sampleunit_id` #mnmgwdb 
+- [x] does #MHQPolygons need to link to `sampleunit_id` #mnmgwdb ?
+	- this is used in the respective #view 
+	- limiting displayed MHQPolygons to #SampleUnits which appear in #LocationEvaluations
+	- for testing: linked it to #Locations via  `location_id` as they appear in #InstallationVisits 
 - [x] [[structure/add nolog columns to LocationJournals|add nolog columns to LocationJournals]]
+- [x] adjust #views
+	- [x] `surf_FieldWork.sql`
+	- [x] `surf_FieldworkPlanning.sql`
+	- [x] `surf_LocevalInfo.sql`
+	- [x] `surf_MHQSafety.sql`
+	- [x] `surf_SampleCells.sql`
+	- [x] `view_coordinates.sql`
 - [ ] review and adjust all scripts in categories `000_DOCUMENTATION` and `100_MAINTENANCE`
 	- [ ] 080
 	- [ ] 047
