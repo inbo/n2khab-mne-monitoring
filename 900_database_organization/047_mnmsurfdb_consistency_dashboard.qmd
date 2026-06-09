@@ -39,10 +39,10 @@ source("MNMDatabaseToolbox.R")
 #| echo: false
 
 config_filepath <- file.path("./mnm_database_connection.conf")
-# mirror <- "-testing"
+mirror <- ""
 # mirror <- "-staging"
-# mirror <- ""
-mirror <- "-dev"
+# mirror <- "-testing"
+# mirror <- "-dev"
 
 # connect mnmsurfdb
 mnmsurfdb_database <- glue::glue("mnmsurfdb{mirror}")
@@ -87,9 +87,9 @@ count_table_content <- function(table_list) {
 
 count_table_content(c(
     "Versions",
-    "TeamMembers",
     "Protocols",
     "GroupedActivities",
+    "TeamMembers",
     "N2kHabStrata"
   ))
 
@@ -101,12 +101,12 @@ count_table_content(c(
 
 count_table_content(c(
     "Locations",
-    "LocationInfos",
     "LocationCells",
     "Coordinates",
+    "LocationInfos",
+    "LocationJournals",
     "LocationEvaluations",
-    "CellMaps",
-    "LocationJournals"
+    "CellMaps"
   ))
 
 ```
@@ -121,7 +121,8 @@ count_table_content(c(
     "Visits",
     "InstallationVisits",
     "SamplingVisits",
-    "OtherVisits"
+    "OtherVisits",
+    "InstallationRemovals"
   ))
 
 ```
@@ -302,7 +303,7 @@ check_foreignkey_connection(
 ```
 
 
-```{r sample-locations}
+```{r sampleunits-locations}
 #| eval: true
 #| echo: false
 
@@ -311,6 +312,32 @@ check_foreignkey_connection(
   characteristic_columns = c("grts_address"),
   ref_table = "Locations", pk = "location_id"
   )
+
+```
+
+
+```{r visits-locations}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "SampleUnits", fk = "location_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Locations", pk = "location_id"
+  )
+
+```
+
+
+```{r mhqpolygons-locations}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "MHQPolygons", fk = "location_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Locations", pk = "location_id"
+)
 
 ```
 
@@ -332,7 +359,7 @@ check_foreignkey_connection(
   table_label = "FieldCalendar", fk = "sampleunit_id",
   characteristic_columns = c("grts_address", "stratum"),
   ref_table = "SampleUnits", pk = "sampleunit_id"
-  )
+)
 
 ```
 
@@ -345,7 +372,7 @@ check_foreignkey_connection(
   table_label = "Visits", fk = "sampleunit_id",
   characteristic_columns = c("grts_address", "stratum"),
   ref_table = "SampleUnits", pk = "sampleunit_id"
-  )
+)
 
 ```
 
@@ -403,64 +430,4 @@ count_archived_content(
 
 ```
 
-
-## Consistency
-
-("archive" tag set along the line of `SampleLocation` -> `FieldCalendar` -> `Visits`)
-
-```{r consistent-archive}
-#| eval: true
-#| echo: false
-
-archives <- mnmsurfdb$query_table("SampleUnits") %>%
-  left_join(
-    mnmsurfdb$query_table("FieldCalendar"),
-    by = join_by(grts_address, stratum),
-    suffix = c("", "_fwcal")
-  ) %>% 
-  left_join(
-    mnmsurfdb$query_table("Visits"),
-    by = join_by(grts_address, stratum, activity_group_id, date_start),
-    suffix = c("", "_visits")
-  )
-
-archives <- archives %>%
-  distinct(
-    grts_address, stratum,
-    archive_version_id,
-    archive_version_id_fwcal,
-    archive_version_id_visits
-  ) %>%
-  mutate(has_archive = !is.na(coalesce(
-      archive_version_id,
-      archive_version_id_fwcal,
-      archive_version_id_visits
-    ))
-  ) %>% 
-  arrange(grts_address, stratum)
-
-```
-
-
-```{r distinct-archives}
-#| eval: true
-#| echo: false
-
-archives %>% 
-  filter(has_archive) %>% 
-  left_join(
-    mnmsurfdb$query_columns(
-        "ReplacementData",
-        c("grts_address", "type", "grts_address_replacement")
-      ) %>%
-      rename(
-        grts_address_poc = grts_address,
-        stratum = type,
-        grts_address = grts_address_replacement,
-      ),
-    by = join_by(grts_address),
-    relationship = "many-to-many"
-  ) %>% 
-  knitr::kable()
-```
 
