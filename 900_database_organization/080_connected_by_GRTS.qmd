@@ -112,6 +112,113 @@ grts <- c(84598, 871030) # replacement mishap
 
 ```
 
+# MNMSYNCDB: `r as.character(grts)`
+
+```{r connect-syncdb}
+database_label <- "mnmsyncdb"
+
+### connect to database
+mnmdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = glue::glue("{database_label}{suffix}"),
+  user = "monkey",
+  password = NA
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+message(mnmdb$shellstring)
+
+```
+
+
+```{r syncdb-infos}
+
+infos <- mnmdb$query_table("LocationInfos") %>%
+  filter(grts_address %in% grts)
+
+sync_print_infos <- function() {
+  infos %>%
+    dplyr::rename(
+      grts = grts_address,
+      liid = locationinfo_id,
+      lid = location_id,
+      inaccess = accessibility_inaccessible,
+      hints = recovery_hints
+    ) %>%
+    dplyr::select(
+      liid,
+      grts,
+      lid,
+      inaccess,
+      hints
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+```{r syncdb-lojos}
+
+lojos <- mnmdb$query_table("LocationJournals") %>%
+  filter(grts_address %in% grts)
+
+sync_print_lojos <- function() {
+  lojos %>%
+    dplyr::rename(
+      grts = grts_address,
+      ljid = locationjournal_id,
+      lid = location_id,
+      src = source,
+      agid = activity_group_id,
+      tps = type_subset
+    ) %>%
+    dplyr::select(
+      grts,
+      ljid,
+      tps,
+      lid,
+      src,
+      agid
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+```{r syncdb-replacements}
+
+replacements <- bind_rows(
+  mnmdb$query_table("ReplacementData") %>%
+    filter(grts_address_original %in% grts),
+  mnmdb$query_table("ReplacementData") %>%
+    filter(grts_address_replacement %in% grts)
+  ) %>%
+  distinct()
+
+sync_print_replacements <- function() {
+  replacements %>%
+    dplyr::rename(
+      typ = type,
+      grts = grts_address_original,
+      rep = grts_address_replacement,
+      rank = replacement_rank,
+      lat = is_latest_replacement
+    ) %>%
+    dplyr::select(
+      typ,
+      grts,
+      rep,
+      rank,
+      lat
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+
 
 # LOCEVAL: `r as.character(grts)`
 
@@ -131,7 +238,7 @@ message(mnmdb$shellstring)
 ```
 
 
-```{r helper-join-activity-groups-loceval}
+```{r helper-loceval-activity-groups}
 
 join_activity_groups <- function(df) {
   df %>% dplyr::left_join(
@@ -436,15 +543,16 @@ eva_print_replacements()
 \pagebreak 
 ```
 
+
 # MNMGWDB: `r as.character(grts)`
 
-```{r noop}
+```{r noop-gw}
 #| eval: false
 #| echo: false
 # source('080_connected_by_GRTS.R')
 ```
 
-```{r database-connection}
+```{r gwdb-connection}
 database_label <- "mnmgwdb"
 
 ### connect to database
@@ -461,7 +569,7 @@ message(mnmdb$shellstring)
 
 -- helpers
 
-```{r helper-join-activity-groups}
+```{r helper-gwdb-activity-groups}
 
 join_activity_groups <- function(df) {
   df %>% dplyr::left_join(
@@ -480,7 +588,7 @@ join_activity_groups <- function(df) {
 ```
 
 
-```{r helper-query-special_activities}
+```{r helper-query-activities-gwdb}
 
 query_special_activity <- function(shorthand) {
 
@@ -592,7 +700,7 @@ gw_print_fwcal <- function() {
 
 ```
 
-```{r visits}
+```{r visits-gwdb}
 
 visits <- mnmdb$query_table("Visits") %>%
   filter(grts_address %in% grts) %>%
@@ -632,7 +740,7 @@ gw_print_visits <- function() {
 
 
 
-```{r special-activities}
+```{r special-activities-gwdb}
 
 activities <- bind_rows(
     query_special_activity("WIA"),
@@ -667,7 +775,7 @@ gw_print_special_activities <- function() {
 ```
 
 
-```{r location-infos}
+```{r location-infos-gwdb}
 
 infos <- mnmdb$query_table("LocationInfos") %>%
   filter(grts_address %in% grts)
@@ -736,17 +844,19 @@ repdat <- mnmdb$query_table("ReplacementData") %>%
 gw_print_replacement <- function() {
   repdat %>%
     dplyr::rename(
-      grts = grts_address,
+      grts = grts_address_original,
       rep = grts_address_replacement,
-      slid = new_samplelocation_id,
-      sel = is_replaced
+      lat = is_latest_replacement,
+      ldat = loceval_date,
+      slid = new_samplelocation_id
     ) %>%
     dplyr::select(
-      grts,
       type,
+      grts,
       rep,
-      slid,
-      sel
+      lat,
+      ldat,
+      slid
     ) %>%
     knitr::kable()
 }
@@ -763,7 +873,7 @@ gw_print_replacement <- function() {
 
 ## sample location
 
-```{r print-sloc}
+```{r print-sloc-gwdb}
 #| echo: false
 gw_print_slocs()
 ```
@@ -771,7 +881,7 @@ gw_print_slocs()
 
 ## calendar
 
-```{r print-fwcal}
+```{r print-fwcal-gwdb}
 #| echo: false
 gw_print_fwcal()
 ```
@@ -779,21 +889,21 @@ gw_print_fwcal()
 
 ## visits
 
-```{r print-visit}
+```{r print-visit-gwdb}
 #| echo: false
 gw_print_visits()
 ```
 
 special activities (well installation, chem sampling, positioning)
 
-```{r print-special-activities}
+```{r print-special-activities-gwdb}
 #| echo: false
 gw_print_special_activities()
 ```
 
 ## location infos
 
-```{r print-infos}
+```{r print-infos-gwdb}
 #| echo: false
 gw_print_infos()
 ```
@@ -806,8 +916,376 @@ gw_print_lojos()
 ```
 
 ## replacement
-```{r print-replacements}
+```{r print-replacements-gwdb}
 #| echo: false
 gw_print_replacement()
 ```
 
+
+
+# MNMSURFDB: `r as.character(grts)`
+
+```{r noop-surf}
+#| eval: false
+#| echo: false
+# source('080_connected_by_GRTS.R')
+```
+
+```{r surfdb-connection}
+database_label <- "mnmsurfdb"
+
+### connect to database
+mnmdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = glue::glue("{database_label}{suffix}"),
+  user = "monkey",
+  password = NA
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+message(mnmdb$shellstring)
+
+```
+
+-- helpers
+
+```{r helper-surfdb-activity-groups}
+
+join_activity_groups <- function(df) {
+  df %>% dplyr::left_join(
+      mnmdb$query_columns(
+        "GroupedActivities",
+        c(
+          "activity_group_id",
+          "activity_group"
+        )
+      ) %>% dplyr::distinct(),
+      by = dplyr::join_by(activity_group_id)
+    ) %>%
+  return()
+}
+
+```
+
+
+```{r helper-query-activities-surfdb}
+
+query_special_activity <- function(shorthand) {
+
+  if (shorthand == "INST") {
+    table_label <- "InstallationVisits"
+    id_column <- "installationvisit_id"
+  } else if (shorthand == "SAMP") {
+    table_label <- "SamplingVisits"
+    id_column <- "samplingvisit_id"
+  } else if (shorthand == "OTH") {
+    table_label <- "OtherVisits"
+    id_column <- "othervisit_id"
+  }
+
+  mnmdb$query_table(table_label) %>%
+  dplyr::mutate(act = shorthand) %>%
+  return()
+}
+
+```
+
+
+-- The Backbone: Sample Unit // Sample Location
+
+```{r sample-units-surfdb}
+
+units <- mnmdb$query_table("SampleUnits") %>%
+  filter(grts_address %in% grts)
+
+
+loc_ids <- mnmdb$pull_column("Locations", "location_id")
+loc_cells <- mnmdb$pull_column("LocationCells", "location_id")
+loc_infos <- mnmdb$pull_column("LocationInfos", "location_id")
+
+units <- units %>%
+  mutate(
+    has_loc = location_id %in% loc_ids,
+    has_cell = location_id %in% loc_cells,
+    has_infos = location_id %in% loc_infos,
+    archived = isFALSE(is.na(archive_version_id))
+  )
+
+surf_print_slocs <- function() {
+  units %>%
+    dplyr::rename(
+      suid = sampleunit_id,
+      lid = location_id,
+      replaced = is_replacement,
+    ) %>%
+    dplyr::select(
+      grts_address,
+      strata,
+      domain_part,
+      schemes,
+      lid,
+      suid,
+      replaced,
+      has_loc,
+      has_cell,
+      has_infos,
+      archived
+    ) %>%
+    t() %>% 
+    knitr::kable()
+}
+
+```
+
+
+-- The Work: Calendar and Visits
+
+```{r field-calendar}
+
+fwcal <- mnmdb$query_table("FieldCalendar") %>%
+  filter(grts_address %in% grts) %>%
+  join_activity_groups() # %>%
+
+surf_print_fwcal <- function() {
+  fwcal %>%
+    dplyr::rename(
+      grts = grts_address,
+      fcid = fieldcalendar_id,
+      suid = sampleunit_id,
+      agid = activity_group_id,
+      archv = archive_version_id,
+      done_p = done_planning
+    ) %>%
+    dplyr::select(
+      grts,
+      stratum,
+      suid,
+      fcid,
+      agid,
+      activity_group,
+      date_start,
+      archv,
+      # teammember_assigned,
+      # date_visit_planned,
+      done_p
+    ) %>%
+    arrange(stratum, date_start, agid) %>% 
+    knitr::kable()
+}
+
+```
+
+```{r visits-surfdb}
+
+visits <- mnmdb$query_table("Visits") %>%
+  filter(grts_address %in% grts) %>%
+  join_activity_groups()
+
+surf_print_visits <- function() {
+  visits %>%
+    dplyr::rename(
+      grts = grts_address,
+      lid = location_id,
+      suid = sampleunit_id,
+      agid = activity_group_id,
+      fcid = fieldcalendar_id,
+      archv = archive_version_id,
+      vid = visit_id,
+      tid = teammember_id
+    ) %>%
+    dplyr::select(
+      grts,
+      stratum,
+      lid,
+      suid,
+      fcid,
+      vid,
+      agid,
+      date_start,
+      archv,
+      tid,
+      issues,
+      date_visit
+    ) %>%
+    arrange(stratum, date_start, agid) %>% 
+    knitr::kable()
+}
+
+```
+
+
+
+```{r special-activities-surfdb}
+
+activities <- bind_rows(
+    query_special_activity("WIA"),
+    query_special_activity("CSA"),
+    query_special_activity("SPA")
+  ) %>%
+  filter(grts_address %in% grts) %>%
+  join_activity_groups()
+
+surf_print_special_activities <- function() {
+  activities %>%
+    dplyr::rename(
+      grts = grts_address,
+      suid = sampleunit_id,
+      agid = activity_group_id,
+      fcid = fieldcalendar_id,
+      vid = visit_id,
+    ) %>%
+    dplyr::select(
+      act,
+      grts,
+      stratum,
+      fcid,
+      vid,
+      agid,
+      date_start
+    ) %>%
+    arrange(stratum, date_start, agid) %>% 
+    knitr::kable()
+}
+
+```
+
+
+```{r location-infos-surfdb}
+
+infos <- mnmdb$query_table("LocationInfos") %>%
+  filter(grts_address %in% grts)
+
+surf_print_infos <- function() {
+  infos %>%
+    dplyr::rename(
+      grts = grts_address,
+      liid = locationinfo_id,
+      lid = location_id,
+      inaccess = accessibility_inaccessible,
+      hints = recovery_hints
+    ) %>%
+    dplyr::select(
+      liid,
+      grts,
+      lid,
+      inaccess,
+      hints
+    ) %>%
+    knitr::kable()
+}
+```
+
+
+```{r surf-lojos}
+
+lojos <- mnmdb$query_table("LocationJournals") %>%
+  filter(grts_address %in% grts)
+
+surf_print_lojos <- function() {
+  lojos %>%
+    dplyr::rename(
+      grts = grts_address,
+      ljid = locationjournal_id,
+      lid = location_id,
+      src = source,
+      agid = activity_group_id,
+      tps = type_subset
+    ) %>%
+    dplyr::select(
+      grts,
+      ljid,
+      tps,
+      lid,
+      src,
+      agid
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+
+```{r surf-replacements}
+
+
+repdat <- mnmdb$query_table("ReplacementData") %>%
+  filter((grts_address %in% grts) | (grts_address_replacement %in% grts))
+
+surf_print_replacement <- function() {
+  repdat %>%
+    dplyr::rename(
+      typ = type,
+      grts = grts_address_original,
+      rep = grts_address_replacement,
+      ldate = loceval_date,
+      suid = sampleunit_id
+    ) %>%
+    dplyr::select(
+      typ,
+      grts,
+      rep,
+      ldate,
+      suid
+    ) %>%
+    knitr::kable()
+}
+
+```
+
+
+
+```{=latex} 
+\pagebreak 
+```
+
+# Overview: `r as.character(grts)`
+
+## sample units
+
+```{r print-suints-surfdb}
+#| echo: false
+surf_print_slocs()
+```
+
+
+## calendar
+
+```{r print-fwcal-surfdb}
+#| echo: false
+surf_print_fwcal()
+```
+
+
+## visits
+
+```{r print-visit-surfdb}
+#| echo: false
+surf_print_visits()
+```
+
+special activities (well installation, chem sampling, positioning)
+
+```{r print-special-activities-surfdb}
+#| echo: false
+surf_print_special_activities()
+```
+
+## location infos
+
+```{r print-infos-surfdb}
+#| echo: false
+surf_print_infos()
+```
+
+## location journals
+
+```{r surf-print-lojos}
+#| echo: false
+surf_print_lojos()
+```
+
+## replacement
+```{r print-replacements-surfdb}
+#| echo: false
+surf_print_replacement()
+```
