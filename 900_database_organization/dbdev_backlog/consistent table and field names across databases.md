@@ -21,6 +21,12 @@ These should be corrected.
 	+ [ ] `"outbound"."SampleLocations".strata` -> #stratum
 + [ ] #mnmgwdb: `FieldworkCalendar` -> #FieldCalendar
 + [ ] #mnmgwdb: `Visits` -> #OtherVisits and use #Visits as an interface
++ [ ] #mnmgwdb: move `CellMaps` and `LocationEvaluations` to schema `transfer`
+	+ ```sql
+ALTER TABLE "outbound"."LocationEvaluations" SET SCHEMA "transfer";
+ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
+-- adjust views!
+```
 + [x] #mnmgwdb #ReplacementData:
 	+ [x] `grts_address` -> `grts_address_original`
 	+ [x] `is_replaced` -> `is_chosen_replacement` (mind the #views)
