@@ -107,8 +107,8 @@ status: false
 	- [x] `surf_SampleCells.sql`
 	- [x] `view_coordinates.sql`
 - [ ] review and adjust all scripts in categories `000_DOCUMENTATION` and `100_MAINTENANCE`
-	- [ ] 080
-	- [ ] 047
+	- [x] 080
+	- [x] 047
 	- [ ] Coordinates
 	- [ ] MHQAreas
 - [ ] `update_landuse_in_locationinfos` -> works for new locations?
