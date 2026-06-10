@@ -106,9 +106,9 @@ status: false
 	- [x] `surf_MHQSafety.sql`
 	- [x] `surf_SampleCells.sql`
 	- [x] `view_coordinates.sql`
-- [ ] review and adjust all scripts in categories `000_DOCUMENTATION` and `100_MAINTENANCE`
+- [x] review and adjust all scripts in categories `000_DOCUMENTATION` and `100_MAINTENANCE`
 	- [x] 080
 	- [x] 047
-	- [ ] Coordinates
-	- [ ] MHQAreas
+	- [x] Coordinates
+	- [x] MHQAreas
 - [ ] `update_landuse_in_locationinfos` -> works for new locations?
