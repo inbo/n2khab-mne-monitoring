@@ -2023,7 +2023,13 @@ load_table_sideload_content <- function(
 
   if (isFALSE(file.exists(data_filepath))) {
     # if no sideloading file exists, return an empty data frame
-    inception_data <- existing_data %>% dplyr::filter(FALSE)
+    inception_data <- existing_data %>%
+      dplyr::filter(FALSE) %>%
+      select(-tidyselect::any_of(
+          unique(c(mnmdb$get_primary_key(table_label)))
+        )
+      )
+
     return(inception_data)
   }
 
@@ -2083,6 +2089,10 @@ precedence_columns <- list(
     # "is_replacement"
   ),
   "SampleUnits" = c(
+    # "is_replacement",
+    # "was_replaced_by_grts"
+  ),
+  "SampleUnits_loceval" = c(
     "previous_notes",
     "replacement_ongoing",
     "replacement_id",
@@ -2097,6 +2107,17 @@ precedence_columns <- list(
     "type_suggested",
     "implications_habitatmap",
     "notes"
+  ),
+  "FieldCalendar" = c(
+    "excluded",
+    "excluded_reason",
+    "teammember_assigned",
+    "date_visit_planned",
+    "no_visit_planned",
+    "notes",
+    "done_planning",
+    "is_sideloaded",
+    "is_frozen"
   ),
   "FieldworkCalendar" = c(
     "excluded",
