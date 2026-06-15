@@ -11,8 +11,7 @@ source("MNMDatabaseToolbox.R")
 ## database connection ---------------------------------------------------------
 config_filepath <- file.path("./mnm_database_connection.conf")
 
-suffix <- "" # "-staging"
-suffix_refs <- "" # "-staging" # TODO temporary reference to production
+suffix <- "-staging"
 mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
 
 mnmsurfdb <- connect_mnm_database(
@@ -27,7 +26,7 @@ update_cascade_lookup <- parametrize_cascaded_update(mnmsurfdb)
 # to also query latest data from loceval
 loceval_connection <- connect_mnm_database(
   config_filepath = config_filepath,
-  database = glue::glue("loceval{suffix_refs}"),
+  database = glue::glue("loceval{suffix}"),
   user = "monkey",
   password = NA
 )
@@ -36,7 +35,7 @@ loceval_connection <- connect_mnm_database(
 # to also query latest data from mnmsyncdb
 mnmsyncdb_connection <- connect_mnm_database(
   config_filepath = config_filepath,
-  database = glue::glue("mnmsyncdb{suffix_refs}"),
+  database = glue::glue("mnmsyncdb{suffix}"),
   user = "monkey",
   password = NA
 )

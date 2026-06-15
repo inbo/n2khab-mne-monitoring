@@ -111,4 +111,11 @@ status: false
 	- [x] 047
 	- [x] Coordinates
 	- [x] MHQAreas
+- [ ] prepare a REP update script: `710_mnmsurfdb_update_REP.qmd`
+	- [ ] do we need a `310_mnmsyncdb_update_REP.qmd` as well?
+	- [ ] `was_replaced_by_grts` fill upon replacement?
+	- [x] [[datatypes/as.POSIXct datatime un-rounding issue]] 
 - [ ] `update_landuse_in_locationinfos` -> works for new locations?
+
+- [ ] add surf to `405_freeze_calendar.R`
+- [ ] placeholders for Protocols

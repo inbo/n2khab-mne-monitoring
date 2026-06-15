@@ -597,7 +597,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
     # log_user = "maintenance",
-    # log_update = as.POSIXct(Sys.time()),
+    # log_update = convert_timestamp_to_ms_character(Sys.time()),
     replacement_ongoing = FALSE,
     is_replaced = FALSE,
     type_is_absent = FALSE
@@ -796,7 +796,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     excluded = FALSE,
     no_visit_planned = FALSE,
     done_planning = FALSE,
@@ -886,7 +886,7 @@ potential_visits <- fieldworkcalendar_lookup %>%
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     visit_done = FALSE
   )
 
@@ -976,9 +976,9 @@ new_locinfos <- sample_units %>%
   ) %>%
   mutate(
     log_creator = "maintenance",
-    log_creation = as.POSIXct(Sys.time()),
+    log_creation = convert_timestamp_to_ms_character(Sys.time()),
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time())
+    log_update = convert_timestamp_to_ms_character(Sys.time())
   )
 
 new_locinfos <- new_locinfos %>%

@@ -501,7 +501,10 @@ sample_units <- bind_rows(
 locations_grts_collection <- bind_rows(
     mnmgwdb$query_columns("Locations", c("grts_address")),
     sample_units %>% distinct(grts_address),
-    mnmgwdb$query_columns("LocationInfos", c("grts_address"))
+    mnmgwdb$query_columns("LocationInfos", c("grts_address")),
+    mnmgwdb$query_columns("ReplacementData", c("grts_address_original")) %>%
+      rename(grts_address = grts_address_original)
+
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
   distinct() %>%
@@ -779,7 +782,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>%
   mutate(
     # log_user = "maintenance",
-    # log_update = as.POSIXct(Sys.time()),
+    # log_update = convert_timestamp_to_ms_character(Sys.time()),
     # is_replacement = FALSE
   )
 
@@ -803,14 +806,14 @@ samplelocations_lookup <- redistribute_calendar_data(
 # samplelocations_lookup <- mnmgwdb$query_columns("SampleLocations", c("grts_address", "type", "samplelocation_id"))
 
 fieldwork_calendar_columns <- c(
+  "samplelocation_id",
   "grts_address",
   "stratum",
-  "samplelocation_id",
   "activity_group_id",
-  "activity_rank",
   "date_start",
   "date_end",
   "date_interval",
+  "activity_rank",
   "priority",
   "wait_any",
   "wait_watersurface",
@@ -831,13 +834,13 @@ fieldcalendar_characols <- c(
 )
 
 
-fieldwork_shortterm_prioritization_by_stratum %>%
-  apply_local_replacement_to_grts() %>% 
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
-samplelocations_lookup %>% 
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
+# fieldwork_shortterm_prioritization_by_stratum %>%
+#   apply_local_replacement_to_grts() %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+# samplelocations_lookup %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
 
 fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
@@ -959,7 +962,7 @@ calendar_to_sideload <- load_table_sideload_content(
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     is_sideloaded = TRUE,
     excluded = FALSE,
     no_visit_planned = FALSE,
@@ -1027,7 +1030,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     excluded = FALSE,
     is_frozen = FALSE,
     no_visit_planned = FALSE,
@@ -1117,7 +1120,7 @@ potential_visits <- fieldworkcalendar_lookup %>%
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     issues = FALSE,
     visit_done = FALSE
   )
@@ -1291,9 +1294,9 @@ new_locinfos <- sample_units %>%
   ) %>%
   mutate(
     log_creator = "maintenance",
-    log_creation = as.POSIXct(Sys.time()),
+    log_creation = convert_timestamp_to_ms_character(Sys.time()),
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time())
+    log_update = convert_timestamp_to_ms_character(Sys.time())
   )
 
 new_locinfos <- new_locinfos %>%

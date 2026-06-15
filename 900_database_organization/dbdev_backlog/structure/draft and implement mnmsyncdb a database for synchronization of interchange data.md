@@ -103,7 +103,7 @@ Special foor #FreeFieldNotes, `log_` columns are used for identification (and sh
 + existing and novel notes are separated
 + novel notes are uploaded
 + implement removal of deleted notes - will only delete if the origin db deletes it
-+ [[datatypes/applied date rounding to FreeFieldNotes log_creation on ALL servers and mirrors]]
++ [[datatypes/applied date timestamp rounding to FreeFieldNotes log_creation on ALL servers and mirrors]]
 + update updated notes based on `log_update`:
 	+ any database can change any note, but only the latest change is kept
 + distribute latest data to user databases
