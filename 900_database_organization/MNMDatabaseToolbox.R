@@ -1365,6 +1365,30 @@ upload_additional_data <- function(mnmdb, ...) {
 #   FUN = function(tablab) mnmdb$load_table_info(tablab) %>% select(datatype)
 # )) %>% distinct()
 
+convert_timestamp_to_ms_character <- function(ts) {
+  # timestamp string in seconds
+  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0")
+
+  # milliseconds
+  ts_ms_char <- as.character(floor(unclass(ts)*1000))
+  l <- nchar(ts_ms_char)
+  ms <- substr(ts_ms_char, start = l-2, stop = l)
+
+  # timezone
+  tz <- format(ts, format = "%Z")
+
+  return(paste0(c(ts_char, ".", ms, " ", tz), collapse = ""))
+}
+
+convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.000", tz = "Europe/London"))
+convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.001", tz = "Europe/London"))
+convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.002", tz = "Europe/London"))
+convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.999999", tz = "Europe/London"))
+for (i in seq_len(100)) {
+  print(convert_timestamp_to_ms_character(Sys.time()))
+}
+
+
 
 # to update
 datatype_conversion_functions <- c(
@@ -1379,7 +1403,8 @@ datatype_conversion_functions <- c(
   "varchar(3)" = as.character,
   "varchar(16)" = as.character,
   "text" = as.character,
-  "timestamp" = as.POSIXct,
+  "timestamp" = convert_timestamp_to_ms_character,
+  "timestamp(3)" = convert_timestamp_to_ms_character,
   "date" = as.Date,
   "bool" = as.logical,
   "boolean" = as.logical
@@ -1403,7 +1428,8 @@ datatype_stringconversion_catalogue <- c(
   "smallint"  = as.character, #function(val) sprintf("%.0f", val),
   "bigint"    = as.character, #function(val) sprintf("%.0f", val),
   "double precision" = function(val) sprintf("%.8f", val),
-  "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M"),
+  "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M:%OS3"),
+  "timestamp(3)" = function(val) format(val, "%Y-%m-%d %H:%M:%OS3"),
   "date" = function(val) format(val, "'%Y-%m-%d'")
 )
 
@@ -1984,15 +2010,27 @@ load_table_sideload_content <- function(
 
   stopifnot("dplyr" = requireNamespace("dplyr"))
 
+  # query existing data from database
+  existing_data <- mnmdb$query_table(table_label, ONLY = TRUE)
+    # %>% select(!!!rlang::syms(characteristic_columns))
+
   # load the new data
-  inception_data <- read.csv2(data_filepath, sep = ",") %>%
-    dplyr::as_tibble()
+  if (file.exists(data_filepath)) {
+    inception_data <- read.csv2(data_filepath, sep = ",") %>%
+      dplyr::as_tibble()
+  } else {
+    inception_data <- existing_data %>% filter(FALSE)
+  }
+
+
+
 
   dtypes <- mnmdb$load_table_info(table_label) %>%
     select(column, datatype)
 
   # data type adjustment
   for (col in colnames(inception_data)) {
+    print(col)
     dtyp <- dtypes %>%
       filter(column == col) %>%
       pull(datatype) %>% .[1]
@@ -2002,9 +2040,6 @@ load_table_sideload_content <- function(
       mutate_at(vars(!!!rlang::syms(c(col))), dtype_conversion_fcn)
   }
 
-  # query existing data from database
-  existing_data <- mnmdb$query_table(table_label, ONLY = TRUE)
-    # %>% select(!!!rlang::syms(characteristic_columns))
 
   # existing_data %>%
   #   semi_join(
