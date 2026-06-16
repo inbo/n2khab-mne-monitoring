@@ -23,10 +23,15 @@ These should be corrected.
 + [ ] #mnmgwdb: `Visits` -> #OtherVisits and use #Visits as an interface
 + [ ] #mnmgwdb: move `CellMaps` and `LocationEvaluations` to schema `transfer`
 	+ ```sql
-ALTER TABLE "outbound"."LocationEvaluations" SET SCHEMA "transfer";
-ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
--- adjust views! (Fw, FwP, LocevalInfo)
-```
+     ALTER TABLE "outbound"."LocationEvaluations" SET SCHEMA "transfer";
+     ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
+     -- adjust views! (Fw, FwP, LocevalInfo)
+     ```
+
 + [x] #mnmgwdb #ReplacementData:
 	+ [x] `grts_address` -> `grts_address_original`
 	+ [x] `is_replaced` -> `is_chosen_replacement` (mind the #views)
+
+docs: https://www.postgresql.org/docs/current/ddl-alter.html
+
+There seems to be no simple way to create a permanent alias, except with #views.
