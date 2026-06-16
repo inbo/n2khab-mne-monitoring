@@ -13,7 +13,7 @@ via linux terminal:
 ```
 psql -U <readonly_user> -h <host> -p <port> -d mnmgwdb -W
 ```
-tools like `pgAdmin` (not tested) or `pgModeler` could be used with those same credentials
+tools like `pgAdmin` (not tested) ~~or `pgModeler`~~ could be used with those same credentials
 
 ## protections
 some extra layers regulate login.

@@ -42,7 +42,8 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 #
-grts <- c(289513)
+grts <- c(1466998) # no replacement cells visible
+  # c(289513)
   # c(84598, 871030) # replacement mishap
   # c(1995094) # question by @TDD via chat 20260428 loceval not forwarded
   # c(2742, 18877110) # loceval not passed through to mnmgwdb
