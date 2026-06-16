@@ -9,7 +9,7 @@ execution:
 status: false
 ---
 
-with [[distribute loceval information via mnmsyncdb]], the `transfer` schema was introduced
+with [[structure/distribute loceval information via mnmsyncdb]], the `transfer` schema was introduced
 the other #loceval  information would also fit there
 
 ## plan

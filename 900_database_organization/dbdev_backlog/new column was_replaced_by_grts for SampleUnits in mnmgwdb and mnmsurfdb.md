@@ -11,7 +11,7 @@ execution:
 status: true
 ---
 
-During [[distribute loceval information via mnmsyncdb]] I noticed the `is_replacement` field which seemingly correctly flags the units which are the replacement of another cell.
+During [[structure/distribute loceval information via mnmsyncdb]] I noticed the `is_replacement` field which seemingly correctly flags the units which are the replacement of another cell.
 However, I saw no way of linking to the replacement from the original unit.
 
 Instead of boolean flag, the GRTS reference might be useful (`WHERE was_replaced_by_grts IS NULL` for the unreplaced ones).

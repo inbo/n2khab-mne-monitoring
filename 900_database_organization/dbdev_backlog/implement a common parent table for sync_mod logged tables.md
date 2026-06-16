@@ -18,7 +18,8 @@ Currently, the `sync_mod` function is applied *ex post* to a variety of tables.
 Its purpose is to log update times and users.
 
 > [!note] condition on user
-> Limitation (to be improved!) is that it cannot distinguish based on user type: technical modifications are logged although I would rather store only real user interventions.
+> ex-Limitation: the function can now distinguish based on user type.
+> Technical modifications are not logged, rather store only real user interventions.
 
 
 Instead of applying the function to many different tables, these tables could each inherit an interface with the logging columns.

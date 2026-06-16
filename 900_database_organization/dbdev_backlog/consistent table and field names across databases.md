@@ -16,7 +16,7 @@ These should be corrected.
 
 + [ ] #loceval: `FieldActivityCalendar` -> #FieldCalendar 
 + [ ] #mnmgwdb: `RandomPoints` -> #RandomPlacementPoints
-+ [ ] #mnmgwdb: 
++ [ ] #mnmgwdb:  use redirection views!
 	+ [ ] `SampleLocations` -> #SampleUnits 
 	+ [ ] `"outbound"."SampleLocations".strata` -> #stratum
 + [ ] #mnmgwdb: `FieldworkCalendar` -> #FieldCalendar

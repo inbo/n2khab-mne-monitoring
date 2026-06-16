@@ -466,6 +466,7 @@ upload_data_and_update_dependencies <- function(
     characteristic_columns = NA,
     rename_characteristics = NULL,
     skip_sequence_reset = FALSE,
+    skip_stitch_table_connections = FALSE,
     sort_data_by_characteristics = TRUE,
     verbose = TRUE
     ) {
@@ -731,20 +732,22 @@ upload_data_and_update_dependencies <- function(
   # message(mnmdb$shellstring)
   # message(mnmdb$mirror_short)
 
-  # update key links by running script in the background
-  if (mnmdb$mirror_short == "") {
-    out <- processx::run(
-      "Rscript",
-      "102_re_link_foreign_keys.R",
-      spinner = TRUE
-    )
-  } else {
-    # prefix a minus (as ine"-mirror")
-    out <- processx::run(
-      "Rscript",
-      c("102_re_link_foreign_keys.R", sprintf("-%s", mnmdb$mirror_short)),
-      spinner = TRUE
-    )
+  if (isFALSE(skip_stitch_table_connections)) {
+    # update key links by running script in the background
+    if (mnmdb$mirror_short == "") {
+      out <- processx::run(
+        "Rscript",
+        "102_re_link_foreign_keys.R",
+        spinner = TRUE
+      )
+    } else {
+      # prefix a minus (as ine"-mirror")
+      out <- processx::run(
+        "Rscript",
+        c("102_re_link_foreign_keys.R", sprintf("-%s", mnmdb$mirror_short)),
+        spinner = TRUE
+      )
+    }
   }
 
   return(invisible(NULL))

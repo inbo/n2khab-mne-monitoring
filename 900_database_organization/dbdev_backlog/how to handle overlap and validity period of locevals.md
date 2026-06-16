@@ -3,7 +3,7 @@ aliases:
   - loceval best-before date
 tags:
   - loceval
-  - validity period
+  - validity
 started:
 finished:
 execution:

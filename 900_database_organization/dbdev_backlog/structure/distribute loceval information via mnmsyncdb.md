@@ -5,10 +5,11 @@ tags:
   - ReplacementData
   - LocationEvaluations
   - loceval
-started:
-finished:
+started: 2026-06-04
+finished: 2026-06-05
 execution:
-status: false
+  - FM
+status: true
 ---
 
 - loceval info should be centrally pushed to #mnmsyncdb and then distributed to copies on user databases.via `111_push_loceval_to_***.R`
@@ -169,6 +170,6 @@ Indexes:
 		- [x] shift `grts_address` in all tables
 		- [x] also push `LocationEvaluations` and `CellMaps`
 		- [x] testing with actual data on `-staging` -> issues `mnmsurfdb`
-- [ ] {?} are there other scripts affected?
+- [x] {?} are there other scripts affected?
 
 [[handle historic entries in LocationJournals when a replacement is applied by 111_distribute_loceval_via_mnmsyncdb]]

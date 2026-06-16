@@ -20,3 +20,5 @@ Terminology in the databases:
 - on top of that, [[procedures/local replacements|local replacement]] can further change the address (but the outcome is linked to and considered a replacement of the **original**)
 
 For future reference, it makes sense to keep `grts_original` as an extra characteristic column in #SampleUnits 
+
+Note: found a join issue for `Replacements` [[timeline/2026-06-16|2026-06-16]]

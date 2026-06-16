@@ -28,7 +28,7 @@ if restore_dev:
         definition_csv = "TABLES.csv", \
         lazy_creation = False, \
         db_connection = db_connection, \
-        tabula_rasa = True
+        tabula_rasa = False
         )
 
 

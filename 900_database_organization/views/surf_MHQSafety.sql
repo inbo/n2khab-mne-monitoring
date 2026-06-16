@@ -9,6 +9,7 @@ WHERE location_id IN (
   FROM "inbound"."InstallationVisits"
 )
 ;
+-- could also filter by distinct `grts_address`
 
 
 GRANT SELECT ON  "outbound"."MHQSafety"  TO  viewer_mnmdb;

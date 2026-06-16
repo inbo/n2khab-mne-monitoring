@@ -129,6 +129,27 @@ stitch_table_connection(
 )
 
 
+# MHQ Polygons
+#
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "MHQPolygons",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "MHQPolygons",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address")
+)
+
+
+
+
 
 #_______________________________________________________________________________
 #### MNMGWDB
@@ -199,6 +220,14 @@ stitch_table_connection(
   table_label = "MHQPolygons",
   reference_table = "Locations",
   link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "MHQPolygons",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
   lookup_columns = c("grts_address")
 )
 
@@ -360,6 +389,14 @@ stitch_table_connection(
   table_label = "MHQPolygons",
   reference_table = "Locations",
   link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "MHQPolygons",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address")
 )
 

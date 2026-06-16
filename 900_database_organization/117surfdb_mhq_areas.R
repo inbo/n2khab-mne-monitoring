@@ -197,6 +197,7 @@ mhq_locationwise <- function(location_row) {
 
   mhq_safety <- mhq_safety %>%
     dplyr::mutate(
+      sampleunit_id = one_location$sampleunit_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,
     )

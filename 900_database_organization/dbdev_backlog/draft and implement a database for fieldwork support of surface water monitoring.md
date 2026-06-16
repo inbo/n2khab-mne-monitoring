@@ -51,7 +51,7 @@ status: false
 		- added `is_surf_activity` for #alldatabases 
 		- pulled in status quo from #loceval due to [[structure/flag auxiliary FAGs|fag flag tag]]
 	- open [[N2kHabStrata table is inconsistently used across databases]]; in this scheme's database, #N2kHabStrata are used for the more extensive meta table
-	- #Replacements: queried directly from `gwTransfer`; [[distribute loceval information via mnmsyncdb]]
+	- #Replacements: queried directly from `gwTransfer`; [[structure/distribute loceval information via mnmsyncdb]]
 	- #Locations: worked almost as expected
 	- #SampleUnits: `scheme_ps_targetpanel` is doubled; must make [[hacks/functions to unify scheme_ps_targetpanels]]
 	- #FieldCalendar: 
@@ -87,7 +87,7 @@ status: false
 - realized that the cascade_upload functions in `702_upload_mnmsurfdb.R` already trigger `102_re_link_foreign_keys.R`, which therefore must be adjusted with priority
 
 # relevant other steps
-- [x] TODO [[distribute loceval information via mnmsyncdb]]
+- [x] TODO [[structure/distribute loceval information via mnmsyncdb]]
 - [x] new user #roles: `planner_surfdb`, `user_surfdb`; granted to the specific users
 - [x] new entry in #TeamMembers: `all_surfers`
 - [x] also add columns in #GroupedActivities to all other databases: `is_surf_activity`

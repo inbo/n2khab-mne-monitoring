@@ -12,12 +12,10 @@ metadata,Coordinates,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,Locations coordina
 outbound,LocationInfos,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
 outbound,LocationJournals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"lifecycle information of a sample unit; chronological, append-only"
 outbound,SampleLocations,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,"list of locations currently sampled (GRTS level, i.e. no duplicate locations)"
-outbound,LocationEvaluations,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
 outbound,FieldworkCalendar,yoda,"viewer_mnmdb, tester_mnmdb","planner_gwdb, tester_mnmdb",,,,,1,,field activity calender
 outbound,Divers,yoda,"viewer_mnmdb, tester_mnmdb","planner_gwdb, tester_mnmdb",,,,,1,,list of reserved diver numbers for selection
 outbound,RandomPoints,yoda,"viewer_mnmdb, tester_mnmdb",,POINT,,,,,,random points for placement in the cell
 outbound,MHQPolygons,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,MHQ sample areas NO TRESPASSING!
-outbound,CellMaps,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,cell mapping input by drawing polygons
 inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,,,1,,"inbound information about location visits, planned in FieldworkCalendar, linked to SampleLocations and field activity GROUP"
 inbound,InstallationVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (well installations); subset of Visits
 inbound,SamplingVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (chemical sampling); subset of Visits
@@ -25,4 +23,6 @@ inbound,PositioningVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_m
 inbound,InstallationRemovals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"logging removals of an installation, planned or by vandalism"
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
+outbound,LocationEvaluations,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
+outbound,CellMaps,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,cell mapping input by drawing polygons
 transfer,ReplacementData,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,"storing info about replacements (from `loceval`, via `mnmsyncdb`)"

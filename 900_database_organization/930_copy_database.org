@@ -271,6 +271,18 @@ upload_data_and_update_dependencies(
 #+end_src
 
 
+20260616: join issue duplicate characteristics on =MHQPolygons=
+#+begin_src sql
+
+SELECT DISTINCT location_id, grts_address, count(*) AS N
+FROM "outbound"."MHQPolygons"
+GROUP BY location_id, grts_address
+ORDER BY N DESC
+LIMIT 10
+
+#+end_src
+
+
 * Generalization
 
 Above is a simple example of table content moving from one to the other place.
@@ -304,6 +316,7 @@ if (length(commandline_args) > 0) {
 }
 # database_label <- "loceval"
 # database_label <- "mnmgwdb"
+# database_label <- "mnmsurfdb"
 stopifnot(database_label %in% c("loceval", "mnmgwdb", "mnmsurfdb"))
 
 source_mirror <- glue::glue("{database_label}") # -staging
@@ -433,6 +446,7 @@ Here we find out.
 table_list_file <- file.path(glue::glue("{source_db$folder}/TABLES.csv"))
 table_list <- read.csv(table_list_file)
 
+# table_idx <- 1
 process_db_table_copy <- function(table_idx) {
 
   table_label <- table_list[[table_idx, "table"]]
@@ -457,7 +471,8 @@ process_db_table_copy <- function(table_idx) {
 
   copy_over_single_table(
     table_label,
-    new_data
+    new_data,
+    skip_stitch_table_connections = TRUE
     #, skip_sequence_reset = TRUE
   )
 
@@ -478,6 +493,13 @@ Apply to all the table (never tired of reminding: *order matters*):
 
 
 invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
+
+# re-link keys
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", sprintf("-%s", target_db$mirror_short)),
+  spinner = TRUE
+)
 
 #+end_src
 
@@ -597,6 +619,8 @@ constraints_mod_OBSOLETE <- function(do = c("DROP", "SET")) {
 # constraints_mod("SET")
 
 #+end_src
+
+** MHQPolygons are not unique
 
 * Brief Data Inspection
 
