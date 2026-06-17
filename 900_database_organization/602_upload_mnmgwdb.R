@@ -301,27 +301,12 @@ grouped_activities <- grouped_activities %>%
 # grouped_activities %>% distinct(activity_group)
 
 # tag activities for groundwater monitoring
-grouped_activities <- grouped_activities %>%
-  mutate(is_gw_activity =
-    activity_group %in% c(
-      "GWINSTWELLDIVER",
-      "GWINSTPIEZNODIVER",
-      "GWINSTPIEZWELL",
-      "GWINSTWELLDIVERDEEP",
-      "GWLEVREADDIVER",
-      "GWLEVREADDIVERMAN",
-      "GWLEVREADDIVERDEEP",
-      "GWSHALLCLEAN",
-      "GWSHALLSAMP",
-      "GWSHALLSAMPREADMAN",
-      "GWSURFLEVREADDIVERMAN",
-      "GWSURFSHALLSAMPREADMAN",
-      "SPATPOSITPIPE",
-      "SPATPOSITGAUGE",
-      "ADHOCDIVERREPLACE",
-      "ADHOCPIPEREPLACE"
-      )
-  )
+source(here::here(
+  "metadata",
+  "associate_grouped_activities_with_fieldtaskforces.R"
+))
+
+grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
 
 
 ## ----upload-grouped-activities------------------------------------------------

@@ -75,14 +75,14 @@ It can be appended by editing the =~/.pgpass=, appending a line for /target/:
 
 
 If the /target/ is of permanent relevance, consider setting up a backup cronjob.
-For now, that procedure remains documented in =000_steps_journal.org= >>> "=database daily diffs"=.
-
+Details are documented in the [[https://github.com/inbo/n2khab-mne-monitoring/blob/main/990_database_documentation/database/backups.md][MNE database documentation]].
 
 * Use Case 0: /tabula rasa/
 
 ** re-create empty
 
 Trivially, you can just create the new database as you created the original one.
+There are python scripts for this purpose.
 
 #+begin_src python :eval no :tangle 931_create_empty_testing.py
 # DO NOT MODIFY
@@ -149,7 +149,7 @@ The dump-reload strategy might be a bit too drastic in certain situations, e.g.:
 
 This is the most surgical of the procedures.
 Situation is that you have a /target/ structure, possibly with valuable data,
-but you would like to copy or append from a /source/.
+but you would like to partially copy or append from a /source/ to /target/.
 
 
 
@@ -219,8 +219,11 @@ sort_protocols <- function(prt) {
 }
 new_data <- sort_protocols(new_data)
 
-new_data <- new_data %>%
-  select(-protocol_id)
+# further modification are possible
+if ("protocol_id" %in% names(source_data)) {
+  source_data <- source_data %>%
+    select(-protocol_id)
+}
 #_______________________________________________________________________________
 #+end_src
 
@@ -268,6 +271,18 @@ upload_data_and_update_dependencies(
 #+end_src
 
 
+20260616: join issue duplicate characteristics on =MHQPolygons=
+#+begin_src sql
+
+SELECT DISTINCT location_id, grts_address, count(*) AS N
+FROM "outbound"."MHQPolygons"
+GROUP BY location_id, grts_address
+ORDER BY N DESC
+LIMIT 10
+
+#+end_src
+
+
 * Generalization
 
 Above is a simple example of table content moving from one to the other place.
@@ -301,7 +316,8 @@ if (length(commandline_args) > 0) {
 }
 # database_label <- "loceval"
 # database_label <- "mnmgwdb"
-stopifnot(database_label %in% c("loceval", "mnmgwdb"))
+# database_label <- "mnmsurfdb"
+stopifnot(database_label %in% c("loceval", "mnmgwdb", "mnmsurfdb"))
 
 source_mirror <- glue::glue("{database_label}") # -staging
 target_mirror <- glue::glue("{database_label}-testing")
@@ -430,10 +446,12 @@ Here we find out.
 table_list_file <- file.path(glue::glue("{source_db$folder}/TABLES.csv"))
 table_list <- read.csv(table_list_file)
 
+# table_idx <- 1
 process_db_table_copy <- function(table_idx) {
 
   table_label <- table_list[[table_idx, "table"]]
-  # table_label <- "ReplacementCells"
+  # table_label <- "LocationCells"
+  # table_idx <- table_list %>% mutate(table_idx = seq_len(nrow(table_list))) %>% filter(table == table_label) %>% pull(table_idx)
 
   table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
   if (table_exclusion) return()
@@ -441,7 +459,7 @@ process_db_table_copy <- function(table_idx) {
   print(glue::glue("processing {table_idx} / {nrow(table_list)}: {target_db$get_namestring(table_label)}"))
 
   # download
-  source_data <- source_db$query_table(table_label)
+  source_data <- source_db$query_table(table_label, ONLY = TRUE)
 
   # modify
   if (table_label %in% names(table_modification)){
@@ -453,7 +471,8 @@ process_db_table_copy <- function(table_idx) {
 
   copy_over_single_table(
     table_label,
-    new_data
+    new_data,
+    skip_stitch_table_connections = TRUE
     #, skip_sequence_reset = TRUE
   )
 
@@ -474,6 +493,13 @@ Apply to all the table (never tired of reminding: *order matters*):
 
 
 invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
+
+# re-link keys
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", sprintf("-%s", target_db$mirror_short)),
+  spinner = TRUE
+)
 
 #+end_src
 
@@ -593,6 +619,8 @@ constraints_mod_OBSOLETE <- function(do = c("DROP", "SET")) {
 # constraints_mod("SET")
 
 #+end_src
+
+** MHQPolygons are not unique
 
 * Brief Data Inspection
 

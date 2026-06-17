@@ -20,7 +20,9 @@ Therefore, `mnmsyncdb` is started up as a central place to store chronological, 
 | `LocationInfos`    | persistent infos about specific locations, e.g. accessibility; synced between databases    |
 | `LocationJournals` | lifecycle information of a sample unit; chronological, append-only                                   |
 | `FreeFieldNotes`   | free notes to be placed on a point on the map, can be related to field visits or prepared in the lab |
-| `ReplacementData`  | TODO is there any need for this database to also store the selected `Replacements`? |
+| `ReplacementData`  | TODO is there any need for this database to also store the selected `Replacements`?(*)  |
+
+(*) [[structure/distribute loceval information via mnmsyncdb|yes!]]
 
 For other tables, irregular or indirect sync is sufficient, although they would profit from centralization (e.g. `TeamMembers`, `GroupedActivities`, `Versions`, ...)
 
@@ -101,7 +103,7 @@ Special foor #FreeFieldNotes, `log_` columns are used for identification (and sh
 + existing and novel notes are separated
 + novel notes are uploaded
 + implement removal of deleted notes - will only delete if the origin db deletes it
-+ [[datatypes/applied date rounding to FreeFieldNotes log_creation on ALL servers and mirrors]]
++ [[datatypes/applied date timestamp rounding to FreeFieldNotes log_creation on ALL servers and mirrors]]
 + update updated notes based on `log_update`:
 	+ any database can change any note, but only the latest change is kept
 + distribute latest data to user databases

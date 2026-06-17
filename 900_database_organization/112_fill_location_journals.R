@@ -58,9 +58,8 @@ message(locevaldb$shellstring)
 
 local_replacement_lookup <- mnmgwdb$query_columns(
     "ReplacementData",
-    c("grts_address", "type", "grts_address_replacement")
+    c("grts_address_original", "type", "grts_address_replacement")
   ) %>%
-  rename(grts_address_original = grts_address) %>%
   distinct()
 
 

@@ -460,3 +460,6 @@ all_points %>%
     sep = ",",
     quote = FALSE
   )
+
+stop("why is there still a header in this file?!")
+# I might even remove the first line manually

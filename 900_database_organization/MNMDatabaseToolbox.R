@@ -466,6 +466,7 @@ upload_data_and_update_dependencies <- function(
     characteristic_columns = NA,
     rename_characteristics = NULL,
     skip_sequence_reset = FALSE,
+    skip_stitch_table_connections = FALSE,
     sort_data_by_characteristics = TRUE,
     verbose = TRUE
     ) {
@@ -542,8 +543,6 @@ upload_data_and_update_dependencies <- function(
   # This happened with SSPSTapas on production already (20250825).
   # TODO review this, see also `lookups` above.
 
-  ### (5) adjust column names
-
   # use `rename_characteristics`
   # to rename cols in the data_replacement to the server data logic
   # data_replacement
@@ -618,12 +617,20 @@ upload_data_and_update_dependencies <- function(
   } else {
     cols_to_query <- c(characteristic_columns)
   }
+  if (length(cols_to_query) == 0) cols_to_query <- NA
 
   new_redownload <- mnmdb$query_columns(
     table_label,
     select_columns = cols_to_query,
     ONLY = TRUE
   )
+
+  # special case: LocationCells have no characteristic columns
+  #   and thus crash the following join
+  if (length(characteristic_columns) == 0) {
+    cols_to_query <- names(new_redownload)
+    characteristic_columns <- names(new_redownload)
+  }
 
   # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
   # entries which were not present prior to update are not in this lookup
@@ -725,20 +732,22 @@ upload_data_and_update_dependencies <- function(
   # message(mnmdb$shellstring)
   # message(mnmdb$mirror_short)
 
-  # update key links by running script in the background
-  if (mnmdb$mirror_short == "") {
-    out <- processx::run(
-      "Rscript",
-      "102_re_link_foreign_keys.R",
-      spinner = TRUE
-    )
-  } else {
-    # prefix a minus (as ine"-mirror")
-    out <- processx::run(
-      "Rscript",
-      c("102_re_link_foreign_keys.R", sprintf("-%s", mnmdb$mirror_short)),
-      spinner = TRUE
-    )
+  if (isFALSE(skip_stitch_table_connections)) {
+    # update key links by running script in the background
+    if (mnmdb$mirror_short == "") {
+      out <- processx::run(
+        "Rscript",
+        "102_re_link_foreign_keys.R",
+        spinner = TRUE
+      )
+    } else {
+      # prefix a minus (as ine"-mirror")
+      out <- processx::run(
+        "Rscript",
+        c("102_re_link_foreign_keys.R", sprintf("-%s", mnmdb$mirror_short)),
+        spinner = TRUE
+      )
+    }
   }
 
   return(invisible(NULL))
@@ -1359,6 +1368,37 @@ upload_additional_data <- function(mnmdb, ...) {
 #   FUN = function(tablab) mnmdb$load_table_info(tablab) %>% select(datatype)
 # )) %>% distinct()
 
+#' convert a timestamp to a character string with millisecond accuracy
+#'
+#' https://stackoverflow.com/questions/79959088/lubridatefloor-date-returns-inaccurate-values-just-below-the-actual-roundin
+#'
+#' @param ts a timestamp as.POSIXct
+#' @return timestamp, in milliseconds, as.character
+convert_timestamp_to_ms_character <- function(ts) {
+  # timestamp string in seconds
+  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0")
+
+  # milliseconds
+  ts_ms_char <- as.character(floor(unclass(ts)*1000))
+  l <- nchar(ts_ms_char)
+  ms <- substr(ts_ms_char, start = l-2, stop = l)
+
+  # timezone
+  tz <- format(ts, format = "%Z")
+
+  return(paste0(c(ts_char, ".", ms, " ", tz), collapse = ""))
+} # /convert_timestamp_to_ms_character
+
+## testing
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.000", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.001", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.002", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.999999", tz = "Europe/London"))
+# for (i in seq_len(100)) {
+#   print(convert_timestamp_to_ms_character(Sys.time()))
+# }
+
+
 
 # to update
 datatype_conversion_functions <- c(
@@ -1373,7 +1413,8 @@ datatype_conversion_functions <- c(
   "varchar(3)" = as.character,
   "varchar(16)" = as.character,
   "text" = as.character,
-  "timestamp" = as.POSIXct,
+  "timestamp" = convert_timestamp_to_ms_character, # as.POSIXct
+  "timestamp(3)" = convert_timestamp_to_ms_character,
   "date" = as.Date,
   "bool" = as.logical,
   "boolean" = as.logical
@@ -1397,7 +1438,8 @@ datatype_stringconversion_catalogue <- c(
   "smallint"  = as.character, #function(val) sprintf("%.0f", val),
   "bigint"    = as.character, #function(val) sprintf("%.0f", val),
   "double precision" = function(val) sprintf("%.8f", val),
-  "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M"),
+  "timestamp" = convert_timestamp_to_ms_character,
+  "timestamp(3)" = convert_timestamp_to_ms_character, # function(val) format(val, "%Y-%m-%d %H:%M:%OS3")
   "date" = function(val) format(val, "'%Y-%m-%d'")
 )
 
@@ -1978,27 +2020,42 @@ load_table_sideload_content <- function(
 
   stopifnot("dplyr" = requireNamespace("dplyr"))
 
-  # load the new data
+  # query existing data from database
+  existing_data <- mnmdb$query_table(table_label, ONLY = TRUE)
+    # %>% select(!!!rlang::syms(characteristic_columns))
+
+  if (isFALSE(file.exists(data_filepath))) {
+    # if no sideloading file exists, return an empty data frame
+    inception_data <- existing_data %>%
+      dplyr::filter(FALSE) %>%
+      select(-tidyselect::any_of(
+          unique(c(mnmdb$get_primary_key(table_label)))
+        )
+      )
+
+    return(inception_data)
+  }
+
+
+  # load the new data, if a file exists
   inception_data <- read.csv2(data_filepath, sep = ",") %>%
     dplyr::as_tibble()
 
+
   dtypes <- mnmdb$load_table_info(table_label) %>%
-    select(column, datatype)
+    dplyr::select(column, datatype)
 
   # data type adjustment
   for (col in colnames(inception_data)) {
     dtyp <- dtypes %>%
-      filter(column == col) %>%
-      pull(datatype) %>% .[1]
+      dplyr::filter(column == col) %>%
+      dplyr::pull(datatype) %>% .[1]
     dtype_conversion_fcn <- datatype_conversion_functions[[tolower(dtyp)]]
 
     inception_data <- inception_data %>%
       mutate_at(vars(!!!rlang::syms(c(col))), dtype_conversion_fcn)
   }
 
-  # query existing data from database
-  existing_data <- mnmdb$query_table(table_label, ONLY = TRUE)
-    # %>% select(!!!rlang::syms(characteristic_columns))
 
   # existing_data %>%
   #   semi_join(
@@ -2035,6 +2092,10 @@ precedence_columns <- list(
     # "is_replacement"
   ),
   "SampleUnits" = c(
+    # "is_replacement",
+    # "was_replaced_by_grts"
+  ),
+  "SampleUnits_loceval" = c(
     "previous_notes",
     "replacement_ongoing",
     "replacement_id",
@@ -2049,6 +2110,17 @@ precedence_columns <- list(
     "type_suggested",
     "implications_habitatmap",
     "notes"
+  ),
+  "FieldCalendar" = c(
+    "excluded",
+    "excluded_reason",
+    "teammember_assigned",
+    "date_visit_planned",
+    "no_visit_planned",
+    "notes",
+    "done_planning",
+    "is_sideloaded",
+    "is_frozen"
   ),
   "FieldworkCalendar" = c(
     "excluded",

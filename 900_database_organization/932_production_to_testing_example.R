@@ -8,7 +8,7 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
 
-table_label <- "Protocols" #"LocationCells"# "Protocols"
+table_label <- "MHQPolygons" #"LocationCells"# "Protocols"
 
 config_filepath <- file.path("./mnm_database_connection.conf")
 
@@ -36,8 +36,11 @@ sort_protocols <- function(prt) {
 }
 new_data <- sort_protocols(new_data)
 
-new_data <- new_data %>%
-  select(-protocol_id)
+# further modification are possible
+if ("protocol_id" %in% names(source_data)) {
+  source_data <- source_data %>%
+    select(-protocol_id)
+}
 #_______________________________________________________________________________
 
 characteristic_columns <- target_db$get_characteristic_columns(table_label)

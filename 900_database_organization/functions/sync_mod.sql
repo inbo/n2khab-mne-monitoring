@@ -4,7 +4,7 @@
 
 
 
-https://stackoverflow.com/a/1491329
+-- https://stackoverflow.com/a/1491329
 
 
 WITH current_team (username) AS (
@@ -34,7 +34,7 @@ BEGIN
   ;
 
   IF is_teammember THEN
-    NEW.log_update := current_timestamp;
+    NEW.log_update := current_timestamp(3);
     NEW.log_user := current_user;
   END IF;
 

@@ -20,7 +20,8 @@ if (length(commandline_args) > 0) {
 }
 # database_label <- "loceval"
 # database_label <- "mnmgwdb"
-stopifnot(database_label %in% c("loceval", "mnmgwdb"))
+# database_label <- "mnmsurfdb"
+stopifnot(database_label %in% c("loceval", "mnmgwdb", "mnmsurfdb"))
 
 source_mirror <- glue::glue("{database_label}") # -staging
 target_mirror <- glue::glue("{database_label}-testing")
@@ -124,10 +125,12 @@ copy_over_single_table <- function(table_label, new_data, ...) {
 table_list_file <- file.path(glue::glue("{source_db$folder}/TABLES.csv"))
 table_list <- read.csv(table_list_file)
 
+# table_idx <- 1
 process_db_table_copy <- function(table_idx) {
 
   table_label <- table_list[[table_idx, "table"]]
-  # table_label <- "ReplacementCells"
+  # table_label <- "LocationCells"
+  # table_idx <- table_list %>% mutate(table_idx = seq_len(nrow(table_list))) %>% filter(table == table_label) %>% pull(table_idx)
 
   table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
   if (table_exclusion) return()
@@ -135,7 +138,7 @@ process_db_table_copy <- function(table_idx) {
   print(glue::glue("processing {table_idx} / {nrow(table_list)}: {target_db$get_namestring(table_label)}"))
 
   # download
-  source_data <- source_db$query_table(table_label)
+  source_data <- source_db$query_table(table_label, ONLY = TRUE)
 
   # modify
   if (table_label %in% names(table_modification)){
@@ -147,7 +150,8 @@ process_db_table_copy <- function(table_idx) {
 
   copy_over_single_table(
     table_label,
-    new_data
+    new_data,
+    skip_stitch_table_connections = TRUE
     #, skip_sequence_reset = TRUE
   )
 
@@ -158,3 +162,10 @@ process_db_table_copy <- function(table_idx) {
 
 
 invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
+
+# re-link keys
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", sprintf("-%s", target_db$mirror_short)),
+  spinner = TRUE
+)

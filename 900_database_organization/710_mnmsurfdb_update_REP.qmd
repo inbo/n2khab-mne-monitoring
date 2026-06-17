@@ -1,0 +1,1356 @@
+---
+title: "REP Data Re-Upload for mnmSURFdb"
+date: "2026-06-15"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+# Changelog
+
+- 20260615 init: copied from mnmgwdb
+- 202606?? REP update
+
+
+# TODO
+
+
+# Preparations
+
+## structure changes
+Download the latest structure sheets for the production mirror.
+Otherwise, the list of update columns might be incomplete.
+
+## sync staging mirror
+
+In all brevity, I collect steps here to get a new REP to the database.
+All changes within this update script should be attempted on `staging`, first.
+  - use the `suffix` to control database connections below. Empty suffix (`""`) labels the `production` database.
+  - The `-testing` mirror (data sync with `033_populate_testing_db.R`) is open to play, and user permissions differ on there. No guarantee that the data is correct.
+  - On `-staging`, everything is exactly identical to the production server (even permissions and user roles), because it gets synced with the dump/restore commands below.
+  - The `-dev` mirror is usually/mostly empty (except for arranging minimal debugging examples). It is often used for re-initializing the database to apply structural changes: download the structure sheet, then re-initialize the structure to `-dev`, dumping the `stdout` output in a file.
+  ```sh
+  cd <path/to>/n2khab-mne-monitoring/900_database_organization/
+  nvim 701_init_mnmsurfdb.py
+  # set `restore_dev = True` but all others False
+  source .dbtools/bin/activate.fish # the python venv with all requirements from `python_requirements.txt` installed
+  python 701_init_mnmsurfdb.py > dump.txt # Note: if process appears stuck, check dump file for hidden confirmation prompt
+  # then get the relevant additions from `dump.txt`
+  #    and apply it to the server via direct `psql <...>`
+  ```
+  
+  
+  
+Syncing the `-staging` database mirrors:
+
+  - has to be done for `loceval`, `mnmgwdb`, and `mnmsurfdb`  
+  - if necessary (e.g. on major structural changes), re-instantiate the `-staging` mirror prior to data upload via `postgres`/`dropdb`+`createdb` intervention on the host system (and then run `501_*` and `601_*`, if necessary)
+  - Finally, use the `pg_dump | psql` commands as follows:
+
+  
+```{sh sync-staging}
+#| eval: false
+pg_dump -U <backup_user> -h <host> -p <port> -d <database> -N tiger -N public -c > /tmp/<database>_db_dump.txt \
+        && psql -U <database_user> -h <host> -p <port> -d <database>_staging -W < /tmp/<database>_db_dump.txt \
+        && rm /tmp/<database>_db_dump.txt
+```
+
+
+## libraries and variables
+
+```{r libraries}
+# libraries
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+# the database connection object
+source("MNMDatabaseConnection.R")
+
+# more specific database tools
+source("MNMDatabaseToolbox.R")
+
+
+# library("mapview") # debugging only
+# mapviewOptions(platform = "mapdeck")
+
+```
+
+
+## info stream from REP
+
+First, there is the `.RData` file, along with proccessing outcome of the code snippets.
+
+::: {.callout-note snippets}
+- check for changes on every update, e.g. with `meld`:
+  `meld 020_fieldwork_organization/code_snippets.R 900_database_organization/401_snippet_selection.R`
+- bake fresh snippets every morning:
+  `Rscript 403_precalculate_fresh_snippets.R`
+:::
+
+```{r source-code-snippets}
+
+tic <- function(toc) round(Sys.time() - toc, 1)
+toc <- Sys.time()
+
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# # TEMPORARY adjustment pointing to adjacent branch (wip)
+# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+reload_rep_code_snippets(fresh_snippet_path)
+message(glue::glue("Good morning!
+  Loading the REP data and snippets took {tic(toc)} seconds today."
+))
+
+verify_rep_objects()
+
+if (nrow(different_checksums) > 0) {
+  knitr::kable(different_checksums)
+}
+
+```
+
+
+## database connection
+
+
+```{r connect-databases}
+
+config_filepath <- file.path("./mnm_database_connection.conf")
+suffix <- "-staging"
+# suffix <- ""
+
+# connect mnmsurfdb
+mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
+
+mnmsurfdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmsurfdb_mirror
+) 
+
+```
+
+
+
+```{r connect-databases}
+
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+message(glue::glue("connected: psql {mnmsurfdb$shellstring}"))
+update_cascade_lookup <- parametrize_cascaded_update(mnmsurfdb)
+
+```
+
+
+## dump all data, for safety
+
+```{r step-1-safety-dump}
+
+now <- format(Sys.time(), "%Y%m%d%H%M")
+
+if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
+  mnmsurfdb$dump_all(
+    here::here("dumps", glue::glue("rep_pre_update_{mnmsurfdb$database}_{now}.sql")),
+    exclude_schema = c("tiger", "public")
+  )
+}
+
+```
+
+
+# Gather and Upload - mnmsurfdb
+
+## database versioning
+
+```{r version}
+
+if (FALSE) {
+
+  # manually set a new version
+  version_tag <- "mnmsurfdb_initialization" # data_iteration = 1
+  version_notes <-
+    "REP + snippets update 0.16"
+  version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
+  version_date_fixing <- as.Date("2025-12-31")
+
+  version_id <- mnmsurfdb$tag_new_version(
+    new_version_tag = version_tag,
+    new_version_notes =  version_notes,
+    new_date_applied = version_date_applied,
+    new_date_fixing = version_date_fixing
+  )
+
+  # SELECT * FROM "metadata"."Versions";
+
+} else {
+  # per default, the latest version is taken
+  version_id <- mnmsurfdb$load_latest_version_id()
+}
+
+if (FALSE) {
+  # ... ad hoc / testing: delete version again
+  table_label <- "Versions"
+  glue::glue("
+  DELETE FROM {mnmsurfdb$get_namestring(table_label)}
+  WHERE version_tag = '{version_tag}'
+    AND data_iteration = {data_iteration}
+  ;
+  ")
+}
+
+
+# TODO: I still have to make up my mind whether to archive everything.
+#       For now, I will preliminarily keep it with an "archive_id" column.
+```
+
+
+# Protocols, Activities / GroupedActivities / FAGs, TeamMembers
+
+:::{callout-warning}
+Any news?
+Now is the time!
+:::
+
+
+# Let's Do This
+
+## prerequisite_lookups
+
+```{r gather-lookups}
+
+n2khabstrata_lookup <- mnmsurfdb$query_lookup(
+  "N2kHabStrata",
+  characteristic_columns = c("stratum")
+)
+
+activity_groupid_lookup <- mnmsurfdb$query_columns(
+    "GroupedActivities",
+    c("activity_group", "activity_group_id")
+  ) %>%
+  distinct()
+
+```
+
+
+```{r load-activities}
+
+surf_field_activities_db <- mnmsurfdb$query_table("GroupedActivities") %>%
+  filter(is_surf_activity, is_field_activity) %>%
+  distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
+
+```
+
+
+
+## Freeze Past Fixture
+
+Here, it would be time to generate the latest FREEZE,
+but only if the `date_fixing` changed in the latest `"metadata"."Versions"`.
+
+TODO: new columns to work into the freeze (need to get set with a correct value)
++ `wait_obsolete_types` (20260521)
++ `is_surf_activity` (20260615)
+
+```{r generate_freeze_calendar}
+#| eval: false
+out <- processx::run(
+  "Rscript",
+  c("405_freeze_calendar.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+  )
+# message(out$stderr)
+
+```
+
+
+```{r load-freeze}
+
+mnmsurfdb_freeze <-
+  read.csv(file = file.path("sideload", glue::glue("freeze_mnmsurfdb{suffix}.csv"))) %>%
+  mutate(across(c(
+      date_start,
+      date_end
+    ), as.Date)
+  )
+
+# TODO annoyingly, an empty `freeze` gets quite arbitrary data types in R
+
+# mnmsurfdb_freeze %>% glimpse()
+# mnmsurfdb_freeze %>%
+#   filter(grts_address %in% c(1999406, 6417454)) %>% 
+#   t() %>% knitr::kable()
+```
+
+
+## Replacements
+
+```{r refresh-replacements}
+#| eval: false
+
+out <- processx::run(
+  "Rscript",
+  c("111_distribute_loceval_via_mnmsyncdb.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
+
+```
+
+
+
+```{r load-replacement-lookup}
+
+replacement_lookup <- mnmsurfdb$query_columns(
+    "ReplacementData",
+    c(
+      "grts_address_original",
+      "type",
+      "grts_address_replacement"
+    )
+  ) %>% 
+  rename(
+    grts_address = grts_address_original,
+    stratum = type
+  )
+
+apply_local_replacement_to_grts <- function(df, typecolumn = "stratum") {
+  lookup <- replacement_lookup %>%
+    dplyr::mutate(is_replacement = TRUE)
+  names(lookup)[names(lookup) == "stratum"] <- typecolumn
+
+  df %>%
+    dplyr::left_join(
+      lookup,
+      by = dplyr::join_by(!!!c("grts_address", typecolumn))
+    ) %>%
+    dplyr::mutate(
+      grts_address = dplyr::coalesce(grts_address_replacement, grts_address),
+      is_replacement = dplyr::coalesce(is_replacement, FALSE)
+    ) %>% 
+    dplyr::select(-grts_address_replacement) %>%
+    return()
+}
+
+```
+
+
+## Sample Units
+
+
+```{r assemble-sample-units}
+
+sample_unit_columns <- c(
+  "grts_address",
+  "stratum",
+  "scheme_ps_targetpanels",
+  "schemes",
+  "domain_part",
+  "is_forest",
+  "in_mhq_samples",
+  "has_mhq_assessment",
+  "is_replacement",
+  "was_replaced_by_grts"
+)
+
+
+sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
+  rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
+  # only retain the activities for this scheme
+  # otherwise there are duplicates (schemes filled differently on LOCEVAL)
+  semi_join(
+    surf_field_activities_db,
+    by = join_by(field_activity_group == activity_group)
+  ) %>% 
+  rename(
+    has_mhq_assessment = last_type_assessment_in_field,
+    mhq_assessment_date = last_type_assessment,
+    schemes = schemes_served_all
+  ) %>%
+  relocate(grts_address) %>%
+  relocate(grts_join_method, .after = grts_address) %>%
+  mutate(
+    previous_notes = NA # FUTURE TODO
+  ) %>% 
+  apply_local_replacement_to_grts() %>% 
+  mutate(
+    # TODO should this be handled by `apply_local_replacement_to_grts`?
+    was_replaced_by_grts = NA
+  ) %>%
+  distinct(!!!rlang::syms(sample_unit_columns)) %>% 
+  mutate(across(c(
+      scheme_ps_targetpanels,
+      stratum,
+      domain_part
+    ), as.character)
+  )
+
+# sample_units_updated %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+# fag_stratum_grts_calendar_shortterm_attribs %>%
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+
+```
+
+
+Re-establish SampleUnits from `the freeze`.
+
+::: {.callout-note}
+Sample units can 
+
+- appear (only pesent in `_updated`)
+- disappear (only pesent in `_retained`)
+- stay or change (pesent in *both*, before and after update).
+
+We UNION the updated and retained; for *changed* units the novel plan (`_updated`) is the reference.
+Association with old schemes is not relevant.
+
+:::
+
+```{r frozen-units}
+# mnmsurfdb_freeze %>% names()
+
+if (nrow(mnmsurfdb_freeze) == 0) {
+  # adjust freeze data types to ensure compatibility
+  mnmsurfdb_freeze <- sample_units_updated %>%
+    filter(FALSE)
+} 
+
+sample_units_retained <- mnmsurfdb_freeze %>%
+  distinct(!!!rlang::syms(sample_unit_columns)) %>%
+  anti_join(
+    sample_units_updated,
+    by = join_by(grts_address, stratum)
+  )
+
+sample_units_retained %>% 
+  glimpse()
+
+```
+
+
+Join updated and frozen sample locations:
+
+```{r combined_sample_units}
+
+sample_units <- bind_rows(
+  sample_units_retained,
+  sample_units_updated
+)
+
+# # sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
+# sample_units_retained %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+
+```
+
+
+## Locations
+
+```{r assemble-locations}
+
+locations_grts_collection <- bind_rows(
+    mnmsurfdb$query_columns("Locations", c("grts_address")),
+    sample_units %>% distinct(grts_address),
+    mnmsurfdb$query_columns("LocationInfos", c("grts_address")),
+    mnmsurfdb$query_columns("ReplacementData", c("grts_address_original")) %>%
+      rename(grts_address = grts_address_original)
+  ) %>%
+  mutate(grts_address = as.integer(grts_address)) %>%
+  distinct() %>%
+  arrange(grts_address)
+
+
+# join geometry column
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+locations <- locations_grts_collection %>% 
+  add_point_coords_grts(
+    grts_var = "grts_address",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+sf::st_geometry(locations) <- "wkb_geometry"
+
+# DONE directly update locations?
+# stop("location update not clear (merge conflict 20260603)")
+# -> in accordance with `510_loceval_update_REP.qmd`,
+#    update_cascade_lookup should do fine
+
+### 20260511 testing direct write
+#       upload_data <- sf::st_as_sf(locations)
+#       # type_count <- as_tibble(sf::st_geometry_type(upload_data)) %>%
+#       #   count(value)
+#       sf::st_geometry(upload_data) <- "wkb_geometry"
+# 
+#   mnmsurfdb$execute_sql(
+#     glue::glue("DELETE FROM ONLY {mnmsurfdb$get_namestring(table_label)};"),
+#     verbose = TRUE
+#   )
+# 
+#       rs <- sf::st_write(
+#         upload_data,
+#         mnmsurfdb$connection,
+#         mnmsurfdb$get_table_id(table_label),
+#         row.names = FALSE,
+#         delete_layer = FALSE, # "overwrite"
+#         append = TRUE,
+#         factorsAsCharacter = TRUE,
+#         binary = TRUE
+#       )
+
+
+# table_label <- "Locations"
+# data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
+# index_column <- mnmsurfdb$get_primary_key(table_label)
+# characteristic_columns <- c("grts_address")
+# 
+# distribution <- categorize_data_update(
+#   mnmdb = mnmsurfdb,
+#   table_label = table_label,
+#   data_future = data_nouveau,
+#   input_precedence_columns = precedence_columns[[table_label]],
+#   characteristic_columns = characteristic_columns,
+#   exclude_columns = c("wkb_geometry")
+# )
+# print_category_count(distribution, table_label)
+
+# distribution$to_upload %>% glimpse()
+
+```
+
+
+```{r update-locations}
+
+
+locations_lookup <- update_cascade_lookup(
+  table_label = "Locations",
+  new_data = locations,
+  index_columns = c("location_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+```
+
+
+```{r update-locations-check-empty}
+
+check_empty_geoms <- mnmsurfdb$query_table("Locations") %>%
+  filter(sf::st_is_empty(wkb_geometry))
+
+if (nrow(check_empty_geoms) > 0) {
+  print(check %>% knitr::kable())
+  stop("There are empty geometries in the `Locations` table!")
+}
+
+```
+
+... and stitch
+```{r stitch}
+
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
+
+```
+
+
+## LocationCells
+
+```{r new-location-cells}
+
+units_cell_polygon[["grts_address_final"]] <-
+  as.integer(units_cell_polygon[["grts_address_final"]])
+
+# unit geometries (cells):
+location_cells <-
+  units_cell_polygon %>%
+  inner_join(
+    locations_lookup,
+    by = join_by(grts_address_final == grts_address),
+    relationship = "one-to-many",
+    unmatched = "drop"
+  ) %>%
+  select(-grts_address_final) %>%
+  relocate(geometry, .after = last_col())
+
+sf::st_geometry(location_cells) <- "wkb_geometry"
+# glimpse(location_cells)
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of metadata.LocationCells"))
+
+mnmsurfdb$execute_sql(
+  glue::glue('DELETE  FROM "metadata"."LocationCells";'),
+  verbose = TRUE
+)
+
+mnmsurfdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = location_cells
+)
+
+```
+
+extra cells from replacements
+
+```{r extra-ceplacement-locationcells}
+
+loceval_sideload <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database = "loceval",
+  user = "monkey",
+  password = NA
+)
+
+extra_cells <- loceval_sideload$query_table("ReplacementCells") %>%
+  left_join(
+    loceval_sideload$query_table("Replacements") %>%
+      select(-wkb_geometry),
+    by = join_by(replacement_id)
+  ) %>%
+  select(-grts_address) %>%
+  rename(grts_address = grts_address_replacement) %>%
+  inner_join(
+    locations_lookup,
+    by = join_by(grts_address)
+  ) %>%
+  select(location_id, wkb_geometry) %>%
+  distinct %>%
+  anti_join(
+    location_cells,
+    by = join_by(location_id)
+  )
+
+mnmsurfdb$insert_data(
+  table_label = "LocationCells",
+  upload_data = extra_cells
+)
+
+
+```
+
+
+## Sample Units
+
+:::{.callout-note title="Replacements!"}
+Note to future me:
+
+Local Replacements are applied by directly modifying `grts_address` in calendar/visits.
+The original sample location gets archived during the next REP update script - here.
+
+At the time of writing, this seems to be a logical solution. 
+However, on a real REP update, i.e. when the info of replacements has trickled up to the REP, 
+the locations to archive because of local replacement ("downstream" archives) get mixed with actual REP changes ("upstream").
+
+Go figure that out!
+:::
+
+
+
+```{r process-sample-locations}
+
+if ("location_id" %in% names(sample_units)) {
+  # should not be the case in a continuous script;
+  # this is extra safety for debugging and de-serial execution
+  sample_units <- sample_units %>%
+    select(-location_id)#, -location_id.x, -location_id.y)
+}
+
+sample_units <- sample_units %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+    relationship = "many-to-one"
+  ) %>%
+  mutate_at(
+    # some locations on `oldpanels` have as.character('NA') values in bool columns
+    vars(is_forest, in_mhq_samples), \(x) ifelse(is.na(x) | grepl('NA', x), FALSE, x)
+  ) %>%
+  distinct()
+
+
+# sample_units %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+```
+
+
+```{r prepare-sunits}
+
+table_label <- "SampleUnits"
+data_nouveau <- sample_units
+sampleunit_characols <- c("grts_address", "stratum")
+index_column <- mnmsurfdb$get_primary_key(table_label)
+
+distribution <- categorize_data_update(
+  mnmdb = mnmsurfdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  input_precedence_columns = precedence_columns[[table_label]],
+  characteristic_columns = sampleunit_characols,
+)
+print_category_count(distribution, table_label)
+
+# distribution$to_archive %>% knitr::kable()
+# distribution$reactivate %>% knitr::kable()
+# distribution$to_upload %>% knitr::kable()
+# distribution$changed %>% knitr::kable()
+
+# waldo::compare(
+#   data_nouveau %>%
+#     semi_join(
+#       distribution$changed,
+#       by = join_by(!!!rlang::syms(sampleunit_characols))
+#     ),
+#   distribution$changed
+# )
+
+```
+
+
+```{r update-sample-locations}
+
+distribution$to_upload <- distribution$to_upload %>%
+  mutate(
+    # log_user = "maintenance",
+    # log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    # is_replacement = FALSE
+  )
+
+
+sampleunits_lookup <- redistribute_calendar_data(
+  mnmdb = mnmsurfdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = sampleunit_characols,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
+)
+
+```
+
+
+
+## FieldCalendar
+
+```{r assemble-field-calendar}
+# sampleunits_lookup <- mnmsurfdb$query_columns("SampleUnits", c("grts_address", "type", "sampleunit_id"))
+
+fieldcalendar_columns <- c(
+  "sampleunit_id",
+  "grts_address",
+  "stratum",
+  "activity_group_id",
+  "date_start",
+  "date_end",
+  "date_interval",
+  "activity_rank",
+  "priority",
+  "wait_any",
+  "wait_watersurface",
+  "wait_3260",
+  "wait_7220",
+  "wait_floating",
+  "wait_obsolete_types",
+  "is_sideloaded",
+  "is_frozen"
+)
+
+
+fieldcalendar_characols <- c(
+  "grts_address",
+  "stratum",
+  "activity_group_id",
+  "date_start"
+)
+
+
+# fieldwork_shortterm_prioritization_by_stratum %>%
+#   apply_local_replacement_to_grts() %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+# sampleunits_lookup %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+
+fieldcalendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
+  rename_grts_address_final_to_grts_address() %>%
+  apply_local_replacement_to_grts() %>% 
+  # rename(type = stratum) %>%
+  inner_join(
+    sampleunits_lookup,
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-one"
+  ) %>%
+  relocate(grts_address, stratum, sampleunit_id) %>%
+  rename(
+    activity_rank = rank,
+    activity_group = field_activity_group
+  ) %>%
+  semi_join(surf_field_activities_db, by = join_by(activity_group)) %>%
+  left_join(
+    activity_groupid_lookup,
+    by = join_by(activity_group),
+    relationship = "many-to-one"
+  ) %>%
+  select(-activity_group) %>%
+  mutate(
+    across(c(
+        stratum,
+        grts_join_method,
+        domain_part,
+        date_interval
+      ),
+      as.character
+    )
+  ) %>%
+  mutate(is_frozen = FALSE, is_sideloaded = FALSE) %>% 
+  select(!!!rlang::syms(fieldcalendar_columns))
+
+# fieldcalendar_updated %>% glimpse()
+# fieldcalendar_updated %>% count(priority)
+
+# fieldcalendar_updated %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+
+```
+
+
+Normally, all calendar entries from the `freeze` have already be removed, so the `anti_join` is a no-op.
+
+
+```{r assemble-fieldcalendar-freeze}
+
+if (nrow(mnmsurfdb_freeze) == 0) {
+  # adjust freeze data types to ensure compatibility
+  mnmsurfdb_freeze <- fieldcalendar_updated %>%
+    filter(FALSE) %>% 
+    select(-sampleunit_id) %>% 
+    mutate(done_planning = FALSE)
+} 
+
+
+fieldcalendar_retained <- mnmsurfdb_freeze %>%
+  select(tidyselect::any_of(c(fieldcalendar_columns, "done_planning"))) %>% 
+  anti_join(
+    fieldcalendar_updated,
+    by = join_by(!!!rlang::syms(fieldcalendar_characols))
+  ) %>%
+  select(-is_frozen) %>% mutate(is_frozen = TRUE) %>%
+  left_join(
+    surf_field_activities_db %>%
+      distinct(activity_group) %>% 
+      left_join(activity_groupid_lookup, by = join_by(activity_group)) %>%
+      select(activity_group_id) %>%
+      mutate(is_surf_activity = TRUE),
+    by = join_by(activity_group_id)
+  ) %>% 
+  filter(done_planning | is_surf_activity) %>%
+  select(-done_planning, -is_surf_activity)
+  
+
+
+# fieldcalendar_retained %>% glimpse()
+# mnmsurfdb_freeze %>% count(activity_group_id, done_planning, visit_done)
+
+```
+
+
+```{r union-fieldcalendar}
+
+fieldcalendar_new <- bind_rows(
+    fieldcalendar_retained,
+    fieldcalendar_updated
+  ) 
+
+```
+
+
+```{r stitch-fwcal-to-sunits}
+
+# link FieldCalender back to SampleUnits
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "FieldCalendar",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
+)
+
+```
+
+
+
+```{r sideload-extra-calendar-entries}
+
+# sideloading: extra activities e.g. to follow up issues in the field
+calendar_to_sideload <- load_table_sideload_content(
+    mnmdb = mnmsurfdb,
+    table_label = "FieldCalendar",
+    characteristic_columns = fieldcalendar_characols,
+    data_filepath = "sideload/mnmsurfdb_calendars.csv",
+    # data_filepath = "sideload/mnmsurfdb_calendars.csv",
+    reload_previous = TRUE
+  ) %>%
+  select(-tidyselect::any_of(c("sampleunit_id"))) %>% 
+  inner_join(
+    sampleunits_lookup, 
+    by = join_by(grts_address, stratum),
+    relationship = "many-to-many", # TODO
+    unmatched = "drop",
+    suffix = c("", "_lookup")
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
+    is_sideloaded = TRUE,
+    excluded = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  )
+
+fieldcalendar_new <- bind_rows(
+  fieldcalendar_retained,
+  fieldcalendar_updated,
+  calendar_to_sideload %>%
+    select(tidyselect::any_of(names(fieldcalendar_updated))) %>% 
+    anti_join(
+      fieldcalendar_retained,
+      by = join_by(!!!rlang::syms(fieldcalendar_characols))
+    ) %>% 
+    anti_join(
+      fieldcalendar_updated,
+      by = join_by(!!!rlang::syms(fieldcalendar_characols))
+    )
+  ) %>%
+  mutate(priority = tidyr::replace_na(priority, 0))
+
+
+
+  # %>% mutate(log_update = convert_timestamp_to_ms_character(log_update)),
+```
+
+
+
+```{r link-dates}
+
+startdate_updates_happened <- associate_and_shift_start_dates(
+  mnmdb = mnmsurfdb,
+  table_label = "FieldCalendar",
+  data_future = fieldcalendar_new,
+  characteristic_columns = fieldcalendar_characols,
+  other_table_labels = c("Visits")
+) 
+
+if (startdate_updates_happened) message("Startdate updates happened!")
+
+```
+
+
+
+```{r categorize-fieldcalendar}
+
+table_label <- "FieldCalendar"
+data_nouveau <- fieldcalendar_new
+characteristic_columns <- fieldcalendar_characols
+index_column <- mnmsurfdb$get_primary_key(table_label)
+
+
+# data_nouveau %>% select(!!!characteristic_columns) %>% saveRDS("./dumps/datelink_older.rds")
+# data_nouveau %>% select(!!!characteristic_columns) %>% write.csv2("./dumps/datelink_older.csv")
+distribution <- categorize_data_update(
+  mnmdb = mnmsurfdb,
+  table_label = table_label,
+  data_future = data_nouveau,
+  input_precedence_columns = precedence_columns[[glue::glue("{table_label}")]],
+  characteristic_columns = characteristic_columns,
+  exclude_columns = c("sampleunit_id") #, "fieldactivitycalendar_id") # , "archive_version_id"
+)
+print_category_count(distribution, table_label)
+
+# distribution$to_archive
+# distribution$reactivate
+# distribution$to_upload
+
+# waldo::compare(
+#   data_nouveau %>%
+#     semi_join(
+#       distribution$changed,
+#       by = join_by(!!!rlang::syms(fieldcalendar_characols))
+#     ),
+#   distribution$changed
+# )
+```
+
+
+```{r sync-fieldcalendar}
+
+distribution$to_upload <- distribution$to_upload %>% 
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    excluded = FALSE,
+    is_frozen = FALSE,
+    no_visit_planned = FALSE,
+    done_planning = FALSE
+  ) 
+
+
+fieldcalendar_lookup <- redistribute_calendar_data(
+  mnmdb = mnmsurfdb,
+  table_label = table_label,
+  distribution = distribution,
+  index_columns = c(index_column),
+  characteristic_columns = characteristic_columns,
+  skip = list("update" = FALSE, "upload" = FALSE, "archive" = FALSE)
+)
+
+
+```
+
+
+intermediate check
+
+```{r re-inspect-fieldcalendar}
+
+mnmsurfdb$query_table("FieldCalendar") %>% 
+  count(is.na(sampleunit_id)) %>%
+  knitr::kable()
+
+# compare stored to true sample location
+mnmsurfdb$query_table("FieldCalendar") %>%
+  left_join(
+    mnmsurfdb$query_table("SampleUnits"),
+    by = join_by(grts_address, stratum)
+  ) %>%
+  filter(sampleunit_id.x != sampleunit_id.y)
+
+```
+
+
+## Visits
+
+```{r stitch-visits}
+
+stitch_visits <- function() {
+
+  stitch_table_connection(
+    mnmdb = mnmsurfdb,
+    table_label = "Visits",
+    reference_table = "FieldCalendar",
+    link_key_column = "fieldcalendar_id",
+    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+  )
+  
+  stitch_table_connection(
+    mnmdb = mnmsurfdb,
+    table_label = "Visits",
+    reference_table = "SampleUnits",
+    link_key_column = "sampleunit_id",
+    lookup_columns = c("grts_address", "stratum")
+  )
+  
+  stitch_table_connection(
+    mnmdb = mnmsurfdb,
+    table_label = "Visits",
+    reference_table = "Locations",
+    link_key_column = "location_id",
+    lookup_columns = c("grts_address")
+  )
+}
+stitch_visits()
+
+```
+
+
+```{r assemble-new-visits}
+
+visits_characols <- fieldcalendar_characols
+
+potential_visits <- fieldcalendar_lookup %>%
+  select(
+    !!!rlang::syms(c("fieldcalendar_id", visits_characols))
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address)
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    issues = FALSE,
+    visit_done = FALSE
+  )
+
+
+visits_upload <- potential_visits %>%
+  anti_join(
+    mnmsurfdb$query_table("Visits"),
+    by = join_by(!!!visits_characols)
+  ) %>%
+  left_join(
+    sampleunits_lookup, #  %>% select(-location_id),
+    by = join_by(grts_address, stratum)
+  ) 
+
+```
+
+:::{.callout-note title="All Visits are equal..."}
+Note: "special" Visits must be distributed to the respective tables.
+These tables inherit columns from `Visits`, adding extra ones.
+:::
+
+```{r subset-visits}
+
+# Loop Special Activities
+selection_of_activities <- list(
+  "InstallationVisits" = activity_groupid_lookup %>%
+    filter(grepl("^SURFINST", activity_group)) %>%
+    pull(activity_group_id) %>% unique, # /WIA
+  # "PositioningVisits" = activity_groupid_lookup %>%
+  #   filter(grepl("^SPATPOSIT", activity_group)) %>%
+  #   pull(activity_group_id) %>% unique, # /SPA
+  "SamplingVisits" = activity_groupid_lookup %>%
+    filter(grepl("^SURF.*SAMP", activity_group)) %>%
+    pull(activity_group_id) %>% unique # /CSA
+)
+
+append_defaults <- list(
+  # "InstallationVisits" = function(df) df %>%
+  #   mutate(
+  #     no_diver = FALSE,
+  #     soilprofile_unclear = FALSE
+  #   ) # /WIA
+)
+
+
+```
+
+
+```{r upload-special-visits}
+
+remaining_new_visits <- visits_upload
+
+# table_label <- "InstallationVisits"
+for (table_label in names(selection_of_activities)) {
+
+  # subset the data by using selection_of_activities -> activity_group_id's
+  select_activities <- selection_of_activities[[table_label]]
+  special_visits <- remaining_new_visits %>%
+    filter(activity_group_id %in% select_activities)
+
+  # extra columns
+  if (table_label %in% names(append_defaults)) {
+    special_visits <- append_defaults[[table_label]](special_visits)
+  }
+
+  # append=upload data to the activity table
+  # double-check existing to avoid dups
+  # existing <- mnmsurfdb$query_table(table_label)
+  sa_lookup <- upload_and_lookup(
+    mnmsurfdb,
+    table_label = table_label,
+    data_to_append = special_visits,
+    characteristic_columns = visits_characols,
+    index_columns = c("visit_id"),
+    verbose = TRUE
+  )
+
+  # anti-join remaining_new_visits
+  remaining_new_visits <- remaining_new_visits %>%
+    anti_join(
+      special_visits,
+      by = join_by(
+        fieldcalendar_id,
+        grts_address,
+        stratum,
+        activity_group_id,
+        date_start)
+    )
+
+}
+
+```
+
+```{r upload-non-special-visits}
+
+other_visits_lookup <- upload_and_lookup(
+  mnmsurfdb,
+  table_label = "OtherVisits",
+  data_to_append = remaining_new_visits,
+  characteristic_columns = visits_characols,
+  index_columns = c("visit_id"),
+  verbose = TRUE
+)
+
+
+```
+
+
+
+```{r reconnect-visits}
+
+stitch_visits()
+
+mnmsurfdb$query_table("Visits") %>% 
+  count(
+    is.na(location_id),
+    is.na(sampleunit_id),
+    is.na(fieldcalendar_id)
+  ) %>%
+  knitr::kable()
+
+```
+
+
+archive visits of archived FWCals
+
+```{r archive-visits-fwcal}
+
+trgtab <- mnmsurfdb$get_namestring("Visits")
+srctab <- mnmsurfdb$get_namestring("FieldCalendar")
+link_key_column <- "archive_version_id"
+lookup_criteria <- c("TRGTAB.fieldcalendar_id = SRCTAB.fieldcalendar_id")
+
+update_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      {link_key_column} = SRCTAB.{link_key_column}
+    FROM {srctab} AS SRCTAB
+    WHERE
+     ({paste0(lookup_criteria, collapse = ') AND (')})
+  ;")
+
+mnmsurfdb$execute_sql(update_string)
+
+mnmsurfdb$query_table("FieldCalendar") %>%
+  anti_join(
+    mnmsurfdb$query_table("Visits"),
+    by = join_by(fieldcalendar_id, archive_version_id)
+  ) %>% nrow()
+
+```
+
+
+
+
+## LocationInfos
+
+```{r update-locationinfos}
+
+new_locinfos <- sample_units %>%
+  distinct(
+    grts_address
+  ) %>%
+  mutate(
+    log_creator = "maintenance",
+    log_creation = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    log_user = "maintenance",
+    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s"))
+  )
+
+new_locinfos <- new_locinfos %>%
+  anti_join(
+    mnmsurfdb$query_table("LocationInfos"),
+    by = join_by(grts_address)
+  ) %>%
+  left_join(
+    locations_lookup,
+    by = join_by(grts_address),
+  )
+
+
+locationinfo_lookup <- update_cascade_lookup(
+  table_label = "LocationInfos",
+  new_data = new_locinfos,
+  index_columns = c("locationinfo_id"),
+  characteristic_columns = c("grts_address"),
+  tabula_rasa = FALSE,
+  verbose = TRUE
+)
+
+
+```
+
+
+## Landuse
+
+```{r update-landuse}
+update_landuse_in_locationinfos(mnmsurfdb)
+```
+
+
+# post hoc
+
+
+```{r stitched-up}
+
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", suffix),
+  spinner = TRUE,
+  echo = TRUE
+)
+
+```
+
+
+```{r step-n-safety-dump}
+
+now <- format(Sys.time(), "%Y%m%d%H%M")
+
+if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
+  mnmsurfdb$dump_all(
+    here::here("dumps", glue::glue("rep_post_update_{mnmsurfdb$database}_{now}.sql")),
+    exclude_schema = c("tiger", "public")
+  )
+}
+
+```
+
+
+
+```{r launch-consistency-dashboard}
+
+out <- processx::run(
+  "quarto",
+  c("render", "046_mnmsurfdb_consistency_dashboard.qmd", "--to", "html"),
+  echo = TRUE,
+  spinner = TRUE
+)
+
+```
+
+
+```{r done-updating-rep}
+
+message("")
+message("________________________________________________________________")
+message(" >>>>> Finished REP data update. ")
+message("________________________________________________________________")
+
+```
+

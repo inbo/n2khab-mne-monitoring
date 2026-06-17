@@ -340,7 +340,7 @@ mnmgwdb_freeze <-
 
 out <- processx::run(
   "Rscript",
-  c("111_push_loceval_to_mnmgwdb.R", suffix),
+  c("111_distribute_loceval_via_mnmsyncdb.R", suffix),
   spinner = TRUE,
   echo = TRUE
 )
@@ -352,12 +352,15 @@ out <- processx::run(
 replacement_lookup <- mnmgwdb$query_columns(
     "ReplacementData",
     c(
-      "grts_address",
+      "grts_address_original",
       "type",
       "grts_address_replacement"
     )
   ) %>% 
-  rename(stratum = type)
+  rename(
+    grts_address = grts_address_original,
+    stratum = type
+  )
 
 apply_local_replacement_to_grts <- function(df, typecolumn = "stratum") {
   lookup <- replacement_lookup %>%
@@ -497,11 +500,15 @@ sample_units <- bind_rows(
 
 locations_grts_collection <- bind_rows(
     mnmgwdb$query_columns("Locations", c("grts_address")),
-    sample_units %>% select(grts_address),
-    mnmgwdb$query_columns("LocationInfos", c("grts_address"))
+    sample_units %>% distinct(grts_address),
+    mnmgwdb$query_columns("LocationInfos", c("grts_address")),
+    mnmgwdb$query_columns("ReplacementData", c("grts_address_original")) %>%
+      rename(grts_address = grts_address_original)
+
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
-  distinct()
+  distinct() %>%
+  arrange(grts_address)
 
 
 # join geometry column
@@ -522,6 +529,10 @@ locations <- locations_grts_collection %>%
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
+# DONE directly update locations?
+# stop("location update not clear (merge conflict 20260603)")
+# -> in accordance with `510_loceval_update_REP.qmd`,
+#    update_cascade_lookup should do fine
 
 ### 20260511 testing direct write
 #       upload_data <- sf::st_as_sf(locations)
@@ -771,7 +782,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>%
   mutate(
     # log_user = "maintenance",
-    # log_update = as.POSIXct(Sys.time()),
+    # log_update = convert_timestamp_to_ms_character(Sys.time()),
     # is_replacement = FALSE
   )
 
@@ -789,20 +800,20 @@ samplelocations_lookup <- redistribute_calendar_data(
 
 
 
-## FieldActivityCalendar
+## FieldCalendar
 
 ```{r assemble-fieldwork-calendar}
 # samplelocations_lookup <- mnmgwdb$query_columns("SampleLocations", c("grts_address", "type", "samplelocation_id"))
 
 fieldwork_calendar_columns <- c(
+  "samplelocation_id",
   "grts_address",
   "stratum",
-  "samplelocation_id",
   "activity_group_id",
-  "activity_rank",
   "date_start",
   "date_end",
   "date_interval",
+  "activity_rank",
   "priority",
   "wait_any",
   "wait_watersurface",
@@ -823,13 +834,13 @@ fieldcalendar_characols <- c(
 )
 
 
-fieldwork_shortterm_prioritization_by_stratum %>%
-  apply_local_replacement_to_grts() %>% 
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
-samplelocations_lookup %>% 
-  filter(grts_address %in% c(1999406, 6417454)) %>%
-  t() %>% knitr::kable()
+# fieldwork_shortterm_prioritization_by_stratum %>%
+#   apply_local_replacement_to_grts() %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
+# samplelocations_lookup %>% 
+#   filter(grts_address %in% c(1999406, 6417454)) %>%
+#   t() %>% knitr::kable()
 
 fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
@@ -951,7 +962,7 @@ calendar_to_sideload <- load_table_sideload_content(
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     is_sideloaded = TRUE,
     excluded = FALSE,
     no_visit_planned = FALSE,
@@ -1019,7 +1030,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     excluded = FALSE,
     is_frozen = FALSE,
     no_visit_planned = FALSE,
@@ -1109,7 +1120,7 @@ potential_visits <- fieldworkcalendar_lookup %>%
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     issues = FALSE,
     visit_done = FALSE
   )
@@ -1118,7 +1129,7 @@ potential_visits <- fieldworkcalendar_lookup %>%
 visits_upload <- potential_visits %>%
   anti_join(
     mnmgwdb$query_table("Visits"),
-    by = join_by(!!!fieldcalendar_characols)
+    by = join_by(!!!visits_characols)
   ) %>%
   left_join(
     samplelocations_lookup %>% rename(stratum = strata),#  %>% select(-location_id),
@@ -1283,9 +1294,9 @@ new_locinfos <- sample_units %>%
   ) %>%
   mutate(
     log_creator = "maintenance",
-    log_creation = as.POSIXct(Sys.time()),
+    log_creation = convert_timestamp_to_ms_character(Sys.time()),
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time())
+    log_update = convert_timestamp_to_ms_character(Sys.time())
   )
 
 new_locinfos <- new_locinfos %>%
@@ -1407,5 +1418,6 @@ message("")
 message("________________________________________________________________")
 message(" >>>>> Finished REP data update. ")
 message("________________________________________________________________")
+
 ```
 

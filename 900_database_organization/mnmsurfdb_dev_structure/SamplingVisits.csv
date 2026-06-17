@@ -1,0 +1,4 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+samplingvisit_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+project_code,varchar,False,NULL,False,False,,,,LIMS project code of this sample
+recipient_code,varchar,False,NULL,False,False,,,,LIMS recipient code of this sample

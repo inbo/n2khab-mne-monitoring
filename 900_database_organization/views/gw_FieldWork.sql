@@ -3,7 +3,7 @@
 -- !!! also re-create update MyFieldWork
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
-CREATE VIEW "inbound"."FieldWork" AS
+CREATE OR REPLACE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
   SLOC.strata AS type,
@@ -30,6 +30,7 @@ SELECT
   INFO.watina_code_1,
   INFO.watina_code_2,
   SOIL.soil_info,
+  LOCEVAL.loceval_notes,
   LOCEVAL.loceval_photo,
   GAP.activity_group,
   GAP.is_field_activity,
@@ -102,17 +103,19 @@ LEFT JOIN (
   ) AS GAP
   ON GAP.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
-  SELECT samplelocation_id, loceval_photo
+  SELECT samplelocation_id, loceval_notes, loceval_photo
   FROM (
     SELECT DISTINCT
       samplelocation_id,
       MAX(eval_date) AS latest_visit,
       eval_date,
+      notes AS loceval_notes,
       photo AS loceval_photo
     FROM "outbound"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
-    GROUP BY samplelocation_id, eval_date, photo
-  ) WHERE eval_date = latest_visit AND loceval_photo IS NOT NULL
+    GROUP BY samplelocation_id, eval_date, notes, photo
+  ) WHERE eval_date = latest_visit
+    AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL))
 ) AS LOCEVAL
   ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
 WHERE TRUE

@@ -1,0 +1,252 @@
+#!/usr/bin/env Rscript
+
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+# credentials are stored for easy access
+config_filepath <- file.path("./mnm_database_connection.conf")
+
+database_label <- "mnmsurfdb"
+
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  suffix <- commandline_args[1]
+} else {
+  suffix <- ""
+  # suffix <- "-staging" # "-testing"
+}
+
+### connect to database
+mnmdb <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database_mirror = glue::glue("{database_label}{suffix}")
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+message(mnmdb$shellstring)
+
+### connect to databases
+# loceval_connection <- connect_mnm_database(
+#   config_filepath = config_filepath,
+#   database = "loceval",
+#   user = "monkey",
+#   password = NA
+# )
+# # message(loceval_connection$shellstring)
+
+
+if (TRUE) {
+
+  tic <- function(toc) round(Sys.time() - toc, 1)
+  toc <- Sys.time()
+
+  snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+  # TEMPORARY adjustment pointing to adjacent branch (wip)
+  snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+  fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+  reload_rep_code_snippets(fresh_snippet_path)
+  message(glue::glue("Good morning!
+    Loading the REP data and snippets took {tic(toc)} seconds today."
+  ))
+
+  verify_rep_objects()
+
+  if (nrow(different_checksums) > 0) {
+    knitr::kable(different_checksums)
+  }
+
+
+}
+
+
+# assessment_lookup <- bind_rows(
+#   fag_stratum_grts_calendar %>%
+#     distinct(grts_address_final, assessed_in_field) %>%
+#     setNames(c("grts_address", "assessed")),
+#   stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+#     distinct(grts_address_final, last_type_assessment_in_field) %>%
+#     setNames(c("grts_address", "assessed"))
+# )
+
+
+
+make_a_point <- function (x, y) t(as.matrix(c(x, y), byrows = TRUE, ncol = 2, nrow = 1))
+
+make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
+
+  if (is.null(coord_cols)) {
+    coord_cols <- c("x", "y")
+  }
+
+  spatial_df <- as.data.frame(point_matrix) %>%
+    setNames(coord_cols) %>%
+    sf::st_as_sf(coords = coord_cols, crs = crs)
+
+  sf::st_combine(spatial_df) %>%
+    sf::st_cast("POLYGON", warn = FALSE) %>%
+    return()
+
+}
+
+
+
+## load SampleUnits
+
+locations_sf <- mnmdb$query_table("Locations") %>%
+  sf::st_as_sf()
+
+sample_units <- mnmdb$query_table("SampleUnits")
+type_col <- "stratum"
+
+## load cell maps and join them with nearest locations
+locations_all <- locations_sf %>%
+  inner_join(
+    sample_units %>% select(-grts_address),
+    by = join_by(location_id)
+  ) %>%
+  mutate(
+    is_forest_previously_for_comparison = stringr::str_detect(!!!type_col, "^9|^2180|^rbbppm")
+  )
+
+
+# TODO: work with a subset for testing
+locations <- locations_all %>%
+  filter(!sf::st_is_empty(wkb_geometry)) # %>%
+  # filter(grts_address %in% c(23238, 23091910, 6314694))
+
+## random sampling procedure
+
+generate_mhq_polygon <- function(
+    one_location #,
+    # is_forest = FALSE,
+    # is_mhq_samplelocation = FALSE
+  ) {
+
+
+  cell_center <- sf::st_coordinates(one_location)
+  is_forest <- one_location$is_forest
+  is_mhq_samplelocation <- one_location$has_mhq_assessment | one_location$in_mhq_samples
+
+  if (is_forest) {
+    mhq_zone <- make_polygon(
+      rbind(
+        cell_center + make_a_point(8, 8),
+        cell_center + make_a_point(8, -8),
+        cell_center + make_a_point(-8, -8),
+        cell_center + make_a_point(-8, 8),
+        cell_center + make_a_point(8, 8)
+      )
+    )
+    mhq_safety <- sf::st_buffer(mhq_zone, 1)
+  } else {
+    mhq_zone <- make_polygon(
+      rbind(
+        cell_center,
+        cell_center + make_a_point(0, 3),
+        cell_center + make_a_point(-3, 3),
+        cell_center + make_a_point(-3, 0),
+        cell_center
+      )
+    )
+    mhq_safety <- sf::st_buffer(mhq_zone, 2)
+  }
+
+
+  if (is_forest && isFALSE(is_mhq_samplelocation)) {
+    return(NA)
+  } else {
+    return(sf::st_as_sf(mhq_safety, crs = 31370))
+  }
+
+
+} # / generate mhq safety polygon
+
+
+
+### (1) circle of 10 m radius
+
+pb <- txtProgressBar(
+  min = 0, max = nrow(locations),
+  initial = 0, style = 1
+)
+
+# location_row <- 234
+mhq_locationwise <- function(location_row) {
+
+  setTxtProgressBar(pb, location_row)
+
+  one_location <- locations[location_row, ]
+
+  # is_forest <- one_location$is_forest
+  # is_mhq_samplelocation <- one_location$is_mhq_samplelocation
+  # is_mhq_samplelocation <- assessment_lookup %>%
+  #   filter(grts_address == one_location$grts_address) %>%
+  #   pull(assessed) %>%
+  #   any
+
+  mhq_safety <- generate_mhq_polygon(
+    one_location #,
+    # is_forest = is_forest,
+    # is_mhq_samplelocation = is_mhq_samplelocation
+  )
+  if (is.na(mhq_safety)) return(NULL)
+
+
+  mhq_safety <- mhq_safety %>%
+    dplyr::mutate(
+      sampleunit_id = one_location$sampleunit_id,
+      location_id = one_location$location_id,
+      grts_address = one_location$grts_address,
+    )
+
+  return(mhq_safety)
+
+}
+
+
+mhq_polygons <- lapply(
+  seq_len(nrow(locations)),
+  FUN = mhq_locationwise
+)
+close(pb) # close the progress bar
+mhq_polygons <- bind_rows(mhq_polygons)
+
+
+
+## TODO northing - correct to magnetic north
+mhq_polygons <- mhq_polygons %>%
+  mutate(
+    mhqpolygon_id = seq_len(nrow(mhq_polygons))
+  )
+
+mhq_polygons <- mhq_polygons %>% sf::st_cast("POLYGON")
+
+
+sf::st_geometry(mhq_polygons) <- "wkb_geometry"
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of outbound.MHQPolygons"))
+
+if (TRUE) {
+  mnmdb$execute_sql(
+    glue::glue('DELETE FROM "outbound"."MHQPolygons";'),
+    verbose = TRUE
+  )
+
+  mnmdb$insert_data(
+    table_label = "MHQPolygons",
+    upload_data = mhq_polygons
+  )
+
+}
+
+# mapview::mapview(mhq_polygons)
+# source('230_random_placementpoints.R')
+
+message("")
+message("________________________________________________________________")
+message(" >>>>>  Finished updating MHQ areas [mnmsurfdb]. ")
+message("________________________________________________________________")

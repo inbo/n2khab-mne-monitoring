@@ -1,25 +1,88 @@
 
 
 source("MNMLibraryCollection.R")
-load_poc_common_libraries()
+load_rep_common_libraries()
+
+# source("MNMDatabaseConnection.R")
+# source("MNMDatabaseToolbox.R")
+
+
+
 
 tic <- function(toc) round(Sys.time() - toc, 1)
 toc <- Sys.time()
-load_poc_rdata(reload = FALSE, to_env = parent.frame())
+
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# TEMPORARY adjustment pointing to adjacent branch (wip)
+snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+reload_rep_code_snippets(fresh_snippet_path)
 message(glue::glue("Good morning!
-  Loading the POC data took {tic(toc)} seconds today."
+  Loading the REP data and snippets took {tic(toc)} seconds today."
 ))
 
+verify_rep_objects()
 
-snippets_path <- rprojroot::find_root(rprojroot::is_git_root)
+if (nrow(different_checksums) > 0) {
+  knitr::kable(different_checksums)
+}
 
-toc <- Sys.time()
-load_poc_code_snippets(snippets_path)
-message(glue::glue(
-  "... loading/executing the code snippets took {tic(toc)}s."
-))
 
-verify_poc_objects()
+
+#_______________________________________________________________________________
+# Replacements for a given GRTS
+
+replacements_rep <-
+  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+  filter(grts_address_final == 1466998) %>%
+  select(stratum, grts_address, replacement_cells) %>%
+  unnest(replacement_cells) %>%
+  filter(!is.na(cellnr_replac)) %>%
+  left_join(
+    n2khab_strata,
+    by = join_by(stratum),
+    relationship = "many-to-many" # TODO
+  ) %>%
+  select(-stratum) %>%
+  rename(
+    cellnr_replacement = cellnr_replac,
+    grts_address_replacement = grts_address_replac,
+    replacement_rank = ranknr
+  )
+
+replacements_rep %>%
+  select(-cellnr_replacement) %>%
+  arrange(replacement_rank) %>%
+  knitr::kable()
+
+
+# join geometry column
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+replacement_locations <- replacements_rep %>%
+  add_point_coords_grts(
+    grts_var = "grts_address_replacement",
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index
+  )
+
+data <- replacement_locations %>%
+  select(rank = replacement_rank, grts = grts_address_replacement, geometry) %>%
+  arrange(rank)
+
+# data %>% knitr::kable()
+
+m1 <- data %>%
+  mapview::mapview(zcol = "rank")
+
+# leafem::addStaticLabels(m1, label = data$rank)
 
 
 #_______________________________________________________________________________

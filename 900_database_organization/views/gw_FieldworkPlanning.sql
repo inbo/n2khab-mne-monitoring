@@ -2,7 +2,7 @@
 --
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
-CREATE VIEW "outbound"."FieldworkPlanning" AS
+CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
   SLOC.scheme_ps_targetpanels,
@@ -32,10 +32,13 @@ SELECT
   ACT.is_gw_activity,
   FWCAL.activity_rank,
   FWCAL.priority,
+  FWCAL.wait_any AS is_waiting,
   FWCAL.wait_watersurface,
   FWCAL.wait_3260,
   FWCAL.wait_7220,
-  (FWCAL.wait_watersurface OR FWCAL.wait_3260 OR FWCAL.wait_7220) AS is_waiting,
+  FWCAL.wait_floating,
+  FWCAL.wait_obsolete_types,
+  FWCAL.is_frozen,
   FWCAL.excluded,
   FWCAL.excluded_reason,
   FWCAL.teammember_assigned,
@@ -43,7 +46,6 @@ SELECT
   FWCAL.no_visit_planned,
   FWCAL.notes,
   FWCAL.done_planning,
-  FWCAL.is_frozen,
   VISIT.date_visit,
   VISIT.photo,
   VISIT.visit_done,
@@ -128,10 +130,10 @@ LEFT JOIN (
 LEFT JOIN (
   SELECT DISTINCT
     type,
-    grts_address AS grts_address_rep,
+    grts_address_original AS grts_address_rep,
     grts_address_replacement AS grts_address
-  FROM "archive"."ReplacementData"
-  GROUP BY type, grts_address, grts_address_replacement
+  FROM "transfer"."ReplacementData"
+  GROUP BY type, grts_address_original, grts_address_replacement
 ) AS REP
   ON ((REP.grts_address = SLOC.grts_address)
   AND (SLOC.strata = REP.type))

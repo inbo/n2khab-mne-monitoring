@@ -82,8 +82,9 @@ update_location_coordinates <- function(database_label) {
 }
 
 
-update_location_coordinates(database_label = "mnmgwdb")
 update_location_coordinates(database_label = "loceval")
+update_location_coordinates(database_label = "mnmgwdb")
+update_location_coordinates(database_label = "mnmsurfdb")
 
 
 message("")
