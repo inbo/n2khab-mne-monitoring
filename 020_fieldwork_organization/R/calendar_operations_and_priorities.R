@@ -133,11 +133,12 @@ prioritize_gw_fieldwork <- function(.data) {
         stratum %in% c("6410_ve", "6510_hus") &
           !stringr::str_detect(scheme_ps_targetpanels, ":PS1") ~ NA_integer_,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL03|PS2PANEL01)") ~ 1L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL02|PS2PANEL02)") ~ 2L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL04)") ~ 3L,
+        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS2PANEL02") ~ 2L,
+        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL02") ~ 9L,
+        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL04") ~ 3L,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL0[56]|PS2PANEL03)") ~ 4L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL07)") ~ 6L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL01)") ~ 7L,
+        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL07") ~ 6L,
+        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL01") ~ 10L,
         stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 8L,
         stringr::str_detect(scheme_ps_targetpanels, "GW_05\\.") ~ 11L
       )

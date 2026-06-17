@@ -2,7 +2,9 @@
 #'
 #' flatten scheme x panel set x targetpanel to unique strings
 #' per stratum x location x FAG occasion.
-#' the "old scheme" is included by default (`include_old`)
+#'
+#' The "old" scheme x panel set x targetpanel (adopted from previous
+#' REP versions) is handled if `include_old` is set as `TRUE`.
 nest_and_flatten_scheme_ps_targetpanel <- function(
   .data,
   include_old,
@@ -35,17 +37,14 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
   # (the *_oldtargetpanel comes pre-concatenated and is optionally
   # used to replace NA targetpanels)
   data_spst <- data_spst %>%
-    dplyr::mutate(
-      scheme_ps_targetpanel = stringr::str_glue(
+    dplyr::mutate(scheme_ps_targetpanel = ifelse(
+      is.na(targetpanel),
+      as.character(scheme_ps_oldtargetpanel),
+      stringr::str_glue(
         "{ scheme }:PS{ panel_set }{ targetpanel }",
-        .na = NULL # otherwise, NAs are replaced by string NA
-        ),
-      scheme_ps_targetpanel = coalesce(
-        scheme_ps_targetpanel,
-        as.character(scheme_ps_oldtargetpanel)
+        .na = NULL # to generate NA result (easier spotted) if some var is NA
       )
-    )
-
+    ))
 
   # nest and flatten scheme_ps_{targetpanel, oldtargetpanel}
   # and add a plural-s
