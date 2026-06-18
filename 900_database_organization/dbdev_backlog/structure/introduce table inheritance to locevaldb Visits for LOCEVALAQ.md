@@ -7,10 +7,10 @@ tags:
   - AquaticTypesVisits
   - renaming
 started: 2026-06-18
-finished:
+finished: 2026-06-18
 execution:
   - FM
-status: false
+status: true
 ---
 
 There are #Visits already, but historically these are just `TerrestrialVisits`.
@@ -380,6 +380,7 @@ Finally, restore updated Views (were cascade-deleted or link to wrong table)
 - `loceval_LocationEvaluation_old.sql`
 - `loceval_gwTransfer.sql`
 - `loceval_ReplacementOngoing.sql`
+- `loceval_MHQSafety.sql`
 
 Tested in QGIS, seems all fine.
 
@@ -387,8 +388,12 @@ Tested in QGIS, seems all fine.
 ## scripts
 checking all scripts for loceval Visits use.
 
++ (`045_loceval_consistency_dashboard.qmd` minor)
++ `510_loceval_update_REP.qmd` major addition
 
 ## finally
 ```sql
 DROP TABLE IF EXISTS "inbound"."PreservedVisits";
 ```
+
+(kept old structure on `-staging` for the moment)
