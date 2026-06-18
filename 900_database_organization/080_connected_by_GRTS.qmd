@@ -343,14 +343,14 @@ eva_print_ofos <- function() {
 
 ```{r loceval-calendar}
 
-facal <- mnmdb$query_table("FieldActivityCalendar") %>%
+facal <- mnmdb$query_table("FieldCalendars") %>%
   filter(grts_address %in% grts) %>%
   join_activity_groups() # %>%
 
 eva_print_facal <- function() {
   facal %>%
     dplyr::rename(
-      fcid = fieldactivitycalendar_id,
+      fcid = fieldcalendar_id,
       suid = sampleunit_id,
       agid = activity_group_id,
       archv = archive_version_id,
@@ -389,7 +389,7 @@ eva_print_visits <- function() {
       lid = location_id,
       suid = sampleunit_id,
       agid = activity_group_id,
-      fcid = fieldactivitycalendar_id,
+      fcid = fieldcalendar_id,
       archv = archive_version_id,
       vid = visit_id
     ) %>%

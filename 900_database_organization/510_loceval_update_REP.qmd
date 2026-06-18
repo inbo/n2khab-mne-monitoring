@@ -422,7 +422,7 @@ locations_grts_collection <- bind_rows(
     sample_units %>% select(grts_address),
     locevaldb$query_columns("LocationInfos", c("grts_address")),
     locevaldb$query_columns("LocationAssessments", c("grts_address")),
-    locevaldb$query_columns("FieldActivityCalendar", c("grts_address")),
+    locevaldb$query_columns("FieldCalendars", c("grts_address")),
     locevaldb$query_columns("Visits", c("grts_address")),
     locevaldb$query_columns("Replacements", c("grts_address_replacement", "is_selected")) %>% 
       filter(is_selected) %>%
@@ -623,7 +623,7 @@ sampleunits_lookup <- redistribute_calendar_data(
 ```
 
 
-## FieldActivityCalendar
+## FieldCalendars
 
 Starting at `fieldwork_shortterm_prioritization_by_stratum`, which is already filtered and prioritized.
 
@@ -747,7 +747,7 @@ fieldwork_calendar_new <- bind_rows(
 # link FieldworkCalender back to SampleUnits
 stitch_table_connection(
   mnmdb = locevaldb,
-  table_label = "FieldActivityCalendar",
+  table_label = "FieldCalendars",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address", "type")
@@ -762,7 +762,7 @@ Link dates of current calendar table to new calendar
 
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = locevaldb,
-  table_label = "FieldActivityCalendar",
+  table_label = "FieldCalendars",
   data_future = fieldwork_calendar_new,
   characteristic_columns = fieldcalendar_characols,
   other_table_labels = c("Visits")
@@ -775,7 +775,7 @@ if (startdate_updates_happened) message("Startdate updates happened!")
 
 ```{r categorize-fieldworkcalendar}
 
-table_label <- "FieldActivityCalendar"
+table_label <- "FieldCalendars"
 data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
@@ -789,7 +789,7 @@ distribution <- categorize_data_update(
   data_future = data_nouveau,
   input_precedence_columns = precedence_columns[[table_label]],
   characteristic_columns = characteristic_columns,
-  exclude_columns = c("sampleunit_id") #, "fieldactivitycalendar_id") # , "archive_version_id"
+  exclude_columns = c("sampleunit_id") #, "fieldcalendar_id") # , "archive_version_id"
 )
 print_category_count(distribution, table_label)
 
@@ -828,12 +828,12 @@ fieldworkcalendar_lookup <- redistribute_calendar_data(
 
 ```{r re-inspect-fieldworkcalendar}
 
-locevaldb$query_table("FieldActivityCalendar") %>% 
+locevaldb$query_table("FieldCalendars") %>% 
   count(is.na(sampleunit_id)) %>%
   knitr::kable()
 
 # compare stored to true sample location
-locevaldb$query_table("FieldActivityCalendar") %>%
+locevaldb$query_table("FieldCalendars") %>%
   left_join(
     locevaldb$query_table("SampleUnits"),
     by = join_by(grts_address, type)
@@ -852,8 +852,8 @@ stitch_visits <- function() {
   stitch_table_connection(
     mnmdb = locevaldb,
     table_label = "Visits",
-    reference_table = "FieldActivityCalendar",
-    link_key_column = "fieldactivitycalendar_id",
+    reference_table = "FieldCalendars",
+    link_key_column = "fieldcalendar_id",
     lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
   )
   
@@ -882,11 +882,11 @@ stitch_visits()
 # stop("WAIT which wone was it?")
 
 visits_characols <- fieldcalendar_characols
-# visits_characols <- c("fieldactivitycalendar_id", fieldcalendar_characols)
+# visits_characols <- c("fieldcalendar_id", fieldcalendar_characols)
 
 potential_visits <- fieldworkcalendar_lookup %>%
   select(
-    !!!rlang::syms(c("fieldactivitycalendar_id", visits_characols))
+    !!!rlang::syms(c("fieldcalendar_id", visits_characols))
   ) %>%
   left_join(
     locations_lookup,
@@ -924,7 +924,7 @@ visits_lookup <- update_cascade_lookup(
 ```{r post-update-check-visits}
 
 locevaldb$query_table("Visits") %>% 
-  count(is.na(fieldactivitycalendar_id)) %>%
+  count(is.na(fieldcalendar_id)) %>%
   knitr::kable()
 
 ```
@@ -936,7 +936,7 @@ stitch_visits()
 
 
 locevaldb$query_table("Visits") %>% 
-  count(is.na(sampleunit_id), is.na(fieldactivitycalendar_id)) %>%
+  count(is.na(sampleunit_id), is.na(fieldcalendar_id)) %>%
   knitr::kable()
 
 
@@ -948,9 +948,9 @@ archive visits of archived FWCals
 ```{r archive-visits-fwcal}
 
 trgtab <- locevaldb$get_namestring("Visits")
-srctab <- locevaldb$get_namestring("FieldActivityCalendar")
+srctab <- locevaldb$get_namestring("FieldCalendars")
 link_key_column <- "archive_version_id"
-lookup_criteria <- c("TRGTAB.fieldactivitycalendar_id = SRCTAB.fieldactivitycalendar_id")
+lookup_criteria <- c("TRGTAB.fieldcalendar_id = SRCTAB.fieldcalendar_id")
 
 update_string <- glue::glue("
   UPDATE {trgtab} AS TRGTAB
@@ -963,10 +963,10 @@ update_string <- glue::glue("
 
 locevaldb$execute_sql(update_string)
 
-locevaldb$query_table("FieldActivityCalendar") %>%
+locevaldb$query_table("FieldCalendars") %>%
   anti_join(
     locevaldb$query_table("Visits"),
-    by = join_by(fieldactivitycalendar_id, archive_version_id)
+    by = join_by(fieldcalendar_id, archive_version_id)
   ) %>% nrow()
 
 
@@ -1453,7 +1453,7 @@ sampleunit_polygons <- cbind(
   anti_join(
     # filter "waiting" types
     locevaldb$query_columns(
-      "FieldActivityCalendar",
+      "FieldCalendars",
       c("sampleunit_id", "wait_any")
     ) %>%
     distinct() %>% 

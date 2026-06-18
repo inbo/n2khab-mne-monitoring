@@ -57,7 +57,7 @@ sort_protocols <- function(prt) {
   return(prt)
 }
 
-rename_FieldActivityCalendar <- function(fac) {
+rename_FieldCalendars <- function(fac) {
   fac <- fac %>% dplyr::rename(accessibility_revisit = acceccibility_revisit)
   return(fac)
 }
@@ -67,7 +67,7 @@ rename_FieldActivityCalendar <- function(fac) {
 
 table_modification <- c(
   "Protocols" = function (prt) sort_protocols(prt) # (almost) anything you like
-  # "FieldActivityCalendar" = function (fac) rename_FieldActivityCalendar(fac) # (almost) anything you like
+  # "FieldCalendars" = function (fac) rename_FieldCalendars(fac) # (almost) anything you like
 )
 
 #_______________________________________________________________________________

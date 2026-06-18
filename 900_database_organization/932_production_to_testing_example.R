@@ -8,7 +8,7 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 # keyring::key_set("DBPassword", "db_user_password")
 
-table_label <- "MHQPolygons" #"LocationCells"# "Protocols"
+table_label <- "Protocols" #"LocationCells"# "Protocols"
 
 config_filepath <- file.path("./mnm_database_connection.conf")
 

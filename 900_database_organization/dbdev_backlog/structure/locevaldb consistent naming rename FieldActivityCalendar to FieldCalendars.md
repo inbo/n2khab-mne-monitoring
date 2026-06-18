@@ -1,26 +1,22 @@
 ---
 aliases:
-  - introduce hierarchical Visits for LOCEVALAQ
+  - loceval rename FieldActivityCalendar to FieldCalendars
 tags:
   - Visits
   - FieldCalendars
   - locevaldb
+  - renaming
 started: 2026-06-18
 finished:
 execution:
 status: false
 ---
 
-## (1) Rename `FieldActivityCalendar` to `FieldCalendars`
 
 [[consistent table and field names across databases]]
+Rename `FieldActivityCalendar` to `FieldCalendars`
 
-+ adjust table name
-+ table #primarykey: used in table itself and as foreign key in other tables
-+ create a view to redirect changes
-+ #expostcode sync_mod apply for new table name
-+ adjust other views
-
+[[procedures/steps to rename a table and columns|steps to rename a table and columns]] followed
 
 ```sql
 -- rename table
@@ -57,4 +53,5 @@ ON DELETE SET NULL ON UPDATE CASCADE;
 --   FieldworkPlanning
 --   LocevalFieldwork
 
+-- qgis project
 ```

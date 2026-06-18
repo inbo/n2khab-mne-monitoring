@@ -114,7 +114,7 @@ count_table_content(c(
     "SampleUnits",
     "Replacements",
     "ReplacementCells",
-    "FieldActivityCalendar",
+    "FieldCalendars",
     "Visits"
   ))
 
@@ -325,7 +325,7 @@ check_foreignkey_connection(
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "FieldActivityCalendar", fk = "sampleunit_id",
+  table_label = "FieldCalendars", fk = "sampleunit_id",
   characteristic_columns = c("grts_address", "type"),
   ref_table = "SampleUnits", pk = "sampleunit_id"
   # rename_ref = c("stratum" = "type")
@@ -355,9 +355,9 @@ check_foreignkey_connection(
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "Visits", fk = "fieldactivitycalendar_id",
+  table_label = "Visits", fk = "fieldcalendar_id",
   characteristic_columns = c("grts_address", "type", "activity_group_id", "date_start"),
-  ref_table = "FieldActivityCalendar" 
+  ref_table = "FieldCalendars"
   )
 
 ```
@@ -393,7 +393,7 @@ count_archived_content <- function(table_list) {
 
 
 count_archived_content(
-    table_list = c("SampleUnits", "FieldActivityCalendar", "Visits")
+    table_list = c("SampleUnits", "FieldCalendars", "Visits")
   ) %>%
   knitr::kable()
 
@@ -410,7 +410,7 @@ count_archived_content(
 
 archives <- locevaldb$query_table("SampleUnits") %>%
   left_join(
-    locevaldb$query_table("FieldActivityCalendar"),
+    locevaldb$query_table("FieldCalendars"),
     by = join_by(grts_address, type),
     suffix = c("", "_facal")
   ) %>% 
@@ -469,7 +469,7 @@ count loceval's by start date
 
 SELECT DISTINCT
   date_start, is_frozen, count(*) AS N
-FROM "outbound"."FieldActivityCalendar"
+FROM "outbound"."FieldCalendars"
 WHERE archive_version_id IS NULL
 GROUP BY date_start, is_frozen
 ORDER BY date_start ASC
@@ -484,7 +484,7 @@ check correct activity groups
 
 SELECT DISTINCT
   activity_group_id, done_planning, count(*) AS N
-FROM "outbound"."FieldActivityCalendar"
+FROM "outbound"."FieldCalendars"
 WHERE archive_version_id IS NULL
 GROUP BY activity_group_id, done_planning
 ORDER BY activity_group_id ASC

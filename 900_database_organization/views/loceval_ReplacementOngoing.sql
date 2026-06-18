@@ -1,6 +1,5 @@
 
 DROP VIEW "inbound"."ReplacementOngoing" CASCADE;
-
 CREATE OR REPLACE VIEW "inbound"."ReplacementOngoing" AS
 SELECT
   REPU.*,
@@ -23,6 +22,7 @@ LEFT JOIN (
     UNIT.location_id,
     UNIT.sampleunit_id,
     UNIT.grts_address,
+    UNIT.type AS type_expected,
     UNIT.replacement_ongoing,
     UNIT.replacement_reason,
     UNIT.replacement_permanence,

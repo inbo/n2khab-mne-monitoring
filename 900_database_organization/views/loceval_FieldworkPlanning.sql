@@ -1,6 +1,6 @@
 
 SELECT *
-  FROM "outbound"."FieldActivityCalendar" AS FAC
+  FROM "outbound"."FieldCalendars" AS FAC
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON FAC.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -24,7 +24,8 @@ DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" ;
 CREATE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
-  FAC.fieldactivitycalendar_id,
+  FAC.fieldcalendar_id,
+  FAC.fieldcalendar_id AS fieldactivitycalendar_id,
   FAC.sampleunit_id,
   FAC.activity_group_id,
   FAC.activity_group_id IN (
@@ -68,7 +69,7 @@ SELECT
   UNIT.is_replaced,
   LOCASS.cell_disapproved,
   LOCASS.assessment_done
-FROM "outbound"."FieldActivityCalendar" AS FAC
+FROM "outbound"."FieldCalendars" AS FAC
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON FAC.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -113,7 +114,7 @@ DROP RULE IF EXISTS FieldworkPlanning_upd_fac ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd_fac AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
- UPDATE "outbound"."FieldActivityCalendar"
+ UPDATE "outbound"."FieldCalendars"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
@@ -122,7 +123,7 @@ DO ALSO
   no_visit_planned = NEW.no_visit_planned,
   notes = NEW.notes,
   done_planning = NEW.done_planning
- WHERE fieldactivitycalendar_id = OLD.fieldactivitycalendar_id
+ WHERE fieldcalendar_id = OLD.fieldcalendar_id
 ;
 
 

@@ -430,7 +430,7 @@ previous_visits <- loceval_db$query_table(table_label)
 
 ## ----save-previous-FACs----------------------------------------------
 
-table_label <- "FieldActivityCalendar"
+table_label <- "FieldCalendars"
 filter_unused <- "
       (NOT excluded)
   AND (excluded_reason IS NULL)
@@ -794,9 +794,9 @@ fieldwork_calendar <-
 # fieldwork_calendar %>% glimpse
 
 fieldwork_calendar_lookup <- update_cascade_lookup(
-  table_label = "FieldActivityCalendar",
+  table_label = "FieldCalendars",
   new_data = fieldwork_calendar,
-  index_columns = c("fieldactivitycalendar_id"),
+  index_columns = c("fieldcalendar_id"),
   characteristic_columns = c(
     "sampleunit_id",
     "stratum",
@@ -1144,7 +1144,7 @@ close(pb) # close the progress bar
 
 
 landuse_reload <- loceval_db$query_columns(
-  "FieldActivityCalendar",
+  "FieldCalendars",
   c("grts_address", "landowner")
   ) %>%
   distinct()

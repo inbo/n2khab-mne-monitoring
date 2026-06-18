@@ -95,7 +95,7 @@ locevaldb <- connect_mnm_database(
 message(locevaldb$shellstring)
 
 
-database_date_interval_update(locevaldb, "FieldActivityCalendar")
+database_date_interval_update(locevaldb, "FieldCalendars")
 
 
 

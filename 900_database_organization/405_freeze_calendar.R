@@ -67,7 +67,7 @@ connections <- list(
 
 calendar_table <- c(
   "gw" = "FieldworkCalendar",
-  "eva" = "FieldActivityCalendar"
+  "eva" = "FieldCalendars"
 )
 
 visit_table  <- c(
@@ -136,7 +136,7 @@ update_calendar_freeze_attribute <- function(db) {
 
   # SELECT DISTINCT
   #   date_start, is_frozen, count(*) AS N
-  # FROM "outbound"."FieldActivityCalendar"
+  # FROM "outbound"."FieldCalendars"
   # WHERE archive_version_id IS NULL
   # GROUP BY date_start, is_frozen
   # ORDER BY date_start ASC

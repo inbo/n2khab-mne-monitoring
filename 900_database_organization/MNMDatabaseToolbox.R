@@ -2104,7 +2104,7 @@ precedence_columns <- list(
     "is_sideloaded",
     "is_frozen"
   ),
-  "FieldActivityCalendar" = c(
+  "FieldCalendars" = c(
     "excluded",
     "excluded_reason",
     "teammember_assigned",

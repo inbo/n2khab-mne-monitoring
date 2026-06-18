@@ -96,7 +96,7 @@ stitch_table_connection(
 
 stitch_table_connection(
   mnmdb = locevaldb,
-  table_label = "FieldActivityCalendar",
+  table_label = "FieldCalendars",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address", "type")
@@ -123,8 +123,8 @@ stitch_table_connection(
 stitch_table_connection(
   mnmdb = locevaldb,
   table_label = "Visits",
-  reference_table = "FieldActivityCalendar",
-  link_key_column = "fieldactivitycalendar_id",
+  reference_table = "FieldCalendars",
+  link_key_column = "fieldcalendar_id",
   lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
 )
 
