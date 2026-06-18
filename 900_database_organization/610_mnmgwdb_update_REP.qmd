@@ -1146,7 +1146,7 @@ potential_visits <- fieldworkcalendar_lookup %>%
 
 visits_upload <- potential_visits %>%
   anti_join(
-    mnmgwdb$query_table("Visits"),
+    mnmgwdb$query_table("Visits", ONLY = FALSE),
     by = join_by(!!!visits_characols)
   ) %>%
   left_join(

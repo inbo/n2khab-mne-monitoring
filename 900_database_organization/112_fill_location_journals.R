@@ -212,7 +212,7 @@ if (nrow(new_installation_removals) > 0) {
 ## location evaluations
 load_location_evaluations <- function() {
 
-  loceval_visits <- locevaldb$query_table("Visits") %>%
+  loceval_visits <- locevaldb$query_table("Visits", ONLY = FALSE) %>%
     filter(visit_done) %>%
     left_join(
       locevaldb$query_columns(
@@ -289,7 +289,7 @@ load_installation_removals <- function() {
 
 ## groundwater work
 load_mnmgwdb_visits <- function() {
-  gw_visits <- mnmgwdb$query_table("Visits") %>%
+  gw_visits <- mnmgwdb$query_table("Visits", ONLY = FALSE) %>%
     filter(visit_done) %>%
     select(
       grts_address,
@@ -555,7 +555,7 @@ upload_LoJos <- function(mnmdb) {
 
   # ## update `visit_id` for quick linkage
   # table_label <- "LocationJournals"
-  # reference_table <- "Visits"
+  # reference_table <- "AllVisits"
   # trgtab <- mnmdb$get_namestring(table_label)
   # srctab <- mnmdb$get_namestring(reference_table)
 
@@ -606,7 +606,7 @@ message("________________________________________________________________")
 if (FALSE) {
 sql_query = '
 SELECT *
-FROM "inbound"."Visits"
+FROM "inbound"."AllVisits"
 WHERE visit_done
 AND date_visit IS NULL
 AND grts_address IN (

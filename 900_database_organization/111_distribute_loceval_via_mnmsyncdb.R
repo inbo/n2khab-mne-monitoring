@@ -121,7 +121,7 @@ replacements_raw <- loceval_connection$query_table("Replacements") %>%
 # NOTE: we currently assume that there was only one replacement, and
 #       that that replacement is the latest and accurate reference.
 
-loceval_visits <- loceval_connection$query_table("Visits") %>%
+loceval_visits <- loceval_connection$query_table("AllVisits") %>%
   filter(visit_done) %>%
   semi_join(
     replacements_raw,

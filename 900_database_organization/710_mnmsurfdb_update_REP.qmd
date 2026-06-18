@@ -1202,7 +1202,7 @@ other_visits_lookup <- upload_and_lookup(
   table_label = "OtherVisits",
   data_to_append = remaining_new_visits,
   characteristic_columns = visits_characols,
-  index_columns = c("visit_id"),
+  index_columns = c("othervisit_id"),
   verbose = TRUE
 )
 

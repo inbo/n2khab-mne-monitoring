@@ -33,9 +33,10 @@ strategy, modified from [[procedures/steps to rename a table and columns|steps t
 + then insert into `*Visits` FROM PreservedVisits based on `activity_group_id`
 + check and possibly restore downstream constraints
 + check and adjust #views
++ triggers must be re-applied! (*EXPOST* sheet)
 + check all maintenance scripts and adjust
 	+ particular attention to REP update logic
-
++ Once everything works: delete temporary preservation table
 
 Note: by now, only terrestrial LOCEVALs were done.
 ```sql
@@ -103,6 +104,8 @@ DROP TABLE IF EXISTS "inbound"."TerrestrialTypesVisits" CASCADE;
 CREATE TABLE "inbound"."Visits"();
 COMMENT ON TABLE "inbound"."Visits" IS E'inbound information about location visits, linked to SampleUnits and FieldCalendars';
 
+
+
 ALTER TABLE "inbound"."Visits" ADD COLUMN visit_id int NOT NULL PRIMARY KEY;
 COMMENT ON COLUMN "inbound"."Visits".visit_id IS E'visit index';
 ALTER TABLE "inbound"."Visits" ADD COLUMN log_user varchar NOT NULL DEFAULT current_user;
@@ -147,6 +150,13 @@ ALTER TABLE "inbound"."Visits" ADD COLUMN visit_done boolean NOT NULL DEFAULT FA
 COMMENT ON COLUMN "inbound"."Visits".visit_done IS E'filter column for locations which have already been visited';
 ALTER TABLE "inbound"."Visits" ADD COLUMN archive_version_id smallint;
 COMMENT ON COLUMN "inbound"."Visits".archive_version_id IS E'(technical) flag archived visits';
+
+
+
+DROP TRIGGER IF EXISTS log_extravisits ON "inbound"."Visits";
+CREATE TRIGGER log_extravisits
+BEFORE UPDATE ON "inbound"."Visits"
+FOR EACH ROW EXECUTE PROCEDURE "metadata".sync_mod();
 
 
 CREATE TABLE "inbound"."OtherVisits"()
@@ -372,3 +382,13 @@ Finally, restore updated Views (were cascade-deleted or link to wrong table)
 - `loceval_ReplacementOngoing.sql`
 
 Tested in QGIS, seems all fine.
+
+
+## scripts
+checking all scripts for loceval Visits use.
+
+
+## finally
+```sql
+DROP TABLE IF EXISTS "inbound"."PreservedVisits";
+```

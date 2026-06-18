@@ -115,7 +115,10 @@ count_table_content(c(
     "Replacements",
     "ReplacementCells",
     "FieldCalendars",
-    "Visits"
+    "Visits",
+    "AquaticTypesVisits",
+    "TerrestrialTypesVisits",
+    "OtherVisits"
   ))
 
 ```
@@ -402,7 +405,7 @@ count_archived_content(
 
 ## Consistency
 
-("archive" tag set along the line of `SampleLocation` -> `FieldworkCalendar` -> `Visits`)
+("archive" tag set along the line of `SampleLocation` -> `FieldworkCalendar` -> `*Visits`)
 
 ```{r consistent-archive}
 #| eval: true
