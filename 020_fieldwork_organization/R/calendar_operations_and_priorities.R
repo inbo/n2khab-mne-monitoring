@@ -235,7 +235,11 @@ add_wait_columns <- function(.data) {
 
   .data %>%
     dplyr::mutate(
-      wait_watersurface = stringr::str_detect(stratum, "^31|^2190_a"),
+      wait_watersurface = stringr::str_detect(stratum, "^2190_a") |
+        (
+          stringr::str_detect(stratum, "^31|^2190_a") &
+            !stringr::str_detect(schemes_served_all, "SURF_03\\.4")
+        ),
       wait_3260 = stratum == "3260",
       wait_7220 = stringr::str_detect(stratum, "^7220"),
       wait_floating = stratum == "7140_mrd",
