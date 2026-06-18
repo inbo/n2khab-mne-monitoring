@@ -30,7 +30,7 @@ SELECT
   UNIT.replacement_permanence,
   UNIT.is_replaced,
   UNIT.type_is_absent,
-  FAC.fieldactivitycalendar_id,
+  FAC.fieldcalendar_id,
   FAC.activity_group_id,
   FAC.date_start,
   FAC.date_end,
@@ -73,8 +73,8 @@ SELECT
   OPHO.assessment_done AS orthophoto_assessment_done,
   OPHO.notes AS orthophoto_notes
 FROM "inbound"."Visits" AS VISIT
-LEFT JOIN "outbound"."FieldActivityCalendar" AS FAC
-  ON FAC.fieldactivitycalendar_id = VISIT.fieldactivitycalendar_id
+LEFT JOIN "outbound"."FieldCalendars" AS FAC
+  ON FAC.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
@@ -134,7 +134,7 @@ DO ALSO
 CREATE OR REPLACE RULE LocevalFieldwork_upd_fac AS
 ON UPDATE TO "inbound"."LocevalFieldwork"
 DO ALSO
- UPDATE "outbound"."FieldActivityCalendar"
+ UPDATE "outbound"."FieldCalendars"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
@@ -143,7 +143,7 @@ DO ALSO
   no_visit_planned = NEW.no_visit_planned,
   notes = NEW.preparation_notes,
   done_planning = NEW.done_planning
- WHERE fieldactivitycalendar_id = OLD.fieldactivitycalendar_id
+ WHERE fieldcalendar_id = OLD.fieldcalendar_id
 ;
 
 

@@ -58,7 +58,7 @@ LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
   SELECT
-    fieldactivitycalendar_id,
+    fieldcalendar_id,
     sampleunit_id,
     activity_group_id,
     date_start,
@@ -70,9 +70,9 @@ LEFT JOIN (
     notes,
     is_frozen,
     archive_version_id
-  FROM "outbound"."FieldActivityCalendar" AS CAL
+  FROM "outbound"."FieldCalendars" AS CAL
   ) AS FAC
-  ON FAC.fieldactivitycalendar_id = VISIT.fieldactivitycalendar_id
+  ON FAC.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN (
   SELECT DISTINCT
     sampleunit_id,
@@ -147,3 +147,8 @@ DO ALSO
   accessibility_revisit = NEW.accessibility_revisit
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
+
+
+
+GRANT SELECT ON  "inbound"."LocationEvaluation"  TO viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO planner_loceval;
