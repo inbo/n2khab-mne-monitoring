@@ -19,7 +19,7 @@ SELECT
   VISIT.visit_id AS eval_id,
   VISIT.notes || '|' || LOREP.replacement_notes AS notes,
   VISIT.photo
-FROM "inbound"."Visits" AS VISIT
+FROM "inbound"."TerrestrialTypesVisits" AS VISIT
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."TeamMembers" AS TEAM

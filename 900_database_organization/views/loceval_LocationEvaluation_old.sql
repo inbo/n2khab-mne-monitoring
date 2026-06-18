@@ -20,6 +20,9 @@ SELECT
   VISIT.is_well_developed_type,
   VISIT.notes,
   VISIT.photo,
+  (VISIT.othervisit_id IS NOT NULL) AS show_othervisits,
+  (VISIT.aquatictypesvisit_id IS NOT NULL) AS show_aquatictypevisits,
+  (VISIT.terrestrialtypesvisit_id IS NOT NULL) AS show_terrestrialtypevisits,
   VISIT.visit_done,
   UNIT.sampleunit_id,
   UNIT.grts_join_method,
@@ -49,7 +52,13 @@ SELECT
   FAC.priority,
   FAC.notes AS preparation_notes,
   FAC.is_frozen
-FROM "inbound"."Visits" AS VISIT
+FROM (
+  SELECT *
+  FROM ONLY "inbound"."Visits"
+  NATURAL FULL JOIN "inbound"."OtherVisits"
+  NATURAL FULL JOIN "inbound"."AquaticTypesVisits"
+  NATURAL FULL JOIN "inbound"."TerrestrialTypesVisits"
+) AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO

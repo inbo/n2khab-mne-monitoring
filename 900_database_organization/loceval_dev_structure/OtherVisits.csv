@@ -1,0 +1,2 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+othervisit_id,int,True,,True,True,,,,visit index

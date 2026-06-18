@@ -64,6 +64,9 @@ SELECT
   VISIT.notes,
   VISIT.photo,
   VISIT.issues,
+  (VISIT.othervisit_id IS NOT NULL) AS show_othervisits,
+  (VISIT.aquatictypesvisit_id IS NOT NULL) AS show_aquatictypevisits,
+  (VISIT.terrestrialtypesvisit_id IS NOT NULL) AS show_terrestrialtypevisits,
   VISIT.visit_done,
   INFO.locationinfo_id,
   INFO.landowner,
@@ -72,7 +75,13 @@ SELECT
   INFO.recovery_hints,
   OPHO.assessment_done AS orthophoto_assessment_done,
   OPHO.notes AS orthophoto_notes
-FROM "inbound"."Visits" AS VISIT
+FROM (
+  SELECT *
+  FROM ONLY "inbound"."Visits"
+  NATURAL FULL JOIN "inbound"."OtherVisits"
+  NATURAL FULL JOIN "inbound"."AquaticTypesVisits"
+  NATURAL FULL JOIN "inbound"."TerrestrialTypesVisits"
+) AS VISIT
 LEFT JOIN "outbound"."FieldCalendars" AS FAC
   ON FAC.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -181,3 +190,17 @@ DO ALSO
 
 GRANT SELECT ON  "inbound"."LocevalFieldwork"  TO viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."LocevalFieldwork"  TO user_loceval;
+
+
+
+-- DROP RULE IF EXISTS FieldWork_upd_OTHERVISITS ON "inbound"."FieldWork";
+-- CREATE RULE FieldWork_upd_OTHERVISITS AS
+-- ON UPDATE TO "inbound"."FieldWork"
+-- DO ALSO
+--  UPDATE "inbound"."OtherVisits"
+--  SET
+--   project_code = NEW.project_code,
+--   recipient_code = NEW.recipient_code
+--  WHERE othervisit_id = OLD.othervisit_id
+--    AND othervisit_id IS NOT NULL
+-- ;

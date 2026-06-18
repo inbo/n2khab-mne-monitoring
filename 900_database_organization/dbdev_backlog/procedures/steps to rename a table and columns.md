@@ -22,3 +22,6 @@ to reduce downtime, assemble code to deploy changes in one go
 
 ## Examples
 + [[structure/locevaldb consistent naming rename FieldActivityCalendar to FieldCalendars|locevaldb rename FieldActivityCalendar to FieldCalendars]]
+
+*advanced:*
++ [[structure/introduce table inheritance to locevaldb Visits for LOCEVALAQ|introduce table inheritance to locevaldb Visits for LOCEVALAQ]]
