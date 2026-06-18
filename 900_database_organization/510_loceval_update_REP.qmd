@@ -87,6 +87,18 @@ message(glue::glue("Good morning!
   Loading the REP data and snippets took {tic(toc)} seconds today."
 ))
 
+
+# grts - geometry - relation
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+
+# check REP data
 verify_rep_objects()
 
 if (nrow(different_checksums) > 0) {
@@ -115,6 +127,10 @@ locevaldb <- connect_mnm_database(
   database_mirror = locevaldb_mirror
 ) 
 # keyring::keyring_delete(keyring = "mnmdb_temp")
+```
+
+
+```{r upd-casc-lku}
 
 message(glue::glue("connected: psql {locevaldb$shellstring}"))
 update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
@@ -159,8 +175,7 @@ if (FALSE) {
   # version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
 
   version_tag <- "snip:0.16_rep:0.16" # data_iteration = 1
-  version_notes <-
-    "REP + snippets update 0.16"
+  version_notes <- "REP + snippets update 0.16"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -422,14 +437,6 @@ locations_grts_collection <- bind_rows(
 #   arrange(desc(n))
 
 # join geometry column
-grts_mh <- n2khab::read_GRTSmh()
-
-grts_mh_index <- dplyr::tibble(
-    id = seq_len(terra::ncell(grts_mh)),
-    grts_address = values(grts_mh)[, 1]
-  ) %>%
-  dplyr::filter(!is.na(grts_address))
-
 locations <- locations_grts_collection %>% 
   add_point_coords_grts(
     grts_var = "grts_address",
@@ -1001,6 +1008,7 @@ locationinfo_lookup <- update_cascade_lookup(
   tabula_rasa = FALSE,
   verbose = TRUE
 )
+
 ```
 
 
@@ -1222,8 +1230,8 @@ replacements <- bind_rows(
     unmatched = "drop"
   )
 
-replacements %>%
-  filter(grts_address == 1466998)
+# replacements %>%
+#   filter(grts_address == 1466998)
 
 ```
 
@@ -1296,7 +1304,7 @@ replacements_lookup <- update_cascade_lookup(
 if it fails: `DELETE FROM "outbound"."Replacements";`
 
 
-## connect
+## connect Replacements to SampleUnits
 
 ```{r stitch-previous-replacements}
 

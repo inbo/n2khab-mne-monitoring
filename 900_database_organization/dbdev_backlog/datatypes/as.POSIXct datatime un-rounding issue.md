@@ -3,6 +3,7 @@ aliases:
   - get millisecond timestamps for database upload
 tags:
   - logging
+  - timestamps
 started: 2026-06-15
 finished: 2026-06-15
 execution:
@@ -13,7 +14,7 @@ status: false
 TODO status (20260615): waiting to see whether the switch to `character` logic crashes other scripts.
 
 
-(*cf.* https://stackoverflow.com/questions/79959088/lubridatefloor-date-returns-inaccurate-values-just-below-the-actual-roundin)
+(*cf.* <https://stackoverflow.com/questions/79959088/lubridatefloor-date-returns-inaccurate-values-just-below-the-actual-roundin>, <https://stackoverflow.com/questions/7726034/how-r-formats-posixct-with-fractional-seconds>)
 
 consequence of [[datatypes/applied date timestamp rounding to FreeFieldNotes log_creation on ALL servers and mirrors|applied timestamp rounding ...]]
 
@@ -101,4 +102,17 @@ for (i in seq_len(100)) {
 ```
 However, then I leave the safe territory of date/timestamp datatypes.
 
+## switch defaults
+[[timeline/2026-06-18|2026-06-18]] changed default data type to "character" (i.e. `string`).
+useful tricks:
 
+```r
+  DBI::dbWriteTable(
+    mnmdb$connection,
+    name = srctab,
+    value = <news>,
+    overwrite = TRUE,
+    temporary = TRUE,
+    field.types = c("log_creation" = "timestamp(3)") # !!!
+  )
+```

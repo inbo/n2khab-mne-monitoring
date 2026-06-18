@@ -258,7 +258,7 @@ fieldwork_calendar <-
   rename(stratum_scheme_ps_targetpanels = scheme_ps_targetpanels) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     is_sideloaded = FALSE,
     excluded = FALSE,
     no_visit_planned = FALSE,
@@ -343,7 +343,7 @@ calendar_to_sideload <- load_table_sideload_content(
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     is_sideloaded = TRUE,
     excluded = FALSE,
     no_visit_planned = FALSE,
@@ -501,7 +501,7 @@ current_calendar_db %>%
 distribution$to_upload <- distribution$to_upload %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     excluded = FALSE,
     no_visit_planned = FALSE,
     done_planning = FALSE
@@ -539,7 +539,7 @@ new_visits <- fieldworkcalendar_lookup %>%
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     issues = FALSE,
     visit_done = FALSE
   )
@@ -552,7 +552,7 @@ visits_upload <- new_visits %>%
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time())
+    log_update = convert_timestamp_to_ms_character(Sys.time())
   ) # /SPA
 
 # Loop Special Activities

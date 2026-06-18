@@ -455,7 +455,7 @@ all_points %>%
   ) %>%
   write.table(
     file = "./data/random_elevation_points.csv",
-    row.names = FALSE,
+    col.names = FALSE,
     dec = ".",
     sep = ",",
     quote = FALSE

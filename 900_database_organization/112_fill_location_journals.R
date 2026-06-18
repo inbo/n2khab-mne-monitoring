@@ -341,6 +341,7 @@ location_journals <- bind_rows(
     load_installation_removals(),
     load_mnmgwdb_visits()
   ) %>%
+  mutate(nolog_update = convert_timestamp_to_ms_character(nolog_update)) %>%
   arrange(date, grts_address, source)
 
 

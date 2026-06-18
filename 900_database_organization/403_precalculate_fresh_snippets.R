@@ -11,7 +11,7 @@ rm(list = ls(all.names = TRUE))
 source("MNMLibraryCollection.R")
 
 load_rep_common_libraries()
-load_rep_rdata(reload = TRUE, to_env = globalenv())
+load_rep_rdata(reload = FALSE, to_env = globalenv())
 # remember gargle login prompt!
 
 # store the current path as "snippet base path" in global env
@@ -19,7 +19,7 @@ load_rep_rdata(reload = TRUE, to_env = globalenv())
 snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
 
 # TEMPORARY adjustment pointing to adjacent branch (wip)
-snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
 
 # run code snippets
 source("401_snippet_selection.R") # note: this one MUST be sourced

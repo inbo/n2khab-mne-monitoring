@@ -115,6 +115,47 @@ grts_datatype_to_integer <- function(data) {
 }
 
 
+#' convert a timestamp to a character string with millisecond accuracy
+#'
+#' https://stackoverflow.com/questions/79959088/lubridatefloor-date-returns-inaccurate-values-just-below-the-actual-roundin
+#'
+#' @param ts a timestamp as.POSIXct
+#' @return timestamp, in milliseconds, as.character
+convert_timestamp_to_ms_character <- function(ts) {
+  # timestamp string in seconds
+  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0")
+
+  # milliseconds
+  ts_ms_char <- as.character(floor(unclass(ts)*1000))
+  l <- nchar(ts_ms_char)
+  ms <- substr(ts_ms_char, start = l-2, stop = l)
+
+  # timezone
+  tz <- format(ts, format = "%Z")
+
+  return(paste0(c(ts_char, ".", ms, " ", tz), collapse = ""))
+} # /convert_timestamp_to_ms_character
+
+## testing
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.000", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.001", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.002", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.999999", tz = "Europe/London"))
+# for (i in seq_len(100)) {
+#   print(convert_timestamp_to_ms_character(Sys.time()))
+# }
+
+#' convert all POSIXct types in a data frame to string
+convert_df_datetime_types_to_character <- function(df) {
+  df %>%
+    mutate_if(
+      is.POSIXct,
+      \(x) unlist(purrr::map(x, convert_timestamp_to_ms_character))
+    ) %>%
+    return()
+}
+
+
 execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
   # a rather trivial wrapper for dbExecute
   # which doesn't even work for multi-commands :/
@@ -952,6 +993,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
     data %>%
       grts_datatype_to_integer() %>%
+      convert_df_datetime_types_to_character() %>%
       dplyr::as_tibble() %>%
       return()
   } # /query_table

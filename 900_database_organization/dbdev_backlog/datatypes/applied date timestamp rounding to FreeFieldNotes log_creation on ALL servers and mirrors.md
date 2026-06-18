@@ -17,6 +17,9 @@ and it makes sense to round off the creation timestamps to milliseconds.
 
 As of [[timeline/2026-06-02|2026-06-02]], this is only applied to the #FreeFieldNotes , other timestamps remain "exact".
 
+> [!note] UPDATE [[timeline/2026-06-18|2026-06-18]]
+> timestamps are now handled as strings by default. 
+
 ```sql
 ALTER TABLE "inbound"."FreeFieldNotes" ALTER COLUMN log_creation SET DEFAULT current_timestamp(3); 
 UPDATE "inbound"."FreeFieldNotes" AS TRGTAB

@@ -109,6 +109,18 @@ message(glue::glue("Good morning!
   Loading the REP data and snippets took {tic(toc)} seconds today."
 ))
 
+
+# grts - geometry - relation
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+
+# check REP data
 verify_rep_objects()
 
 if (nrow(different_checksums) > 0) {
@@ -137,7 +149,8 @@ mnmgwdb <- connect_mnm_database(
 
 ```
 
-```{r connect-databases}
+
+```{r upd-casc-lku}
 
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
@@ -345,6 +358,9 @@ out <- processx::run(
   echo = TRUE
 )
 
+# on update of `production`, in different terminal:
+# source("111_distribute_loceval_via_mnmsyncdb.R")
+
 ```
 
 ```{r load-replacement-lookup}
@@ -512,14 +528,6 @@ locations_grts_collection <- bind_rows(
 
 
 # join geometry column
-grts_mh <- n2khab::read_GRTSmh()
-
-grts_mh_index <- dplyr::tibble(
-    id = seq_len(terra::ncell(grts_mh)),
-    grts_address = values(grts_mh)[, 1]
-  ) %>%
-  dplyr::filter(!is.na(grts_address))
-
 locations <- locations_grts_collection %>% 
   add_point_coords_grts(
     grts_var = "grts_address",
@@ -773,6 +781,16 @@ print_category_count(distribution, table_label)
 # distribution$reactivate %>% knitr::kable()
 # distribution$to_upload %>% knitr::kable()
 # distribution$changed %>% knitr::kable()
+
+
+# waldo::compare(
+#   data_nouveau %>%
+#     semi_join(
+#       distribution$changed,
+#       by = join_by(!!!rlang::syms(sampleunit_characols))
+#     ),
+#   distribution$changed
+# )
 
 ```
 
