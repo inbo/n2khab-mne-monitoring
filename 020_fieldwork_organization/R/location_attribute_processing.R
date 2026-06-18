@@ -193,7 +193,7 @@ unite_stratum_and_schemepstargetpanels <- function(.data) {
       stratum_scheme_ps_targetpanels = stringr::str_c(
         stratum,
         " (",
-        grts_join_method,
+        sample_support_code,
         ") ",
         " [",
         scheme_ps_targetpanels,
