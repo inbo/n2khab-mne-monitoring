@@ -137,7 +137,7 @@ mnmgwdb_to_loceval <- mnmgwdb_data %>%
   select(!!!rlang::syms(c("grts_address", log_columns, data_columns))) %>%
   mutate(
     log_creator = "mnmgwdb",
-    log_creation = as.POSIXct(Sys.time())
+    log_creation = convert_timestamp_to_ms_character(Sys.time())
   )
 
 if (nrow(mnmgwdb_to_loceval) > 0) {
@@ -155,7 +155,7 @@ loceval_to_mnmgwdb <- loceval_data %>%
   select(!!!rlang::syms(c("grts_address", log_columns, data_columns))) %>%
   mutate(
     log_creator = "locevaldb",
-    log_creation = as.POSIXct(Sys.time())
+    log_creation = convert_timestamp_to_ms_character(Sys.time())
   )
 
 if (nrow(loceval_to_mnmgwdb) > 0) {
@@ -297,7 +297,7 @@ common_location_infos <- different_common %>%
   select(grts_address, !!!rlang::syms(data_columns)) %>%
   mutate(
     log_creator = "maintenance",
-    log_creation = as.POSIXct(Sys.time()),
+    log_creation = convert_timestamp_to_ms_character(Sys.time()),
   )
 
 #_______________________________________________________________________________
@@ -338,7 +338,8 @@ update_conflicting <- function(mnmdb, table_label) {
     name = srctab,
     value = common_location_infos,
     overwrite = TRUE,
-    temporary = TRUE
+    temporary = TRUE,
+    field.types = c("log_creation" = "timestamp(3)")
   )
 
   ### build update query

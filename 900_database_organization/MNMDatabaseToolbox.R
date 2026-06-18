@@ -833,6 +833,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     # # TODO this just turned up a duplicate
     # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
     # prior_content %>% filter(grts_address == 23238) %>% t() %>% knitr::kable()
+    #
 
 
     ## (1) optionally append
@@ -1367,36 +1368,6 @@ upload_additional_data <- function(mnmdb, ...) {
 #   mnmdb$tables %>% pull(table),
 #   FUN = function(tablab) mnmdb$load_table_info(tablab) %>% select(datatype)
 # )) %>% distinct()
-
-#' convert a timestamp to a character string with millisecond accuracy
-#'
-#' https://stackoverflow.com/questions/79959088/lubridatefloor-date-returns-inaccurate-values-just-below-the-actual-roundin
-#'
-#' @param ts a timestamp as.POSIXct
-#' @return timestamp, in milliseconds, as.character
-convert_timestamp_to_ms_character <- function(ts) {
-  # timestamp string in seconds
-  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0")
-
-  # milliseconds
-  ts_ms_char <- as.character(floor(unclass(ts)*1000))
-  l <- nchar(ts_ms_char)
-  ms <- substr(ts_ms_char, start = l-2, stop = l)
-
-  # timezone
-  tz <- format(ts, format = "%Z")
-
-  return(paste0(c(ts_char, ".", ms, " ", tz), collapse = ""))
-} # /convert_timestamp_to_ms_character
-
-## testing
-# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.000", tz = "Europe/London"))
-# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.001", tz = "Europe/London"))
-# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.002", tz = "Europe/London"))
-# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.999999", tz = "Europe/London"))
-# for (i in seq_len(100)) {
-#   print(convert_timestamp_to_ms_character(Sys.time()))
-# }
 
 
 

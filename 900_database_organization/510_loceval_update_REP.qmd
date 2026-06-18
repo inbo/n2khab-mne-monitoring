@@ -98,6 +98,7 @@ grts_mh_index <- dplyr::tibble(
   dplyr::filter(!is.na(grts_address))
 
 
+# check REP data
 verify_rep_objects()
 
 if (nrow(different_checksums) > 0) {
