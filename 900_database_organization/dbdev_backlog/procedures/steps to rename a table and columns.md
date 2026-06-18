@@ -12,6 +12,7 @@ to reduce downtime, assemble code to deploy changes in one go
 + create a view to redirect changes; if necessary define update rules for redirection
 + #expostcode (e.g. `sync_mod`) adjust/apply for new table name
 + adjust other views which refer to the renamed table (or renamed columns)
++ check more constraint and dependency names with `\d+ <table>`
 + adjust #qgis projects
 	+ connection info (key: e.g. replace `key=fieldactivitycalendar_id` by `key='fieldcalendar_id'` in `"outbound"."FieldworkPlanning"`)
 	+ overhaul attribute forms

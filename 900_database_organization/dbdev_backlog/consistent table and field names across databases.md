@@ -5,21 +5,23 @@ tags:
   - rename
   - alldatabases
   - improvement
-started:
+started: 2026-06-11
 finished:
 execution:
+  - FM
 status: false
 ---
 
 Historically, databases use different names for the same tables.
 These should be corrected.
+[[procedures/steps to rename a table and columns|steps to rename a table and columns]]
 
-+ [ ] #loceval: `FieldActivityCalendar` -> #FieldCalendar 
++ [x] #loceval: `FieldActivityCalendar` -> #FieldCalendars 
 + [ ] #mnmgwdb: `RandomPoints` -> #RandomPlacementPoints
 + [ ] #mnmgwdb:  use redirection views!
 	+ [ ] `SampleLocations` -> #SampleUnits 
 	+ [ ] `"outbound"."SampleLocations".strata` -> #stratum
-+ [ ] #mnmgwdb: `FieldworkCalendar` -> #FieldCalendar
++ [ ] #mnmgwdb: `FieldworkCalendar` -> #FieldCalendars
 + [ ] #mnmgwdb: `Visits` -> #OtherVisits and use #Visits as an interface
 + [ ] #mnmgwdb: move `CellMaps` and `LocationEvaluations` to schema `transfer`
 	+ ```sql
