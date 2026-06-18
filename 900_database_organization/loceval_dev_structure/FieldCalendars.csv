@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-fieldactivitycalendar_id,int,True,,True,True,,,,calendar index (technical)
+fieldcalendar_id,int,True,,True,True,,,,calendar index (technical)
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp,True,current_timestamp,False,False,,,,(technical) timestamp of last modification
 sampleunit_id,int,False,,False,False,outbound.SampleUnits.sampleunit_id,,,optional link to sample locations

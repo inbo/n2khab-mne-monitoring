@@ -16,8 +16,8 @@ outbound,Replacements,yoda,"viewer_mnmdb, tester_mnmdb","planner_loceval, tester
 outbound,ReplacementCells,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,,,cell polygons (squares) of the replacement cells
 outbound,MHQPolygons,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,MHQ sample areas NO TRESPASSING!
 outbound,LocationAssessments,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,,,1,,"iudicium in praetorio, prior to fieldwork, e.g. via orthophotos, including assessments of obsolete locations"
-outbound,FieldActivityCalendar,yoda,"viewer_mnmdb, tester_mnmdb","planner_loceval, tester_mnmdb",,,,,1,,field activity calender for planning fieldwork
-inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,,,1,,"inbound information about location visits, linked to SampleUnits and FieldActivityCalendar"
+outbound,FieldCalendars,yoda,"viewer_mnmdb, tester_mnmdb","planner_loceval, tester_mnmdb",,,,,1,,field activity calender for planning fieldwork
+inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,,,1,,"inbound information about location visits, linked to SampleUnits and FieldCalendars"
 inbound,CellMaps,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",POLYGON,,,,1,,cell mapping input by drawing polygons
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 archive,ReplacementArchives,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,archive of replacement information for samples which are not used any more
