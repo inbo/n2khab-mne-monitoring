@@ -123,6 +123,12 @@ grts_datatype_to_integer <- function(data) {
 #' @return timestamp, in milliseconds, as.character
 convert_timestamp_to_ms_character <- function(ts) {
   # timestamp string in seconds
+
+  if (length(ts) == 0) return(NA)
+  if (is.scalar.na(ts)) return(NA)
+
+  stopifnot("Timestamp must be POSIXct type." = is.POSIXct(ts))
+
   ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0")
 
   # milliseconds
@@ -145,12 +151,28 @@ convert_timestamp_to_ms_character <- function(ts) {
 #   print(convert_timestamp_to_ms_character(Sys.time()))
 # }
 
+#' unlist, retaining NA occurrences
+#'
+#' the regular unlist wil loose NULLs/NAs when used with purrr
+#' so this is a necessary extra step
+#'
+unlist_keep_na <- function(x) {
+  x_un <- unlist(x)
+  if (is.null(x_un)) return(NA)
+  return(x_un)
+}
+
+
 #' convert all POSIXct types in a data frame to string
 convert_df_datetime_types_to_character <- function(df) {
+
+  purrr::map(df$log_creation, convert_timestamp_to_ms_character)
+  x <- df$log_creation
+
   df %>%
     mutate_if(
       is.POSIXct,
-      \(x) unlist(purrr::map(x, convert_timestamp_to_ms_character))
+      \(x) unlist_keep_na(purrr::map(x, convert_timestamp_to_ms_character))
     ) %>%
     return()
 }

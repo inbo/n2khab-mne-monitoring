@@ -72,6 +72,7 @@ handle_NA_nolog_update_column <- function(lojos) {
 
 table_modification <- c(
   # "Protocols" = function (prt) sort_protocols(prt), # (almost) anything you like
+  # "MHQPolygons" = function (mhqpolys) mhqpolys %>% filter(FALSE),
   "LocationJournals" = function (lojos) handle_NA_nolog_update_column(lojos) # (almost) anything you like
   # "FieldCalendars" = function (fac) rename_FieldCalendars(fac) # (almost) anything you like
 )
