@@ -71,8 +71,8 @@ update_date_interval <- function(.data) {
 }
 
 
-#' move the LOCEVAL fieldwork that was kept for main_year - 1, to main_year,
-#' since that is indeed its meaning
+#' move the LOCEVAL & SAMPLPOINT fieldwork that was kept for main_year - 1, to
+#' main_year, since that is indeed its meaning
 postpone_selected_past_activities <- function(.data) {
 
   require_pkgs(c("dplyr", "lubridate"))
@@ -87,7 +87,7 @@ postpone_selected_past_activities <- function(.data) {
       dplyr::across(c(date_start, date_end), \(x) {
         dplyr::if_else(
           lubridate::year(date_start) == main_year - 1 &
-            stringr::str_detect(field_activity_group, "LOCEVAL"),
+            stringr::str_detect(field_activity_group, "LOCEVAL|SAMPLPOINT"),
           x + lubridate::years(1),
           x
         )
@@ -235,7 +235,11 @@ add_wait_columns <- function(.data) {
 
   .data %>%
     dplyr::mutate(
-      wait_watersurface = stringr::str_detect(stratum, "^31|^2190_a"),
+      wait_watersurface = stringr::str_detect(stratum, "^2190_a") |
+        (
+          stringr::str_detect(stratum, "^31|^2190_a") &
+            !stringr::str_detect(schemes_served_all, "SURF_03\\.4")
+        ),
       wait_3260 = stratum == "3260",
       wait_7220 = stringr::str_detect(stratum, "^7220"),
       wait_floating = stratum == "7140_mrd",
