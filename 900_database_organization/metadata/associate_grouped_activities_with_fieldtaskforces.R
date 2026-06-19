@@ -46,13 +46,13 @@ associate_grouped_activities_with_fieldtaskforces <- function(grouped_activities
         "SURFADHOCGAUGEREPLACE",
         "SURFINSTGAUGE",
         "SURFINSTWELLDIVER",
-        "SURFLENTDATACOLL",
-          "SURFLENTLOCEVALSAMPLPOINT",
+        # "SURFLENTLOCEVALSAMPLPOINT",
         "SURFLEVREADDIVER",
-        "SURFLOTDATACOLL",
-          "SURFLOTLOCEVALSAMPLPOINT"
+        # "SURFLOTLOCEVALSAMPLPOINT"
+        "SURFLENTDATACOLL",
+        "SURFLOTDATACOLL"
       )
     ) %>%
     return()
 
-}
+} # /associate_grouped_activities_with_fieldtaskforces

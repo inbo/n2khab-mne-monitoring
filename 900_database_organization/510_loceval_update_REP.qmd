@@ -21,6 +21,7 @@ knitr:
   - data fixing / freeze
 - 20260527 REP update
 - 20260616 missing Replacements -> bugfix now join to `grts_address_final`
+- 20260619 preview REP 0.17.0 -> `SURF_03.4_LENTIC`
 
 
 # TODO
@@ -116,7 +117,8 @@ if (nrow(different_checksums) > 0) {
 database <- "loceval"
 config_filepath <- file.path("./mnm_database_connection.conf")
 # suffix <- ""
-suffix <- "-staging"
+# suffix <- "-staging"
+suffix <- "-testing"
 
 
 # connect loceval
@@ -173,9 +175,10 @@ if (FALSE) {
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
+  # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
 
-  version_tag <- "snip:0.16_rep:0.16" # data_iteration = 1
-  version_notes <- "REP + snippets update 0.16"
+  version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
+  version_notes <- "activating SURF_03.4_LENTIC"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -224,12 +227,37 @@ if (FALSE) {
 
 
 
-# Protocols, Activities, TeamMembers
+# Protocols, GroupedActivities, TeamMembers
 
 :::{callout-warning}
 Any news?
 Now is the chance!
 :::
+
++ `410_update_protocols.qmd`
++ `411_update_grouped_activities.qmd`
+
+```{r stop-new-grouped-activities}
+
+stop("wait! Grouped Activities have been rearranged.")
+
+```
+
+
+```{r upload-grouped-activities}
+
+
+grouped_activity_lookup <- update_cascade_lookup(
+  table_label = "GroupedActivities",
+  new_data = grouped_activities_upload,
+  index_columns = c("grouped_activity_id"),
+  characteristic_columns = c("activity_group", "activity"),
+  tabula_rasa = TRUE,
+  verbose = TRUE
+)
+
+
+```
 
 
 

@@ -124,8 +124,9 @@ if (nrow(different_checksums) > 0) {
 ```{r connect-databases}
 
 config_filepath <- file.path("./mnm_database_connection.conf")
-suffix <- "-staging"
 # suffix <- ""
+# suffix <- "-staging"
+suffix <- "-testing"
 
 # connect mnmsurfdb
 mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
@@ -173,9 +174,10 @@ if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
 if (FALSE) {
 
   # manually set a new version
-  version_tag <- "mnmsurfdb_initialization" # data_iteration = 1
-  version_notes <-
-    "REP + snippets update 0.16"
+  # version_tag <- "mnmsurfdb_initialization" # "REP + snippets update 0.16" # only used for testing
+
+  version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
+  version_notes <- "activating SURF_03.4_LENTIC"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 

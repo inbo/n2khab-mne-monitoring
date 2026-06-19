@@ -1,0 +1,328 @@
+---
+title: "Data Update: GroupedActivities"
+date: "20260619"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+# Changelog
+
+- 20260619 init: preview REP 0.17.0 -> `SURF_03.4_LENTIC`
+
+
+# Preparations
+
+## libraries and variables
+
+```{r libraries}
+
+# libraries
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+# the database connection object
+source("MNMDatabaseConnection.R")
+
+# more specific database tools
+source("MNMDatabaseToolbox.R")
+
+
+# library("mapview") # debugging only
+# mapviewOptions(platform = "mapdeck")
+
+```
+
+
+## info stream from REP
+
+
+```{r source-code-snippets}
+
+tic <- function(toc) round(Sys.time() - toc, 1)
+toc <- Sys.time()
+
+snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
+# # TEMPORARY adjustment pointing to adjacent branch (wip)
+# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+
+fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
+reload_rep_code_snippets(fresh_snippet_path)
+message(glue::glue("Good morning!
+  Loading the REP data and snippets took {tic(toc)} seconds today."
+))
+
+
+# grts - geometry - relation
+grts_mh <- n2khab::read_GRTSmh()
+
+grts_mh_index <- dplyr::tibble(
+    id = seq_len(terra::ncell(grts_mh)),
+    grts_address = values(grts_mh)[, 1]
+  ) %>%
+  dplyr::filter(!is.na(grts_address))
+
+
+# check REP data
+verify_rep_objects()
+
+if (nrow(different_checksums) > 0) {
+  knitr::kable(different_checksums)
+}
+
+```
+
+
+
+## database connection
+
+
+```{r connect-databases}
+
+database <- "loceval"
+# suffix <- ""
+# suffix <- "-staging"
+suffix <- "-testing"
+
+
+config_filepath <- file.path("./mnm_database_connection.conf")
+# connect loceval
+locevaldb_mirror <- glue::glue("{database}{suffix}")
+
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+) 
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+```
+
+
+```{r upd-casc-lku}
+
+message(glue::glue("connected: psql {locevaldb$shellstring}"))
+# update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
+
+```
+
+
+## version
+
+:::{callout-warning}
+Latest / new version must already be on the server.
+:::
+
+```{r query-version-id}
+version_id <- locevaldb$load_latest_version_id()
+```
+
+
+# Load Data
+
+## new REP
+
+```{r load-new-grouped-activities}
+
+activity_group_lookup <-
+  activity_sequences %>%
+    distinct(activity_group, activity)
+
+grouped_activities_rep <-
+  activities %>%
+  left_join(
+    activity_group_lookup,
+    join_by(activity),
+    relationship = "one-to-many"
+  )
+
+
+# TODO persistent IDs
+grouped_activities_rep <- grouped_activities_rep %>%
+  mutate_at(
+    vars(activity_group, activity, activity_name, protocol),
+    as.character
+  ) %>%
+  mutate(
+    activity_group = ifelse(is.na(activity_group), activity, activity_group)
+  )
+# %>% select(activity, activity_group) %>% tail(10) %>% knitr::kable()
+
+
+grouped_activities_rep <- grouped_activities_rep %>%
+  arrange(activity) %>%
+  group_by(activity) %>%
+  mutate(activity_id = cur_group_id()) %>%
+  ungroup %>%
+  arrange(activity_group) %>%
+  group_by(activity_group) %>%
+  mutate(activity_group_id = cur_group_id()) %>%
+  ungroup %>%
+  arrange(activity_group, activity) %>%
+  group_by(
+    activity_group,
+    activity
+  ) %>%
+  mutate(grouped_activity_id = cur_group_id()) %>%
+  ungroup %>%
+  relocate(
+    grouped_activity_id,
+    activity_group_id,
+    activity_group,
+    activity_id,
+    activity,
+    .before = 1
+  )
+
+
+# tag activities for biotic location evaluation
+source(here::here(
+  "metadata",
+  "associate_grouped_activities_with_fieldtaskforces.R"
+))
+
+grouped_activities_rep %<>% associate_grouped_activities_with_fieldtaskforces()
+
+```
+
+
+:::{.callout-warning}
+Columns `activity_group_id`, `activity_id`, and `grouped_activity_id` of the REP is not real; it is counted above as it was counted in the very first upload.
+:::
+
+```{r remove-false-id-columns}
+grouped_activities_rep %<>% 
+  select(-ends_with("_id"))
+```
+
+## database status quo
+
+```{r database-load-status-quo}
+
+existing_grouped_activities <- locevaldb$query_table("GroupedActivities") %>% 
+  arrange(activity_group, activity) %>% 
+  relocate(activity_group, activity)
+
+```
+
+
+# Comparison
+
+## Ensemble
+
+```{r compare-grouped-activities}
+
+# waldo::compare(
+#   grouped_activities_rep,
+#   existing_grouped_activities %>%
+#     select(tidyselect::all_of(names(grouped_activities_rep)))
+# )
+
+# novel GAs: in the REP, but not in the DB
+novel_grouped_activities <- grouped_activities_rep %>% 
+  anti_join(
+    existing_grouped_activities,
+    by = join_by(activity_group, activity)
+  )
+
+novel_grouped_activities %>%
+  select(activity_group, activity) %>%
+  knitr::kable()
+
+
+# obsolete GAs: in the DB, but not in the REP any more
+obsolete_grouped_activities <- existing_grouped_activities %>% 
+  anti_join(
+    grouped_activities_rep,
+    by = join_by(activity_group, activity)
+  )
+
+obsolete_grouped_activities %>% 
+  select(
+    grouped_activity_id,
+    activity_group_id, activity_group,
+    activity_id, activity
+  ) %>%
+  knitr::kable()
+
+```
+
+## A Complicated Two-Level Indexing System
+
+The whole database is indexed on on `activity_group` / `activity_group_id`.
+
+```{r distinct-activity-groups}
+activity_groups_rep <- grouped_activities_rep %>%
+  distinct(activity_group)
+
+activity_groups_db <- existing_grouped_activities %>%
+  distinct(activity_group, activity_group_id)
+
+```
+
+
+```{r compare-grouped-activities}
+
+# novel AGs: in the REP, but not in the DB
+novel_groups <- activity_groups_rep %>% 
+  anti_join(
+    activity_groups_db,
+    by = join_by(activity_group)
+  )
+
+novel_groups %>%
+  knitr::kable()
+
+
+# obsolete AGs: in the DB, but not in the REP any more
+obsolete_groups <- activity_groups_db %>% 
+  anti_join(
+    activity_groups_rep,
+    by = join_by(activity_group)
+  )
+
+obsolete_groups %>% 
+  knitr::kable()
+
+```
+
+
+
+
+# join protocol id
+
+```{r join-protocol-id}
+stop("not ready for this.")
+
+protocol_lookup <- locevaldb$query_columns(
+    "Protocols",
+    c("protocol_code", "protocol_version", "protocol_id")
+  ) %>%
+  group_by(protocol_code) %>%
+  filter(protocol_version == max(protocol_version)) %>%
+  ungroup() %>% 
+  rename(protocol = protocol_code) %>%
+  select(-protocol_version)
+
+# protocol_lookup %>%
+#   count(protocol) %>% arrange(desc(n))
+
+
+grouped_activities_new <- grouped_activities %>%
+  left_join(
+    protocol_lookup,
+    by = join_by(protocol),
+    relationship = "many-to-one",
+    na_matches = "never"
+  ) %>% select(-protocol) %>%
+  arrange(activity_group, activity) %>%
+  relocate(activity_group, activity)
+
+
+```
