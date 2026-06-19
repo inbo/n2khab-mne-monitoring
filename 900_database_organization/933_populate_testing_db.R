@@ -21,7 +21,7 @@ if (length(commandline_args) > 0) {
 # database_label <- "loceval"
 # database_label <- "mnmgwdb"
 # database_label <- "mnmsurfdb"
-stopifnot(database_label %in% c("loceval", "mnmgwdb", "mnmsurfdb"))
+stopifnot(database_label %in% c("mnmsyncdb", "loceval", "mnmgwdb", "mnmsurfdb"))
 
 source_mirror <- glue::glue("{database_label}") # -staging
 target_mirror <- glue::glue("{database_label}-testing")
@@ -62,11 +62,17 @@ rename_FieldCalendars <- function(fac) {
   return(fac)
 }
 
+handle_NA_nolog_update_column <- function(lojos) {
+  lojos %>%
+    mutate(nolog_update = dplyr::na_if(nolog_update, "NA.NA NA"))
+}
+
 #_______________________________________________________________________________
 ### associate the functions with table names
 
 table_modification <- c(
-  "Protocols" = function (prt) sort_protocols(prt) # (almost) anything you like
+  # "Protocols" = function (prt) sort_protocols(prt), # (almost) anything you like
+  "LocationJournals" = function (lojos) handle_NA_nolog_update_column(lojos) # (almost) anything you like
   # "FieldCalendars" = function (fac) rename_FieldCalendars(fac) # (almost) anything you like
 )
 
