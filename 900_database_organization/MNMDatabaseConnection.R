@@ -166,8 +166,8 @@ unlist_keep_na <- function(x) {
 #' convert all POSIXct types in a data frame to string
 convert_df_datetime_types_to_character <- function(df) {
 
-  purrr::map(df$log_creation, convert_timestamp_to_ms_character)
-  x <- df$log_creation
+  # purrr::map(df$log_creation, convert_timestamp_to_ms_character)
+  # x <- df$log_creation
 
   df %>%
     mutate_if(
