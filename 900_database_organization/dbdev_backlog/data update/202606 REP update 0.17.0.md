@@ -159,7 +159,28 @@ Next steps:
 >;
 > ```
 
+### check the #freeze 
+... yet in this case, changes should have no effect
+
+### store a backup
+
+```sql
+\COPY (
+  SELECT *
+  FROM "metadata"."GroupedActivities"
+  ORDER BY activity_group ASC, activity ASC
+) TO '<...>/mnm_db_backups/metadata/20260622_GroupedActivities.csv' With CSV DELIMITER ',' HEADER
+;
+
+```
 
 ## update `fag_is_auxiliary`, `fag_is_preponable`, and `protocol_id`'s
 
-`fa_protocol` in the #REP 
+postponed: not critical for REP update
+cf. `fa_protocol` in the #REP #RData for protocol_id
+I could not find "auxiliary" and "preponable" in the general rush of things.
+
+# Protocols
+
+... postponed (overhaul required anyways)
+

@@ -146,7 +146,10 @@ update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
 
-if (isFALSE(grepl("-staging", locevaldb_mirror))) {
+if (isFALSE(grepl("-staging", locevaldb_mirror))
+    && isFALSE(grepl("-testing", locevaldb_mirror))
+    && isFALSE(grepl("-dev", locevaldb_mirror))
+    ) {
   locevaldb$dump_all(
     here::here("dumps", glue::glue("rep_pre_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
@@ -241,21 +244,7 @@ Now is the chance!
 
 stop("wait! Grouped Activities have been rearranged.")
 
-```
-
-
-```{r upload-grouped-activities}
-
-
-grouped_activity_lookup <- update_cascade_lookup(
-  table_label = "GroupedActivities",
-  new_data = grouped_activities_upload,
-  index_columns = c("grouped_activity_id"),
-  characteristic_columns = c("activity_group", "activity"),
-  tabula_rasa = TRUE,
-  verbose = TRUE
-)
-
+# manually adjust GroupedActivities (see db_devlog)
 
 ```
 
@@ -284,7 +273,7 @@ activity_groupid_lookup <- locevaldb$query_columns(
 ```{r load-activities}
 
 loceval_field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
-  filter(is_loceval_activity, is_field_activity) %>%
+  filter(is_loceval_activity, is_field_activity, is.na(archive_version_id)) %>%
   distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 ```
