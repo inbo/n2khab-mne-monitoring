@@ -978,11 +978,13 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   extend_and_update_scheme_attributes() %>%
   unnest_and_join_sampling_unit_attributes() %>%
   nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) %>%
+  mark_matching_occasions() %>%
   relocate(
     scheme_ps_targetpanels,
     schemes_served_all,
     starts_with("nr_schemes")
-  )
+  ) %>%
+  relocate(matching_occasion, .after = rank)
 
 # Derive an object where stratum x scheme_ps_targetpanels is flattened per
 # location x FAG occasion. Beware that in reality, more locations will emerge

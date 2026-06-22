@@ -112,6 +112,65 @@ drop_past_activities <- function(.data, min_year) {
 }
 
 
+#' Mark matching occasions
+#'
+#' Marks matching occasions in a data frame of FAG occasions.
+#'
+#' In lentic types, multiple strata can effectively occur at the same GRTS
+#' address. Such rows represent duplicated FAG occasions. In some of these
+#' cases (LOCEVALAQ) data must still be collected with reference to the
+#' specific stratum, but the actual fieldwork is just a single occasion. Since
+#' we need the distinction between strata for the terrestrial FAG occasions and
+#' because the sampling units always remain defined by grts_address x stratum,
+#' we don't change the object structure to reflect unique fieldwork events.
+#' However we do mark some FAG occasions as 'matching occasions' using a common
+#' string: these FAG occasions occur more than once across strata (and for some
+#' FAGs also across time) and can be executed as a single FAG occasion.
+mark_matching_occasions <- function(.data) {
+  require_pkgs(c("dplyr", "lubridate", "stringr", "magrittr"))
+  .data %>%
+    # matching occasions across strata
+    dplyr::mutate(
+      matching_occasion = ifelse(
+        stringr::str_detect(stratum, "^2190_a|^31") &
+          # not using n() because that still includes terrestrial types:
+          sum(stringr::str_detect(stratum, "^2190_a|^31")) > 1,
+        stringr::str_c(
+          dplyr::first(field_activity_group),
+          dplyr::first(grts_address_final),
+          stringr::str_c(
+            "[",
+            format(dplyr::first(date_start), "%Y%m%d"),
+            "-",
+            format(dplyr::first(date_end), "%Y%m%d"),
+            "]"
+          ),
+          sep = "_"
+        ),
+        NA_character_
+      ),
+      .by = c(grts_address, starts_with("date"), field_activity_group)
+    ) %>%
+    # matching occasions across strata and date intervals
+    dplyr::mutate(
+      matching_occasion = ifelse(
+        stringr::str_detect(stratum, "^2190_a|^31") &
+          # not using n() because that still includes terrestrial types:
+          sum(stringr::str_detect(stratum, "^2190_a|^31")) > 1 &
+          stringr::str_detect(field_activity_group, "INST|LEVREAD|SPATPOSIT"),
+        stringr::str_c(
+          dplyr::first(field_activity_group),
+          dplyr::first(grts_address_final),
+          sep = "_"
+        ),
+        matching_occasion
+      ),
+      .by = c(grts_address, field_activity_group)
+    ) %>%
+    dplyr::mutate(matching_occasion = factor(matching_occasion)) %>%
+    return()
+}
+
 
 #_______________________________________________________________________________
 ### Priorities
