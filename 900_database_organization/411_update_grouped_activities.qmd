@@ -247,7 +247,8 @@ obsolete_grouped_activities %>%
   select(
     grouped_activity_id,
     activity_group_id, activity_group,
-    activity_id, activity
+    activity_id, activity,
+    archive_version_id
   ) %>%
   knitr::kable()
 
@@ -338,7 +339,7 @@ existing_grouped_activities %>%
     by = join_by(protocol_id)
   ) %>% 
   write.table(
-    file = "./dumps/202606_grouped_activities_dump.csv",
+    file = "./dumps/2026xx_grouped_activities_dump.csv",
     col.names = TRUE,
     dec = ".",
     sep = ";",
@@ -347,7 +348,7 @@ existing_grouped_activities %>%
 
 grouped_activities_rep %>% 
   write.table(
-    file = "./dumps/202606_grouped_activities_rep.csv",
+    file = "./dumps/2026xx_grouped_activities_rep.csv",
     col.names = TRUE,
     dec = ".",
     sep = ";",
