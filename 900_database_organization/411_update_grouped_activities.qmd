@@ -326,3 +326,32 @@ grouped_activities_new <- grouped_activities %>%
 
 
 ```
+
+# Manual Flow
+
+```{r export-manually}
+existing_grouped_activities %>%
+  left_join(
+    locevaldb$query_columns(
+      "Protocols", c("protocol_id", "protocol_code", "protocol_version")
+    ),
+    by = join_by(protocol_id)
+  ) %>% 
+  write.table(
+    file = "./dumps/202606_grouped_activities_dump.csv",
+    col.names = TRUE,
+    dec = ".",
+    sep = ";",
+    quote = TRUE
+  )
+
+grouped_activities_rep %>% 
+  write.table(
+    file = "./dumps/202606_grouped_activities_rep.csv",
+    col.names = TRUE,
+    dec = ".",
+    sep = ";",
+    quote = TRUE
+  )
+
+```
