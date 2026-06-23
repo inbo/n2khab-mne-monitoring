@@ -20,7 +20,7 @@ anticipatory work thanks to preparations by #FV
 ## (0) structure
 
 > [!important] Add Column to #GroupedActivities
-> TODO `archive_version_id` for obsolete activities
+> define `archive_version_id` for obsolete activities
 > ```sql
 > ALTER TABLE "metadata"."GroupedActivities" ADD COLUMN archive_version_id smallint; 
 > COMMENT ON COLUMN "metadata"."GroupedActivities".archive_version_id IS E'(technical) flag archived sample units';
@@ -31,6 +31,20 @@ anticipatory work thanks to preparations by #FV
 > ```
 
 ## Part 1: Activity **Groups**
+
+### store a backup
+
+```sql
+\COPY (
+  SELECT *
+  FROM "metadata"."GroupedActivities"
+  ORDER BY activity_group ASC, activity ASC
+) TO '<...>/mnm_db_backups/metadata/20260622_GroupedActivities.csv' With CSV DELIMITER ',' HEADER
+;
+
+```
+
+
 ### overview
 ```r
 > novel_groups %>% knitr::kable()
@@ -154,25 +168,16 @@ Next steps:
 >('SURFLOTDATACOLL', 35, 'SURFFLOWVELOC', 44, 'stroomsnelheid bepalen met stroomsnelheidsmeter', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
 >('SURFLOTDATACOLL', 35, 'SURFLOTTURB', 42, 'veldmetingen turbiditeit uitvoeren in stromende wateren (met Secchi-schijf en Snellerbuis)', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
 >('SURFLOTDATACOLL', 35, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
->('SURFLENTSECC', 39, 'SURFLENTSECC', 32, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
->('SURFLOTSECC', 40, 'SURFLOTSECC', 35, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE)
+>('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
+>('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE)
 >;
 > ```
 
 ### check the #freeze 
 ... yet in this case, changes should have no effect
 
-### store a backup
-
-```sql
-\COPY (
-  SELECT *
-  FROM "metadata"."GroupedActivities"
-  ORDER BY activity_group ASC, activity ASC
-) TO '<...>/mnm_db_backups/metadata/20260622_GroupedActivities.csv' With CSV DELIMITER ',' HEADER
-;
-
-```
+### prevent duplicates
+[[checks/duplicate activity ids in GroupedActivities|duplicate activity ids in GroupedActivities]]
 
 ## update `fag_is_auxiliary`, `fag_is_preponable`, and `protocol_id`'s
 
@@ -186,3 +191,8 @@ I could not find "auxiliary" and "preponable" in the general rush of things.
 
 # SampleUnits
 + In #SampleUnits, the field `schemes_served_all` (and potentially `scheme_ps_targetpanels`) must be consolidated.
+
+# FieldCalendars
++ no relevant changes in #locevaldb 
++ on #mnmgwdb, there are 291 #startdateupdates which are all (waiting) aquatic types
+

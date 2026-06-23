@@ -155,7 +155,10 @@ update_cascade_lookup <- parametrize_cascaded_update(mnmsurfdb)
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
 
-if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
+if (isFALSE(grepl("-staging", mnmsurfdb_mirror))
+    && isFALSE(grepl("-testing", mnmsurfdb_mirror))
+    && isFALSE(grepl("-dev", mnmsurfdb_mirror))
+    ) {
   mnmsurfdb$dump_all(
     here::here("dumps", glue::glue("rep_pre_update_{mnmsurfdb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
@@ -1361,7 +1364,10 @@ out <- processx::run(
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
 
-if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
+if (isFALSE(grepl("-staging", mnmsurfdb_mirror))
+    && isFALSE(grepl("-testing", mnmsurfdb_mirror))
+    && isFALSE(grepl("-dev", mnmsurfdb_mirror))
+    ) {
   mnmsurfdb$dump_all(
     here::here("dumps", glue::glue("rep_post_update_{mnmsurfdb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")

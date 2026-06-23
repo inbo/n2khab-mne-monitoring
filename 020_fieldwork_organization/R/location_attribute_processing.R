@@ -16,8 +16,10 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
 
   # select one of the default flattening methods
   if (is.null(spt_flattening_function)) {
+    trimlist <- \(x) lapply(x, FUN = \(y) stringr::str_trim(y, side = "both"))
+    consolidate <- \(x) sort(unique(unlist(trimlist(x))))
     spt_flattening_function <- function(x) {
-      stringr::str_flatten(unique(unlist(x)), collapse = " | ")
+      stringr::str_flatten(consolidate(x), collapse = " | ")
     }
   }
 

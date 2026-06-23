@@ -348,10 +348,12 @@ sample_unit_columns <- c(
 )
 
 # fag_stratum_grts_calendar_shortterm_attribs %>%
-#   filter(grts_address_final == 617774) %>% 
-#   distinct(grts_address_final, stratum, field_activity_group,
-#     scheme_ps_targetpanels, schemes_served_all,
-#     in_mhq_samples
+#   filter(
+#     grts_address_final == 617774,
+#     field_activity_group %in% c("LOCEVALAQ", "SURFLENTSAMPLPOINT")
+#   ) %>% 
+#   distinct(stratum, field_activity_group,
+#     schemes_served_all, in_mhq_samples
 #   ) %>% 
 #   knitr::kable()
 
