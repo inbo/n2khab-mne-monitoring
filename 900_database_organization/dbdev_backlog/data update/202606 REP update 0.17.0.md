@@ -184,3 +184,5 @@ I could not find "auxiliary" and "preponable" in the general rush of things.
 
 ... postponed (overhaul required anyways)
 
+# SampleUnits
++ In #SampleUnits, the field `schemes_served_all` (and potentially `scheme_ps_targetpanels`) must be consolidated.

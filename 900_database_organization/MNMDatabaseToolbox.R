@@ -1309,10 +1309,10 @@ categorize_data_update <- function(
 
   ## return a list
   return(list(
-    "changed" = data_changed,
     "unchanged" = data_unchanged,
-    "to_archive" = data_to_archive,
+    "changed" = data_changed,
     "to_upload" = data_to_upload,
+    "to_archive" = data_to_archive,
     "reactivate" = data_reactivate
   ))
 } # /categorize_data_update
@@ -1347,7 +1347,7 @@ print_category_count <- function(cats, table_label = NA) {
     paste(dogs, collapse = "\n")
   )
   return(invisible(NULL))
-}
+} # /print_category_count
 
 
 ### Safely append a data table.
