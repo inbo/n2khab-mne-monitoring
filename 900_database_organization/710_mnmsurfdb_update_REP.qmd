@@ -223,6 +223,18 @@ Now is the time!
 :::
 
 
++ `410_update_protocols.qmd`
++ `411_update_grouped_activities.qmd`
+
+```{r stop-new-grouped-activities}
+
+stop("wait! Grouped Activities have been rearranged.")
+
+# manually adjust GroupedActivities (see db_devlog)
+
+```
+
+
 # Let's Do This
 
 ## prerequisite_lookups
@@ -777,7 +789,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>%
   mutate(
     # log_user = "maintenance",
-    # log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    # log_update = convert_timestamp_to_ms_character(Sys.time()),
     # is_replacement = FALSE
   )
 
@@ -1053,7 +1065,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     excluded = FALSE,
     is_frozen = FALSE,
     no_visit_planned = FALSE,
@@ -1142,7 +1154,7 @@ potential_visits <- fieldcalendar_lookup %>%
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     issues = FALSE,
     visit_done = FALSE
   )
@@ -1309,9 +1321,9 @@ new_locinfos <- sample_units %>%
   ) %>%
   mutate(
     log_creator = "maintenance",
-    log_creation = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    log_creation = convert_timestamp_to_ms_character(Sys.time()),
     log_user = "maintenance",
-    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s"))
+    log_update = convert_timestamp_to_ms_character(Sys.time())
   )
 
 new_locinfos <- new_locinfos %>%
@@ -1382,7 +1394,7 @@ if (isFALSE(grepl("-staging", mnmsurfdb_mirror))
 
 out <- processx::run(
   "quarto",
-  c("render", "046_mnmsurfdb_consistency_dashboard.qmd", "--to", "html"),
+  c("render", "047_mnmsurfdb_consistency_dashboard.qmd", "--to", "html"),
   echo = TRUE,
   spinner = TRUE
 )

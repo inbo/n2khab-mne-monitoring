@@ -128,6 +128,19 @@ version_id <- locevaldb$load_latest_version_id()
 
 ## new REP
 
+```{r find-secc-activities}
+activities %>% 
+  filter(activity %in% c("SURFLENTSECC", "SURFLOTSECC"))
+
+activity_sequences %>%
+  distinct(activity_group, activity) %>% 
+  filter(activity %in% c("SURFLENTSECC", "SURFLOTSECC"))
+
+field_activity_sequences %>%
+  filter(field_activity %in% c("SURFLENTSECC", "SURFLOTSECC"))
+
+```
+
 ```{r load-new-grouped-activities}
 
 activity_group_lookup <-
@@ -223,6 +236,8 @@ existing_grouped_activities <- locevaldb$query_table("GroupedActivities") %>%
 #   existing_grouped_activities %>%
 #     select(tidyselect::all_of(names(grouped_activities_rep)))
 # )
+#
+#
 
 # novel GAs: in the REP, but not in the DB
 novel_grouped_activities <- grouped_activities_rep %>% 

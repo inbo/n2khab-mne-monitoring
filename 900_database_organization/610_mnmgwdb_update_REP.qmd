@@ -645,6 +645,20 @@ locations_lookup <- update_cascade_lookup(
 ```
 
 
+```{r update-locations-check-empty}
+
+check_empty_geoms <- mnmgwdb$query_table("Locations") %>%
+  filter(sf::st_is_empty(wkb_geometry))
+
+if (nrow(check_empty_geoms) > 0) {
+  print(check %>% knitr::kable())
+  stop("There are empty geometries in the `Locations` table!")
+}
+
+```
+
+
+
 20260511: the "redistribution" seems to ignore empty geometries
 
 ```{r update-locations-erroneous}

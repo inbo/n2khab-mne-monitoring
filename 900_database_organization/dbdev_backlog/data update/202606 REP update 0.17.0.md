@@ -17,6 +17,10 @@ anticipatory work thanks to preparations by #FV
 
 - `411_update_grouped_activities.qmd`
 
+> [!warning] those Secchi activities
+> OPEN QUESTION / TODO: `filter(activity %in% c("SURFLENTSECC", "SURFLOTSECC"))` what to do with these?
+
+
 ## (0) structure
 
 > [!important] Add Column to #GroupedActivities
@@ -162,14 +166,14 @@ Next steps:
 > [!important] inserting new activities, existing and novel groups
 > ```sql
 >INSERT INTO "metadata"."GroupedActivities"
->(activity_group, activity_group_id, activity, activity_id, activity_name, is_datacollection_method, is_field_activity, is_prep_activity, is_lab_activity, is_loceval_activity, is_gw_activity, is_surf_activity) VALUES 
->('SURFLENTDATACOLL', 32, 'SURFLENTTURB', 42, 'veldmetingen turbiditeit uitvoeren in stromende wateren (met Secchi-schijf en Snellerbuis)', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
->('SURFLENTDATACOLL', 32, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
->('SURFLOTDATACOLL', 35, 'SURFFLOWVELOC', 44, 'stroomsnelheid bepalen met stroomsnelheidsmeter', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
->('SURFLOTDATACOLL', 35, 'SURFLOTTURB', 42, 'veldmetingen turbiditeit uitvoeren in stromende wateren (met Secchi-schijf en Snellerbuis)', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
->('SURFLOTDATACOLL', 35, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
->('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE), 
->('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE)
+>(activity_group, activity_group_id, activity, activity_id, activity_name, is_datacollection_method, is_field_activity, is_prep_activity, is_lab_activity, is_loceval_activity, is_gw_activity, is_surf_activity, fag_is_auxiliary, fag_is_preponable) VALUES 
+>('SURFLENTDATACOLL', 32, 'SURFLENTTURB', 42, 'veldmetingen turbiditeit uitvoeren in stromende wateren (met Secchi-schijf en Snellerbuis)', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>('SURFLENTDATACOLL', 32, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>('SURFLOTDATACOLL', 35, 'SURFFLOWVELOC', 44, 'stroomsnelheid bepalen met stroomsnelheidsmeter', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>('SURFLOTDATACOLL', 35, 'SURFLOTTURB', 42, 'veldmetingen turbiditeit uitvoeren in stromende wateren (met Secchi-schijf en Snellerbuis)', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>('SURFLOTDATACOLL', 35, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
 >;
 > ```
 
@@ -183,7 +187,8 @@ Next steps:
 
 postponed: not critical for REP update
 cf. `fa_protocol` in the #REP #RData for protocol_id
-I could not find "auxiliary" and "preponable" in the general rush of things.
+
+in the meantime the `fag_is_*` columns are appended above.
 
 # Protocols
 
@@ -194,5 +199,8 @@ I could not find "auxiliary" and "preponable" in the general rush of things.
 
 # FieldCalendars
 + no relevant changes in #locevaldb 
-+ on #mnmgwdb, there are 291 #startdateupdates which are all (waiting) aquatic types
++ on #mnmgwdb and #mnmsurfdb, there are 291 #startdateupdates which are all (waiting) aquatic types
 
+# Script Test Runs
+On [[timeline/2026-06-23|2026-06-23]], all REP update procedures ultimately succeeded.
+(There are open questions, and this was just a test.)
