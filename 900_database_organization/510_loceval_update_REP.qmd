@@ -481,8 +481,8 @@ sample_units <- sample_units %>% mutate(
   ) %>%
   ungroup()
 
-sample_units %>%
-  glimpse()
+# sample_units %>%
+#   glimpse()
 # sample_n(3) %>% 
 # t() %>% knitr::kable()
 
@@ -1093,7 +1093,7 @@ stitch_visits()
 locevaldb$query_table("Visits") %>% 
   count(
     is.na(location_id),
-    is.na(samplelocation_id),
+    is.na(sampleunit_id),
     is.na(fieldcalendar_id)
   ) %>%
   knitr::kable()

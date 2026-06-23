@@ -456,6 +456,43 @@ sample_units <- bind_rows(
 ```
 
 
+See `990_database_documentation/glossary/schemes served.md`:
+we document all the schemes which a sample unit is currently planned to serve.
+
+Because activity types can differ in their purpose, a consolidation is required on the level of sample units.
+
+
+
+```{r consolidate-schemes-served}
+
+trimlist <- \(x) lapply(x, FUN = \(y) stringr::str_trim(y, side = "both"))
+consolidate <- \(x) sort(unique(unlist(trimlist(x))))
+
+sample_units <- sample_units %>% mutate(
+    schemes = stringr::str_split(schemes, "\\|"),
+    scheme_ps_targetpanels = stringr::str_split(scheme_ps_targetpanels, "\\|")
+  ) %>% 
+  group_by(
+    # old-school manual group-summarize-ungroup (because `across` does not work in `.by`)
+    across(c(-schemes, -scheme_ps_targetpanels))
+  ) %>%
+  summarize(
+    # sort and collapse all unique schemes and scheme/targetpanel combinations
+    schemes = paste0(consolidate(schemes), collapse = "|"),
+    scheme_ps_targetpanels = paste0(consolidate(scheme_ps_targetpanels), collapse = "|"),
+    .groups = "drop_last"
+  ) %>%
+  ungroup()
+
+# sample_units %>%
+#   glimpse()
+# sample_n(3) %>% 
+#   t() %>% knitr::kable()
+
+```
+
+
+
 ## Locations
 
 ```{r assemble-locations}
