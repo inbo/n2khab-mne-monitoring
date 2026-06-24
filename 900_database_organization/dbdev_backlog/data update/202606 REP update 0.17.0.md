@@ -50,6 +50,7 @@ anticipatory work thanks to preparations by #FV
 
 
 ### overview
+
 ```r
 > novel_groups %>% knitr::kable()
 |activity_group     |
@@ -68,6 +69,7 @@ anticipatory work thanks to preparations by #FV
 ```
 
 ### rename
+
 > [!important] (1) Rename Activity Groups
 > ```sql
 > UPDATE "metadata"."GroupedActivities"
@@ -78,6 +80,7 @@ anticipatory work thanks to preparations by #FV
 
 
 ### archive
+
 ```r
 # activity composition changes in SURF*SAMPLPOINT 
 | grouped_activity_id| activity_group_id|activity_group            | activity_id|activity           |
@@ -172,8 +175,8 @@ Next steps:
 >('SURFLOTDATACOLL', 35, 'SURFFLOWVELOC', 44, 'stroomsnelheid bepalen met stroomsnelheidsmeter', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
 >('SURFLOTDATACOLL', 35, 'SURFLOTTURB', 42, 'veldmetingen turbiditeit uitvoeren in stromende wateren (met Secchi-schijf en Snellerbuis)', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
 >('SURFLOTDATACOLL', 35, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
->-- ('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
->-- ('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
+>('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
 >;
 > ```
 
@@ -182,6 +185,10 @@ Next steps:
 
 ### prevent duplicates
 [[checks/duplicate activity ids in GroupedActivities|duplicate activity ids in GroupedActivities]]
+
+### *ex post* discussion #FV #FM
+[[timeline/2026-06-24|2026-06-24]] -> confirmed the status above
+
 
 ## update `fag_is_auxiliary`, `fag_is_preponable`, and `protocol_id`'s
 
