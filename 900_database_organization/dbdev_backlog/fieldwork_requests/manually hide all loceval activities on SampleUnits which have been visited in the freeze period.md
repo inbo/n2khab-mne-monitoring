@@ -70,7 +70,7 @@ AND PRECAL.visit_done IS NOT NULL
 UPDATE "outbound"."FieldCalendars" 
 SET 
   no_visit_planned = TRUE,
-  notes = '[FM] batch update 20260624 freeze duplicates ' || notes,
+  notes = '[FM] batch update 20260624 freeze duplicates' || CASE WHEN notes IS NULL THEN '' ELSE ' ' || notes END,
   done_planning = TRUE
 WHERE fieldcalendar_id IN (
 SELECT DISTINCT NEWCAL.fieldcalendar_id
