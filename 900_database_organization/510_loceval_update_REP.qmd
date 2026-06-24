@@ -315,7 +315,8 @@ loceval_freeze <- read.csv(
   mutate(across(c(
       previous_notes
     ), as.character)
-  )
+  ) %>%
+  mutate(priority = NA)
 
 # loceval_freeze %>% glimpse()
 # loceval_freeze %>%

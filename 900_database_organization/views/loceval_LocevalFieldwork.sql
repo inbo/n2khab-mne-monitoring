@@ -1,4 +1,5 @@
 
+-- AND ((FAC.no_visit_planned IS NULL) OR NOT (FAC.done_planning AND FAC.no_visit_planned))
 
  CASE WHEN ("excluded" OR "no_visit_planned" OR "is_frozen") THEN 'irrelevant'
  ELSE

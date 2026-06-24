@@ -172,8 +172,8 @@ Next steps:
 >('SURFLOTDATACOLL', 35, 'SURFFLOWVELOC', 44, 'stroomsnelheid bepalen met stroomsnelheidsmeter', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
 >('SURFLOTDATACOLL', 35, 'SURFLOTTURB', 42, 'veldmetingen turbiditeit uitvoeren in stromende wateren (met Secchi-schijf en Snellerbuis)', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
 >('SURFLOTDATACOLL', 35, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
->('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
->('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
+>-- ('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>-- ('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
 >;
 > ```
 
