@@ -15,3 +15,4 @@ is_surf_activity,boolean,False,NULL,False,False,,,,flag: surface water scheme ac
 fag_is_auxiliary,boolean,False,NULL,False,False,,,,"FAGs that are not linked one-to-one to the collection of data that apply to a specific point in time (sampling, measuring), but that potentially apply to a time series of data"
 fag_is_preponable,boolean,False,NULL,False,False,,,,subset of auxiliary FAGs which can be preponed or prepended
 protocol_id,smallint,False,NULL,False,False,Protocols.protocol_id,,,referencing the protocol table
+archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived sample units
