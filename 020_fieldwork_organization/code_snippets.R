@@ -157,7 +157,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
 stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
   select(-module_combo_code) %>%
-  nest_and_flatten_scheme_ps_targetpanel(include_old = FALSE) %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = FALSE, for_fag_occasions = FALSE) %>%
   relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
 
@@ -950,17 +950,17 @@ scheme_moco_fa_fieldvar <-
 # Derive the short-term FAG calendar at the stratum x location x FAG occasion,
 # and include some of the location attributes.
 #
-# Note that the scheme_ps_targetpanels attribute created below by
-# nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked version of
-# the one at the level of the whole sample (see sampling unit attributes in the
-# beginning), since we limited the activities to those planned before main_year
-# + 1 (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
-# location attribute. So it says specifically which schemes x panel sets x
-# targetpanels are served by the specific fieldwork at a specific date interval.
-# Note that we substitute the targetpanel with the OLD targetpanel if the
-# targetpanel is missing, i.e. for sampling units missing from the current FAG
-# calendar. This is done to avoid missing values in derived objects or
-# overviews.
+# Note that the scheme_ps_targetpanels_served attribute created below by
+# nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked
+# version of scheme_ps_targetpanels at the level of the whole sample (see
+# sampling unit attributes in the beginning), since it is specific to the FAG
+# occasion and since we limited the activities to those planned before main_year
+# + 1 (sometimes later), before generating scheme_ps_targetpanels_served. So it
+# says specifically which schemes x panel sets x targetpanels are served by the
+# specific fieldwork at a specific date interval. Note that we substitute the
+# targetpanel with the OLD targetpanel if the targetpanel is missing, i.e. for
+# sampling units missing from the current FAG calendar. This is done to avoid
+# missing values in derived objects or overviews.
 main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
@@ -977,16 +977,16 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
   unnest_and_join_sampling_unit_attributes() %>%
-  nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE, for_fag_occasions = TRUE) %>%
   mark_matching_occasions() %>%
   relocate(
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     schemes_served_all,
     starts_with("nr_schemes")
   ) %>%
   relocate(matching_occasion, .after = rank)
 
-# Derive an object where stratum x scheme_ps_targetpanels is flattened per
+# Derive an object where stratum x scheme_ps_targetpanels_served is flattened per
 # location x FAG occasion. Beware that in reality, more locations will emerge
 # due to local replacement, so this is misleading for counting & planning (but
 # useful in spatial visualization).
@@ -998,15 +998,15 @@ fag_grts_calendar_shortterm_attribs <-
   ) %>%
   unite_stratum_and_schemepstargetpanels() %>%
   summarize(
-    stratum_scheme_ps_targetpanels =
+    stratum_scheme_ps_targetpanels_served =
       str_flatten(
-        unique(stratum_scheme_ps_targetpanels),
+        unique(stratum_scheme_ps_targetpanels_served),
         collapse = " \u2588 "
       ) %>%
       factor(),
-    .by = !stratum_scheme_ps_targetpanels
+    .by = !stratum_scheme_ps_targetpanels_served
   ) %>%
-  relocate(stratum_scheme_ps_targetpanels)
+  relocate(stratum_scheme_ps_targetpanels_served)
 
 # A simple derived spatial object (as points; see earlier for the actual unit
 # geometries). Points are still repeated because of different date_interval &
@@ -1042,7 +1042,7 @@ fieldwork_shortterm_prioritization_by_stratum <-
 fieldwork_shortterm_targetpanels_prioritization_count <-
   fieldwork_shortterm_prioritization_by_stratum %>%
   count(
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     priority,
     pick(starts_with("wait")),
     field_activity_group
@@ -1125,7 +1125,7 @@ orthophoto_shortterm_type_grts <-
     str_detect(grts_join_method, "cell")
   ) %>%
   convert_stratum_to_type() %>%
-  select(-rank, -scheme_ps_oldtargetpanels) %>%
+  select(-rank, -scheme_ps_oldtargetpanels_served) %>%
   arrange(
     priority,
     type,
