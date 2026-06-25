@@ -360,8 +360,19 @@ extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
   require_pkgs(c("stringr", "dplyr", "purrr"))
   stopifnot("magrittr" = require("magrittr"))
 
-  if (isFALSE("scheme_ps_targetpanels" %in% names(.data))) {
-    message("WARNING: extraction of `schemes` requires the column `scheme_ps_targetpanels`.")
+  if (isFALSE(any(c("scheme_ps_targetpanels", "scheme_ps_targetpanels_served") %in% names(.data)))) {
+    message(
+      "WARNING: extraction of `schemes` requires the column ",
+      "`scheme_ps_targetpanels` or `scheme_ps_targetpanels_served`."
+    )
+    return(.data)
+  }
+
+  if (all(c("scheme_ps_targetpanels", "scheme_ps_targetpanels_served") %in% names(.data))) {
+    message(
+      "WARNING: extraction of `schemes` requires either a column ",
+      "`scheme_ps_targetpanels` or a column `scheme_ps_targetpanels_served`."
+    )
     return(.data)
   }
 
@@ -381,10 +392,18 @@ extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
       return()
   }
 
-  .data %>%
-    dplyr::mutate(
-      schemes = extract_and_flatten_scheme_(scheme_ps_targetpanels )
-    ) %>%
-    return()
+  if ("scheme_ps_targetpanels" %in% names(.data)) {
+    .data %>%
+      dplyr::mutate(
+        schemes = extract_and_flatten_scheme_(scheme_ps_targetpanels)
+      ) %>%
+      return()
+  } else {
+    .data %>%
+      dplyr::mutate(
+        schemes = extract_and_flatten_scheme_(scheme_ps_targetpanels_served)
+      ) %>%
+      return()
+  }
 
 } # /extract_and_flatten_scheme_from_scheme_ps_targetpanels
