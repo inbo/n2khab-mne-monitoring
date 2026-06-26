@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload - loceval"
-date: "20260527"
+date: "20260626"
 format:
   html:
     toc: true
@@ -21,7 +21,7 @@ knitr:
   - data fixing / freeze
 - 20260527 REP update
 - 20260616 missing Replacements -> bugfix now join to `grts_address_final`
-- 20260619 preview REP 0.17.0 -> `SURF_03.4_LENTIC`
+- 20260626 preview REP 0.17.0 -> `SURF_03.4_LENTIC`
 
 
 # TODO

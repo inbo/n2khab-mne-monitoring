@@ -47,7 +47,7 @@ SELECT
   FAC.activity_group_id,
   FAC.date_start,
   FAC.date_visit_planned,
-  (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date AS days_to_visit,
+  CASE WHEN VISIT.visit_done THEN NULL ELSE (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date END AS days_to_visit,
   FAC.date_end - current_date AS days_to_deadline,
   FAC.priority,
   FAC.notes AS preparation_notes,
