@@ -1,0 +1,25 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+extraloceval_id,int,True,,True,True,,,,visit index
+log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
+log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
+teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
+date_visit,date,False,NULL,False,False,,,,date of the field activity
+show_aquatictypevisits,boolean,False,NULL,False,False,,,,flag aquatic locevals (default: terrestrial)
+type_expected,varchar,False,NULL,False,False,,,,"type, as planned in the sampling procedure"
+type_assessed,varchar,False,NULL,False,False,,,,"referring to ""N2kHabTypes"".""type""; any corrections from previous evaluation"
+type_is_absent,boolean,True,0,False,False,,,,unsuccessful local replacement / target type not found
+is_well_developed_type,boolean,False,NULL,False,False,,,,"register cells which contain a well developed type, for info to adjacent teams/location research"
+gps_type,varchar,False,NULL,False,False,,,,which type of GPS was used
+gps_accuracy_cm,double precision,False,NULL,False,False,,,,"measurement accuracy of the RTK GPS, expressed in centimeters"
+notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
+photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
+issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
+samplingpoint_selection_done,boolean,False,NULL,False,False,,,,check whether a point was selected for chemical sampling
+crassula_was_here,boolean,False,NULL,False,False,,,,flag aquatic units which are home to invasive Crassula helmsii
+recovery_hints,varchar,False,NULL,False,False,,,,notes on how to find back the marking
+accessibility_inaccessible,boolean,False,NULL,False,False,,,,tag inaccessible locations
+accessibility_revisit,date,False,NULL,False,False,,,,anticipate accessibility change
+visit_done,boolean,True,0,False,False,,,,indicate if all tasks were successfully executed
+wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

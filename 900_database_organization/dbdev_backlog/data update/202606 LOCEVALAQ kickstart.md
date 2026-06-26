@@ -8,10 +8,10 @@ tags:
   - SamplingPoints
   - YOLO
 started: 2026-06-26
-finished:
+finished: 2026-06-26
 execution:
   - FM
-status: false
+status: true
 ---
 
 goals:
@@ -19,21 +19,23 @@ goals:
 - LOCEVALAQ in database and in #QGIS project -> #AquaticTypesVisits 
 	+ `crassula_was_here`
 - SAMPLPOINT activity / #TargetPoints implemented
-- extracurricular locevals - location-independent but structurally identical to real terrestrial/aquatic #loceval
+- [[structure/enable extracurricular locevals|extracurricular locevals]] - location-independent but structurally identical to real terrestrial/aquatic #loceval
+- [[data update/20260626 preliminary REP update 0.17.0 for locevaldb]]
 
-# prep
+# #locevaldb database layout adjustments
+## prep
+much was prepared [[timeline/2026-06-18#Major Structural Adjustments on locevaldb|2026-06-18]]
+
 + merge latest [`snippets_activate_surf`](https://github.com/inbo/n2khab-mne-monitoring/tree/snippets_activate_surf)
 + load latest RData from `rep_exports/dev/20260625_01_rep_8354c14a_snippets_60e19da`
 
-# LOCEVALAQ database layout
-much was prepared [[timeline/2026-06-18#Major Structural Adjustments on locevaldb|2026-06-18]]
-
 + restore/sync `-staging` mirror (was still containing a live backup before structural adjustments)
 
+## `scheme_ps_targetpanels_served`
 
 + #locevaldb and #mnmgwdb rename `scheme_ps_targetpanels` to `scheme_ps_targetpanels_served` but keep the old name in #views
 ```sql
-ALTER TABLE "metadata"."SampleUnits" 
+ALTER TABLE "outbound"."SampleUnits" 
 RENAME scheme_ps_targetpanels TO scheme_ps_targetpanels_served
 ;
 ```
@@ -56,10 +58,6 @@ COMMENT ON COLUMN "inbound"."TerrestrialTypesVisits".replacement_recovery_notes 
 UPDATE "inbound"."TerrestrialTypesVisits"
   SET replacement_recovery_notes = replacement_recovery_notes_obsolete;
 
-SELECT DISTINCT replacement_recovery_notes, count(*) AS N
-FROM "inbound"."TerrestrialTypesVisits" 
-GROUP BY replacement_recovery_notes;
-
 COMMIT;
 
 
@@ -68,7 +66,18 @@ FROM "inbound"."TerrestrialTypesVisits"
 GROUP BY replacement_recovery_notes;
 ```
 
+## AquaticTypesVisits starter
++ columns for #AquaticTypesVisits 
+```sql
+ALTER TABLE "inbound"."AquaticTypesVisits" ADD COLUMN samplingpoint_selection_done boolean DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."AquaticTypesVisits".samplingpoint_selection_done IS E'check whether a point was selected for chemical sampling';
 
+ALTER TABLE "inbound"."AquaticTypesVisits" ADD COLUMN crassula_was_here boolean DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."AquaticTypesVisits".crassula_was_here IS E'flag aquatic units which are home to invasive Crassula helmsii';
+
+```
+
+## init TargetPoints
 + new table #TargetPoints
 ```sql
 SET standard_conforming_strings = ON;
@@ -102,6 +111,8 @@ ALTER TABLE "inbound"."TargetPoints" ADD COLUMN type varchar(16);
 COMMENT ON COLUMN "inbound"."TargetPoints".type IS E'habitat type';
 ALTER TABLE "inbound"."TargetPoints" ADD COLUMN notes text; 
 COMMENT ON COLUMN "inbound"."TargetPoints".notes IS E'extra notes about the sampling point';
+ALTER TABLE "inbound"."TargetPoints" ADD COLUMN photo varchar; 
+COMMENT ON COLUMN "inbound"."TargetPoints".photo IS E'an optional photo of the sampling point and surroundings';
 
 COMMIT;
 
@@ -125,20 +136,37 @@ GRANT UPDATE ON "inbound"."TargetPoints" TO user_loceval;
 GRANT DELETE ON "inbound"."TargetPoints" TO user_loceval;
 
 
+DROP TRIGGER IF EXISTS log_targetpoints ON "inbound"."TargetPoints";
+CREATE TRIGGER log_targetpoints
+BEFORE UPDATE ON "inbound"."TargetPoints"
+FOR EACH ROW EXECUTE PROCEDURE "metadata".sync_mod();
+
 ```
 
 
-+ update views accordingly
-	+ `loceval_OrthophotoAssessment.sql`
-	+ `loceval_FieldworkPlanning.sql`
-	+ `loceval_LocationEvaluation.sql`
-	+ `loceval_ReplacementOngoing.sql` (only apply to #TerrestrialTypesVisits )
-
-
-+ post processing
+## drop obsolete column
 ```sql
 ALTER TABLE "inbound"."Visits" 
 DROP COLUMN replacement_recovery_notes_obsolete CASCADE
 ;
 
 ```
+
+## Update Views
++ update views accordingly
+	+ `loceval_AllVisits.sql`
+	+ `loceval_FieldworkPlanning.sql`
+	+ `loceval_LocevalFieldwork.sql`
+	+ `loceval_OrthophotoAssessment.sql`
+	+ `loceval_ReplacementOngoing.sql` (only apply to #TerrestrialTypesVisits )
+	+ `loceval_LocationEvaluation_old.sql`
+
++ new view: 
+	+ `loceval_SelectSamplingPoint.sql`
+
+## execution
+
+[[timeline/2026-06-26|2026-06-26]] 
++ 11:20 backups taken
++ 11:26 all done
++ qgis adjustments and testing

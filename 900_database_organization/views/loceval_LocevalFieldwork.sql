@@ -49,7 +49,10 @@ SELECT
   FAC.excluded_reason,
   FAC.teammember_assigned,
   FAC.date_visit_planned,
-  FAC.date_visit_planned - current_date AS days_to_visit,
+  CASE WHEN (VISIT.visit_done OR FAC.no_visit_planned)
+      THEN NULL
+      ELSE (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date
+      END AS days_to_visit,
   FAC.no_visit_planned,
   FAC.notes AS preparation_notes,
   FAC.done_planning,

@@ -22,6 +22,7 @@ inbound,OtherVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmd
 inbound,AquaticTypesVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for loceval of aquatic habitats; subset of Visits
 inbound,TerrestrialTypesVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for loceval of terrestrial habitats; subset of Visits
 inbound,TargetPoints,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",POINT,,,,1,,points selected as target for subsequent activities (e.g. chemical sampling of aquatic habitat types)
+inbound,ExtraLocevals,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",POINT,,,,1,,"extra locevals not noted in the REP, as an exceptional way to capture biotic information in times of tumult"
 inbound,CellMaps,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",POLYGON,,,,1,,cell mapping input by drawing polygons
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 archive,ReplacementArchives,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,archive of replacement information for samples which are not used any more

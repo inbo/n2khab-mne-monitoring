@@ -7,4 +7,5 @@ log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) tim
 date_selection,date,False,NULL,False,False,,,,the date of sampling point selection (preference for the newest)
 type,varchar(16),False,NULL,False,False,,,,habitat type
 notes,text,False,NULL,False,False,,,,extra notes about the sampling point
+photo,varchar,False,NULL,False,False,,,,an optional photo of the sampling point and surroundings
 wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
