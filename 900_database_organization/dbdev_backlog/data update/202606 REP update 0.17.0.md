@@ -18,7 +18,8 @@ anticipatory work thanks to preparations by #FV
 - `411_update_grouped_activities.qmd`
 
 > [!warning] those Secchi activities
-> OPEN QUESTION / TODO: `filter(activity %in% c("SURFLENTSECC", "SURFLOTSECC"))` what to do with these?
+> `filter(activity %in% c("SURFLENTSECC", "SURFLOTSECC"))` what to do with these?
+> -> [[timeline/2026-06-25|2026-06-25]] decided to remove them (because they were never used)
 
 
 ## (0) structure
@@ -174,10 +175,10 @@ Next steps:
 >('SURFLENTDATACOLL', 32, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
 >('SURFLOTDATACOLL', 35, 'SURFFLOWVELOC', 44, 'stroomsnelheid bepalen met stroomsnelheidsmeter', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
 >('SURFLOTDATACOLL', 35, 'SURFLOTTURB', 42, 'veldmetingen turbiditeit uitvoeren in stromende wateren (met Secchi-schijf en Snellerbuis)', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
->('SURFLOTDATACOLL', 35, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
->('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
->('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
+>('SURFLOTDATACOLL', 35, 'SURFLEVREADGNSS', 43, 'waterstand bepalen met GNSS-ontvanger', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE) 
 >;
+>--('SURFLENTSECC', 39, 'SURFLENTSECC', 33, 'Secchi-diepte bepalen in stilstaande wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE), 
+>--('SURFLOTSECC', 40, 'SURFLOTSECC', 39, 'Secchi-diepte bepalen in stromende wateren', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE)
 > ```
 
 ### check the #freeze 
@@ -188,11 +189,12 @@ Next steps:
 
 ### *ex post* discussion #FV #FM
 [[timeline/2026-06-24|2026-06-24]] -> confirmed the status above
+[[timeline/2026-06-25|2026-06-25]] -> `*SECC` removed (never used)
 
 
 ## update `fag_is_auxiliary`, `fag_is_preponable`, and `protocol_id`'s
 
-postponed: not critical for REP update
+`protocol_id`s: postponed because not critical for REP update
 cf. `fa_protocol` in the #REP #RData for protocol_id
 
 in the meantime the `fag_is_*` columns are appended above.
@@ -203,9 +205,10 @@ in the meantime the `fag_is_*` columns are appended above.
 
 # SampleUnits
 + In #SampleUnits, the field `schemes_served_all` (and potentially `scheme_ps_targetpanels`) must be consolidated.
++ see https://github.com/inbo/n2khab-mne-monitoring/pull/47#issuecomment-4803215766
 
 # FieldCalendars
-+ no relevant changes in #locevaldb 
++ no relevant changes in #locevaldb except addition of LOCEVALAQ
 + on #mnmgwdb and #mnmsurfdb, there are 291 #startdateupdates which are all (waiting) aquatic types
 
 # Script Test Runs
