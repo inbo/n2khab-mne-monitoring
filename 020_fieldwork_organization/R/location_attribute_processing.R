@@ -1,13 +1,16 @@
 #' Nesting scheme, panelset, targetpanel; unique flattening
 #'
 #' flatten scheme x panel set x targetpanel to unique strings
-#' per stratum x location x FAG occasion.
+#' per stratum x location or per stratum x location x FAG occasion.
 #'
 #' The "old" scheme x panel set x targetpanel (adopted from previous
 #' REP versions) is handled if `include_old` is set as `TRUE`.
+#' The flattened columns get the prefix "_served" if `for_fag_occasions` is set
+#' as `TRUE`.
 nest_and_flatten_scheme_ps_targetpanel <- function(
   .data,
   include_old,
+  for_fag_occasions,
   spt_flattening_function = NULL
 ) {
 
@@ -80,7 +83,17 @@ nest_and_flatten_scheme_ps_targetpanel <- function(
   if (isFALSE(include_old)) {
     # if old panels are included, retain them as separate column
     data_spst <- data_spst %>%
-      select(-scheme_ps_oldtargetpanels)
+      dplyr::select(-scheme_ps_oldtargetpanels)
+  }
+
+  if (isTRUE(for_fag_occasions)) {
+    data_spst <- data_spst %>%
+      dplyr::rename_with(
+        \(x) stringr::str_c(x, "_served"),
+        tidyselect::any_of(
+          c("scheme_ps_targetpanels", "scheme_ps_oldtargetpanels")
+        )
+      )
   }
 
   data_spst %>%
@@ -131,6 +144,11 @@ flag_groundwater_scheme_has_gw <- function(.data) {
     .data %<>%
       dplyr::mutate(
         has_gw = stringr::str_detect(scheme_ps_targetpanels, "^GW")
+      )
+  } else if ("scheme_ps_targetpanels_served" %in% names(.data)) {
+    .data %<>%
+      dplyr::mutate(
+        has_gw = stringr::str_detect(scheme_ps_targetpanels_served, "^GW")
       )
 
   } else if ("scheme_moco_ps" %in% names(.data)) {
@@ -183,22 +201,22 @@ extend_and_update_scheme_attributes <- function(.data) {
 
 
 
-#' Unite stratum, GRTS join method and scheme_ps_targetpanels columns
+#' Unite stratum, GRTS join method and scheme_ps_targetpanels_served columns
 unite_stratum_and_schemepstargetpanels <- function(.data) {
 
   require_pkgs(c("dplyr", "stringr"))
   stopifnot("magrittr" = require("magrittr"))
 
   .data %>%
-    dplyr::select(-scheme_ps_oldtargetpanels) %>%
+    dplyr::select(-scheme_ps_oldtargetpanels_served) %>%
     dplyr::mutate(
-      stratum_scheme_ps_targetpanels = stringr::str_c(
+      stratum_scheme_ps_targetpanels_served = stringr::str_c(
         stratum,
         " (",
         sample_support_code,
         ") ",
         " [",
-        scheme_ps_targetpanels,
+        scheme_ps_targetpanels_served,
         "]"
       ),
       .keep = "unused"
@@ -344,8 +362,19 @@ extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
   require_pkgs(c("stringr", "dplyr", "purrr"))
   stopifnot("magrittr" = require("magrittr"))
 
-  if (isFALSE("scheme_ps_targetpanels" %in% names(.data))) {
-    message("WARNING: extraction of `schemes` requires the column `scheme_ps_targetpanels`.")
+  if (isFALSE(any(c("scheme_ps_targetpanels", "scheme_ps_targetpanels_served") %in% names(.data)))) {
+    message(
+      "WARNING: extraction of `schemes` requires the column ",
+      "`scheme_ps_targetpanels` or `scheme_ps_targetpanels_served`."
+    )
+    return(.data)
+  }
+
+  if (all(c("scheme_ps_targetpanels", "scheme_ps_targetpanels_served") %in% names(.data))) {
+    message(
+      "WARNING: extraction of `schemes` requires either a column ",
+      "`scheme_ps_targetpanels` or a column `scheme_ps_targetpanels_served`."
+    )
     return(.data)
   }
 
@@ -365,10 +394,18 @@ extract_and_flatten_scheme_from_scheme_ps_targetpanels <- function(.data) {
       return()
   }
 
-  .data %>%
-    dplyr::mutate(
-      schemes = extract_and_flatten_scheme_(scheme_ps_targetpanels )
-    ) %>%
-    return()
+  if ("scheme_ps_targetpanels" %in% names(.data)) {
+    .data %>%
+      dplyr::mutate(
+        schemes = extract_and_flatten_scheme_(scheme_ps_targetpanels)
+      ) %>%
+      return()
+  } else {
+    .data %>%
+      dplyr::mutate(
+        schemes = extract_and_flatten_scheme_(scheme_ps_targetpanels_served)
+      ) %>%
+      return()
+  }
 
 } # /extract_and_flatten_scheme_from_scheme_ps_targetpanels
