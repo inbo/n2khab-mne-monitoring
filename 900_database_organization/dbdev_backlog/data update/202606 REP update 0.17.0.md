@@ -44,7 +44,7 @@ anticipatory work thanks to preparations by #FV
   SELECT *
   FROM "metadata"."GroupedActivities"
   ORDER BY activity_group ASC, activity ASC
-) TO '<...>/mnm_db_backups/metadata/20260622_GroupedActivities.csv' With CSV DELIMITER ',' HEADER
+) TO '<...>/mnm_db_backups/metadata/20260626_GroupedActivities.csv' With CSV DELIMITER ',' HEADER
 ;
 
 ```
@@ -206,6 +206,7 @@ in the meantime the `fag_is_*` columns are appended above.
 # SampleUnits
 + In #SampleUnits, the field `schemes_served_all` (and potentially `scheme_ps_targetpanels`) must be consolidated.
 + see https://github.com/inbo/n2khab-mne-monitoring/pull/47#issuecomment-4803215766
++ there was a rename to `scheme_ps_targetpanels_served`
 
 # FieldCalendars
 + no relevant changes in #locevaldb except addition of LOCEVALAQ
@@ -214,3 +215,6 @@ in the meantime the `fag_is_*` columns are appended above.
 # Script Test Runs
 On [[timeline/2026-06-23|2026-06-23]], all REP update procedures ultimately succeeded.
 (There are open questions, and this was just a test.)
+
+# Preliminary data update for #locevaldb
+[[data update/20260626 preliminary REP update 0.17.0 for locevaldb|20260626 preliminary REP update 0.17.0 for locevaldb]]

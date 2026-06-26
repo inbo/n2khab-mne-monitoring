@@ -117,8 +117,8 @@ if (nrow(different_checksums) > 0) {
 database <- "loceval"
 config_filepath <- file.path("./mnm_database_connection.conf")
 # suffix <- ""
-# suffix <- "-staging"
-suffix <- "-testing"
+suffix <- "-staging"
+# suffix <- "-testing"
 
 
 # connect loceval
@@ -180,8 +180,14 @@ if (FALSE) {
   # version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
 
-  version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
-  version_notes <- "activating SURF_03.4_LENTIC"
+  # next!
+  # version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
+  # version_notes <- "activating SURF_03.4_LENTIC"
+
+  # preview:  
+  version_tag <- "snip:0.17.beta_rep:0.17.beta" # data_iteration = 1
+  version_notes <- "preview SURF_03.4_LENTIC"
+
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -242,7 +248,7 @@ Now is the chance!
 
 ```{r stop-new-grouped-activities}
 
-stop("wait! Grouped Activities have been rearranged.")
+# stop("wait! Grouped Activities have been rearranged.")
 
 # manually adjust GroupedActivities (see db_devlog)
 
@@ -263,8 +269,10 @@ n2khabstrata_lookup <- locevaldb$query_lookup(
 
 activity_groupid_lookup <- locevaldb$query_columns(
     "GroupedActivities",
-    c("activity_group", "activity_group_id")
+    c("activity_group", "activity_group_id", "archive_version_id")
   ) %>%
+  filter(is.na(archive_version_id)) %>% 
+  select(-archive_version_id) %>% 
   distinct()
 
 ```
@@ -344,7 +352,7 @@ sample_unit_columns <- c(
   "mhq_assessment_date", 
   "has_mhq_assessment", 
   "domain_part",
-  "scheme_ps_targetpanels_served",
+  "scheme_ps_targetpanels",
   "previous_notes"
 )
 
@@ -381,7 +389,7 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   distinct(!!!rlang::syms(sample_unit_columns)) %>% 
   mutate(across(c(
       grts_join_method,
-      scheme_ps_targetpanels_served,
+      scheme_ps_targetpanels,
       schemes,
       type,
       domain_part,
@@ -470,16 +478,16 @@ consolidate <- \(x) sort(unique(unlist(trimlist(x))))
 
 sample_units <- sample_units %>% mutate(
     schemes = stringr::str_split(schemes, "\\|"),
-    scheme_ps_targetpanels_served = stringr::str_split(scheme_ps_targetpanels_served, "\\|")
+    scheme_ps_targetpanels = stringr::str_split(scheme_ps_targetpanels, "\\|")
   ) %>% 
   group_by(
     # old-school manual group-summarize-ungroup (because `across` does not work in `.by`)
-    across(c(-schemes, -scheme_ps_targetpanels_served))
+    across(c(-schemes, -scheme_ps_targetpanels))
   ) %>%
   summarize(
     # sort and collapse all unique schemes and scheme/targetpanel combinations
     schemes = paste0(consolidate(schemes), collapse = "|"),
-    scheme_ps_targetpanels_served = paste0(consolidate(scheme_ps_targetpanels_served), collapse = "|"),
+    scheme_ps_targetpanels = paste0(consolidate(scheme_ps_targetpanels), collapse = " | "),
     .groups = "drop_last"
   ) %>%
   ungroup()
@@ -671,7 +679,10 @@ sample_units %>%
   t() %>% knitr::kable()
 
 table_label <- "SampleUnits"
-data_nouveau <- sample_units
+data_nouveau <- sample_units %>%
+  rename(
+    scheme_ps_targetpanels_served = scheme_ps_targetpanels
+  )
 characteristic_columns <- c("grts_address", "type") # , "location_id"
 index_column <- locevaldb$get_primary_key(table_label)
 # locevaldb$query_columns(table_label, characteristic_columns)
@@ -696,6 +707,29 @@ print_category_count(distribution, table_label)
 ```
 
 
+```{r sampleunits-identify-changes}
+
+if (FALSE) {
+data_changed <- distribution$changed %>% 
+  arrange(!!!rlang::syms(characteristic_columns))
+
+data_previous <- locevaldb$query_table(
+    table_label,
+    ONLY = isFALSE(locevaldb$is_spatial(table_label))
+  ) %>%
+  semi_join(
+    data_changed,
+    join_by(!!!rlang::syms(characteristic_columns))
+  ) %>%
+  select(
+    tidyselect::any_of(names(data_changed))
+  ) %>%
+  arrange(!!!rlang::syms(characteristic_columns))
+
+waldo::compare(data_previous, data_changed)
+}
+
+```
 
 
 
