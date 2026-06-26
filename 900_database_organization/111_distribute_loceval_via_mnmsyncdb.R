@@ -476,7 +476,7 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # these `new_sampleunits` are still needed below!
 
   # upload new sampleunits
-  # Column `scheme_ps_targetpanels` doesn't exist.
+  # Column `scheme_ps_targetpanels_served` doesn't exist?
   sampleunits_upload <- new_sampleunits %>%
     rename(stratum = type) %>%
     left_join(

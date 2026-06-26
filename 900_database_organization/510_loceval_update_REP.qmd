@@ -344,7 +344,7 @@ sample_unit_columns <- c(
   "mhq_assessment_date", 
   "has_mhq_assessment", 
   "domain_part",
-  "scheme_ps_targetpanels",
+  "scheme_ps_targetpanels_served",
   "previous_notes"
 )
 
@@ -381,7 +381,7 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   distinct(!!!rlang::syms(sample_unit_columns)) %>% 
   mutate(across(c(
       grts_join_method,
-      scheme_ps_targetpanels,
+      scheme_ps_targetpanels_served,
       schemes,
       type,
       domain_part,
@@ -452,10 +452,10 @@ Because activity types can differ in their purpose, a consolidation is required 
 ```{r consolidate-schemes-served}
 # sample_units %>% glimpse
 # sample_units %>% distinct(schemes)
-# sample_units %>% distinct(scheme_ps_targetpanels)
+# sample_units %>% distinct(scheme_ps_targetpanels_served)
 
 # schemes are split/joined by `|`
-# scheme_ps_targetpanels are split/joined by ` | `
+# scheme_ps_targetpanels_served are split/joined by ` | `
 
 ## examples
 # sample_unitz <- sample_units %>% filter(grts_address == 734)
@@ -470,16 +470,16 @@ consolidate <- \(x) sort(unique(unlist(trimlist(x))))
 
 sample_units <- sample_units %>% mutate(
     schemes = stringr::str_split(schemes, "\\|"),
-    scheme_ps_targetpanels = stringr::str_split(scheme_ps_targetpanels, "\\|")
+    scheme_ps_targetpanels_served = stringr::str_split(scheme_ps_targetpanels_served, "\\|")
   ) %>% 
   group_by(
     # old-school manual group-summarize-ungroup (because `across` does not work in `.by`)
-    across(c(-schemes, -scheme_ps_targetpanels))
+    across(c(-schemes, -scheme_ps_targetpanels_served))
   ) %>%
   summarize(
     # sort and collapse all unique schemes and scheme/targetpanel combinations
     schemes = paste0(consolidate(schemes), collapse = "|"),
-    scheme_ps_targetpanels = paste0(consolidate(scheme_ps_targetpanels), collapse = "|"),
+    scheme_ps_targetpanels_served = paste0(consolidate(scheme_ps_targetpanels_served), collapse = "|"),
     .groups = "drop_last"
   ) %>%
   ungroup()
@@ -489,7 +489,7 @@ sample_units <- sample_units %>% mutate(
 # sample_n(3) %>% 
 # t() %>% knitr::kable()
 
-# sample_units %>% distinct(schemes, scheme_ps_targetpanels) %>% print(n=Inf)
+# sample_units %>% distinct(schemes, scheme_ps_targetpanels_served) %>% print(n=Inf)
 # sample_units %>% filter(schemes == "GW_03.3|HQ4010|SOIL_03.2") %>% glimpse
 # apply stringr::str_trim and then unique-sort-concatenate
 ```

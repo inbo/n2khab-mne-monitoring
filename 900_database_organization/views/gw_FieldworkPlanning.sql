@@ -5,7 +5,7 @@ DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
-  SLOC.scheme_ps_targetpanels,
+  SLOC.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
   SLOC.schemes,
   SLOC.strata,
   SLOC.is_forest,

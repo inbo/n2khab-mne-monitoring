@@ -54,7 +54,7 @@ SELECT
   FAC.is_frozen,
   UNIT.grts_join_method,
   UNIT.schemes,
-  UNIT.scheme_ps_targetpanels,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
   UNIT.type,
   UNIT.is_forest,
   UNIT.has_mhq_assessment,

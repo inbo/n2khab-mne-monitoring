@@ -13,7 +13,7 @@ SELECT
   VISIT.type_assessed,
   VISIT.photo,
   VISIT.visit_done
-FROM "inbound"."Visits" AS VISIT
+FROM "inbound"."TerrestrialTypesVisits" AS VISIT
 LEFT JOIN (
   SELECT
     REP.ogc_fid,
@@ -108,7 +108,7 @@ DO ALSO
 CREATE OR REPLACE RULE ReplacementOngoing_upd_visits AS
 ON UPDATE TO "inbound"."ReplacementOngoing"
 DO ALSO
- UPDATE "inbound"."Visits"
+ UPDATE "inbound"."TerrestrialTypesVisits"
  SET
   type_assessed = NEW.type_assessed,
   notes = NEW.unit_notes,

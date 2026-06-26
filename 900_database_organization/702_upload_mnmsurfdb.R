@@ -335,7 +335,7 @@ sample_unit_columns <- c(
   "stratum",
   "schemes",
   # "schemes_served_all", # -> renamed to schemes
-  "scheme_ps_targetpanels",
+  "scheme_ps_targetpanels_served",
   "domain_part",
   # "sp_poststratum",
   # "grts_join_method",
@@ -371,7 +371,7 @@ sample_units <- fag_stratum_grts_calendar_shortterm_attribs %>%
   # extract_and_flatten_scheme_from_scheme_ps_targetpanels() %>% # rather take _all
   distinct(!!!rlang::syms(sample_unit_columns)) %>%
   mutate(across(c(
-      scheme_ps_targetpanels,
+      scheme_ps_targetpanels_served,
       stratum,
       domain_part
     ), as.character)
@@ -504,30 +504,30 @@ sample_units <- sample_units %>%
 #   filter(grts_address == 19205238)
 # test_units %>% glimpse
 # test_units %>%
-#   distinct(schemes, scheme_ps_targetpanels)
+#   distinct(schemes, scheme_ps_targetpanels_served)
 
-# need to unwrap and re-wrap scheme_ps_targetpanels
+# need to unwrap and re-wrap scheme_ps_targetpanels_served
 
 sample_units_upload <- sample_units %>%
   mutate(
-    scheme_ps_targetpanels = stringr::str_split(scheme_ps_targetpanels, "\\|")
+    scheme_ps_targetpanels_served = stringr::str_split(scheme_ps_targetpanels_served, "\\|")
   ) %>%
   select(-schemes) %>%
-  unnest(scheme_ps_targetpanels) %>%
+  unnest(scheme_ps_targetpanels_served) %>%
   mutate(
-    scheme_ps_targetpanels = stringr::str_trim(scheme_ps_targetpanels, side = "both")
+    scheme_ps_targetpanels_served = stringr::str_trim(scheme_ps_targetpanels_served, side = "both")
   ) %>%
   tidyr::separate_wider_delim(
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     delim = ":",
     names = c("schemes", "ps_targetpanels"),
     cols_remove = FALSE
   ) %>%
   select(-ps_targetpanels) %>%
-  group_by(across(c(-schemes, -scheme_ps_targetpanels))) %>%
+  group_by(across(c(-schemes, -scheme_ps_targetpanels_served))) %>%
   summarize(
     schemes = paste0(sort(unique(schemes)), collapse = "|"),
-    scheme_ps_targetpanels = paste0(sort(unique(scheme_ps_targetpanels)), collapse = "|"),
+    scheme_ps_targetpanels_served = paste0(sort(unique(scheme_ps_targetpanels_served)), collapse = "|"),
     .groups = "drop_last"
   ) %>%
   ungroup() %>%

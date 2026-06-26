@@ -27,7 +27,7 @@ SELECT
   UNIT.sampleunit_id,
   UNIT.grts_join_method,
   UNIT.schemes,
-  UNIT.scheme_ps_targetpanels,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
   UNIT.type,
   UNIT.has_mhq_assessment,
   UNIT.mhq_assessment_date,
