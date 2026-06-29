@@ -70,7 +70,7 @@ if (nrow(different_checksums) > 0) {
 if (nrow(mnmsurfdb$query_table("Versions")) == 0) {
 
   version_tag <- "mnmsurfdb initialization"
-  version_notes <- "REP + snippets update 0.16"
+  version_notes <- "REP + snippets v0.16"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   # version_date_fixing <- as.Date("2025-12-31")
 
@@ -122,14 +122,18 @@ protocol_lookup <- update_cascade_lookup(
 #   arrange(desc(n))
 
 activity_group_lookup <- activity_sequences %>%
+  filter(!(activity %in% c("SURFLENTSECC", "SURFLOTSECC"))) %>%
   distinct(activity_group, activity)
 
 grouped_activities <- activities %>%
+  filter(!(activity %in% c("SURFLENTSECC", "SURFLOTSECC"))) %>%
   left_join(
     activity_group_lookup,
     join_by(activity),
     relationship = "one-to-many"
   )
+
+grouped_activities %>% distinct(activity) %>% knitr::kable()
 
 # knitr::kable(grouped_activities %>% distinct(activity_group, activity))
 
@@ -977,14 +981,14 @@ message("________________________________________________________________")
 
 # In other scripts:
 # - [x] LocationEvaluations
-# - [x] CellMaps
+# - [x] CellMaps, TargetPoints
 # - [x] ReplacementData
-# - [ ] Coordinates
-# - [ ] MHQAreas
+# - [X] Coordinates
+# - [X] MHQAreas
 #
 # Not Relevant (yet):
-# - InstallationRemovals
-# - FieldFollowUps
+# - InstallationRemovals -> deleted
+# - FieldFollowUps -> retained
 
 
 # TODO check if new landuse locations arise due to surfdb

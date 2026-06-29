@@ -29,7 +29,6 @@ sludge,varchar,False,NULL,False,False,,,,tbd
 bank_structure,varchar,False,NULL,False,False,,,,tbd
 bank_erosion,varchar,False,NULL,False,False,,,,tbd
 landuse,varchar,False,NULL,False,False,,,,tbd
-,,False,,False,False,,,,
 hyd_secchi_depth_cm,double precision,False,NULL,False,False,,CHECK (hyd_secchi_depth_cm >= 0),,"the depth at which a monochrome radially patterned disc is visually perceivable, with the tools of Angelo Secchi (1865)"
 hyd_sneller,varchar,False,NULL,False,False,,,,tbd
 hyd_turbidity,varchar,False,NULL,False,False,,,,"glas clear, light, turbid"
@@ -43,7 +42,6 @@ lot_flowvel,double precision,False,NULL,False,False,,CHECK (lot_flowvel >= 0),,f
 lot_flowvel_method,varchar,False,NULL,False,False,,,,flow velocity measurement method (e.g. the orange method™)
 lot_barriers,varchar,False,NULL,False,False,,,,"pump, valve, unnatural mouth, base, pit, siphon, diver"
 lot_current_pits,varchar,False,NULL,False,False,,,,tbd
-,,False,,False,False,,,,
 zoo_plankton,varchar,False,NULL,False,False,,,,Daphnia and all those critter
 zoo_insect_larvae,varchar,False,NULL,False,False,,,,more arthropod critter
 zoo_present_exotics,varchar,False,NULL,False,False,,,,"Impatiens glandilufera, Elodea canadensis, Lemna minuta, Hydrocotyle ranunculoides, Fallopia japonica, Heracleum mantegazzianum"

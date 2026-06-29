@@ -42,7 +42,9 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 #
-grts <- c(1466998) # no replacement cells visible
+grts <- c(47553522) # installation not visible
+  # c(9488370) # clean and samp activity not matching for Q3 2026 # also 1062930
+  # c(1466998) # no replacement cells visible
   # c(289513)
   # c(84598, 871030) # replacement mishap
   # c(1995094) # question by @TDD via chat 20260428 loceval not forwarded
@@ -853,7 +855,6 @@ gw_print_replacement <- function() {
     dplyr::rename(
       grts = grts_address_original,
       rep = grts_address_replacement,
-      lat = is_latest_replacement,
       ldat = loceval_date,
       slid = samplelocation_id
     ) %>%
@@ -861,7 +862,6 @@ gw_print_replacement <- function() {
       type,
       grts,
       rep,
-      lat,
       ldat,
       slid
     ) %>%
@@ -930,7 +930,7 @@ gw_print_replacement()
 
 
 
-# MNMSURFDB: `r as.character(grts)`
+# TODO MNMSURFDB: `r as.character(grts)`
 
 ```{r noop-surf}
 #| eval: false
@@ -978,12 +978,12 @@ join_activity_groups <- function(df) {
 
 query_special_activity <- function(shorthand) {
 
-  if (shorthand == "INST") {
-    table_label <- "InstallationVisits"
-    id_column <- "installationvisit_id"
-  } else if (shorthand == "SAMP") {
-    table_label <- "SamplingVisits"
-    id_column <- "samplingvisit_id"
+  if (shorthand == "LOT") {
+    table_label <- "LoticVisits"
+    id_column <- "loticvisit_id"
+  } else if (shorthand == "LENT") {
+    table_label <- "LenticVisits"
+    id_column <- "lenticvisit_id"
   } else if (shorthand == "OTH") {
     table_label <- "OtherVisits"
     id_column <- "othervisit_id"
@@ -1126,8 +1126,8 @@ surf_print_visits <- function() {
 ```{r special-activities-surfdb}
 
 activities <- bind_rows(
-    query_special_activity("INST"),
-    query_special_activity("SAMP"),
+    query_special_activity("LOT"),
+    query_special_activity("LENT"),
     query_special_activity("OTH")
   ) %>%
   filter(grts_address %in% grts) %>%

@@ -146,3 +146,12 @@ WHERE
 
 # will go through fwcal update with an eye for
 #    (2137206, 49692341)
+
+
+fieldwork_shortterm_prioritization_by_stratum %>%
+  filter(
+    field_activity_group %in% c("GWINSTPIEZWELL", "GWSHALLSAMPREADMAN"),
+    grts_address %in% c(9488370, 1062930)
+  ) %>%
+  select(grts_address, stratum, date_start, field_activity_group) %>%
+  arrange(grts_address, stratum, date_start, field_activity_group)
