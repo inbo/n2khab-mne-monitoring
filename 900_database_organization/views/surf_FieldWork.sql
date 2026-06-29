@@ -35,16 +35,14 @@ SELECT
   VISIT.issues,
   VISIT.installationvisit_id,
   VISIT.samplingvisit_id,
-  (VISIT.installationvisit_id IS NOT NULL) AS show_installation,
-  (VISIT.samplingvisit_id IS NOT NULL) AS show_sampling,
-  VISIT.project_code,
-  VISIT.recipient_code,
+  (VISIT.lenticvisit_id IS NOT NULL) AS show_lenticvisits,
+  (VISIT.logicvisit_id IS NOT NULL) AS show_loticvisits,
   VISIT.visit_done
 FROM (
   SELECT *
   FROM ONLY "inbound"."Visits"
-  NATURAL FULL JOIN "inbound"."InstallationVisits"
-  NATURAL FULL JOIN "inbound"."SamplingVisits"
+  NATURAL FULL JOIN "inbound"."LenticVisits"
+  NATURAL FULL JOIN "inbound"."LoticVisits"
   NATURAL FULL JOIN "inbound"."OtherVisits"
 ) AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -121,19 +119,6 @@ DO ALSO
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
-
-DROP RULE IF EXISTS FieldWork_upd_SAMPLING ON "inbound"."FieldWork";
-CREATE RULE FieldWork_upd_SAMPLING AS
-ON UPDATE TO "inbound"."FieldWork"
-DO ALSO
- UPDATE "inbound"."SamplingVisits"
- SET
-  project_code = NEW.project_code,
-  recipient_code = NEW.recipient_code
- WHERE samplingvisit_id = OLD.samplingvisit_id
-   AND samplingvisit_id IS NOT NULL
-;
-
 
 DROP RULE IF EXISTS FieldWork_upd_INFO ON "inbound"."FieldWork";
 CREATE RULE FieldWork_upd_INFO AS

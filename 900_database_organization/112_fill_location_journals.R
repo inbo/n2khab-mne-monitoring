@@ -341,7 +341,7 @@ location_journals <- bind_rows(
     load_installation_removals(),
     load_mnmgwdb_visits()
   ) %>%
-  mutate(nolog_update = convert_timestamp_to_ms_character(nolog_update)) %>%
+  # mutate(nolog_update = convert_timestamp_to_ms_character(nolog_update)) %>%
   arrange(date, grts_address, source)
 
 
@@ -363,8 +363,8 @@ upload_LoJos <- function(mnmdb) {
   # join location ID
   if (is_sync_database) {
     location_lookup <- location_journals %>%
-      distinct(grts_address) %>%
-      mutate(location_id = NA)
+      dplyr::distinct(grts_address) %>%
+      dplyr::mutate(location_id = NA)
   } else {
     location_lookup <- mnmdb$query_columns(
       "Locations",
@@ -380,13 +380,13 @@ upload_LoJos <- function(mnmdb) {
   # }
 
   lojos_new <- lojos_prep %>%
-    anti_join(
+    dplyr::anti_join(
       mnmdb$query_table("LocationJournals"),
-      by = join_by(date, grts_address, source)
+      by = dplyr::join_by(date, grts_address, source)
     ) %>%
-    left_join(
+    dplyr::left_join(
       location_lookup,
-      by = join_by(grts_address)
+      by = dplyr::join_by(grts_address)
     )
 
   # lojos_new %>%
@@ -395,7 +395,7 @@ upload_LoJos <- function(mnmdb) {
   if (is_sync_database) {
     # mnmsyncdb omits the location id
     lojos_new <- lojos_new %>%
-      select(-location_id)
+      dplyr::select(-location_id)
   }
 
 
@@ -419,7 +419,7 @@ upload_LoJos <- function(mnmdb) {
   # join does not go well with NAs -> temporarily replace
   replace_key_nas <- function(df) {
     df %>%
-      mutate(
+      dplyr::mutate(
         activity_group_id = tidyr::replace_na(activity_group_id, 0),
         type_subset = tidyr::replace_na(type_subset, "none")
       ) %>%
@@ -428,7 +428,7 @@ upload_LoJos <- function(mnmdb) {
 
   restore_key_nas <- function(df) {
     df %>%
-      mutate(
+      dplyr::mutate(
         activity_group_id = dplyr::na_if(activity_group_id, 0),
         type_subset = dplyr::na_if(type_subset, "none")
       ) %>%
@@ -438,10 +438,10 @@ upload_LoJos <- function(mnmdb) {
   # filter updates
   lojos_update <- lojos_prep %>%
     replace_key_nas() %>%
-    semi_join(
+    dplyr::semi_join(
       mnmdb$query_table("LocationJournals") %>%
         replace_key_nas(),
-      by = join_by(date, grts_address, source, activity_group_id, type_subset)
+      by = dplyr::join_by(date, grts_address, source, activity_group_id, type_subset)
     ) %>%
     restore_key_nas()
 
@@ -466,13 +466,23 @@ upload_LoJos <- function(mnmdb) {
   ))
 
 
+  timestamp_types <- c(
+    "log_creation" = "timestamp(3)",
+    "log_update" = "timestamp(3)",
+    "nolog_update" = "timestamp(3)"
+  )
+  timestamp_types <- timestamp_types[
+    names(timestamp_types) %in% names(lojos_update)
+  ]
+
   # store updates in temp table
   DBI::dbWriteTable(
     mnmdb$connection,
     name = srctab,
     value = lojos_update,
     overwrite = TRUE,
-    temporary = TRUE
+    temporary = TRUE,
+    field.types = timestamp_types
   )
 
 

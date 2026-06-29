@@ -808,7 +808,9 @@ mnmdb_assemble_structure_lookups <- function(db) {
   db$load_table_info <- function(table_label) {
     table_info <- read.csv(
       file.path(db$folder, glue::glue("{table_label}.csv"))
-    )
+    ) %>%
+    mutate_at(vars(default, foreign_key, constraint, freesql), as.character)
+
     return(table_info)
   }
   # db$load_table_info("FreeFieldNotes")
@@ -833,10 +835,13 @@ mnmdb_assemble_structure_lookups <- function(db) {
     # db$tables %>% filter(table == "PositioningVisits") %>% pull(inherits)
     # db$tables %>% filter(table == "TeamMembers") %>% pull(inherits)
     ancestors <- db$get_ancestor_tables(table_label)
+    # db$load_table_info(ancestors[[1]]) %>% glimpse()
+    # full_table_info %>% glimpse()
+
     if (length(ancestors) > 0) {
       for (ancestor in ancestors) {
         full_table_info <- bind_rows(
-          db$load_table_info(ancestors),
+          db$load_table_info(ancestor),
           full_table_info
         )
       }

@@ -81,7 +81,7 @@ update_cascade_lookup_syncdb <- parametrize_cascaded_update(mnmsyncdb)
 
 
 ## connect userdb databases
-userdb_labels <- c("mnmgwdb", "mnmsurfdb")
+userdb_labels <- c("mnmgwdb")#, "mnmsurfdb")
 userdb_connections <- list()
 
 for (udbx in userdb_labels) {
@@ -141,15 +141,16 @@ loceval_visits <- loceval_connection$query_table("AllVisits") %>%
 na_visit_dates <- loceval_visits %>%
   filter(
     is.na(date_visit),
-    log_update < as.Date('2026-06-01')
-  )  %>%
-  mutate(date_visit = as.Date('2024-12-24'))
+    log_update > as.Date('2026-06-01')
+  ) # %>%
+  # mutate(date_visit = as.Date('2024-12-24'))
 
 n_datemissers <- nrow(na_visit_dates)
 if (n_datemissers > 0) {
   message(glue::glue(
     "\t[!!!] Heads up: there are {n_datemissers} locevals without a date_visit."
   ))
+  na_visit_dates %>% knitr::kable()
 }
 
 loceval_dates <- loceval_visits %>%
@@ -862,6 +863,33 @@ distribute_cellmaps_to_userdatabases <- function(udb) {
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### copy over the TargetPoints
+#///////////////////////////////////////////////////////////////////////////////
+
+distribute_targetpoints_to_userdatabases <- function(udb) {
+
+  mnmdb <- userdb_connections[[udb]]
+  update_cascade_lookup_userdb <- parametrize_cascaded_update(mnmdb)
+
+
+  message(glue::glue("\t<<< `TargetPoints`"))
+
+  targetpoints <- loceval_connection$query_table("TargetPoints")
+  cellmaps_lookup <- update_cascade_lookup_userdb(
+    table_label = "TargetPoints",
+    new_data = targetpoints,
+    index_columns = c("targetpoint_id"),
+    characteristic_columns = NA,
+    tabula_rasa = TRUE,
+    verbose = TRUE
+  )
+
+} # /distribute_targetpoints_to_userdatabases
+
+# distribute_targetpoints_to_userdatabases("mnmsurfdb")
+
+
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### Apply Replacements
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -875,6 +903,7 @@ for (udb in userdb_labels) {
   distribute_cellmaps_to_userdatabases(udb)
   message("________________________________________________________________")
 }
+
 
 message("")
 message("________________________________________________________________")

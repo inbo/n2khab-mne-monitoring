@@ -119,3 +119,4 @@ status: false
 
 - [ ] add surf to `405_freeze_calendar.R`
 - [ ] placeholders for Protocols
+- [ ] add update rules for LenticVisits and LoticVisits in 
