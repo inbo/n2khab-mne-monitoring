@@ -376,15 +376,6 @@ stitch_table_connection(
 
 stitch_table_connection(
   mnmdb = mnmsurfdb,
-  table_label = "InstallationRemovals",
-  reference_table = "Locations",
-  link_key_column = "location_id",
-  lookup_columns = c("grts_address")
-)
-
-
-stitch_table_connection(
-  mnmdb = mnmsurfdb,
   table_label = "LocationEvaluations",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",

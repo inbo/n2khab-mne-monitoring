@@ -81,7 +81,7 @@ update_cascade_lookup_syncdb <- parametrize_cascaded_update(mnmsyncdb)
 
 
 ## connect userdb databases
-userdb_labels <- c("mnmgwdb")#, "mnmsurfdb")
+userdb_labels <- c("mnmgwdb", "mnmsurfdb")
 userdb_connections <- list()
 
 for (udbx in userdb_labels) {
@@ -886,7 +886,6 @@ distribute_targetpoints_to_userdatabases <- function(udb) {
 
 } # /distribute_targetpoints_to_userdatabases
 
-# distribute_targetpoints_to_userdatabases("mnmsurfdb")
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -904,6 +903,8 @@ for (udb in userdb_labels) {
   message("________________________________________________________________")
 }
 
+# bonus: distribute targetpoints for surf sampling from loceval to mnmsurfdb
+distribute_targetpoints_to_userdatabases("mnmsurfdb")
 
 message("")
 message("________________________________________________________________")

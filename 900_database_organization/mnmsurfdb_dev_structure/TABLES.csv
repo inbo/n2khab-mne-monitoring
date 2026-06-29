@@ -16,8 +16,10 @@ inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,,
 inbound,OtherVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,inbound information about field visits which are not otherwise specified
 inbound,LenticVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,field data collected for lentic habitat types (still waters); subset of Visits
 inbound,LoticVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,field data collected for lotic habitat types (streams etc); subset of Visits
+inbound,SamplingPoints,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,points with actual sampling of surface water (should be close to TargetPoints)
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
 transfer,LocationEvaluations,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample unit locations
 transfer,CellMaps,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,cell mapping input from LOCEVAL
+transfer,TargetPoints,yoda,"viewer_mnmdb, tester_mnmdb",,POINT,,,,1,,points received from locevaldb as target for sampling activities
 transfer,ReplacementData,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,"storing info about replacements (from `loceval`, via `mnmsyncdb`)"

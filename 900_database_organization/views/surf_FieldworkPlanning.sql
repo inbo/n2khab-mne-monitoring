@@ -6,7 +6,7 @@ CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
   UNIT.stratum,
-  UNIT.scheme_ps_targetpanels,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
   UNIT.schemes,
   UNIT.domain_part,
   UNIT.is_forest,

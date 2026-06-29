@@ -6,7 +6,7 @@ SELECT *
 FROM "outbound"."MHQPolygons"
 WHERE location_id IN (
   SELECT DISTINCT location_id
-  FROM "inbound"."InstallationVisits"
+  FROM "inbound"."Visits"
 )
 ;
 -- could also filter by distinct `grts_address`

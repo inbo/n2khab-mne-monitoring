@@ -33,10 +33,10 @@ SELECT
   VISIT.notes,
   VISIT.photo,
   VISIT.issues,
-  VISIT.installationvisit_id,
-  VISIT.samplingvisit_id,
+  VISIT.lenticvisit_id,
+  VISIT.loticvisit_id,
   (VISIT.lenticvisit_id IS NOT NULL) AS show_lenticvisits,
-  (VISIT.logicvisit_id IS NOT NULL) AS show_loticvisits,
+  (VISIT.loticvisit_id IS NOT NULL) AS show_loticvisits,
   VISIT.visit_done
 FROM (
   SELECT *
