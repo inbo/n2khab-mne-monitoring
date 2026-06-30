@@ -11,7 +11,7 @@ source("MNMDatabaseToolbox.R")
 ## database connection ---------------------------------------------------------
 config_filepath <- file.path("./mnm_database_connection.conf")
 
-suffix <- "-staging"
+suffix <- "-staging" # ""
 mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
 
 mnmsurfdb <- connect_mnm_database(
@@ -70,7 +70,7 @@ if (nrow(different_checksums) > 0) {
 if (nrow(mnmsurfdb$query_table("Versions")) == 0) {
 
   version_tag <- "mnmsurfdb initialization"
-  version_notes <- "REP + snippets v0.16"
+  version_notes <- "REP + snippets PREVIEW of v0.17"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   # version_date_fixing <- as.Date("2025-12-31")
 
@@ -969,12 +969,12 @@ locationjournal_lookup <- update_cascade_lookup(
 
 ## FreeFieldNotes --------------------------------------------------------------
 
-out <- processx::run(
-  "Rscript",
-  c("110_sync_FreeFieldNotes.R", suffix),
-  spinner = TRUE,
-  echo = TRUE
-)
+# out <- processx::run(
+#   "Rscript",
+#   c("110_sync_FreeFieldNotes.R", suffix),
+#   spinner = TRUE,
+#   echo = TRUE
+# )
 
 
 

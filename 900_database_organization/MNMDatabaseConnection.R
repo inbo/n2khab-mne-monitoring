@@ -129,7 +129,7 @@ convert_timestamp_to_ms_character <- function(ts) {
 
   stopifnot("Timestamp must be POSIXct type." = is.POSIXct(ts))
 
-  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0")
+  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0", tz = "UTC")
 
   # milliseconds
   ts_ms_char <- as.character(floor(unclass(ts)*1000))
@@ -1017,6 +1017,10 @@ mnmdb_assemble_query_functions <- function(db) {
       data <- db$query_table_uncollected(table_label, ONLY, subselect) %>%
         dplyr::collect()
     }
+
+    # data %>% mutate(test =
+    #   unlist_keep_na(purrr::map(log_creation, convert_timestamp_to_ms_character))
+    # ) %>% pull(test)
 
     data %>%
       grts_datatype_to_integer() %>%
