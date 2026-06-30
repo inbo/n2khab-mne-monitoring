@@ -89,14 +89,12 @@ members <- read_csv(
   show_col_types = FALSE
 )
 
-member_lookup <- update_cascade_lookup(
+mnmsurfdb$insert_data(
   table_label = "TeamMembers",
-  new_data = members,
-  index_columns = c("teammember_id"),
-  characteristic_columns = c("username"),
-  verbose = TRUE
+  upload_data = members %>% select(-starts_with("INSERT INTO"))
 )
 
+member_lookup <- mnmsurfdb$query_table("TeamMembers")
 
 ## upload protocols ------------------------------------------------------------
 protocols <- read_csv(
@@ -133,8 +131,7 @@ grouped_activities <- activities %>%
     relationship = "one-to-many"
   )
 
-grouped_activities %>% distinct(activity) %>% knitr::kable()
-
+# grouped_activities %>% distinct(activity) %>% knitr::kable()
 # knitr::kable(grouped_activities %>% distinct(activity_group, activity))
 
 # replace group non-sequenced activities with activity name
@@ -339,7 +336,7 @@ sample_unit_columns <- c(
   "stratum",
   "schemes",
   # "schemes_served_all", # -> renamed to schemes
-  "scheme_ps_targetpanels_served",
+  "scheme_ps_targetpanels",
   "domain_part",
   # "sp_poststratum",
   # "grts_join_method",
@@ -375,7 +372,7 @@ sample_units <- fag_stratum_grts_calendar_shortterm_attribs %>%
   # extract_and_flatten_scheme_from_scheme_ps_targetpanels() %>% # rather take _all
   distinct(!!!rlang::syms(sample_unit_columns)) %>%
   mutate(across(c(
-      scheme_ps_targetpanels_served,
+      scheme_ps_targetpanels,
       stratum,
       domain_part
     ), as.character)
@@ -508,33 +505,36 @@ sample_units <- sample_units %>%
 #   filter(grts_address == 19205238)
 # test_units %>% glimpse
 # test_units %>%
-#   distinct(schemes, scheme_ps_targetpanels_served)
+#   distinct(schemes, scheme_ps_targetpanels)
 
-# need to unwrap and re-wrap scheme_ps_targetpanels_served
+# need to unwrap and re-wrap scheme_ps_targetpanels
 
 sample_units_upload <- sample_units %>%
   mutate(
-    scheme_ps_targetpanels_served = stringr::str_split(scheme_ps_targetpanels_served, "\\|")
+    scheme_ps_targetpanels = stringr::str_split(scheme_ps_targetpanels, "\\|")
   ) %>%
   select(-schemes) %>%
-  unnest(scheme_ps_targetpanels_served) %>%
+  unnest(scheme_ps_targetpanels) %>%
   mutate(
-    scheme_ps_targetpanels_served = stringr::str_trim(scheme_ps_targetpanels_served, side = "both")
+    scheme_ps_targetpanels = stringr::str_trim(scheme_ps_targetpanels, side = "both")
   ) %>%
   tidyr::separate_wider_delim(
-    scheme_ps_targetpanels_served,
+    scheme_ps_targetpanels,
     delim = ":",
     names = c("schemes", "ps_targetpanels"),
     cols_remove = FALSE
   ) %>%
   select(-ps_targetpanels) %>%
-  group_by(across(c(-schemes, -scheme_ps_targetpanels_served))) %>%
+  group_by(across(c(-schemes, -scheme_ps_targetpanels))) %>%
   summarize(
     schemes = paste0(sort(unique(schemes)), collapse = "|"),
-    scheme_ps_targetpanels_served = paste0(sort(unique(scheme_ps_targetpanels_served)), collapse = "|"),
+    scheme_ps_targetpanels = paste0(sort(unique(scheme_ps_targetpanels)), collapse = " | "),
     .groups = "drop_last"
   ) %>%
   ungroup() %>%
+  rename(
+    scheme_ps_targetpanels_served = scheme_ps_targetpanels
+  ) %>%
   arrange(grts_address, stratum, schemes)
 
 
@@ -685,7 +685,7 @@ fieldcalendar_new <- bind_rows(
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = lubridate::floor_date(as.POSIXct(Sys.time()), unit = "second"),
+    log_update = convert_timestamp_to_ms_character(Sys.time())
   )
 
 stitch_table_connection(
@@ -712,7 +712,7 @@ stitch_table_connection(
 #   ) %>%
 #   mutate(
 #     log_user = "maintenance",
-#     log_update = as.POSIXct(Sys.time()),
+#     log_update = convert_timestamp_to_ms_character(Sys.time()),
 #     is_sideloaded = TRUE,
 #     excluded = FALSE,
 #     no_visit_planned = FALSE,
@@ -761,7 +761,7 @@ potential_visits <- fieldcalendar_lookup %>%
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time()),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     issues = FALSE,
     visit_done = FALSE
   )
@@ -782,17 +782,22 @@ surf_field_activities <- grouped_activities %>%
   filter(is_surf_activity, is_field_activity) %>%
   distinct(activity_group_id, activity_group)
 
+
+
 # Loop Special Activities
 selection_of_activities <- list(
-  "InstallationVisits" = activity_groupid_lookup %>%
-    filter(grepl("^SURFINST", activity_group)) %>%
-    pull(activity_group_id) %>% unique, # /WIA
-  # "PositioningVisits" = activity_groupid_lookup %>%
-  #   filter(grepl("^SPATPOSIT", activity_group)) %>%
-  #   pull(activity_group_id) %>% unique, # /SPA
-  "SamplingVisits" = activity_groupid_lookup %>%
-    filter(grepl("^SURF.*SAMP", activity_group)) %>%
-    pull(activity_group_id) %>% unique # /CSA
+  "LenticVisits" = activity_groupid_lookup %>%
+    filter(
+      grepl("^SURFLENT", activity_group),
+      !grepl("SAMPLPOINT", activity_group)
+    ) %>%
+    pull(activity_group_id) %>% unique, # /LENTIC
+  "LoticVisits" = activity_groupid_lookup %>%
+    filter(
+      grepl("^SURFLOT", activity_group),
+      !grepl("SAMPLPOINT", activity_group)
+    ) %>%
+    pull(activity_group_id) %>% unique # /LOTIC
 )
 
 append_defaults <- list(
@@ -810,7 +815,7 @@ append_defaults <- list(
 
 remaining_new_visits <- visits_upload
 
-# table_label <- "InstallationVisits"
+# table_label <- "LenticVisits"
 for (table_label in names(selection_of_activities)) {
 
   # subset the data by using selection_of_activities -> activity_group_id's
@@ -899,9 +904,9 @@ new_locinfos <- sample_units %>%
   ) %>%
   mutate(
     log_creator = "maintenance",
-    log_creation = as.POSIXct(Sys.time()),
+    log_creation = convert_timestamp_to_ms_character(Sys.time()),
     log_user = "maintenance",
-    log_update = as.POSIXct(Sys.time())
+    log_update = convert_timestamp_to_ms_character(Sys.time())
   ) %>%
   anti_join(
     locationinfos_reference,

@@ -36,19 +36,13 @@ associate_grouped_activities_with_fieldtaskforces <- function(grouped_activities
         "ADHOCPIPEREPLACE"
       ),
       is_surf_activity = activity_group %in% c(
-        "ADHOCDIVERREPLACE",
-        "ADHOCPIPEREPLACE",
-        "GWSURFINSTALLMAT",
-        "GWSURFLEVREADDIVERMAN",
-        "GWSURFSHALLSAMPREADMAN",
-        "SPATPOSITGAUGE",
-        "SPATPOSITPIPE",
-        "SURFADHOCGAUGEREPLACE",
-        "SURFINSTGAUGE",
-        "SURFINSTWELLDIVER",
-        # "SURFLENTLOCEVALSAMPLPOINT",
-        "SURFLEVREADDIVER",
-        # "SURFLOTLOCEVALSAMPLPOINT"
+        # "ADHOCDIVERREPLACE",
+        # "ADHOCPIPEREPLACE",
+        # "GWSURFINSTALLMAT",
+        # "SURFADHOCGAUGEREPLACE",
+        # "SURFINSTGAUGE",
+        # "SURFINSTWELLDIVER",
+        # "SURFLEVREADDIVER",
         "SURFLENTDATACOLL",
         "SURFLOTDATACOLL"
       )

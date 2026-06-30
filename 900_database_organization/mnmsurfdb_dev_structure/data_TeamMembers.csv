@@ -1,17 +1,20 @@
-username,family_name,given_name,notes
-Yglinga ,De Coster,Yglinga ,
-Tom,De Dobbelaer,Tom,
-Jens ,Mentens,Jens ,
-Falk,Mielke,Falk,
-Lise ,Provez,Lise ,
-Wouter ,Sturtewagen,Wouter ,
-Ward,Tamsyn,Ward,
-Floris,Vanderhaeghe,Floris,
-Karen,Wuyts,Karen,
-all_biotiek,,all_biotiek,plaatshouder voor biotiekers
-all_groundwater,,all_groundwater,plaatshouder voor veldploeg grondwatermeetnet
-Janne,Adolf,Janne,
-Wout,Dehertog,Wout,
-Droomelot,De Gendt,Droomelot,
-Niels,De Troyer,Niels,
-all_surfers,,all_surfers,plaatshouder voor veldploeg oppervlaktewatermeetnet
+teammember_id,username,family_name,given_name,notes,"INSERT INTO ""metadata"".""TeamMembers"" (teammember_id, username, family_name, given_name, notes) VALUES"
+1,Yglinga ,De Coster,Yglinga ,,"(1, 'Yglinga ', 'De Coster', 'Yglinga ', NULL),"
+2,Tom,De Dobbelaer,Tom,,"(2, 'Tom', 'De Dobbelaer', 'Tom', NULL),"
+3,Jens ,Mentens,Jens ,,"(3, 'Jens ', 'Mentens', 'Jens ', NULL),"
+4,Falk,Mielke,Falk,,"(4, 'Falk', 'Mielke', 'Falk', NULL),"
+5,Lise ,Provez,Lise ,,"(5, 'Lise ', 'Provez', 'Lise ', NULL),"
+6,Wouter ,Sturtewagen,Wouter ,,"(6, 'Wouter ', 'Sturtewagen', 'Wouter ', NULL),"
+7,Ward,Tamsyn,Ward,,"(7, 'Ward', 'Tamsyn', 'Ward', NULL),"
+8,Floris,Vanderhaeghe,Floris,,"(8, 'Floris', 'Vanderhaeghe', 'Floris', NULL),"
+9,Karen,Wuyts,Karen,,"(9, 'Karen', 'Wuyts', 'Karen', NULL),"
+10,all_biotiek,,all_biotiek,plaatshouder voor biotiekers,"(10, 'all_biotiek', NULL, 'all_biotiek', 'plaatshouder voor biotiekers'),"
+11,all_groundwater,,all_groundwater,plaatshouder voor veldploeg grondwatermeetnet,"(11, 'all_groundwater', NULL, 'all_groundwater', 'plaatshouder voor veldploeg grondwatermeetnet'),"
+12,Janne,Adolf,Janne,,"(12, 'Janne', 'Adolf', 'Janne', NULL),"
+13,Wout,Dehertog,Wout,,"(13, 'Wout', 'Dehertog', 'Wout', NULL),"
+14,Droomelot,De Gendt,Droomelot,,"(14, 'Droomelot', 'De Gendt', 'Droomelot', NULL),"
+15,Niels,De Troyer,Niels,,"(15, 'Niels', 'De Troyer', 'Niels', NULL),"
+16,all_surfers,,all_surfers,plaatshouder voor veldploeg oppervlaktewatermeetnet,"(16, 'all_surfers', NULL, 'all_surfers', 'plaatshouder voor veldploeg oppervlaktewatermeetnet'),"
+17,Els,,Els,,"(17, 'Els', NULL, 'Els', NULL),"
+18,Emma,,Emma,,"(18, 'Emma', NULL, 'Emma', NULL),"
+19,Wim,,Wim,,"(19, 'Wim', NULL, 'Wim', NULL),"
