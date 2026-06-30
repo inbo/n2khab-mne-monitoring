@@ -10,17 +10,18 @@ execution:
 status: true
 ---
 
-via user `postgres` on database #mnmsurfdb 
-
++ add users via user `postgres` on database #mnmsurfdb 
 ```sql
 CREATE USER <username> WITH ENCRYPTED PASSWORD '***';
 ```
 
-as database admin:
++ adjust [[locations/pg_hba|pg_hba]]
+
++ as database admin:
 
 ```sql
 GRANT user_surfdb TO <users>;
 ```
 
-add them to `data_TeamMembers.csv` and thereby to #TeamMembers
--> via INSERT column spreadsheet concatenation
++ add them to `data_TeamMembers.csv` and thereby to #TeamMembers
+	-> via INSERT column spreadsheet concatenation
