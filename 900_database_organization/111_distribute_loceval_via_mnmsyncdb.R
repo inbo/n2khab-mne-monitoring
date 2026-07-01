@@ -779,13 +779,13 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
 
   # NOT (only) A HOTFIX: here the general stratum/type difference cuts in
   if (udb == "mnmgwdb") {
-    transfer_data %<>% rename(strata = type)
+    transfer_data %<>% dplyr::rename(strata = type)
   } else {
-    transfer_data %<>% rename(stratum = type)
+    transfer_data %<>% dplyr::rename(stratum = type)
   }
 
   locevals_joined <- transfer_data %>%
-    left_join(
+    dplyr::left_join(
       mnmdb$query_columns(
           table_label = su_tablab,
           select_columns = c(
@@ -795,19 +795,22 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
             "location_id"
           )
         ),
-      by = join_by(!!!rlang::syms(c("grts_address", su_type)))
+      by = dplyr::join_by(!!!rlang::syms(c("grts_address", su_type)))
     ) %>%
-    filter_at(vars(!!!rlang::syms(c("location_id", su_idx))), ~!is.na(.)) %>%
-    select(-grts_address_original, -location_id) %>%
-    mutate(
-      eval_name = coalesce(eval_name, "maintenance"),
-      eval_date = coalesce(eval_date, as.Date(log_update))
+    dplyr::filter_at(
+      dplyr::vars(!!!rlang::syms(c("location_id", su_idx))),
+      ~!is.na(.)
+    ) %>%
+    dplyr::select(-grts_address_original, -location_id) %>%
+    dplyr::mutate(
+      eval_name = dplyr::coalesce(eval_name, "maintenance"),
+      eval_date = dplyr::coalesce(eval_date, as.Date(log_update))
     )
 
   if (udb == "mnmgwdb") {
-    locevals_joined %<>% rename(type = strata)
+    locevals_joined %<>% dplyr::rename(type = strata)
   } else {
-    locevals_joined %<>% rename(type = stratum)
+    locevals_joined %<>% dplyr::rename(type = stratum)
   }
 
   loceval_characols <- c(
@@ -820,8 +823,8 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
 
 
   duplicate_locevals <- locevals_joined %>%
-    count(!!!rlang::syms(loceval_characols)) %>%
-    arrange(desc(n)) %>%
+    dplyr::count(!!!rlang::syms(loceval_characols)) %>%
+    dplyr::arrange(desc(n)) %>%
     filter(n > 1)
 
   if (nrow(duplicate_locevals) > 0) {
