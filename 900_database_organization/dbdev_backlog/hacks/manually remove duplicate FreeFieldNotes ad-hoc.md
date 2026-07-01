@@ -10,6 +10,11 @@ tags:
 
 (It seems that mobile endpoints occasionally send duplicates of a given new entry.)
 
+> [!warning] Pseudo-Duplicates
+> These duplicates can differ in geometry, so better not to remove them!
+> If in doubt, check with the colleague who created the note.
+> Consider slightly shuffling the time as an alternative.
+
 ```sql
 DELETE FROM "inbound"."FreeFieldNotes" 
 WHERE fieldnote_id IN ( 

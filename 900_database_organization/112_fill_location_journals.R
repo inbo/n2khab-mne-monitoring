@@ -39,6 +39,13 @@ if (length(commandline_args) > 0) {
 }
 # suffix <- "-staging"
 
+locevaldb <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database_mirror = glue::glue("loceval{suffix}")
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+message(locevaldb$shellstring)
+
 mnmgwdb <- connect_mnm_database(
   config_filepath = config_filepath,
   database_mirror = glue::glue("mnmgwdb{suffix}")
@@ -46,12 +53,12 @@ mnmgwdb <- connect_mnm_database(
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 message(mnmgwdb$shellstring)
 
-locevaldb <- connect_mnm_database(
+mnmsurfdb <- connect_mnm_database(
   config_filepath = config_filepath,
-  database_mirror = glue::glue("loceval{suffix}")
+  database_mirror = glue::glue("mnmsurfdb{suffix}")
 )
 # keyring::keyring_delete(keyring = "mnmdb_temp")
-message(locevaldb$shellstring)
+message(mnmsurfdb$shellstring)
 
 #_______________________________________________________________________________
 ### local replacement conversion
@@ -63,25 +70,26 @@ local_replacement_lookup <- mnmgwdb$query_columns(
   distinct()
 
 
-# grts local replacement (1): loceval to mnmgwdb
+# grts local replacement (1): "forward" i.e. for info loceval passed to mnmgwdb
 replacements_to_mnmgwdb <- function(df) {
   df %>%
-    left_join(
+    dplyr::left_join(
       local_replacement_lookup,
-      by = join_by(
+      by = dplyr::join_by(
         grts_address == grts_address_original,
         type == type
       )
     ) %>%
-    mutate(
-      grts_address = coalesce(grts_address_replacement, grts_address)
+    dplyr::mutate(
+      grts_address = dplyr::coalesce(grts_address_replacement, grts_address)
     ) %>%
-    select(-grts_address_replacement) %>%
+    dplyr::select(-grts_address_replacement) %>%
     return()
 
 }
 
 # grts local replacement (1b): loceval split-up
+#   new info might apply to both the original and the replacement
 split_replacements_loceval <- function(df) {
 
   # replacements <- bind_rows(
@@ -94,8 +102,8 @@ split_replacements_loceval <- function(df) {
   #     mutate(type_is_absent_j = FALSE)
   # )
   replacements <- local_replacement_lookup %>%
-      select(grts_address_original, type, grts_address_replacement) %>%
-      mutate(type_is_absent_j = FALSE)
+      dplyr::select(grts_address_original, type, grts_address_replacement) %>%
+      dplyr::mutate(type_is_absent_j = FALSE)
 
   # replacements %>%
   #     filter(grts_address_original %in% c(826486, 51158134)) %>%
@@ -105,49 +113,49 @@ split_replacements_loceval <- function(df) {
   #     t() %>% knitr::kable()
 
   df %>%
-    left_join(
+    dplyr::left_join(
       replacements,
-      by = join_by(
+      by = dplyr::join_by(
         grts_address == grts_address_original,
         type == type
       )
     ) %>%
-    mutate(
-      grts_address = coalesce(grts_address_replacement, grts_address),
-      type_is_absent = coalesce(type_is_absent_j, type_is_absent)
+    dplyr::mutate(
+      grts_address = dplyr::coalesce(grts_address_replacement, grts_address),
+      type_is_absent = dplyr::coalesce(type_is_absent_j, type_is_absent)
     ) %>%
-    select(-grts_address_replacement, -type_is_absent_j) %>%
+    dplyr::select(-grts_address_replacement, -type_is_absent_j) %>%
     return()
 
 }
 
 
-# grts local replacement (2): mnmgwdb to loceval
+# grts local replacement (2): the inversion for info mnmgwdb to loceval
 replacements_to_loceval <- function(df) {
 
   # special case: column "strata" in "SampleLocations"
   rename_strata <- "strata" %in% names(df)
   if (rename_strata) {
-    df <- df %>% rename(stratum = strata)
+    df <- df %>% dplyr::rename(stratum = strata)
   }
 
   df <- df %>%
-    left_join(
+    dplyr::left_join(
       local_replacement_lookup %>%
-      rename(stratum = type),
-      by = join_by(
+      dplyr::rename(stratum = type),
+      by = dplyr::join_by(
         grts_address == grts_address_replacement,
         stratum == stratum
       )
     ) %>%
-    mutate(
-      grts_address = coalesce(grts_address_original, grts_address)
+    dplyr::mutate(
+      grts_address = dplyr::coalesce(grts_address_original, grts_address)
     ) %>%
-    select(-grts_address_original)
+    dplyr::select(-grts_address_original)
 
   # revert rename
   if (rename_strata) {
-    df <- df %>% rename(strata = stratum)
+    df <- df %>% dplyr::rename(strata = stratum)
   }
   return(df)
 
@@ -202,7 +210,9 @@ removal_lookup <- upload_and_lookup(
 )
 
 if (nrow(new_installation_removals) > 0) {
-  message(glue::glue("Registered {nrow(new_installation_removals)} new installation removals."))
+  message(glue::glue(
+    "Registered {nrow(new_installation_removals)} new installation removals."
+  ))
 }
 
 
@@ -213,16 +223,16 @@ if (nrow(new_installation_removals) > 0) {
 load_location_evaluations <- function() {
 
   loceval_visits <- locevaldb$query_table("Visits", ONLY = FALSE) %>%
-    filter(visit_done) %>%
-    left_join(
+    dplyr::filter(visit_done) %>%
+    dplyr::left_join(
       locevaldb$query_columns(
         "SampleUnits",
         c("grts_address", "type", "is_replaced", "type_is_absent")
       ),
-      by = join_by(grts_address, type)
+      by = dplyr::join_by(grts_address, type)
     ) %>%
     split_replacements_loceval() %>%
-    select(
+    dplyr::select(
       grts_address,
       date = date_visit,
       activity_group_id,
@@ -233,8 +243,8 @@ load_location_evaluations <- function() {
       nolog_user = log_user,
       nolog_update = log_update
     ) %>%
-    mutate(source = "loceval") %>%
-    group_by(
+    dplyr::mutate(source = "loceval") %>%
+    dplyr::group_by(
       grts_address,
       date,
       source,
@@ -243,23 +253,23 @@ load_location_evaluations <- function() {
       loceval_type_absence,
       loceval_type
     ) %>%
-    reframe(
+    dplyr::reframe(
       type_subset = stringr::str_c(type_subset, collapse = ", "),
       nolog_user = stringr::str_c(unique(nolog_user), collapse = ", "),
-      nolog_update = max(nolog_update)
+      nolog_update = max(nolog_update, na.rm = TRUE)
     ) %>%
-    arrange(date, grts_address)
+    dplyr::arrange(date, grts_address)
 
   no_dates <- loceval_visits %>%
-    filter(is.na(date))
+    dplyr::filter(is.na(date))
 
   if (nrow(no_dates) > 0) {
-    grtsses <- no_dates %>% pull(grts_address) %>% paste0(collapse = ",")
+    grtsses <- no_dates %>% dplyr::pull(grts_address) %>% paste0(collapse = ",")
     message(glue::glue("ERROR: date missing on loceval for {grtsses}"))
   }
 
   loceval_visits <- loceval_visits %>%
-    filter(!is.na(date))
+    dplyr::filter(!is.na(date))
 
   # loceval_visits %>%
   #   filter(grts_address %in% c(826486, 51158134)) %>%
@@ -272,17 +282,17 @@ load_location_evaluations <- function() {
 ## installation removals
 load_installation_removals <- function() {
   removals <- mnmgwdb$query_table("InstallationRemovals") %>%
-    select(
+    dplyr::select(
       grts_address,
       date,
       is_planned,
       is_vandalism
     ) %>%
-    mutate(
+    dplyr::mutate(
       removal_unplanned = (!is_planned) | is_vandalism,
       source = "removal"
     ) %>%
-    select(-is_planned, -is_vandalism)
+    dplyr::select(-is_planned, -is_vandalism)
 
   return(removals)
 }
@@ -290,8 +300,8 @@ load_installation_removals <- function() {
 ## groundwater work
 load_mnmgwdb_visits <- function() {
   gw_visits <- mnmgwdb$query_table("Visits", ONLY = FALSE) %>%
-    filter(visit_done) %>%
-    select(
+    dplyr::filter(visit_done) %>%
+    dplyr::select(
       grts_address,
       type_subset = stratum,
       date = date_visit,
@@ -300,35 +310,75 @@ load_mnmgwdb_visits <- function() {
       nolog_user = log_user,
       nolog_update = log_update
     ) %>%
-    mutate(source = "gwdb") %>%
-    group_by(
+    dplyr::mutate(source = "gwdb") %>%
+    dplyr::group_by(
       grts_address,
       date,
       source,
       activity_group_id,
       issues
     ) %>%
-    reframe(
+    dplyr::reframe(
       type_subset = stringr::str_c(type_subset, collapse = ","),
       nolog_user = stringr::str_c(unique(nolog_user), collapse = ", "),
-      nolog_update = max(nolog_update)
+      nolog_update = max(nolog_update, na.rm = TRUE)
     ) %>%
-    arrange(date, grts_address)
+    dplyr::arrange(date, grts_address)
 
   no_dates <- gw_visits %>%
-    filter(is.na(date))
+    dplyr::filter(is.na(date))
 
   if (nrow(no_dates) > 0) {
-    grtsses <- no_dates %>% pull(grts_address) %>% paste0(collapse = ",")
+    grtsses <- no_dates %>% dplyr::pull(grts_address) %>% paste0(collapse = ",")
     message(glue::glue("ERROR: date missing on gw activity for {grtsses}"))
   }
 
-  gw_visits <- gw_visits %>%
-    filter(!is.na(date))
-
-  return(gw_visits)
+  gw_visits %>%
+    dplyr::filter(!is.na(date)) %>%
+    return()
 }
 
+
+## surfacewater work
+load_mnmsurfdb_datacoll <- function() {
+  surf_visits <- mnmsurfdb$query_table("Visits", ONLY = FALSE) %>%
+    dplyr::filter(visit_done) %>%
+    dplyr::select(
+      grts_address,
+      type_subset = stratum,
+      date = date_visit,
+      activity_group_id,
+      issues,
+      nolog_user = log_user,
+      nolog_update = log_update
+    ) %>%
+    dplyr::mutate(source = "surf") %>%
+    dplyr::group_by(
+      grts_address,
+      date,
+      source,
+      activity_group_id,
+      issues
+    ) %>%
+    dplyr::reframe(
+      type_subset = stringr::str_c(type_subset, collapse = ","),
+      nolog_user = stringr::str_c(unique(nolog_user), collapse = ", "),
+      nolog_update = max(nolog_update, na.rm = TRUE)
+    ) %>%
+    dplyr::arrange(date, grts_address)
+
+  no_dates <- surf_visits %>%
+    dplyr::filter(is.na(date))
+
+  if (nrow(no_dates) > 0) {
+    grtsses <- no_dates %>% dplyr::pull(grts_address) %>% paste0(collapse = ",")
+    message(glue::glue("ERROR: date missing on surf activity for {grtsses}"))
+  }
+
+  surf_visits %>%
+    dplyr::filter(!is.na(date)) %>%
+    return()
+}
 
 # loceval_outputs <- load_location_evaluations()
 # loceval_outputs %>%
@@ -339,15 +389,16 @@ load_mnmgwdb_visits <- function() {
 location_journals <- bind_rows(
     load_location_evaluations(),
     load_installation_removals(),
-    load_mnmgwdb_visits()
+    load_mnmgwdb_visits(),
+    load_mnmsurfdb_datacoll()
   ) %>%
   # mutate(nolog_update = convert_timestamp_to_ms_character(nolog_update)) %>%
   arrange(date, grts_address, source)
 
 
-location_journals %>%
-  filter(grts_address %in% c(826486)) %>%
-  t() %>% knitr::kable()
+# location_journals %>%
+#   filter(grts_address %in% c(826486)) %>%
+#   t() %>% knitr::kable()
 #   filter(grts_address %in% c(826486, 51158134)) %>%
 
 #_______________________________________________________________________________
@@ -358,10 +409,13 @@ location_journals %>%
 # mnmdb <- locevaldb
 upload_LoJos <- function(mnmdb) {
 
-  is_sync_database <- isFALSE("Locations" %in% (mnmdb$tables %>% pull(table)))
+  is_sync_database <- isFALSE(
+    "Locations" %in% (mnmdb$tables %>% dplyr::pull(table))
+  )
 
-  # join location ID
+  # query location_id lookup on non-sync databases
   if (is_sync_database) {
+    # (fake lookup on sync)
     location_lookup <- location_journals %>%
       dplyr::distinct(grts_address) %>%
       dplyr::mutate(location_id = NA)
@@ -373,12 +427,14 @@ upload_LoJos <- function(mnmdb) {
   }
 
 
+  ### assemble info
   lojos_prep <- location_journals
 
   # if (db_is_loceval) {
   #   lojos_prep <- replacements_to_loceval(lojos_prep)
   # }
 
+  # keep only novel journal entries; join location_id
   lojos_new <- lojos_prep %>%
     dplyr::anti_join(
       mnmdb$query_table("LocationJournals"),
@@ -412,7 +468,9 @@ upload_LoJos <- function(mnmdb) {
   #   filter(grts_address == 826486)
 
   if (nrow(lojos_new) > 0) {
-    message(glue::glue("Registered {nrow(lojos_new)} new journal entries for {mnmdb$database}."))
+    message(glue::glue(
+      "Registered {nrow(lojos_new)} new journal entries for {mnmdb$database}."
+    ))
     lojos_new %>% knitr::kable()
   }
 
@@ -498,7 +556,6 @@ upload_LoJos <- function(mnmdb) {
 
 
   mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
-
 
 
 
@@ -604,6 +661,9 @@ upload_LoJos(locevaldb)
 
 # mnmgwdb
 upload_LoJos(mnmgwdb)
+
+# mnmsurfdb
+upload_LoJos(mnmsurfdb)
 
 
 message("")
