@@ -114,7 +114,7 @@ replacements_raw <- loceval_connection$query_table("Replacements") %>%
   )
 
 # replacements_raw %>%
-#   filter(grts_address_original == 3662038) %>%
+#   filter(grts_address_original == 30153) %>%
 #   t() %>% knitr::kable()
 
 ### get the `loceval_date`
@@ -138,6 +138,9 @@ loceval_visits <- loceval_connection$query_table("AllVisits") %>%
     log_update
   )
 
+# loceval_visits %>% filter(grts_address_original == 84598) %>%
+#   t() %>% knitr::kable()
+
 na_visit_dates <- loceval_visits %>%
   filter(
     is.na(date_visit),
@@ -156,6 +159,8 @@ if (n_datemissers > 0) {
 loceval_dates <- loceval_visits %>%
   filter_out(is.na(date_visit)) %>%
   select(grts_address_original, type, date_visit)
+
+# loceval_dates %>% filter(grts_address_original == 84598)
 
 duplicate_check <- loceval_dates %>%
   count(grts_address_original, type) %>%

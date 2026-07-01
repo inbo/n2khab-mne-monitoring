@@ -42,7 +42,8 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 #
-grts <- c(47553522) # installation not visible
+grts <- c(30153) # no replacement date
+  # c(47553522) # installation not visible -> solved
   # c(9488370) # clean and samp activity not matching for Q3 2026 # also 1062930
   # c(1466998) # no replacement cells visible
   # c(289513)
@@ -1124,6 +1125,7 @@ surf_print_visits <- function() {
 
 
 ```{r special-activities-surfdb}
+#| eval: false
 
 activities <- bind_rows(
     query_special_activity("LOT"),
@@ -1276,7 +1278,7 @@ special activities (well installation, chem sampling, positioning)
 
 ```{r print-special-activities-surfdb}
 #| echo: false
-surf_print_special_activities()
+# surf_print_special_activities()
 ```
 
 ## location infos
