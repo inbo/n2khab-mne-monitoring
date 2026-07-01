@@ -494,7 +494,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
     freefieldnotes_userdb %<>%
       dplyr::mutate_at(
         dplyr::vars(log_creation, log_update),
-        convert_timestamp_to_ms_character
+        as.character
       )
   }
 
@@ -644,6 +644,10 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
       novel_fieldnotes
     )
   }
+
+  # freefieldnotes_statusquo %>%
+  #   count(!!!rlang::syms(characteristic_columns)) %>%
+  #   arrange(-n)
 
   # (2) update existing notes
   updated_fieldnotes <- freefieldnotes_statusquo %>%

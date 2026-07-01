@@ -10,6 +10,8 @@ execution:
 status: true
 ---
 
+(see also [[hacks/manually remove duplicate FreeFieldNotes ad-hoc|ad-hoc FreeFieldNotes removal]])
+
 During [[structure/draft and implement mnmsyncdb a database for synchronization of interchange data]], one work package was to create a sync script for #FreeFieldNotes. 
 Some of the pre-existing fieldnotes were duplicates.
 I suspect that this happened if notes were altered by another user in the other database.
