@@ -1170,18 +1170,18 @@ fag_stratum_grts_calendar %>%
 ## Making selections for short-term orthophoto assessments ---------------------
 
 
-# Making a list of terrestrial locations to be assessed using orthophotos
+### Making a list of terrestrial locations to be assessed using orthophotos ----
 
-orthophoto_shortterm_type_grts <-
+orthophoto_shortterm_terrtype_grts <-
   fieldwork_shortterm_prioritization_by_stratum %>%
   filter(
     str_detect(field_activity_group, "LOCEVAL"),
     # only keep cell-based types (aquatic & 7220 will be more reliable or simply
     # not possible to evaluate on orthophoto)
-    str_detect(grts_join_method, "cell")
+    str_detect(sample_support_code, "cell")
   ) %>%
   convert_stratum_to_type() %>%
-  select(-rank, -scheme_ps_oldtargetpanels_served) %>%
+  select(-rank, -scheme_ps_oldtargetpanels_served, -matching_occasion) %>%
   arrange(
     priority,
     type,
@@ -1192,7 +1192,10 @@ orthophoto_shortterm_type_grts <-
 # unit geometries (cells):
 orthophoto_shortterm_cells <-
   units_cell_polygon %>%
-  inner_join_12m_de(orthophoto_shortterm_type_grts, join_by(grts_address_final)) %>%
+  inner_join_12m_de(
+    orthophoto_shortterm_terrtype_grts,
+    join_by(grts_address_final)
+  ) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(
@@ -1204,7 +1207,7 @@ orthophoto_shortterm_cells <-
 
 # cell centers:
 orthophoto_shortterm_cell_centers <-
-  orthophoto_shortterm_type_grts %>%
+  orthophoto_shortterm_terrtype_grts %>%
   add_point_coords_grts_mh(grts_var = "grts_address_final")
 
 
