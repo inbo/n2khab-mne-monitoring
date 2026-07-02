@@ -253,10 +253,15 @@ prioritize_mhq_fieldwork <- function(.data) {
     dplyr::mutate(
       priority_mhq = dplyr::case_when(
         # no priority is given to FAG occasions for types that will be obsoleted,
-        # if the panel set is panel set 2 accross the targeted schemes
+        # if the panel set is panel set 2 accross the targeted schemes. This is
+        # actually redundant now, but keeping this rule in for safety.
         stratum %in% c("6410_ve", "6510_hus") &
           !stringr::str_detect(scheme_ps_targetpanels_served, ":PS1") ~ NA_integer_,
-        stringr::str_detect(scheme_ps_targetpanels_served, "HQ.+:PS\\dPANEL01") ~ 3L
+        # only aquatic types can get a priority; terrestrial types will not be
+        # sampled for MHQ
+        stringr::str_detect(scheme_ps_targetpanels_served, "HQ.+:PS\\dPANEL01") &
+          sample_support_code %in%
+          c("spring", "watercourse_segment", "watersurface") ~ 3L
       )
     ) %>%
     return()
