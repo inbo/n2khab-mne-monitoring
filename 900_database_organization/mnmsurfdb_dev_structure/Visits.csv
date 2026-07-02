@@ -12,6 +12,7 @@ date_start,date,True,,False,False,,,,start of the panel activity sequence (inclu
 teammember_id,smallint,False,NULL,False,False,,,,link to the user who performed the visit
 date_visit,date,False,,False,False,,,,date of the field activity
 datetime_visit,timestamp(0),False,,False,False,,,,date and time of the field activity
+sampling_done,boolean,False,NULL,False,False,,,,"confirm that SamplingPoint was chosen, sampling has been performed, LIMS information captured"
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing

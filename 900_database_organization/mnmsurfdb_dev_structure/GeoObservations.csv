@@ -1,0 +1,7 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+meteorolobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+bank_structure,varchar,False,NULL,False,False,,,,tbd
+bank_erosion,varchar,False,NULL,False,False,,,,tbd
+bank_reinforcement,varchar,False,NULL,False,False,,,,tbd
+benthos,varchar,False,NULL,False,False,,,,"description of the aquatic soil (substrate, organic material)"
+connectivity,varchar,False,NULL,False,False,,,,"isolated, inflow, throughflow, overflow"

@@ -1,2 +1,11 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 lenticvisit_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+geo_waterdepth_samplingpoint_m,double precision,False,NULL,False,False,,CHECK (geo_waterdepth_samplingpoint_m >= 0),,the current depth of the water body at the sampling point
+ice_layer_cm,double precision,False,0,False,False,,CHECK (ice_layer_cm >= 0),,ice layer thickness (if present)
+hyd_secchi_depth_cm,double precision,False,NULL,False,False,,CHECK (hyd_secchi_depth_cm >= 0),,"the depth at which a monochrome radially patterned disc is visually perceivable, with the tools of Angelo Secchi (1865)"
+hyd_sneller,varchar,False,NULL,False,False,,,,tbd
+hyd_turbidity,varchar,False,NULL,False,False,,,,"glas clear, light, turbid"
+hyd_color,varchar,False,NULL,False,False,,,,color of the water (6 digit hexadecimal number)
+hyd_smell,varchar,False,NULL,False,False,,,,"specific, noteworthy smell of the water"
+hyd_watertemperature_celsius,double precision,False,NULL,False,False,,CHECK (hyd_watertemperature_celsius >= -273.15),,water temperature at the sampling spot
+hyd_notes,text,False,NULL,False,False,,,,misc notes on hydrological parameters
