@@ -33,7 +33,8 @@ load_grts_mh_to_env <- function(env = NULL) {
         id = seq_len(terra::ncell(grts_mh)),
         grts_address = values(grts_mh)[, 1]
       ) %>%
-      dplyr::filter(!is.na(grts_address)),
+        dplyr::filter(!is.na(grts_address)) %>%
+        append_masked_grts_addresses(),
       pos = env
     )
   }
