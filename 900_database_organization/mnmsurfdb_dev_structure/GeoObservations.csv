@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-meteorolobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+geoobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
 bank_structure,varchar,False,NULL,False,False,,,,tbd
 bank_erosion,varchar,False,NULL,False,False,,,,tbd
 bank_reinforcement,varchar,False,NULL,False,False,,,,tbd

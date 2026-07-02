@@ -30,6 +30,7 @@ SELECT
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
+  VISIT.datetime_visit,
   VISIT.notes,
   VISIT.photo,
   VISIT.issues,
@@ -37,6 +38,31 @@ SELECT
   VISIT.loticvisit_id,
   (VISIT.lenticvisit_id IS NOT NULL) AS show_lenticvisits,
   (VISIT.loticvisit_id IS NOT NULL) AS show_loticvisits,
+  VISIT.project_code,
+  VISIT.recipient_code,
+  VISIT.waterdepth_samplingpoint_m,
+  VISIT.sludge_thickness,
+  VISIT.ice_layer_cm,
+  VISIT.vegetation_and_algae,
+  VISIT.float_layer,
+  VISIT.equipment,
+  VISIT.color,
+  VISIT.smell,
+  VISIT.sample_ph,
+  VISIT.watertemperature_celsius,
+  VISIT.electric_conductivity_mus_cm,
+  VISIT.dissolved_oxygen_mg_l,
+  VISIT.dissolved_oxygen_percent,
+  VISIT.sneller_cm,
+  VISIT.secchi_depth_cm,
+  VISIT.turbidity,
+  VISIT.sample_notes,
+  VISIT.meandering,
+  VISIT.flowvel,
+  VISIT.flowvel_method,
+  VISIT.barriers,
+  VISIT.current_pits,
+  VISIT.sampling_done,
   VISIT.visit_done
 FROM (
   SELECT *
@@ -113,11 +139,44 @@ DO ALSO
  SET
   teammember_id = NEW.teammember_id,
   date_visit = NEW.date_visit,
+  datetime_visit = NEW.datetime_visit,
   notes = NEW.notes,
   photo = NEW.photo,
   issues = NEW.issues,
+  sampling_done = NEW.sampling_done,
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
+;
+
+
+DROP RULE IF EXISTS FieldWork_upd_LENTIC ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_LENTIC AS
+ON UPDATE TO "inbound"."FieldWork"
+DO ALSO
+ UPDATE "inbound"."LenticVisits"
+ SET
+  project_code = NEW.project_code,
+  recipient_code = NEW.recipient_code,
+  waterdepth_samplingpoint_m = NEW.waterdepth_samplingpoint_m,
+  sludge_thickness = NEW.sludge_thickness,
+  ice_layer_cm = NEW.ice_layer_cm,
+  vegetation_and_algae = NEW.vegetation_and_algae,
+  float_layer = NEW.float_layer,
+  equipment = NEW.equipment,
+  color = NEW.color,
+  smell = NEW.smell,
+  sample_ph = NEW.sample_ph,
+  watertemperature_celsius = NEW.watertemperature_celsius,
+  electric_conductivity_mus_cm = NEW.electric_conductivity_mus_cm,
+  dissolved_oxygen_mg_l = NEW.dissolved_oxygen_mg_l,
+  dissolved_oxygen_percent = NEW.dissolved_oxygen_percent,
+  sneller_cm = NEW.sneller_cm,
+  secchi_depth_cm = NEW.secchi_depth_cm,
+  turbidity = NEW.turbidity,
+  sample_notes = NEW.sample_notes
+ WHERE lenticvisit_id = OLD.lenticvisit_id
+   AND visit_id = OLD.visit_id
+   AND lenticvisit_id IS NOT NULL
 ;
 
 DROP RULE IF EXISTS FieldWork_upd_INFO ON "inbound"."FieldWork";
@@ -161,16 +220,3 @@ GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  user_surfdb;
 -- GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tester;
 
 
-
--- ON HOLD
-
-DROP RULE IF EXISTS FieldWork_upd_INSTALLATION ON "inbound"."FieldWork";
-CREATE RULE FieldWork_upd_INSTALLATION AS
-ON UPDATE TO "inbound"."FieldWork"
-DO ALSO
- UPDATE "inbound"."InstallationVisits"
- SET
-  photo_installation = NEW.photo_installation,
- WHERE installationvisit_id = OLD.installationvisit_id
-   AND installationvisit_id IS NOT NULL
-;

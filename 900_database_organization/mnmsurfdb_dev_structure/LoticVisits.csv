@@ -15,7 +15,7 @@ watertemperature_celsius,double precision,False,NULL,False,False,,CHECK (waterte
 electric_conductivity_mus_cm,double precision,False,NULL,False,False,,,,electric conductivity measurement
 dissolved_oxygen_mg_l,double precision,False,NULL,False,False,,,,oxygen measurement
 dissolved_oxygen_percent,double precision,False,NULL,False,False,,,,oxygen saturation
-sneller_cm,varchar,False,NULL,False,False,,,,tbd
+sneller_cm,double precision,False,NULL,False,False,,,,tbd
 secchi_depth_cm,double precision,False,NULL,False,False,,CHECK (secchi_depth_cm >= 0),,"the depth at which a monochrome radially patterned disc is visually perceivable, with the tools of Angelo Secchi (1865)"
 turbidity,varchar,False,NULL,False,False,,,,"glas clear, light, turbid"
 sample_notes,text,False,NULL,False,False,,,,misc notes on hydrological parameters
