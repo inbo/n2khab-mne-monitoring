@@ -178,11 +178,67 @@ if (interactive()) {
 ## Sampling unit geometries --------------------------------------
 
 # obtaining geometries of the sampling units themselves:
-# - for aquatic types, see code from
-#   https://github.com/inbo/n2khab-mne-monitoring/pull/2, but then do use the
-#   POC RData file used here
+# - for lentic types, the result is in object 'watersurface_spsamples_sf' below
+# - for lotic types, see code in
+#   inbo/n2khab-mne-monitoring/010_aq_piezometer_positioning, but then do use
+#   the REP RData file used here
 # - for type 7220 (springs) as a whole, see code provided below
 # - for terrestrial types, these are cells; see code provided below
+
+
+
+# geometries of the spatial sampling units of lentic types (polygons)
+# /////////////////////////////////////////////////////////////////////////
+
+# link between spatial sampling units of lentic types and watersurface polygons
+stratum_grts_polygon_spsamples_lentic <-
+  scheme_moco_ps_stratum_sppost_spsamples %>%
+  filter(str_detect(stratum, "^2190_a|^31")) %>%
+  unnest(sp_poststr_samples) %>%
+  select(-sample_status) %>%
+  # provision for potential local replacements by including grts_address_final
+  # (currently not different for these strata)
+  add_assessment_data() %>%
+  distinct(stratum, grts_address_final) %>%
+  inner_join_m21_ed(
+    units_non_cell_n2khab_grts %>%
+      filter(sample_support_code == "watersurface") %>%
+      select(-sample_support_code),
+    join_by(grts_address_final == grts_address)
+  ) %>%
+  rename(polygon_id = unit_id)
+
+# extract all polygons from watersurfaces_hab that belong to the spatial samples
+# for lentic types:
+wsh_polygons_spsamples <-
+  read_watersurfaces_hab(version = versions_required["watersurfaces_hab"]) %>%
+  pluck("watersurfaces_polygons") %>%
+  select(polygon_id) %>%
+  semi_join(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id))
+
+# extract all polygons from the watersurfaces data source that belong to the
+# spatial samples for lentic types but that were not covered by
+# watersurfaces_hab:
+ws_extra_polygons_spsamples <-
+  read_watersurfaces(
+    version = versions_required["watersurfaces"],
+    fix_geom = TRUE
+  ) %>%
+  select(polygon_id) %>%
+  semi_join(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id)) %>%
+  # keeping only the unique extra polygons relative to watersurfaces_hab
+  anti_join(
+    st_drop_geometry(wsh_polygons_spsamples),
+    join_by(polygon_id)
+  )
+
+# add the geometry to the spatial sampling units:
+stratum_grts_spsamples_lentic_sf <-
+  rbind(wsh_polygons_spsamples, ws_extra_polygons_spsamples) %>%
+  inner_join_12m_e(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id)) %>%
+  relocate(stratum, grts_address_final) %>%
+  arrange(stratum, grts_address_final)
+
 
 
 # geometries of 7220 units are represented by points, labelled with their GRTS
