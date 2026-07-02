@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.6.0",
+    "Version": "4.6.1",
     "Repositories": [
       {
         "Name": "P3M",
@@ -328,10 +328,10 @@
     },
     "RSQLite": {
       "Package": "RSQLite",
-      "Version": "3.53.2",
+      "Version": "3.53.3",
       "Source": "Repository",
       "Title": "SQLite Interface for R",
-      "Date": "2026-06-12",
+      "Date": "2026-06-28",
       "Authors@R": "c( person(\"Kirill\", \"Müller\", , \"kirill@cynkra.com\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-1416-3412\")), person(\"Hadley\", \"Wickham\", role = \"aut\"), person(c(\"David\", \"A.\"), \"James\", role = \"aut\"), person(\"Seth\", \"Falcon\", role = \"aut\"), person(\"D. Richard\", \"Hipp\", role = \"ctb\", comment = \"for the included SQLite sources\"), person(\"Dan\", \"Kennedy\", role = \"ctb\", comment = \"for the included SQLite sources\"), person(\"Joe\", \"Mistachkin\", role = \"ctb\", comment = \"for the included SQLite sources\"), person(, \"SQLite Authors\", role = \"ctb\", comment = \"for the included SQLite sources\"), person(\"Liam\", \"Healy\", role = \"ctb\", comment = \"for the included SQLite sources\"), person(\"R Consortium\", role = \"fnd\"), person(, \"RStudio\", role = \"cph\") )",
       "Description": "Embeds the SQLite database engine in R and provides an interface compliant with the DBI package. The source for the SQLite engine and for various extensions is included. System libraries will never be consulted because this package relies on static linking for the plugins it includes; this also ensures a consistent experience across all installations. Optionally, when libcurl is available at build time, an experimental HTTP/HTTPS virtual file system (VFS) can be enabled to allow read-only access to remote immutable SQLite database files via URIs.",
       "License": "LGPL (>= 2.1)",
@@ -4342,7 +4342,7 @@
     },
     "n2khab": {
       "Package": "n2khab",
-      "Version": "0.15.0",
+      "Version": "0.15.1",
       "Source": "Repository",
       "Title": "Providing Preprocessed Reference Data for Flemish Natura 2000 Habitat Analyses",
       "Authors@R": "c( person(\"Floris\", \"Vanderhaeghe\", email = \"floris.vanderhaeghe@inbo.be\", role = c(\"aut\", \"cre\"), comment = c(ORCID = \"0000-0002-6378-6229\")),  person(\"Toon\", \"Westra\", email = \"toon.westra@inbo.be\", role = c(\"aut\"), comment = c(ORCID = \"0000-0003-2478-9459\")),  person(\"Cécile\", \"Herr\", email = \"cecile.herr@inbo.be\", role = c(\"aut\"), comment = c(ORCID = \"0000-0002-2833-6046\")),  person(\"Hans\", \"Van Calster\", email = \"hans.vancalster@inbo.be\", role = c(\"aut\"), comment = c(ORCID = \"0000-0001-8595-8426\")),  person(\"Dries\", \"Adriaens\", email = \"dries.adriaens@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-7216-3111\")),  person(\"Maud\", \"Raman\", email = \"maud.raman@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0003-2116-4963\")),  person(\"Jan\", \"Wouters\", email = \"jan.wouters@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0001-8200-9102\")),  person(\"Steven\", \"De Saeger\", email = \"steven.desaeger@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-5477-3063\")),  person(\"Els\", \"Lommelen\", email = \"els.lommelen@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-3481-5684\")),  person(\"Luc\", \"Denys\", email = \"luc.denys@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-1841-6579\")),  person(\"An\", \"Leyssen\", email = \"an.leyssen@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0003-3537-286X\")),  person(\"Patrik\", \"Oosterlynck\", email = \"patrik.oosterlynck@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-5712-0770\")),  person(\"Jeroen\", \"Vanden Borre\", email = \"jeroen.vandenborre@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-0153-7243\")),  person(\"Nathalie\", \"Cools\", email = \"nathalie.cools@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-7059-2318\")),  person(\"Bruno\", \"De Vos\", email = \"bruno.devos@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0001-9523-3453\")),  person(\"Suzanna\", \"Lettens\", email = \"suzanna.lettens@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0001-5032-495X\")),  person(\"Arne\", \"Verstraeten\", email = \"arne.verstraeten@inbo.be\", role = c(\"ctb\"), comment = c(ORCID = \"0000-0002-8813-1261\")),  person(\"Research Institute for Nature and Forest\", email = \"info@inbo.be\", role = c(\"cph\")))",
@@ -4400,7 +4400,7 @@
       "Repository": "https://inbo.r-universe.dev",
       "RemoteUrl": "https://github.com/inbo/n2khab",
       "RemoteRef": "HEAD",
-      "RemoteSha": "d9e1c1bad800a72cca468244252f9969102c574c",
+      "RemoteSha": "2c7c7ac6b7396128284082658be746ae7e88d074",
       "NeedsCompilation": "no",
       "Author": "Floris Vanderhaeghe [aut, cre] (ORCID: <https://orcid.org/0000-0002-6378-6229>), Toon Westra [aut] (ORCID: <https://orcid.org/0000-0003-2478-9459>), Cécile Herr [aut] (ORCID: <https://orcid.org/0000-0002-2833-6046>), Hans Van Calster [aut] (ORCID: <https://orcid.org/0000-0001-8595-8426>), Dries Adriaens [ctb] (ORCID: <https://orcid.org/0000-0002-7216-3111>), Maud Raman [ctb] (ORCID: <https://orcid.org/0000-0003-2116-4963>), Jan Wouters [ctb] (ORCID: <https://orcid.org/0000-0001-8200-9102>), Steven De Saeger [ctb] (ORCID: <https://orcid.org/0000-0002-5477-3063>), Els Lommelen [ctb] (ORCID: <https://orcid.org/0000-0002-3481-5684>), Luc Denys [ctb] (ORCID: <https://orcid.org/0000-0002-1841-6579>), An Leyssen [ctb] (ORCID: <https://orcid.org/0000-0003-3537-286X>), Patrik Oosterlynck [ctb] (ORCID: <https://orcid.org/0000-0002-5712-0770>), Jeroen Vanden Borre [ctb] (ORCID: <https://orcid.org/0000-0002-0153-7243>), Nathalie Cools [ctb] (ORCID: <https://orcid.org/0000-0002-7059-2318>), Bruno De Vos [ctb] (ORCID: <https://orcid.org/0000-0001-9523-3453>), Suzanna Lettens [ctb] (ORCID: <https://orcid.org/0000-0001-5032-495X>), Arne Verstraeten [ctb] (ORCID: <https://orcid.org/0000-0002-8813-1261>), Research Institute for Nature and Forest [cph]",
       "Maintainer": "Floris Vanderhaeghe <floris.vanderhaeghe@inbo.be>"
