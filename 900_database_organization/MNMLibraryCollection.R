@@ -212,7 +212,7 @@ verify_rep_objects <- function() {
   # orthophotos
   stopifnot(
     "snip snap >> `orthophoto grts` not found" =
-      exists("orthophoto_shortterm_type_grts")
+      exists("orthophoto_shortterm_terrtype_grts")
   )
 
   # shout out success!
