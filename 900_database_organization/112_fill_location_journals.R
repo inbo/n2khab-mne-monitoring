@@ -342,7 +342,14 @@ load_mnmgwdb_visits <- function() {
 ## surfacewater work
 load_mnmsurfdb_datacoll <- function() {
   surf_visits <- mnmsurfdb$query_table("Visits", ONLY = FALSE) %>%
-    dplyr::filter(visit_done) %>%
+    dplyr::filter(visit_done)
+
+  if (nrow(surf_visits) == 0) {
+    surf_visits <- surf_visits %>%
+      mutate_at(vars(log_update), as.character)
+  }
+
+  surf_visits <- surf_visits %>%
     dplyr::select(
       grts_address,
       type_subset = stratum,
