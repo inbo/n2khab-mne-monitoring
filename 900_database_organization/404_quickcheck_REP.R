@@ -101,19 +101,29 @@ fieldwork_shortterm_prioritization_by_stratum %>%
     # field_activity_group == "GWINSTPIEZWELL",
     # grts_address %in% c(49896893, 21323197)
     # grts_address %in% c(49692341)
-    grts_address %in% c(120110)
+    # grts_address %in% c(120110)
+    grts_address %in% c(231150),
+    field_activity_group == "SURFLENTDATACOLL"
   ) %>%
+  # select(
+  #   # domain_part,
+  #   grts_address,
+  #   stratum,
+  #   date_start,
+  #   field_activity_group,
+  #   # last_type_assessment_in_field,
+  #   rank,
+  #   priority
+  # ) %>%
   select(
-    domain_part,
+    # domain_part,
     grts_address,
     stratum,
+    scheme_ps_targetpanels_served,
     date_start,
-    field_activity_group,
-    last_type_assessment_in_field,
-    rank,
     priority
   ) %>%
-  t() %>% knitr::kable()
+  knitr::kable()
 
 # mhq_samples %>%
 #   filter(grts_address == 120110)

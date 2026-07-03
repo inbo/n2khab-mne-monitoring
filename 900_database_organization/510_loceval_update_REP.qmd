@@ -117,8 +117,8 @@ if (nrow(different_checksums) > 0) {
 
 database <- "loceval"
 config_filepath <- file.path("./mnm_database_connection.conf")
-# suffix <- ""
-suffix <- "-staging"
+suffix <- ""
+# suffix <- "-staging"
 # suffix <- "-testing"
 
 
