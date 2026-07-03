@@ -52,7 +52,7 @@ SELECT
   LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes
-FROM "outbound"."FieldCalendar" AS FCAL
+FROM "outbound"."FieldCalendars" AS FCAL
 LEFT JOIN "inbound"."Visits" AS VISIT
   ON FCAL.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
@@ -142,7 +142,7 @@ DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd_CAL AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
- UPDATE "outbound"."FieldCalendar"
+ UPDATE "outbound"."FieldCalendars"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
