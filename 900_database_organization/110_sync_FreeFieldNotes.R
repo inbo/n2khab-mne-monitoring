@@ -636,7 +636,7 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
 
   if (nrow(novel_fieldnotes) > 0) {
     message(glue::glue("
-    \t<<< Distributing N={nrow(novel_fieldnotes)} novel FieldNotes to {sdb}.
+    \t>>> Distributing N={nrow(novel_fieldnotes)} novel FieldNotes to {sdb}.
     "))
 
     upload_new_fieldnotes_append(
