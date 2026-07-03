@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload - loceval"
-date: "20260703"
+date: "2026-07-03"
 format:
   html:
     toc: true
@@ -561,6 +561,7 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 
 ```{r update-locations}
+
 locations_lookup <- update_cascade_lookup(
   table_label = "Locations",
   new_data = locations,

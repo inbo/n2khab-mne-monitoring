@@ -117,12 +117,28 @@ count_table_content(c(
 
 count_table_content(c(
     "SampleUnits",
-    "FieldCalendar",
+    "FieldCalendars",
     "Visits",
-    "InstallationVisits",
-    "SamplingVisits",
-    "OtherVisits",
-    "InstallationRemovals"
+    "LenticVisits",
+    "LoticVisits",
+    "OtherVisits"
+  ))
+
+```
+
+
+```{r count-observations}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "Observations",
+    "MeteorolObservations",
+    "GeoObservations",
+    "TerraBioObservations",
+    "AquaBioObservations",
+    "PerturbationObservations",
+    "LanduseObservations"
   ))
 
 ```
@@ -133,7 +149,9 @@ count_table_content(c(
 #| echo: false
 
 count_table_content(c(
-    "ReplacementData",
+    "TargetPoints",
+    "SamplingPoints",
+    # "ReplacementData",
     "FreeFieldNotes",
     "FieldFollowUps"
   ))
@@ -271,7 +289,7 @@ check_foreignkey_connection(
   table_label = "LocationCells", fk = "location_id",
   characteristic_columns = c("location_id"),
   ref_table = "Locations", pk = "location_id"
-  )
+)
 
 ```
 
@@ -284,7 +302,7 @@ check_foreignkey_connection(
   table_label = "LocationInfos", fk = "location_id",
   characteristic_columns = c("grts_address"),
   ref_table = "Locations", pk = "location_id"
-  )
+)
 
 ```
 
@@ -298,7 +316,7 @@ check_foreignkey_connection(
   table_label = "Coordinates", fk = "location_id",
   characteristic_columns = c("grts_address"),
   ref_table = "Locations", pk = "location_id"
-  )
+)
 
 ```
 
@@ -311,7 +329,7 @@ check_foreignkey_connection(
   table_label = "SampleUnits", fk = "location_id",
   characteristic_columns = c("grts_address"),
   ref_table = "Locations", pk = "location_id"
-  )
+)
 
 ```
 
@@ -324,7 +342,7 @@ check_foreignkey_connection(
   table_label = "SampleUnits", fk = "location_id",
   characteristic_columns = c("grts_address"),
   ref_table = "Locations", pk = "location_id"
-  )
+)
 
 ```
 
@@ -356,7 +374,7 @@ check_foreignkey_connection(
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "FieldCalendar", fk = "sampleunit_id",
+  table_label = "FieldCalendars", fk = "sampleunit_id",
   characteristic_columns = c("grts_address", "stratum"),
   ref_table = "SampleUnits", pk = "sampleunit_id"
 )
@@ -388,8 +406,8 @@ check_foreignkey_connection(
 check_foreignkey_connection(
   table_label = "Visits", fk = "fieldcalendar_id",
   characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "FieldCalendar" 
-  )
+  ref_table = "FieldCalendars" 
+)
 
 ```
 
@@ -424,7 +442,7 @@ count_archived_content <- function(table_list) {
 
 
 count_archived_content(
-    table_list = c("SampleUnits", "FieldCalendar", "Visits")
+    table_list = c("SampleUnits", "FieldCalendars", "Visits")
   ) %>%
   knitr::kable()
 

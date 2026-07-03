@@ -125,8 +125,8 @@ if (nrow(different_checksums) > 0) {
 
 config_filepath <- file.path("./mnm_database_connection.conf")
 # suffix <- ""
-# suffix <- "-staging"
-suffix <- "-testing"
+suffix <- "-staging"
+# suffix <- "-testing"
 
 # connect mnmsurfdb
 mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
@@ -228,7 +228,7 @@ Now is the time!
 
 ```{r stop-new-grouped-activities}
 
-stop("wait! Grouped Activities have been rearranged.")
+# stop("wait! Grouped Activities have been rearranged.")
 
 # manually adjust GroupedActivities (see db_devlog)
 
@@ -592,7 +592,6 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 ```{r update-locations}
 
-
 locations_lookup <- update_cascade_lookup(
   table_label = "Locations",
   new_data = locations,
@@ -702,7 +701,6 @@ mnmsurfdb$insert_data(
   upload_data = extra_cells
 )
 
-
 ```
 
 
@@ -807,7 +805,7 @@ sampleunits_lookup <- redistribute_calendar_data(
 
 
 
-## FieldCalendar
+## FieldCalendars
 
 ```{r assemble-field-calendar}
 # sampleunits_lookup <- mnmsurfdb$query_columns("SampleUnits", c("grts_address", "type", "sampleunit_id"))
@@ -948,7 +946,7 @@ fieldcalendar_new <- bind_rows(
 # link FieldCalender back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmsurfdb,
-  table_label = "FieldCalendar",
+  table_label = "FieldCalendars",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address", "stratum")
@@ -963,7 +961,7 @@ stitch_table_connection(
 # sideloading: extra activities e.g. to follow up issues in the field
 calendar_to_sideload <- load_table_sideload_content(
     mnmdb = mnmsurfdb,
-    table_label = "FieldCalendar",
+    table_label = "FieldCalendars",
     characteristic_columns = fieldcalendar_characols,
     data_filepath = "sideload/mnmsurfdb_calendars.csv",
     # data_filepath = "sideload/mnmsurfdb_calendars.csv",
@@ -1013,7 +1011,7 @@ fieldcalendar_new <- bind_rows(
 
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = mnmsurfdb,
-  table_label = "FieldCalendar",
+  table_label = "FieldCalendars",
   data_future = fieldcalendar_new,
   characteristic_columns = fieldcalendar_characols,
   other_table_labels = c("Visits")
@@ -1027,7 +1025,7 @@ if (startdate_updates_happened) message("Startdate updates happened!")
 
 ```{r categorize-fieldcalendar}
 
-table_label <- "FieldCalendar"
+table_label <- "FieldCalendars"
 data_nouveau <- fieldcalendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmsurfdb$get_primary_key(table_label)
@@ -1090,12 +1088,12 @@ intermediate check
 
 ```{r re-inspect-fieldcalendar}
 
-mnmsurfdb$query_table("FieldCalendar") %>% 
+mnmsurfdb$query_table("FieldCalendars") %>% 
   count(is.na(sampleunit_id)) %>%
   knitr::kable()
 
 # compare stored to true sample location
-mnmsurfdb$query_table("FieldCalendar") %>%
+mnmsurfdb$query_table("FieldCalendars") %>%
   left_join(
     mnmsurfdb$query_table("SampleUnits"),
     by = join_by(grts_address, stratum)
@@ -1114,7 +1112,7 @@ stitch_visits <- function() {
   stitch_table_connection(
     mnmdb = mnmsurfdb,
     table_label = "Visits",
-    reference_table = "FieldCalendar",
+    reference_table = "FieldCalendars",
     link_key_column = "fieldcalendar_id",
     lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
   )
@@ -1181,14 +1179,14 @@ These tables inherit columns from `Visits`, adding extra ones.
 
 # Loop Special Activities
 selection_of_activities <- list(
-  "InstallationVisits" = activity_groupid_lookup %>%
-    filter(grepl("^SURFINST", activity_group)) %>%
+  "LenticVisits" = activity_groupid_lookup %>%
+    filter(grepl("^SURFLENT", activity_group)) %>%
     pull(activity_group_id) %>% unique, # /WIA
   # "PositioningVisits" = activity_groupid_lookup %>%
   #   filter(grepl("^SPATPOSIT", activity_group)) %>%
   #   pull(activity_group_id) %>% unique, # /SPA
-  "SamplingVisits" = activity_groupid_lookup %>%
-    filter(grepl("^SURF.*SAMP", activity_group)) %>%
+  "LoticVisits" = activity_groupid_lookup %>%
+    filter(grepl("^SURFLOT", activity_group)) %>%
     pull(activity_group_id) %>% unique # /CSA
 )
 
@@ -1285,7 +1283,7 @@ archive visits of archived FWCals
 ```{r archive-visits-fwcal}
 
 trgtab <- mnmsurfdb$get_namestring("Visits")
-srctab <- mnmsurfdb$get_namestring("FieldCalendar")
+srctab <- mnmsurfdb$get_namestring("FieldCalendars")
 link_key_column <- "archive_version_id"
 lookup_criteria <- c("TRGTAB.fieldcalendar_id = SRCTAB.fieldcalendar_id")
 
@@ -1300,7 +1298,7 @@ update_string <- glue::glue("
 
 mnmsurfdb$execute_sql(update_string)
 
-mnmsurfdb$query_table("FieldCalendar") %>%
+mnmsurfdb$query_table("FieldCalendars") %>%
   anti_join(
     mnmsurfdb$query_table("Visits"),
     by = join_by(fieldcalendar_id, archive_version_id)
@@ -1336,7 +1334,6 @@ new_locinfos <- new_locinfos %>%
     by = join_by(grts_address),
   )
 
-
 locationinfo_lookup <- update_cascade_lookup(
   table_label = "LocationInfos",
   new_data = new_locinfos,
@@ -1345,7 +1342,6 @@ locationinfo_lookup <- update_cascade_lookup(
   tabula_rasa = FALSE,
   verbose = TRUE
 )
-
 
 ```
 
