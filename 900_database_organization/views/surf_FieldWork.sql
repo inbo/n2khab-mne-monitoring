@@ -78,7 +78,7 @@ LEFT JOIN "outbound"."LocationInfos" AS INFO
 LEFT JOIN (
   SELECT *,
     CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning = TRUE END AS is_scheduled
-  FROM "outbound"."FieldCalendar"
+  FROM "outbound"."FieldCalendars"
   ) AS FCAL
   ON FCAL.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN (
