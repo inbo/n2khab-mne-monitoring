@@ -157,7 +157,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
 stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
   select(-module_combo_code) %>%
-  nest_and_flatten_scheme_ps_targetpanel(include_old = FALSE) %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = FALSE, for_fag_occasions = FALSE) %>%
   relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
 
@@ -178,11 +178,67 @@ if (interactive()) {
 ## Sampling unit geometries --------------------------------------
 
 # obtaining geometries of the sampling units themselves:
-# - for aquatic types, see code from
-#   https://github.com/inbo/n2khab-mne-monitoring/pull/2, but then do use the
-#   POC RData file used here
+# - for lentic types, the result is in object 'watersurface_spsamples_sf' below
+# - for lotic types, see code in
+#   inbo/n2khab-mne-monitoring/010_aq_piezometer_positioning, but then do use
+#   the REP RData file used here
 # - for type 7220 (springs) as a whole, see code provided below
 # - for terrestrial types, these are cells; see code provided below
+
+
+
+# geometries of the spatial sampling units of lentic types (polygons)
+# /////////////////////////////////////////////////////////////////////////
+
+# link between spatial sampling units of lentic types and watersurface polygons
+stratum_grts_polygon_spsamples_lentic <-
+  scheme_moco_ps_stratum_sppost_spsamples %>%
+  filter(str_detect(stratum, "^2190_a|^31")) %>%
+  unnest(sp_poststr_samples) %>%
+  select(-sample_status) %>%
+  # provision for potential local replacements by including grts_address_final
+  # (currently not different for these strata)
+  add_assessment_data() %>%
+  distinct(stratum, grts_address_final) %>%
+  inner_join_m21_ed(
+    units_non_cell_n2khab_grts %>%
+      filter(sample_support_code == "watersurface") %>%
+      select(-sample_support_code),
+    join_by(grts_address_final == grts_address)
+  ) %>%
+  rename(polygon_id = unit_id)
+
+# extract all polygons from watersurfaces_hab that belong to the spatial samples
+# for lentic types:
+wsh_polygons_spsamples <-
+  read_watersurfaces_hab(version = versions_required["watersurfaces_hab"]) %>%
+  pluck("watersurfaces_polygons") %>%
+  select(polygon_id) %>%
+  semi_join(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id))
+
+# extract all polygons from the watersurfaces data source that belong to the
+# spatial samples for lentic types but that were not covered by
+# watersurfaces_hab:
+ws_extra_polygons_spsamples <-
+  read_watersurfaces(
+    version = versions_required["watersurfaces"],
+    fix_geom = TRUE
+  ) %>%
+  select(polygon_id) %>%
+  semi_join(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id)) %>%
+  # keeping only the unique extra polygons relative to watersurfaces_hab
+  anti_join(
+    st_drop_geometry(wsh_polygons_spsamples),
+    join_by(polygon_id)
+  )
+
+# add the geometry to the spatial sampling units:
+stratum_grts_spsamples_lentic_sf <-
+  rbind(wsh_polygons_spsamples, ws_extra_polygons_spsamples) %>%
+  inner_join_12m_e(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id)) %>%
+  relocate(stratum, grts_address_final) %>%
+  arrange(stratum, grts_address_final)
+
 
 
 # geometries of 7220 units are represented by points, labelled with their GRTS
@@ -902,9 +958,8 @@ fa_protocol <-
   )
 
 # List of variables / variable sets to be collected in the field (will expand
-# when mod_scheme_vars expands). Note 1: currently only target variables are
-# involved in mod_scheme_vars. Note 2: this only concerns MNE, so it still
-# misses the LSVI field measurement of the LSVITERR & LSVIAQ field activities.
+# when mod_scheme_vars expands). This only concerns MNE, so it still misses the
+# LSVI field measurement of the LSVITERR & LSVIAQ field activities.
 scheme_moco_fa_fieldvar <-
   mod_scheme_vars %>%
   # bring to module combo level
@@ -951,17 +1006,17 @@ scheme_moco_fa_fieldvar <-
 # Derive the short-term FAG calendar at the stratum x location x FAG occasion,
 # and include some of the location attributes.
 #
-# Note that the scheme_ps_targetpanels attribute created below by
-# nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked version of
-# the one at the level of the whole sample (see sampling unit attributes in the
-# beginning), since we limited the activities to those planned before main_year
-# + 1 (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
-# location attribute. So it says specifically which schemes x panel sets x
-# targetpanels are served by the specific fieldwork at a specific date interval.
-# Note that we substitute the targetpanel with the OLD targetpanel if the
-# targetpanel is missing, i.e. for sampling units missing from the current FAG
-# calendar. This is done to avoid missing values in derived objects or
-# overviews.
+# Note that the scheme_ps_targetpanels_served attribute created below by
+# nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked
+# version of scheme_ps_targetpanels at the level of the whole sample (see
+# sampling unit attributes in the beginning), since it is specific to the FAG
+# occasion and since we limited the activities to those planned before main_year
+# + 1 (sometimes later), before generating scheme_ps_targetpanels_served. So it
+# says specifically which schemes x panel sets x targetpanels are served by the
+# specific fieldwork at a specific date interval. Note that we substitute the
+# targetpanel with the OLD targetpanel if the targetpanel is missing, i.e. for
+# sampling units missing from the current FAG calendar. This is done to avoid
+# missing values in derived objects or overviews.
 main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
@@ -978,14 +1033,16 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
   unnest_and_join_sampling_unit_attributes() %>%
-  nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE, for_fag_occasions = TRUE) %>%
+  mark_matching_occasions() %>%
   relocate(
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     schemes_served_all,
     starts_with("nr_schemes")
-  )
+  ) %>%
+  relocate(matching_occasion, .after = rank)
 
-# Derive an object where stratum x scheme_ps_targetpanels is flattened per
+# Derive an object where stratum x scheme_ps_targetpanels_served is flattened per
 # location x FAG occasion. Beware that in reality, more locations will emerge
 # due to local replacement, so this is misleading for counting & planning (but
 # useful in spatial visualization).
@@ -997,15 +1054,15 @@ fag_grts_calendar_shortterm_attribs <-
   ) %>%
   unite_stratum_and_schemepstargetpanels() %>%
   summarize(
-    stratum_scheme_ps_targetpanels =
+    stratum_scheme_ps_targetpanels_served =
       str_flatten(
-        unique(stratum_scheme_ps_targetpanels),
+        unique(stratum_scheme_ps_targetpanels_served),
         collapse = " \u2588 "
       ) %>%
       factor(),
-    .by = !stratum_scheme_ps_targetpanels
+    .by = !stratum_scheme_ps_targetpanels_served
   ) %>%
-  relocate(stratum_scheme_ps_targetpanels)
+  relocate(stratum_scheme_ps_targetpanels_served)
 
 # A simple derived spatial object (as points; see earlier for the actual unit
 # geometries). Points are still repeated because of different date_interval &
@@ -1041,12 +1098,12 @@ fieldwork_shortterm_prioritization_by_stratum <-
 fieldwork_shortterm_targetpanels_prioritization_count <-
   fieldwork_shortterm_prioritization_by_stratum %>%
   count(
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     priority,
-    pick(starts_with("wait"), -wait_any),
+    pick(starts_with("wait")),
     field_activity_group
   ) %>%
-  arrange(priority, pick(starts_with("wait"))) %>%
+  arrange(priority, pick(starts_with("wait"), -wait_any)) %>%
   pivot_wider(
     names_from = field_activity_group,
     names_sort = TRUE,
@@ -1060,10 +1117,10 @@ fieldwork_shortterm_dates_prioritization_count <-
     date_interval,
     date_end,
     priority,
-    pick(starts_with("wait"), -wait_any),
+    pick(starts_with("wait")),
     field_activity_group
   ) %>%
-  arrange(date_end, priority, pick(starts_with("wait"))) %>%
+  arrange(date_end, priority, pick(starts_with("wait"), -wait_any)) %>%
   select(-date_end) %>%
   pivot_wider(
     names_from = field_activity_group,
@@ -1113,18 +1170,18 @@ fag_stratum_grts_calendar %>%
 ## Making selections for short-term orthophoto assessments ---------------------
 
 
-# Making a list of terrestrial locations to be assessed using orthophotos
+### Making a list of terrestrial locations to be assessed using orthophotos ----
 
-orthophoto_shortterm_type_grts <-
+orthophoto_shortterm_terrtype_grts <-
   fieldwork_shortterm_prioritization_by_stratum %>%
   filter(
     str_detect(field_activity_group, "LOCEVAL"),
     # only keep cell-based types (aquatic & 7220 will be more reliable or simply
     # not possible to evaluate on orthophoto)
-    str_detect(grts_join_method, "cell")
+    str_detect(sample_support_code, "cell")
   ) %>%
   convert_stratum_to_type() %>%
-  select(-rank, -scheme_ps_oldtargetpanels) %>%
+  select(-rank, -scheme_ps_oldtargetpanels_served, -matching_occasion) %>%
   arrange(
     priority,
     type,
@@ -1135,7 +1192,10 @@ orthophoto_shortterm_type_grts <-
 # unit geometries (cells):
 orthophoto_shortterm_cells <-
   units_cell_polygon %>%
-  inner_join_12m_de(orthophoto_shortterm_type_grts, join_by(grts_address_final)) %>%
+  inner_join_12m_de(
+    orthophoto_shortterm_terrtype_grts,
+    join_by(grts_address_final)
+  ) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(
@@ -1147,8 +1207,51 @@ orthophoto_shortterm_cells <-
 
 # cell centers:
 orthophoto_shortterm_cell_centers <-
-  orthophoto_shortterm_type_grts %>%
+  orthophoto_shortterm_terrtype_grts %>%
   add_point_coords_grts_mh(grts_var = "grts_address_final")
+
+
+
+### Making a list of lentic locations to be assessed using orthophotos ----
+
+orthophoto_shortterm_lentictype_grts <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
+  filter(str_detect(field_activity_group, "LOCEVAL")) %>%
+  # the polygons that are no member of the watersurfaces data source are the
+  # ones to be screened
+  semi_join(
+    stratum_grts_polygon_spsamples_lentic %>%
+      filter(!str_detect(polygon_id, "^(ANT|LIM|WVL|OVL|VBR)")),
+    join_by(stratum, grts_address_final)
+  ) %>%
+  # converting stratum to type (keeping stratum)
+  inner_join_m21_ed(n2khab_strata, join_by(stratum)) %>%
+  relocate(type, .after = stratum) %>%
+  select(-rank, -scheme_ps_oldtargetpanels_served) %>%
+  arrange(
+    priority,
+    type,
+    domain_part,
+    grts_address
+  )
+
+# unit geometries (polygons)
+orthophoto_shortterm_watersurfaces <-
+  stratum_grts_spsamples_lentic_sf %>%
+  inner_join_12m_de(
+    orthophoto_shortterm_lentictype_grts,
+    join_by(stratum, grts_address_final)
+  ) %>%
+  relocate(type, stratum, .after = polygon_id) %>%
+  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(geom, .after = last_col()) %>%
+  arrange(
+    priority,
+    type,
+    domain_part,
+    grts_address
+  )
+
 
 
 

@@ -71,8 +71,8 @@ update_date_interval <- function(.data) {
 }
 
 
-#' move the LOCEVAL fieldwork that was kept for main_year - 1, to main_year,
-#' since that is indeed its meaning
+#' move the LOCEVAL & SAMPLPOINT fieldwork that was kept for main_year - 1, to
+#' main_year, since that is indeed its meaning
 postpone_selected_past_activities <- function(.data) {
 
   require_pkgs(c("dplyr", "lubridate"))
@@ -87,7 +87,7 @@ postpone_selected_past_activities <- function(.data) {
       dplyr::across(c(date_start, date_end), \(x) {
         dplyr::if_else(
           lubridate::year(date_start) == main_year - 1 &
-            stringr::str_detect(field_activity_group, "LOCEVAL"),
+            stringr::str_detect(field_activity_group, "LOCEVAL|SAMPLPOINT"),
           x + lubridate::years(1),
           x
         )
@@ -112,6 +112,65 @@ drop_past_activities <- function(.data, min_year) {
 }
 
 
+#' Mark matching occasions
+#'
+#' Marks matching occasions in a data frame of FAG occasions.
+#'
+#' In lentic types, multiple strata can effectively occur at the same GRTS
+#' address. Such rows represent duplicated FAG occasions. In some of these
+#' cases (LOCEVALAQ) data must still be collected with reference to the
+#' specific stratum, but the actual fieldwork is just a single occasion. Since
+#' we need the distinction between strata for the terrestrial FAG occasions and
+#' because the sampling units always remain defined by grts_address x stratum,
+#' we don't change the object structure to reflect unique fieldwork events.
+#' However we do mark some FAG occasions as 'matching occasions' using a common
+#' string: these FAG occasions occur more than once across strata (and for some
+#' FAGs also across time) and can be executed as a single FAG occasion.
+mark_matching_occasions <- function(.data) {
+  require_pkgs(c("dplyr", "lubridate", "stringr", "magrittr"))
+  .data %>%
+    # matching occasions across strata
+    dplyr::mutate(
+      matching_occasion = ifelse(
+        stringr::str_detect(stratum, "^2190_a|^31") &
+          # not using n() because that still includes terrestrial types:
+          sum(stringr::str_detect(stratum, "^2190_a|^31")) > 1,
+        stringr::str_c(
+          dplyr::first(field_activity_group),
+          dplyr::first(grts_address_final),
+          stringr::str_c(
+            "[",
+            format(dplyr::first(date_start), "%Y%m%d"),
+            "-",
+            format(dplyr::first(date_end), "%Y%m%d"),
+            "]"
+          ),
+          sep = "_"
+        ),
+        NA_character_
+      ),
+      .by = c(grts_address, starts_with("date"), field_activity_group)
+    ) %>%
+    # matching occasions across strata and date intervals
+    dplyr::mutate(
+      matching_occasion = ifelse(
+        stringr::str_detect(stratum, "^2190_a|^31") &
+          # not using n() because that still includes terrestrial types:
+          sum(stringr::str_detect(stratum, "^2190_a|^31")) > 1 &
+          stringr::str_detect(field_activity_group, "INST|LEVREAD|SPATPOSIT"),
+        stringr::str_c(
+          dplyr::first(field_activity_group),
+          dplyr::first(grts_address_final),
+          sep = "_"
+        ),
+        matching_occasion
+      ),
+      .by = c(grts_address, field_activity_group)
+    ) %>%
+    dplyr::mutate(matching_occasion = factor(matching_occasion)) %>%
+    return()
+}
+
 
 #_______________________________________________________________________________
 ### Priorities
@@ -127,20 +186,20 @@ prioritize_gw_fieldwork <- function(.data) {
         # no priority is given to imported FAGs from old versions (these
         # READDIVER, CLEAN & SHALLSAMP FAGs can be done as it suits, in the
         # locations where LOCEVAL is already executed)
-        !is.na(scheme_ps_oldtargetpanels) ~ NA_integer_,
+        !is.na(scheme_ps_oldtargetpanels_served) ~ NA_integer_,
         # no priority is given to FAG occasions for types that will be obsoleted,
         # if the panel set is panel set 2 accross the targeted schemes
         stratum %in% c("6410_ve", "6510_hus") &
-          !stringr::str_detect(scheme_ps_targetpanels, ":PS1") ~ NA_integer_,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL03|PS2PANEL01)") ~ 1L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS2PANEL02") ~ 2L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL02") ~ 9L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL04") ~ 3L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL0[56]|PS2PANEL03)") ~ 4L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL07") ~ 6L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:PS1PANEL01") ~ 10L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 8L,
-        stringr::str_detect(scheme_ps_targetpanels, "GW_05\\.") ~ 11L
+          !stringr::str_detect(scheme_ps_targetpanels_served, ":PS1") ~ NA_integer_,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL03|PS2PANEL01)") ~ 1L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS2PANEL02") ~ 2L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL02") ~ 9L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL04") ~ 3L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL0[56]|PS2PANEL03)") ~ 4L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL07") ~ 6L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL01") ~ 10L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 8L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_05\\.") ~ 11L
       )
     ) %>%
     return()
@@ -155,8 +214,8 @@ prioritize_surf_fieldwork <- function(.data) {
   .data %>%
     dplyr::mutate(
       priority_surf = dplyr::case_when(
-        stringr::str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL02") ~ 2L,
-        stringr::str_detect(scheme_ps_targetpanels, "SURF_03\\.4_[a-z]+:PS\\dPANEL01") ~ 4L
+        stringr::str_detect(scheme_ps_targetpanels_served, "SURF_03\\.4_[a-z]+:PS\\dPANEL02") ~ 2L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SURF_03\\.4_[a-z]+:PS\\dPANEL01") ~ 4L
       )
     ) %>%
     return()
@@ -174,11 +233,11 @@ prioritize_soil_fieldwork <- function(.data) {
         # no priority is given to FAG occasions for types that will be obsoleted,
         # if the panel set is panel set 2 accross the targeted schemes
         stratum %in% c("6410_ve", "6510_hus") &
-          !stringr::str_detect(scheme_ps_targetpanels, ":PS1") ~ NA_integer_,
-        stringr::str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL02") ~ 7L,
-        stringr::str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL01") ~ 8L,
-        stringr::str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL03") ~ 9L,
-        stringr::str_detect(scheme_ps_targetpanels, "SOIL_03\\.2:PS\\dPANEL04") ~ 10L
+          !stringr::str_detect(scheme_ps_targetpanels_served, ":PS1") ~ NA_integer_,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS\\dPANEL02") ~ 7L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS\\dPANEL01") ~ 8L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS\\dPANEL03") ~ 9L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS\\dPANEL04") ~ 10L
       )
     ) %>%
     return()
@@ -194,10 +253,15 @@ prioritize_mhq_fieldwork <- function(.data) {
     dplyr::mutate(
       priority_mhq = dplyr::case_when(
         # no priority is given to FAG occasions for types that will be obsoleted,
-        # if the panel set is panel set 2 accross the targeted schemes
+        # if the panel set is panel set 2 accross the targeted schemes. This is
+        # actually redundant now, but keeping this rule in for safety.
         stratum %in% c("6410_ve", "6510_hus") &
-          !stringr::str_detect(scheme_ps_targetpanels, ":PS1") ~ NA_integer_,
-        stringr::str_detect(scheme_ps_targetpanels, "HQ.+:PS\\dPANEL01") ~ 3L
+          !stringr::str_detect(scheme_ps_targetpanels_served, ":PS1") ~ NA_integer_,
+        # only aquatic types can get a priority; terrestrial types will not be
+        # sampled for MHQ
+        stringr::str_detect(scheme_ps_targetpanels_served, "HQ.+:PS\\dPANEL01") &
+          sample_support_code %in%
+          c("spring", "watercourse_segment", "watersurface") ~ 3L
       )
     ) %>%
     return()
@@ -235,18 +299,22 @@ add_wait_columns <- function(.data) {
 
   .data %>%
     dplyr::mutate(
-      wait_watersurface = stringr::str_detect(stratum, "^31|^2190_a"),
+      wait_watersurface = stringr::str_detect(stratum, "^2190_a") |
+        (
+          stringr::str_detect(stratum, "^31|^2190_a") &
+            !stringr::str_detect(schemes_served_all, "SURF_03\\.4")
+        ),
       wait_3260 = stratum == "3260",
       wait_7220 = stringr::str_detect(stratum, "^7220"),
       wait_floating = stratum == "7140_mrd",
-      wait_mhq = stringr::str_detect(scheme_ps_targetpanels, "^HQ.*?(?!\\|)"),
+      wait_mhq = stringr::str_detect(scheme_ps_targetpanels_served, "^HQ.*?(?!\\|)"),
       wait_obsolete_types = stratum %in% c("6410_ve", "6510_hus") &
         (
           # don't pursue locations (including LOCEVAL FAGs) that only belong to
           # panel set 2, except for planned READDIVER, CLEAN & SHALLSAMP FAGs
           # (i.e. applicable to already installed locations)
           (
-            !stringr::str_detect(scheme_ps_targetpanels, ":PS1") &
+            !stringr::str_detect(scheme_ps_targetpanels_served, ":PS1") &
               !stringr::str_detect(field_activity_group, "^GW.*(LEVREADDIVER|SHALL)")
           ) |
             # for panel set 1, don't perform new installations in these types, but
