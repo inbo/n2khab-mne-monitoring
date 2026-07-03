@@ -416,7 +416,7 @@ stitch_table_connection(
 # link FieldworkCalender back to SampleLocations
 stitch_table_connection(
   mnmdb = mnmsurfdb,
-  table_label = "FieldCalendar",
+  table_label = "FieldCalendars",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address", "stratum")
@@ -448,7 +448,7 @@ stitch_table_connection(
 stitch_table_connection(
   mnmdb = mnmsurfdb,
   table_label = "Visits",
-  reference_table = "FieldCalendar",
+  reference_table = "FieldCalendars",
   link_key_column = "fieldcalendar_id",
   lookup_columns =
     c("grts_address", "stratum", "activity_group_id", "date_start")

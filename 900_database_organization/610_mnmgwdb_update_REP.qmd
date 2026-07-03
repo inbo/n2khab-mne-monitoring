@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload"
-date: "2026-05-27"
+date: "2026-07-03"
 format:
   html:
     toc: true
@@ -23,8 +23,9 @@ Let's bring the sample to the field - again!
 
 # Changelog
 
-- 20250627, 20250904, 20260309, 20260326: <undocumented>
+- 20250627, 20250904, 20260309, 20260326: <prehistoric>
 - 20260527 REP update
+- 20260703 update to REP 0.17.0 / SNIP 0.17.0
 
 
 # TODO
@@ -137,8 +138,8 @@ if (nrow(different_checksums) > 0) {
 
 config_filepath <- file.path("./mnm_database_connection.conf")
 # suffix <- ""
-# suffix <- "-staging"
-suffix <- "-testing"
+suffix <- "-staging"
+# suffix <- "-testing"
 
 # ... and mnmgwdb
 mnmgwdb_mirror <- glue::glue("mnmgwdb{suffix}")
@@ -197,7 +198,7 @@ if (FALSE) {
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
 
   version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
-  version_notes <- "activating SURF_03.4_LENTIC"
+  version_notes <- "SURF_03.4_LENTIC"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -245,7 +246,7 @@ Now is the time!
 
 ```{r stop-new-grouped-activities}
 
-stop("wait! Grouped Activities have been rearranged.")
+# stop("wait! Grouped Activities have been rearranged.")
 
 # manually adjust GroupedActivities (see db_devlog)
 
@@ -265,8 +266,10 @@ n2khabstrata_lookup <- mnmgwdb$query_lookup(
 
 activity_groupid_lookup <- mnmgwdb$query_columns(
     "GroupedActivities",
-    c("activity_group", "activity_group_id")
+    c("activity_group", "activity_group_id", "archive_version_id")
   ) %>%
+  filter(is.na(archive_version_id)) %>% 
+  select(-archive_version_id) %>% 
   distinct()
 
 ```
@@ -275,7 +278,7 @@ activity_groupid_lookup <- mnmgwdb$query_columns(
 ```{r load-activities}
 
 gw_field_activities_db <- mnmgwdb$query_table("GroupedActivities") %>%
-  filter(is_gw_activity, is_field_activity) %>%
+  filter(is_gw_activity, is_field_activity, is.na(archive_version_id)) %>%
   distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 ```

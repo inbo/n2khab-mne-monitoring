@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload - loceval"
-date: "20260626"
+date: "2026-07-03"
 format:
   html:
     toc: true
@@ -22,6 +22,7 @@ knitr:
 - 20260527 REP update
 - 20260616 missing Replacements -> bugfix now join to `grts_address_final`
 - 20260626 preview REP 0.17.0 -> `SURF_03.4_LENTIC`
+- 20260703 actual REP 0.17.0 -> `SURF_03.4_LENTIC`
 
 
 # TODO
@@ -129,6 +130,7 @@ locevaldb <- connect_mnm_database(
   database_mirror = locevaldb_mirror
 ) 
 # keyring::keyring_delete(keyring = "mnmdb_temp")
+
 ```
 
 
@@ -185,8 +187,8 @@ if (FALSE) {
   # version_notes <- "activating SURF_03.4_LENTIC"
 
   # preview:  
-  version_tag <- "snip:0.17.beta_rep:0.17.beta" # data_iteration = 1
-  version_notes <- "preview SURF_03.4_LENTIC"
+  version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
+  version_notes <- "SURF_03.4_LENTIC"
 
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
@@ -352,7 +354,7 @@ sample_unit_columns <- c(
   "mhq_assessment_date", 
   "has_mhq_assessment", 
   "domain_part",
-  "scheme_ps_targetpanels",
+  "scheme_ps_targetpanels_served",
   "previous_notes"
 )
 
@@ -389,7 +391,7 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   distinct(!!!rlang::syms(sample_unit_columns)) %>% 
   mutate(across(c(
       grts_join_method,
-      scheme_ps_targetpanels,
+      scheme_ps_targetpanels_served,
       schemes,
       type,
       domain_part,
@@ -478,16 +480,16 @@ consolidate <- \(x) sort(unique(unlist(trimlist(x))))
 
 sample_units <- sample_units %>% mutate(
     schemes = stringr::str_split(schemes, "\\|"),
-    scheme_ps_targetpanels = stringr::str_split(scheme_ps_targetpanels, "\\|")
+    scheme_ps_targetpanels_served = stringr::str_split(scheme_ps_targetpanels_served, "\\|")
   ) %>% 
   group_by(
     # old-school manual group-summarize-ungroup (because `across` does not work in `.by`)
-    across(c(-schemes, -scheme_ps_targetpanels))
+    across(c(-schemes, -scheme_ps_targetpanels_served))
   ) %>%
   summarize(
     # sort and collapse all unique schemes and scheme/targetpanel combinations
     schemes = paste0(consolidate(schemes), collapse = "|"),
-    scheme_ps_targetpanels = paste0(consolidate(scheme_ps_targetpanels), collapse = " | "),
+    scheme_ps_targetpanels_served = paste0(consolidate(scheme_ps_targetpanels_served), collapse = " | "),
     .groups = "drop_last"
   ) %>%
   ungroup()
@@ -559,6 +561,7 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 
 ```{r update-locations}
+
 locations_lookup <- update_cascade_lookup(
   table_label = "Locations",
   new_data = locations,
@@ -673,16 +676,13 @@ sample_units <- sample_units %>%
   ) %>%
   distinct()
 
-sample_units %>%
-  filter(grts_address == 617774) %>%
-  distinct() %>% 
-  t() %>% knitr::kable()
+# sample_units %>%
+#   filter(grts_address == 617774) %>%
+#   distinct() %>% 
+#   t() %>% knitr::kable()
 
 table_label <- "SampleUnits"
-data_nouveau <- sample_units %>%
-  rename(
-    scheme_ps_targetpanels_served = scheme_ps_targetpanels
-  )
+data_nouveau <- sample_units
 characteristic_columns <- c("grts_address", "type") # , "location_id"
 index_column <- locevaldb$get_primary_key(table_label)
 # locevaldb$query_columns(table_label, characteristic_columns)
