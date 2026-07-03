@@ -123,7 +123,13 @@ grts_datatype_to_integer <- function(data) {
 #' @return timestamp, in milliseconds, as.character
 convert_timestamp_to_ms_character <- function(ts) {
   # timestamp string in seconds
-  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0")
+
+  if (length(ts) == 0) return(NA)
+  if (is.scalar.na(ts)) return(NA)
+
+  stopifnot("Timestamp must be POSIXct type." = is.POSIXct(ts))
+
+  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0", tz = "UTC")
 
   # milliseconds
   ts_ms_char <- as.character(floor(unclass(ts)*1000))
@@ -145,12 +151,28 @@ convert_timestamp_to_ms_character <- function(ts) {
 #   print(convert_timestamp_to_ms_character(Sys.time()))
 # }
 
+#' unlist, retaining NA occurrences
+#'
+#' the regular unlist wil loose NULLs/NAs when used with purrr
+#' so this is a necessary extra step
+#'
+unlist_keep_na <- function(x) {
+  x_un <- unlist(x)
+  if (is.null(x_un)) return(NA)
+  return(x_un)
+}
+
+
 #' convert all POSIXct types in a data frame to string
 convert_df_datetime_types_to_character <- function(df) {
+
+  # purrr::map(df$log_creation, convert_timestamp_to_ms_character)
+  # x <- df$log_creation
+
   df %>%
     mutate_if(
       is.POSIXct,
-      \(x) unlist(purrr::map(x, convert_timestamp_to_ms_character))
+      \(x) unlist_keep_na(purrr::map(x, convert_timestamp_to_ms_character))
     ) %>%
     return()
 }
@@ -786,7 +808,9 @@ mnmdb_assemble_structure_lookups <- function(db) {
   db$load_table_info <- function(table_label) {
     table_info <- read.csv(
       file.path(db$folder, glue::glue("{table_label}.csv"))
-    )
+    ) %>%
+    mutate_at(vars(default, foreign_key, constraint, freesql), as.character)
+
     return(table_info)
   }
   # db$load_table_info("FreeFieldNotes")
@@ -811,10 +835,13 @@ mnmdb_assemble_structure_lookups <- function(db) {
     # db$tables %>% filter(table == "PositioningVisits") %>% pull(inherits)
     # db$tables %>% filter(table == "TeamMembers") %>% pull(inherits)
     ancestors <- db$get_ancestor_tables(table_label)
+    # db$load_table_info(ancestors[[1]]) %>% glimpse()
+    # full_table_info %>% glimpse()
+
     if (length(ancestors) > 0) {
       for (ancestor in ancestors) {
         full_table_info <- bind_rows(
-          db$load_table_info(ancestors),
+          db$load_table_info(ancestor),
           full_table_info
         )
       }
@@ -990,6 +1017,10 @@ mnmdb_assemble_query_functions <- function(db) {
       data <- db$query_table_uncollected(table_label, ONLY, subselect) %>%
         dplyr::collect()
     }
+
+    # data %>% mutate(test =
+    #   unlist_keep_na(purrr::map(log_creation, convert_timestamp_to_ms_character))
+    # ) %>% pull(test)
 
     data %>%
       grts_datatype_to_integer() %>%

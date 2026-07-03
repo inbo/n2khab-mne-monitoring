@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload for mnmSURFdb"
-date: "2026-06-15"
+date: "2026-07-03"
 format:
   html:
     toc: true
@@ -16,7 +16,7 @@ knitr:
 # Changelog
 
 - 20260615 init: copied from mnmgwdb
-- 202606?? REP update
+- 20260703 REP update 0.17.0
 
 
 # TODO
@@ -124,8 +124,9 @@ if (nrow(different_checksums) > 0) {
 ```{r connect-databases}
 
 config_filepath <- file.path("./mnm_database_connection.conf")
-suffix <- "-staging"
 # suffix <- ""
+# suffix <- "-staging"
+suffix <- "-testing"
 
 # connect mnmsurfdb
 mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
@@ -154,7 +155,10 @@ update_cascade_lookup <- parametrize_cascaded_update(mnmsurfdb)
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
 
-if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
+if (isFALSE(grepl("-staging", mnmsurfdb_mirror))
+    && isFALSE(grepl("-testing", mnmsurfdb_mirror))
+    && isFALSE(grepl("-dev", mnmsurfdb_mirror))
+    ) {
   mnmsurfdb$dump_all(
     here::here("dumps", glue::glue("rep_pre_update_{mnmsurfdb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
@@ -173,9 +177,10 @@ if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
 if (FALSE) {
 
   # manually set a new version
-  version_tag <- "mnmsurfdb_initialization" # data_iteration = 1
-  version_notes <-
-    "REP + snippets update 0.16"
+  # version_tag <- "mnmsurfdb_initialization" # "REP + snippets update 0.16" # only used for testing
+
+  version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
+  version_notes <- "activating SURF_03.4_LENTIC"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -216,6 +221,18 @@ if (FALSE) {
 Any news?
 Now is the time!
 :::
+
+
++ `410_update_protocols.qmd`
++ `411_update_grouped_activities.qmd`
+
+```{r stop-new-grouped-activities}
+
+stop("wait! Grouped Activities have been rearranged.")
+
+# manually adjust GroupedActivities (see db_devlog)
+
+```
 
 
 # Let's Do This
@@ -349,7 +366,7 @@ apply_local_replacement_to_grts <- function(df, typecolumn = "stratum") {
 sample_unit_columns <- c(
   "grts_address",
   "stratum",
-  "scheme_ps_targetpanels",
+  "scheme_ps_targetpanels_served",
   "schemes",
   "domain_part",
   "is_forest",
@@ -385,7 +402,7 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   ) %>%
   distinct(!!!rlang::syms(sample_unit_columns)) %>% 
   mutate(across(c(
-      scheme_ps_targetpanels,
+      scheme_ps_targetpanels_served,
       stratum,
       domain_part
     ), as.character)
@@ -452,6 +469,43 @@ sample_units <- bind_rows(
 #   t() %>% knitr::kable()
 
 ```
+
+
+See `990_database_documentation/glossary/schemes served.md`:
+we document all the schemes which a sample unit is currently planned to serve.
+
+Because activity types can differ in their purpose, a consolidation is required on the level of sample units.
+
+
+
+```{r consolidate-schemes-served}
+
+trimlist <- \(x) lapply(x, FUN = \(y) stringr::str_trim(y, side = "both"))
+consolidate <- \(x) sort(unique(unlist(trimlist(x))))
+
+sample_units <- sample_units %>% mutate(
+    schemes = stringr::str_split(schemes, "\\|"),
+    scheme_ps_targetpanels_served = stringr::str_split(scheme_ps_targetpanels_served, "\\|")
+  ) %>% 
+  group_by(
+    # old-school manual group-summarize-ungroup (because `across` does not work in `.by`)
+    across(c(-schemes, -scheme_ps_targetpanels_served))
+  ) %>%
+  summarize(
+    # sort and collapse all unique schemes and scheme/targetpanel combinations
+    schemes = paste0(consolidate(schemes), collapse = "|"),
+    scheme_ps_targetpanels_served = paste0(consolidate(scheme_ps_targetpanels_served), collapse = "|"),
+    .groups = "drop_last"
+  ) %>%
+  ungroup()
+
+# sample_units %>%
+#   glimpse()
+# sample_n(3) %>% 
+#   t() %>% knitr::kable()
+
+```
+
 
 
 ## Locations
@@ -735,7 +789,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>%
   mutate(
     # log_user = "maintenance",
-    # log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    # log_update = convert_timestamp_to_ms_character(Sys.time()),
     # is_replacement = FALSE
   )
 
@@ -1011,7 +1065,7 @@ print_category_count(distribution, table_label)
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     excluded = FALSE,
     is_frozen = FALSE,
     no_visit_planned = FALSE,
@@ -1100,7 +1154,7 @@ potential_visits <- fieldcalendar_lookup %>%
   ) %>%
   mutate(
     log_user = "maintenance",
-    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
     issues = FALSE,
     visit_done = FALSE
   )
@@ -1267,9 +1321,9 @@ new_locinfos <- sample_units %>%
   ) %>%
   mutate(
     log_creator = "maintenance",
-    log_creation = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s")),
+    log_creation = convert_timestamp_to_ms_character(Sys.time()),
     log_user = "maintenance",
-    log_update = as.POSIXct(lubridate::floor_date(Sys.time(), unit = ".001s"))
+    log_update = convert_timestamp_to_ms_character(Sys.time())
   )
 
 new_locinfos <- new_locinfos %>%
@@ -1322,7 +1376,10 @@ out <- processx::run(
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
 
-if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
+if (isFALSE(grepl("-staging", mnmsurfdb_mirror))
+    && isFALSE(grepl("-testing", mnmsurfdb_mirror))
+    && isFALSE(grepl("-dev", mnmsurfdb_mirror))
+    ) {
   mnmsurfdb$dump_all(
     here::here("dumps", glue::glue("rep_post_update_{mnmsurfdb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
@@ -1337,7 +1394,7 @@ if (isFALSE(grepl("-staging", mnmsurfdb_mirror))) {
 
 out <- processx::run(
   "quarto",
-  c("render", "046_mnmsurfdb_consistency_dashboard.qmd", "--to", "html"),
+  c("render", "047_mnmsurfdb_consistency_dashboard.qmd", "--to", "html"),
   echo = TRUE,
   spinner = TRUE
 )

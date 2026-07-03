@@ -1,4 +1,11 @@
 -- SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
+SELECT *,
+  CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
+FROM "outbound"."FieldworkCalendar"
+  WHERE grts_address = 1176286
+  AND activity_group_id = 4
+;
+
 
 -- !!! also re-create update MyFieldWork
 
@@ -80,7 +87,7 @@ LEFT JOIN (
   ON LOC.location_id = SOIL.location_id
 LEFT JOIN (
   SELECT *,
-    CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning = TRUE END AS is_scheduled
+    CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
   FROM "outbound"."FieldworkCalendar")
   AS FwCAL ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
@@ -119,13 +126,14 @@ LEFT JOIN (
 ) AS LOCEVAL
   ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
 WHERE TRUE
-  AND FwCAL.is_scheduled
+  AND (FwCAL.is_scheduled OR FwCAL.done_planning)
   AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
   AND NOT FwCAL.excluded
   AND GAP.is_gw_activity
   AND (VISIT.visit_done OR (FwCAL.archive_version_id IS NULL))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
+
 
 
 -- https://stackoverflow.com/q/44005446
@@ -211,8 +219,8 @@ DO ALSO
    AND positioningvisit_id IS NOT NULL
 ;
 
-GRANT SELECT ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT SELECT ON  "inbound"."FieldWork"  TO  viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."FieldWork"  TO  user_gwdb;
 
 
 

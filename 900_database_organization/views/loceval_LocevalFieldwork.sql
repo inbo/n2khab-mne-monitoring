@@ -1,4 +1,5 @@
 
+-- AND ((FAC.no_visit_planned IS NULL) OR NOT (FAC.done_planning AND FAC.no_visit_planned))
 
  CASE WHEN ("excluded" OR "no_visit_planned" OR "is_frozen") THEN 'irrelevant'
  ELSE
@@ -17,7 +18,7 @@ SELECT
   UNIT.sampleunit_id,
   UNIT.grts_join_method,
   UNIT.schemes,
-  UNIT.scheme_ps_targetpanels,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
   UNIT.type,
   UNIT.domain_part,
   UNIT.is_forest,
@@ -48,7 +49,10 @@ SELECT
   FAC.excluded_reason,
   FAC.teammember_assigned,
   FAC.date_visit_planned,
-  FAC.date_visit_planned - current_date AS days_to_visit,
+  CASE WHEN (VISIT.visit_done OR FAC.no_visit_planned)
+      THEN NULL
+      ELSE (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date
+      END AS days_to_visit,
   FAC.no_visit_planned,
   FAC.notes AS preparation_notes,
   FAC.done_planning,
@@ -58,7 +62,6 @@ SELECT
   VISIT.date_visit,
   VISIT.type_assessed,
   VISIT.is_well_developed_type,
-  VISIT.replacement_recovery_notes,
   VISIT.gps_type,
   VISIT.gps_accuracy_cm,
   VISIT.notes,
@@ -66,7 +69,10 @@ SELECT
   VISIT.issues,
   (VISIT.othervisit_id IS NOT NULL) AS show_othervisits,
   (VISIT.aquatictypesvisit_id IS NOT NULL) AS show_aquatictypevisits,
+  VISIT.samplingpoint_selection_done,
+  VISIT.crassula_was_here,
   (VISIT.terrestrialtypesvisit_id IS NOT NULL) AS show_terrestrialtypevisits,
+  VISIT.replacement_recovery_notes,
   VISIT.visit_done,
   INFO.locationinfo_id,
   INFO.landowner,
@@ -127,6 +133,7 @@ ON UPDATE TO "inbound"."LocevalFieldwork"
 DO INSTEAD NOTHING
 ;
 
+DROP RULE IF EXISTS LocevalFieldwork_upd_sampleunits ON "inbound"."LocevalFieldwork";
 CREATE OR REPLACE RULE LocevalFieldwork_upd_sampleunits AS
 ON UPDATE TO "inbound"."LocevalFieldwork"
 DO ALSO
@@ -140,6 +147,7 @@ DO ALSO
  WHERE sampleunit_id = OLD.sampleunit_id
 ;
 
+DROP RULE IF EXISTS LocevalFieldwork_upd_fac ON "inbound"."LocevalFieldwork";
 CREATE OR REPLACE RULE LocevalFieldwork_upd_fac AS
 ON UPDATE TO "inbound"."LocevalFieldwork"
 DO ALSO
@@ -156,6 +164,7 @@ DO ALSO
 ;
 
 
+DROP RULE IF EXISTS LocevalFieldwork_upd_visits ON "inbound"."LocevalFieldwork";
 CREATE OR REPLACE RULE LocevalFieldwork_upd_visits AS
 ON UPDATE TO "inbound"."LocevalFieldwork"
 DO ALSO
@@ -165,7 +174,6 @@ DO ALSO
   date_visit = NEW.date_visit,
   type_assessed = NEW.type_assessed,
   is_well_developed_type = NEW.is_well_developed_type,
-  replacement_recovery_notes = NEW.replacement_recovery_notes,
   gps_type = NEW.gps_type,
   gps_accuracy_cm = NEW.gps_accuracy_cm,
   notes = NEW.notes,
@@ -174,6 +182,30 @@ DO ALSO
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
+
+DROP RULE IF EXISTS FieldWork_upd_TerrestrialTypesVisits ON "inbound"."LocevalFieldwork";
+CREATE RULE FieldWork_upd_TerrestrialTypesVisits AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO ALSO
+ UPDATE "inbound"."TerrestrialTypesVisits"
+ SET
+   replacement_recovery_notes = NEW.replacement_recovery_notes
+ WHERE visit_id = OLD.visit_id
+   AND terrestrialtypesvisit_id IS NOT NULL
+;
+
+DROP RULE IF EXISTS FieldWork_upd_AquaticTypesVisits ON "inbound"."LocevalFieldwork";
+CREATE RULE FieldWork_upd_AquaticTypesVisits AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO ALSO
+ UPDATE "inbound"."AquaticTypesVisits"
+ SET
+   samplingpoint_selection_done = NEW.samplingpoint_selection_done,
+   crassula_was_here = NEW.crassula_was_here
+ WHERE visit_id = OLD.visit_id
+   AND aquatictypesvisit_id IS NOT NULL
+;
+
 
 CREATE OR REPLACE RULE LocevalFieldwork_upd_locationinfos AS
 ON UPDATE TO "inbound"."LocevalFieldwork"
@@ -195,7 +227,7 @@ GRANT UPDATE ON  "inbound"."LocevalFieldwork"  TO user_loceval;
 
 -- DROP RULE IF EXISTS FieldWork_upd_OTHERVISITS ON "inbound"."FieldWork";
 -- CREATE RULE FieldWork_upd_OTHERVISITS AS
--- ON UPDATE TO "inbound"."FieldWork"
+-- ON UPDATE TO "inbound"."LocevalFieldwork"
 -- DO ALSO
 --  UPDATE "inbound"."OtherVisits"
 --  SET

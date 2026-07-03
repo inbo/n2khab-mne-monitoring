@@ -9,6 +9,9 @@ assumptions:
 - `schemes` are contained in `scheme_ps_targetpanels`
 
 ```r
+trimlist <- \(x) lapply(x, FUN = \(y) stringr::str_trim(y, side = "both"))
+consolidate <- \(x) sort(unique(unlist(trimlist(x))))
+
 sample_units_upload <- sample_units %>%
   select(
     # assumption: schemes are contained in scheme_ps_targetpanels
@@ -44,11 +47,11 @@ sample_units_upload <- sample_units %>%
   ) %>%
   summarize(
     # sort and collapse all unique schemes and scheme/targetpanel combinations
-    schemes = paste0(sort(unique(schemes)), collapse = "|"),
-    scheme_ps_targetpanels = paste0(sort(unique(scheme_ps_targetpanels)), collapse = "|"),
+    schemes = paste0(consolidate(schemes), collapse = "|"),
+    scheme_ps_targetpanels = paste0(consolidate(scheme_ps_targetpanels), collapse = "|"),
     .groups = "drop_last"
   ) %>%
   ungroup() %>%
-  arrange(grts_address, stratum, schemes)
+  arrange(grts_address, schemes) #, stratum
 
 ```

@@ -1,0 +1,15 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+aquabioobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+coverage_rate,integer,False,NULL,False,False,,CHECK (coverage_rate >= 0),,"coverage rate of (non-)open water, in percent"
+submers_pvi,integer,False,NULL,False,False,,CHECK (submers_pvi >= 0),,"submersive plant infestation (vertical projection), in percent"
+float_pleustophytes,integer,False,NULL,False,False,,CHECK (float_pleustophytes >= 0),,"coverage rate with floating plants (e.g. Lemnoidae, Stratiotes); horizontal surface / percent"
+float_nymphaeids,integer,False,NULL,False,False,,CHECK (float_nymphaeids >= 0),,"coverage rate with floating parts of rooted plants (Nymphaeaceae, e.g. Nymphaea, Nuphar); horizontal surface / percent"
+emergents,integer,False,NULL,False,False,,CHECK (emergents >= 0),,horizontal projection of ground-rooted plants which emerge from the water surface
+metaphyton,integer,False,NULL,False,False,,CHECK (metaphyton >= 0),,water column coverage rate (percentage) of filamentous
+veg_specification,varchar,False,NULL,False,False,,,,"specify which relevant genera are present (e.g. genera from Hydrocharitaceae, Lentibulariaceae, or Lemnoideae)"
+float_specification,varchar,False,NULL,False,False,,,,"specification of a floating layer (green algae, blue algae, leaves, ...) in 2m range of the sampling point"
+veg_interpretation,text,False,NULL,False,False,,,,notes on the present vegetation
+zoo_plankton,varchar,False,NULL,False,False,,,,Daphnia and all those critter
+zoo_macroinvertebrates,varchar,False,NULL,False,False,,,,more arthropod critter
+zoo_present_exotics,varchar,False,NULL,False,False,,,,"Impatiens glandilufera, Elodea canadensis, Lemna minuta, Hydrocotyle ranunculoides, Fallopia japonica, Heracleum mantegazzianum"
+zoo_macrozoon,varchar,False,NULL,False,False,,,,relevant/influential presence of larger (semi-) aquatic animals including humans; e.g. whether the sample unit is infested with these haggish geese

@@ -1,0 +1,13 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+observation_id,int,True,,True,True,,,,visit index
+log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
+log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
+teammember_id,smallint,True,,False,False,,,,link to the user who performed the visit
+date_visit,date,True,,False,False,,,,date of the field activity
+location,varchar,True,,False,False,,,,"free but unique link to the location, e.g. GRTS address or name of the area or follow-up number"
+notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
+alert,boolean,True,0,False,False,,,,emphasize this observation
+photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
+wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

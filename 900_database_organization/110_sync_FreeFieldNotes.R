@@ -447,6 +447,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
 
   # load the status quo from SYNCDB
   freefieldnotes_statusquo <- query_freefieldnotes(mnmsyncdb)
+  # %>% arrange(log_creation) %>% head(3)
 
   # choose the current database connection
   mnmdb <- sourcedb_connections[[sdb]]
@@ -460,6 +461,42 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
     ) %>%
     dplyr::relocate(archive_date, .before = wkb_geometry) %>%
     switch_teammember_id_to_database(sdb, "mnmsyncdb")
+    # %>% arrange(log_creation) %>% head(3)
+
+
+  # test3_statusquo <- freefieldnotes_statusquo %>%
+  #   arrange(log_creation) %>%
+  #   select(starts_with("log_")) %>%
+  #   head(3)
+  # test3_statusquo %>%
+  #   t() %>% knitr::kable()
+
+  # test3_userdb <- freefieldnotes_userdb %>%
+  #   arrange(log_creation) %>%
+  #   select(starts_with("log_")) %>%
+  #   head(3)
+  # test3_userdb %>%
+  #   t() %>% knitr::kable()
+
+  # test <- test3_userdb %>%
+  #   characteristic_join_ffn(test3_statusquo)
+
+  # test3_userdb %>% pull(log_creation) %>% knitr::kable()
+  # test3_statusquo %>% pull(log_creation) %>% knitr::kable()
+
+  # test3_userdb %>%
+  #   semi_join(
+  #     test3_statusquo,
+  #     by = dplyr::join_by(log_creator, log_creation),
+  #   )
+
+  if (nrow(freefieldnotes_userdb) == 0) {
+    freefieldnotes_userdb %<>%
+      dplyr::mutate_at(
+        dplyr::vars(log_creation, log_update),
+        as.character
+      )
+  }
 
   # mapview::mapview(freefieldnotes_userdb %>% sf::st_as_sf())
   # freefieldnotes_userdb %>% arrange(desc(log_update))
@@ -582,6 +619,14 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
   mnmdb <- sourcedb_connections[[sdb]]
   freefieldnotes_userdb <- query_freefieldnotes(mnmdb)
 
+  if (nrow(freefieldnotes_userdb) == 0) {
+    freefieldnotes_userdb %<>%
+      dplyr::mutate_at(
+        dplyr::vars(log_creation, log_update),
+        as.character
+      )
+  }
+
   # (1) distribute novel notes
   novel_fieldnotes <- freefieldnotes_statusquo %>%
     characteristic_join_ffn(
@@ -591,7 +636,7 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
 
   if (nrow(novel_fieldnotes) > 0) {
     message(glue::glue("
-    \t<<< Distributing N={nrow(novel_fieldnotes)} novel FieldNotes to {sdb}.
+    \t>>> Distributing N={nrow(novel_fieldnotes)} novel FieldNotes to {sdb}.
     "))
 
     upload_new_fieldnotes_append(
@@ -599,6 +644,10 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
       novel_fieldnotes
     )
   }
+
+  # freefieldnotes_statusquo %>%
+  #   count(!!!rlang::syms(characteristic_columns)) %>%
+  #   arrange(-n)
 
   # (2) update existing notes
   updated_fieldnotes <- freefieldnotes_statusquo %>%
@@ -621,7 +670,7 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
     update_fields_in_fieldnotes(mnmdb, updated_fieldnotes)
   }
 
-}
+} # /distribute_fieldnote_updates_to_sources
 
 
 #_______________________________________________________________________________

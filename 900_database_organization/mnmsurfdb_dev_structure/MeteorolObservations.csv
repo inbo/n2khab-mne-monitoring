@@ -1,0 +1,11 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+meteorolobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+prior_48h,varchar,False,NULL,False,False,,,,whether or not there was rain in the previous 48 hours
+exceptional,boolean,False,NULL,False,False,,,,"period of exceptional weather phenomena (heat, drought, storms...)"
+current,varchar,False,NULL,False,False,,,,current meteorological circumstances
+precipitation,boolean,False,NULL,False,False,,,,"precipitation type (rain, hail, snow, none) and intensity (light, moderate, heavy)"
+precipitation_specify,varchar,False,NULL,False,False,,,,"specify: rain, hail, snow, honden/katten/cavia"
+precipitation_intensity,varchar,False,NULL,False,False,,,,"specify: low, mid, high intensity of precip"
+overcast,varchar,False,NULL,False,False,,,,"type overcast (sun, clouds, mist, animal-shaped clouds)"
+airtemperature_celsius,double precision,False,NULL,False,False,,CHECK (airtemperature_celsius >= -273.15),,"measurement via phone, (car) thermometer, or KMI reference"
+wind,varchar,False,NULL,False,False,,,,"wind conditions: weak, moderate, strong"

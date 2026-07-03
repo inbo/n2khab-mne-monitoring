@@ -118,7 +118,8 @@ count_table_content(c(
     "Visits",
     "AquaticTypesVisits",
     "TerrestrialTypesVisits",
-    "OtherVisits"
+    "OtherVisits",
+    "ExtraLocevals"
   ))
 
 ```
@@ -131,6 +132,7 @@ count_table_content(c(
 count_table_content(c(
     "CellMaps",
     "ReplacementArchives",
+    "TargetPoints",
     "FreeFieldNotes"
   ))
 

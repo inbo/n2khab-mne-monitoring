@@ -1,0 +1,11 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+landuseobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+landuse,varchar,False,NULL,False,False,,,,surrounding land use: description
+sectorial_pressures,varchar,False,NULL,False,False,,,,description of sectorial pressures
+animal_manure,boolean,False,FALSE,False,False,,,,koeienvlaaien of schapenkeutels
+grazers,boolean,False,FALSE,False,False,,,,"presence of grazers, large or small"
+farming_livestock,boolean,False,FALSE,False,False,,,,intense livestock agriculture
+farming_crops,boolean,False,FALSE,False,False,,,,crop farming
+signs_of_fertilization,boolean,False,FALSE,False,False,,,,indication of anthropogenic fertilization
+traffic_proximity,boolean,False,FALSE,False,False,,,,traffic routes close by
+industrial_activity,boolean,False,FALSE,False,False,,,,presence of industrial activity

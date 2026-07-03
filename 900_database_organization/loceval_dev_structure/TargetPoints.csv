@@ -1,0 +1,11 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+targetpoint_id,int,True,,True,True,,,,target point technical index
+log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
+log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
+date_selection,date,False,NULL,False,False,,,,the date of sampling point selection (preference for the newest)
+type,varchar(16),False,NULL,False,False,,,,habitat type
+notes,text,False,NULL,False,False,,,,extra notes about the sampling point
+photo,varchar,False,NULL,False,False,,,,an optional photo of the sampling point and surroundings
+wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

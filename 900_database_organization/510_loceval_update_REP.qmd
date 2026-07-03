@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload - loceval"
-date: "20260527"
+date: "20260626"
 format:
   html:
     toc: true
@@ -21,6 +21,7 @@ knitr:
   - data fixing / freeze
 - 20260527 REP update
 - 20260616 missing Replacements -> bugfix now join to `grts_address_final`
+- 20260626 preview REP 0.17.0 -> `SURF_03.4_LENTIC`
 
 
 # TODO
@@ -117,6 +118,7 @@ database <- "loceval"
 config_filepath <- file.path("./mnm_database_connection.conf")
 # suffix <- ""
 suffix <- "-staging"
+# suffix <- "-testing"
 
 
 # connect loceval
@@ -144,7 +146,10 @@ update_cascade_lookup <- parametrize_cascaded_update(locevaldb)
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
 
-if (isFALSE(grepl("-staging", locevaldb_mirror))) {
+if (isFALSE(grepl("-staging", locevaldb_mirror))
+    && isFALSE(grepl("-testing", locevaldb_mirror))
+    && isFALSE(grepl("-dev", locevaldb_mirror))
+    ) {
   locevaldb$dump_all(
     here::here("dumps", glue::glue("rep_pre_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")
@@ -173,9 +178,16 @@ if (FALSE) {
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
+  # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
 
-  version_tag <- "snip:0.16_rep:0.16" # data_iteration = 1
-  version_notes <- "REP + snippets update 0.16"
+  # next!
+  # version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
+  # version_notes <- "activating SURF_03.4_LENTIC"
+
+  # preview:  
+  version_tag <- "snip:0.17.beta_rep:0.17.beta" # data_iteration = 1
+  version_notes <- "preview SURF_03.4_LENTIC"
+
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -224,12 +236,23 @@ if (FALSE) {
 
 
 
-# Protocols, Activities, TeamMembers
+# Protocols, GroupedActivities, TeamMembers
 
 :::{callout-warning}
 Any news?
 Now is the chance!
 :::
+
++ `410_update_protocols.qmd`
++ `411_update_grouped_activities.qmd`
+
+```{r stop-new-grouped-activities}
+
+# stop("wait! Grouped Activities have been rearranged.")
+
+# manually adjust GroupedActivities (see db_devlog)
+
+```
 
 
 
@@ -246,8 +269,10 @@ n2khabstrata_lookup <- locevaldb$query_lookup(
 
 activity_groupid_lookup <- locevaldb$query_columns(
     "GroupedActivities",
-    c("activity_group", "activity_group_id")
+    c("activity_group", "activity_group_id", "archive_version_id")
   ) %>%
+  filter(is.na(archive_version_id)) %>% 
+  select(-archive_version_id) %>% 
   distinct()
 
 ```
@@ -256,7 +281,7 @@ activity_groupid_lookup <- locevaldb$query_columns(
 ```{r load-activities}
 
 loceval_field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
-  filter(is_loceval_activity, is_field_activity) %>%
+  filter(is_loceval_activity, is_field_activity, is.na(archive_version_id)) %>%
   distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 ```
@@ -298,7 +323,8 @@ loceval_freeze <- read.csv(
   mutate(across(c(
       previous_notes
     ), as.character)
-  )
+  ) %>%
+  mutate(priority = NA)
 
 # loceval_freeze %>% glimpse()
 # loceval_freeze %>%
@@ -329,6 +355,16 @@ sample_unit_columns <- c(
   "scheme_ps_targetpanels",
   "previous_notes"
 )
+
+# fag_stratum_grts_calendar_shortterm_attribs %>%
+#   filter(
+#     grts_address_final == 617774,
+#     field_activity_group %in% c("LOCEVALAQ", "SURFLENTSAMPLPOINT")
+#   ) %>% 
+#   distinct(stratum, field_activity_group,
+#     schemes_served_all, in_mhq_samples
+#   ) %>% 
+#   knitr::kable()
 
 sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
@@ -364,6 +400,7 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
 
 # sample_units_updated %>% glimpse()
 # sample_units_updated %>% distinct(grts_address, type) %>% nrow()
+# sample_units_updated %>% filter(grts_address == 617774) %>% t() %>% knitr::kable()
 
 ```
 
@@ -408,8 +445,61 @@ sample_units <- bind_rows(
   sample_units_updated
 )
 
+# sample_units %>% glimpse
 # sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
+# sample_units %>% filter(grts_address == 617774) %>% knitr::kable()
 
+```
+
+
+See `990_database_documentation/glossary/schemes served.md`:
+we document all the schemes which a sample unit is currently planned to serve.
+
+Because activity types can differ in their purpose, a consolidation is required on the level of sample units.
+
+```{r consolidate-schemes-served}
+# sample_units %>% glimpse
+# sample_units %>% distinct(schemes)
+# sample_units %>% distinct(scheme_ps_targetpanels_served)
+
+# schemes are split/joined by `|`
+# scheme_ps_targetpanels_served are split/joined by ` | `
+
+## examples
+# sample_unitz <- sample_units %>% filter(grts_address == 734)
+# sample_unitz <- sample_units %>% filter(grts_address == 617774)
+# sample_unitz <- sample_units %>% filter(grts_address == 137042)
+# sample_unitz <- sample_units %>% filter(grts_address == 27824374) # type 3260 ! 2 schemes, 2 panels
+
+# sample_unitz %>% t() %>% knitr::kable()
+
+trimlist <- \(x) lapply(x, FUN = \(y) stringr::str_trim(y, side = "both"))
+consolidate <- \(x) sort(unique(unlist(trimlist(x))))
+
+sample_units <- sample_units %>% mutate(
+    schemes = stringr::str_split(schemes, "\\|"),
+    scheme_ps_targetpanels = stringr::str_split(scheme_ps_targetpanels, "\\|")
+  ) %>% 
+  group_by(
+    # old-school manual group-summarize-ungroup (because `across` does not work in `.by`)
+    across(c(-schemes, -scheme_ps_targetpanels))
+  ) %>%
+  summarize(
+    # sort and collapse all unique schemes and scheme/targetpanel combinations
+    schemes = paste0(consolidate(schemes), collapse = "|"),
+    scheme_ps_targetpanels = paste0(consolidate(scheme_ps_targetpanels), collapse = " | "),
+    .groups = "drop_last"
+  ) %>%
+  ungroup()
+
+# sample_units %>%
+#   glimpse()
+# sample_n(3) %>% 
+# t() %>% knitr::kable()
+
+# sample_units %>% distinct(schemes, scheme_ps_targetpanels_served) %>% print(n=Inf)
+# sample_units %>% filter(schemes == "GW_03.3|HQ4010|SOIL_03.2") %>% glimpse
+# apply stringr::str_trim and then unique-sort-concatenate
 ```
 
 
@@ -417,13 +507,14 @@ sample_units <- bind_rows(
 
 ```{r assemble-locations}
 
+
 locations_grts_collection <- bind_rows(
     locevaldb$query_columns("Locations", c("grts_address")),
     sample_units %>% select(grts_address),
     locevaldb$query_columns("LocationInfos", c("grts_address")),
     locevaldb$query_columns("LocationAssessments", c("grts_address")),
     locevaldb$query_columns("FieldCalendars", c("grts_address")),
-    locevaldb$query_columns("AllVisits", c("grts_address")),
+    locevaldb$query_table("AllVisits", ONLY = FALSE) %>% select(grts_address),
     locevaldb$query_columns("Replacements", c("grts_address_replacement", "is_selected")) %>% 
       filter(is_selected) %>%
       select(-is_selected) %>% 
@@ -479,6 +570,21 @@ locations_lookup <- update_cascade_lookup(
 
 
 ```
+
+
+
+```{r update-locations-check-empty}
+
+check_empty_geoms <- locevaldb$query_table("Locations") %>%
+  filter(sf::st_is_empty(wkb_geometry))
+
+if (nrow(check_empty_geoms) > 0) {
+  print(check %>% knitr::kable())
+  stop("There are empty geometries in the `Locations` table!")
+}
+
+```
+
 
 20260511: the "redistribution" seems to ignore empty geometries
 
@@ -567,12 +673,16 @@ sample_units <- sample_units %>%
   ) %>%
   distinct()
 
-# sample_units %>%
-#   filter(grts_address == 22107438) %>%
-#   t() %>% knitr::kable()
+sample_units %>%
+  filter(grts_address == 617774) %>%
+  distinct() %>% 
+  t() %>% knitr::kable()
 
 table_label <- "SampleUnits"
-data_nouveau <- sample_units
+data_nouveau <- sample_units %>%
+  rename(
+    scheme_ps_targetpanels_served = scheme_ps_targetpanels
+  )
 characteristic_columns <- c("grts_address", "type") # , "location_id"
 index_column <- locevaldb$get_primary_key(table_label)
 # locevaldb$query_columns(table_label, characteristic_columns)
@@ -597,6 +707,29 @@ print_category_count(distribution, table_label)
 ```
 
 
+```{r sampleunits-identify-changes}
+
+if (FALSE) {
+data_changed <- distribution$changed %>% 
+  arrange(!!!rlang::syms(characteristic_columns))
+
+data_previous <- locevaldb$query_table(
+    table_label,
+    ONLY = isFALSE(locevaldb$is_spatial(table_label))
+  ) %>%
+  semi_join(
+    data_changed,
+    join_by(!!!rlang::syms(characteristic_columns))
+  ) %>%
+  select(
+    tidyselect::any_of(names(data_changed))
+  ) %>%
+  arrange(!!!rlang::syms(characteristic_columns))
+
+waldo::compare(data_previous, data_changed)
+}
+
+```
 
 
 
@@ -610,6 +743,7 @@ distribution$to_upload <- distribution$to_upload %>%
     is_replaced = FALSE,
     type_is_absent = FALSE
   ) 
+distribution$to_upload %>% count(!!!rlang::syms(characteristic_columns))
 
 sampleunits_lookup <- redistribute_calendar_data(
   mnmdb = locevaldb,
@@ -979,7 +1113,7 @@ for (table_label in names(selection_of_activities)) {
       by = join_by(
         fieldcalendar_id,
         grts_address,
-        stratum,
+        type,
         activity_group_id,
         date_start)
     )
@@ -1011,7 +1145,7 @@ stitch_visits()
 locevaldb$query_table("Visits") %>% 
   count(
     is.na(location_id),
-    is.na(samplelocation_id),
+    is.na(sampleunit_id),
     is.na(fieldcalendar_id)
   ) %>%
   knitr::kable()
@@ -1600,7 +1734,10 @@ out <- processx::run(
 
 now <- format(Sys.time(), "%Y%m%d%H%M")
 
-if (isFALSE(grepl("-staging", locevaldb_mirror))) {
+if (isFALSE(grepl("-staging", locevaldb_mirror))
+    && isFALSE(grepl("-testing", locevaldb_mirror))
+    && isFALSE(grepl("-dev", locevaldb_mirror))
+    ) {
   locevaldb$dump_all(
     here::here("dumps", glue::glue("rep_post_update_{locevaldb$database}_{now}.sql")),
     exclude_schema = c("tiger", "public")

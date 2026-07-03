@@ -30,13 +30,6 @@ if (length(commandline_args) > 0) {
 }
 # suffix <- "-staging"
 
-mnmgwdb <- connect_mnm_database(
-  config_filepath = config_filepath,
-  database_mirror = glue::glue("mnmgwdb{suffix}")
-)
-# keyring::keyring_delete(keyring = "mnmdb_temp")
-message(mnmgwdb$shellstring)
-
 locevaldb <- connect_mnm_database(
   config_filepath = config_filepath,
   database_mirror = glue::glue("loceval{suffix}")
@@ -44,6 +37,19 @@ locevaldb <- connect_mnm_database(
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 message(locevaldb$shellstring)
 
+mnmgwdb <- connect_mnm_database(
+  config_filepath = config_filepath,
+  database_mirror = glue::glue("mnmgwdb{suffix}")
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+message(mnmgwdb$shellstring)
+
+# mnmsurfdb <- connect_mnm_database(
+#   config_filepath = config_filepath,
+#   database_mirror = glue::glue("mnmsurfdb{suffix}")
+# )
+# # keyring::keyring_delete(keyring = "mnmdb_temp")
+# message(mnmsurfdb$shellstring)
 
 #_______________________________________________________________________________
 ### Load Data
@@ -53,6 +59,9 @@ loceval_data <- locevaldb$query_table("LocationInfos")
 
 mnmgwdb_locations <- mnmgwdb$query_table("Locations")
 mnmgwdb_data <- mnmgwdb$query_table("LocationInfos")
+
+# mnmsurfdb_locations <- mnmsurfdb$query_table("Locations")
+# mnmsurfdb_data <- mnmsurfdb$query_table("LocationInfos")
 
 
 if (FALSE) {
@@ -382,7 +391,6 @@ update_conflicting <- function(mnmdb, table_label) {
 table_label <- "LocationInfos"
 update_conflicting(mnmgwdb, table_label)
 update_conflicting(locevaldb, table_label)
-
 
 
 # update landowner

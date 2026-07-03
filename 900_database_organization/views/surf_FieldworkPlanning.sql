@@ -5,24 +5,24 @@ DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
+  UNIT.sampleunit_id,
   UNIT.stratum,
-  UNIT.scheme_ps_targetpanels,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
   UNIT.schemes,
   UNIT.domain_part,
   UNIT.is_forest,
   UNIT.in_mhq_samples,
   UNIT.has_mhq_assessment,
-  UNIT.is_replacement,
-  UNIT.was_replaced_by_grts,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
   INFO.landowner,
   INFO.recovery_hints,
   FCAL.fieldcalendar_id,
-  FCAL.sampleunit_id,
   FCAL.activity_group_id,
   FAG.activity_group,
+  FAG.activity_group LIKE '%LENT%' AS is_lentic,
+  FAG.activity_group LIKE '%LOT%' AS is_lotic,
   FCAL.activity_rank,
   FCAL.date_start,
   FCAL.date_end,
@@ -35,6 +35,7 @@ SELECT
   FCAL.wait_7220,
   FCAL.wait_floating,
   FCAL.wait_obsolete_types,
+  FCAL.is_sideloaded,
   FCAL.is_frozen,
   FCAL.excluded,
   FCAL.excluded_reason,
@@ -46,18 +47,12 @@ SELECT
   VISIT.date_visit,
   VISIT.photo,
   VISIT.visit_done,
-  CASE WHEN VISIT.date_visit IS NULL THEN NULL
-      ELSE current_date - VISIT.date_visit
-    END AS count_days_ws,
-  INST.has_installation,
-  INST.installation_date,
-  INST.installation_issues,
   LOCEVAL.loceval_positive,
   LOCEVAL.loceval_latest_date,
   LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes
-FROM "outbound"."FieldCalendar" AS FCAL
+FROM "outbound"."FieldCalendars" AS FCAL
 LEFT JOIN "inbound"."Visits" AS VISIT
   ON FCAL.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
@@ -67,9 +62,11 @@ LEFT JOIN "metadata"."Locations" AS LOC
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
 LEFT JOIN (
-  SELECT DISTINCT activity_group_id, activity_group, is_surf_activity
+  SELECT DISTINCT
+      activity_group_id, activity_group, is_surf_activity,
+      archive_version_id IS NULL AS is_active
     FROM "metadata"."GroupedActivities"
-    GROUP BY activity_group_id, activity_group, is_surf_activity
+    GROUP BY activity_group_id, activity_group, is_surf_activity, archive_version_id
   ) AS FAG
     ON FAG.activity_group_id = FCAL.activity_group_id
 LEFT JOIN (
@@ -119,19 +116,8 @@ LEFT JOIN (
 ) AS LOCEVAL
   ON UNIT.grts_address = LOCEVAL.grts_address
   AND UNIT.stratum = LOCEVAL.stratum
-LEFT JOIN (
-  SELECT
-    location_id,
-    (source IN ('surf', 'gwdb')) AS has_installation,
-    CASE WHEN source = 'removal' THEN NULL ELSE date END AS installation_date,
-    issues AS installation_issues
-  FROM "outbound"."LocationJournals"
-  WHERE TRUE
-    AND category = 'inst'
-    AND is_latest
-) AS INST
-  ON (LOC.location_id = INST.location_id)
-WHERE is_surf_activity
+WHERE FAG.is_surf_activity
+  AND FAG.is_active
   AND (UNIT.archive_version_id IS NULL)
   AND (FCAL.archive_version_id IS NULL)
 ORDER BY
@@ -139,7 +125,7 @@ ORDER BY
   FCAL.priority,
   is_waiting,
   UNIT.stratum,
-  FCAL.grts_address,
+  UNIT.grts_address,
   FCAL.activity_rank,
   FCAL.activity_group_id
 ;
@@ -156,7 +142,7 @@ DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd_CAL AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
- UPDATE "outbound"."FieldCalendar"
+ UPDATE "outbound"."FieldCalendars"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,

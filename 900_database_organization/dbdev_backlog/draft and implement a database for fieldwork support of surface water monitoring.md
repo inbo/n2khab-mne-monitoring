@@ -111,11 +111,16 @@ status: false
 	- [x] 047
 	- [x] Coordinates
 	- [x] MHQAreas
+	- [x] `112_fill_location_journals.R` requires intake of SURF activities
+- [x] draft a #QGIS project / #QField app for FieldworkPlanning [[timeline/2026-07-01|2026-07-01]]
+- [ ] draft a #QGIS project / #QField app for inbound fieldwork [[timeline/2026-06-30|discussed: 2026-06-30]]; work: [[timeline/2026-07-02|2026-07-02]]
+	- [ ] add update rules for LenticVisits and LoticVisits in FieldWork view
+	- [ ] implement #Observations -> *ad hoc* input about irregular/decoupled/optional surrounding factors
 - [ ] prepare a REP update script: `710_mnmsurfdb_update_REP.qmd`
 	- [ ] do we need a `310_mnmsyncdb_update_REP.qmd` as well?
-	- [ ] `was_replaced_by_grts` fill upon replacement?
 	- [x] [[datatypes/as.POSIXct datatime un-rounding issue]] 
 - [ ] `update_landuse_in_locationinfos` -> works for new locations?
+- [ ] `115_sync_LocationInfos.R` requires complete overhaul
 
 - [ ] add surf to `405_freeze_calendar.R`
 - [ ] placeholders for Protocols

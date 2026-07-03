@@ -114,7 +114,7 @@ replacements_raw <- loceval_connection$query_table("Replacements") %>%
   )
 
 # replacements_raw %>%
-#   filter(grts_address_original == 3662038) %>%
+#   filter(grts_address_original == 30153) %>%
 #   t() %>% knitr::kable()
 
 ### get the `loceval_date`
@@ -138,23 +138,29 @@ loceval_visits <- loceval_connection$query_table("AllVisits") %>%
     log_update
   )
 
+# loceval_visits %>% filter(grts_address_original == 84598) %>%
+#   t() %>% knitr::kable()
+
 na_visit_dates <- loceval_visits %>%
   filter(
     is.na(date_visit),
-    log_update < as.Date('2026-06-01')
-  )  %>%
-  mutate(date_visit = as.Date('2024-12-24'))
+    log_update > as.Date('2026-06-01')
+  ) # %>%
+  # mutate(date_visit = as.Date('2024-12-24'))
 
 n_datemissers <- nrow(na_visit_dates)
 if (n_datemissers > 0) {
   message(glue::glue(
     "\t[!!!] Heads up: there are {n_datemissers} locevals without a date_visit."
   ))
+  na_visit_dates %>% knitr::kable()
 }
 
 loceval_dates <- loceval_visits %>%
   filter_out(is.na(date_visit)) %>%
   select(grts_address_original, type, date_visit)
+
+# loceval_dates %>% filter(grts_address_original == 84598)
 
 duplicate_check <- loceval_dates %>%
   count(grts_address_original, type) %>%
@@ -476,7 +482,7 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # these `new_sampleunits` are still needed below!
 
   # upload new sampleunits
-  # Column `scheme_ps_targetpanels` doesn't exist.
+  # Column `scheme_ps_targetpanels_served` doesn't exist?
   sampleunits_upload <- new_sampleunits %>%
     rename(stratum = type) %>%
     left_join(
@@ -773,13 +779,13 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
 
   # NOT (only) A HOTFIX: here the general stratum/type difference cuts in
   if (udb == "mnmgwdb") {
-    transfer_data %<>% rename(strata = type)
+    transfer_data %<>% dplyr::rename(strata = type)
   } else {
-    transfer_data %<>% rename(stratum = type)
+    transfer_data %<>% dplyr::rename(stratum = type)
   }
 
   locevals_joined <- transfer_data %>%
-    left_join(
+    dplyr::left_join(
       mnmdb$query_columns(
           table_label = su_tablab,
           select_columns = c(
@@ -789,19 +795,22 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
             "location_id"
           )
         ),
-      by = join_by(!!!rlang::syms(c("grts_address", su_type)))
+      by = dplyr::join_by(!!!rlang::syms(c("grts_address", su_type)))
     ) %>%
-    filter_at(vars(!!!rlang::syms(c("location_id", su_idx))), ~!is.na(.)) %>%
-    select(-grts_address_original, -location_id) %>%
-    mutate(
-      eval_name = coalesce(eval_name, "maintenance"),
-      eval_date = coalesce(eval_date, as.Date(log_update))
+    dplyr::filter_at(
+      dplyr::vars(!!!rlang::syms(c("location_id", su_idx))),
+      ~!is.na(.)
+    ) %>%
+    dplyr::select(-grts_address_original, -location_id) %>%
+    dplyr::mutate(
+      eval_name = dplyr::coalesce(eval_name, "maintenance"),
+      eval_date = dplyr::coalesce(eval_date, as.Date(log_update))
     )
 
   if (udb == "mnmgwdb") {
-    locevals_joined %<>% rename(type = strata)
+    locevals_joined %<>% dplyr::rename(type = strata)
   } else {
-    locevals_joined %<>% rename(type = stratum)
+    locevals_joined %<>% dplyr::rename(type = stratum)
   }
 
   loceval_characols <- c(
@@ -814,8 +823,8 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
 
 
   duplicate_locevals <- locevals_joined %>%
-    count(!!!rlang::syms(loceval_characols)) %>%
-    arrange(desc(n)) %>%
+    dplyr::count(!!!rlang::syms(loceval_characols)) %>%
+    dplyr::arrange(desc(n)) %>%
     filter(n > 1)
 
   if (nrow(duplicate_locevals) > 0) {
@@ -862,6 +871,32 @@ distribute_cellmaps_to_userdatabases <- function(udb) {
 
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+#### copy over the TargetPoints
+#///////////////////////////////////////////////////////////////////////////////
+
+distribute_targetpoints_to_userdatabases <- function(udb) {
+
+  mnmdb <- userdb_connections[[udb]]
+  update_cascade_lookup_userdb <- parametrize_cascaded_update(mnmdb)
+
+
+  message(glue::glue("\t<<< `TargetPoints`"))
+
+  targetpoints <- loceval_connection$query_table("TargetPoints")
+  cellmaps_lookup <- update_cascade_lookup_userdb(
+    table_label = "TargetPoints",
+    new_data = targetpoints,
+    index_columns = c("targetpoint_id"),
+    characteristic_columns = NA,
+    tabula_rasa = TRUE,
+    verbose = TRUE
+  )
+
+} # /distribute_targetpoints_to_userdatabases
+
+
+
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### Apply Replacements
 #///////////////////////////////////////////////////////////////////////////////
 
@@ -875,6 +910,9 @@ for (udb in userdb_labels) {
   distribute_cellmaps_to_userdatabases(udb)
   message("________________________________________________________________")
 }
+
+# bonus: distribute targetpoints for surf sampling from loceval to mnmsurfdb
+distribute_targetpoints_to_userdatabases("mnmsurfdb")
 
 message("")
 message("________________________________________________________________")

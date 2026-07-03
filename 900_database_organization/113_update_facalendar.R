@@ -1,5 +1,9 @@
 #!/usr/bin/env Rscript
 
+stop("OBSOLETE!")
++ scheme_ps_targetpanels_served
+
+
 source("MNMLibraryCollection.R")
 load_database_interaction_libraries()
 

@@ -1,2 +1,4 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-aquatictypesvisit_id,int,True,,True,True,,,,visit index
+aquatictypesvisit_id,int,True,,False,True,,,,visit index
+samplingpoint_selection_done,boolean,False,FALSE,False,False,,,,check whether a point was selected for chemical sampling
+crassula_was_here,boolean,False,FALSE,False,False,,,,flag aquatic units which are home to invasive Crassula helmsii

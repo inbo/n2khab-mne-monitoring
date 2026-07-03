@@ -189,6 +189,15 @@ stitch_table_connection(
 
 stitch_table_connection(
   mnmdb = mnmgwdb,
+  table_label = "LocationSoilInfos",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
   table_label = "LocationJournals",
   reference_table = "Locations",
   link_key_column = "location_id",
@@ -359,15 +368,6 @@ stitch_table_connection(
 stitch_table_connection(
   mnmdb = mnmsurfdb,
   table_label = "LocationJournals",
-  reference_table = "Locations",
-  link_key_column = "location_id",
-  lookup_columns = c("grts_address")
-)
-
-
-stitch_table_connection(
-  mnmdb = mnmsurfdb,
-  table_label = "InstallationRemovals",
   reference_table = "Locations",
   link_key_column = "location_id",
   lookup_columns = c("grts_address")

@@ -10,15 +10,23 @@ metadata,Coordinates,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,Locations coordina
 outbound,LocationInfos,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,,,1,,"persistent infos about specific locations, e.g. accessibility; synced between loceval and mnmgwdb"
 outbound,LocationJournals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"lifecycle information of a sample unit; chronological, append-only"
 outbound,SampleUnits,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,list of units currently sampled (defined by GRTS address and stratum)
-outbound,FieldCalendar,yoda,"viewer_mnmdb, tester_mnmdb","planner_surfdb, tester_mnmdb",,,,,1,,field activity calender
+outbound,FieldCalendars,yoda,"viewer_mnmdb, tester_mnmdb","planner_surfdb, tester_mnmdb",,,,,1,,field activity calender
 outbound,MHQPolygons,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,MHQ sample areas NO TRESPASSING!
-inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,,,1,,"interface! -> general structure of all visits, planned in FieldCalendar, linked to SampleUnits and field activity group"
+inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,,,1,,"interface! -> general structure of all visits, planned in FieldCalendar, linked to SampleUnits and field activity group and thereby immediately relevant for status and trend of environmental pressures"
 inbound,OtherVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,inbound information about field visits which are not otherwise specified
-inbound,InstallationVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (installation); subset of Visits
-inbound,SamplingVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (chemical sampling); subset of Visits
-inbound,InstallationRemovals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"logging removals of an installation, planned or by vandalism"
+inbound,LenticVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,field data collected for lentic habitat types (still waters); subset of Visits
+inbound,LoticVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,field data collected for lotic habitat types (streams etc); subset of Visits
+inbound,SamplingPoints,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,points with actual sampling of surface water (should be close to TargetPoints)
+inbound,Observations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,interface! -> common fields for non-mandatory / occasional field (spatiotemporally fixed) observation of a given structure which potentially provide extra explanatory information for MNM
+inbound,MeteorolObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations about the weather
+inbound,GeoObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations about geological factors which should be relatively constant; e.g. morphometry
+inbound,TerraBioObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,"surrounding, terrestrial vegetation as an influential factor"
+inbound,AquaBioObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,aquatic biotics: rough sketch of aquabotany and aquazoology
+inbound,PerturbationObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations of relevant perturbations of the natural environment (PNE)
+inbound,LanduseObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,potentially influential aspects of the anthropogenic environment of permanent type
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
 transfer,LocationEvaluations,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample unit locations
 transfer,CellMaps,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,cell mapping input from LOCEVAL
+transfer,TargetPoints,yoda,"viewer_mnmdb, tester_mnmdb",,POINT,,,,1,,points received from locevaldb as target for sampling activities
 transfer,ReplacementData,yoda,"reporter_mnmdb, viewer_mnmdb",,,,,,1,,"storing info about replacements (from `loceval`, via `mnmsyncdb`)"

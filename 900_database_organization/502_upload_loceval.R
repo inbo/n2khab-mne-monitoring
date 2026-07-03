@@ -363,7 +363,7 @@ sample_units <-
   mutate(
     across(c(
         grts_join_method,
-        scheme_ps_targetpanels,
+        scheme_ps_targetpanels_served,
         sp_poststratum,
         type
       ),
@@ -458,7 +458,7 @@ previous_sampleunits <- loceval_db$query_table("SampleUnits") %>%
     scheme,
     panel_set,
     targetpanel,
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     sp_poststratum,
     type,
     replacement_reason,
@@ -489,7 +489,7 @@ if (nrow(previous_replacements) > 0) {
     index_columns = c("replacementarchive_id"),
     characteristic_columns = c(
       "replacement_id",
-      "scheme_ps_targetpanels",
+      "scheme_ps_targetpanels_served",
       "type",
       "grts_address",
       "grts_address_replacement",
@@ -750,7 +750,7 @@ fieldwork_calendar <-
   relocate(grts_address) %>%
   relocate(grts_join_method, .after = grts_address) %>%
   select(
-    -scheme_ps_targetpanels
+    -scheme_ps_targetpanels_served
   ) %>%
   inner_join(
     n2khab_strata,
