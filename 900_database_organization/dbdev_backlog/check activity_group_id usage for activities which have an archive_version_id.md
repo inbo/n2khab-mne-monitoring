@@ -7,7 +7,7 @@ execution:
 status: false
 ---
 
-follow-up [[data update/202606 REP update 0.17.0|202606 REP update 0.17.0]]
+follow-up [[data update/20260619 REP preview 0.17.0|202606 REP update 0.17.0]]
 `archive_version_id` was introduced to archive #GroupedActivities 
 (normally irrelevant, unless the whole activity group is archived.)
 

@@ -1,14 +1,14 @@
 ---
 aliases:
-  - REP 0.17.0
+  - REP preview 0.17.0
 tags:
   - REP
   - dataupdate
 started: 2026-06-19
-finished:
+finished: 2026-06-26
 execution:
   - FM
-status: false
+status: true
 ---
 
 anticipatory work thanks to preparations by #FV

@@ -14,7 +14,7 @@ status: false
 + [x] meld `401_snippet_selection.R`
 + [x] sync `-staging`
 + [x] insert a new version id
-+ [x] update #GroupedActivities  from [[data update/202606 REP update 0.17.0|REP 0.17.0]]
++ [x] update #GroupedActivities  from [[data update/20260619 REP preview 0.17.0|REP 0.17.0]]
 + [x] update structure sheets for all mirrors
 
 
