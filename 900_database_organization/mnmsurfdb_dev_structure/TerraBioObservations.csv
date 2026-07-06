@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-terrabioobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+terrabioobservation_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
 shading,varchar,False,NULL,False,False,,,,"percantage shading of the water surface (estimated, noon)"
 leaf_deposition,varchar,False,NULL,False,False,,,,share of watersurface which is straight under tree branches to indicate influence of leaf deposition
 grazer_trampling,varchar,False,NULL,False,False,,,,perturbation by terrestrial grazers

@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-perturbationobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+perturbationobservation_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
 drainage_structures,varchar,False,NULL,False,False,,,,"tubes, ditches, canals, pits"
 fencing,varchar,False,NULL,False,False,,,,barbed or electric wire
 other_perturbations,varchar,False,NULL,False,False,,,,barbed or electric wire

@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-geoobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+geoobservation_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
 depth_class,varchar,False,NULL,False,False,,,,"depth class of the water (1.5m, 3m, 6m?)"
 bank_slopeclass,varchar,False,NULL,False,False,,,,bank slope class (determined by depth at 1m distance from edge)
 bank_structure,varchar,False,NULL,False,False,,,,tbd

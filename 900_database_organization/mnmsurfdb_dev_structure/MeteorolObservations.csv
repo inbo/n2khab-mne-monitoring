@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-meteorolobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+meteorolobservation_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
 prior_48h,varchar,False,NULL,False,False,,,,whether or not there was rain in the previous 48 hours
 exceptional,boolean,False,NULL,False,False,,,,"period of exceptional weather phenomena (heat, drought, storms...)"
 current,varchar,False,NULL,False,False,,,,current meteorological circumstances

@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-landuseobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+landuseobservation_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
 landuse,varchar,False,NULL,False,False,,,,surrounding land use: description
 sectorial_pressures,varchar,False,NULL,False,False,,,,description of sectorial pressures
 animal_manure,boolean,False,FALSE,False,False,,,,koeienvlaaien of schapenkeutels

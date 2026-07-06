@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-aquabioobservation_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+aquabioobservation_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
 coverage_rate,integer,False,NULL,False,False,,CHECK (coverage_rate >= 0),,"coverage rate of (non-)open water, in percent"
 submers_pvi,integer,False,NULL,False,False,,CHECK (submers_pvi >= 0),,"submersive plant infestation (vertical projection), in percent"
 float_pleustophytes,integer,False,NULL,False,False,,CHECK (float_pleustophytes >= 0),,"coverage rate with floating plants (e.g. Lemnoidae, Stratiotes); horizontal surface / percent"
