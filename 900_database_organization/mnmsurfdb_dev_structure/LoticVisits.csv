@@ -2,23 +2,30 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 loticvisit_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
 project_code,varchar,False,NULL,False,False,,,,LIMS project code of this sample
 recipient_code,varchar,False,NULL,False,False,,,,LIMS recipient code of this sample
-waterdepth_samplingpoint_m,double precision,False,NULL,False,False,,CHECK (waterdepth_samplingpoint_m >= 0),,the current depth of the water body at the sampling point
-sludge_thickness,double precision,False,NULL,False,False,,CHECK (sludge_thickness >= 0),,sludge layer thickness in centimeters
-ice_layer_cm,double precision,False,0,False,False,,CHECK (ice_layer_cm >= 0),,ice layer thickness (if present)
-vegetation_and_algae,varchar,False,NULL,False,False,,,,TODO: table too complex
-float_layer,varchar,False,NULL,False,False,,,,floating layer of proximity (2m) of sampling point
-equipment,varchar,False,NULL,False,False,,,,tbd
-color,varchar,False,NULL,False,False,,,,color of the water (6 digit hexadecimal number)
-smell,varchar,False,NULL,False,False,,,,"specific, noteworthy smell of the water"
+latest_calibration,date,False,NULL,False,False,,,,"date of latest calibration of the field kit (pH, EC, O2)"
 sample_ph,double precision,False,NULL,False,False,,,,-log10([H+])
 watertemperature_celsius,double precision,False,NULL,False,False,,CHECK (watertemperature_celsius >= -273.15),,water temperature at the sampling spot
 electric_conductivity_mus_cm,double precision,False,NULL,False,False,,,,electric conductivity measurement
 dissolved_oxygen_mg_l,double precision,False,NULL,False,False,,,,oxygen measurement
 dissolved_oxygen_percent,double precision,False,NULL,False,False,,,,oxygen saturation
-sneller_cm,double precision,False,NULL,False,False,,,,tbd
-secchi_depth_cm,double precision,False,NULL,False,False,,CHECK (secchi_depth_cm >= 0),,"the depth at which a monochrome radially patterned disc is visually perceivable, with the tools of Angelo Secchi (1865)"
-turbidity,varchar,False,NULL,False,False,,,,"glas clear, light, turbid"
+equipment,varchar,False,NULL,False,False,,,,tbd
+color,varchar,False,NULL,False,False,,,,color of the water (6 digit hexadecimal number)
+smell,varchar,False,NULL,False,False,,,,"specific, noteworthy smell of the water"
+phytoplankton,varchar,False,NULL,False,False,,,,presence of phytoplankton in the sample
+zooplankton,varchar,False,NULL,False,False,,,,Daphnia and all those critter
+macroinvertebrates,varchar,False,NULL,False,False,,,,more arthropod critter
+open_water,integer,False,NULL,False,False,,CHECK (open_water >= 0),,"open water (rate of water surface not covered by plants), in percent"
 sample_notes,text,False,NULL,False,False,,,,misc notes on hydrological parameters
+sneller_cm,double precision,False,NULL,False,False,,,,visibility depth of a small Secchi disc in a gray PVC tube
+secchi_depth_cm,double precision,False,NULL,False,False,,CHECK (secchi_depth_cm >= 0),,"the depth at which a monochrome radially patterned disc is visually perceivable, with the tools of Angelo Secchi (1865)"
+clear_to_bottom,boolean,False,NULL,False,False,,,,whether Secchi depth equals water depth at sampling point
+turbidity,varchar,False,NULL,False,False,,,,"glas clear, light, turbid TO BE REPLACED BY water_clarity"
+water_clarity,varchar,False,NULL,False,False,,,,"glas clear, light, turbid"
+waterdepth_samplingpoint_m,double precision,False,NULL,False,False,,CHECK (waterdepth_samplingpoint_m >= 0),,the current depth of the water body at the sampling point
+sludge_thickness,double precision,False,NULL,False,False,,CHECK (sludge_thickness >= 0),,sludge layer thickness in centimeters
+ice_layer_cm,double precision,False,0,False,False,,CHECK (ice_layer_cm >= 0),,ice layer thickness (if present)
+vegetation_and_algae,varchar,False,NULL,False,False,,,,TODO: table too complex
+float_layer,varchar,False,NULL,False,False,,,,floating layer of proximity (2m) of sampling point
 meandering,varchar,False,NULL,False,False,,,,meandering/micromeandering of a stream
 flowvel,double precision,False,NULL,False,False,,CHECK (flowvel >= 0),,flow velocity measured in m/s
 flowvel_method,varchar,False,NULL,False,False,,,,flow velocity measurement method (e.g. the orange method™)

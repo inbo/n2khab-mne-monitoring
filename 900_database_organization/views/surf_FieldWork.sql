@@ -2,6 +2,8 @@
 
 -- !!! also re-create update MyFieldWork (below)
 
+
+
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE VIEW "inbound"."FieldWork" AS
 SELECT
@@ -40,29 +42,37 @@ SELECT
   (VISIT.loticvisit_id IS NOT NULL) AS show_loticvisits,
   VISIT.project_code,
   VISIT.recipient_code,
-  VISIT.waterdepth_samplingpoint_m,
-  VISIT.sludge_thickness,
-  VISIT.ice_layer_cm,
-  VISIT.vegetation_and_algae,
-  VISIT.float_layer,
-  VISIT.equipment,
-  VISIT.color,
-  VISIT.smell,
+    VISIT.latest_calibration,
   VISIT.sample_ph,
   VISIT.watertemperature_celsius,
   VISIT.electric_conductivity_mus_cm,
   VISIT.dissolved_oxygen_mg_l,
   VISIT.dissolved_oxygen_percent,
+  VISIT.equipment,
+  VISIT.color,
+  VISIT.smell,
+    VISIT.phytoplankton,
+    VISIT.zooplankton,
+    VISIT.macroinvertebrates,
+    VISIT.open_water,
+  VISIT.sample_notes,
+  VISIT.sampling_done,
   VISIT.sneller_cm,
   VISIT.secchi_depth_cm,
+    VISIT.clear_to_bottom,
   VISIT.turbidity,
-  VISIT.sample_notes,
+    VISIT.water_clarity,
+  VISIT.waterdepth_samplingpoint_m,
+  VISIT.waterdepth_samplingpoint_cm,
+  VISIT.sludge_thickness,
+  VISIT.ice_layer_cm,
+  VISIT.vegetation_and_algae,
+  VISIT.float_layer,
   VISIT.meandering,
   VISIT.flowvel,
   VISIT.flowvel_method,
   VISIT.barriers,
   VISIT.current_pits,
-  VISIT.sampling_done,
   VISIT.visit_done
 FROM (
   SELECT *
@@ -156,27 +166,83 @@ DO ALSO
  UPDATE "inbound"."LenticVisits"
  SET
   project_code = NEW.project_code,
+  project_code = NEW.project_code,
   recipient_code = NEW.recipient_code,
-  waterdepth_samplingpoint_m = NEW.waterdepth_samplingpoint_m,
-  sludge_thickness = NEW.sludge_thickness,
-  ice_layer_cm = NEW.ice_layer_cm,
-  vegetation_and_algae = NEW.vegetation_and_algae,
-  float_layer = NEW.float_layer,
-  equipment = NEW.equipment,
-  color = NEW.color,
-  smell = NEW.smell,
+  latest_calibration = NEW.latest_calibration,
   sample_ph = NEW.sample_ph,
   watertemperature_celsius = NEW.watertemperature_celsius,
   electric_conductivity_mus_cm = NEW.electric_conductivity_mus_cm,
   dissolved_oxygen_mg_l = NEW.dissolved_oxygen_mg_l,
   dissolved_oxygen_percent = NEW.dissolved_oxygen_percent,
+  equipment = NEW.equipment,
+  color = NEW.color,
+  smell = NEW.smell,
+  phytoplankton = NEW.phytoplankton,
+  zooplankton = NEW.zooplankton,
+  macroinvertebrates = NEW.macroinvertebrates,
+  open_water = NEW.open_water,
+  sample_notes = NEW.sample_notes,
+  sampling_done = NEW.sampling_done,
   sneller_cm = NEW.sneller_cm,
   secchi_depth_cm = NEW.secchi_depth_cm,
+  clear_to_bottom = NEW.clear_to_bottom,
   turbidity = NEW.turbidity,
-  sample_notes = NEW.sample_notes
+  water_clarity = NEW.water_clarity,
+  waterdepth_samplingpoint_m = NEW.waterdepth_samplingpoint_m,
+  waterdepth_samplingpoint_cm = NEW.waterdepth_samplingpoint_cm,
+  sludge_thickness = NEW.sludge_thickness,
+  ice_layer_cm = NEW.ice_layer_cm,
+  vegetation_and_algae = NEW.vegetation_and_algae,
+  float_layer = NEW.float_layer,
+  visit_done = NEW.visit_done
  WHERE lenticvisit_id = OLD.lenticvisit_id
    AND visit_id = OLD.visit_id
    AND lenticvisit_id IS NOT NULL
+;
+
+DROP RULE IF EXISTS FieldWork_upd_LOTIC ON "inbound"."FieldWork";
+CREATE RULE FieldWork_upd_LOTIC AS
+ON UPDATE TO "inbound"."FieldWork"
+DO ALSO
+ UPDATE "inbound"."LoticVisits"
+ SET
+  project_code = NEW.project_code,
+  project_code = NEW.project_code,
+  recipient_code = NEW.recipient_code,
+  latest_calibration = NEW.latest_calibration,
+  sample_ph = NEW.sample_ph,
+  watertemperature_celsius = NEW.watertemperature_celsius,
+  electric_conductivity_mus_cm = NEW.electric_conductivity_mus_cm,
+  dissolved_oxygen_mg_l = NEW.dissolved_oxygen_mg_l,
+  dissolved_oxygen_percent = NEW.dissolved_oxygen_percent,
+  equipment = NEW.equipment,
+  color = NEW.color,
+  smell = NEW.smell,
+  phytoplankton = NEW.phytoplankton,
+  zooplankton = NEW.zooplankton,
+  macroinvertebrates = NEW.macroinvertebrates,
+  open_water = NEW.open_water,
+  sample_notes = NEW.sample_notes,
+  sampling_done = NEW.sampling_done,
+  sneller_cm = NEW.sneller_cm,
+  secchi_depth_cm = NEW.secchi_depth_cm,
+  clear_to_bottom = NEW.clear_to_bottom,
+  turbidity = NEW.turbidity,
+  water_clarity = NEW.water_clarity,
+  waterdepth_samplingpoint_m = NEW.waterdepth_samplingpoint_m,
+  sludge_thickness = NEW.sludge_thickness,
+  ice_layer_cm = NEW.ice_layer_cm,
+  vegetation_and_algae = NEW.vegetation_and_algae,
+  float_layer = NEW.float_layer,
+  meandering = NEW.meandering,
+  flowvel = NEW.flowvel,
+  flowvel_method = NEW.flowvel_method,
+  barriers = NEW.barriers,
+  current_pits = NEW.current_pits,
+  visit_done = NEW.visit_done
+ WHERE loticvisit_id = OLD.loticvisit_id
+   AND visit_id = OLD.visit_id
+   AND loticvisit_id IS NOT NULL
 ;
 
 DROP RULE IF EXISTS FieldWork_upd_INFO ON "inbound"."FieldWork";

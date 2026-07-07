@@ -124,3 +124,38 @@ status: false
 
 - [ ] add surf to `405_freeze_calendar.R`
 - [ ] placeholders for Protocols
+
+# after fieldwork
+[[timeline/2026-07-07|2026-07-07]]; all applied for #LenticVisits and #LoticVisits
++ #LenticVisits ++`last_calibration`
+```sql
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN latest_calibration date; 
+COMMENT ON COLUMN "inbound"."LenticVisits".latest_calibration IS E'date of latest calibration of the field kit (pH, EC, O2)';
+```
++ more sample spot characteristics
+```sql
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN phytoplankton varchar; 
+COMMENT ON COLUMN "inbound"."LenticVisits".phytoplankton IS E'presence of phytoplankton in the sample';
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN zooplankton varchar; 
+COMMENT ON COLUMN "inbound"."LenticVisits".zooplankton IS E'Daphnia and all those critter';
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN macroinvertebrates varchar; 
+COMMENT ON COLUMN "inbound"."LenticVisits".macroinvertebrates IS E'more arthropod critter';
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN open_water integer CHECK (open_water >= 0); 
+COMMENT ON COLUMN "inbound"."LenticVisits".open_water IS E'open water (rate of water surface not covered by plants), in percent';
+```
++ Sneller tube explanation comment
+```sql
+COMMENT ON COLUMN "inbound"."LenticVisits".sneller_cm IS E'visibility depth of a small Secchi disc in a gray PVC tube';
+```
++ excess clarity
+```sql
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN clear_to_bottom boolean; 
+COMMENT ON COLUMN "inbound"."LenticVisits".clear_to_bottom IS E'whether Secchi depth equals water depth at sampling point';
+```
+
++ update clarity from turbidity
+```sql
+UPDATE "inbound"."LenticVisits"
+SET water_clarity = turbidity 
+WHERE turbidity IS NOT NULL AND water_clarity IS NULL;
+```
