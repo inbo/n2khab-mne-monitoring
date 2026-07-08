@@ -62,13 +62,13 @@ LEFT JOIN "metadata"."Locations" AS LOC
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
 LEFT JOIN (
-  SELECT DISTINCT
-      activity_group_id, activity_group, is_surf_activity,
-      archive_version_id IS NULL AS is_active
-    FROM "metadata"."GroupedActivities"
-    GROUP BY activity_group_id, activity_group, is_surf_activity, archive_version_id
-  ) AS FAG
-    ON FAG.activity_group_id = FCAL.activity_group_id
+ SELECT DISTINCT
+     activity_group_id, activity_group, is_surf_activity,
+     archive_version_id IS NULL AS is_active
+   FROM "metadata"."GroupedActivities"
+   GROUP BY activity_group_id, activity_group, is_surf_activity, archive_version_id
+ ) AS FAG
+   ON FAG.activity_group_id = FCAL.activity_group_id
 LEFT JOIN (
   SELECT
     LJ.loceval_latest_date,
@@ -80,16 +80,16 @@ LEFT JOIN (
     LE.loceval_photo,
     LE.loceval_notes
   FROM (
-    SELECT
+    SELECT DISTINCT
       location_id,
       grts_address,
-      STRING_TO_ARRAY(type_subset, ',') AS types,
+      ARRAY(SELECT TRIM(UNNEST(STRING_TO_ARRAY(type_subset, ',')))) AS types ,
       date AS loceval_latest_date,
       loceval_replacement,
       loceval_type_absence
     FROM "outbound"."LocationJournals"
     WHERE TRUE
-      AND category = 'biot'
+      AND category IN ('biot', 'loceval')
       AND is_latest
   ) AS LJ
   LEFT JOIN (
@@ -108,8 +108,8 @@ LEFT JOIN (
     WHERE eval_source = 'loceval'
   ) AS LE
     ON (LE.grts_address = LJ.grts_address)
-    AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
-    AND (LJ.loceval_latest_date = LE.eval_date)
+    -- AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
+    -- AND (LJ.loceval_latest_date = LE.eval_date)
   WHERE TRUE
     AND (loceval_replacement OR NOT loceval_type_absence)
     AND LE.grts_address IS NOT NULL

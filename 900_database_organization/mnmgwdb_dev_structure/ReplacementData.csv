@@ -5,4 +5,4 @@ grts_address_original,int,True,,False,False,,CHECK (grts_address_original > 0),,
 loceval_date,date,False,NULL,False,False,,,,date of the location evaluation
 grts_address_replacement,int,True,,False,False,,CHECK (grts_address_replacement > 0),,"GRTS address (`final`, i.e. after replacements)"
 replacement_rank,smallint,True,,False,False,,CHECK (replacement_rank >= 0),,"replacement preference order, can be zero if original is retained for one type"
-samplelocation_id,int,True,,False,False,,,,sample unit index in this database
+samplelocation_id,int,False,NULL,False,False,,,,sample unit index in this database

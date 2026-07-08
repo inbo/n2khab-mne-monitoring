@@ -159,3 +159,6 @@ UPDATE "inbound"."LenticVisits"
 SET water_clarity = turbidity 
 WHERE turbidity IS NOT NULL AND water_clarity IS NULL;
 ```
+
+
++ [[automation/link datetime and date in mnmsurfdb Visits via trigger]]

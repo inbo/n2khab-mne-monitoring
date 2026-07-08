@@ -23,6 +23,10 @@ SELECT
   INFO.accessibility_revisit,
   INFO.recovery_hints,
   INFO.landowner,
+  LOCEVAL.loceval_date,
+  LOCEVAL.loceval_name,
+  LOCEVAL.type_assessed,
+  LOCEVAL.type_is_absent,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes,
   FAGS.activity_group,
@@ -109,19 +113,37 @@ LEFT JOIN (
   ) AS FAGS
   ON FAGS.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
-  SELECT sampleunit_id, loceval_notes, loceval_photo
+  SELECT
+    sampleunit_id,
+    loceval_name,
+    loceval_date,
+    type_assessed,
+    type_is_absent,
+    loceval_notes,
+    loceval_photo
   FROM (
     SELECT DISTINCT
       sampleunit_id,
       MAX(eval_date) AS latest_visit,
-      eval_date,
+      eval_date AS loceval_date,
+      eval_name AS loceval_name,
+      type AS type_planned,
+      type_assessed,
+      type_is_absent,
       notes AS loceval_notes,
       photo AS loceval_photo
     FROM "transfer"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
-    GROUP BY sampleunit_id, eval_date, notes, photo
-  ) WHERE eval_date = latest_visit
-    AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL))
+    GROUP BY sampleunit_id,
+    eval_date,
+    eval_name,
+    type,
+    type_assessed,
+    type_is_absent,
+    notes,
+    photo
+  ) WHERE loceval_date = latest_visit
+    AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL) OR (type_assessed IS NOT NULL))
 ) AS LOCEVAL
   ON VISIT.sampleunit_id = LOCEVAL.sampleunit_id
 WHERE TRUE
