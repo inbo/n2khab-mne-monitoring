@@ -91,6 +91,7 @@ location_cells <-
     unmatched = "drop"
   ) %>%
   select(-grts_address_final) %>%
+  mutate(is_cell = TRUE) %>%
   relocate(geometry, .after = last_col())
 
 sf::st_geometry(location_cells) <- "wkb_geometry"
@@ -133,7 +134,8 @@ extra_cells <- loceval_connection$query_table("ReplacementCells") %>%
   anti_join(
     location_cells,
     by = join_by(location_id)
-  )
+  ) %>%
+  mutate(is_cell = TRUE)
 
 mnmgwdb$insert_data(
   table_label = "LocationCells",

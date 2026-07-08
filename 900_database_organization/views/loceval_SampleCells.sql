@@ -36,4 +36,4 @@ ORDER BY location_id
 GRANT SELECT ON  "outbound"."SampleCells"  TO viewer_mnmdb;
 -- REVOKE UPDATE ON  "outbound"."SampleCells"  FROM viewer_mnmdb;
 
-GRANT SELECT ON  "outbound"."SampleCells"  TO tester_mnmdb;
+-- GRANT SELECT ON  "outbound"."SampleCells"  TO tester_mnmdb;

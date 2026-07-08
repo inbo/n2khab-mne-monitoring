@@ -1715,6 +1715,44 @@ locevaldb$insert_data(
 ```
 
 
+## Addendum: polygons for lentic types
+(`stratum_grts_polygon_spsamples_lentic`)
+
+```{r upload-aquatic-sampleunit-polygons}
+# sampleunits_lookup <- locevaldb$query_columns("SampleUnits", c("grts_address", "type", "sampleunit_id"))
+
+check_types <- stratum_grts_spsamples_lentic_sf %>%
+  left_join(
+    n2khab_strata,
+    by = join_by(stratum),
+    relationship = "many-to-one"
+  ) %>%
+  mutate_at(vars(type), as.character) %>% 
+  distinct(type)
+
+sampleunits_lookup %>%
+  filter(
+    type %in% check_types
+  )
+
+stratum_grts_spsamples_lentic_sf %>%
+  rename(grts_address = grts_address_final) %>% 
+  left_join(
+    n2khab_strata,
+    by = join_by(stratum),
+    relationship = "many-to-one"
+  ) %>% 
+  left_join(
+    sampleunits_lookup,
+    by = join_by(grts_address, type),
+    relationship = "one-to-one"
+  ) %>%
+  filter_out(is.na(sampleunit_id)) %>%
+  select(sampleunit_id, polygon_id)
+
+```
+
+
 # Wrap-up
 
 

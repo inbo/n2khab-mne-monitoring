@@ -1,3 +1,3 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-terrestrialtypesvisit_id,int,True,,False,True,,,,visit index
+terrestrialtypesvisit_id,int,True,,True,True,,,,visit index
 replacement_recovery_notes,varchar,False,NULL,False,False,,,,extra recovery notes for local replacements

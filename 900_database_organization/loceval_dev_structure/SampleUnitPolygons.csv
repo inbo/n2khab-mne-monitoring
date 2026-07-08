@@ -1,3 +1,4 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 sampleunit_id,int,False,,False,False,SampleUnits.sampleunit_id,,,sample unit index (technical)
+polygon_id,int,False,NULL,False,False,,,,identifier - link to zenodo data sources
 wkb_geometry,,False,,False,False,,,,polygon geometry (31370 / Lambert 72): target location
