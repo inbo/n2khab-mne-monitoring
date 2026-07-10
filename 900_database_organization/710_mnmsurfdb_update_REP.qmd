@@ -134,7 +134,7 @@ mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
 mnmsurfdb <- connect_mnm_database(
   config_filepath,
   database_mirror = mnmsurfdb_mirror
-) 
+)
 
 ```
 
@@ -178,9 +178,11 @@ if (FALSE) {
 
   # manually set a new version
   # version_tag <- "mnmsurfdb_initialization" # "REP + snippets update 0.16" # only used for testing
+  # version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1 # version_notes <- "activating SURF_03.4_LENTIC"
 
-  version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
-  version_notes <- "activating SURF_03.4_LENTIC"
+  version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 2
+  version_notes <- "shifting aquatics from GRTS cell to point on polygon surface"
+
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -519,7 +521,10 @@ locations_grts_collection <- bind_rows(
     mnmsurfdb$query_columns("ReplacementData", c("grts_address_original")) %>%
       rename(grts_address = grts_address_original)
   ) %>%
-  mutate(grts_address = as.integer(grts_address)) %>%
+  mutate(
+    grts_address = as.integer(grts_address),
+    is_cell_center = TRUE
+  ) %>%
   distinct() %>%
   arrange(grts_address)
 
@@ -541,6 +546,42 @@ locations <- locations_grts_collection %>%
   )
 
 sf::st_geometry(locations) <- "wkb_geometry"
+
+```
+
+
+
+```{r append-aquatic-locations}
+
+
+aquatic_location_polygons <- stratum_grts_spsamples_lentic_sf %>%
+  rename(grts_address = grts_address_final) %>% 
+  mutate(
+    grts_address = as.integer(grts_address),
+    is_cell_center = FALSE
+  ) %>%
+  semi_join(
+    locations %>% sf::st_drop_geometry(),
+    by = join_by(grts_address)
+  )
+
+aquatic_polygon_points <- aquatic_location_polygons %>%
+  sf::st_point_on_surface() %>%
+  filter_out(sf::st_is_empty(geom))
+sf::st_geometry(aquatic_polygon_points) <- "wkb_geometry"
+
+locations_upload <- bind_rows(
+  locations %>%
+    anti_join(
+      aquatic_polygon_points %>%
+        sf::st_drop_geometry(),
+      by = join_by(grts_address)
+    ),
+  aquatic_polygon_points %>%
+    select(grts_address, is_cell_center) %>%
+    distinct()
+  )
+  
 
 # DONE directly update locations?
 # stop("location update not clear (merge conflict 20260603)")
@@ -587,14 +628,23 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 # distribution$to_upload %>% glimpse()
 
+
 ```
 
 
 ```{r update-locations}
 
+prior_empty <- locations_upload %>% 
+  filter(sf::st_is_empty(wkb_geometry)) 
+
+if (nrow(prior_empty) > 0) {
+  print(prior_empty %>% knitr::kable())
+  stop("There are empty geometries prior to uploading the `Locations` table!")
+}
+
 locations_lookup <- update_cascade_lookup(
   table_label = "Locations",
-  new_data = locations,
+  new_data = locations_upload,
   index_columns = c("location_id"),
   characteristic_columns = c("grts_address"),
   tabula_rasa = FALSE,
@@ -610,7 +660,7 @@ check_empty_geoms <- mnmsurfdb$query_table("Locations") %>%
   filter(sf::st_is_empty(wkb_geometry))
 
 if (nrow(check_empty_geoms) > 0) {
-  print(check %>% knitr::kable())
+  print(check_empty_geoms %>% knitr::kable())
   stop("There are empty geometries in the `Locations` table!")
 }
 
@@ -803,6 +853,34 @@ sampleunits_lookup <- redistribute_calendar_data(
 
 ```
 
+
+```{r sampleunit-polygons}
+
+sampleunit_polygons <- aquatic_location_polygons %>%
+  left_join(
+    sampleunits_lookup,
+    by = join_by(grts_address, stratum)
+  ) %>%
+  select(sampleunit_id, polygon_id) %>%
+  filter_out(is.na(sampleunit_id))
+
+sf::st_geometry(sampleunit_polygons) <- "wkb_geometry"
+
+
+message("________________________________________________________________")
+message(glue::glue("DELETE/INSERT of outbound.SampleUnitPolygons"))
+
+mnmsurfdb$execute_sql(
+  glue::glue('DELETE  FROM "outbound"."SampleUnitPolygons";'),
+  verbose = TRUE
+)
+
+mnmsurfdb$insert_data(
+  table_label = "SampleUnitPolygons",
+  upload_data = sampleunit_polygons
+)
+
+```
 
 
 ## FieldCalendars

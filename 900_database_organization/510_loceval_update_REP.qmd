@@ -181,14 +181,11 @@ if (FALSE) {
   # version_tag <- "snip:0.15.0_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
+  # version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
+  # version_notes <- "SURF_03.4_LENTIC"
 
-  # next!
-  # version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
-  # version_notes <- "activating SURF_03.4_LENTIC"
-
-  # preview:  
   version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
-  version_notes <- "SURF_03.4_LENTIC"
+  version_notes <- "shifting aquatics from GRTS cell to point on polygon surface"
 
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
@@ -522,7 +519,10 @@ locations_grts_collection <- bind_rows(
       select(-is_selected) %>% 
       rename(grts_address = grts_address_replacement)
   ) %>%
-  mutate(grts_address = as.integer(grts_address)) %>%
+  mutate(
+    grts_address = as.integer(grts_address),
+    is_cell_center = TRUE
+  ) %>%
   distinct() 
 
 # locations_grts_collection %>% 
@@ -539,6 +539,48 @@ locations <- locations_grts_collection %>%
 
 sf::st_geometry(locations) <- "wkb_geometry"
 
+# overlap_locations <- locations  %>%
+#   semi_join(
+#     stratum_grts_spsamples_lentic_sf %>% sf::st_drop_geometry(),
+#     by = join_by(grts_address == grts_address_final)
+#   )
+# 
+# m1 <- mapview::mapview(stratum_grts_spsamples_lentic_sf)
+# m2 <- mapview::mapview(overlap_locations)
+# m1+m2
+
+aquatic_location_polygons <- stratum_grts_spsamples_lentic_sf %>%
+  rename(grts_address = grts_address_final) %>% 
+  mutate(
+    grts_address = as.integer(grts_address),
+    is_cell_center = FALSE
+  ) %>%
+  semi_join(
+    locations %>% sf::st_drop_geometry(),
+    by = join_by(grts_address)
+  )
+
+aquatic_polygon_points <- aquatic_location_polygons %>%
+  sf::st_point_on_surface() %>%
+  filter_out(sf::st_is_empty(geom))
+sf::st_geometry(aquatic_polygon_points) <- "wkb_geometry"
+
+# m1 <- mapview::mapview(stratum_grts_spsamples_lentic_sf)
+# m2 <- mapview::mapview(aquatic_polygon_point)
+# m1+m2
+
+locations_upload <- bind_rows(
+  locations %>%
+    anti_join(
+      aquatic_polygon_points %>%
+        sf::st_drop_geometry(),
+      by = join_by(grts_address)
+    ),
+  aquatic_polygon_points %>%
+    select(grts_address, is_cell_center) %>%
+    distinct()
+  )
+  
 
 # table_label <- "Locations"
 # data_nouveau <- locations %>% sf::st_drop_geometry()# %>% select(-wkb_geometry)
@@ -557,6 +599,8 @@ sf::st_geometry(locations) <- "wkb_geometry"
 # 
 # # distribution$to_upload %>% knitr::kable()
 
+
+
 ```
 
 
@@ -564,12 +608,26 @@ sf::st_geometry(locations) <- "wkb_geometry"
 
 locations_lookup <- update_cascade_lookup(
   table_label = "Locations",
-  new_data = locations,
+  new_data = locations_upload,
   index_columns = c("location_id"),
   characteristic_columns = c("grts_address"),
   tabula_rasa = FALSE,
   verbose = TRUE
 )
+
+
+```
+
+```{r check-locations}
+#| eval: false
+
+locations_redownload <- locevaldb$query_table("Locations") %>%
+  sf::st_as_sf()
+
+m0 <- mapview::mapview(stratum_grts_spsamples_lentic_sf)
+m1 <- mapview::mapview(aquatic_polygon_points)
+m2 <- mapview::mapview(locations_redownload)
+m0+m1+m2
 
 
 ```

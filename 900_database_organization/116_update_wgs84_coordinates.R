@@ -23,6 +23,7 @@ if (length(commandline_args) > 0) {
 
 update_location_coordinates <- function(database_label) {
   # database_label <- "mnmgwdb"
+  # database_label <- "loceval"
 
   database_mirror <- glue::glue("{database_label}{suffix}")
 
@@ -38,6 +39,7 @@ update_location_coordinates <- function(database_label) {
 
   ### load locations
   locations_sf <- mnmdb$query_table("Locations") %>%
+    select(-is_cell_center) %>%
     distinct() %>%
     sf::st_as_sf()
 
