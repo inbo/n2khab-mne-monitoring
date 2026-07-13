@@ -7,7 +7,7 @@ sample_ph,double precision,False,NULL,False,False,,,,-log10([H+])
 watertemperature_celsius,double precision,False,NULL,False,False,,CHECK (watertemperature_celsius >= -273.15),,water temperature at the sampling spot
 electric_conductivity_mus_cm,double precision,False,NULL,False,False,,,,electric conductivity measurement
 dissolved_oxygen_mg_l,double precision,False,NULL,False,False,,,,oxygen measurement
-dissolved_oxygen_percent,double precision,False,NULL,False,False,,,,oxygen saturation
+dissolved_oxygen_percent,double precision,False,NULL,False,False,,,,oxygen saturation in percent
 equipment,varchar,False,NULL,False,False,,,,tbd
 color,varchar,False,NULL,False,False,,,,color of the water (6 digit hexadecimal number)
 smell,varchar,False,NULL,False,False,,,,"specific, noteworthy smell of the water"

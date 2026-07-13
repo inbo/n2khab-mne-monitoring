@@ -22,6 +22,7 @@ inbound,SamplingVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmd
 inbound,PositioningVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (spatial positioning); subset of Visits
 inbound,InstallationRemovals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"logging removals of an installation, planned or by vandalism"
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
+inbound,Trails,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",LINESTRING,,,,1,,store and share paths which facilitate relocation in the field
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
 outbound,LocationEvaluations,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample locations
 outbound,CellMaps,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,cell mapping input by drawing polygons

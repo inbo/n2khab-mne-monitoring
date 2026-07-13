@@ -15,6 +15,7 @@ type_assessed,varchar,False,CAST('onveranderd' AS VARCHAR),False,False,,,,"refer
 is_well_developed_type,boolean,False,NULL,False,False,,,,"register cells which contain a well developed type, for info to adjacent teams/location research"
 gps_type,varchar,False,NULL,False,False,,,,which type of GPS was used
 gps_accuracy_cm,double precision,False,NULL,False,False,,,,"measurement accuracy of the RTK GPS, expressed in centimeters"
+,,False,,False,False,,,,
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
 issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)

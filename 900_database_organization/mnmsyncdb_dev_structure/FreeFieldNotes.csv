@@ -4,7 +4,7 @@ log_creator,varchar,True,current_user,False,False,,,,(technical) user who create
 log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
-log_origindb,varchar(8),False,,False,False,,,,(technical) database which submitted the entry (loceval/mnmgwdb/mnmsurfdb/...)
+log_origindb,varchar(16),False,,False,False,,,,(technical) database which submitted the entry (loceval/mnmgwdb/mnmsurfdb/...)
 archive_date,int,False,NULL,False,False,,,,the day (YYYYMMDD) when this note was removed
 hide,boolean,True,0,False,False,,,,used to hide completed notes
 teammember_id,smallint,False,,False,False,,,,link to the user who performed the visit; identifier from the source database

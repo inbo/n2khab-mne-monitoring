@@ -1,0 +1,11 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+trail_id,int,True,,True,True,,,,note index
+log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
+log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
+trail_name,varchar,False,NULL,False,False,,,,identifying name of the trail
+trail_note,text,False,NULL,False,False,,,,note about the trail
+location,varchar,False,NULL,False,False,,,,"free reference to the location (e.g. area common name, database id, or grts address)"
+photo,varchar,False,NULL,False,False,,,,an optional photo along the way
+wkb_geometry,,False,,False,False,,,,Line geometry (31370 / Lambert 72): trail / path

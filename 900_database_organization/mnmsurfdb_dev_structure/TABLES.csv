@@ -26,6 +26,7 @@ inbound,AquaBioObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, test
 inbound,PerturbationObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations of relevant perturbations of the natural environment (PNE)
 inbound,LanduseObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,potentially influential aspects of the anthropogenic environment of permanent type
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
+inbound,Trails,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",LINESTRING,,,,1,,store and share paths which facilitate relocation in the field
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
 transfer,LocationEvaluations,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,iudicium in praetorio et in proelio: all prior assessments for current sample unit locations
 transfer,CellMaps,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,cell mapping input from LOCEVAL

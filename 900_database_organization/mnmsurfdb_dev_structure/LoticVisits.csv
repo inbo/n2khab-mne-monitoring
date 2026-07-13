@@ -7,7 +7,7 @@ sample_ph,double precision,False,NULL,False,False,,,,-log10([H+])
 watertemperature_celsius,double precision,False,NULL,False,False,,CHECK (watertemperature_celsius >= -273.15),,water temperature at the sampling spot
 electric_conductivity_mus_cm,double precision,False,NULL,False,False,,,,electric conductivity measurement
 dissolved_oxygen_mg_l,double precision,False,NULL,False,False,,,,oxygen measurement
-dissolved_oxygen_percent,double precision,False,NULL,False,False,,,,oxygen saturation
+dissolved_oxygen_percent,double precision,False,NULL,False,False,,,,oxygen saturation in percent
 equipment,varchar,False,NULL,False,False,,,,tbd
 color,varchar,False,NULL,False,False,,,,color of the water (6 digit hexadecimal number)
 smell,varchar,False,NULL,False,False,,,,"specific, noteworthy smell of the water"
@@ -22,6 +22,7 @@ clear_to_bottom,boolean,False,NULL,False,False,,,,whether Secchi depth equals wa
 turbidity,varchar,False,NULL,False,False,,,,"glas clear, light, turbid TO BE REPLACED BY water_clarity"
 water_clarity,varchar,False,NULL,False,False,,,,"glas clear, light, turbid"
 waterdepth_samplingpoint_m,double precision,False,NULL,False,False,,CHECK (waterdepth_samplingpoint_m >= 0),,the current depth of the water body at the sampling point
+waterdepth_samplingpoint_cm,double precision,False,NULL,False,False,,CHECK (waterdepth_samplingpoint_cm >= 0),,the current depth of the water body at the sampling point
 sludge_thickness,double precision,False,NULL,False,False,,CHECK (sludge_thickness >= 0),,sludge layer thickness in centimeters
 ice_layer_cm,double precision,False,0,False,False,,CHECK (ice_layer_cm >= 0),,ice layer thickness (if present)
 vegetation_and_algae,varchar,False,NULL,False,False,,,,TODO: table too complex

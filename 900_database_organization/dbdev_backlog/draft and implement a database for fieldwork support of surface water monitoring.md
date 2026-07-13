@@ -160,5 +160,11 @@ SET water_clarity = turbidity
 WHERE turbidity IS NOT NULL AND water_clarity IS NULL;
 ```
 
++ create water depth column in correct units
+```sql
+ALTER TABLE "inbound"."LoticVisits"
+ADD COLUMN waterdepth_samplingpoint_cm double precision DEFAULT NULL;
+```
+
 
 + [[automation/link datetime and date in mnmsurfdb Visits via trigger]]
