@@ -3,9 +3,10 @@ aliases:
 tags:
   - Trails
 started: 2026-07-13
-finished:
+finished: 2026-07-13
 execution:
-status: false
+  - FM
+status: true
 ---
 
 # Structure
@@ -78,3 +79,5 @@ BEFORE UPDATE ON "inbound"."Trails"
 FOR EACH ROW EXECUTE PROCEDURE "metadata".sync_mod();
 
 ```
+
+Added to all QGIS projects with style.
