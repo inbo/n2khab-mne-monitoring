@@ -1,10 +1,14 @@
 ---
 aliases:
 tags:
-started:
-finished:
+  - LocationInfos
+  - mnmsyncdb
+  - sync_mod
+started: 2026-07-13
+finished: 2026-07-13
 execution:
-status: false
+  - FM
+status: true
 ---
 
 currently, #mnmsurfdb does not receive #LocationInfos from other databases.

@@ -39,15 +39,15 @@ update_location_coordinates <- function(database_label) {
 
   ### load locations
   locations_sf <- mnmdb$query_table("Locations") %>%
-    select(-is_cell_center) %>%
-    distinct() %>%
+    dplyr::select(-tidyselect::any_of(c("is_cell_center"))) %>%
+    dplyr::distinct() %>%
     sf::st_as_sf()
 
   locations_bd72 <- cbind(
       locations_sf,
       sf::st_coordinates(locations_sf)
     ) %>%
-    rename(lambert_x = X, lambert_y = Y)
+    dplyr::rename(lambert_x = X, lambert_y = Y)
 
   locations_wgs84 <- sf::st_transform(locations_bd72, "EPSG:4326")
 
@@ -56,19 +56,19 @@ update_location_coordinates <- function(database_label) {
       sf::st_coordinates(locations_wgs84)
     ) %>%
     rename(wgs84_x = X, wgs84_y = Y) %>%
-    mutate_at(
-      vars(
+    dplyr::mutate_at(
+      dplyr::vars(
         lambert_x,
         lambert_y,
       ), function (x) round(x, 2)
     ) %>%
-    mutate_at(
-      vars(
+    dplyr::mutate_at(
+      dplyr::vars(
         wgs84_x,
         wgs84_y,
       ), function (x) round(x, 6)
     ) %>%
-    distinct
+    dplyr::distinct()
   # all_coordinates %>% count(location_id) %>% arrange(desc(n)) %>% head
 
   update_cascade_lookup <- parametrize_cascaded_update(mnmdb)

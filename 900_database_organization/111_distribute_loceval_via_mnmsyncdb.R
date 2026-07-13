@@ -775,6 +775,7 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
   su_idx <- sampleunit_indices[[udb]]
   su_type <- sampleunit_typecolumns[[udb]]
 
+  # ISSUE: gwTransfer only contains TerrestrialTypesVisits
   transfer_data <- loceval_connection$query_table("gwTransfer")
 
   # NOT (only) A HOTFIX: here the general stratum/type difference cuts in
