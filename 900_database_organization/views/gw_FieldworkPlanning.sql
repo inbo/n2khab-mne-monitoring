@@ -18,6 +18,7 @@ SELECT
   INFO.accessibility_revisit,
   INFO.landowner,
   INFO.recovery_hints,
+  INFO.equipment_recommendations,
   INFO.watina_code_1,
   INFO.watina_code_2,
   SOIL.soil_info,
@@ -192,6 +193,7 @@ ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
+  equipment_recommendations = NEW.equipment_recommendations,
   watina_code_1 = NEW.watina_code_1,
   watina_code_2 = NEW.watina_code_2
  WHERE locationinfo_id = OLD.locationinfo_id

@@ -79,6 +79,7 @@ SELECT
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
   INFO.recovery_hints,
+  INFO.equipment_recommendations,
   OPHO.assessment_done AS orthophoto_assessment_done,
   OPHO.notes AS orthophoto_notes
 FROM (
@@ -213,6 +214,7 @@ DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
   recovery_hints = NEW.recovery_hints,
+  equipment_recommendations = NEW.equipment_recommendations,
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit
  WHERE locationinfo_id = OLD.locationinfo_id

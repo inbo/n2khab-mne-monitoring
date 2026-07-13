@@ -33,6 +33,7 @@ SELECT
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
   INFO.recovery_hints,
+  INFO.equipment_recommendations,
   INFO.landowner,
   INFO.watina_code_1,
   INFO.watina_code_2,
@@ -166,7 +167,8 @@ DO ALSO
  SET
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit,
-  recovery_hints = NEW.recovery_hints
+  recovery_hints = NEW.recovery_hints,
+  equipment_recommendations = NEW.equipment_recommendations
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 

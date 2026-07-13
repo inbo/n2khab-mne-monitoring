@@ -18,6 +18,7 @@ SELECT
   INFO.accessibility_revisit,
   INFO.landowner,
   INFO.recovery_hints,
+  INFO.equipment_recommendations,
   FCAL.fieldcalendar_id,
   FCAL.activity_group_id,
   FAG.activity_group,
@@ -152,6 +153,16 @@ DO ALSO
   notes = NEW.notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id
+;
+
+DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd2 AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO ALSO
+ UPDATE "outbound"."LocationInfos"
+ SET
+  equipment_recommendations = NEW.equipment_recommendations
+ WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  viewer_mnmdb;

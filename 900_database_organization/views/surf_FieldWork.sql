@@ -21,8 +21,9 @@ SELECT
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
-  INFO.recovery_hints,
   INFO.landowner,
+  INFO.recovery_hints,
+  INFO.equipment_recommendations,
   LOCEVAL.loceval_date,
   LOCEVAL.loceval_name,
   LOCEVAL.type_assessed,
@@ -275,7 +276,8 @@ DO ALSO
  SET
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit,
-  recovery_hints = NEW.recovery_hints
+  recovery_hints = NEW.recovery_hints,
+  equipment_recommendations = NEW.equipment_recommendations
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
