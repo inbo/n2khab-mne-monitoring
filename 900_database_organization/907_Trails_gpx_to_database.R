@@ -47,7 +47,7 @@ config_filepath <- file.path("./mnm_database_connection.conf")
 
 db_label <- "loceval"
 suffix <- "-staging"
-suffix <- ""
+# suffix <- ""
 
 mnmdb_mirror <- glue::glue("{db_label}{suffix}")
 

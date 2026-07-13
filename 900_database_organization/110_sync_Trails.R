@@ -16,7 +16,7 @@ require("magrittr") %>% suppressPackageStartupMessages() # for the `%>%`
 date_today <- as.integer(format(Sys.time(), "%Y%m%d"))
 
 message("________________________________________________________________")
-message("<<<<< Syncing FreeFieldNotes [all]. ")
+message("<<<<< Syncing Trails [all]. ")
 message("________________________________________________________________")
 
 
@@ -67,7 +67,7 @@ for (sdb in sourcedb_labels) {
 ## Permission Safety --------------------------------------------------------------
 # to avoid parallel work during the update procedure,
 # permissions are temporarily revoked, and restored afterwards.
-#    \dp "inbound"."FreeFieldNotes"
+#    \dp "inbound"."Trails"
 
 # store user roles with write access
 writeaccess_userroles <- list(
@@ -76,7 +76,7 @@ writeaccess_userroles <- list(
   "loceval" = "user_loceval"
 )
 
-# Batch REVOKE or GRANT all permissions on FreeFieldNotes on all databases
+# Batch REVOKE or GRANT all permissions on Trails on all databases
 batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
 
   # check input: either REVOKE, or GRANT
@@ -87,7 +87,7 @@ batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
 
     mnmdb <- sourcedb_connections[[sdb]]
     role <- writeaccess_userroles[[sdb]]
-    table_namestring <- mnmdb$get_namestring("FreeFieldNotes")
+    table_namestring <- mnmdb$get_namestring("Trails")
 
     # extra syntactical spice
     preposition <- dplyr::case_when(
@@ -109,7 +109,7 @@ batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
 
   } # /loop databases
 
-  message(glue::glue("\t[{verb}'d all access from FreeFieldNotes on {suffix}.]"))
+  message(glue::glue("\t[{verb}'d all access from Trails on {suffix}.]"))
 
 
   # finalize
@@ -130,7 +130,7 @@ batch_manage_ffn_write_permissions("REVOKE")
 
 
 
-## FreeFieldNotes --------------------------------------------------------------
+## Trails --------------------------------------------------------------
 
 characteristic_columns <- c(
   "log_creator",
@@ -150,154 +150,68 @@ ensure_nonna_crs <- function(tbl) {
   return(tbl)
 }
 
-# to enable (filtering) joins, the `log_creation` datetime must be rounded to
-# full seconds
-# OBSOLETE: timestamps are now `timestamp(3)` type and accurate milliseconds
-round_creation_date_obsolete <- function(tbl) {
 
-  # note: there is also `?lubridate::floor_date`, but besides the slightly funny
-  # function name I fear that float accuracy of seconds can also make it come
-  # out at `floor(0.9999)` which would fail to join `floor(1.0001)`.
-  # With `round_date`, the same issue happens if `log_creation == 0.4999`, but I
-  # find this less likely.
-  tbl %>%
-    dplyr::mutate(
-      log_creation = lubridate::round_date(log_creation, "second")
-    ) %>%
-    return()
-}
-
-# a common function to query and parse the fieldnotes, given a database
-query_freefieldnotes <- function(db) {
-  notes <- db$query_table("FreeFieldNotes") %>%
+# a common function to query and parse the trails, given a database
+query_trails <- function(db) {
+  trails <- db$query_table("Trails") %>%
     dplyr::arrange(log_creation, log_creator) %>%
-    ensure_nonna_crs() %>%
+    ensure_nonna_crs()
     # round_creation_date() %>% # OBSOLETE: rounded (truncated) on server side
 
   # prevent data type join confilcts
-  if (nrow(notes) == 0) {
-    notes %<>%
+  if (nrow(trails) == 0) {
+    trails %<>%
       dplyr::mutate_at(
         dplyr::vars(log_creation, log_update),
         as.character
       )
   }
 
-  notes %>%
+  trails %>%
     return()
 }
 
-# teammember_id may differ between databases
-assemble_teammember_id_lookup_table <- function() {
-  teammembers <- mnmsyncdb$query_columns(
-      "TeamMembers",
-      c("username", "teammember_id")
-    )
 
-  for (sdb in sourcedb_labels) {
-    teammembers <- teammembers %>%
-      dplyr::full_join(
-        sourcedb_connections[[sdb]]$query_columns(
-          "TeamMembers",
-          c("username", "teammember_id")
-        ),
-        by = dplyr::join_by("username"),
-        suffix = c("", glue::glue("_{sdb}"))
-      )
-  }
-
-  teammembers <- teammembers %>%
-    dplyr::rename(
-      teammember_id_mnmsyncdb = teammember_id
-    )
-
-  return(teammembers)
-
-}
-
-teammember_lookup <- assemble_teammember_id_lookup_table()
-# teammember_lookup %>% knitr::kable()
-
-# adjust the content of the teammenber_id column
-#     to match the target database
-switch_teammember_id_to_database <- function(.data, db_from, db_to) {
-
-  # trivial case
-  if (db_from == db_to) {
-    return(.data)
-  }
-
-  # store the two column names as.character
-  intermediate_name <- glue::glue("teammember_id_{db_from}")
-  replacement_name  <-  glue::glue("teammember_id_{db_to}")
-
-  # replacement by rename-join-unrename
-  .data <- .data %>%
-    dplyr::rename({{intermediate_name}} := teammember_id) %>%
-    dplyr::left_join(
-      teammember_lookup %>%
-        dplyr::select(tidyselect::all_of(c(intermediate_name, replacement_name))),
-      by = dplyr::join_by(!!!rlang::syms(c(intermediate_name))),
-      relationship = "many-to-many",
-      na_matches = "never"
-    ) %>%
-    dplyr::relocate(
-      tidyselect::any_of(c(replacement_name)), .after = intermediate_name
-    ) %>%
-    dplyr::select(-tidyselect::all_of(c(intermediate_name))) %>%
-    dplyr::rename(teammember_id := {{replacement_name}})
-
-  return(.data)
-}
-
-# test <- teammember_lookup %>%
-#   select(teammember_id_mnmsyncdb, username) %>%
-#   rename(teammember_id = teammember_id_mnmsyncdb)
-#
-# test_2 <- switch_teammember_id_to_database(test, db_from = "mnmsyncdb", db_to = "mnmsurfdb")
-# switch_teammember_id_to_database(test_2, db_from = "mnmsurfdb", db_to = "mnmgwdb")
-# switch_teammember_id_to_database(test, db_from = "mnmsyncdb", db_to = "mnmsyncdb")
-
-# there... and back again: upload new fieldnotes,
+# there... and back again: upload new trails,
 # simply appending them to the existing data
-upload_new_fieldnotes_append <- function(db, fieldnotes_to_upload) {
+upload_new_trails_append <- function(db, trails_to_upload) {
 
   db$set_sequence_key(
-    "FreeFieldNotes",
+    "Trails",
     new_key_value = "max",
-    sequence_label = "inbound.seq_fieldnote_id",
+    sequence_label = "inbound.seq_trail_id",
     verbose = FALSE
   )
 
 #  append_tabledata(
 #    db$connection,
-#    table_id = db$get_table_id("FreeFieldNotes"),
-#    data_to_append = fieldnotes_to_upload %>%
+#    table_id = db$get_table_id("Trails"),
+#    data_to_append = trails_to_upload %>%
 #    sf::st_as_sf(crs = 31370),
 #    characteristic_columns = characteristic_columns,
 #    verbose = TRUE
 
   # the clumsy way: direct insert
-  upload_sf <- fieldnotes_to_upload %>% sf::st_as_sf(crs = 31370)
+  upload_sf <- trails_to_upload %>% sf::st_as_sf(crs = 31370)
   sf::st_geometry(upload_sf) <- "wkb_geometry"
 
   db$insert_data(
-    table_label = "FreeFieldNotes",
+    table_label = "Trails",
     upload_data = upload_sf
   )
 
-} # /upload_new_fieldnotes_append
+} # /upload_new_trails_append
 
-# update all fields in the FreeFieldNotes,
+# update all fields in the Trails,
 #     looking them up via characteristic columns
-update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
+update_fields_in_trails <- function(db, updated_trails) {
 
   # table pointers
-  srctab <- "temp_upd_freefieldnotes"
-  trgtab <- db$get_namestring("FreeFieldNotes")
+  srctab <- "temp_upd_trails"
+  trgtab <- db$get_namestring("Trails")
 
   # lookup columns
-  if (!all(characteristic_columns %in% names(updated_fieldnotes))) {
+  if (!all(characteristic_columns %in% names(updated_trails))) {
     stop("Cannot update: characteristic columns missing from update data.")
   }
 
@@ -309,7 +223,7 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
 
   ### build update query
   # updated columns
-  update_columns <- names(updated_fieldnotes)
+  update_columns <- names(updated_trails)
   update_columns <- update_columns[!(update_columns %in% characteristic_columns)]
   ucolumnamed <- unlist(lapply(
     update_columns,
@@ -321,14 +235,14 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
     "log_update" = "timestamp(3)"
   )
   timestamp_types <- timestamp_types[
-    names(timestamp_types) %in% names(updated_fieldnotes)
+    names(timestamp_types) %in% names(updated_trails)
   ]
 
   # create temp table
   if ("wkb_geometry" %in% update_columns) {
     # well-known-binary solution
     rs <- sf::st_write(
-      updated_fieldnotes,
+      updated_trails,
       db$connection,
       srctab,
       row.names = FALSE,
@@ -343,7 +257,7 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
     DBI::dbWriteTable(
       db$connection,
       name = srctab,
-      value = updated_fieldnotes,
+      value = updated_trails,
       overwrite = TRUE,
       temporary = TRUE,
       field.types = timestamp_types
@@ -368,15 +282,15 @@ update_fields_in_fieldnotes <- function(db, updated_fieldnotes) {
   db$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
 
   return(invisible(NULL))
-} # /update_fields_in_fieldnotes
+} # /update_fields_in_trails
 
 
 # field notes which disappear from their source database
 # will be removed from all other databases
 # however, they remain archived in the syncdb table
-remove_archived_fieldnotes_from_inputdbs <- function(finos_to_remove) {
+remove_archived_trails_from_inputdbs <- function(finos_to_remove) {
 
-  table_label <- "FreeFieldNotes"
+  table_label <- "Trails"
 
   # ensure that the filtering is not skipped due to empty dataframe
   if (nrow(finos_to_remove) == 0) return(invisible(NULL))
@@ -425,10 +339,10 @@ remove_archived_fieldnotes_from_inputdbs <- function(finos_to_remove) {
     ## execute - DELETE!
     mnmdb$execute_sql(deletion_string, verbose = TRUE)
   }
-} # /remove_archived_fieldnotes_from_inputdbs
+} # /remove_archived_trails_from_inputdbs
 
 
-# a flexible join with sensible defaults for FreeFieldNotes
+# a flexible join with sensible defaults for Trails
 characteristic_join_ffn <- function(
     data1,
     data2,
@@ -457,7 +371,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # sdb <- "loceval"
 
   # load the status quo from SYNCDB
-  freefieldnotes_statusquo <- query_freefieldnotes(mnmsyncdb)
+  trails_statusquo <- query_trails(mnmsyncdb)
   # %>% arrange(log_creation) %>% head(3)
 
   # choose the current database connection
@@ -465,24 +379,23 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # mnmdb$shellstring
 
   # query sources: user input from databases
-  freefieldnotes_userdb <- query_freefieldnotes(mnmdb) %>%
-    dplyr::arrange(log_creation, log_update, fieldnote_id) %>%
+  trails_userdb <- query_trails(mnmdb) %>%
+    dplyr::arrange(log_creation, log_update, trail_id) %>%
     dplyr::mutate(
       archive_date = as.character(NA)
     ) %>%
-    dplyr::relocate(archive_date, .before = wkb_geometry) %>%
-    switch_teammember_id_to_database(sdb, "mnmsyncdb")
+    dplyr::relocate(archive_date, .before = wkb_geometry)
     # %>% arrange(log_creation) %>% head(3)
 
 
-  # test3_statusquo <- freefieldnotes_statusquo %>%
+  # test3_statusquo <- trails_statusquo %>%
   #   arrange(log_creation) %>%
   #   select(starts_with("log_")) %>%
   #   head(3)
   # test3_statusquo %>%
   #   t() %>% knitr::kable()
 
-  # test3_userdb <- freefieldnotes_userdb %>%
+  # test3_userdb <- trails_userdb %>%
   #   arrange(log_creation) %>%
   #   select(starts_with("log_")) %>%
   #   head(3)
@@ -501,45 +414,46 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   #     by = dplyr::join_by(log_creator, log_creation),
   #   )
 
-  # mapview::mapview(freefieldnotes_userdb %>% sf::st_as_sf())
-  # freefieldnotes_userdb %>% arrange(desc(log_update))
+
+  # mapview::mapview(trails_userdb %>% sf::st_as_sf())
+  # trails_userdb %>% arrange(desc(log_update))
 
   ### (1) distinguish existing and novel field notes
-  existing_fieldnotes_userdb <- freefieldnotes_userdb %>%
-    characteristic_join_ffn(freefieldnotes_statusquo)
+  existing_trails_userdb <- trails_userdb %>%
+    characteristic_join_ffn(trails_statusquo)
 
-  novel_fieldnotes <- freefieldnotes_userdb %>%
+  novel_trails <- trails_userdb %>%
     characteristic_join_ffn(
-      freefieldnotes_statusquo,
+      trails_statusquo,
       join_function = dplyr::anti_join
     ) %>%
-    dplyr::select(-fieldnote_id) %>%
+    dplyr::select(-trail_id) %>%
     dplyr::mutate(log_origindb = sdb)
 
   # ==> upload novel notes
-  if (nrow(novel_fieldnotes) > 0) {
+  if (nrow(novel_trails) > 0) {
     message(glue::glue("
-    \t<<< Retrieving N={nrow(novel_fieldnotes)} novel FieldNotes entered by {sdb}.
+    \t<<< Retrieving N={nrow(novel_trails)} novel Trails entered by {sdb}.
     "))
 
-    upload_new_fieldnotes_append(
+    upload_new_trails_append(
       mnmsyncdb,
-      novel_fieldnotes
+      novel_trails
     )
   }
 
 
-  ### (2) find deleted fieldnotes
+  ### (2) find deleted trails
   #     taking log_origindb into account to check which notes are removed
-  #     -> only the userdb can remove fieldnotes
-  #     flagging an archive date to freefieldnotes on SYNCDB
-  removed_fieldnotes <- freefieldnotes_statusquo %>%
+  #     -> only the userdb can remove trails
+  #     flagging an archive date to trails on SYNCDB
+  removed_trails <- trails_statusquo %>%
     filter(
       log_origindb == sdb,
       is.na(archive_date)
     ) %>%
     characteristic_join_ffn(
-      freefieldnotes_userdb,
+      trails_userdb,
       join_function = dplyr::anti_join
     ) %>%
     dplyr::select(!!!rlang::syms(characteristic_columns)) %>%
@@ -547,31 +461,31 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # IMPORTANT: these removals must be reflected in
   #            all the other sdb's (see below)
 
-  ## handle deleted fieldnotes
-  if (nrow(removed_fieldnotes) > 0) {
+  ## handle deleted trails
+  if (nrow(removed_trails) > 0) {
 
     # dump a copy to logs
     output_filename <- file.path(".", "logs", glue::glue(
-        "{format(Sys.time(), '%Y%m%d%H%M')}_deleted_freefieldnotes_{sdb}.csv"
+        "{format(Sys.time(), '%Y%m%d%H%M')}_deleted_trails_{sdb}.csv"
       ))
     message(glue::glue("
-    \t[><] N={nrow(removed_fieldnotes)} notes REMOVED from {sdb};
+    \t[><] N={nrow(removed_trails)} notes REMOVED from {sdb};
     \t\tbackup dumped to {output_filename}.
     "))
 
-    freefieldnotes_statusquo %>%
-      characteristic_join_ffn(removed_fieldnotes) %>%
+    trails_statusquo %>%
+      characteristic_join_ffn(removed_trails) %>%
       readr::write_csv2(output_filename)
 
     # ==> flag removed notes (by update)
-    update_fields_in_fieldnotes(mnmsyncdb, removed_fieldnotes)
+    update_fields_in_trails(mnmsyncdb, removed_trails)
 
     # delete them from other user-side databases
-    remove_archived_fieldnotes_from_inputdbs(removed_fieldnotes)
+    remove_archived_trails_from_inputdbs(removed_trails)
   }
 
 
-  ### (3) update changed fieldnotes
+  ### (3) update changed trails
   #   one-directional: changes come from source_db's,
   #   determining latest updates by updating entries with more recent log_update
   #   this is independent of `log_origindb`: any database tool may
@@ -581,9 +495,9 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   #   distribution from syncdb to sourcedb's will
   #       happen after all news are aggregated.
   #
-  finos_with_timestamp_differences <- existing_fieldnotes_userdb %>%
+  finos_with_timestamp_differences <- existing_trails_userdb %>%
     characteristic_join_ffn(
-      freefieldnotes_statusquo %>%
+      trails_statusquo %>%
         dplyr::select(!!!rlang::syms(c(characteristic_columns, "log_update"))),
       join_function = dplyr::inner_join,
       suffix = c("", "_syncdb") # CRITICAL to get this right
@@ -591,7 +505,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
     dplyr::filter_out(log_update_syncdb == log_update) %>%
     select(
       -archive_date,
-      -fieldnote_id
+      -trail_id
     )
 
   # extract the news from user-side sourcedb's
@@ -602,52 +516,52 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # ==> reflect all decentral updates on the SYNCDB
   if (nrow(finos_with_user_updates) > 0) {
     message(glue::glue("
-    \t<<< Syncing N={nrow(finos_with_user_updates)} changed FieldNotes from {sdb}.
+    \t<<< Syncing N={nrow(finos_with_user_updates)} changed Trails from {sdb}.
     "))
-    update_fields_in_fieldnotes(mnmsyncdb, finos_with_user_updates)
+    update_fields_in_trails(mnmsyncdb, finos_with_user_updates)
   }
 
 
 } # /synchronize_syncdb_with_data_from_sources
 
 # Step 2: distribute latest version to source databases
-distribute_fieldnote_updates_to_sources <- function(sdb) {
+distribute_trails_updates_to_sources <- function(sdb) {
 
   # load the status quo from SYNCDB
-  freefieldnotes_statusquo <- query_freefieldnotes(mnmsyncdb) %>%
+  trails_statusquo <- query_trails(mnmsyncdb) %>%
     dplyr::filter(is.na(archive_date)) %>%
-    switch_teammember_id_to_database("mnmsyncdb", sdb) %>%
-    dplyr::select(-archive_date, -log_origindb, -fieldnote_id)
+    dplyr::select(-archive_date, -log_origindb, -trail_id)
 
   mnmdb <- sourcedb_connections[[sdb]]
-  freefieldnotes_userdb <- query_freefieldnotes(mnmdb)
+  trails_userdb <- query_trails(mnmdb)
+
 
   # (1) distribute novel notes
-  novel_fieldnotes <- freefieldnotes_statusquo %>%
+  novel_trails <- trails_statusquo %>%
     characteristic_join_ffn(
-      freefieldnotes_userdb,
+      trails_userdb,
       join_function = dplyr::anti_join
     )
 
-  if (nrow(novel_fieldnotes) > 0) {
+  if (nrow(novel_trails) > 0) {
     message(glue::glue("
-    \t>>> Distributing N={nrow(novel_fieldnotes)} novel FieldNotes to {sdb}.
+    \t>>> Distributing N={nrow(novel_trails)} novel Trails to {sdb}.
     "))
 
-    upload_new_fieldnotes_append(
+    upload_new_trails_append(
       mnmdb,
-      novel_fieldnotes
+      novel_trails
     )
   }
 
-  # freefieldnotes_statusquo %>%
+  # trails_statusquo %>%
   #   count(!!!rlang::syms(characteristic_columns)) %>%
   #   arrange(-n)
 
   # (2) update existing notes
-  updated_fieldnotes <- freefieldnotes_statusquo %>%
+  updated_trails <- trails_statusquo %>%
     characteristic_join_ffn(
-      freefieldnotes_userdb %>%
+      trails_userdb %>%
         dplyr::select(!!!rlang::syms(c(characteristic_columns, "log_update"))),
       join_function = dplyr::inner_join,
       suffix = c("", "_userdb")
@@ -658,14 +572,14 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
     )
 
   # ==> reflect all decentral updates on the SYNCDB
-  if (nrow(updated_fieldnotes) > 0) {
+  if (nrow(updated_trails) > 0) {
     message(glue::glue("
-    \t<<< Updating N={nrow(updated_fieldnotes)} changed FieldNotes on {sdb}.
+    \t<<< Updating N={nrow(updated_trails)} changed Trails on {sdb}.
     "))
-    update_fields_in_fieldnotes(mnmdb, updated_fieldnotes)
+    update_fields_in_trails(mnmdb, updated_trails)
   }
 
-} # /distribute_fieldnote_updates_to_sources
+} # /distribute_trails_updates_to_sources
 
 
 #_______________________________________________________________________________
@@ -676,7 +590,7 @@ for (sdb in sourcedb_labels) {
 }
 
 for (sdb in sourcedb_labels) {
-  distribute_fieldnote_updates_to_sources(sdb)
+  distribute_trails_updates_to_sources(sdb)
 }
 
 # restore permissions
@@ -695,5 +609,5 @@ batch_manage_ffn_write_permissions("GRANT")
 # version with later timestamp (in this example: `mnmsurfdb`) will be kept.
 
 message("________________________________________________________________")
-message(" >>>>> Finished syncing FreeFieldNotes [all]. ")
+message(" >>>>> Finished syncing Trails [all]. ")
 message("________________________________________________________________")

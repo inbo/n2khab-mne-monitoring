@@ -135,7 +135,8 @@ log_columns <- c(
 data_columns <- c(
   "accessibility_inaccessible",
   "accessibility_revisit",
-  "recovery_hints"
+  "recovery_hints",
+  "equipment_recommendations"
 )
 
 mnmgwdb_to_loceval <- mnmgwdb_data %>%
@@ -239,6 +240,20 @@ different_common <- different_common %>%
     recovery_both = stringr::str_c(!!!rlang::syms(cols), sep = " // ")
   )
 
+# equipment recommendation:
+#   keep info from both databases
+#   issue warning for manual adjustment in case of removals/changes
+cols <- paste("equipment_recommendations", c("locevaldb", "mnmgwdb"), sep = "_")
+different_common <- different_common %>%
+  mutate(
+    same_equipment = coalesce(
+      coalesce(!!!rlang::syms(cols)) == coalesce(!!!rlang::syms(rev(cols))),
+      TRUE
+    ),
+    equipment_recommendations = coalesce(!!!rlang::syms(cols)),
+    equipment_both = stringr::str_c(!!!rlang::syms(cols), sep = " // ")
+  )
+
 # (in)accessibility
 #   any inaccessibility is retained
 #   issue warning for manual removal inaccessibility
@@ -268,7 +283,12 @@ different_common <- different_common %>%
 
 
 different_common <- different_common %>%
-  mutate(no_conflict = same_recovery & same_inaccessibility & same_revisit)
+  mutate(no_conflict =
+    same_recovery &
+    same_equipment &
+    same_inaccessibility &
+    same_revisit
+  )
 
 # different_common %>%
 #   select(
@@ -285,6 +305,9 @@ different_common <- different_common %>%
 diff_recovery <- !different_common$same_recovery
 different_common[diff_recovery, "recovery_hints"] <-
   different_common[diff_recovery, "recovery_both"]
+diff_equipment <- !different_common$same_equipment
+different_common[diff_equipment, "equipment_recommendations"] <-
+  different_common[diff_equipment, "equipment_both"]
 diff_inacc <- !different_common$same_inaccessibility
 different_common[diff_inacc, "accessibility_inaccessible"] <-
   different_common[diff_inacc, "inaccessible_any"]
