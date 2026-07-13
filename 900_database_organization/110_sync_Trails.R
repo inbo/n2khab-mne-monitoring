@@ -77,7 +77,7 @@ writeaccess_userroles <- list(
 )
 
 # Batch REVOKE or GRANT all permissions on Trails on all databases
-batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
+batch_manage_trails_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
 
   # check input: either REVOKE, or GRANT
   verb <- match.arg(verb)
@@ -118,7 +118,7 @@ batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
     # does this count as a special type of recursion? ;)
     reg.finalizer(
       .GlobalEnv,
-      function(e) batch_manage_ffn_write_permissions("GRANT"),
+      function(e) batch_manage_trails_write_permissions("GRANT"),
       onexit = TRUE
     )
   }
@@ -126,7 +126,7 @@ batch_manage_ffn_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
   return(invisible(NULL))
 } # /manage_write_permissions
 
-batch_manage_ffn_write_permissions("REVOKE")
+batch_manage_trails_write_permissions("REVOKE")
 
 
 
@@ -285,18 +285,18 @@ update_fields_in_trails <- function(db, updated_trails) {
 } # /update_fields_in_trails
 
 
-# field notes which disappear from their source database
+# trails which disappear from their source database
 # will be removed from all other databases
 # however, they remain archived in the syncdb table
-remove_archived_trails_from_inputdbs <- function(finos_to_remove) {
+remove_archived_trails_from_inputdbs <- function(trails_to_remove) {
 
   table_label <- "Trails"
 
   # ensure that the filtering is not skipped due to empty dataframe
-  if (nrow(finos_to_remove) == 0) return(invisible(NULL))
+  if (nrow(trails_to_remove) == 0) return(invisible(NULL))
 
   ### prepare deletion filter sting
-  fino2rem <- finos_to_remove %>%
+  fino2rem <- trails_to_remove %>%
     select(!!!rlang::syms(characteristic_columns))
 
   # prepend name of column (SQL conditionals)
@@ -343,7 +343,7 @@ remove_archived_trails_from_inputdbs <- function(finos_to_remove) {
 
 
 # a flexible join with sensible defaults for Trails
-characteristic_join_ffn <- function(
+characteristic_join_trails <- function(
     data1,
     data2,
     join_function = dplyr::semi_join,
@@ -358,7 +358,7 @@ characteristic_join_ffn <- function(
     ) %>%
     return()
 
-} # /characteristic_join_ffn
+} # /characteristic_join_trails
 
 
 
@@ -403,7 +403,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   #   t() %>% knitr::kable()
 
   # test <- test3_userdb %>%
-  #   characteristic_join_ffn(test3_statusquo)
+  #   characteristic_join_trails(test3_statusquo)
 
   # test3_userdb %>% pull(log_creation) %>% knitr::kable()
   # test3_statusquo %>% pull(log_creation) %>% knitr::kable()
@@ -418,19 +418,19 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # mapview::mapview(trails_userdb %>% sf::st_as_sf())
   # trails_userdb %>% arrange(desc(log_update))
 
-  ### (1) distinguish existing and novel field notes
+  ### (1) distinguish existing and novel trails
   existing_trails_userdb <- trails_userdb %>%
-    characteristic_join_ffn(trails_statusquo)
+    characteristic_join_trails(trails_statusquo)
 
   novel_trails <- trails_userdb %>%
-    characteristic_join_ffn(
+    characteristic_join_trails(
       trails_statusquo,
       join_function = dplyr::anti_join
     ) %>%
     dplyr::select(-trail_id) %>%
     dplyr::mutate(log_origindb = sdb)
 
-  # ==> upload novel notes
+  # ==> upload novel trails
   if (nrow(novel_trails) > 0) {
     message(glue::glue("
     \t<<< Retrieving N={nrow(novel_trails)} novel Trails entered by {sdb}.
@@ -444,7 +444,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
 
 
   ### (2) find deleted trails
-  #     taking log_origindb into account to check which notes are removed
+  #     taking log_origindb into account to check which trails are removed
   #     -> only the userdb can remove trails
   #     flagging an archive date to trails on SYNCDB
   removed_trails <- trails_statusquo %>%
@@ -452,7 +452,7 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
       log_origindb == sdb,
       is.na(archive_date)
     ) %>%
-    characteristic_join_ffn(
+    characteristic_join_trails(
       trails_userdb,
       join_function = dplyr::anti_join
     ) %>%
@@ -469,15 +469,15 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
         "{format(Sys.time(), '%Y%m%d%H%M')}_deleted_trails_{sdb}.csv"
       ))
     message(glue::glue("
-    \t[><] N={nrow(removed_trails)} notes REMOVED from {sdb};
+    \t[><] N={nrow(removed_trails)} trails REMOVED from {sdb};
     \t\tbackup dumped to {output_filename}.
     "))
 
     trails_statusquo %>%
-      characteristic_join_ffn(removed_trails) %>%
+      characteristic_join_trails(removed_trails) %>%
       readr::write_csv2(output_filename)
 
-    # ==> flag removed notes (by update)
+    # ==> flag removed trails (by update)
     update_fields_in_trails(mnmsyncdb, removed_trails)
 
     # delete them from other user-side databases
@@ -495,8 +495,8 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
   #   distribution from syncdb to sourcedb's will
   #       happen after all news are aggregated.
   #
-  finos_with_timestamp_differences <- existing_trails_userdb %>%
-    characteristic_join_ffn(
+  trails_with_timestamp_differences <- existing_trails_userdb %>%
+    characteristic_join_trails(
       trails_statusquo %>%
         dplyr::select(!!!rlang::syms(c(characteristic_columns, "log_update"))),
       join_function = dplyr::inner_join,
@@ -509,16 +509,16 @@ synchronize_syncdb_with_data_from_sources <- function(sdb) {
     )
 
   # extract the news from user-side sourcedb's
-  finos_with_user_updates <- finos_with_timestamp_differences %>%
+  trails_with_user_updates <- trails_with_timestamp_differences %>%
     dplyr::filter(log_update > log_update_syncdb) %>%
     dplyr::select(-log_update_syncdb)
 
   # ==> reflect all decentral updates on the SYNCDB
-  if (nrow(finos_with_user_updates) > 0) {
+  if (nrow(trails_with_user_updates) > 0) {
     message(glue::glue("
-    \t<<< Syncing N={nrow(finos_with_user_updates)} changed Trails from {sdb}.
+    \t<<< Syncing N={nrow(trails_with_user_updates)} changed Trails from {sdb}.
     "))
-    update_fields_in_trails(mnmsyncdb, finos_with_user_updates)
+    update_fields_in_trails(mnmsyncdb, trails_with_user_updates)
   }
 
 
@@ -536,9 +536,9 @@ distribute_trails_updates_to_sources <- function(sdb) {
   trails_userdb <- query_trails(mnmdb)
 
 
-  # (1) distribute novel notes
+  # (1) distribute novel trails
   novel_trails <- trails_statusquo %>%
-    characteristic_join_ffn(
+    characteristic_join_trails(
       trails_userdb,
       join_function = dplyr::anti_join
     )
@@ -558,23 +558,23 @@ distribute_trails_updates_to_sources <- function(sdb) {
   #   count(!!!rlang::syms(characteristic_columns)) %>%
   #   arrange(-n)
 
-  # (2) update existing notes
+  # (2) update existing trails
   updated_trails <- trails_statusquo %>%
-    characteristic_join_ffn(
+    characteristic_join_trails(
       trails_userdb %>%
         dplyr::select(!!!rlang::syms(c(characteristic_columns, "log_update"))),
       join_function = dplyr::inner_join,
       suffix = c("", "_userdb")
     ) %>%
-    filter(log_update > log_update_userdb) %>%
-    select(
+    dplyr::filter(log_update > log_update_userdb) %>%
+    dplyr::select(
       -log_update_userdb
     )
 
   # ==> reflect all decentral updates on the SYNCDB
   if (nrow(updated_trails) > 0) {
     message(glue::glue("
-    \t<<< Updating N={nrow(updated_trails)} changed Trails on {sdb}.
+    \t>>> Updating N={nrow(updated_trails)} changed Trails on {sdb}.
     "))
     update_fields_in_trails(mnmdb, updated_trails)
   }
@@ -594,7 +594,7 @@ for (sdb in sourcedb_labels) {
 }
 
 # restore permissions
-batch_manage_ffn_write_permissions("GRANT")
+batch_manage_trails_write_permissions("GRANT")
 
 # TODO TODOs:
 # - update / reset table primary keys
@@ -605,7 +605,7 @@ batch_manage_ffn_write_permissions("GRANT")
 # The approach above has limited coverage of simultaneous changes.
 # Information may be lost if different endpoints trigger changes on the same
 # day. For example, if between a backup and the consecutive sync action, both
-# `loceval` (09:58) and `mnmsurfdb` (10:37) edit the same notes, then only the
+# `loceval` (09:58) and `mnmsurfdb` (10:37) edit the same trails, then only the
 # version with later timestamp (in this example: `mnmsurfdb`) will be kept.
 
 message("________________________________________________________________")

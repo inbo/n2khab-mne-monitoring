@@ -1,9 +1,5 @@
 #!/usr/bin/env Rscript
 
-# TODO in case we get to more than two databases,
-#      create a central place to store infos
-#      and check against that.
-
 #_______________________________________________________________________________
 ### Libraries
 
@@ -14,6 +10,10 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 todays_date <- strftime(as.POSIXct(Sys.time()), "%Y%m%d%H%M%S")
+
+message("________________________________________________________________")
+message("<<<<< Syncing LocationInfos [all]. ")
+message("________________________________________________________________")
 
 #_______________________________________________________________________________
 ### connect to databases
@@ -30,398 +30,370 @@ if (length(commandline_args) > 0) {
 }
 # suffix <- "-staging"
 
-locevaldb <- connect_mnm_database(
-  config_filepath = config_filepath,
-  database_mirror = glue::glue("loceval{suffix}")
-)
-# keyring::keyring_delete(keyring = "mnmdb_temp")
-message(locevaldb$shellstring)
 
-mnmgwdb <- connect_mnm_database(
-  config_filepath = config_filepath,
-  database_mirror = glue::glue("mnmgwdb{suffix}")
-)
-# keyring::keyring_delete(keyring = "mnmdb_temp")
-message(mnmgwdb$shellstring)
 
-# mnmsurfdb <- connect_mnm_database(
-#   config_filepath = config_filepath,
-#   database_mirror = glue::glue("mnmsurfdb{suffix}")
-# )
-# # keyring::keyring_delete(keyring = "mnmdb_temp")
-# message(mnmsurfdb$shellstring)
+## connect sync database
+mnmsyncdb_mirror <- glue::glue("mnmsyncdb{suffix}")
+
+mnmsyncdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmsyncdb_mirror
+)
+
+message(glue::glue("\tconnected: psql {mnmsyncdb$shellstring}"))
+update_cascade_mnmsyncdb <- parametrize_cascaded_update(mnmsyncdb)
+
+## connect source databases
+sourcedb_labels <- c("loceval", "mnmgwdb", "mnmsurfdb")
+sourcedb_connections <- list()
+
+for (sdb in sourcedb_labels) {
+  sourcedb_connections[[sdb]] <- connect_mnm_database(
+    config_filepath = config_filepath,
+    database = glue::glue("{sdb}{suffix}")
+  )
+  message(glue::glue("\tconnected: psql {sourcedb_connections[[sdb]]$shellstring}"))
+
+}
+
+
+## Permission Safety --------------------------------------------------------------
+# to avoid parallel work during the update procedure,
+# permissions are temporarily revoked, and restored afterwards.
+#    \dp "inbound"."FreeFieldNotes"
+
+# store user roles with write access
+writeaccess_userroles <- list(
+  "mnmgwdb" = "user_gwdb",
+  "mnmsurfdb" = "user_surfdb",
+  "loceval" = "user_loceval"
+)
+
+# Batch REVOKE or GRANT all permissions on FreeFieldNotes on all databases
+batch_manage_infos_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
+
+  # check input: either REVOKE, or GRANT
+  verb <- match.arg(verb)
+
+  # loop databases
+  for (sdb in sourcedb_labels) {
+
+    mnmdb <- sourcedb_connections[[sdb]]
+    role <- writeaccess_userroles[[sdb]]
+    table_namestring <- mnmdb$get_namestring("FreeFieldNotes")
+
+    # extra syntactical spice
+    preposition <- dplyr::case_when(
+      verb == "REVOKE" ~ "FROM",
+      verb == "GRANT" ~ "TO"
+    )
+
+    # loop critical actions
+    for (action in c("SELECT", "INSERT", "UPDATE", "DELETE")) {
+
+      # stitch the query
+      permission_query <- glue::glue(
+        "{verb} {action} ON {table_namestring} {preposition} {role};"
+      )
+
+      # execute the query
+      mnmdb$execute_sql(permission_query, verbose = FALSE)
+    } # /loop actions
+
+  } # /loop databases
+
+  message(glue::glue("\t[{verb}'d all access from LocationInfos on {suffix}.]"))
+
+
+  # finalize
+  if (verb == "REVOKE") {
+    ## ensure that permissions are restored if the script fails.
+    # does this count as a special type of recursion? ;)
+    reg.finalizer(
+      .GlobalEnv,
+      function(e) batch_manage_infos_write_permissions("GRANT"),
+      onexit = TRUE
+    )
+  }
+
+  return(invisible(NULL))
+} # /manage_write_permissions
+
+batch_manage_infos_write_permissions("REVOKE")
+
+
+## LocationInfos --------------------------------------------------------
+
+characteristic_columns <- c(
+  "grts_address"
+)
+
+## logging columns WILL be updated
+# logging_columns <- c("log_update")
+
+# columns which should not get updated
+ignored_columns <- c("landowner")
 
 #_______________________________________________________________________________
-### Load Data
-
-loceval_locations <- locevaldb$query_table("Locations")
-loceval_data <- locevaldb$query_table("LocationInfos")
-
-mnmgwdb_locations <- mnmgwdb$query_table("Locations")
-mnmgwdb_data <- mnmgwdb$query_table("LocationInfos")
-
-# mnmsurfdb_locations <- mnmsurfdb$query_table("Locations")
-# mnmsurfdb_data <- mnmsurfdb$query_table("LocationInfos")
+### helper functions
 
 
-if (FALSE) {
-# local replacements
-mnmgwdb_replacements <- mnmgwdb$query_table("ReplacementData")
+# a common function to query and parse the LocationInfos, given a database
+query_infos <- function(db) {
+  infos <- db$query_table("LocationInfos") %>%
+    dplyr::arrange(log_creation, log_creator)
 
-# .data <- mnmgwdb_data
-# replace_forward <- TRUE
-transmogrify_data <- function(.data, replace_forward) {
-  # toggle grts_address replacement of a data frame
-  # forward: switch from original to replaced grts address
-  # backward: return from replaced to original grts
-  # taking "type" into account, of course
-  # and assuming that the column name is `grts_address`.
-
-  grts_lookup <- mnmgwdb_replacements %>%
-    distinct(grts_address, type, grts_address_replacement)
-
-  if (replace_forward) {
-    grts_lookup <- grts_lookup %>%
-      rename(
-        grts_address_before = grts_address,
-        grts_address_after = grts_address_replacement
-      )
-  } else {
-    grts_lookup <- grts_lookup %>%
-      rename(
-        grts_address_after = grts_address,
-        grts_address_before = grts_address_replacement
+  # prevent data type join confilcts
+  if (nrow(infos) == 0) {
+    infos %<>%
+      dplyr::mutate_at(
+        dplyr::vars(log_creation, log_update),
+        as.character
       )
   }
 
-  changed <- .data %>%
-    left_join(
-      grts_lookup,
-      by = join_by(type, grts_address == grts_address_before)
-    )
-
-  ### LOGICAL ERROR
-  # No need to replace data!
-  # grts inaccessible does not necessarily apply to the replacement
-  # same for the rest: LocationInfos are rather GRTS-specific
-
-  return(changed)
-}
-
+  infos %>%
+    return()
 }
 
 
 
-# mnmgwdb_data %>%
-# loceval_data %>%
-#   select(-landowner) %>%
-#   sample_n(3) %>%
-#   t() %>% knitr::kable()
+# a flexible join with sensible defaults for LocationInfos
+characteristic_join_infos <- function(
+    data1,
+    data2,
+    join_function = dplyr::semi_join,
+    ...
+  ) {
+
+  data1 %>%
+    join_function(
+      data2,
+      by = dplyr::join_by(!!!rlang::syms(characteristic_columns)),
+      ...
+    ) %>%
+    return()
+
+} # /characteristic_join_infos
 
 
-#_______________________________________________________________________________
-### find overlap
-# column-specific:
-#   - gw::watina_code_* can be ignored
-#   - accessibility and recovery must be merged
-#   - location_id linked upon upload (loceval_locations, mnmgwdb_locations)
-#   - even NAs should be uploaded -> filled via qgis
+# update all fields in the LocationInfos,
+#     looking them up via characteristic columns
+update_fields_in_infos <- function(db, updated_infos) {
 
-log_columns <- c(
-  "log_user",
-  "log_update"
-)
-
-data_columns <- c(
-  "accessibility_inaccessible",
-  "accessibility_revisit",
-  "recovery_hints",
-  "equipment_recommendations"
-)
-
-mnmgwdb_to_loceval <- mnmgwdb_data %>%
-  anti_join(
-    loceval_data,
-    by = join_by(grts_address)
-  ) %>%
-  select(!!!rlang::syms(c("grts_address", log_columns, data_columns))) %>%
-  mutate(
-    log_creator = "mnmgwdb",
-    log_creation = convert_timestamp_to_ms_character(Sys.time())
-  )
-
-if (nrow(mnmgwdb_to_loceval) > 0) {
-  readr::write_csv2(
-    mnmgwdb_to_loceval,
-    glue::glue("logs/{todays_date}_LocationInfos_to_loceval{suffix}.csv")
-  )
-}
-
-loceval_to_mnmgwdb <- loceval_data %>%
-  anti_join(
-    mnmgwdb_data,
-    by = join_by(grts_address)
-  ) %>%
-  select(!!!rlang::syms(c("grts_address", log_columns, data_columns))) %>%
-  mutate(
-    log_creator = "locevaldb",
-    log_creation = convert_timestamp_to_ms_character(Sys.time())
-  )
-
-if (nrow(loceval_to_mnmgwdb) > 0) {
-  readr::write_csv2(
-    loceval_to_mnmgwdb,
-    glue::glue("logs/{todays_date}_LocationInfos_to_mnmgwdb{suffix}.csv")
-  )
-}
-
-# find the common ground and evaluate it
-# (1) rows which both tables have in common
-#     -> no processing necessary
-same_data <- loceval_data %>%
-  inner_join(
-    mnmgwdb_data,
-    by = join_by(grts_address, !!!rlang::syms(data_columns))
-  ) %>%
-  select(grts_address, !!!rlang::syms(data_columns))
-
-# (2) rows which differ
-different_common <- loceval_data %>%
-  inner_join(
-    mnmgwdb_data,
-    by = join_by(grts_address),
-    suffix = c("_locevaldb", "_mnmgwdb")
-  ) %>%
-  select(c(
-    "grts_address",
-    paste(log_columns, "_locevaldb", sep = ""),
-    paste(data_columns, "_locevaldb", sep = ""),
-    paste(log_columns, "_mnmgwdb", sep = ""),
-    paste(data_columns, "_mnmgwdb", sep = "")
-  )) %>%
-  anti_join(same_data, by = join_by(grts_address))
-
-message("### Differing Rows:")
-different_common %>%
-  select(c(
-    "grts_address",
-    paste(data_columns, "_locevaldb", sep = ""),
-    paste(data_columns, "_mnmgwdb", sep = "")
-  )) %>%
-  knitr::kable()
-
-# TODO timestamp variables are currently not reliable due to
-#      system users triggering sync_mod.
-#      -> approach "content only"
-# per-column:
-#   - if NA, NA <- caught by a single coalesce
-#   - if same, same <- caught by inverse coalesce comparison
-#   - coalesce has the risk of favoring the first <- also set a default case
-
-## for testing...
-#   different_common[1, "recovery_hints_locevaldb"] <- "test1"
-#   different_common[1, "recovery_hints_mnmgwdb"] <- "different1"
-#   different_common[3, "accessibility_inaccessible_locevaldb"] <- FALSE
-#   different_common[3, "accessibility_inaccessible_mnmgwdb"] <- TRUE
-#   different_common[4, "accessibility_revisit_locevaldb"] <- as.Date(as.POSIXct(Sys.time()))
-#   different_common[4, "accessibility_revisit_mnmgwdb"] <- as.Date(as.POSIXct(Sys.time()))-2
-
-# recovery hints:
-#   keep info from both databases
-#   issue warning for manual adjustment in case of removals/changes
-cols <- paste("recovery_hints", c("locevaldb", "mnmgwdb"), sep = "_")
-different_common <- different_common %>%
-  mutate(
-    same_recovery = coalesce(
-      coalesce(!!!rlang::syms(cols)) == coalesce(!!!rlang::syms(rev(cols))),
-      TRUE
-    ),
-    recovery_hints = coalesce(!!!rlang::syms(cols)),
-    recovery_both = stringr::str_c(!!!rlang::syms(cols), sep = " // ")
-  )
-
-# equipment recommendation:
-#   keep info from both databases
-#   issue warning for manual adjustment in case of removals/changes
-cols <- paste("equipment_recommendations", c("locevaldb", "mnmgwdb"), sep = "_")
-different_common <- different_common %>%
-  mutate(
-    same_equipment = coalesce(
-      coalesce(!!!rlang::syms(cols)) == coalesce(!!!rlang::syms(rev(cols))),
-      TRUE
-    ),
-    equipment_recommendations = coalesce(!!!rlang::syms(cols)),
-    equipment_both = stringr::str_c(!!!rlang::syms(cols), sep = " // ")
-  )
-
-# (in)accessibility
-#   any inaccessibility is retained
-#   issue warning for manual removal inaccessibility
-cols <- paste("accessibility_inaccessible", c("locevaldb", "mnmgwdb"), sep = "_")
-different_common <- different_common %>%
-  mutate(
-    same_inaccessibility = coalesce(
-      coalesce(!!!rlang::syms(cols)) == coalesce(!!!rlang::syms(rev(cols))),
-      TRUE
-    ),
-    accessibility_inaccessible = coalesce(!!!rlang::syms(cols)),
-    inaccessible_any = !is.na(accessibility_inaccessible)
-  )
-
-# revisit inaccessibility
-#   the minimum date is taken
-cols <- paste("accessibility_revisit", c("locevaldb", "mnmgwdb"), sep = "_")
-different_common <- different_common %>%
-  mutate(
-    same_revisit = coalesce(
-      coalesce(!!!rlang::syms(cols)) == coalesce(!!!rlang::syms(rev(cols))),
-      TRUE
-    ),
-    accessibility_revisit = coalesce(!!!rlang::syms(cols)),
-    revisit_min = pmin(!!!rlang::syms(cols))
-  )
-
-
-different_common <- different_common %>%
-  mutate(no_conflict =
-    same_recovery &
-    same_equipment &
-    same_inaccessibility &
-    same_revisit
-  )
-
-# different_common %>%
-#   select(
-#     grts_address,
-#     starts_with("same_"),
-#     # recovery_both,
-#     inaccessible_any,
-#     revisit_min,
-#     no_conflict
-#   ) %>%
-#   knitr::kable()
-
-# different revisit tipps can be concatenated
-diff_recovery <- !different_common$same_recovery
-different_common[diff_recovery, "recovery_hints"] <-
-  different_common[diff_recovery, "recovery_both"]
-diff_equipment <- !different_common$same_equipment
-different_common[diff_equipment, "equipment_recommendations"] <-
-  different_common[diff_equipment, "equipment_both"]
-diff_inacc <- !different_common$same_inaccessibility
-different_common[diff_inacc, "accessibility_inaccessible"] <-
-  different_common[diff_inacc, "inaccessible_any"]
-diff_revisit <- !different_common$same_revisit
-different_common[diff_revisit, "accessibility_revisit"] <-
-  different_common[diff_revisit, "revisit_min"]
-
-# different_common %>%
-#   head(5) %>% t() %>% knitr::kable()
-
-if (nrow(different_common) > 0) {
-  readr::write_csv2(
-    different_common,
-    glue::glue("logs/{todays_date}_LocationInfos_diffs{suffix}.csv")
-  )
-}
-
-common_location_infos <- different_common %>%
-  select(grts_address, !!!rlang::syms(data_columns)) %>%
-  mutate(
-    log_creator = "maintenance",
-    log_creation = convert_timestamp_to_ms_character(Sys.time()),
-  )
-
-#_______________________________________________________________________________
-### UPLOAD
-table_label <- "LocationInfos"
-characteristic_columns = c("grts_address")
-update_cascade_locevaldb <- parametrize_cascaded_update(locevaldb)
-update_cascade_mnmgwdb <- parametrize_cascaded_update(mnmgwdb)
-
-locevaldb_lookup <- update_cascade_locevaldb(
-  table_label = table_label,
-  new_data = mnmgwdb_to_loceval,
-  index_columns = c("locationinfo_id"),
-  characteristic_columns = characteristic_columns,
-  tabula_rasa = FALSE,
-  verbose = TRUE
-)
-
-mnmgwdb_lookup <- update_cascade_mnmgwdb(
-  table_label = table_label,
-  new_data = loceval_to_mnmgwdb,
-  index_columns = c("locationinfo_id"),
-  characteristic_columns = characteristic_columns,
-  tabula_rasa = FALSE,
-  verbose = TRUE
-)
-
-
-### temptable
-# mnmdb <- mnmgwdb
-update_conflicting <- function(mnmdb, table_label) {
-  srctab <- glue::glue("temp_upd_{tolower(table_label)}")
-  trgtab <- mnmdb$get_namestring(table_label)
-
-  # create temp table
-  DBI::dbWriteTable(
-    mnmdb$connection,
-    name = srctab,
-    value = common_location_infos,
-    overwrite = TRUE,
-    temporary = TRUE,
-    field.types = c("log_creation" = "timestamp(3)")
-  )
-
-  ### build update query
-  # updated columns
-  ucolumnames <- unlist(lapply(
-    names(common_location_infos),
-    FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
-  ))
+  # table pointers
+  srctab <- "temp_upd_locationinfos"
+  trgtab <- db$get_namestring("LocationInfos")
 
   # lookup columns
+  if (!all(characteristic_columns %in% names(updated_infos))) {
+    stop("Cannot update: characteristic columns missing from update data.")
+  }
+
   lookup_criteria <- unlist(lapply(
     c(characteristic_columns),
     FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
   ))
 
-  # update string
+
+  ### build update query
+  # updated columns; including logging columns!
+  update_columns <- names(updated_infos)
+  update_columns <- update_columns[!(update_columns %in% characteristic_columns)]
+  update_columns <- update_columns[!(update_columns %in% ignored_columns)]
+  ucolumnamed <- unlist(lapply(
+    update_columns,
+    FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
+  ))
+
+  timestamp_types <- c(
+    "log_creation" = "timestamp(3)",
+    "log_update" = "timestamp(3)"
+  )
+  timestamp_types <- timestamp_types[
+    names(timestamp_types) %in% names(updated_infos)
+  ]
+
+  # create temp table - non-spatial table solution
+  DBI::dbWriteTable(
+    db$connection,
+    name = srctab,
+    value = updated_infos,
+    overwrite = TRUE,
+    temporary = TRUE,
+    field.types = timestamp_types
+  )
+
+
+  # concat update query
   update_string <- glue::glue("
     UPDATE {trgtab} AS TRGTAB
       SET
-       {paste0(ucolumnames, collapse = ', ')}
+       {paste0(ucolumnamed, collapse = ', ')}
       FROM {srctab} AS SRCTAB
       WHERE
        ({paste0(lookup_criteria, collapse = ') AND (')})
     ;")
 
-  ### execute update
-  mnmdb$execute_sql(update_string)
+  # execute update
+  db$execute_sql(update_string, verbose = FALSE)
 
-  mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
+  # drop temptable
+  db$execute_sql(glue::glue("DROP TABLE {srctab};"), verbose = TRUE)
 
-  # re-link location id
-  out <- processx::run(
-    "Rscript",
-    c("102_re_link_foreign_keys.R", suffix),
-    spinner = TRUE
+  return(invisible(NULL))
+} # /update_fields_in_infos
+
+
+### Sync Procedure, per database
+
+# Step 1: user input assembled in syncdb
+synchronize_syncdb_with_data_from_sources <- function(sdb) {
+  # sdb <- "mnmsurfdb"
+  # sdb <- "mnmgwdb"
+  # sdb <- "loceval"
+
+  # load the status quo from SYNCDB
+  infos_statusquo <- query_infos(mnmsyncdb)
+  # %>% arrange(log_creation) %>% head(3)
+
+  # choose the current database connection
+  mnmdb <- sourcedb_connections[[sdb]]
+  # mnmdb$shellstring
+
+  # query sources: user input from databases
+  infos_userdb <- query_infos(mnmdb) %>%
+    select(-location_id) %>%
+    dplyr::arrange(log_creation, log_update, grts_address)
+
+
+
+  ### (1) there are novel locations not previously seen on SYNCDB
+  # this script only needs to handle existing locations
+  # which are fixed per database
+  # however, there can be REP updates and new locations in the
+  # peer databases, which should cause an INSERT to mnmsyncdb
+
+  new_locations_for_syncdb <- infos_userdb %>%
+    characteristic_join_infos(
+      infos_statusquo,
+      join_function = dplyr::anti_join
+    )
+
+
+  mnmsyncdb_lookup <- update_cascade_mnmsyncdb(
+    table_label = "LocationInfos",
+    new_data = new_locations_for_syncdb,
+    index_columns = c("locationinfo_id"),
+    characteristic_columns = characteristic_columns,
+    tabula_rasa = FALSE,
+    verbose = TRUE
   )
 
+  ### (2) find deleted infos
+  # there should never be deleted locations;
+  # even if they are removed from the source databases,
+  # we keep storing LocationInfos
+
+
+  ### (3) update changed infos
+  #   one-directional: changes come from source_db's,
+  #   determining latest updates by updating entries with more recent log_update
+  #
+  #   distribution from syncdb to sourcedb's will
+  #       happen after all news are aggregated.
+  #
+  infos_with_timestamp_differences <- infos_userdb %>%
+    characteristic_join_infos(
+      infos_statusquo %>%
+        dplyr::select(!!!rlang::syms(c(characteristic_columns, "log_update"))),
+      join_function = dplyr::inner_join,
+      suffix = c("", "_syncdb") # CRITICAL to get this right
+    ) %>%
+    dplyr::filter_out(log_update_syncdb == log_update) %>%
+    select(
+      -locationinfo_id
+    )
+
+  # extract the news from user-side sourcedb's
+  infos_with_user_updates <- infos_with_timestamp_differences %>%
+    dplyr::filter(log_update > log_update_syncdb) %>%
+    dplyr::select(-log_update_syncdb)
+
+  # ==> reflect all decentral updates on the SYNCDB
+  if (nrow(infos_with_user_updates) > 0) {
+    message(glue::glue("
+    \t<<< Syncing N={nrow(infos_with_user_updates)} changed LocationInfos from {sdb}.
+    "))
+    update_fields_in_infos(mnmsyncdb, infos_with_user_updates)
+  }
+
+
+} # /synchronize_syncdb_with_data_from_sources
+
+
+
+# Step 2: distribute latest version to source databases
+distribute_infos_updates_to_sources <- function(sdb) {
+
+  # load the status quo from SYNCDB
+  infos_statusquo <- query_infos(mnmsyncdb) %>%
+    dplyr::select(-locationinfo_id)
+
+  mnmdb <- sourcedb_connections[[sdb]]
+  infos_userdb <- query_infos(mnmdb)
+
+  # (2) update existing infos
+  updated_infos <- infos_statusquo %>%
+    characteristic_join_infos(
+      infos_userdb %>%
+        dplyr::select(!!!rlang::syms(c(characteristic_columns, "log_update"))),
+      join_function = dplyr::inner_join,
+      suffix = c("", "_userdb")
+    ) %>%
+    dplyr::filter(log_update > log_update_userdb) %>%
+    dplyr::select(
+      tidyselect::any_of(names(infos_userdb))
+    )
+
+
+  # ==> reflect all decentral updates on the SYNCDB
+  if (nrow(updated_infos) > 0) {
+    message(glue::glue("
+    \t>>> Updating N={nrow(updated_infos)} changed infos on {sdb}.
+    "))
+    update_fields_in_infos(mnmdb, updated_infos)
+  }
+
+} # /distribute_infos_updates_to_sources
+
+
+#_______________________________________________________________________________
+### Execution: loop databases
+
+for (sdb in sourcedb_labels) {
+  synchronize_syncdb_with_data_from_sources(sdb)
 }
 
-table_label <- "LocationInfos"
-update_conflicting(mnmgwdb, table_label)
-update_conflicting(locevaldb, table_label)
+for (sdb in sourcedb_labels) {
+  distribute_infos_updates_to_sources(sdb)
+}
 
+# restore permissions
+batch_manage_infos_write_permissions("GRANT")
 
-# update landowner
-update_landuse_in_locationinfos(locevaldb)
-update_landuse_in_locationinfos(mnmgwdb)
+# TODO TODOs:
+# - update / reset table primary keys
+#   - also make sure that `ogc_id` (and related seq's) are MAXed!
+#   - e.g. by checking that the geometry updates
 
+# NOTE:
+# The approach above has limited coverage of simultaneous changes.
+# Information may be lost if different endpoints trigger changes on the same
+# day. For example, if between a backup and the consecutive sync action, both
+# `loceval` (09:58) and `mnmsurfdb` (10:37) edit the same infos, then only the
+# version with later timestamp (in this example: `mnmsurfdb`) will be kept.
 
-message("")
 message("________________________________________________________________")
-message(" >>>>> Finished syncing location infos. ")
+message(" >>>>> Finished syncing Infos [all]. ")
 message("________________________________________________________________")

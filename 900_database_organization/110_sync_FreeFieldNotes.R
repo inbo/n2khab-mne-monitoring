@@ -171,7 +171,7 @@ round_creation_date_obsolete <- function(tbl) {
 query_freefieldnotes <- function(db) {
   notes <- db$query_table("FreeFieldNotes") %>%
     dplyr::arrange(log_creation, log_creator) %>%
-    ensure_nonna_crs() %>%
+    ensure_nonna_crs()
     # round_creation_date() %>% # OBSOLETE: rounded (truncated) on server side
 
   # prevent data type join confilcts
@@ -652,8 +652,8 @@ distribute_fieldnote_updates_to_sources <- function(sdb) {
       join_function = dplyr::inner_join,
       suffix = c("", "_userdb")
     ) %>%
-    filter(log_update > log_update_userdb) %>%
-    select(
+    dplyr::filter(log_update > log_update_userdb) %>%
+    dplyr::select(
       -log_update_userdb
     )
 
