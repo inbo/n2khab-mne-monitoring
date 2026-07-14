@@ -338,7 +338,7 @@ update_landuse_in_locationinfos <- function(mnmdb) {
     mutate(np = stringr::str_c("NP: ", np_type)) %>%
     mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
     mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
-    mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
+    mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (eigenaar ", perc_naameig, ", beheer ", perc_naambeh, ")")) %>%
     mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
     mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
     tidyr::unite(landuse, c(
