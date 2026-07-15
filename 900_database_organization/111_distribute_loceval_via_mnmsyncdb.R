@@ -229,6 +229,10 @@ sampleunit_typecolumns <- c(
   "mnmsurfdb" = "stratum"
 )
 
+transfer_views <- list(
+  "mnmgwdb" = "gwTransfer",
+  "mnmsurfdb" = "surfTransfer"
+)
 
 ### duplicate a table row by index
 # This function will create and execute an INSERT () SELECT...; query
@@ -332,7 +336,7 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # udb <- "mnmsurfdb"
 
   message("________________________________________________________________")
-  message(glue::glue("\t<<< `ReplacementData` "))
+  message(glue::glue("\t>>> `ReplacementData` "))
 
 
   mnmdb <- userdb_connections[[udb]]
@@ -765,8 +769,9 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 # TODO currently bypassing `mnmsyncdb`, but could as well be stored there.
 
 distribute_locationevaluations_to_userdatabases <- function(udb) {
+  # udb <- "mnmsurfdb"
 
-  message(glue::glue("\t<<< `LocationEvaluations`"))
+  message(glue::glue("\t>>> `LocationEvaluations`"))
 
   mnmdb <- userdb_connections[[udb]]
   update_cascade_lookup_userdb <- parametrize_cascaded_update(mnmdb)
@@ -776,7 +781,10 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
   su_type <- sampleunit_typecolumns[[udb]]
 
   # ISSUE: gwTransfer only contains TerrestrialTypesVisits
-  transfer_data <- loceval_connection$query_table("gwTransfer")
+  transverview_label <- transfer_views[[udb]]
+  transfer_data <- loceval_connection$query_table(transverview_label) %>%
+    dplyr::select(-tidyselect::any_of("location_id"))
+  # (only location id of target database is relevant)
 
   # NOT (only) A HOTFIX: here the general stratum/type difference cuts in
   if (udb == "mnmgwdb") {
@@ -833,6 +841,11 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
     stop("there were duplicate locevals!")
   }
 
+  locevals_joined <- locevals_joined %>%
+    select(tidyselect::any_of(
+      mnmdb$load_table_info("LocationEvaluations") %>%
+        pull(column)
+    ))
 
   locevals_lookup <- update_cascade_lookup_userdb(
     table_label = "LocationEvaluations",
@@ -856,7 +869,7 @@ distribute_cellmaps_to_userdatabases <- function(udb) {
   update_cascade_lookup_userdb <- parametrize_cascaded_update(mnmdb)
 
 
-  message(glue::glue("\t<<< `CellMaps`"))
+  message(glue::glue("\t>>> `CellMaps`"))
 
   cellmaps <- loceval_connection$query_table("CellMaps")
   cellmaps_lookup <- update_cascade_lookup_userdb(
@@ -882,7 +895,7 @@ distribute_targetpoints_to_userdatabases <- function(udb) {
   update_cascade_lookup_userdb <- parametrize_cascaded_update(mnmdb)
 
 
-  message(glue::glue("\t<<< `TargetPoints`"))
+  message(glue::glue("\t>>> `TargetPoints`"))
 
   targetpoints <- loceval_connection$query_table("TargetPoints")
   existing <- mnmdb$query_table("TargetPoints")

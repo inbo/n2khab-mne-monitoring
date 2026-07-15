@@ -11,6 +11,7 @@ SELECT
   VISIT.date_start,
   VISIT.type_assessed,
   UNIT.type_is_absent,
+  'loceval' AS eval_source,
   TEAM.given_name AS eval_name,
   VISIT.date_visit AS eval_date,
   VISIT.visit_id AS eval_id,
