@@ -22,11 +22,11 @@ WHERE replacement_id IN (
   FROM "outbound"."Replacements" AS REP
   LEFT JOIN "outbound"."SampleUnits" AS UNIT
     ON UNIT.sampleunit_id = REP.sampleunit_id
-  WHERE replacement_ongoing
-    OR (
-      REP.is_selected
+  WHERE (
+      replacement_ongoing
       AND NOT (UNIT.is_replaced OR UNIT.type_is_absent)
     )
+    OR REP.is_selected
 )
 )
 GROUP BY ogc_fid, wkb_geometry, location_id
