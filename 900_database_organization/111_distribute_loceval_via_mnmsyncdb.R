@@ -876,6 +876,7 @@ distribute_cellmaps_to_userdatabases <- function(udb) {
 #///////////////////////////////////////////////////////////////////////////////
 
 distribute_targetpoints_to_userdatabases <- function(udb) {
+  # udb = "mnmsurfdb"
 
   mnmdb <- userdb_connections[[udb]]
   update_cascade_lookup_userdb <- parametrize_cascaded_update(mnmdb)
@@ -884,15 +885,52 @@ distribute_targetpoints_to_userdatabases <- function(udb) {
   message(glue::glue("\t<<< `TargetPoints`"))
 
   targetpoints <- loceval_connection$query_table("TargetPoints")
-  cellmaps_lookup <- update_cascade_lookup_userdb(
-    table_label = "TargetPoints",
-    new_data = targetpoints,
-    index_columns = c("targetpoint_id"),
-    characteristic_columns = NA,
-    tabula_rasa = TRUE,
-    verbose = TRUE
-  )
+  existing <- mnmdb$query_table("TargetPoints")
+  existing %>% glimpse()
 
+  targetpoints_upload <- targetpoints %>%
+    dplyr::anti_join(
+      existing,
+      by = dplyr::join_by(
+        log_creator,
+        log_creation,
+        log_user,
+        log_update,
+        date_selection,
+        notes,
+        photo,
+        is_legacypoint,
+        try_first,
+        wkb_geometry
+      )
+    ) %>%
+    dplyr::mutate(
+      log_creation = stringr::str_replace(log_creation, "\\+12 UTC", "000 UTC")
+    ) %>%
+    select(-targetpoint_id)
+
+  targetpoints_upload %>% distinct(log_creation)  %>% print(n = Inf)
+
+  # targetpoints %>%
+  #   dplyr::arrange(log_creator, log_creation, date_selection) %>%
+  #   count(
+  #     log_creator,
+  #     log_creation,
+  #     log_user,
+  #     log_update,
+  #     date_selection,
+  #     notes,
+  #     is_legacypoint
+  #   ) %>%
+  #   arrange(desc(n)) %>%
+  #   head(2) %>% t() %>% knitr::kable()
+
+  if (nrow(targetpoints_upload) > 0) {
+    mnmdb$insert_data(
+      table_label = "TargetPoints",
+      upload_data = targetpoints_upload
+    )
+  }
 } # /distribute_targetpoints_to_userdatabases
 
 

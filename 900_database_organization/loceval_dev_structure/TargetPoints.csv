@@ -8,4 +8,6 @@ date_selection,date,False,NULL,False,False,,,,the date of sampling point selecti
 type,varchar(16),False,NULL,False,False,,,,habitat type
 notes,text,False,NULL,False,False,,,,extra notes about the sampling point
 photo,varchar,False,NULL,False,False,,,,an optional photo of the sampling point and surroundings
+is_legacypoint,boolean,True,0,False,False,,,,flag target points imported from legacy list
+try_first,boolean,True,0,False,False,,,,prioritize some of the legacy points
 wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

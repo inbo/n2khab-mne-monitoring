@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 stop("OBSOLETE! This script has not been overhauled yet.")
 
 

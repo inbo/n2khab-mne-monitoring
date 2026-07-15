@@ -11,6 +11,7 @@
  END
 
 
+
 DROP VIEW "inbound"."LocevalFieldwork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."LocevalFieldwork" AS
 SELECT
@@ -68,6 +69,8 @@ SELECT
   VISIT.photo,
   VISIT.issues,
   (VISIT.othervisit_id IS NOT NULL) AS show_othervisits,
+  ((VISIT.othervisit_id IS NOT NULL) AND ACT.is_samplingpoint_activity)
+      AS is_samplingpoint_activity,
   (VISIT.aquatictypesvisit_id IS NOT NULL) AS show_aquatictypevisits,
   VISIT.samplingpoint_selection_done,
   VISIT.crassula_was_here,
@@ -111,6 +114,15 @@ LEFT JOIN (
     notes
   ) AS OPHO
   ON VISIT.sampleunit_id = OPHO.sampleunit_id
+LEFT JOIN (
+  SELECT DISTINCT
+    activity_group_id, activity_group,
+    BOOL_OR(is_loceval_activity) AS is_loceval_activity,
+    BOOL_OR(activity LIKE 'SURF%SAMPLPOINT') AS is_samplingpoint_activity
+  FROM "metadata"."GroupedActivities"
+  WHERE archive_version_id IS NULL
+  GROUP BY activity_group_id, activity_group
+) AS ACT ON ACT.activity_group_id = FAC.activity_group_id
 WHERE TRUE
   AND VISIT.grts_address = FAC.grts_address
   AND VISIT.type = FAC.type
@@ -121,10 +133,7 @@ WHERE TRUE
   AND (FAC.archive_version_id IS NULL)
   AND (VISIT.archive_version_id IS NULL)
   AND ((OPHO.cell_disapproved IS NULL) OR (NOT OPHO.cell_disapproved))
-  AND (FAC.activity_group_id IN
-    (SELECT DISTINCT activity_group_id FROM "metadata"."GroupedActivities"
-    WHERE is_loceval_activity)
-  )
+  AND ACT.is_loceval_activity
 ;
 
 
