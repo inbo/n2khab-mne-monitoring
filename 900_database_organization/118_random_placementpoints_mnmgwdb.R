@@ -20,6 +20,25 @@ if (length(commandline_args) > 0) {
 }
 
 
+### special treatment: cell-coupled types
+# 1320    | schorren met slijkgras
+# 2150    | vastgelegde ontkalkte duinen
+# rbbsg   | brem- en gaspeldoornstruweel
+# 6210_sk | kalkrijke zomen en struwelen
+# 6430_bz | nitrofiele boszoom
+# 7150    | pioniervegetaties met snavelbiezen
+# rbbsp   | doornstruweel
+
+non_center_coupled_types <- c(
+  "1320", "2150", "rbbsg", "6210_sk",
+  "6430_bz", "7150", "rbbsp"
+)
+# if those are present in combination with a cell-center-coupled type,
+# the union of cellmap polygons is used
+
+
+
+
 ### connect to database
 mnmgwdb <- connect_mnm_database(
   config_filepath = config_filepath,
@@ -163,6 +182,7 @@ nearest <- cellmaps_sf %>%
   sf::st_nearest_feature(locations_sf)
 
 cellmaps_sf$location_id <- locations_sf$location_id[nearest]
+cellmaps_sf$unused <- TRUE
 
 
 locations_all <- locations_sf %>%
@@ -178,8 +198,8 @@ locations_all <- locations_sf %>%
 
 # TODO: work with a subset for testing
 locations <- locations_all %>%
-  filter(!sf::st_is_empty(wkb_geometry)) #%>%
-#  filter(grts_address %in% c(83694))
+  filter(!sf::st_is_empty(wkb_geometry)) # %>%
+# filter(grts_address %in% c(131806)) # 83694
 #  filter(grts_address %in% c(48897, 1818369))
 #  filter(grts_address %in% c(23238, 23091910, 6314694))
 
@@ -275,12 +295,32 @@ generate_random_placement_points <- function(
   }
 
 
+  # the available area with the correct habitat type
+  # as indicated by cell mapping
+  # see notes on `non_center_coupled_types` above
+  # often multiple subparts are chosen
+  if (one_location$stratum %in% non_center_coupled_types) {
+    # is there a center-coupled reference on this co-location?
+    # then skip this one
+    center_coupled_reference <- cellmaps_sf %>%
+      dplyr::filter(
+        location_id == one_location$location_id
+      ) %>%
+      dplyr::filter_out(
+        type %in% c(non_center_coupled_types)
+      )
+    if (nrow(center_coupled_reference) > 0) return(invisible(NULL))
+  }
+
+  # cellmap polygons of this type and co-located non-center-coupled types
   cellmap_polygons <- cellmaps_sf %>%
-    filter(
+    dplyr::filter(
+      unused,
       location_id == one_location$location_id,
-      type == one_location$stratum
+      # type == one_location$stratum
+      type %in% c(one_location$stratum, non_center_coupled_types)
     ) %>%
-    sf::st_union() # often multiple subparts are chosen
+    sf::st_union()
 
 
   random_points <- generate_centerweighted_random_sampling(
@@ -400,7 +440,7 @@ randompoints_locationwise <- function(location_row) {
 
   # cells without cell mapping will never score
   skip <- 0 == cellmaps_sf %>%
-    filter(
+    dplyr::filter(
       location_id == one_location$location_id,
       type == one_location$stratum
     ) %>%
@@ -424,6 +464,8 @@ randompoints_locationwise <- function(location_row) {
       location_seed = location_seed
     )
 
+    if (is.null(rnd20_points)) return(invisible(NULL))
+
     n_points_currently <- nrow(rnd20_points)
     n_samples <- n_samples * 2 # just get more samples
     limit_count <- limit_count + 1 # but don't go too big
@@ -431,7 +473,7 @@ randompoints_locationwise <- function(location_row) {
 
 
   center_representation_point <- as.data.frame(sf::st_coordinates(one_location)) %>%
-    mutate(r = 0, phi = 0) %>%
+    dplyr::mutate(r = 0, phi = 0) %>%
     sf::st_as_sf(coords = c("X", "Y"), crs = sf::st_crs(one_location))
 
   # some more centers may not be used as placement point
@@ -442,14 +484,14 @@ randompoints_locationwise <- function(location_row) {
       isFALSE(is_mhq_samplelocation) &&
       isFALSE(center_intersects_monitoring)
     ) {
-    rnd20_points <- bind_rows(
+    rnd20_points <- dplyr::bind_rows(
       center_representation_point,
-      rnd20_points %>% filter(!sf::st_is_empty(.))
-      )
+      rnd20_points %>% dplyr::filter_out(sf::st_is_empty(.))
+    )
   }
 
   rnd20_points <- rnd20_points %>%
-    mutate(
+    dplyr::mutate(
       samplelocation_id = one_location$samplelocation_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,

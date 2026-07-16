@@ -147,3 +147,6 @@ WHERE (special_symbol IS NULL OR TRUE)
 + `beasts` -> everzwijn stier <https://thenounproject.com/icon/crocodile-7996742/>
 + `climbing` -> klautertoegang <https://thenounproject.com/icon/climbing-8423343/>
 + `monument` -> P-plaats <https://commons.wikimedia.org/wiki/File:Manneken_Pis.svg>
+
+# post-request
+dropdown / autocomplete -> tried "Unique Values", "Classification", "Value Relation"; none of them gives a dropdown nor autocomplete in QField.

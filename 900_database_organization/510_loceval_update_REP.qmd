@@ -640,7 +640,7 @@ check_empty_geoms <- locevaldb$query_table("Locations") %>%
   filter(sf::st_is_empty(wkb_geometry))
 
 if (nrow(check_empty_geoms) > 0) {
-  print(check %>% knitr::kable())
+  print(check_empty_geoms %>% knitr::kable())
   stop("There are empty geometries in the `Locations` table!")
 }
 
