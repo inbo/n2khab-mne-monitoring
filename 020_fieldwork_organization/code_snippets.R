@@ -178,7 +178,8 @@ if (interactive()) {
 ## Sampling unit geometries --------------------------------------
 
 # obtaining geometries of the sampling units themselves:
-# - for lentic types, the result is in object 'watersurface_spsamples_sf' below
+# - for lentic types, the result is in object 'stratum_grts_spsamples_lentic_sf'
+#   from the REP; it is explored and handled below for demonstration
 # - for lotic types, see code in
 #   inbo/n2khab-mne-monitoring/010_aq_piezometer_positioning, but then do use
 #   the REP RData file used here
@@ -187,57 +188,49 @@ if (interactive()) {
 
 
 
-# geometries of the spatial sampling units of lentic types (polygons)
+# geometries of the spatial sampling units of lentic types (watersurface
+# polygons)
 # /////////////////////////////////////////////////////////////////////////
 
-# link between spatial sampling units of lentic types and watersurface polygons
-stratum_grts_polygon_spsamples_lentic <-
-  scheme_moco_ps_stratum_sppost_spsamples %>%
-  filter(str_detect(stratum, "^2190_a|^31")) %>%
-  unnest(sp_poststr_samples) %>%
-  select(-sample_status) %>%
-  # provision for potential local replacements by including grts_address_final
-  # (currently not different for these strata)
-  add_assessment_data() %>%
-  distinct(stratum, grts_address_final) %>%
-  inner_join_m21_ed(
-    units_non_cell_n2khab_grts %>%
-      filter(sample_support_code == "watersurface") %>%
-      select(-sample_support_code),
-    join_by(grts_address_final == grts_address)
+# The geometries of lentic spatial sampling units are in following object.
+glimpse(stratum_grts_spsamples_lentic_sf)
+
+# The spatial sampling unit is always identified by stratum x grts_address by
+# definition. Note that, as usual, grts_address_final is the GRTS address linked
+# to the actual location (watersurface polygon), while grts_address is the GRTS
+# address from the sample draw. This distinction supports local replacements.
+# However, for lentic types we don't have a difference between both columns, but
+# if we choose to support local replacements for lentic types in the future,
+# then it can be accommodated.
+#
+# Note that polygon_id is kept only for information and perhaps to join extra
+# attributes from its datasources watersurfaces_hab and watersurfaces; the
+# stable column to identify the polygons is grts_address_final! This is because
+# polygon_id values can change with the versions of watersurfaces_hab and
+# watersurfaces.
+
+# Multiple strata often co-occur in the same location (watersurface geometry).
+# Each location is uniquely identified by its GRTS address. So we can easily
+# construct a spatial object of lentic locations, each with its unique GRTS
+# address on each row, also mentioning the types for which the location was
+# drawn:
+grts_lentic_sf <-
+  stratum_grts_spsamples_lentic_sf %>%
+  # using type instead of stratum, since it is only going to serve as an
+  # attribute here (but note that multiple strata exist per lentic type!)
+  inner_join(
+    n2khab_strata,
+    join_by(stratum),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
   ) %>%
-  rename(polygon_id = unit_id)
-
-# extract all polygons from watersurfaces_hab that belong to the spatial samples
-# for lentic types:
-wsh_polygons_spsamples <-
-  read_watersurfaces_hab(version = versions_required["watersurfaces_hab"]) %>%
-  pluck("watersurfaces_polygons") %>%
-  select(polygon_id) %>%
-  semi_join(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id))
-
-# extract all polygons from the watersurfaces data source that belong to the
-# spatial samples for lentic types but that were not covered by
-# watersurfaces_hab:
-ws_extra_polygons_spsamples <-
-  read_watersurfaces(
-    version = versions_required["watersurfaces"],
-    fix_geom = TRUE
+  # distinct(grts_address_final, polygon_id, geom) %>%
+  summarise(
+    types_in_sample =
+      str_flatten(sort(unique(type)), collapse = "|") %>% factor(),
+    .by = c(starts_with("grts_address"), polygon_id, geom)
   ) %>%
-  select(polygon_id) %>%
-  semi_join(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id)) %>%
-  # keeping only the unique extra polygons relative to watersurfaces_hab
-  anti_join(
-    st_drop_geometry(wsh_polygons_spsamples),
-    join_by(polygon_id)
-  )
-
-# add the geometry to the spatial sampling units:
-stratum_grts_spsamples_lentic_sf <-
-  rbind(wsh_polygons_spsamples, ws_extra_polygons_spsamples) %>%
-  inner_join_12m_e(stratum_grts_polygon_spsamples_lentic, join_by(polygon_id)) %>%
-  relocate(stratum, grts_address_final) %>%
-  arrange(stratum, grts_address_final)
+  relocate(geom, .after = last_col())
 
 
 
@@ -389,6 +382,48 @@ units_cell_polygon %>%
   mutate(overlapped_cell_area = st_area(.)) %>%
   st_drop_geometry() %>%
   rename(grts_address_overlapped_cell = grts_address_final)
+
+
+
+
+
+## Support in reusing legacy lentic watersample locations ---------------------
+
+# The below spatial points object lists legacy watersample points in the
+# locations (grts_address_final) that apply to the (current) lentic sampling
+# units. Notably, these points serve as a candidate for re-use.
+
+glimpse(legacy_watersamplepoints_spslocs_lentic)
+
+# As usual, the stable column to identify the polygons is grts_address_final and
+# the corresponding (less stable) polygon_id is for information (see higher:
+# object 'stratum_grts_spsamples_lentic_sf' under Sampling unit geometries). x
+# and y mirror the geometry column.
+#
+# More specifically, the object contains a legacy_try_first column: for each
+# polygon (represented by grts_address_final), TRUE marks the point that should
+# be favoured for data collection, if the field criteria for point validity
+# still hold. In some cases, multiple different points with TRUE may be present,
+# in which case field criteria must be used. If the TRUE point does not fulfill
+# criteria, then (historical) points marked as FALSE can still be considered,
+# making use of the field criteria. If multiple points still survive in either
+# of these cases (TRUE, or FALSE if TRUE isn’t successful), then additional
+# information can be inspected to make a choice, such as active_in_db_from &
+# active_in_db_till (but these refer to database activity (automated fields),
+# not to a period of field validity). Also columns annotation and ranknr are
+# background information; annotation has been used in creating legacy_try_first
+# already and a higher ranknr refers to a later addition in the source database.
+#
+# If the latest legacy sampling date of the location
+# (lastdate_legacysampling_polygon) is recent enough, the SAMPLPOINT FAG for the
+# unit in the FAG calendar can be ignored. However, if during fieldwork it is
+# found that the point where legacy_try_first == TRUE does not fulfill criteria,
+# then the SAMPLPOINT FAG still needs to be executed since the sampling date
+# does not apply to older points (the same adhoc SAMPLPOINT approach applies
+# when revisiting points created within MNE). For this reason, this date is only
+# present in the rows where legacy_try_first is TRUE.
+
+
 
 
 
@@ -1240,10 +1275,10 @@ orthophoto_shortterm_watersurfaces <-
   stratum_grts_spsamples_lentic_sf %>%
   inner_join_12m_de(
     orthophoto_shortterm_lentictype_grts,
-    join_by(stratum, grts_address_final)
+    join_by(stratum, grts_address, grts_address_final)
   ) %>%
   relocate(type, stratum, .after = polygon_id) %>%
-  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(grts_address, grts_address_final, .after = sample_support_code) %>%
   relocate(geom, .after = last_col()) %>%
   arrange(
     priority,
