@@ -189,7 +189,6 @@ DO ALSO
  UPDATE "inbound"."LenticVisits"
  SET
   project_code = NEW.project_code,
-  project_code = NEW.project_code,
   recipient_code = NEW.recipient_code,
   latest_calibration = NEW.latest_calibration,
   sample_ph = NEW.sample_ph,
@@ -229,7 +228,6 @@ ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
  UPDATE "inbound"."LoticVisits"
  SET
-  project_code = NEW.project_code,
   project_code = NEW.project_code,
   recipient_code = NEW.recipient_code,
   latest_calibration = NEW.latest_calibration,
