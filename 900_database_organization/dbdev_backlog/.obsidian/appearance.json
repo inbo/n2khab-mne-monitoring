@@ -1,4 +1,7 @@
 {
   "accentColor": "#c04483",
-  "theme": "system"
+  "theme": "system",
+  "enabledCssSnippets": [
+    "datetime_reformat"
+  ]
 }
