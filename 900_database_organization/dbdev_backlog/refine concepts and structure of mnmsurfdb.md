@@ -36,7 +36,7 @@ using:
 	+ fields +1 (-1)
 	+ all comments
 + [x] extra expost triggers (sync mod)
-+ [ ] view
++ [x] view
 	+ old one - rename columns
 	+ new - including linked Observations
 	+ update and insert rules
@@ -78,10 +78,12 @@ volgorde kunnen worden toegevoegd:*
 - [x] Diepte op staalnamepunt (cm)
 - [x] Secchi-diepte op staalnamepunt (cm)
 - [x] Slibdikte op staalnamepunt (cm)
+
 - [x] Volledige afwezigheid van vegetatie, metaphyton en/of drijflaag (TRUE/FALSE). Standaard op TRUE zetten. Indien FALSE, extra veld laten
 verschijnen:
 	- [x] "specificeer afwijking open water en effect op staal"
 	- *cf.* http://palaeos.com/eukarya/plantae/plantae.html
+
 - [ ] Extra opmerkingen
 - [ ] Foto observatie (optioneel)
 

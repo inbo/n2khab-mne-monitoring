@@ -69,12 +69,6 @@ VISIT.chlorophytae_specification,
   VISIT.clear_to_bottom,
   VISIT.sludge_thickness,
   VISIT.sample_notes,
-    VISIT.date_visit,
-    VISIT.water_clarity,
-    VISIT.turbidity,
-    VISIT.open_water,
-    VISIT.float_layer,
-    VISIT.phytoplankton,
   VISIT.meandering,
   VISIT.flowvel,
   VISIT.flowvel_method,
@@ -298,21 +292,16 @@ DO ALSO
   equipment = NEW.equipment,
   color = NEW.color,
   smell = NEW.smell,
-  phytoplankton = NEW.phytoplankton,
   zooplankton = NEW.zooplankton,
   macroinvertebrates = NEW.macroinvertebrates,
-  open_water = NEW.open_water,
   sample_notes = NEW.sample_notes,
   sampling_done = NEW.sampling_done,
   sneller_cm = NEW.sneller_cm,
   secchi_depth_cm = NEW.secchi_depth_cm,
   clear_to_bottom = NEW.clear_to_bottom,
-  turbidity = NEW.turbidity,
-  water_clarity = NEW.water_clarity,
   waterdepth_samplingpoint_cm = NEW.waterdepth_samplingpoint_cm,
   sludge_thickness = NEW.sludge_thickness,
   ice_layer_cm = NEW.ice_layer_cm,
-  float_layer = NEW.float_layer,
   meandering = NEW.meandering,
   flowvel = NEW.flowvel,
   flowvel_method = NEW.flowvel_method,
@@ -344,6 +333,9 @@ ON UPDATE TO "inbound"."FieldWork"
 WHERE NEW.samplecontextobservation_id IS NULL
 DO ALSO
  INSERT INTO "inbound"."SampleContextObservations" (
+  teammember_id,
+  date_visit,
+  location,
   visit_id,
   is_linked_to_visit,
   grts_address,
@@ -365,6 +357,9 @@ DO ALSO
   metaphyton,
   wkb_geometry
  ) VALUES (
+  NEW.teammember_id,
+  NEW.datetime_visit::date,
+  CAST( NEW.grts_address AS varchar),
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
@@ -427,6 +422,9 @@ ON UPDATE TO "inbound"."FieldWork"
 WHERE NEW.perturbationobservation_id IS NULL
 DO ALSO
  INSERT INTO "inbound"."PerturbationObservations" (
+  teammember_id,
+  date_visit,
+  location,
   visit_id,
   is_linked_to_visit,
   grts_address,
@@ -453,6 +451,9 @@ DO ALSO
   fencing,
   wkb_geometry
  ) VALUES (
+  NEW.teammember_id,
+  NEW.datetime_visit::date,
+  CAST( NEW.grts_address AS varchar),
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
@@ -526,6 +527,9 @@ ON UPDATE TO "inbound"."FieldWork"
 WHERE NEW.meteorolobservation_id IS NULL
 DO ALSO
  INSERT INTO "inbound"."MeteorolObservations" (
+  teammember_id,
+  date_visit,
+  location,
   visit_id,
   is_linked_to_visit,
   grts_address,
@@ -543,6 +547,9 @@ DO ALSO
   ice_layer_cm,
   wkb_geometry
  ) VALUES (
+  NEW.teammember_id,
+  NEW.datetime_visit::date,
+  CAST( NEW.grts_address AS varchar),
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
