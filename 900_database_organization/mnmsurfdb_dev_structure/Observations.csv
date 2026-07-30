@@ -6,7 +6,9 @@ log_user,varchar,True,current_user,False,False,,,,(technical) user who modified 
 log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
 teammember_id,smallint,True,,False,False,,,,link to the user who performed the visit
 date_visit,date,True,,False,False,,,,date of the field activity
-location,varchar,True,,False,False,,,,"free but unique link to the location, e.g. GRTS address or name of the area or follow-up number"
+location,varchar,True,,False,False,,,,"free but unique link to the location, e.g. GRTS address or name of the area or follow-up number (filled automatically on linked observations)"
+grts_address,bigint,False,,False,False,,CHECK (grts_address > 0),,GRTS address in case of visit-linked observations
+is_linked_to_visit,boolean,True,0,False,False,,,,flag observations which link to a visit
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 alert,boolean,True,0,False,False,,,,emphasize this observation
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing

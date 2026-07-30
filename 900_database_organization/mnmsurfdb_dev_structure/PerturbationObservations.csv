@@ -1,5 +1,20 @@
-column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-perturbationobservation_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
-drainage_structures,varchar,False,NULL,False,False,,,,"tubes, ditches, canals, pits"
-fencing,varchar,False,NULL,False,False,,,,barbed or electric wire
-other_perturbations,varchar,False,NULL,False,False,,,,barbed or electric wire
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment,column_group_help,name_dutch,remarks
+perturbationobservation_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)",,,
+other_perturbations,varchar,False,NULL,False,False,,,,other perturbation not listed below (specify),,andere verstoring,
+cow_pats,boolean,False,NULL,False,False,,,,"(aanwezig/niet) cow droppings, fresh or dry",,koeienvlaaien,
+other_animal_manure,boolean,False,NULL,False,False,,,,(aanwezig/niet) animal feces in noteworthy amounts,,andere dierlijke mest,
+grazers,boolean,False,NULL,False,False,,,,"(aanwezig/niet) noted the presence of grazers, then those are obviously no ninja grazers",,grazers,
+trampling,boolean,False,NULL,False,False,,,,"(aanwezig/niet) trampling, can be an indication of grazers, or fat German tourists",,trampling,
+intense_livestock_farming,boolean,False,NULL,False,False,,,,(waar/onwaar) just what it says...,,(Intensieve) veehouderij in de buurt,
+agriculture_nearby,boolean,False,NULL,False,False,,,,(waar/onwaar) proximity of agricultural fields,,akkers in de buurt,
+recent_fertilization_nearby,boolean,False,NULL,False,False,,,,(waar/onwaar) indication of recent fertilization,,recente bemesting in de buurt,
+busy_roads_nearby,boolean,False,NULL,False,False,,,,(waar/onwaar) potential influence of emissions from the transport sector,,drukke verkeerswegen in de buurt,
+industry_nearby,boolean,False,NULL,False,False,,,,(waar/onwaar) industrial sites which might affect the nitrogen situation,,industrie in de buurt,
+fish,boolean,False,NULL,False,False,,,,(waar/onwaar) I suppose the MV referred to Osteichthyes,,vis,
+birds,boolean,False,NULL,False,False,,,,(waar/onwaar) the avian subclade of theropod dinosaurs,,vogels,
+bird_droppings,boolean,False,NULL,False,False,,,,(waar/onwaar) bird shit,,vogeluitwerpselen,
+beaver,boolean,False,NULL,False,False,,,,"(waar/onwaar) any traces of the beaver: bite marks, dams and lodges, or the animal itself",,bever,
+invasive_species,boolean,False,NULL,False,False,,,,"(waar/onwaar) e.g. Impatiens glandilufera, Elodea canadensis, Lemna minuta, Hydrocotyle ranunculoides, Fallopia japonica, Heracleum mantegazzianum",,invasieve soorten,
+bank_reinforcement,boolean,False,NULL,False,False,,,,(waar/onwaar) anthropogenic support of erosive shorelines,,oeverversteviging,
+drainage_structures,varchar,False,NULL,False,False,,,,"(waar/onwaar) tubes, ditches, canals, pits",,"drainagestructuren (buizen, grachten)",
+fencing,varchar,False,NULL,False,False,,,,(waar/onwaar) barbed or electric wire,,prikkel- of schrikdraad,

@@ -18,6 +18,36 @@ using:
 + [[sql_tricks/update rule with conditional insert|update rule with conditional insert]]
 
 
+## TODO
+
++ [ ] #LenticVisits 
+	+ [ ] fields +3 (-6)
+	+ [ ] all comments
++ [ ] #Observations 
+	+ [ ] fields +2
+	+ [ ] all comments
++ [ ] ++ #SampleContextObservations
++ [ ] #PerturbationObservations
+	+ [ ] fields +14
+	+ [ ] all comments
++ [ ] #MeteorolObservations
+	+ [ ] fields +1 (-1)
+	+ [ ] all comments
++ [ ] extra expost triggers (sync mod)
++ [ ] view
++ [ ] update and insert rules
++ [ ] expost: observation link grts to `location`
+
+LATER:
++ [ ] also update #LoticVisits
++ [ ] remove tables after migrating and saving data
+	+ [ ] GeoObservations
+	+ [ ] TerraBioObservations
+	+ [ ] AquaBioObservations
+	+ [ ] LanduseObservations
++ [ ] remove excess columns in tables above
+
+
 
 ## input
 Ondertussen hebben we een paar weken veldwerk achter de rug en weten we al
@@ -76,22 +106,19 @@ onderstaande volgorde (tekstuele aanpassingen t.o.v. huidige versie staan
 in het vet, wil je deze ook toevoegen, aub?). Dit is een samenvoeging van
 elementen uit de huidige lagen "geografie en morfologie", "aquatische
 biologie" en "terrestrische biologie en omgeving".*
-- [ ] Bladinval *(%)*
-- [ ] Beschaduwing *(%)*
-- [ ] Emergente *vegetatie* (bedekking %)
-- [ ] Pleustofyten (bedekking %)
-- [ ] Nymphaeiden (bedekking %)
-- [ ] *Submerse vegetatie (bedekking %)*
-- [ ] *Submerse vegetatie (PVI) *--> dit in plaats van verticale projectie
-- [ ] infestatie
-- [ ] Metaphyton (bedekking %)
-- [ ] Open water (bedekking %) --> dit in plaats van bedekkingsgraad
-- [ ] *Maximale diepte (cm) *
-- [ ] *Kwelinvloed (niet, iriserende film, roestbruinig water of slib) *--> nieuw
-- [ ] element
-- [ ] Connectiviteit *(gesloten, instroom, doorstroom, overstroomd)*
-- [ ] *Grof organisch materiaal (weinig, matig, veel) *--> dit in plaats van
-- [ ] "waterbodem".
+- [x] Bladinval *(%)*
+- [x] Beschaduwing *(%)*
+- [x] Emergente *vegetatie* (bedekking %)
+- [x] Pleustofyten (bedekking %)
+- [x] Nymphaeiden (bedekking %)
+- [x] *Submerse vegetatie (bedekking %)*
+- [x] *Submerse vegetatie (PVI) *--> dit in plaats van verticale projectie infestatie
+- [x] Metaphyton (bedekking %)
+- [x] Open water (bedekking %) --> dit in plaats van bedekkingsgraad
+- [x] *Maximale diepte (cm) *
+- [x] *Kwelinvloed (niet, iriserende film, roestbruinig water of slib) *--> nieuw element
+- [x] Connectiviteit *(gesloten, instroom, doorstroom, overstroomd)*
+- [x] *Grof organisch materiaal (weinig, matig, veel) *--> dit in plaats van "waterbodem".
 - [ ] *Foto plas t.h.v. staalnamepunt (verplicht)*
 - [ ] *Extra* opmerkingen
 - [ ] *Foto observatie (optioneel)*
@@ -108,27 +135,25 @@ in het vet, wil je deze ook toevoegen, aub?). Dit is een samenvoeging van
 elementen uit de huidige lagen "aquatische biologie", "terrestrische
 biologie en omgeving", "verstoringen" en "landgebruik". *
 
-- [ ] *Koeienvlaaien* (TRUE/FALSE)
-- [ ] *Andere dierlijke mest* (TRUE/FALSE) --> "dierlijke mest" in huidige versie
-- [ ] opdelen in twee elementen (zijnde "koeienvlaaien" en "andere dierlijke mest")
-- [ ] Grazers (TRUE/FALSE)
-- [ ] *Trampling* (TRUE/FALSE)
-- [ ] (Intensieve) veehouderij *in de buurt* (TRUE/FALSE)
-- [ ] *Akkers in de buurt* (TRUE/FALSE)
-- [ ] Recente bemesting *in de buurt* (TRUE/FALSE)
-- [ ] Drukke verkeerswegen* in de buurt *(TRUE/FALSE)
-- [ ] *Industrie in de buurt *(TRUE/FALSE)
-- [ ] Vis (TRUE/FALSE)
-- [ ] *Vogels* (TRUE/FALSE)
-- [ ] *Vogeluitwerpselen* (TRUE/FALSE)
-- [ ] Bever (TRUE/FALSE)
-- [ ] *Invasieve soorten* (TRUE/FALSE)
+- [x] *Koeienvlaaien* (TRUE/FALSE)
+- [x] *Andere dierlijke mest* (TRUE/FALSE) --> "dierlijke mest" in huidige versie opdelen in twee elementen (zijnde "koeienvlaaien" en "andere dierlijke mest")
+- [x] Grazers (TRUE/FALSE)
+- [x] *Trampling* (TRUE/FALSE)
+- [x] (Intensieve) veehouderij *in de buurt* (TRUE/FALSE)
+- [x] *Akkers in de buurt* (TRUE/FALSE)
+- [x] Recente bemesting *in de buurt* (TRUE/FALSE)
+- [x] Drukke verkeerswegen* in de buurt *(TRUE/FALSE)
+- [x] *Industrie in de buurt *(TRUE/FALSE)
+- [x] Vis (TRUE/FALSE)
+- [x] *Vogels* (TRUE/FALSE)
+- [x] *Vogeluitwerpselen* (TRUE/FALSE)
+- [x] Bever (TRUE/FALSE)
+- [x] *Invasieve soorten* (TRUE/FALSE)
 
-- [ ] Oeverversteviging (TRUE/FALSE)
-- [ ] Drainagestructuren (buizen, grachten) (TRUE/FALSE)
-- [ ] Prikkel- of schrikdraad (TRUE/FALSE)
-- [ ] *Extra* *opmerkingen (vb. intensiteit van verstoring, ID van soorten,
-- [ ] andere verstoringen)*
+- [x] Oeverversteviging (TRUE/FALSE)
+- [x] Drainagestructuren (buizen, grachten) (TRUE/FALSE)
+- [x] Prikkel- of schrikdraad (TRUE/FALSE)
+- [ ] *Extra* *opmerkingen (vb. intensiteit van verstoring, ID van soorten, andere verstoringen)*
 - [ ] *Foto observatie (optioneel)*
 
 De velden "landgebruik observatie" en "sectoriële milieudrukken" in de
@@ -138,18 +163,16 @@ huidige laag "landgebruik" mag je weglaten.
 onderstaande volgorde (tekstuele aanpassingen t.o.v. huidige versie staan
 in het vet, wil je deze ook toevoegen, aub?)*
 
-- [ ] *neerslag op moment van staalname* (true/false).
-- [ ] Indien TRUE, laat opties zien "*soort neerslag (regen, hagel,
-- [ ] sneeuw)*" en "*intensiteit
-- [ ] (licht, matig, zwaar)*"
-- [ ] Indien FALSE, laat optie zien "*actuele bewolking (zonnig, licht, zwaar,
-- [ ] betrokken, mistig)*"
-- [ ] luchttemperatuur (°C)
-- [ ] *actuele windcondities (geen, zwak, matig, sterk)*
-- [ ] *weer afgelopen 48 uur *
-- [ ] *extra opmerkingen (vb. extreme weersomstandigheden)*
-- [ ] *foto observatie (optioneel)*
-- [ ] ? ijslaag
+- [x] *neerslag op moment van staalname* (true/false).
+	- [x] Indien TRUE, laat opties zien "*soort neerslag (regen, hagel, sneeuw)*" 
+	- [x] en "*intensiteit (licht, matig, zwaar)*"
+- [x] Indien FALSE, laat optie zien "*actuele bewolking (zonnig, licht, zwaar, betrokken, mistig)*"
+- [x] luchttemperatuur (°C)
+- [x] *actuele windcondities (geen, zwak, matig, sterk)*
+- [x] *weer afgelopen 48 uur *
+- [x] *extra opmerkingen (vb. extreme weersomstandigheden)*
+- [x] *foto observatie (optioneel)*
+- [x] ? ijslaag
 
 Het huidige veld "actueel weer" mag eigenlijk weggelaten worden.
 
