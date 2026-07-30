@@ -20,25 +20,37 @@ using:
 
 ## TODO
 
-+ [ ] #LenticVisits 
-	+ [ ] fields +3 (-6)
-	+ [ ] all comments
-+ [ ] #Observations 
-	+ [ ] fields +2
-	+ [ ] all comments
-+ [ ] ++ #SampleContextObservations
-+ [ ] #PerturbationObservations
-	+ [ ] fields +14
-	+ [ ] all comments
-+ [ ] #MeteorolObservations
-	+ [ ] fields +1 (-1)
-	+ [ ] all comments
-+ [ ] extra expost triggers (sync mod)
++ [x] #Visits 
+	+ fields +3
++ [x] #LenticVisits 
+	+ fields +3 (-6)
+	+ all comments
++ [x] #Observations 
+	+ fields +3
+	+ all comments
++ [x] ++ #SampleContextObservations
++ [x] #PerturbationObservations
+	+ fields +14
+	+ all comments
++ [x] #MeteorolObservations
+	+ fields +1 (-1)
+	+ all comments
++ [x] extra expost triggers (sync mod)
 + [ ] view
-+ [ ] update and insert rules
-+ [ ] expost: observation link grts to `location`
+	+ old one - rename columns
+	+ new - including linked Observations
+	+ update and insert rules
++ [ ] *ex post*: observation link grts to `location`
+	+ expost rule
+	+ also link and shift existing data
+	+ consider filtering plain observations for the unlinked ones
++ [ ] Observations update visit_id by grts_address in `102_re_link_foreign_keys.R`
 
 LATER:
++ [ ] update data from obsolete columns
+	+ [ ] sample_contamination?
+	+ [ ] `chlorophytae_presence`/`chlorophytae_specification` infer from outdated `open_water`, `phytoplankton`, and `float_layer`
+	+ [ ] *others?*
 + [ ] also update #LoticVisits
 + [ ] remove tables after migrating and saving data
 	+ [ ] GeoObservations
