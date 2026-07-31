@@ -143,7 +143,7 @@ LEFT JOIN "outbound"."LocationInfos" AS INFO
 LEFT JOIN (
   SELECT *,
     CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning = TRUE END AS is_scheduled
-  FROM "outbound"."FieldCalendars"
+ FROM "outbound"."FieldCalendars"
   ) AS FCAL
   ON FCAL.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN (
@@ -330,7 +330,8 @@ DO ALSO
 DROP RULE IF EXISTS fieldwork_ins_SCOBS ON "inbound"."FieldWork";
 CREATE RULE fieldwork_ins_SCOBS AS
 ON UPDATE TO "inbound"."FieldWork"
-WHERE NEW.samplecontextobservation_id IS NULL
+WHERE (NEW.samplecontextobservation_id IS NULL
+  AND NEW.link_observation_samplecontext)
 DO ALSO
  INSERT INTO "inbound"."SampleContextObservations" (
   teammember_id,
@@ -339,22 +340,6 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  notes,
-  alert,
-  photo,
-  max_depth_cm,
-  connectivity,
-  seep_influence,
-  coverage_rate,
-  shading,
-  leaf_deposition,
-  organic_material,
-  emergents,
-  float_pleustophytes,
-  float_nymphaeids,
-  submers_coverage,
-  submers_pvi,
-  metaphyton,
   wkb_geometry
  ) VALUES (
   NEW.teammember_id,
@@ -363,22 +348,6 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.samplecontext_notes,
-  NEW.samplecontext_alert,
-  NEW.samplecontext_photo,
-  NEW.max_depth_cm,
-  NEW.connectivity,
-  NEW.seep_influence,
-  NEW.coverage_rate,
-  NEW.shading,
-  NEW.leaf_deposition,
-  NEW.organic_material,
-  NEW.emergents,
-  NEW.float_pleustophytes,
-  NEW.float_nymphaeids,
-  NEW.submers_coverage,
-  NEW.submers_pvi,
-  NEW.metaphyton,
   NEW.wkb_geometry
  )
 ;
@@ -387,7 +356,6 @@ DO ALSO
 DROP RULE IF EXISTS fieldwork_upd_SCOBS ON "inbound"."FieldWork";
 CREATE RULE fieldwork_upd_SCOBS AS
 ON UPDATE TO "inbound"."FieldWork"
-WHERE NEW.samplecontextobservation_id IS NOT NULL
 DO ALSO
  UPDATE "inbound"."SampleContextObservations"
  SET
@@ -419,7 +387,8 @@ WHERE
 DROP RULE IF EXISTS fieldwork_ins_POBS ON "inbound"."FieldWork";
 CREATE RULE fieldwork_ins_POBS AS
 ON UPDATE TO "inbound"."FieldWork"
-WHERE NEW.perturbationobservation_id IS NULL
+WHERE (NEW.perturbationobservation_id IS NULL
+  AND NEW.link_observation_perturbation)
 DO ALSO
  INSERT INTO "inbound"."PerturbationObservations" (
   teammember_id,
@@ -428,27 +397,6 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  notes,
-  alert,
-  photo,
-  other_perturbations,
-  cow_pats,
-  other_animal_manure,
-  grazers,
-  trampling,
-  intense_livestock_farming,
-  agriculture_nearby,
-  recent_fertilization_nearby,
-  busy_roads_nearby,
-  industry_nearby,
-  fish,
-  birds,
-  bird_droppings,
-  beaver,
-  invasive_species,
-  bank_reinforcement,
-  drainage_structures,
-  fencing,
   wkb_geometry
  ) VALUES (
   NEW.teammember_id,
@@ -457,27 +405,6 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.perturbation_notes,
-  NEW.perturbation_alert,
-  NEW.perturbation_photo,
-  NEW.other_perturbations,
-  NEW.cow_pats,
-  NEW.other_animal_manure,
-  NEW.grazers,
-  NEW.trampling,
-  NEW.intense_livestock_farming,
-  NEW.agriculture_nearby,
-  NEW.recent_fertilization_nearby,
-  NEW.busy_roads_nearby,
-  NEW.industry_nearby,
-  NEW.fish,
-  NEW.birds,
-  NEW.bird_droppings,
-  NEW.beaver,
-  NEW.invasive_species,
-  NEW.bank_reinforcement,
-  NEW.drainage_structures,
-  NEW.fencing,
   NEW.wkb_geometry
  )
 ;
@@ -486,7 +413,6 @@ DO ALSO
 DROP RULE IF EXISTS fieldwork_upd_POBS ON "inbound"."FieldWork";
 CREATE RULE fieldwork_upd_POBS AS
 ON UPDATE TO "inbound"."FieldWork"
-WHERE NEW.perturbationobservation_id IS NOT NULL
 DO ALSO
  UPDATE "inbound"."PerturbationObservations"
  SET
@@ -524,7 +450,8 @@ WHERE
 DROP RULE IF EXISTS fieldwork_ins_MOBS ON "inbound"."FieldWork";
 CREATE RULE fieldwork_ins_MOBS AS
 ON UPDATE TO "inbound"."FieldWork"
-WHERE NEW.meteorolobservation_id IS NULL
+WHERE (NEW.meteorolobservation_id IS NULL
+  AND NEW.link_observation_meteorology)
 DO ALSO
  INSERT INTO "inbound"."MeteorolObservations" (
   teammember_id,
@@ -533,18 +460,6 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  notes,
-  alert,
-  photo,
-  prior_48h,
-  exceptional,
-  precipitation,
-  precipitation_specify,
-  precipitation_intensity,
-  overcast,
-  airtemperature_celsius,
-  wind,
-  ice_layer_cm,
   wkb_geometry
  ) VALUES (
   NEW.teammember_id,
@@ -553,18 +468,6 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.meteo_notes,
-  NEW.meteo_alert,
-  NEW.meteo_photo,
-  NEW.prior_48h,
-  NEW.exceptional,
-  NEW.precipitation,
-  NEW.precipitation_specify,
-  NEW.precipitation_intensity,
-  NEW.overcast,
-  NEW.airtemperature_celsius,
-  NEW.wind,
-  NEW.ice_layer_cm,
   NEW.wkb_geometry
  )
 ;
@@ -573,7 +476,6 @@ DO ALSO
 DROP RULE IF EXISTS fieldwork_upd_MOBS ON "inbound"."FieldWork";
 CREATE RULE fieldwork_upd_MOBS AS
 ON UPDATE TO "inbound"."FieldWork"
-WHERE NEW.meteorolobservation_id IS NOT NULL
 DO ALSO
  UPDATE "inbound"."MeteorolObservations"
  SET

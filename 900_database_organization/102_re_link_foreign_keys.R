@@ -459,6 +459,16 @@ stitch_table_connection(
 #   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
 #   knitr::kable()
 
+# link Observations back to Visits
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "Observations",
+  reference_table = "Visits",
+  link_key_column = "visit_id",
+  lookup_columns =
+    c("grts_address", "teammember_id", "date_visit")
+)
+
 
 
 # REMOVED WIA/CSA/SPA

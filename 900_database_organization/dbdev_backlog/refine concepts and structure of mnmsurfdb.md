@@ -40,11 +40,19 @@ using:
 	+ old one - rename columns
 	+ new - including linked Observations
 	+ update and insert rules
-+ [ ] *ex post*: observation link grts to `location`
-	+ expost rule
-	+ also link and shift existing data
-	+ consider filtering plain observations for the unlinked ones
-+ [ ] Observations update visit_id by grts_address in `102_re_link_foreign_keys.R`
++ [x] Observations update visit_id by grts_address in `102_re_link_foreign_keys.R`
+
++ [ ] *ex post*: for observation not coupled to datacoll: link grts to `location`!
+	+ expost rule which tries to extract `grts_address::int` from `location::varchar`
+	+ also link and shift "historic" data
+	+ consider filtering plain observations for the unlinked ones (no: specific selection is useful)
+
++ [ ] update forms for just Observations when they are independent of DATACOLL
++ [ ] adjust labels and identifiers of all #Observations tables
++ [ ] copy to Planning project
++ [ ] document technical choices of #Visits -- #Observations optional coupling
+
+
 
 LATER:
 + [ ] update data from obsolete columns
