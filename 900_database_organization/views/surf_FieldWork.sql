@@ -48,7 +48,6 @@ SELECT
   (VISIT.loticvisit_id IS NOT NULL) AS show_loticvisits,
   VISIT.project_code,
   VISIT.recipient_code,
-  VISIT.latest_calibration,
   VISIT.watertemperature_celsius,
   VISIT.sample_ph,
   VISIT.electric_conductivity_mus_cm,
@@ -61,6 +60,7 @@ VISIT.sample_contamination_reason,
   VISIT.smell,
   VISIT.zooplankton,
   VISIT.macroinvertebrates,
+  VISIT.xphoto_sample,
   VISIT.equipment,
 VISIT.chlorophytae_presence,
 VISIT.chlorophytae_specification,
@@ -198,11 +198,14 @@ LEFT JOIN (
 ) AS LOCEVAL
   ON VISIT.sampleunit_id = LOCEVAL.sampleunit_id
 LEFT JOIN "inbound"."SampleContextObservations" AS SCOBS
-  ON LOC.grts_address = SCOBS.grts_address
+  ON (LOC.grts_address = SCOBS.grts_address
+  AND VISIT.date_visit = SCOBS.date_visit)
 LEFT JOIN "inbound"."PerturbationObservations" AS POBS
-  ON LOC.grts_address = POBS.grts_address
+  ON (LOC.grts_address = POBS.grts_address
+  AND VISIT.date_visit = POBS.date_visit)
 LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
-  ON LOC.grts_address = MOBS.grts_address
+  ON (LOC.grts_address = MOBS.grts_address
+  AND VISIT.date_visit = MOBS.date_visit)
 WHERE TRUE
   AND FCAL.is_scheduled
   AND ((FCAL.no_visit_planned IS NULL) OR (NOT FCAL.no_visit_planned))
@@ -248,7 +251,6 @@ DO ALSO
  SET
   project_code = NEW.project_code,
   recipient_code = NEW.recipient_code,
-  latest_calibration = NEW.latest_calibration,
   watertemperature_celsius = NEW.watertemperature_celsius,
   sample_ph = NEW.sample_ph,
   electric_conductivity_mus_cm = NEW.electric_conductivity_mus_cm,
@@ -283,7 +285,6 @@ DO ALSO
  SET
   project_code = NEW.project_code,
   recipient_code = NEW.recipient_code,
-  latest_calibration = NEW.latest_calibration,
   sample_ph = NEW.sample_ph,
   watertemperature_celsius = NEW.watertemperature_celsius,
   electric_conductivity_mus_cm = NEW.electric_conductivity_mus_cm,

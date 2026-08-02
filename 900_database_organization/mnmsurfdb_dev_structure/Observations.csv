@@ -9,6 +9,7 @@ date_visit,date,True,,False,False,,,,date of the field activity
 location,varchar,True,,False,False,,,,"free but unique link to the location, e.g. GRTS address or name of the area or follow-up number (filled automatically on linked observations)"
 grts_address,bigint,False,,False,False,,CHECK (grts_address > 0),,GRTS address in case of visit-linked observations
 is_linked_to_visit,boolean,True,0,False,False,,,,flag observations which link to a visit
+visit_id,int,False,NULL,False,False,,,,index link to visits
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 alert,boolean,True,0,False,False,,,,emphasize this observation
 photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing

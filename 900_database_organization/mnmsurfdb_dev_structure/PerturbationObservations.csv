@@ -16,5 +16,5 @@ bird_droppings,boolean,False,NULL,False,False,,,,(waar/onwaar) bird shit,,vogelu
 beaver,boolean,False,NULL,False,False,,,,"(waar/onwaar) any traces of the beaver: bite marks, dams and lodges, or the animal itself",,bever,
 invasive_species,boolean,False,NULL,False,False,,,,"(waar/onwaar) e.g. Impatiens glandilufera, Elodea canadensis, Lemna minuta, Hydrocotyle ranunculoides, Fallopia japonica, Heracleum mantegazzianum",,invasieve soorten,
 bank_reinforcement,boolean,False,NULL,False,False,,,,(waar/onwaar) anthropogenic support of erosive shorelines,,oeverversteviging,
-drainage_structures,varchar,False,NULL,False,False,,,,"(waar/onwaar) tubes, ditches, canals, pits",,"drainagestructuren (buizen, grachten)",
-fencing,varchar,False,NULL,False,False,,,,(waar/onwaar) barbed or electric wire,,prikkel- of schrikdraad,
+drainage_structures,boolean,False,NULL,False,False,,,,"(waar/onwaar) tubes, ditches, canals, pits",,"drainagestructuren (buizen, grachten)",
+fencing,boolean,False,NULL,False,False,,,,(waar/onwaar) barbed or electric wire,,prikkel- of schrikdraad,

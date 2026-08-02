@@ -70,6 +70,7 @@ LATER:
 
 
 ## input
+### initial
 Ondertussen hebben we een paar weken veldwerk achter de rug en weten we al
 beter welke veldwaarnemingen we willen noteren en welke minder belangrijk
 zijn. We zouden daarom graag de velden in de QField-app verder
@@ -203,3 +204,84 @@ Het huidige veld "actueel weer" mag eigenlijk weggelaten worden.
 teamlid observerend
 datum bezoek
 locatie
+
+### review round 1
+
+
+- (0) Tab "activiteit" 
+	- [x] "foto locatie t.h.v. staalnamepunt", ipv foto locatie.
+- (1) Tab "staalname en staalnamepunt"
+	- [x] Sliblaag i.p.v. sliplaag. 
+	- [x] Secchi bodemzicht i.p.v. secchi op grond
+	- [x] "Specificatie phytae" vervangen door "specificatie afwijking open water en effect op staal" 
+	- [x] veld "opmerkingen" en "foto" aan toevoegen -> ==too many photos!== -> *added note and add photo to "staalname effectief"*
+- (2) Tab "staalchemie"
+	- [x] datum calibratie sondes mag weg. 
+	- [ ] kan hier ook "foto" aan worden toegevoegd? ==too many photos==
+- (3) Tab "staal uiterlijk".
+	- [x] opties nog toevoegen voor kleur, geur, ZP en MI. ==fiddicult==
+	- [x] Kan hier ook "foto" aan worden toegevoegd?
+- (4) Tab "bijkomend" 
+	- [x] de titel veranderen naar "**omgevingsdata**"
+- (5) Tab "poel en context" --> "poel" 
+	- [x] Opmerkingen onderaan i.p.v. bovenaan (cf. andere tabs)
+	- wat bedoel je met "aandacht!"? ==alert - opvolgen==
+	- [x] "foto staalnamepunt" vervangen door "foto omgeving" en ook onderaan plaatsen. De foto ter hoogte van staalnamepunt onder tab "activiteit". 
+	- [ ] ==datatype== max. diepte: kan dit open veld zijn, We noteren vaak > of < een bepaalde waarde (of klasse 1, klasse 2, ...) ==issue: review false entries==
+	- [x] opties nog meegeven voor connectiviteit (gesloten, instroom, doorstroom, overstroomd), 
+	- [x] opties kwelinvloed (niet, iriserende film, roestbruinig water of slib), 
+	- [x] opties grof organisch materiaal (weinig, matig, veel)
+	- [ ] ==datatype== kunnen alle % velden (van de vegetatie) open velden zijn? We noteren hier voornamelijk klassen. ==welke concreet?==
+	- [x] veld "niet-open wateroppervlak (%)" mag weg, is gecapteerd onder de andere. Graag bij de velden over vegetatie nog een veld "open water (%)". ==renamed: "bedekkingsgraad"==
+- (6) Tab "verstoringen"
+	- [x] Opmerkingen, foto onderaan i.p.v. bovenaan. Zelfde vraag over "aandacht!" als hierboven.
+	- [x] drainagestructuren, prikkel- of schrikdraad mogen gerust ook aan/afvinkhokjes zijn.
+- (7) Tab "meteo"
+	- [x] Opmerkingen, foto onderaan i.p.v. bovenaan. Zelfde vraag over "aandacht!" als hierboven.
+	- [x] indien mogelijk, nog een "specificatie"-veld laten verschijnen bij aanklikken "uitzonderlijke weersomstandigheden" ==datatype changed==
+
+- (8) Lagen "bijkomende observaties"
+	- [x] Ik zou de titel van de laag veranderingen naar "geografische aanduiding omgevingsdata" zodat men weet dat men hiermee locaties in de plas kan aanduiden waarop een bepaalde observatie onder "omgevingsdata" slaat (zie opmerking 4 in deze mail).
+	- [x] in principe staan hier opties nog in die ondertussen onder "mijn veldwerk" staan. Als dat nog lukt, mogen die weg. Wel zeker een veld opmerking laten zodat duidelijk is waar men precies naar verwijst.
+	- [x] ik zou de namen consistent houden aan de tabs in "mijn veldwerk": "Staal en context" --> "poel", "weer en onweer" --> "meteorologie"
+
+
+TODO:
+- [x] comment Visits.photo
+- [x] ++ SamplingPoints.photo
+- [x] ++ LenticVisits.xphoto_sample
+- [x] data type changes
+	- [x] DT! PerturbationObservations.drainage_structures TO boolean
+	- [x] DT! PerturbationObservations.fencing TO boolean
+	- [x] DT! MeteorolObservations.exceptional TO varchar
+	- others: question
+- [x] QField test: comments as GroupBox? (e.g. connectivity)
+
+- [ ] rm LenticVisits.latest_calibration
+
+```sql
+COMMENT ON COLUMN "inbound"."Visits".photo IS E'mandatory photo of the sampling site at target location';
+
+ALTER TABLE "inbound"."SamplingPoints" ADD COLUMN photo varchar; 
+COMMENT ON COLUMN "inbound"."SamplingPoints".photo IS E'optional photo of the sampling location to illustrate irregularities';
+
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN xphoto_sample varchar; 
+COMMENT ON COLUMN "inbound"."LenticVisits".xphoto_sample IS E'extra photo of the sample water in a bucket';
+
+ALTER TABLE "inbound"."PerturbationObservations" DROP COLUMN drainage_structures;
+ALTER TABLE "inbound"."PerturbationObservations" DROP COLUMN fencing;
+ALTER TABLE "inbound"."PerturbationObservations" ADD COLUMN drainage_structures boolean; 
+ALTER TABLE "inbound"."PerturbationObservations" ADD COLUMN fencing boolean; 
+COMMENT ON COLUMN "inbound"."PerturbationObservations".drainage_structures IS E'(waar/onwaar) tubes, ditches, canals, pits';
+COMMENT ON COLUMN "inbound"."PerturbationObservations".fencing IS E'(waar/onwaar) barbed or electric wire';
+UPDATE "inbound"."PerturbationObservations" SET drainage_structures = FALSE, fencing = FALSE;
+
+
+DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
+
+ALTER TABLE "inbound"."MeteorolObservations" ALTER COLUMN exceptional TYPE varchar USING exceptional::varchar;
+UPDATE "inbound"."MeteorolObservations" SET exceptional = 'hittegolf' WHERE exceptional = 'true';
+UPDATE "inbound"."MeteorolObservations" SET exceptional = NULL WHERE exceptional = 'false';
+
+
+```

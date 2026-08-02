@@ -15,9 +15,9 @@ datetime_visit,timestamp(0),False,,False,False,,,,date and time of the field act
 sampling_done,boolean,False,NULL,False,False,,,,"confirm that SamplingPoint was chosen, sampling has been performed, LIMS information captured"
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
-photo,varchar,False,NULL,False,False,,,,an optional photo of the site or noteworthy thing
+photo,varchar,False,NULL,False,False,,,,mandatory photo of the sampling site at target location
 visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited
-link_observation_pool,boolean,True,0,False,False,,,,choice to capture pool observation
+link_observation_samplecontext,boolean,True,0,False,False,,,,choice to capture pool observation
 link_observation_meteorology,boolean,True,0,False,False,,,,choice to capture weather observation
 link_observation_perturbation,boolean,True,0,False,False,,,,choice to capture perturbation observation
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived visits
