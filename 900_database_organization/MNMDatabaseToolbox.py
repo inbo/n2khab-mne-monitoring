@@ -255,13 +255,17 @@ def CreateSchema(db_connection, definition_csv: str, selection: set = None, drop
         print(create_string)
 
 
-def GetGeometryString(schema, table, geometry_type, crs = "31370", dims = '2'):
+def GetGeometryString(schema, table, geometry_type, crs = "31370", dims = "2"):
     # retrieve the geometry column creation string
+
+    if dims is None:
+        dims = "2"
 
     if geometry_type not in [
         "POINT", "MULTIPOINT",
         "LINESTRING", "MULTILINESTRING",
         "POLYGON", "MULTIPOLYGON",
+        "POINTM"
         ]:
         # only these types are tested and used.
         return("")
@@ -546,7 +550,8 @@ class dbTable(dict):
         # TODO: other geometry types
         has_geometry = not PD.isna(self.geometry)
         if has_geometry:
-            create_string += GetGeometryString(self.schema, self.table, self.geometry)
+            dims = "3" if self.geometry in ["POINTZ", "POINTM"] else None
+            create_string += GetGeometryString(self.schema, self.table, self.geometry, dims = dims)
 
             # read users require sequence USAGE to be able to update.
             for user in [self.owner] + self.read_access.split(","):

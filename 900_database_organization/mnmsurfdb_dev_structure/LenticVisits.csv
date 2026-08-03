@@ -7,6 +7,7 @@ waterdepth_samplingpoint_cm,double precision,False,NULL,False,False,,CHECK (wate
 secchi_depth_cm,double precision,False,NULL,False,False,,CHECK (secchi_depth_cm >= 0),,"the depth at which a monochrome radially patterned disc is visually perceivable, with the tools of Angelo Secchi (1865)",addendum sampling and sample point,Secchidiepte (cm),
 clear_to_bottom,boolean,False,NULL,False,False,,,,all clear: whether Secchi depth equals water depth at sampling point,addendum sampling and sample point,bodem zichtbaar,
 sludge_thickness,double precision,False,NULL,False,False,,CHECK (sludge_thickness >= 0),,sludge layer thickness in centimeters,addendum sampling and sample point,sliblaag dikte,
+waterlevel_elevation_mtaw,double precision,False,NULL,False,False,,,,elevation of the water level (mTAW),addendum sampling and sample point,waterpeil (mTAW),
 project_code,varchar,False,NULL,False,False,,,,LIMS project code of this sample,sample chemistry,LIMS projectcode,
 recipient_code,varchar,False,NULL,False,False,,,,LIMS recipient code of this sample,sample chemistry,LIMS staalcode,
 latest_calibration,date,False,NULL,False,False,,,,"date of latest calibration of the field kit (pH, EC, O2)",sample chemistry,laatste calibratie veldkit,

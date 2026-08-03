@@ -285,3 +285,11 @@ UPDATE "inbound"."MeteorolObservations" SET exceptional = NULL WHERE exceptional
 
 
 ```
+
+
+request 20260803:
+```sql
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN waterlevel_elevation_mtaw double precision; 
+COMMENT ON COLUMN "inbound"."LenticVisits".waterlevel_elevation_mtaw IS E'elevation of the water level (mTAW)';
+
+```
