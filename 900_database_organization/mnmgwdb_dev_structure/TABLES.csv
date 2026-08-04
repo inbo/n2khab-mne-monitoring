@@ -20,6 +20,7 @@ inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,,,1
 inbound,InstallationVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (well installations); subset of Visits
 inbound,SamplingVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (chemical sampling); subset of Visits
 inbound,PositioningVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,extra information collected for certain activities (spatial positioning); subset of Visits
+inbound,ElevationPoints,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,three dimensional points intended for measuring elevation with an RTK-GPS or similar devices
 inbound,InstallationRemovals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"logging removals of an installation, planned or by vandalism"
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,Trails,yoda,"viewer_mnmdb, tester_mnmdb","user_gwdb, tester_mnmdb",LINESTRING,,,,1,,store and share paths which facilitate relocation in the field

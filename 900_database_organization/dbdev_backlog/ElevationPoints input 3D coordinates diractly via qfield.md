@@ -12,22 +12,20 @@ status: false
 <https://docs.qfield.org/how-to/navigation-and-positioning/gnss/#capturing-longitude-latitude-and-altitude-in-attribute-form>
 
 ```sql
+
 SET standard_conforming_strings = ON;
 -- SET search_path TO pg_catalog,public,"inbound";
 
 DROP TABLE IF EXISTS "inbound"."ElevationPoints" CASCADE;
 
 BEGIN;
-CREATE TABLE "inbound"."ElevationPoints"()
-
-;
+CREATE TABLE "inbound"."ElevationPoints"() ;
 
 COMMENT ON TABLE "inbound"."ElevationPoints" IS E'three dimensional points intended for measuring elevation with an RTK-GPS or similar devices';
 
 ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN "ogc_fid" SERIAL CONSTRAINT "pk_elevationpoints_fid" PRIMARY KEY;
 SELECT AddGeometryColumn('inbound', 'ElevationPoints', 'wkb_geometry', 31370, 'POINT', 2);
 CREATE INDEX "elevationpoints_wkb_geometry_geom_idx" ON "inbound"."ElevationPoints" USING GIST ("wkb_geometry");
-
 
 GRANT USAGE ON SEQUENCE "inbound"."ElevationPoints_ogc_fid_seq" TO viewer_mnmdb;
 GRANT SELECT ON SEQUENCE "inbound"."ElevationPoints_ogc_fid_seq" TO viewer_mnmdb;
@@ -44,10 +42,10 @@ COMMENT ON COLUMN "inbound"."ElevationPoints".log_creation IS E'(technical) time
 ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN notes varchar; 
 COMMENT ON COLUMN "inbound"."ElevationPoints".notes IS E'free notes on the purpose of these coordinates';
 
-ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN longitude_position double precision; 
+ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN longitude_position double precision NOT NULL; 
 COMMENT ON COLUMN "inbound"."ElevationPoints".longitude_position IS E'longitude (west-east angular cooridante), in GNSS CRS';
 
-ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN latitude_position double precision; 
+ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN latitude_position double precision NOT NULL; 
 COMMENT ON COLUMN "inbound"."ElevationPoints".latitude_position IS E'latitude (south-north angular coordinate), in GNSS CRS';
 
 ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN longitude_position_bd72 double precision; 
@@ -59,10 +57,10 @@ COMMENT ON COLUMN "inbound"."ElevationPoints".latitude_position_bd72 IS E'latitu
 ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN altitude_at_position double precision; 
 COMMENT ON COLUMN "inbound"."ElevationPoints".altitude_at_position IS E'the altitude recording of the current position';
 
-ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN horizontal_accuracy double precision NOT NULL;
+ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN horizontal_accuracy double precision; 
 COMMENT ON COLUMN "inbound"."ElevationPoints".horizontal_accuracy IS E'horizontal accuracy of the GNSS signal';
 
-ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN vertical_accuracy double precision NOT NULL;
+ALTER TABLE "inbound"."ElevationPoints" ADD COLUMN vertical_accuracy double precision; 
 COMMENT ON COLUMN "inbound"."ElevationPoints".vertical_accuracy IS E'vertical accuracy of the GNSS signal';
 
 COMMIT;
