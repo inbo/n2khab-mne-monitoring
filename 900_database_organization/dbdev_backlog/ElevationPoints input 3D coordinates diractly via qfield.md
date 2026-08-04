@@ -3,10 +3,11 @@ aliases:
 tags:
   - ElevationPoints
   - altitude
-started:
-finished:
+started: 2026-08-04
+finished: 2026-08-04
 execution:
-status: false
+  - FM
+status: true
 ---
 
 <https://docs.qfield.org/how-to/navigation-and-positioning/gnss/#capturing-longitude-latitude-and-altitude-in-attribute-form>
