@@ -54,11 +54,24 @@ mnmgwdb <- connect_mnm_database(
 message(glue::glue("connected: psql {mnmgwdb$shellstring}"))
 
 
+# connect mnmsurfdb
+mnmsurfdb_mirror <- glue::glue("mnmsurfdb{suffix}")
+
+mnmsurfdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmsurfdb_mirror
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+message(glue::glue("connected: psql {mnmsurfdb$shellstring}"))
+
+
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### table and field catalogus
 #///////////////////////////////////////////////////////////////////////////////
 
 connections <- list(
+  "surf" = mnmsurfdb,
   "gw" = mnmgwdb,
   "eva" = locevaldb
 )
@@ -66,16 +79,19 @@ connections <- list(
 # TODO consider writing these to a meta-table on the server
 
 calendar_table <- c(
+  "surf" = "FieldCalendars",
   "gw" = "FieldworkCalendar",
   "eva" = "FieldCalendars"
 )
 
 visit_table  <- c(
+  "surf" = "AllVisits",
   "gw" = "AllVisits",
-  "eva" = "Visits"
+  "eva" = "AllVisits"
 )
 
 units_table  <- c(
+  "gw" = "SampleUnits",
   "gw" = "SampleLocations",
   "eva" = "SampleUnits"
 )
@@ -144,6 +160,7 @@ update_calendar_freeze_attribute <- function(db) {
 
 } # /update_calendar_freeze_attribute
 
+update_calendar_freeze_attribute("surf")
 update_calendar_freeze_attribute("gw")
 update_calendar_freeze_attribute("eva")
 
@@ -173,6 +190,7 @@ query_frozen_tables <- function(db) {
     c(
       "activity_group_id",
       "activity_group",
+      "is_surf_activity",
       "is_gw_activity",
       "is_loceval_activity"
     )
@@ -214,3 +232,8 @@ gw_freeze %>%
 loceval_freeze <- query_frozen_tables("eva") # let it go!
 loceval_freeze %>%
   write.csv(file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv")))
+
+# UNTESTED: surf
+surf_freeze <- query_frozen_tables("surf") # let it go!
+# surf_freeze %>%
+#   write.csv(file = file.path("sideload", glue::glue("freeze_mnmsurfdb{suffix}.csv")))

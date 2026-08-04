@@ -120,9 +120,9 @@ status: false
 	- [x] do we need a `310_mnmsyncdb_update_REP.qmd` as well?
 	- [x] [[datatypes/as.POSIXct datatime un-rounding issue]] 
 - [x] `update_landuse_in_locationinfos` -> works for new locations?
-- [ ] `115_sync_LocationInfos.R` requires complete overhaul
+- [x] `115_sync_LocationInfos.R` requires complete overhaul
 
-- [ ] add surf to `405_freeze_calendar.R`
+- [x] add surf to `405_freeze_calendar.R`
 - [ ] placeholders for Protocols
 
 # after fieldwork
@@ -166,5 +166,10 @@ ALTER TABLE "inbound"."LoticVisits"
 ADD COLUMN waterdepth_samplingpoint_cm double precision DEFAULT NULL;
 ```
 
++ added field for manual entry of elevation (mTAW)
+```sql
+ALTER TABLE "inbound"."LenticVisits" ADD COLUMN waterlevel_elevation_mtaw double precision; 
+COMMENT ON COLUMN "inbound"."LenticVisits".waterlevel_elevation_mtaw IS E'elevation of the water level (mTAW)';
+```
 
 + [[automation/link datetime and date in mnmsurfdb Visits via trigger]]

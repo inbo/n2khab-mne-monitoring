@@ -18,7 +18,7 @@ inbound,OtherVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb
 inbound,LenticVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,field data collected for lentic habitat types (still waters); subset of Visits
 inbound,LoticVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,field data collected for lotic habitat types (streams etc); subset of Visits
 inbound,SamplingPoints,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,points with actual sampling of surface water (should be close to TargetPoints)
-inbound,ElevationPoints,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINTM,,,,1,,three dimensional points intended for measuring elevation with an RTK-GPS or similar devices
+inbound,ElevationPoints,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,three dimensional points intended for measuring elevation with an RTK-GPS or similar devices
 inbound,Observations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,interface! -> common fields for non-mandatory / occasional field (spatiotemporally fixed) observation of a given structure which potentially provide extra explanatory information for MNM
 inbound,SampleContextObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations on and around the water body of interest
 inbound,PerturbationObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations of relevant perturbations of the natural environment (PNE)

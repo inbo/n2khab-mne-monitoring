@@ -2,4 +2,10 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 elevationpoint_id,int,True,,True,True,,,,sampling point technical index
 log_creator,varchar,True,current_user,False,False,,,,(technical) user who created the entry
 log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of creation
-wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
+notes,varchar,False,NULL,False,False,,,,free notes on the purpose of these coordinates
+longitude_position,double precision,False,,False,False,,,,"longitude (west-east angular cooridante), in GNSS CRS"
+latitude_position,double precision,False,,False,False,,,,"latitude (south-north angular coordinate), in GNSS CRS"
+longitude_position_bd72,double precision,False,,False,False,,,,"longitude (west-east angular cooridante), in EPSG:31370 BD72 Lambert"
+latitude_position_bd72,double precision,False,,False,False,,,,"latitude (south-north angular coordinate), in EPSG:31370 BD72 Lambert"
+altitude_at_position,double precision,False,,False,False,,,,the altitude recording of the current position
+wkb_geometry,,False,,False,False,,,,"Point geometry (31370 / Lambert 72): location on map, should match position"
