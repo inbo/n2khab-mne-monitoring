@@ -202,6 +202,7 @@ in the meantime the `fag_is_*` columns are appended above.
 # Protocols
 
 ... postponed (overhaul required anyways)
+[[Visits need to be linked or tagged with Protocols versions]]
 
 # SampleUnits
 + In #SampleUnits, the field `schemes_served_all` (and potentially `scheme_ps_targetpanels`) must be consolidated.

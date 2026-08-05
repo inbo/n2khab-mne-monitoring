@@ -4,9 +4,10 @@ tags:
   - locevaldb
   - GroupedActivities
 started:
-finished:
+finished: 2026-07-03
 execution:
-status: false
+  - FM
+status: true
 ---
 
 the status of GroupedActivities was unclear in #locevaldb prior to [[data update/20260703 REP update 0.17.0 and SNIP update 0.17.0|REP 0.17.0]]

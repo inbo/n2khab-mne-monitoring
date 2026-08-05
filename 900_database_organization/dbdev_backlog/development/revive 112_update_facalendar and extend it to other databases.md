@@ -5,9 +5,9 @@ tags:
   - maintenance
   - dailies
 started:
-finished:
-execution:
-status: false
+finished: 2026-07-01
+execution: FM
+status: true
 ---
 
 The script `112_update_facalendar.R` has not received the love it deserves and must be seriously overhauled.

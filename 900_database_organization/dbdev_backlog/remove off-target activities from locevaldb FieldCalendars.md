@@ -11,6 +11,8 @@ execution:
 status: false
 ---
 
+[[remove archived non-loceval activities from locevaldb]]
+
 In some old version of the scripts and REP, activities from other databases were uploaded to #locevaldb. 
 Those are irrelevant.
 Some are correctly flagged with an `archive_version_id`; others are still open (hopefully filtered in QGIS project).

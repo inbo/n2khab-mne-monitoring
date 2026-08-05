@@ -1,6 +1,10 @@
 ---
 aliases:
+  - sql inheritance child tables do not inherit parent table constraints and kan corrupt primary keys
 tags:
+  - inheritance
+  - Visits
+  - geometry
 started:
 finished:
 execution:

@@ -1,13 +1,13 @@
 ---
 aliases:
-  - union of #CellMaps for random placement points if colocated types can be combined
+  - union of CellMaps for random placement points if colocated types can be combined
 tags:
   - RandomPoints
   - CellMaps
-started:
-finished:
-execution:
-status: false
+started: 2026-07-16
+finished: 2026-07-16
+execution: FM
+status: true
 ---
 
 see mail #KW [[timeline/2026-07-14|2026-07-14]]

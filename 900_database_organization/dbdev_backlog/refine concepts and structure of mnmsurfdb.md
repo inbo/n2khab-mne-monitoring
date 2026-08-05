@@ -8,6 +8,7 @@ started:
 finished:
 execution:
 status: false
+priority: 1
 ---
 
 related / finishing up:
@@ -47,9 +48,9 @@ using:
 	+ also link and shift "historic" data
 	+ consider filtering plain observations for the unlinked ones (no: specific selection is useful)
 
-+ [ ] update forms for just Observations when they are independent of DATACOLL
-+ [ ] adjust labels and identifiers of all #Observations tables
-+ [ ] copy to Planning project
++ [x] update forms for just Observations when they are independent of DATACOLL
++ [x] adjust labels and identifiers of all #Observations tables
++ [x] copy to Planning project
 + [ ] document technical choices of #Visits -- #Observations optional coupling
 
 
