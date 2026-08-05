@@ -2082,16 +2082,16 @@ precedence_columns <- list(
     "implications_habitatmap",
     "notes"
   ),
-  "FieldCalendar" = c(
+  "FieldCalendar" = c( # not quite obsolete - used in gwdb
+    "is_sideloaded",
+    "is_frozen",
     "excluded",
     "excluded_reason",
     "teammember_assigned",
     "date_visit_planned",
     "no_visit_planned",
     "notes",
-    "done_planning",
-    "is_sideloaded",
-    "is_frozen"
+    "done_planning"
   ),
   "FieldworkCalendar" = c(
     "excluded",
@@ -2105,27 +2105,65 @@ precedence_columns <- list(
     "is_frozen"
   ),
   "FieldCalendars" = c(
+    "is_sideloaded",
+    "is_frozen",
     "excluded",
     "excluded_reason",
     "teammember_assigned",
     "date_visit_planned",
     "no_visit_planned",
     "notes",
-    "done_planning",
-    "is_frozen"
+    "done_planning"
   ),
   "Visits" = c(
     "teammember_id",
     "date_visit",
-    "lims_code",
+      "datetime_visit",
+      "sampling_done",
     "type_assessed",
     "is_well_developed_type",
-    "replacement_recovery_notes",
     "gps_type",
     "gps_accuracy_cm",
     "notes",
     "photo",
     "issues",
+    "visit_done"
+  ),
+  "AquaticTypesVisits" = c(
+    "samplingpoint_selection_done",
+    "crassula_was_here"
+  ),
+  "TerrestrialTypesVisits" = c(
+    "replacement_recovery_notes"
+  ),
+  "TargetPoints" = c(
+    "date_selection",
+    "notes",
+    "photo"
+  ),
+  "SamplingPoints" = c(
+    "date_sampling",
+    "photo",
+    "notes"
+  ),
+  "ExtraLocevals" = c(
+    "teammember_id",
+    "date_visit",
+    "show_aquatictypevisits",
+    "type_expected",
+    "type_assessed",
+    "type_is_absent",
+    "is_well_developed_type",
+    "gps_type",
+    "gps_accuracy_cm",
+    "notes",
+    "photo",
+    "issues",
+    "samplingpoint_selection_done",
+    "crassula_was_here",
+    "recovery_hints",
+    "accessibility_inaccessible",
+    "accessibility_revisit",
     "visit_done"
   ),
   "InstallationVisits" = c(
@@ -2153,11 +2191,69 @@ precedence_columns <- list(
   "PositioningVisits" = c(
     "require_total_station"
   ),
+  "LenticVisits" = c(
+    "equipment",
+    "chlorophytae_presence",
+    "chlorophytae_specification",
+    "waterdepth_samplingpoint_cm",
+    "secchi_depth_cm",
+    "clear_to_bottom",
+    "sludge_thickness",
+    "waterlevel_elevation_mtaw",
+    "project_code",
+    "recipient_code",
+    "watertemperature_celsius",
+    "sample_ph",
+    "electric_conductivity_mus_cm",
+    "dissolved_oxygen_mg_l",
+    "dissolved_oxygen_percent",
+    "sample_notes",
+    "sample_contamination",
+    "sample_contamination_reason",
+    "sneller_cm",
+    "color",
+    "smell",
+    "zooplankton",
+    "macroinvertebrates",
+    "xphoto_sample"
+  ),
+  "LoticVisits" = c(
+    "equipment",
+    "chlorophytae_presence",
+    "chlorophytae_specification",
+    "waterdepth_samplingpoint_cm",
+    "secchi_depth_cm",
+    "clear_to_bottom",
+    "sludge_thickness",
+    "waterlevel_elevation_mtaw",
+    "project_code",
+    "recipient_code",
+    "watertemperature_celsius",
+    "sample_ph",
+    "electric_conductivity_mus_cm",
+    "dissolved_oxygen_mg_l",
+    "dissolved_oxygen_percent",
+    "sample_notes",
+    "sample_contamination",
+    "sample_contamination_reason",
+    "sneller_cm",
+    "color",
+    "smell",
+    "zooplankton",
+    "macroinvertebrates",
+    "xphoto_sample",
+    "meandering",
+    "flowvel",
+    "flowvel_method",
+    "barriers",
+    "current_pits"
+  ),
   "LocationInfos" = c(
     # "landowner", # content currently non-negotiable
     "accessibility_inaccessible",
     "accessibility_revisit",
     "recovery_hints",
+    "equipment_recommendations",
     "watina_code_1",
     "watina_code_2"
   )
