@@ -20,9 +20,9 @@ ufw enable
 To						 Action		From
 --						 ------		---- 
 22						 DENY		Anywhere
-<ssh-port>/tcp					LIMIT		Anywhere
-<port>/tcp					ALLOW		Anywhere
-22 (v6)					DENY		Anywhere (v6)
-<ssh-port>/tcp (v6)				LIMIT		Anywhere (v6)
-<port>/tcp (v6)				ALLOW		Anywhere (v6)
+<ssh-port>/tcp			 LIMIT		Anywhere
+<port>/tcp				 ALLOW		Anywhere
+22 (v6)					 DENY		Anywhere (v6)
+<ssh-port>/tcp (v6)		 LIMIT		Anywhere (v6)
+<port>/tcp (v6)			 ALLOW		Anywhere (v6)
 ```

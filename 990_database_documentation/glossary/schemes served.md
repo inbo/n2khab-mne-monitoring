@@ -7,7 +7,7 @@ tags:
 ---
 With the roll-out of #mnmsurfdb we first define #SampleUnits, #GroupedActivities and #Visits which **"serve" multiple schemes**.
 
-However, it is not always trivial to associate which conceptual element serves which scheme at what time.
+However, it is not always trivial to associate which conceptual element serves which [[glossary/scheme]] at what time.
 
 ## Philosophy
 

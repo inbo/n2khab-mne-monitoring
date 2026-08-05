@@ -2,6 +2,7 @@
 aliases:
   - software/qgis
   - qgis
+  - QGIS
 tags: 
   - gis
 ---
@@ -17,4 +18,4 @@ GDAL dependency:
 # Plugins
 
 - `QField Sync`
-- `changeDataSource`
+- `changeDataSource` -> unmaintained but #FM can solve it ([see here](https://github.com/enricofer/changeDataSource/issues/23))

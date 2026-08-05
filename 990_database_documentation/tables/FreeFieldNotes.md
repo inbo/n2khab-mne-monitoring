@@ -1,7 +1,7 @@
 ---
 aliases:
   - FiNos
-  - "inbound"."FreeFieldNotes"
+  - "inbound.FreeFieldNotes"
 tags:
   - FreeFieldNotes
   - inbound

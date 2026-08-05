@@ -1,6 +1,7 @@
 ---
 aliases:
   - database/creation
+  - structure sheets
 ---
 
 create database:

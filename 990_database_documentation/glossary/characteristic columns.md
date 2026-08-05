@@ -1,6 +1,7 @@
 ---
 alias:
   - characols
+  - characteristic column
 tags:
   - characteristic_columns
 ---

@@ -1,3 +1,10 @@
+---
+aliases: 
+tags:
+  - example
+---
+
+
 "special" command shortcuts to explore database metadata
 e.g.
 - `\l`	           -> list databases

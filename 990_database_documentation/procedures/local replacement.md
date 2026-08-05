@@ -6,6 +6,9 @@ tags:
 ---
 > [!note] Local Replacement
 > *Local replacement*  refers to the location evaluation procedure of selecting a proximal GRTS cell as replacement for a target sample unit which does not contain the targeted habitat type.
+> Local replacement can happen repeatedly if a chosen replacement evolves into different habitat types; re-replacement must always start back from the original sample unit.
+
+(*cf.* [[glossary/GRTS address|GRTS address]], [[glossary/habitat type and stratum|habitat type and stratum]])
 
 To enable a "local replacement", the following database objects are relevant.
 `ReplacementOngoing` is a [[sql/views|view]] which only shows Replacements for the currently tagged `SampleUnits`.
