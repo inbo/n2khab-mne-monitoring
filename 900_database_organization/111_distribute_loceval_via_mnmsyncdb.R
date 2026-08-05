@@ -897,9 +897,10 @@ distribute_targetpoints_to_userdatabases <- function(udb) {
 
   message(glue::glue("\t>>> `TargetPoints`"))
 
-  targetpoints <- loceval_connection$query_table("TargetPoints")
+  targetpoints <- loceval_connection$query_table("TargetPoints") %>%
+    dplyr::select(-type) # temporary: type still exists in loceval, but not used
   existing <- mnmdb$query_table("TargetPoints")
-  existing %>% glimpse()
+  # existing %>% dplyr::glimpse()
 
   targetpoints_upload <- targetpoints %>%
     dplyr::anti_join(
@@ -920,9 +921,9 @@ distribute_targetpoints_to_userdatabases <- function(udb) {
     dplyr::mutate(
       log_creation = stringr::str_replace(log_creation, "\\+12 UTC", "000 UTC")
     ) %>%
-    select(-targetpoint_id)
+    dplyr::select(-targetpoint_id)
 
-  targetpoints_upload %>% distinct(log_creation)  %>% print(n = Inf)
+  targetpoints_upload %>% dplyr::distinct(log_creation)  %>% print(n = Inf)
 
   # targetpoints %>%
   #   dplyr::arrange(log_creator, log_creation, date_selection) %>%
