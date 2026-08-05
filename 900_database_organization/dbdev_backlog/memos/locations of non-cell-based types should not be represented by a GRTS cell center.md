@@ -7,9 +7,10 @@ tags:
   - geometries
   - REP
 started: 2026-07-09
-finished:
+finished: 2026-07-09
 execution:
-status: false
+  - FM
+status: true
 ---
 
 In the `X10_*_update_REP.qmd` refreshment procedures, I determine the location of sample units by the simple function `add_point_coords_grts`.

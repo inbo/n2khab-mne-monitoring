@@ -970,7 +970,8 @@ distribute_targetpoints_to_userdatabases("mnmsurfdb")
 message("")
 message("________________________________________________________________")
 message(glue::glue(
-  "### Finished distributing `loceval{suffix}` information to databases. ###")
+  "### Finished distributing `loceval{suffix}` information to databases. ###"
+  )
 )
 message("________________________________________________________________")
 

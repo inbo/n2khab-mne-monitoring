@@ -7,10 +7,10 @@ tags:
   - initialization
   - implementation
 started: 2026-03-11
-finished:
+finished: 2026-08-04
 execution:
   - FM
-status: false
+status: true
 ---
 
 # procedure
@@ -123,7 +123,7 @@ status: false
 - [x] `115_sync_LocationInfos.R` requires complete overhaul
 
 - [x] add surf to `405_freeze_calendar.R`
-- [ ] placeholders for Protocols
+- [x] placeholders for Protocols -> moved [[enter Protocols for mnmsurfdb after drafts are on protocolsource]], related to [[Visits need to be linked or tagged with Protocols versions|time- and context-dependent links to Protocols]]
 
 # after fieldwork
 [[timeline/2026-07-07|2026-07-07]]; all applied for #LenticVisits and #LoticVisits

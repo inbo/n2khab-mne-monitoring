@@ -11,8 +11,8 @@ status: false
 ---
 
 related / finishing up:
-+ [[carve out field forms draft for mnmsyncdb]]
-+ [[draft and implement a database for fieldwork support of surface water monitoring]]
++ [[development/carve out field forms draft for mnmsyncdb]]
++ [[development/draft and implement a database for fieldwork support of surface water monitoring]]
 
 using:
 + [[sql_tricks/update rule with conditional insert|update rule with conditional insert]]

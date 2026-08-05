@@ -1,13 +1,14 @@
 ---
 aliases:
 tags:
-started:
-finished:
+started: 2026-07-15
+finished: 2026-08-02
 execution:
-status: false
+  - FM
+status: true
 ---
 
-sub-task of [[draft and implement a database for fieldwork support of surface water monitoring|draft and implement mnmsurfdb]]
+sub-task of [[development/draft and implement a database for fieldwork support of surface water monitoring|draft and implement mnmsurfdb]]
 
 received field form idea collection by #NDT
 

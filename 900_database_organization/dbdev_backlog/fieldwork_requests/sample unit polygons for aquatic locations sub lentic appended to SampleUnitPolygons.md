@@ -5,9 +5,10 @@ tags:
   - locevaldb
   - SampleUnitPolygons
 started: 2026-07-08
-finished:
+finished: 2026-08-05
 execution:
-status: false
+  - FM
+status: true
 ---
 
 
@@ -52,3 +53,6 @@ ALTER TABLE "metadata"."LocationCells" DROP COLUMN is_cell CASCADE;
 
 COMMIT;
 ```
+
+## post hoc
+*A month later, I forgot what the problem here was, but think it is related to the stratum/type confusion (linked above) -> case closed.*
