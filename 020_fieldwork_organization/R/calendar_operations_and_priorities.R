@@ -191,14 +191,13 @@ prioritize_gw_fieldwork <- function(.data) {
         # if the panel set is panel set 2 across the targeted schemes
         stratum %in% c("6410_ve", "6510_hus") &
           !stringr::str_detect(scheme_ps_targetpanels_served, ":PS1") ~ NA_integer_,
-        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL03|PS2PANEL01)") ~ 1L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS2PANEL02") ~ 2L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL02") ~ 9L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL04") ~ 3L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL0[56]|PS2PANEL03)") ~ 4L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL07") ~ 6L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL01") ~ 10L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 8L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL03|PS2PANEL01)") ~ 6L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL04|PS2PANEL02)") ~ 1L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL02") ~ 7L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL0[56]") ~ 2L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL07|PS2PANEL03)") ~ 3L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:PS1PANEL01") ~ 8L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "GW_03\\.3:(PS1PANEL08|PS2PANEL04)") ~ 5L,
         stringr::str_detect(scheme_ps_targetpanels_served, "GW_05\\.") ~ 11L
       )
     ) %>%
@@ -234,10 +233,13 @@ prioritize_soil_fieldwork <- function(.data) {
         # if the panel set is panel set 2 across the targeted schemes
         stratum %in% c("6410_ve", "6510_hus") &
           !stringr::str_detect(scheme_ps_targetpanels_served, ":PS1") ~ NA_integer_,
-        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS\\dPANEL02") ~ 7L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS\\dPANEL01") ~ 8L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS\\dPANEL03") ~ 9L,
-        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS\\dPANEL04") ~ 10L
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS1PANEL02") ~ 4L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS1PANEL01") ~ 5L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS1PANEL03") ~ 6L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:(PS1PANEL04|PS2PANEL02)") ~ 7L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS2PANEL01") ~ 8L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS2PANEL03") ~ 9L,
+        stringr::str_detect(scheme_ps_targetpanels_served, "SOIL_03\\.2:PS2PANEL04") ~ 10L
       )
     ) %>%
     return()
