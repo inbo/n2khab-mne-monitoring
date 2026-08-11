@@ -224,7 +224,6 @@ grts_lentic_sf <-
     relationship = "many-to-one",
     unmatched = c("error", "drop")
   ) %>%
-  # distinct(grts_address_final, polygon_id, geom) %>%
   summarise(
     types_in_sample =
       str_flatten(sort(unique(type)), collapse = "|") %>% factor(),
