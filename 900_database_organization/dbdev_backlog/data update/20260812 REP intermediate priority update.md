@@ -23,3 +23,6 @@ priority:
 
 ## test on #staging
 - sync staging mirrors
+
+run REP update notebooks step-by-step; first on the `-staging` mirror:
++ `900_database_organization/510_loceval_update_REP.qmd`
