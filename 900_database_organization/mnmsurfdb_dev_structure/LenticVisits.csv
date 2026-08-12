@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment,column_group_help,name_dutch,remarks
-lenticvisit_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)",technical,,
+lenticvisit_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)",technical,,
 equipment,varchar,False,NULL,False,False,,,,"(wadend, schepstok) - sampling equipment (wading, scoop stick)",addendum sampling and sample point,monstername apparatuur,
 chlorophytae_presence,boolean,False,NULL,False,False,,,,"presence of vegetation, metaphyton and/or float at the sample point",addendum sampling and sample point,aanwezigheid vegetatie/metaphyton/drijflaag,"infer from outdated `open_water`, `phytoplankton`, and `float_layer`"
 chlorophytae_specification,varchar,False,NULL,False,False,,,,specification of non-open water and expected effect on sample,addendum sampling and sample point,specificatie phytae,rename: plantae_specification in view; conditional visibility
