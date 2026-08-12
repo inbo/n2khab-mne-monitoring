@@ -183,6 +183,7 @@ if (FALSE) {
   # version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
   # version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
+  # version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
   # version_notes <- "SURF_03.4_LENTIC"
 
   version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1

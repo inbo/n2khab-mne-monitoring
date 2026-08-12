@@ -21,8 +21,17 @@ priority:
 	- `snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))`
 	- this will make sure all the extra functions (such as `020_fieldwork_organization/R/calendar_operations_and_priorities.R`) are correct
 
-## test on #staging
+## test on #staging, then deploy
 - sync staging mirrors
 
 run REP update notebooks step-by-step; first on the `-staging` mirror:
-+ `900_database_organization/510_loceval_update_REP.qmd`
++ `900_database_organization/510_loceval_update_REP.qmd` #locevaldb 
++ backup dumps on server; then run on #production
++ inspect `045_loceval_consistency_dashboard.html`
+
++ run daily scripts up to at least `114_[...]` to bring latest replacements to #mnmgwdb and #mnmsurfdb
+Same for `610_mnmgwdb_update_REP.qmd` and `710_mnmsurfdb_update_REP.qmd`.
+
+
+
+(started ~7:30; done ~10:00)
