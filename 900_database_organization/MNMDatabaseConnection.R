@@ -1532,6 +1532,7 @@ lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 1800) 
 
   # background-execute the script with a delay
   system(glue::glue("sleep {delay} && {cmd} &", wait = FALSE))
+  # TODO might this work with processx?
 
 } # /lock_keyring_delayed
 
