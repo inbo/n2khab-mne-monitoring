@@ -31,10 +31,12 @@ source_snippet_supplements("calendar_operations_and_priorities.R")
 
 # Checking the existence of the correct data source files in the correct
 # directories
+if (isFALSE("habitatmap" %in% names(versions_required))) {
 versions_required <- c(
   versions_required,
   habitatmap = "habitatmap_2024_v99_interim"
 )
+}
 verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
 
@@ -1241,7 +1243,7 @@ orthophoto_shortterm_watersurfaces <-
 
 ## Comparing object checksums with reference to verify reproducibility --------
 
-checksumfile <- file.path(gitroot, "fieldworg_checksums.csv")
+checksumfile <- file.path(snippet_base_path, "fieldworg_checksums.csv")
 ref_checksums <- read_csv(checksumfile, col_types = "cc")
 available_obj <- ls()
 different_checksums <-
