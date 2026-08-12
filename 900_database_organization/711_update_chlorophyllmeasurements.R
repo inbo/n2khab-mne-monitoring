@@ -151,3 +151,5 @@ chlorophyllmeasurements_lookup <- update_cascade_lookup(
   tabula_rasa = FALSE,
   verbose = TRUE
 )
+
+# SELECT * FROM "inbound"."Chlorophyll";

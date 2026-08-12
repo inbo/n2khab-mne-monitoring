@@ -170,3 +170,4 @@ SELECT setval('inbound.seq_chlorophyllmeasurement_id', 1);
 
 
 create a #view `inbound.Chlorophyll` which joins #ChlorophyllMeasurements with #Locations
+and (in theory) copy it to the right spreadsheet

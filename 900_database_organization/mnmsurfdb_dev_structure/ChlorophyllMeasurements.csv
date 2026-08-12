@@ -7,7 +7,7 @@ grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (
 stratum,varchar,True,,False,False,,,,strata (optional/informative)
 iteration,int,True,,False,False,,,,counting chlorophyll capturings
 pool_in_rep,boolean,False,,False,False,,,,whether the pool is part of the REP sample
-date_first_visit,date,True,,False,False,,,,start of the panel activity sequence (included to keep recurrent visits unique)
+date_first_visit,date,False,,False,False,,,,start of the panel activity sequence (included to keep recurrent visits unique)
 teammember_id,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,link to the user who performed the visit
 datetime_visit,timestamp(0),False,,False,False,,,,date and time of the field activity
 notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
