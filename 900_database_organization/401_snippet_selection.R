@@ -145,7 +145,7 @@ if (interactive()) {
 # /////////////////////////////////////////////////////////////////////////
 
 # The geometries of lentic spatial sampling units are in following object.
-glimpse(stratum_grts_spsamples_lentic_sf)
+if (interactive()) glimpse(stratum_grts_spsamples_lentic_sf)
 
 # The spatial sampling unit is always identified by stratum x grts_address by
 # definition. Note that, as usual, grts_address_final is the GRTS address linked
@@ -344,7 +344,7 @@ units_cell_polygon %>%
 # locations (grts_address_final) that apply to the (current) lentic sampling
 # units. Notably, these points serve as a candidate for re-use.
 
-glimpse(legacy_watersamplepoints_spslocs_lentic)
+if (interactive()) glimpse(legacy_watersamplepoints_spslocs_lentic)
 
 # As usual, the stable column to identify the polygons is grts_address_final and
 # the corresponding (less stable) polygon_id is for information (see higher:

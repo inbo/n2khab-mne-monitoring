@@ -19,7 +19,7 @@ load_rep_rdata(reload = FALSE, to_env = globalenv())
 snippet_base_path <<- rprojroot::find_root(rprojroot::is_git_root)
 
 # TEMPORARY adjustment pointing to adjacent branch (wip)
-snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
+# snippet_base_path <<- normalizePath(file.path(snippet_base_path, "..", "n2khab-mne-monitoring_support"))
 
 # run code snippets
 source("401_snippet_selection.R") # note: this one MUST be sourced
@@ -41,4 +41,4 @@ save.image(file = fresh_snippet_path)
 # verify_rep_objects()
 
 
-digest::digest(fag_grts_calendar_shortterm_attribs, algo = "xxhash64")
+# digest::digest(fag_grts_calendar_shortterm_attribs, algo = "xxhash64")
