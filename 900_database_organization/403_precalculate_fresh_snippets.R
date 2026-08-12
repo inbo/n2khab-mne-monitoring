@@ -28,11 +28,14 @@ source("401_snippet_selection.R") # note: this one MUST be sourced
 verify_rep_objects()
 different_checksums %>% knitr::kable()
 
+snippet_packaging_date <- Sys.time()
+
 # save the workspace
 # cf. https://stackoverflow.com/questions/40862380/in-r-is-it-possible-to-save-the-current-workspace-without-quitting
 
-fresh_snippet_path <- file.path("data", "fresh_snippet_workspace.RData")
-save.image(file = fresh_snippet_path)
+save.image(file = file.path("data", "fresh_snippet_workspace.RData"))
+
+print(glue::glue("Snippets were successfully packed: {snippet_packaging_date}."))
 
 ## usage:
 # source("MNMLibraryCollection.R")
