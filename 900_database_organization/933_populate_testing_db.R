@@ -64,7 +64,15 @@ rename_FieldCalendars <- function(fac) {
 
 handle_NA_nolog_update_column <- function(lojos) {
   lojos %>%
-    mutate(nolog_update = dplyr::na_if(nolog_update, "NA.NA NA"))
+    mutate(nolog_update = dplyr::na_if(nolog_update, "NA.NA NA")) %>%
+    return()
+}
+
+handle_datetime_column <- function(visits) {
+  convert_fcn <- \(x) if (is.na(x)) return(NA) else convert_timestamp_to_ms_character(lubridate::as_datetime(x))
+  visits %>%
+    dplyr::mutate(datetime_visit = unlist(purrr::map(datetime_visit, convert_fcn))) %>%
+    return()
 }
 
 #_______________________________________________________________________________
@@ -73,7 +81,11 @@ handle_NA_nolog_update_column <- function(lojos) {
 table_modification <- c(
   # "Protocols" = function (prt) sort_protocols(prt), # (almost) anything you like
   # "MHQPolygons" = function (mhqpolys) mhqpolys %>% filter(FALSE),
-  "LocationJournals" = function (lojos) handle_NA_nolog_update_column(lojos) # (almost) anything you like
+  "LocationJournals" = function (lojos) handle_NA_nolog_update_column(lojos), # (almost) anything you like
+  "LenticVisits" = handle_datetime_column, # (almost) anything you like
+  "LoticVisits" = handle_datetime_column, # (almost) anything you like
+  "OtherVisits" = handle_datetime_column, # (almost) anything you like
+  "ChlorophyllMeasurements" = handle_datetime_column # (almost) anything you like
   # "FieldCalendars" = function (fac) rename_FieldCalendars(fac) # (almost) anything you like
 )
 

@@ -31,10 +31,24 @@ dplyr::glimpse(source_data)
 new_data <- source_data
 
 sort_protocols <- function(prt) {
-  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code))
+  if ("protocol_code" %in% names(prt)) {
+    prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code))
+  }
   return(prt)
 }
 new_data <- sort_protocols(new_data)
+
+
+# handle_datetime_column <- function(visits) {
+#   if (isFALSE("datetime_visit" %in% names(visits))) return(visits)
+#   convert_fcn <- \(x) if (is.na(x)) return(NA) else convert_timestamp_to_ms_character(lubridate::as_datetime(x))
+#   visits %>%
+#     mutate(datetime_visit = unlist(purrr::map(datetime_visit, convert_fcn))) %>%
+#     return()
+# }
+#
+# handle_datetime_column(new_data) %>% distinct(datetime_visit) %>% knitr::kable()
+
 
 # further modification are possible
 if ("protocol_id" %in% names(source_data)) {
