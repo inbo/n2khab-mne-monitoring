@@ -36,7 +36,6 @@ update_cascade_lookup <- parametrize_cascaded_update(mnmsurfdb)
 table_label <- "ChlorophyllMeasurements"
 characols <- c("grts_address", "iteration")
 
-test <- mnmsurfdb$query_table("ChlorophyllMeasurements")
 
 
 #_______________________________________________________________________________
@@ -143,9 +142,22 @@ chl_data %>% glimpse()
 #_______________________________________________________________________________
 ### upload
 
+chl_upload <- chl_data %>%
+  anti_join(
+    mnmsurfdb$query_table("ChlorophyllMeasurements"),
+    by = join_by(grts_address, iteration)
+  ) %>%
+  mutate(
+    log_user = "maintenance",
+    log_update = convert_timestamp_to_ms_character(Sys.time()),
+    issues = FALSE,
+    samplingpoint_marked = FALSE,
+    visit_done = FALSE
+  )
+
 chlorophyllmeasurements_lookup <- update_cascade_lookup(
   table_label = table_label,
-  new_data = chl_data,
+  new_data = chl_upload,
   index_columns = c("chlorophyllmeasurement_id"),
   characteristic_columns = characols,
   tabula_rasa = FALSE,

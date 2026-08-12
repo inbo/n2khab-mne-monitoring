@@ -8,6 +8,7 @@ SELECT
   CHLA.iteration,
   CHLA.pool_in_rep,
   CHLA.date_first_visit,
+  CHLA.infos,
   CHLA.teammember_id,
   CHLA.datetime_visit,
   CHLA.notes,

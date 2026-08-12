@@ -4,12 +4,17 @@ aliases:
 tags:
   - mnmsurfdb
   - ChlorophyllMeasurements
-started:
-finished:
+started: 2026-08-12
+finished: 2026-08-12
 execution:
-status: false
+  - FM
+status: true
 priority:
 ---
+
+There are additional "Chlorophyll measurements", planned ad hoc by @NDT.
+I create a map layer for QGIS with simple database table backend.
+
 
 ```sql
 ALTER TABLE "inbound"."SamplingPoints" ADD COLUMN purpose_chlorophyll boolean DEFAULT FALSE; 
@@ -58,6 +63,9 @@ COMMENT ON COLUMN "inbound"."ChlorophyllMeasurements".teammember_id IS E'link to
 
 ALTER TABLE "inbound"."ChlorophyllMeasurements" ADD COLUMN datetime_visit timestamp(0); 
 COMMENT ON COLUMN "inbound"."ChlorophyllMeasurements".datetime_visit IS E'date and time of the field activity';
+
+ALTER TABLE "inbound"."ChlorophyllMeasurements" ADD COLUMN infos text; 
+COMMENT ON COLUMN "inbound"."ChlorophyllMeasurements".infos IS E'infos about the target location';
 
 ALTER TABLE "inbound"."ChlorophyllMeasurements" ADD COLUMN notes text; 
 COMMENT ON COLUMN "inbound"."ChlorophyllMeasurements".notes IS E'Free text notes from the previous visits';
@@ -170,4 +178,8 @@ SELECT setval('inbound.seq_chlorophyllmeasurement_id', 1);
 
 
 create a #view `inbound.Chlorophyll` which joins #ChlorophyllMeasurements with #Locations
-and (in theory) copy it to the right spreadsheet
+and (in theory) copy it to the right [[locations/structure sheets|structure sheet]]
+
+
+## qgis
+draft, style, test, distribute.
