@@ -1,6 +1,6 @@
 {
   "accentColor": "#c04483",
-  "theme": "system",
+  "theme": "obsidian",
   "enabledCssSnippets": [
     "datetime_reformat"
   ]

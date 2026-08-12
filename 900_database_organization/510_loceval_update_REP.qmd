@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload - loceval"
-date: "2026-07-03"
+date: "2026-08-11"
 format:
   html:
     toc: true
@@ -23,6 +23,7 @@ knitr:
 - 20260616 missing Replacements -> bugfix now join to `grts_address_final`
 - 20260626 preview REP 0.17.0 -> `SURF_03.4_LENTIC`
 - 20260703 actual REP 0.17.0 -> `SURF_03.4_LENTIC`
+- 20260811 quarterly prio update 
 
 
 # TODO
@@ -182,10 +183,11 @@ if (FALSE) {
   # version_tag <- "snip:0.15.1_rep:0.15.0" # data_iteration = 1
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
   # version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
+  # version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
   # version_notes <- "SURF_03.4_LENTIC"
 
   version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
-  version_notes <- "shifting aquatics from GRTS cell to point on polygon surface"
+  version_notes <- "quarterly prio update"
 
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
@@ -550,6 +552,7 @@ sf::st_geometry(locations) <- "wkb_geometry"
 # m1+m2
 
 aquatic_location_polygons <- stratum_grts_spsamples_lentic_sf %>%
+  select(-grts_address) %>% 
   rename(grts_address = grts_address_final) %>% 
   mutate(
     grts_address = as.integer(grts_address),
@@ -1794,6 +1797,7 @@ sampleunits_lookup %>%
   )
 
 stratum_grts_spsamples_lentic_sf %>%
+  select(-grts_address) %>% 
   rename(grts_address = grts_address_final) %>% 
   left_join(
     n2khab_strata,

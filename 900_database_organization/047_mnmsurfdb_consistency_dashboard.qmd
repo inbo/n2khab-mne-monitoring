@@ -133,12 +133,9 @@ count_table_content(c(
 
 count_table_content(c(
     "Observations",
-    "MeteorolObservations",
-    "GeoObservations",
-    "TerraBioObservations",
-    "AquaBioObservations",
+    "SampleContextObservations",
     "PerturbationObservations",
-    "LanduseObservations"
+    "MeteorolObservations"
   ))
 
 ```
@@ -396,7 +393,7 @@ check_foreignkey_connection(
 
 
 
-## Field Calendar and Visits
+## Field Calendar, Visits, and Observations
 
 
 ```{r visits-fwcal}
@@ -410,6 +407,18 @@ check_foreignkey_connection(
 )
 
 ```
+
+
+
+```{r observations-visits}
+#| eval: true
+#| echo: false
+
+check_foreignkey_connection(
+  table_label = "Observations", fk = "visit_id",
+  characteristic_columns = c("grts_address"),
+  ref_table = "Visits" 
+)
 
 
 

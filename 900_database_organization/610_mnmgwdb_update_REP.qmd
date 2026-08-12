@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload"
-date: "2026-07-03"
+date: "2026-08-11"
 format:
   html:
     toc: true
@@ -26,6 +26,7 @@ Let's bring the sample to the field - again!
 - 20250627, 20250904, 20260309, 20260326: <prehistoric>
 - 20260527 REP update
 - 20260703 update to REP 0.17.0 / SNIP 0.17.0
+- 20260811 quarterly prio update 
 
 
 # TODO
@@ -196,9 +197,11 @@ if (FALSE) {
   # version_tag <- "snip:0.15.1_rep:0.15.0"
   #   # "snippets update 0.15.1 (revert temporal prioritization breeding season)"
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
+  # version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
+  # version_notes <- "SURF_03.4_LENTIC"
 
   version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
-  version_notes <- "SURF_03.4_LENTIC"
+  version_notes <- "quarterly prio update"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -682,6 +685,7 @@ if (nrow(check_empty_geoms) > 0) {
 ```
 
 ... and stitch
+
 ```{r stitch}
 
 out <- processx::run(
