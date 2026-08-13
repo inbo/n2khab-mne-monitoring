@@ -146,9 +146,11 @@ n2khab_types_expanded_properties %>%
 # with the currently active modules, module_combo_code has a single unique value
 # for each scheme. We take advantage of this uniqueness to keep things as simple
 # as possible. Checking that foregoing statement is TRUE:
-scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  distinct(scheme, module_combo_code) %>%
-  {nrow(.) == nrow(distinct(., scheme))}
+stopifnot(
+  scheme_moco_ps_stratum_targetpanel_spsamples %>%
+    distinct(scheme, module_combo_code) %>%
+    {nrow(.) == nrow(distinct(., scheme))}
+)
 
 # nesting scheme, panel set, targetpanel, still distinguishing strata separately
 # (even though they may share their location: this is unreal in the case of
