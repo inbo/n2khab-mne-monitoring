@@ -83,6 +83,7 @@ SELECT
   INFO.accessibility_revisit,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
+  INFO.is_secret_location,
   OPHO.assessment_done AS orthophoto_assessment_done,
   OPHO.notes AS orthophoto_notes
 FROM (
@@ -224,6 +225,7 @@ DO ALSO
  SET
   recovery_hints = NEW.recovery_hints,
   equipment_recommendations = NEW.equipment_recommendations,
+  is_secret_location = NEW.is_secret_location,
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit
  WHERE locationinfo_id = OLD.locationinfo_id

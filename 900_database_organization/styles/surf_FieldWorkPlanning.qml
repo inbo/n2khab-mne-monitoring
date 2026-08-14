@@ -144,13 +144,11 @@
       </symbol>
     </profileMarkerSymbol>
   </elevation>
-  <renderer-v2 attr="CASE WHEN &quot;loceval_positive&quot; THEN&#xa;'p' || &quot;done_planning&quot; || ' v' || &quot;visit_done&quot;&#xa;ELSE FALSE END" enableorderby="0" forceraster="0" referencescale="-1" symbollevels="0" type="categorizedSymbol">
+  <renderer-v2 attr="CASE WHEN &quot;excluded&quot; OR &quot;no_visit_planned&quot; THEN 'uitgelaten' ELSE &quot;done_planning&quot; END" enableorderby="0" forceraster="0" referencescale="-1" symbollevels="0" type="categorizedSymbol">
     <categories>
-      <category label="unplanned unvisited" render="true" symbol="0" type="string" uuid="{ea6bc630-503c-4cee-9b60-3d51e1525e27}" value="pfalse vfalse"/>
-      <category label="unplanned visit" render="true" symbol="1" type="string" uuid="{2abdba43-9e5f-4395-84db-929838486018}" value="pfalse vtrue"/>
-      <category label="planned unvisited" render="true" symbol="2" type="string" uuid="{53d17e86-e8ca-43e5-b096-cae0f81c0901}" value="ptrue vfalse"/>
-      <category label="planned visit" render="true" symbol="3" type="string" uuid="{04938703-b60e-4239-adf4-7420ab5d4762}" value="ptrue vtrue"/>
-      <category label="no loceval" render="true" symbol="4" type="string" uuid="{6fe10e9e-779c-4a1f-baf2-06d367d33c58}" value="0"/>
+      <category label="TODO" render="true" symbol="0" type="NULL" uuid="{af14be03-22ba-4383-98da-cadf00ee0712}" value="NULL"/>
+      <category label="gepland" render="true" symbol="1" type="string" uuid="{fd22f51d-591c-4801-9ee8-ed882de29938}" value="true"/>
+      <category label="uitgelaten" render="true" symbol="2" type="string" uuid="{a2cbf707-161e-4a64-9f6a-fea357c31c7a}" value="uitgelaten"/>
     </categories>
     <symbols>
       <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="0" type="marker">
@@ -161,27 +159,27 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{ba8e011c-a7e8-4e8f-b3d5-c55aceb2cab4}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{3d3660a3-6c17-4908-bdb7-5a27ca9b6180}" locked="0" pass="0">
           <Option type="Map">
-            <Option name="angle" type="QString" value="180"/>
+            <Option name="angle" type="QString" value="0"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="255,250,43,204,hsv:0.16249999403953552,0.83009082078933716,1,0.80000001192092896"/>
+            <Option name="color" type="QString" value="255,206,102,255,rgb:1,0.8080415,0.4,1"/>
             <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="name" type="QString" value="equilateral_triangle"/>
+            <Option name="name" type="QString" value="circle"/>
             <Option name="offset" type="QString" value="0,0"/>
             <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
+            <Option name="outline_color" type="QString" value="0,0,0,255,hsv:0.58761113882064819,0.60936903953552246,0,1"/>
             <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0"/>
+            <Option name="outline_width" type="QString" value="0.2"/>
             <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="outline_width_unit" type="QString" value="MM"/>
             <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="4"/>
+            <Option name="size" type="QString" value="2.4"/>
             <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="size_unit" type="QString" value="MM"/>
-            <Option name="vertical_anchor_point" type="QString" value="0"/>
+            <Option name="vertical_anchor_point" type="QString" value="1"/>
           </Option>
           <data_defined_properties>
             <Option type="Map">
@@ -200,27 +198,27 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{6884e2bb-7c08-4c78-b504-f87ad6f46029}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{6d05495a-e319-4bfa-a2e7-094b095d52f7}" locked="0" pass="0">
           <Option type="Map">
-            <Option name="angle" type="QString" value="180"/>
+            <Option name="angle" type="QString" value="0"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="206,26,101,204,hsv:0.93055558204650879,0.87450981140136719,0.80784314870834351,0.80000001192092896"/>
+            <Option name="color" type="QString" value="46,153,153,255,hsv:0.5,0.69999235868453979,0.60000002384185791,1"/>
             <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="name" type="QString" value="equilateral_triangle"/>
+            <Option name="name" type="QString" value="circle"/>
             <Option name="offset" type="QString" value="0,0"/>
             <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
+            <Option name="outline_color" type="QString" value="0,0,0,255,hsv:0.58761113882064819,0.60936903953552246,0,1"/>
             <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0"/>
+            <Option name="outline_width" type="QString" value="0.2"/>
             <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="outline_width_unit" type="QString" value="MM"/>
             <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="4"/>
+            <Option name="size" type="QString" value="1.6"/>
             <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="size_unit" type="QString" value="MM"/>
-            <Option name="vertical_anchor_point" type="QString" value="0"/>
+            <Option name="vertical_anchor_point" type="QString" value="1"/>
           </Option>
           <data_defined_properties>
             <Option type="Map">
@@ -239,89 +237,11 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{4b0bcd12-5e65-47a0-9973-26caae313f97}" locked="0" pass="0">
-          <Option type="Map">
-            <Option name="angle" type="QString" value="180"/>
-            <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="255,255,255,204,hsv:0,0,1,0.80000001192092896"/>
-            <Option name="horizontal_anchor_point" type="QString" value="1"/>
-            <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="name" type="QString" value="equilateral_triangle"/>
-            <Option name="offset" type="QString" value="0,0"/>
-            <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
-            <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0"/>
-            <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="outline_width_unit" type="QString" value="MM"/>
-            <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="4"/>
-            <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="size_unit" type="QString" value="MM"/>
-            <Option name="vertical_anchor_point" type="QString" value="0"/>
-          </Option>
-          <data_defined_properties>
-            <Option type="Map">
-              <Option name="name" type="QString" value=""/>
-              <Option name="properties"/>
-              <Option name="type" type="QString" value="collection"/>
-            </Option>
-          </data_defined_properties>
-        </layer>
-      </symbol>
-      <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="3" type="marker">
-        <data_defined_properties>
-          <Option type="Map">
-            <Option name="name" type="QString" value=""/>
-            <Option name="properties"/>
-            <Option name="type" type="QString" value="collection"/>
-          </Option>
-        </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{718c165d-1194-42e7-bf33-254f6f67b629}" locked="0" pass="0">
-          <Option type="Map">
-            <Option name="angle" type="QString" value="180"/>
-            <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="109,153,111,204,hsv:0.34052777290344238,0.28976881504058838,0.60000002384185791,0.80000001192092896"/>
-            <Option name="horizontal_anchor_point" type="QString" value="1"/>
-            <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="name" type="QString" value="equilateral_triangle"/>
-            <Option name="offset" type="QString" value="0,0"/>
-            <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
-            <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0"/>
-            <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="outline_width_unit" type="QString" value="MM"/>
-            <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="4"/>
-            <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="size_unit" type="QString" value="MM"/>
-            <Option name="vertical_anchor_point" type="QString" value="0"/>
-          </Option>
-          <data_defined_properties>
-            <Option type="Map">
-              <Option name="name" type="QString" value=""/>
-              <Option name="properties"/>
-              <Option name="type" type="QString" value="collection"/>
-            </Option>
-          </data_defined_properties>
-        </layer>
-      </symbol>
-      <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="4" type="marker">
-        <data_defined_properties>
-          <Option type="Map">
-            <Option name="name" type="QString" value=""/>
-            <Option name="properties"/>
-            <Option name="type" type="QString" value="collection"/>
-          </Option>
-        </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{ca4df969-3d60-4f19-9ad7-90cc518ee599}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{22b9a043-effc-468a-89b4-9ee8e2bb2964}" locked="0" pass="0">
           <Option type="Map">
             <Option name="angle" type="QString" value="0"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="205,205,205,255,hsv:0,0,0.80392158031463623,1"/>
+            <Option name="color" type="QString" value="196,196,196,255,hsv:0.00358333322219551,0,0.76862746477127075,1"/>
             <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
             <Option name="name" type="QString" value="circle"/>
@@ -334,7 +254,7 @@
             <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="outline_width_unit" type="QString" value="MM"/>
             <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="1"/>
+            <Option name="size" type="QString" value="2"/>
             <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="size_unit" type="QString" value="MM"/>
             <Option name="vertical_anchor_point" type="QString" value="1"/>
@@ -358,24 +278,24 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{c76d1840-3e87-48f5-ad56-97c344744f58}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{81505188-3884-46e0-9678-c9d9f3a7c223}" locked="0" pass="0">
           <Option type="Map">
             <Option name="angle" type="QString" value="0"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="232,113,141,255,rgb:0.9098039,0.4431373,0.5529412,1"/>
+            <Option name="color" type="QString" value="81,138,204,204,hsv:0.58938890695571899,0.60439461469650269,0.80000001192092896,0.80000001192092896"/>
             <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
             <Option name="name" type="QString" value="circle"/>
             <Option name="offset" type="QString" value="0,0"/>
             <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
+            <Option name="outline_color" type="QString" value="0,0,0,255,hsv:0.58761113882064819,0.60936903953552246,0,1"/>
             <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0"/>
+            <Option name="outline_width" type="QString" value="0.2"/>
             <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="outline_width_unit" type="QString" value="MM"/>
             <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="2"/>
+            <Option name="size" type="QString" value="2.4"/>
             <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="size_unit" type="QString" value="MM"/>
             <Option name="vertical_anchor_point" type="QString" value="1"/>
@@ -446,7 +366,7 @@
   </selection>
   <labeling type="simple">
     <settings calloutType="simple">
-      <text-style allowHtml="0" blendMode="0" capitalization="0" fieldName="activity_group || ' ' || CASE WHEN visit_done THEN date_visit ELSE date_visit_planned END" fontFamily="Open Sans" fontItalic="0" fontKerning="1" fontLetterSpacing="0" fontSize="10" fontSizeMapUnitScale="3x:0,0,0,0,0,0" fontSizeUnit="Point" fontStrikeout="0" fontUnderline="0" fontWeight="400" fontWordSpacing="0" forcedBold="0" forcedItalic="0" isExpression="1" legendString="Aa" multilineHeight="1" multilineHeightUnit="Percentage" namedStyle="Regular" previewBkgrdColor="255,255,255,255,rgb:1,1,1,1" stretchFactor="100" tabStopDistance="80" tabStopDistanceMapUnitScale="3x:0,0,0,0,0,0" tabStopDistanceUnit="Point" textColor="50,50,50,255,rgb:0.1960784,0.1960784,0.1960784,1" textOpacity="1" textOrientation="horizontal" useSubstitutions="0">
+      <text-style allowHtml="0" blendMode="0" capitalization="0" fieldName="represent_value(&quot;activity_group_id&quot;) || ' ' || 'prio ' || &quot;priority&quot; || ' (' || date_start || ')'" fontFamily="Open Sans" fontItalic="0" fontKerning="1" fontLetterSpacing="0" fontSize="10" fontSizeMapUnitScale="3x:0,0,0,0,0,0" fontSizeUnit="Point" fontStrikeout="0" fontUnderline="0" fontWeight="400" fontWordSpacing="0" forcedBold="0" forcedItalic="0" isExpression="1" legendString="Aa" multilineHeight="1" multilineHeightUnit="Percentage" namedStyle="Regular" previewBkgrdColor="255,255,255,255,rgb:1,1,1,1" stretchFactor="100" tabStopDistance="80" tabStopDistanceMapUnitScale="3x:0,0,0,0,0,0" tabStopDistanceUnit="Point" textColor="50,50,50,255,rgb:0.1960784,0.1960784,0.1960784,1" textOpacity="1" textOrientation="horizontal" useSubstitutions="0">
         <families/>
         <text-buffer bufferBlendMode="0" bufferColor="250,250,250,255,rgb:0.9803922,0.9803922,0.9803922,1" bufferDraw="0" bufferJoinStyle="128" bufferNoFill="1" bufferOpacity="1" bufferSize="1" bufferSizeMapUnitScale="3x:0,0,0,0,0,0" bufferSizeUnits="MM"/>
         <text-mask maskEnabled="0" maskJoinStyle="128" maskOpacity="1" maskSize="1.5" maskSize2="1.5" maskSizeMapUnitScale="3x:0,0,0,0,0,0" maskSizeUnits="MM" maskType="0" maskedSymbolLayers=""/>
@@ -534,7 +454,7 @@
       </text-style>
       <text-format addDirectionSymbol="0" autoWrapLength="0" decimals="3" formatNumbers="0" leftDirectionSymbol="&lt;" multilineAlign="3" placeDirectionSymbol="0" plussign="0" reverseDirectionSymbol="0" rightDirectionSymbol=">" useMaxLineLengthForAutoWrap="1" wrapChar=""/>
       <placement allowDegraded="0" centroidInside="0" centroidWhole="0" dist="0" distMapUnitScale="3x:0,0,0,0,0,0" distUnits="MM" fitInPolygonOnly="0" geometryGenerator="" geometryGeneratorEnabled="0" geometryGeneratorType="PointGeometry" labelOffsetMapUnitScale="3x:0,0,0,0,0,0" layerType="PointGeometry" lineAnchorClipping="0" lineAnchorPercent="0.5" lineAnchorTextPoint="FollowPlacement" lineAnchorType="0" maxCurvedCharAngleIn="25" maxCurvedCharAngleOut="-25" maximumDistance="0" maximumDistanceMapUnitScale="3x:0,0,0,0,0,0" maximumDistanceUnit="MM" multipartBehavior="LabelLargestPartOnly" offsetType="1" offsetUnits="MM" overlapHandling="PreventOverlap" overrunDistance="0" overrunDistanceMapUnitScale="3x:0,0,0,0,0,0" overrunDistanceUnit="MM" placement="6" placementFlags="10" polygonPlacementFlags="2" predefinedPositionOrder="TR,TL,BR,BL,R,L,TSR,BSR" preserveRotation="1" prioritization="PreferCloser" priority="5" quadOffset="4" repeatDistance="0" repeatDistanceMapUnitScale="3x:0,0,0,0,0,0" repeatDistanceUnits="MM" rotationAngle="0" rotationUnit="AngleDegrees" xOffset="0" yOffset="0"/>
-      <rendering drawLabels="1" fontLimitPixelSize="0" fontMaxPixelSize="10000" fontMinPixelSize="3" limitNumLabels="0" maxNumLabels="2000" mergeLines="0" minFeatureSize="0" obstacle="1" obstacleFactor="1" obstacleType="1" scaleMax="50000" scaleMin="0" scaleVisibility="1" unplacedVisibility="0" upsidedownLabels="0" zIndex="0"/>
+      <rendering drawLabels="1" fontLimitPixelSize="0" fontMaxPixelSize="10000" fontMinPixelSize="3" limitNumLabels="0" maxNumLabels="2000" mergeLines="0" minFeatureSize="0" obstacle="1" obstacleFactor="1" obstacleType="1" scaleMax="32768" scaleMin="0" scaleVisibility="1" unplacedVisibility="0" upsidedownLabels="0" zIndex="0"/>
       <dd_properties>
         <Option type="Map">
           <Option name="name" type="QString" value=""/>
@@ -571,7 +491,7 @@
   <customproperties>
     <Option type="Map">
       <Option name="QFieldSync/action" type="QString" value="no_action"/>
-      <Option name="QFieldSync/attachment_naming" type="QString" value="{&quot;photo&quot;: &quot;'DCIM/te-plannen_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;loceval_photo&quot;: &quot;'DCIM/te-plannen_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}"/>
+      <Option name="QFieldSync/attachment_naming" type="QString" value="{&quot;photo&quot;: &quot;'DCIM/alle-activiteiten_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;loceval_photo&quot;: &quot;'DCIM/alle-activiteiten_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}"/>
       <Option name="QFieldSync/attribute_editing_locked_expression" type="invalid"/>
       <Option name="QFieldSync/cloud_action" type="QString" value="no_action"/>
       <Option name="QFieldSync/feature_addition_locked_expression" type="invalid"/>
@@ -580,7 +500,7 @@
       <Option name="QFieldSync/is_feature_addition_locked" type="bool" value="true"/>
       <Option name="QFieldSync/is_feature_deletion_locked" type="bool" value="true"/>
       <Option name="QFieldSync/is_geometry_editing_locked" type="bool" value="true"/>
-      <Option name="QFieldSync/photo_naming" type="QString" value="{&quot;photo&quot;: &quot;'DCIM/te-plannen_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;loceval_photo&quot;: &quot;'DCIM/te-plannen_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}"/>
+      <Option name="QFieldSync/photo_naming" type="QString" value="{&quot;photo&quot;: &quot;'DCIM/alle-activiteiten_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;loceval_photo&quot;: &quot;'DCIM/alle-activiteiten_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}"/>
       <Option name="QFieldSync/relationship_maximum_visible" type="QString" value="{}"/>
       <Option name="QFieldSync/tracking_distance_requirement_minimum_meters" type="int" value="30"/>
       <Option name="QFieldSync/tracking_erroneous_distance_safeguard_maximum_meters" type="int" value="1"/>
@@ -588,16 +508,16 @@
       <Option name="QFieldSync/tracking_time_requirement_interval_seconds" type="int" value="30"/>
       <Option name="QFieldSync/value_map_button_interface_threshold" type="int" value="0"/>
       <Option name="dualview/previewExpressions" type="List">
-        <Option type="QString" value="represent_value(&quot;activity_group_id&quot;) || ' ' || 'prio ' || &quot;priority&quot; || ' (' || date_start || ')'"/>
+        <Option type="QString" value="represent_value(&quot;activity_group_id&quot;) || ' ' || CASE WHEN &quot;priority&quot; IS NULL THEN 'no prio' ELSE 'prio ' || &quot;priority&quot; END || ' (' || date_start || ', ' || &quot;stratum&quot; || ')'"/>
       </Option>
       <Option name="embeddedWidgets/count" type="int" value="0"/>
       <Option name="variableNames"/>
       <Option name="variableValues"/>
     </Option>
   </customproperties>
-  <blendMode>10</blendMode>
-  <featureBlendMode>10</featureBlendMode>
-  <layerOpacity>1</layerOpacity>
+  <blendMode>0</blendMode>
+  <featureBlendMode>0</featureBlendMode>
+  <layerOpacity>0.75</layerOpacity>
   <geometryOptions geometryPrecision="0" removeDuplicateNodes="0">
     <activeChecks/>
     <checkConfiguration/>
@@ -644,6 +564,37 @@
         </config>
       </editWidget>
     </field>
+    <field configurationFlags="0" name="is_cell_center">
+      <editWidget type="CheckBox">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="sampleunit_id">
+      <editWidget type="Range">
+        <config>
+          <Option type="Map">
+            <Option name="AllowNull" type="bool" value="true"/>
+            <Option name="Max" type="int" value="2147483647"/>
+            <Option name="Min" type="int" value="-2147483648"/>
+            <Option name="Precision" type="int" value="0"/>
+            <Option name="Step" type="int" value="1"/>
+            <Option name="Style" type="QString" value="SpinBox"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="stratum">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
     <field configurationFlags="0" name="scheme_ps_targetpanels">
       <editWidget type="TextEdit">
         <config>
@@ -664,7 +615,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="strata">
+    <field configurationFlags="0" name="domain_part">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -677,35 +628,36 @@
     <field configurationFlags="0" name="is_forest">
       <editWidget type="CheckBox">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field configurationFlags="0" name="in_mhq_samples">
       <editWidget type="CheckBox">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field configurationFlags="0" name="has_mhq_assessment">
       <editWidget type="CheckBox">
         <config>
-          <Option/>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="is_replacement">
-      <editWidget type="CheckBox">
-        <config>
-          <Option/>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="grts_address_rep">
-      <editWidget type="Range">
-        <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
         </config>
       </editWidget>
     </field>
@@ -791,37 +743,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="watina_code_1">
-      <editWidget type="TextEdit">
-        <config>
-          <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="false"/>
-            <Option name="UseHtml" type="bool" value="false"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="watina_code_2">
-      <editWidget type="TextEdit">
-        <config>
-          <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="false"/>
-            <Option name="UseHtml" type="bool" value="false"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="soil_info">
-      <editWidget type="TextEdit">
-        <config>
-          <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="true"/>
-            <Option name="UseHtml" type="bool" value="false"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="fieldworkcalendar_id">
+    <field configurationFlags="0" name="fieldcalendar_id">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -835,7 +757,68 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="samplelocation_id">
+    <field configurationFlags="0" name="activity_group_id">
+      <editWidget type="ValueRelation">
+        <config>
+          <Option type="Map">
+            <Option name="AllowMulti" type="bool" value="false"/>
+            <Option name="AllowNull" type="bool" value="false"/>
+            <Option name="CompleterMatchFlags" type="int" value="2"/>
+            <Option name="Description" type="QString" value=""/>
+            <Option name="DisplayGroupName" type="bool" value="false"/>
+            <Option name="FilterExpression" type="invalid"/>
+            <Option name="Group" type="QString" value="activity_group"/>
+            <Option name="Key" type="QString" value="activity_group_id"/>
+            <Option name="Layer" type="QString" value="GroupedActivities_351c4488_a3c2_41b1_bf80_f1c95610d4b8"/>
+            <Option name="LayerName" type="QString" value="GroupedActivities"/>
+            <Option name="LayerProviderName" type="QString" value="postgres"/>
+            <Option name="NofColumns" type="int" value="1"/>
+            <Option name="OrderByDescending" type="bool" value="false"/>
+            <Option name="OrderByField" type="bool" value="false"/>
+            <Option name="OrderByFieldName" type="QString" value="grouped_activity_id"/>
+            <Option name="OrderByKey" type="bool" value="true"/>
+            <Option name="OrderByValue" type="bool" value="false"/>
+            <Option name="UseCompleter" type="bool" value="false"/>
+            <Option name="Value" type="QString" value="activity_group"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="activity_group">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="is_lentic">
+      <editWidget type="CheckBox">
+        <config>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="is_lotic">
+      <editWidget type="CheckBox">
+        <config>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="activity_rank">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -888,69 +871,6 @@
       </editWidget>
     </field>
     <field configurationFlags="0" name="days_to_deadline">
-      <editWidget type="Range">
-        <config>
-          <Option type="Map">
-            <Option name="AllowNull" type="bool" value="true"/>
-            <Option name="Max" type="int" value="2147483647"/>
-            <Option name="Min" type="int" value="-2147483648"/>
-            <Option name="Precision" type="int" value="0"/>
-            <Option name="Step" type="int" value="1"/>
-            <Option name="Style" type="QString" value="SpinBox"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="activity_group_id">
-      <editWidget type="ValueRelation">
-        <config>
-          <Option type="Map">
-            <Option name="AllowMulti" type="bool" value="false"/>
-            <Option name="AllowNull" type="bool" value="false"/>
-            <Option name="CompleterMatchFlags" type="int" value="2"/>
-            <Option name="Description" type="QString" value=""/>
-            <Option name="DisplayGroupName" type="bool" value="false"/>
-            <Option name="FilterExpression" type="invalid"/>
-            <Option name="Group" type="QString" value="activity_group"/>
-            <Option name="Key" type="QString" value="activity_group_id"/>
-            <Option name="Layer" type="QString" value="GroupedActivities_351c4488_a3c2_41b1_bf80_f1c95610d4b8"/>
-            <Option name="LayerName" type="QString" value="GroupedActivities"/>
-            <Option name="LayerProviderName" type="QString" value="postgres"/>
-            <Option name="NofColumns" type="int" value="1"/>
-            <Option name="OrderByDescending" type="bool" value="false"/>
-            <Option name="OrderByField" type="bool" value="false"/>
-            <Option name="OrderByFieldName" type="QString" value="grouped_activity_id"/>
-            <Option name="OrderByKey" type="bool" value="true"/>
-            <Option name="OrderByValue" type="bool" value="false"/>
-            <Option name="UseCompleter" type="bool" value="false"/>
-            <Option name="Value" type="QString" value="activity_group"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="activity_group">
-      <editWidget type="TextEdit">
-        <config>
-          <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="false"/>
-            <Option name="UseHtml" type="bool" value="false"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="is_gw_activity">
-      <editWidget type="CheckBox">
-        <config>
-          <Option type="Map">
-            <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="invalid"/>
-            <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="invalid"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="activity_rank">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1029,14 +949,36 @@
     <field configurationFlags="0" name="wait_floating">
       <editWidget type="CheckBox">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
         </config>
       </editWidget>
     </field>
     <field configurationFlags="0" name="wait_obsolete_types">
       <editWidget type="CheckBox">
         <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="is_sideloaded">
+      <editWidget type="CheckBox">
+        <config>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
         </config>
       </editWidget>
     </field>
@@ -1189,35 +1131,12 @@
     <field configurationFlags="0" name="visit_done">
       <editWidget type="CheckBox">
         <config>
-          <Option/>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="count_days_ws">
-      <editWidget type="Range">
-        <config>
-          <Option/>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="has_installation">
-      <editWidget type="CheckBox">
-        <config>
-          <Option/>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="installation_date">
-      <editWidget type="DateTime">
-        <config>
-          <Option/>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="installation_issues">
-      <editWidget type="CheckBox">
-        <config>
-          <Option/>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
         </config>
       </editWidget>
     </field>
@@ -1295,61 +1214,56 @@
     <alias field="ogc_fid" index="0" name=""/>
     <alias field="location_id" index="1" name=""/>
     <alias field="grts_address" index="2" name="GRTS adres"/>
-    <alias field="scheme_ps_targetpanels" index="3" name=""/>
-    <alias field="schemes" index="4" name="meetnet"/>
-    <alias field="strata" index="5" name="stratum"/>
-    <alias field="is_forest" index="6" name=""/>
-    <alias field="in_mhq_samples" index="7" name=""/>
-    <alias field="has_mhq_assessment" index="8" name=""/>
-    <alias field="is_replacement" index="9" name=""/>
-    <alias field="grts_address_rep" index="10" name=""/>
-    <alias field="locationinfo_id" index="11" name=""/>
-    <alias field="accessibility_inaccessible" index="12" name="ontoegankelijk"/>
-    <alias field="accessibility_revisit" index="13" name=""/>
-    <alias field="landowner" index="14" name="eigenaar"/>
-    <alias field="recovery_hints" index="15" name=""/>
-    <alias field="equipment_recommendations" index="16" name="uitrusting aanbevolen"/>
-    <alias field="is_secret_location" index="17" name="privé"/>
-    <alias field="watina_code_1" index="18" name="watina code (1)"/>
-    <alias field="watina_code_2" index="19" name="watina code (2)"/>
-    <alias field="soil_info" index="20" name="bodemkaart"/>
-    <alias field="fieldworkcalendar_id" index="21" name=""/>
-    <alias field="samplelocation_id" index="22" name="steekproeflocatie (id)"/>
-    <alias field="date_start" index="23" name="datum begin"/>
-    <alias field="date_end" index="24" name="datum eind"/>
-    <alias field="date_interval" index="25" name="datum interval"/>
-    <alias field="days_to_deadline" index="26" name="dagen tot einddatum"/>
-    <alias field="activity_group_id" index="27" name=""/>
-    <alias field="activity_group" index="28" name="activiteitsgroep"/>
-    <alias field="is_gw_activity" index="29" name="activiteit grondwatergerelateerd"/>
-    <alias field="activity_rank" index="30" name="activiteit volgorde"/>
-    <alias field="priority" index="31" name="prioriteit"/>
-    <alias field="is_waiting" index="32" name="(wachtend)"/>
-    <alias field="wait_watersurface" index="33" name=""/>
-    <alias field="wait_3260" index="34" name=""/>
-    <alias field="wait_7220" index="35" name=""/>
-    <alias field="wait_floating" index="36" name=""/>
-    <alias field="wait_obsolete_types" index="37" name=""/>
-    <alias field="is_frozen" index="38" name="historische installatie"/>
-    <alias field="excluded" index="39" name="uitlaten"/>
-    <alias field="excluded_reason" index="40" name="uitlaten reden"/>
-    <alias field="teammember_assigned" index="41" name="teamlid toegewezen"/>
-    <alias field="date_visit_planned" index="42" name="datum gepland bezoek"/>
-    <alias field="no_visit_planned" index="43" name="geen bezoek gepland"/>
-    <alias field="notes" index="44" name="notities"/>
-    <alias field="done_planning" index="45" name="planning gedaan"/>
-    <alias field="date_visit" index="46" name=""/>
-    <alias field="photo" index="47" name="foto installatie"/>
-    <alias field="visit_done" index="48" name=""/>
-    <alias field="count_days_ws" index="49" name=""/>
-    <alias field="has_installation" index="50" name=""/>
-    <alias field="installation_date" index="51" name=""/>
-    <alias field="installation_issues" index="52" name=""/>
-    <alias field="loceval_positive" index="53" name="loceval positief"/>
-    <alias field="loceval_latest_date" index="54" name="loceval datum"/>
-    <alias field="loceval_colleague" index="55" name="loceval collega"/>
-    <alias field="loceval_photo" index="56" name="loceval foto"/>
-    <alias field="loceval_notes" index="57" name="loceval notities"/>
+    <alias field="is_cell_center" index="3" name=""/>
+    <alias field="sampleunit_id" index="4" name=""/>
+    <alias field="stratum" index="5" name=""/>
+    <alias field="scheme_ps_targetpanels" index="6" name="meetnet/panelset/panel"/>
+    <alias field="schemes" index="7" name="meetnet"/>
+    <alias field="domain_part" index="8" name=""/>
+    <alias field="is_forest" index="9" name=""/>
+    <alias field="in_mhq_samples" index="10" name=""/>
+    <alias field="has_mhq_assessment" index="11" name=""/>
+    <alias field="locationinfo_id" index="12" name=""/>
+    <alias field="accessibility_inaccessible" index="13" name="ontoegankelijk"/>
+    <alias field="accessibility_revisit" index="14" name=""/>
+    <alias field="landowner" index="15" name="eigenaar"/>
+    <alias field="recovery_hints" index="16" name="terugvindhulp"/>
+    <alias field="equipment_recommendations" index="17" name="uitrusting aanbevolen"/>
+    <alias field="is_secret_location" index="18" name="privé"/>
+    <alias field="fieldcalendar_id" index="19" name=""/>
+    <alias field="activity_group_id" index="20" name="activiteitsgroep"/>
+    <alias field="activity_group" index="21" name=""/>
+    <alias field="is_lentic" index="22" name="lentic"/>
+    <alias field="is_lotic" index="23" name="lotic"/>
+    <alias field="activity_rank" index="24" name="activiteit volgorde"/>
+    <alias field="date_start" index="25" name="datum begin"/>
+    <alias field="date_end" index="26" name="datum eind"/>
+    <alias field="date_interval" index="27" name="datum interval"/>
+    <alias field="days_to_deadline" index="28" name="dagen tot einddatum"/>
+    <alias field="priority" index="29" name="prioriteit"/>
+    <alias field="is_waiting" index="30" name="(wachtend)"/>
+    <alias field="wait_watersurface" index="31" name=""/>
+    <alias field="wait_3260" index="32" name=""/>
+    <alias field="wait_7220" index="33" name=""/>
+    <alias field="wait_floating" index="34" name=""/>
+    <alias field="wait_obsolete_types" index="35" name=""/>
+    <alias field="is_sideloaded" index="36" name=""/>
+    <alias field="is_frozen" index="37" name="historische installatie"/>
+    <alias field="excluded" index="38" name="uitlaten"/>
+    <alias field="excluded_reason" index="39" name="uitlaten reden"/>
+    <alias field="teammember_assigned" index="40" name="teamlid toegewezen"/>
+    <alias field="date_visit_planned" index="41" name="datum gepland bezoek"/>
+    <alias field="no_visit_planned" index="42" name="geen bezoek gepland"/>
+    <alias field="notes" index="43" name="opmerkingen voorbereiding"/>
+    <alias field="done_planning" index="44" name="planning gedaan"/>
+    <alias field="date_visit" index="45" name="datum vorige bezoek"/>
+    <alias field="photo" index="46" name="foto"/>
+    <alias field="visit_done" index="47" name=""/>
+    <alias field="loceval_positive" index="48" name=""/>
+    <alias field="loceval_latest_date" index="49" name=""/>
+    <alias field="loceval_colleague" index="50" name=""/>
+    <alias field="loceval_photo" index="51" name="foto loceval"/>
+    <alias field="loceval_notes" index="52" name=""/>
   </aliases>
   <customComments>
     <customComment field="is_secret_location" value="verdere info: zie geheime google sheet"/>
@@ -1358,9 +1272,14 @@
     <policy field="ogc_fid" policy="DefaultValue"/>
     <policy field="location_id" policy="DefaultValue"/>
     <policy field="grts_address" policy="DefaultValue"/>
+    <policy field="sampleunit_id" policy="DefaultValue"/>
+    <policy field="stratum" policy="DefaultValue"/>
     <policy field="scheme_ps_targetpanels" policy="DefaultValue"/>
     <policy field="schemes" policy="DefaultValue"/>
-    <policy field="strata" policy="DefaultValue"/>
+    <policy field="domain_part" policy="DefaultValue"/>
+    <policy field="is_forest" policy="DefaultValue"/>
+    <policy field="in_mhq_samples" policy="DefaultValue"/>
+    <policy field="has_mhq_assessment" policy="DefaultValue"/>
     <policy field="locationinfo_id" policy="DefaultValue"/>
     <policy field="accessibility_inaccessible" policy="DefaultValue"/>
     <policy field="accessibility_revisit" policy="DefaultValue"/>
@@ -1368,24 +1287,24 @@
     <policy field="recovery_hints" policy="DefaultValue"/>
     <policy field="equipment_recommendations" policy="DefaultValue"/>
     <policy field="is_secret_location" policy="DefaultValue"/>
-    <policy field="watina_code_1" policy="DefaultValue"/>
-    <policy field="watina_code_2" policy="DefaultValue"/>
-    <policy field="soil_info" policy="DefaultValue"/>
-    <policy field="fieldworkcalendar_id" policy="DefaultValue"/>
-    <policy field="samplelocation_id" policy="DefaultValue"/>
+    <policy field="fieldcalendar_id" policy="DefaultValue"/>
+    <policy field="activity_group_id" policy="DefaultValue"/>
+    <policy field="activity_group" policy="DefaultValue"/>
+    <policy field="is_lentic" policy="DefaultValue"/>
+    <policy field="is_lotic" policy="DefaultValue"/>
+    <policy field="activity_rank" policy="DefaultValue"/>
     <policy field="date_start" policy="DefaultValue"/>
     <policy field="date_end" policy="DefaultValue"/>
     <policy field="date_interval" policy="DefaultValue"/>
     <policy field="days_to_deadline" policy="DefaultValue"/>
-    <policy field="activity_group_id" policy="DefaultValue"/>
-    <policy field="activity_group" policy="DefaultValue"/>
-    <policy field="is_gw_activity" policy="DefaultValue"/>
-    <policy field="activity_rank" policy="DefaultValue"/>
     <policy field="priority" policy="DefaultValue"/>
     <policy field="is_waiting" policy="DefaultValue"/>
     <policy field="wait_watersurface" policy="DefaultValue"/>
     <policy field="wait_3260" policy="DefaultValue"/>
     <policy field="wait_7220" policy="DefaultValue"/>
+    <policy field="wait_floating" policy="DefaultValue"/>
+    <policy field="wait_obsolete_types" policy="DefaultValue"/>
+    <policy field="is_sideloaded" policy="DefaultValue"/>
     <policy field="is_frozen" policy="DefaultValue"/>
     <policy field="excluded" policy="DefaultValue"/>
     <policy field="excluded_reason" policy="DefaultValue"/>
@@ -1396,6 +1315,7 @@
     <policy field="done_planning" policy="DefaultValue"/>
     <policy field="date_visit" policy="DefaultValue"/>
     <policy field="photo" policy="DefaultValue"/>
+    <policy field="visit_done" policy="DefaultValue"/>
     <policy field="loceval_positive" policy="DefaultValue"/>
     <policy field="loceval_latest_date" policy="DefaultValue"/>
     <policy field="loceval_colleague" policy="DefaultValue"/>
@@ -1406,14 +1326,15 @@
     <default applyOnUpdate="0" expression="" field="ogc_fid"/>
     <default applyOnUpdate="0" expression="" field="location_id"/>
     <default applyOnUpdate="0" expression="" field="grts_address"/>
+    <default applyOnUpdate="0" expression="" field="is_cell_center"/>
+    <default applyOnUpdate="0" expression="" field="sampleunit_id"/>
+    <default applyOnUpdate="0" expression="" field="stratum"/>
     <default applyOnUpdate="0" expression="" field="scheme_ps_targetpanels"/>
     <default applyOnUpdate="0" expression="" field="schemes"/>
-    <default applyOnUpdate="0" expression="" field="strata"/>
+    <default applyOnUpdate="0" expression="" field="domain_part"/>
     <default applyOnUpdate="0" expression="" field="is_forest"/>
     <default applyOnUpdate="0" expression="" field="in_mhq_samples"/>
     <default applyOnUpdate="0" expression="" field="has_mhq_assessment"/>
-    <default applyOnUpdate="0" expression="" field="is_replacement"/>
-    <default applyOnUpdate="0" expression="" field="grts_address_rep"/>
     <default applyOnUpdate="0" expression="" field="locationinfo_id"/>
     <default applyOnUpdate="0" expression="" field="accessibility_inaccessible"/>
     <default applyOnUpdate="0" expression="" field="accessibility_revisit"/>
@@ -1421,19 +1342,16 @@
     <default applyOnUpdate="0" expression="" field="recovery_hints"/>
     <default applyOnUpdate="0" expression="" field="equipment_recommendations"/>
     <default applyOnUpdate="0" expression="" field="is_secret_location"/>
-    <default applyOnUpdate="0" expression="" field="watina_code_1"/>
-    <default applyOnUpdate="0" expression="" field="watina_code_2"/>
-    <default applyOnUpdate="0" expression="" field="soil_info"/>
-    <default applyOnUpdate="0" expression="" field="fieldworkcalendar_id"/>
-    <default applyOnUpdate="0" expression="" field="samplelocation_id"/>
+    <default applyOnUpdate="0" expression="" field="fieldcalendar_id"/>
+    <default applyOnUpdate="0" expression="" field="activity_group_id"/>
+    <default applyOnUpdate="0" expression="" field="activity_group"/>
+    <default applyOnUpdate="0" expression="" field="is_lentic"/>
+    <default applyOnUpdate="0" expression="" field="is_lotic"/>
+    <default applyOnUpdate="0" expression="" field="activity_rank"/>
     <default applyOnUpdate="0" expression="" field="date_start"/>
     <default applyOnUpdate="0" expression="" field="date_end"/>
     <default applyOnUpdate="0" expression="" field="date_interval"/>
     <default applyOnUpdate="0" expression="" field="days_to_deadline"/>
-    <default applyOnUpdate="0" expression="" field="activity_group_id"/>
-    <default applyOnUpdate="0" expression="" field="activity_group"/>
-    <default applyOnUpdate="0" expression="" field="is_gw_activity"/>
-    <default applyOnUpdate="0" expression="" field="activity_rank"/>
     <default applyOnUpdate="0" expression="" field="priority"/>
     <default applyOnUpdate="0" expression="" field="is_waiting"/>
     <default applyOnUpdate="0" expression="" field="wait_watersurface"/>
@@ -1441,6 +1359,7 @@
     <default applyOnUpdate="0" expression="" field="wait_7220"/>
     <default applyOnUpdate="0" expression="" field="wait_floating"/>
     <default applyOnUpdate="0" expression="" field="wait_obsolete_types"/>
+    <default applyOnUpdate="0" expression="" field="is_sideloaded"/>
     <default applyOnUpdate="0" expression="" field="is_frozen"/>
     <default applyOnUpdate="0" expression="" field="excluded"/>
     <default applyOnUpdate="0" expression="" field="excluded_reason"/>
@@ -1452,10 +1371,6 @@
     <default applyOnUpdate="0" expression="" field="date_visit"/>
     <default applyOnUpdate="0" expression="" field="photo"/>
     <default applyOnUpdate="0" expression="" field="visit_done"/>
-    <default applyOnUpdate="0" expression="" field="count_days_ws"/>
-    <default applyOnUpdate="0" expression="" field="has_installation"/>
-    <default applyOnUpdate="0" expression="" field="installation_date"/>
-    <default applyOnUpdate="0" expression="" field="installation_issues"/>
     <default applyOnUpdate="0" expression="" field="loceval_positive"/>
     <default applyOnUpdate="0" expression="" field="loceval_latest_date"/>
     <default applyOnUpdate="0" expression="" field="loceval_colleague"/>
@@ -1466,14 +1381,15 @@
     <constraint constraints="0" exp_strength="0" field="ogc_fid" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="location_id" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="grts_address" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="is_cell_center" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="sampleunit_id" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="stratum" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="scheme_ps_targetpanels" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="schemes" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="strata" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="domain_part" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="is_forest" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="in_mhq_samples" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="has_mhq_assessment" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="is_replacement" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="grts_address_rep" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="locationinfo_id" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="accessibility_inaccessible" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="accessibility_revisit" notnull_strength="0" unique_strength="0"/>
@@ -1481,19 +1397,16 @@
     <constraint constraints="0" exp_strength="0" field="recovery_hints" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="equipment_recommendations" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="is_secret_location" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="watina_code_1" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="watina_code_2" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="soil_info" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="3" exp_strength="0" field="fieldworkcalendar_id" notnull_strength="1" unique_strength="1"/>
-    <constraint constraints="0" exp_strength="0" field="samplelocation_id" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="3" exp_strength="0" field="fieldcalendar_id" notnull_strength="1" unique_strength="1"/>
+    <constraint constraints="0" exp_strength="0" field="activity_group_id" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="activity_group" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="is_lentic" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="is_lotic" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="activity_rank" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="date_start" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="date_end" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="date_interval" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="days_to_deadline" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="activity_group_id" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="activity_group" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="is_gw_activity" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="activity_rank" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="priority" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="is_waiting" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="wait_watersurface" notnull_strength="0" unique_strength="0"/>
@@ -1501,6 +1414,7 @@
     <constraint constraints="0" exp_strength="0" field="wait_7220" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="wait_floating" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="wait_obsolete_types" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="is_sideloaded" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="is_frozen" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="excluded" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="excluded_reason" notnull_strength="0" unique_strength="0"/>
@@ -1512,10 +1426,6 @@
     <constraint constraints="0" exp_strength="0" field="date_visit" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="photo" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="visit_done" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="count_days_ws" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="has_installation" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="installation_date" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="installation_issues" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="loceval_positive" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="loceval_latest_date" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="loceval_colleague" notnull_strength="0" unique_strength="0"/>
@@ -1526,14 +1436,15 @@
     <constraint desc="" exp="" field="ogc_fid"/>
     <constraint desc="" exp="" field="location_id"/>
     <constraint desc="" exp="" field="grts_address"/>
+    <constraint desc="" exp="" field="is_cell_center"/>
+    <constraint desc="" exp="" field="sampleunit_id"/>
+    <constraint desc="" exp="" field="stratum"/>
     <constraint desc="" exp="" field="scheme_ps_targetpanels"/>
     <constraint desc="" exp="" field="schemes"/>
-    <constraint desc="" exp="" field="strata"/>
+    <constraint desc="" exp="" field="domain_part"/>
     <constraint desc="" exp="" field="is_forest"/>
     <constraint desc="" exp="" field="in_mhq_samples"/>
     <constraint desc="" exp="" field="has_mhq_assessment"/>
-    <constraint desc="" exp="" field="is_replacement"/>
-    <constraint desc="" exp="" field="grts_address_rep"/>
     <constraint desc="" exp="" field="locationinfo_id"/>
     <constraint desc="" exp="" field="accessibility_inaccessible"/>
     <constraint desc="" exp="" field="accessibility_revisit"/>
@@ -1541,19 +1452,16 @@
     <constraint desc="" exp="" field="recovery_hints"/>
     <constraint desc="" exp="" field="equipment_recommendations"/>
     <constraint desc="" exp="" field="is_secret_location"/>
-    <constraint desc="" exp="" field="watina_code_1"/>
-    <constraint desc="" exp="" field="watina_code_2"/>
-    <constraint desc="" exp="" field="soil_info"/>
-    <constraint desc="" exp="" field="fieldworkcalendar_id"/>
-    <constraint desc="" exp="" field="samplelocation_id"/>
+    <constraint desc="" exp="" field="fieldcalendar_id"/>
+    <constraint desc="" exp="" field="activity_group_id"/>
+    <constraint desc="" exp="" field="activity_group"/>
+    <constraint desc="" exp="" field="is_lentic"/>
+    <constraint desc="" exp="" field="is_lotic"/>
+    <constraint desc="" exp="" field="activity_rank"/>
     <constraint desc="" exp="" field="date_start"/>
     <constraint desc="" exp="" field="date_end"/>
     <constraint desc="" exp="" field="date_interval"/>
     <constraint desc="" exp="" field="days_to_deadline"/>
-    <constraint desc="" exp="" field="activity_group_id"/>
-    <constraint desc="" exp="" field="activity_group"/>
-    <constraint desc="" exp="" field="is_gw_activity"/>
-    <constraint desc="" exp="" field="activity_rank"/>
     <constraint desc="" exp="" field="priority"/>
     <constraint desc="" exp="" field="is_waiting"/>
     <constraint desc="" exp="" field="wait_watersurface"/>
@@ -1561,6 +1469,7 @@
     <constraint desc="" exp="" field="wait_7220"/>
     <constraint desc="" exp="" field="wait_floating"/>
     <constraint desc="" exp="" field="wait_obsolete_types"/>
+    <constraint desc="" exp="" field="is_sideloaded"/>
     <constraint desc="" exp="" field="is_frozen"/>
     <constraint desc="" exp="" field="excluded"/>
     <constraint desc="" exp="" field="excluded_reason"/>
@@ -1572,10 +1481,6 @@
     <constraint desc="" exp="" field="date_visit"/>
     <constraint desc="" exp="" field="photo"/>
     <constraint desc="" exp="" field="visit_done"/>
-    <constraint desc="" exp="" field="count_days_ws"/>
-    <constraint desc="" exp="" field="has_installation"/>
-    <constraint desc="" exp="" field="installation_date"/>
-    <constraint desc="" exp="" field="installation_issues"/>
     <constraint desc="" exp="" field="loceval_positive"/>
     <constraint desc="" exp="" field="loceval_latest_date"/>
     <constraint desc="" exp="" field="loceval_colleague"/>
@@ -1586,26 +1491,22 @@
   <attributeactions>
     <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
   </attributeactions>
-  <attributetableconfig actionWidgetStyle="dropDown" sortExpression="&quot;grts_address&quot;" sortOrder="0">
+  <attributetableconfig actionWidgetStyle="dropDown" sortExpression="&quot;date_visit_planned&quot;" sortOrder="0">
     <columns>
       <column hidden="0" name="ogc_fid" type="field" width="-1"/>
       <column hidden="0" name="location_id" type="field" width="-1"/>
       <column hidden="0" name="grts_address" type="field" width="-1"/>
       <column hidden="0" name="scheme_ps_targetpanels" type="field" width="-1"/>
       <column hidden="0" name="schemes" type="field" width="-1"/>
-      <column hidden="0" name="strata" type="field" width="-1"/>
       <column hidden="0" name="locationinfo_id" type="field" width="-1"/>
       <column hidden="0" name="accessibility_inaccessible" type="field" width="-1"/>
       <column hidden="0" name="accessibility_revisit" type="field" width="-1"/>
-      <column hidden="0" name="landowner" type="field" width="-1"/>
-      <column hidden="0" name="fieldworkcalendar_id" type="field" width="-1"/>
-      <column hidden="0" name="samplelocation_id" type="field" width="-1"/>
+      <column hidden="0" name="landowner" type="field" width="1681"/>
       <column hidden="0" name="date_start" type="field" width="-1"/>
       <column hidden="0" name="date_end" type="field" width="-1"/>
       <column hidden="0" name="date_interval" type="field" width="-1"/>
       <column hidden="0" name="days_to_deadline" type="field" width="-1"/>
-      <column hidden="0" name="activity_group_id" type="field" width="-1"/>
-      <column hidden="0" name="is_gw_activity" type="field" width="-1"/>
+      <column hidden="0" name="activity_group_id" type="field" width="136"/>
       <column hidden="0" name="activity_rank" type="field" width="-1"/>
       <column hidden="0" name="priority" type="field" width="-1"/>
       <column hidden="0" name="wait_watersurface" type="field" width="-1"/>
@@ -1620,30 +1521,29 @@
       <column hidden="0" name="notes" type="field" width="-1"/>
       <column hidden="0" name="done_planning" type="field" width="-1"/>
       <column hidden="0" name="recovery_hints" type="field" width="-1"/>
-      <column hidden="0" name="watina_code_1" type="field" width="-1"/>
-      <column hidden="0" name="watina_code_2" type="field" width="-1"/>
       <column hidden="0" name="date_visit" type="field" width="-1"/>
-      <column hidden="0" name="has_installation" type="field" width="-1"/>
-      <column hidden="0" name="count_days_ws" type="field" width="-1"/>
       <column hidden="0" name="is_forest" type="field" width="-1"/>
       <column hidden="0" name="in_mhq_samples" type="field" width="-1"/>
       <column hidden="0" name="has_mhq_assessment" type="field" width="-1"/>
-      <column hidden="0" name="is_replacement" type="field" width="-1"/>
+      <column hidden="0" name="activity_group" type="field" width="-1"/>
       <column hidden="0" name="photo" type="field" width="-1"/>
+      <column hidden="0" name="visit_done" type="field" width="-1"/>
       <column hidden="0" name="loceval_photo" type="field" width="-1"/>
       <column hidden="0" name="loceval_notes" type="field" width="-1"/>
-      <column hidden="0" name="visit_done" type="field" width="-1"/>
-      <column hidden="0" name="activity_group" type="field" width="-1"/>
-      <column hidden="0" name="soil_info" type="field" width="-1"/>
-      <column hidden="0" name="installation_date" type="field" width="-1"/>
-      <column hidden="0" name="installation_issues" type="field" width="-1"/>
+      <column hidden="0" name="is_frozen" type="field" width="-1"/>
       <column hidden="0" name="loceval_positive" type="field" width="-1"/>
       <column hidden="0" name="loceval_latest_date" type="field" width="-1"/>
       <column hidden="0" name="loceval_colleague" type="field" width="-1"/>
-      <column hidden="0" name="is_frozen" type="field" width="-1"/>
-      <column hidden="0" name="grts_address_rep" type="field" width="-1"/>
+      <column hidden="0" name="stratum" type="field" width="-1"/>
+      <column hidden="0" name="domain_part" type="field" width="-1"/>
+      <column hidden="0" name="fieldcalendar_id" type="field" width="-1"/>
+      <column hidden="0" name="sampleunit_id" type="field" width="-1"/>
       <column hidden="0" name="wait_floating" type="field" width="-1"/>
       <column hidden="0" name="wait_obsolete_types" type="field" width="-1"/>
+      <column hidden="0" name="is_sideloaded" type="field" width="-1"/>
+      <column hidden="0" name="is_lentic" type="field" width="-1"/>
+      <column hidden="0" name="is_lotic" type="field" width="-1"/>
+      <column hidden="0" name="is_cell_center" type="field" width="-1"/>
       <column hidden="0" name="equipment_recommendations" type="field" width="-1"/>
       <column hidden="0" name="is_secret_location" type="field" width="-1"/>
       <column hidden="1" type="actions" width="-1"/>
@@ -1681,78 +1581,88 @@ def my_form_open(dialog, layer, feature):
     <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
       <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
     </labelStyle>
-    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="info" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="1" name="info" showLabel="1" type="Tab" verticalStretch="1" visibilityExpression="" visibilityExpressionEnabled="0">
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-        <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
       <attributeEditorField horizontalStretch="0" index="2" name="grts_address" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="4" name="schemes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="5" name="stratum" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="5" name="strata" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="7" name="schemes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="12" name="accessibility_inaccessible" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="6" name="scheme_ps_targetpanels" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="14" name="landowner" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="22" name="is_lentic" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="22" name="samplelocation_id" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="23" name="is_lotic" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="38" name="is_frozen" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="13" name="accessibility_inaccessible" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="32" name="is_waiting" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="15" name="landowner" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="53" name="loceval_positive" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="30" name="is_waiting" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="54" name="loceval_latest_date" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="48" name="loceval_positive" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="56" name="loceval_photo" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="49" name="loceval_latest_date" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="57" name="loceval_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="51" name="loceval_photo" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="47" name="photo" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="52" name="loceval_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="20" name="soil_info" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="16" name="recovery_hints" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="17" name="equipment_recommendations" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="18" name="is_secret_location" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
     </attributeEditorContainer>
@@ -1760,44 +1670,34 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="31" name="priority" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="21" name="activity_group" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="23" name="date_start" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="29" name="priority" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="24" name="date_end" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="25" name="date_start" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="25" name="date_interval" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="26" name="date_end" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="26" name="days_to_deadline" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="27" name="date_interval" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="28" name="activity_group" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="28" name="days_to_deadline" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="29" name="is_gw_activity" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="30" name="activity_rank" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
     </attributeEditorContainer>
@@ -1805,59 +1705,54 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="39" name="excluded" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="38" name="excluded" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="40" name="excluded_reason" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="39" name="excluded_reason" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="41" name="teammember_assigned" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="40" name="teammember_assigned" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="42" name="date_visit_planned" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="41" name="date_visit_planned" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="43" name="no_visit_planned" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="42" name="no_visit_planned" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="18" name="watina_code_1" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="43" name="notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="19" name="watina_code_2" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="44" name="done_planning" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="44" name="notes" showLabel="1" verticalStretch="0">
+    </attributeEditorContainer>
+    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="bezoek" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="&quot;visit_done&quot;" visibilityExpressionEnabled="1">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+      </labelStyle>
+      <attributeEditorField horizontalStretch="0" index="45" name="date_visit" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="16" name="equipment_recommendations" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="46" name="photo" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="17" name="is_secret_location" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="45" name="done_planning" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Cantarell,10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
     </attributeEditorContainer>
@@ -1875,30 +1770,36 @@ def my_form_open(dialog, layer, feature):
     <field editable="0" name="date_visit"/>
     <field editable="1" name="date_visit_planned"/>
     <field editable="0" name="days_to_deadline"/>
+    <field editable="0" name="domain_part"/>
     <field editable="1" name="done_planning"/>
     <field editable="1" name="equipment_recommendations"/>
     <field editable="1" name="excluded"/>
     <field editable="1" name="excluded_reason"/>
+    <field editable="0" name="fieldcalendar_id"/>
     <field editable="1" name="fieldworkcalendar_id"/>
     <field editable="0" name="grts_address"/>
     <field editable="0" name="grts_address_poc"/>
     <field editable="1" name="grts_address_rep"/>
     <field editable="1" name="has_installation"/>
     <field editable="0" name="has_loceval"/>
-    <field editable="1" name="has_mhq_assessment"/>
-    <field editable="1" name="in_mhq_samples"/>
+    <field editable="0" name="has_mhq_assessment"/>
+    <field editable="0" name="in_mhq_samples"/>
     <field editable="1" name="installation_date"/>
     <field editable="1" name="installation_issues"/>
-    <field editable="1" name="is_forest"/>
+    <field editable="1" name="is_cell_center"/>
+    <field editable="0" name="is_forest"/>
     <field editable="0" name="is_frozen"/>
     <field editable="0" name="is_gw_activity"/>
-    <field editable="1" name="is_replacement"/>
+    <field editable="0" name="is_lentic"/>
+    <field editable="0" name="is_lotic"/>
+    <field editable="0" name="is_replacement"/>
     <field editable="1" name="is_secret_location"/>
+    <field editable="0" name="is_sideloaded"/>
     <field editable="0" name="is_waiting"/>
     <field editable="0" name="landowner"/>
     <field editable="0" name="latest_visit"/>
-    <field editable="1" name="location_id"/>
-    <field editable="1" name="locationinfo_id"/>
+    <field editable="0" name="location_id"/>
+    <field editable="0" name="locationinfo_id"/>
     <field editable="0" name="loceval_colleague"/>
     <field editable="0" name="loceval_latest_date"/>
     <field editable="0" name="loceval_notes"/>
@@ -1906,25 +1807,28 @@ def my_form_open(dialog, layer, feature):
     <field editable="0" name="loceval_positive"/>
     <field editable="1" name="no_visit_planned"/>
     <field editable="1" name="notes"/>
-    <field editable="1" name="ogc_fid"/>
+    <field editable="0" name="ogc_fid"/>
     <field editable="0" name="photo"/>
     <field editable="0" name="priority"/>
-    <field editable="1" name="recovery_hints"/>
+    <field editable="0" name="recovery_hints"/>
     <field editable="0" name="samplelocation_id"/>
-    <field editable="1" name="scheme_ps_targetpanels"/>
+    <field editable="0" name="sampleunit_id"/>
+    <field editable="0" name="scheme_ps_targetpanels"/>
     <field editable="0" name="schemes"/>
     <field editable="0" name="soil_info"/>
     <field editable="0" name="strata"/>
+    <field editable="0" name="stratum"/>
     <field editable="0" name="stratum_scheme_ps_targetpanels"/>
     <field editable="1" name="teammember_assigned"/>
     <field editable="1" name="type_assessed"/>
     <field editable="1" name="type_is_absent"/>
-    <field editable="1" name="visit_done"/>
-    <field editable="1" name="wait_3260"/>
-    <field editable="1" name="wait_7220"/>
-    <field editable="1" name="wait_floating"/>
-    <field editable="1" name="wait_obsolete_types"/>
-    <field editable="1" name="wait_watersurface"/>
+    <field editable="0" name="visit_done"/>
+    <field editable="0" name="wait_3260"/>
+    <field editable="0" name="wait_7220"/>
+    <field editable="0" name="wait_floating"/>
+    <field editable="0" name="wait_obsolete_types"/>
+    <field editable="0" name="wait_watersurface"/>
+    <field editable="0" name="was_replaced_by_grts"/>
     <field editable="1" name="watina_code"/>
     <field editable="1" name="watina_code_1"/>
     <field editable="1" name="watina_code_2"/>
@@ -1942,10 +1846,12 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="date_visit"/>
     <field labelOnTop="0" name="date_visit_planned"/>
     <field labelOnTop="0" name="days_to_deadline"/>
+    <field labelOnTop="0" name="domain_part"/>
     <field labelOnTop="0" name="done_planning"/>
     <field labelOnTop="0" name="equipment_recommendations"/>
     <field labelOnTop="0" name="excluded"/>
     <field labelOnTop="0" name="excluded_reason"/>
+    <field labelOnTop="0" name="fieldcalendar_id"/>
     <field labelOnTop="0" name="fieldworkcalendar_id"/>
     <field labelOnTop="0" name="grts_address"/>
     <field labelOnTop="0" name="grts_address_poc"/>
@@ -1956,11 +1862,15 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="in_mhq_samples"/>
     <field labelOnTop="0" name="installation_date"/>
     <field labelOnTop="0" name="installation_issues"/>
+    <field labelOnTop="0" name="is_cell_center"/>
     <field labelOnTop="0" name="is_forest"/>
     <field labelOnTop="0" name="is_frozen"/>
     <field labelOnTop="0" name="is_gw_activity"/>
+    <field labelOnTop="0" name="is_lentic"/>
+    <field labelOnTop="0" name="is_lotic"/>
     <field labelOnTop="0" name="is_replacement"/>
     <field labelOnTop="0" name="is_secret_location"/>
+    <field labelOnTop="0" name="is_sideloaded"/>
     <field labelOnTop="0" name="is_waiting"/>
     <field labelOnTop="0" name="landowner"/>
     <field labelOnTop="0" name="latest_visit"/>
@@ -1978,10 +1888,12 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="priority"/>
     <field labelOnTop="0" name="recovery_hints"/>
     <field labelOnTop="0" name="samplelocation_id"/>
+    <field labelOnTop="0" name="sampleunit_id"/>
     <field labelOnTop="0" name="scheme_ps_targetpanels"/>
     <field labelOnTop="0" name="schemes"/>
     <field labelOnTop="0" name="soil_info"/>
     <field labelOnTop="0" name="strata"/>
+    <field labelOnTop="0" name="stratum"/>
     <field labelOnTop="0" name="stratum_scheme_ps_targetpanels"/>
     <field labelOnTop="0" name="teammember_assigned"/>
     <field labelOnTop="0" name="type_assessed"/>
@@ -1992,6 +1904,7 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="wait_floating"/>
     <field labelOnTop="0" name="wait_obsolete_types"/>
     <field labelOnTop="0" name="wait_watersurface"/>
+    <field labelOnTop="0" name="was_replaced_by_grts"/>
     <field labelOnTop="0" name="watina_code"/>
     <field labelOnTop="0" name="watina_code_1"/>
     <field labelOnTop="0" name="watina_code_2"/>
@@ -2009,10 +1922,12 @@ def my_form_open(dialog, layer, feature):
     <field name="date_visit" reuseLastValuePolicy="NotAllowed"/>
     <field name="date_visit_planned" reuseLastValuePolicy="NotAllowed"/>
     <field name="days_to_deadline" reuseLastValuePolicy="NotAllowed"/>
+    <field name="domain_part" reuseLastValuePolicy="NotAllowed"/>
     <field name="done_planning" reuseLastValuePolicy="NotAllowed"/>
     <field name="equipment_recommendations" reuseLastValuePolicy="NotAllowed"/>
     <field name="excluded" reuseLastValuePolicy="NotAllowed"/>
     <field name="excluded_reason" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fieldcalendar_id" reuseLastValuePolicy="NotAllowed"/>
     <field name="fieldworkcalendar_id" reuseLastValuePolicy="NotAllowed"/>
     <field name="grts_address" reuseLastValuePolicy="NotAllowed"/>
     <field name="grts_address_poc" reuseLastValuePolicy="NotAllowed"/>
@@ -2023,11 +1938,15 @@ def my_form_open(dialog, layer, feature):
     <field name="in_mhq_samples" reuseLastValuePolicy="NotAllowed"/>
     <field name="installation_date" reuseLastValuePolicy="NotAllowed"/>
     <field name="installation_issues" reuseLastValuePolicy="NotAllowed"/>
+    <field name="is_cell_center" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_forest" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_frozen" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_gw_activity" reuseLastValuePolicy="NotAllowed"/>
+    <field name="is_lentic" reuseLastValuePolicy="NotAllowed"/>
+    <field name="is_lotic" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_replacement" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_secret_location" reuseLastValuePolicy="NotAllowed"/>
+    <field name="is_sideloaded" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_waiting" reuseLastValuePolicy="NotAllowed"/>
     <field name="landowner" reuseLastValuePolicy="NotAllowed"/>
     <field name="latest_visit" reuseLastValuePolicy="NotAllowed"/>
@@ -2045,10 +1964,12 @@ def my_form_open(dialog, layer, feature):
     <field name="priority" reuseLastValuePolicy="NotAllowed"/>
     <field name="recovery_hints" reuseLastValuePolicy="NotAllowed"/>
     <field name="samplelocation_id" reuseLastValuePolicy="NotAllowed"/>
+    <field name="sampleunit_id" reuseLastValuePolicy="NotAllowed"/>
     <field name="scheme_ps_targetpanels" reuseLastValuePolicy="NotAllowed"/>
     <field name="schemes" reuseLastValuePolicy="NotAllowed"/>
     <field name="soil_info" reuseLastValuePolicy="NotAllowed"/>
     <field name="strata" reuseLastValuePolicy="NotAllowed"/>
+    <field name="stratum" reuseLastValuePolicy="NotAllowed"/>
     <field name="stratum_scheme_ps_targetpanels" reuseLastValuePolicy="NotAllowed"/>
     <field name="teammember_assigned" reuseLastValuePolicy="NotAllowed"/>
     <field name="type_assessed" reuseLastValuePolicy="NotAllowed"/>
@@ -2059,13 +1980,14 @@ def my_form_open(dialog, layer, feature):
     <field name="wait_floating" reuseLastValuePolicy="NotAllowed"/>
     <field name="wait_obsolete_types" reuseLastValuePolicy="NotAllowed"/>
     <field name="wait_watersurface" reuseLastValuePolicy="NotAllowed"/>
+    <field name="was_replaced_by_grts" reuseLastValuePolicy="NotAllowed"/>
     <field name="watina_code" reuseLastValuePolicy="NotAllowed"/>
     <field name="watina_code_1" reuseLastValuePolicy="NotAllowed"/>
     <field name="watina_code_2" reuseLastValuePolicy="NotAllowed"/>
   </reuseLastValuePolicy>
   <dataDefinedFieldProperties/>
   <widgets/>
-  <previewExpression>represent_value("activity_group_id") || ' ' || CASE WHEN "priority" IS NULL THEN 'no priority' ELSE 'prio ' || "priority" END || ' (' || date_start || ', ' || "strata" || ')'</previewExpression>
+  <previewExpression>represent_value("activity_group_id") || ' ' || CASE WHEN "priority" IS NULL THEN 'no prio' ELSE 'prio ' || "priority" END || ' (' || date_start || ', ' || "stratum" || ')'</previewExpression>
   <mapTip enabled="1"></mapTip>
   <layerGeometryType>0</layerGeometryType>
 </qgis>

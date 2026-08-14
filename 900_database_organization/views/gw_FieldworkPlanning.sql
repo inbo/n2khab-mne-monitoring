@@ -19,6 +19,7 @@ SELECT
   INFO.landowner,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
+  INFO.is_secret_location,
   INFO.watina_code_1,
   INFO.watina_code_2,
   SOIL.soil_info,
@@ -194,6 +195,7 @@ DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
   equipment_recommendations = NEW.equipment_recommendations,
+  is_secret_location = NEW.is_secret_location,
   watina_code_1 = NEW.watina_code_1,
   watina_code_2 = NEW.watina_code_2
  WHERE locationinfo_id = OLD.locationinfo_id
