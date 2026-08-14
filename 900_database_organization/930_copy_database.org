@@ -401,7 +401,7 @@ table_modification <- c(
   "LocationJournals" = function (lojos) handle_NA_nolog_update_column(lojos), # (almost) anything you like
   "LenticVisits" = handle_datetime_column, # (almost) anything you like
   "LoticVisits" = handle_datetime_column, # (almost) anything you like
-  "OtherVisits" = handle_datetime_column, # (almost) anything you like
+  # "OtherVisits" = handle_datetime_column, # (almost) anything you like
   "ChlorophyllMeasurements" = handle_datetime_column # (almost) anything you like
   # "FieldCalendars" = function (fac) rename_FieldCalendars(fac) # (almost) anything you like
 )

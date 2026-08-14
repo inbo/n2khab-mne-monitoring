@@ -14,8 +14,8 @@ library("readr")
 ### connect database
 
 config_filepath <- file.path("./mnm_database_connection.conf")
-# suffix <- ""
-suffix <- "-staging"
+suffix <- ""
+# suffix <- "-staging"
 # suffix <- "-testing"
 
 # connect mnmsurfdb

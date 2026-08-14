@@ -404,11 +404,11 @@
     <Option type="Map">
       <Option name="QFieldSync/action" type="QString" value="no_action"/>
       <Option name="QFieldSync/attachment_naming" type="QString" value="{&quot;photo&quot;: &quot;'files/chlorophyll_' || format_date(now(),'yyyyMMddhhmmsszzz') || '_{filename}'&quot;}"/>
-      <Option name="QFieldSync/attribute_editing_locked_expression" type="invalid"/>
+      <Option name="QFieldSync/attribute_editing_locked_expression" type="QString" value=""/>
       <Option name="QFieldSync/cloud_action" type="QString" value="no_action"/>
-      <Option name="QFieldSync/feature_addition_locked_expression" type="invalid"/>
-      <Option name="QFieldSync/feature_deletion_locked_expression" type="invalid"/>
-      <Option name="QFieldSync/geometry_editing_locked_expression" type="invalid"/>
+      <Option name="QFieldSync/feature_addition_locked_expression" type="QString" value=""/>
+      <Option name="QFieldSync/feature_deletion_locked_expression" type="QString" value=""/>
+      <Option name="QFieldSync/geometry_editing_locked_expression" type="QString" value=""/>
       <Option name="QFieldSync/is_feature_addition_locked" type="bool" value="true"/>
       <Option name="QFieldSync/is_feature_deletion_locked" type="bool" value="true"/>
       <Option name="QFieldSync/is_geometry_editing_locked" type="bool" value="true"/>
@@ -571,8 +571,8 @@
             <Option name="FilterExpression" type="invalid"/>
             <Option name="Group" type="invalid"/>
             <Option name="Key" type="QString" value="teammember_id"/>
-            <Option name="Layer" type="QString" value="TeamMembers_7b130dfb_4e81_4a64_b8ab_98b1126d4e5e"/>
-            <Option name="LayerName" type="QString" value="teamleden"/>
+            <Option name="Layer" type="QString" value="TeamMembers_c9285032_4411_4ab9_829f_620ce33ce7cd"/>
+            <Option name="LayerName" type="QString" value="TeamMembers"/>
             <Option name="LayerProviderName" type="QString" value="postgres"/>
             <Option name="NofColumns" type="int" value="1"/>
             <Option name="OrderByDescending" type="bool" value="false"/>
@@ -660,7 +660,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_a_freewater_1">
+    <field configurationFlags="0" name="torch_bregt_freewater1_totalchl">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -670,7 +670,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_a_freewater_2">
+    <field configurationFlags="0" name="torch_bregt_freewater1_cyano">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -680,7 +680,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_a_freewater_3">
+    <field configurationFlags="0" name="torch_bregt_freewater1_turb">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -690,7 +690,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_a_sample_1">
+    <field configurationFlags="0" name="torch_bregt_freewater2_totalchl">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -700,7 +700,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_a_sample_2">
+    <field configurationFlags="0" name="torch_bregt_freewater2_cyano">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -710,7 +710,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_a_sample_3">
+    <field configurationFlags="0" name="torch_bregt_freewater2_turb">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -720,7 +720,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_b_sample_1">
+    <field configurationFlags="0" name="torch_bregt_freewater3_totalchl">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -730,7 +730,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_b_sample_2">
+    <field configurationFlags="0" name="torch_bregt_freewater3_cyano">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -740,7 +740,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="torch_b_sample_3">
+    <field configurationFlags="0" name="torch_bregt_freewater3_turb">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -750,7 +750,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="fluo_a_sample_1">
+    <field configurationFlags="0" name="torch_bregt_bucket1_totalchl">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -760,7 +760,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="fluo_a_sample_2">
+    <field configurationFlags="0" name="torch_bregt_bucket1_cyano">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -770,7 +770,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="fluo_a_sample_3">
+    <field configurationFlags="0" name="torch_bregt_bucket1_turb">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -780,7 +780,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="fluo_b_sample_1">
+    <field configurationFlags="0" name="torch_bregt_bucket2_totalchl">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -790,7 +790,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="fluo_b_sample_2">
+    <field configurationFlags="0" name="torch_bregt_bucket2_cyano">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -800,7 +800,247 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="fluo_b_sample_3">
+    <field configurationFlags="0" name="torch_bregt_bucket2_turb">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_bregt_bucket3_totalchl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_bregt_bucket3_cyano">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_bregt_bucket3_turb">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket1_totalchl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket1_cyano">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket1_turb">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket2_totalchl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket2_cyano">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket2_turb">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket3_totalchl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket3_cyano">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="torch_kul_bucket3_turb">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_cuvet1_chl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_cuvet1_pc">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_turb_cuvet1_turb">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_turb_cuvet1_chl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_cuvet2_chl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_cuvet2_pc">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_turb_cuvet2_turb">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_turb_cuvet2_chl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_cuvet3_chl">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_cuvet3_pc">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_turb_cuvet3_turb">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="fluo_ldm_turb_cuvet3_chl">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -852,27 +1092,69 @@
     <alias field="issues" index="13" name="problemen opgetreden"/>
     <alias field="photo" index="14" name="foto"/>
     <alias field="watertemperature_celsius" index="15" name="Temperatuur (°C)"/>
-    <alias field="torch_a_freewater_1" index="16" name="torch A, plas 1"/>
-    <alias field="torch_a_freewater_2" index="17" name="torch A, plas 2"/>
-    <alias field="torch_a_freewater_3" index="18" name="torch A, plas 3"/>
-    <alias field="torch_a_sample_1" index="19" name="torch A, staal: 1"/>
-    <alias field="torch_a_sample_2" index="20" name="torch A, staal: 2"/>
-    <alias field="torch_a_sample_3" index="21" name="torch A, staal: 3"/>
-    <alias field="torch_b_sample_1" index="22" name="torch B, staal: 1"/>
-    <alias field="torch_b_sample_2" index="23" name="torch B, staal: 2"/>
-    <alias field="torch_b_sample_3" index="24" name="torch B, staal: 3"/>
-    <alias field="fluo_a_sample_1" index="25" name="fluoro A: 1"/>
-    <alias field="fluo_a_sample_2" index="26" name="fluoro A: 2"/>
-    <alias field="fluo_a_sample_3" index="27" name="fluoro A: 3"/>
-    <alias field="fluo_b_sample_1" index="28" name="fluoro B: 1"/>
-    <alias field="fluo_b_sample_2" index="29" name="fluoro B: 2"/>
-    <alias field="fluo_b_sample_3" index="30" name="fluoro B: 1"/>
-    <alias field="samplingpoint_marked" index="31" name="punt gemarkeerd"/>
-    <alias field="visit_done" index="32" name="bezoek gedaan"/>
+    <alias field="torch_bregt_freewater1_totalchl" index="16" name="Total chl"/>
+    <alias field="torch_bregt_freewater1_cyano" index="17" name="Cyano"/>
+    <alias field="torch_bregt_freewater1_turb" index="18" name="TURB"/>
+    <alias field="torch_bregt_freewater2_totalchl" index="19" name="Total chl"/>
+    <alias field="torch_bregt_freewater2_cyano" index="20" name="Cyano"/>
+    <alias field="torch_bregt_freewater2_turb" index="21" name="TURB"/>
+    <alias field="torch_bregt_freewater3_totalchl" index="22" name="Total chl"/>
+    <alias field="torch_bregt_freewater3_cyano" index="23" name="Cyano"/>
+    <alias field="torch_bregt_freewater3_turb" index="24" name="TURB"/>
+    <alias field="torch_bregt_bucket1_totalchl" index="25" name="Total chl"/>
+    <alias field="torch_bregt_bucket1_cyano" index="26" name="Cyano"/>
+    <alias field="torch_bregt_bucket1_turb" index="27" name="TURB"/>
+    <alias field="torch_bregt_bucket2_totalchl" index="28" name="Total chl"/>
+    <alias field="torch_bregt_bucket2_cyano" index="29" name="Cyano"/>
+    <alias field="torch_bregt_bucket2_turb" index="30" name="TURB"/>
+    <alias field="torch_bregt_bucket3_totalchl" index="31" name="Total chl"/>
+    <alias field="torch_bregt_bucket3_cyano" index="32" name="Cyano"/>
+    <alias field="torch_bregt_bucket3_turb" index="33" name="TURB"/>
+    <alias field="torch_kul_bucket1_totalchl" index="34" name="Total chl"/>
+    <alias field="torch_kul_bucket1_cyano" index="35" name="Cyano"/>
+    <alias field="torch_kul_bucket1_turb" index="36" name="TURB"/>
+    <alias field="torch_kul_bucket2_totalchl" index="37" name="Total chl"/>
+    <alias field="torch_kul_bucket2_cyano" index="38" name="Cyano"/>
+    <alias field="torch_kul_bucket2_turb" index="39" name="TURB"/>
+    <alias field="torch_kul_bucket3_totalchl" index="40" name="Total chl"/>
+    <alias field="torch_kul_bucket3_cyano" index="41" name="Cyano"/>
+    <alias field="torch_kul_bucket3_turb" index="42" name="TURB"/>
+    <alias field="fluo_ldm_cuvet1_chl" index="43" name="CHL"/>
+    <alias field="fluo_ldm_cuvet1_pc" index="44" name="PC"/>
+    <alias field="fluo_ldm_turb_cuvet1_turb" index="45" name="TURB"/>
+    <alias field="fluo_ldm_turb_cuvet1_chl" index="46" name="CHL"/>
+    <alias field="fluo_ldm_cuvet2_chl" index="47" name="CHL"/>
+    <alias field="fluo_ldm_cuvet2_pc" index="48" name="PC"/>
+    <alias field="fluo_ldm_turb_cuvet2_turb" index="49" name="TURB"/>
+    <alias field="fluo_ldm_turb_cuvet2_chl" index="50" name="CHL"/>
+    <alias field="fluo_ldm_cuvet3_chl" index="51" name="CHL"/>
+    <alias field="fluo_ldm_cuvet3_pc" index="52" name="PC"/>
+    <alias field="fluo_ldm_turb_cuvet3_turb" index="53" name="TURB"/>
+    <alias field="fluo_ldm_turb_cuvet3_chl" index="54" name="CHL"/>
+    <alias field="samplingpoint_marked" index="55" name="punt gemarkeerd"/>
+    <alias field="visit_done" index="56" name="bezoek gedaan"/>
   </aliases>
   <customComments>
     <customComment field="photo" value="(optioneel)"/>
     <customComment field="watertemperature_celsius" value="°C"/>
+    <customComment field="torch_bregt_freewater1_totalchl" value="µg/L"/>
+    <customComment field="torch_bregt_freewater1_cyano" value="µg/L"/>
+    <customComment field="torch_bregt_freewater2_totalchl" value="µg/L"/>
+    <customComment field="torch_bregt_freewater2_cyano" value="µg/L"/>
+    <customComment field="torch_bregt_freewater3_totalchl" value="µg/L"/>
+    <customComment field="torch_bregt_freewater3_cyano" value="µg/L"/>
+    <customComment field="torch_bregt_bucket1_totalchl" value="µg/L"/>
+    <customComment field="torch_bregt_bucket1_cyano" value="µg/L"/>
+    <customComment field="torch_bregt_bucket2_totalchl" value="µg/L"/>
+    <customComment field="torch_bregt_bucket2_cyano" value="µg/L"/>
+    <customComment field="torch_bregt_bucket3_totalchl" value="µg/L"/>
+    <customComment field="torch_bregt_bucket3_cyano" value="µg/L"/>
+    <customComment field="torch_kul_bucket1_totalchl" value="µg/L"/>
+    <customComment field="torch_kul_bucket1_cyano" value="µg/L"/>
+    <customComment field="torch_kul_bucket2_totalchl" value="µg/L"/>
+    <customComment field="torch_kul_bucket2_cyano" value="µg/L"/>
+    <customComment field="torch_kul_bucket3_totalchl" value="µg/L"/>
+    <customComment field="torch_kul_bucket3_cyano" value="µg/L"/>
     <customComment field="samplingpoint_marked" value="een feature aangemaakt in &quot;staalname effectief&quot;"/>
   </customComments>
   <splitPolicies>
@@ -892,21 +1174,45 @@
     <policy field="issues" policy="DefaultValue"/>
     <policy field="photo" policy="DefaultValue"/>
     <policy field="watertemperature_celsius" policy="DefaultValue"/>
-    <policy field="torch_a_freewater_1" policy="DefaultValue"/>
-    <policy field="torch_a_freewater_2" policy="DefaultValue"/>
-    <policy field="torch_a_freewater_3" policy="DefaultValue"/>
-    <policy field="torch_a_sample_1" policy="DefaultValue"/>
-    <policy field="torch_a_sample_2" policy="DefaultValue"/>
-    <policy field="torch_a_sample_3" policy="DefaultValue"/>
-    <policy field="torch_b_sample_1" policy="DefaultValue"/>
-    <policy field="torch_b_sample_2" policy="DefaultValue"/>
-    <policy field="torch_b_sample_3" policy="DefaultValue"/>
-    <policy field="fluo_a_sample_1" policy="DefaultValue"/>
-    <policy field="fluo_a_sample_2" policy="DefaultValue"/>
-    <policy field="fluo_a_sample_3" policy="DefaultValue"/>
-    <policy field="fluo_b_sample_1" policy="DefaultValue"/>
-    <policy field="fluo_b_sample_2" policy="DefaultValue"/>
-    <policy field="fluo_b_sample_3" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater1_totalchl" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater1_cyano" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater1_turb" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater2_totalchl" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater2_cyano" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater2_turb" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater3_totalchl" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater3_cyano" policy="DefaultValue"/>
+    <policy field="torch_bregt_freewater3_turb" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket1_totalchl" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket1_cyano" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket1_turb" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket2_totalchl" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket2_cyano" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket2_turb" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket3_totalchl" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket3_cyano" policy="DefaultValue"/>
+    <policy field="torch_bregt_bucket3_turb" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket1_totalchl" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket1_cyano" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket1_turb" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket2_totalchl" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket2_cyano" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket2_turb" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket3_totalchl" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket3_cyano" policy="DefaultValue"/>
+    <policy field="torch_kul_bucket3_turb" policy="DefaultValue"/>
+    <policy field="fluo_ldm_cuvet1_chl" policy="DefaultValue"/>
+    <policy field="fluo_ldm_cuvet1_pc" policy="DefaultValue"/>
+    <policy field="fluo_ldm_turb_cuvet1_turb" policy="DefaultValue"/>
+    <policy field="fluo_ldm_turb_cuvet1_chl" policy="DefaultValue"/>
+    <policy field="fluo_ldm_cuvet2_chl" policy="DefaultValue"/>
+    <policy field="fluo_ldm_cuvet2_pc" policy="DefaultValue"/>
+    <policy field="fluo_ldm_turb_cuvet2_turb" policy="DefaultValue"/>
+    <policy field="fluo_ldm_turb_cuvet2_chl" policy="DefaultValue"/>
+    <policy field="fluo_ldm_cuvet3_chl" policy="DefaultValue"/>
+    <policy field="fluo_ldm_cuvet3_pc" policy="DefaultValue"/>
+    <policy field="fluo_ldm_turb_cuvet3_turb" policy="DefaultValue"/>
+    <policy field="fluo_ldm_turb_cuvet3_chl" policy="DefaultValue"/>
     <policy field="samplingpoint_marked" policy="DefaultValue"/>
     <policy field="visit_done" policy="DefaultValue"/>
   </splitPolicies>
@@ -927,21 +1233,45 @@
     <default applyOnUpdate="0" expression="" field="issues"/>
     <default applyOnUpdate="0" expression="" field="photo"/>
     <default applyOnUpdate="0" expression="" field="watertemperature_celsius"/>
-    <default applyOnUpdate="0" expression="" field="torch_a_freewater_1"/>
-    <default applyOnUpdate="0" expression="" field="torch_a_freewater_2"/>
-    <default applyOnUpdate="0" expression="" field="torch_a_freewater_3"/>
-    <default applyOnUpdate="0" expression="" field="torch_a_sample_1"/>
-    <default applyOnUpdate="0" expression="" field="torch_a_sample_2"/>
-    <default applyOnUpdate="0" expression="" field="torch_a_sample_3"/>
-    <default applyOnUpdate="0" expression="" field="torch_b_sample_1"/>
-    <default applyOnUpdate="0" expression="" field="torch_b_sample_2"/>
-    <default applyOnUpdate="0" expression="" field="torch_b_sample_3"/>
-    <default applyOnUpdate="0" expression="" field="fluo_a_sample_1"/>
-    <default applyOnUpdate="0" expression="" field="fluo_a_sample_2"/>
-    <default applyOnUpdate="0" expression="" field="fluo_a_sample_3"/>
-    <default applyOnUpdate="0" expression="" field="fluo_b_sample_1"/>
-    <default applyOnUpdate="0" expression="" field="fluo_b_sample_2"/>
-    <default applyOnUpdate="0" expression="" field="fluo_b_sample_3"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater1_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater1_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater1_turb"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater2_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater2_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater2_turb"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater3_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater3_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_freewater3_turb"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket1_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket1_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket1_turb"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket2_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket2_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket2_turb"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket3_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket3_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_bregt_bucket3_turb"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket1_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket1_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket1_turb"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket2_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket2_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket2_turb"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket3_totalchl"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket3_cyano"/>
+    <default applyOnUpdate="0" expression="" field="torch_kul_bucket3_turb"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_cuvet1_chl"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_cuvet1_pc"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_turb_cuvet1_turb"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_turb_cuvet1_chl"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_cuvet2_chl"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_cuvet2_pc"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_turb_cuvet2_turb"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_turb_cuvet2_chl"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_cuvet3_chl"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_cuvet3_pc"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_turb_cuvet3_turb"/>
+    <default applyOnUpdate="0" expression="" field="fluo_ldm_turb_cuvet3_chl"/>
     <default applyOnUpdate="0" expression="" field="samplingpoint_marked"/>
     <default applyOnUpdate="0" expression="" field="visit_done"/>
   </defaults>
@@ -962,21 +1292,45 @@
     <constraint constraints="0" exp_strength="0" field="issues" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="photo" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="watertemperature_celsius" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_a_freewater_1" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_a_freewater_2" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_a_freewater_3" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_a_sample_1" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_a_sample_2" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_a_sample_3" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_b_sample_1" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_b_sample_2" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="torch_b_sample_3" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="fluo_a_sample_1" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="fluo_a_sample_2" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="fluo_a_sample_3" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="fluo_b_sample_1" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="fluo_b_sample_2" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="fluo_b_sample_3" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater1_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater1_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater1_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater2_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater2_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater2_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater3_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater3_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_freewater3_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket1_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket1_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket1_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket2_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket2_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket2_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket3_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket3_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_bregt_bucket3_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket1_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket1_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket1_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket2_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket2_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket2_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket3_totalchl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket3_cyano" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="torch_kul_bucket3_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_cuvet1_chl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_cuvet1_pc" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_turb_cuvet1_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_turb_cuvet1_chl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_cuvet2_chl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_cuvet2_pc" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_turb_cuvet2_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_turb_cuvet2_chl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_cuvet3_chl" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_cuvet3_pc" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_turb_cuvet3_turb" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="fluo_ldm_turb_cuvet3_chl" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="samplingpoint_marked" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="visit_done" notnull_strength="0" unique_strength="0"/>
   </constraints>
@@ -997,21 +1351,45 @@
     <constraint desc="" exp="" field="issues"/>
     <constraint desc="" exp="" field="photo"/>
     <constraint desc="" exp="" field="watertemperature_celsius"/>
-    <constraint desc="" exp="" field="torch_a_freewater_1"/>
-    <constraint desc="" exp="" field="torch_a_freewater_2"/>
-    <constraint desc="" exp="" field="torch_a_freewater_3"/>
-    <constraint desc="" exp="" field="torch_a_sample_1"/>
-    <constraint desc="" exp="" field="torch_a_sample_2"/>
-    <constraint desc="" exp="" field="torch_a_sample_3"/>
-    <constraint desc="" exp="" field="torch_b_sample_1"/>
-    <constraint desc="" exp="" field="torch_b_sample_2"/>
-    <constraint desc="" exp="" field="torch_b_sample_3"/>
-    <constraint desc="" exp="" field="fluo_a_sample_1"/>
-    <constraint desc="" exp="" field="fluo_a_sample_2"/>
-    <constraint desc="" exp="" field="fluo_a_sample_3"/>
-    <constraint desc="" exp="" field="fluo_b_sample_1"/>
-    <constraint desc="" exp="" field="fluo_b_sample_2"/>
-    <constraint desc="" exp="" field="fluo_b_sample_3"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater1_totalchl"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater1_cyano"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater1_turb"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater2_totalchl"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater2_cyano"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater2_turb"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater3_totalchl"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater3_cyano"/>
+    <constraint desc="" exp="" field="torch_bregt_freewater3_turb"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket1_totalchl"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket1_cyano"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket1_turb"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket2_totalchl"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket2_cyano"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket2_turb"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket3_totalchl"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket3_cyano"/>
+    <constraint desc="" exp="" field="torch_bregt_bucket3_turb"/>
+    <constraint desc="" exp="" field="torch_kul_bucket1_totalchl"/>
+    <constraint desc="" exp="" field="torch_kul_bucket1_cyano"/>
+    <constraint desc="" exp="" field="torch_kul_bucket1_turb"/>
+    <constraint desc="" exp="" field="torch_kul_bucket2_totalchl"/>
+    <constraint desc="" exp="" field="torch_kul_bucket2_cyano"/>
+    <constraint desc="" exp="" field="torch_kul_bucket2_turb"/>
+    <constraint desc="" exp="" field="torch_kul_bucket3_totalchl"/>
+    <constraint desc="" exp="" field="torch_kul_bucket3_cyano"/>
+    <constraint desc="" exp="" field="torch_kul_bucket3_turb"/>
+    <constraint desc="" exp="" field="fluo_ldm_cuvet1_chl"/>
+    <constraint desc="" exp="" field="fluo_ldm_cuvet1_pc"/>
+    <constraint desc="" exp="" field="fluo_ldm_turb_cuvet1_turb"/>
+    <constraint desc="" exp="" field="fluo_ldm_turb_cuvet1_chl"/>
+    <constraint desc="" exp="" field="fluo_ldm_cuvet2_chl"/>
+    <constraint desc="" exp="" field="fluo_ldm_cuvet2_pc"/>
+    <constraint desc="" exp="" field="fluo_ldm_turb_cuvet2_turb"/>
+    <constraint desc="" exp="" field="fluo_ldm_turb_cuvet2_chl"/>
+    <constraint desc="" exp="" field="fluo_ldm_cuvet3_chl"/>
+    <constraint desc="" exp="" field="fluo_ldm_cuvet3_pc"/>
+    <constraint desc="" exp="" field="fluo_ldm_turb_cuvet3_turb"/>
+    <constraint desc="" exp="" field="fluo_ldm_turb_cuvet3_chl"/>
     <constraint desc="" exp="" field="samplingpoint_marked"/>
     <constraint desc="" exp="" field="visit_done"/>
   </constraintExpressions>
@@ -1036,24 +1414,48 @@
       <column hidden="0" name="issues" type="field" width="-1"/>
       <column hidden="0" name="photo" type="field" width="-1"/>
       <column hidden="0" name="watertemperature_celsius" type="field" width="-1"/>
-      <column hidden="0" name="torch_a_freewater_1" type="field" width="-1"/>
-      <column hidden="0" name="torch_a_freewater_2" type="field" width="-1"/>
-      <column hidden="0" name="torch_a_freewater_3" type="field" width="-1"/>
-      <column hidden="0" name="torch_a_sample_1" type="field" width="-1"/>
-      <column hidden="0" name="torch_a_sample_2" type="field" width="-1"/>
-      <column hidden="0" name="torch_a_sample_3" type="field" width="-1"/>
-      <column hidden="0" name="torch_b_sample_1" type="field" width="-1"/>
-      <column hidden="0" name="torch_b_sample_2" type="field" width="-1"/>
-      <column hidden="0" name="torch_b_sample_3" type="field" width="-1"/>
-      <column hidden="0" name="fluo_a_sample_1" type="field" width="-1"/>
-      <column hidden="0" name="fluo_a_sample_2" type="field" width="-1"/>
-      <column hidden="0" name="fluo_a_sample_3" type="field" width="-1"/>
-      <column hidden="0" name="fluo_b_sample_1" type="field" width="-1"/>
-      <column hidden="0" name="fluo_b_sample_2" type="field" width="-1"/>
-      <column hidden="0" name="fluo_b_sample_3" type="field" width="-1"/>
       <column hidden="0" name="samplingpoint_marked" type="field" width="-1"/>
       <column hidden="0" name="visit_done" type="field" width="-1"/>
       <column hidden="0" name="infos" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater1_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater1_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater1_turb" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater2_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater2_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater2_turb" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater3_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater3_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_freewater3_turb" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket1_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket1_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket1_turb" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket2_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket2_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket2_turb" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket3_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket3_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_bregt_bucket3_turb" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket1_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket1_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket1_turb" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket2_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket2_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket2_turb" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket3_totalchl" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket3_cyano" type="field" width="-1"/>
+      <column hidden="0" name="torch_kul_bucket3_turb" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_cuvet1_chl" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_cuvet1_pc" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_turb_cuvet1_turb" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_turb_cuvet1_chl" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_cuvet2_chl" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_cuvet2_pc" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_turb_cuvet2_turb" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_turb_cuvet2_chl" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_cuvet3_chl" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_cuvet3_pc" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_turb_cuvet3_turb" type="field" width="-1"/>
+      <column hidden="0" name="fluo_ldm_turb_cuvet3_chl" type="field" width="-1"/>
       <column hidden="1" type="actions" width="-1"/>
     </columns>
   </attributetableconfig>
@@ -1133,81 +1535,291 @@ def my_form_open(dialog, layer, feature):
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="16" name="torch_a_freewater_1" showLabel="1" verticalStretch="0">
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="poel AlgaeTorchBregt" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="17" name="torch_a_freewater_2" showLabel="1" verticalStretch="0">
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="1" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="16" name="torch_bregt_freewater1_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="17" name="torch_bregt_freewater1_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="18" name="torch_bregt_freewater1_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="2" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="19" name="torch_bregt_freewater2_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="20" name="torch_bregt_freewater2_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="21" name="torch_bregt_freewater2_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="3" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="22" name="torch_bregt_freewater3_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="23" name="torch_bregt_freewater3_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="24" name="torch_bregt_freewater3_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="emmer AlgaeTorchBregt" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="18" name="torch_a_freewater_3" showLabel="1" verticalStretch="0">
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="1" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="25" name="torch_bregt_bucket1_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="26" name="torch_bregt_bucket1_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="27" name="torch_bregt_bucket1_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="2" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="28" name="torch_bregt_bucket2_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="29" name="torch_bregt_bucket2_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="30" name="torch_bregt_bucket2_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="3" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="31" name="torch_bregt_bucket3_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="32" name="torch_bregt_bucket3_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="33" name="torch_bregt_bucket3_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="emmer AlgaeTorchKUL" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="19" name="torch_a_sample_1" showLabel="1" verticalStretch="0">
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="1" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="34" name="torch_kul_bucket1_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="35" name="torch_kul_bucket1_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="36" name="torch_kul_bucket1_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="2" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="37" name="torch_kul_bucket2_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="38" name="torch_kul_bucket2_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="39" name="torch_kul_bucket2_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+        <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="3" groupBox="1" horizontalStretch="0" name="3" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+          <attributeEditorField horizontalStretch="0" index="40" name="torch_kul_bucket3_totalchl" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="41" name="torch_kul_bucket3_cyano" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+          <attributeEditorField horizontalStretch="0" index="42" name="torch_kul_bucket3_turb" showLabel="1" verticalStretch="0">
+            <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+              <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+            </labelStyle>
+          </attributeEditorField>
+        </attributeEditorContainer>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="2" groupBox="1" horizontalStretch="0" name="cuvet 1 AquaFluor LDM-1" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="20" name="torch_a_sample_2" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="43" name="fluo_ldm_cuvet1_chl" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+        <attributeEditorField horizontalStretch="0" index="44" name="fluo_ldm_cuvet1_pc" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="2" groupBox="1" horizontalStretch="0" name="cuvet 1 AquaFluor LDM-TURB" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="21" name="torch_a_sample_3" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="45" name="fluo_ldm_turb_cuvet1_turb" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+        <attributeEditorField horizontalStretch="0" index="46" name="fluo_ldm_turb_cuvet1_chl" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="2" groupBox="1" horizontalStretch="0" name="cuvet 2 AquaFluor LDM-1" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="22" name="torch_b_sample_1" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="47" name="fluo_ldm_cuvet2_chl" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+        <attributeEditorField horizontalStretch="0" index="48" name="fluo_ldm_cuvet2_pc" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="2" groupBox="1" horizontalStretch="0" name="cuvet 2 AquaFluor LDM-TURB" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="23" name="torch_b_sample_2" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="49" name="fluo_ldm_turb_cuvet2_turb" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+        <attributeEditorField horizontalStretch="0" index="50" name="fluo_ldm_turb_cuvet2_chl" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="2" groupBox="1" horizontalStretch="0" name="cuvet 3 AquaFluor LDM-1" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="24" name="torch_b_sample_3" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="51" name="fluo_ldm_cuvet3_chl" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+        <attributeEditorField horizontalStretch="0" index="52" name="fluo_ldm_cuvet3_pc" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="2" groupBox="1" horizontalStretch="0" name="cuvet 3 AquaFluor LDM-TURB" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="25" name="fluo_a_sample_1" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="26" name="fluo_a_sample_2" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="27" name="fluo_a_sample_3" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="28" name="fluo_b_sample_1" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="29" name="fluo_b_sample_2" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="30" name="fluo_b_sample_3" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
+        <attributeEditorField horizontalStretch="0" index="53" name="fluo_ldm_turb_cuvet3_turb" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+        <attributeEditorField horizontalStretch="0" index="54" name="fluo_ldm_turb_cuvet3_chl" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
     </attributeEditorContainer>
     <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="afronden" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
@@ -1238,12 +1850,12 @@ def my_form_open(dialog, layer, feature):
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="31" name="samplingpoint_marked" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="55" name="samplingpoint_marked" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="32" name="visit_done" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="56" name="visit_done" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -1260,6 +1872,18 @@ def my_form_open(dialog, layer, feature):
     <field editable="1" name="fluo_b_sample_1"/>
     <field editable="1" name="fluo_b_sample_2"/>
     <field editable="1" name="fluo_b_sample_3"/>
+    <field editable="1" name="fluo_ldm_cuvet1_chl"/>
+    <field editable="1" name="fluo_ldm_cuvet1_pc"/>
+    <field editable="1" name="fluo_ldm_cuvet2_chl"/>
+    <field editable="1" name="fluo_ldm_cuvet2_pc"/>
+    <field editable="1" name="fluo_ldm_cuvet3_chl"/>
+    <field editable="1" name="fluo_ldm_cuvet3_pc"/>
+    <field editable="1" name="fluo_ldm_turb_cuvet1_chl"/>
+    <field editable="1" name="fluo_ldm_turb_cuvet1_turb"/>
+    <field editable="1" name="fluo_ldm_turb_cuvet2_chl"/>
+    <field editable="1" name="fluo_ldm_turb_cuvet2_turb"/>
+    <field editable="1" name="fluo_ldm_turb_cuvet3_chl"/>
+    <field editable="1" name="fluo_ldm_turb_cuvet3_turb"/>
     <field editable="0" name="grts_address"/>
     <field editable="0" name="infos"/>
     <field editable="0" name="is_cell_center"/>
@@ -1282,6 +1906,33 @@ def my_form_open(dialog, layer, feature):
     <field editable="1" name="torch_b_sample_1"/>
     <field editable="1" name="torch_b_sample_2"/>
     <field editable="1" name="torch_b_sample_3"/>
+    <field editable="1" name="torch_bregt_bucket1_cyano"/>
+    <field editable="1" name="torch_bregt_bucket1_totalchl"/>
+    <field editable="1" name="torch_bregt_bucket1_turb"/>
+    <field editable="1" name="torch_bregt_bucket2_cyano"/>
+    <field editable="1" name="torch_bregt_bucket2_totalchl"/>
+    <field editable="1" name="torch_bregt_bucket2_turb"/>
+    <field editable="1" name="torch_bregt_bucket3_cyano"/>
+    <field editable="1" name="torch_bregt_bucket3_totalchl"/>
+    <field editable="1" name="torch_bregt_bucket3_turb"/>
+    <field editable="1" name="torch_bregt_freewater1_cyano"/>
+    <field editable="1" name="torch_bregt_freewater1_totalchl"/>
+    <field editable="1" name="torch_bregt_freewater1_turb"/>
+    <field editable="1" name="torch_bregt_freewater2_cyano"/>
+    <field editable="1" name="torch_bregt_freewater2_totalchl"/>
+    <field editable="1" name="torch_bregt_freewater2_turb"/>
+    <field editable="1" name="torch_bregt_freewater3_cyano"/>
+    <field editable="1" name="torch_bregt_freewater3_totalchl"/>
+    <field editable="1" name="torch_bregt_freewater3_turb"/>
+    <field editable="1" name="torch_kul_bucket1_cyano"/>
+    <field editable="1" name="torch_kul_bucket1_totalchl"/>
+    <field editable="1" name="torch_kul_bucket1_turb"/>
+    <field editable="1" name="torch_kul_bucket2_cyano"/>
+    <field editable="1" name="torch_kul_bucket2_totalchl"/>
+    <field editable="1" name="torch_kul_bucket2_turb"/>
+    <field editable="1" name="torch_kul_bucket3_cyano"/>
+    <field editable="1" name="torch_kul_bucket3_totalchl"/>
+    <field editable="1" name="torch_kul_bucket3_turb"/>
     <field editable="1" name="visit_done"/>
     <field editable="1" name="watertemperature_celsius"/>
   </editable>
@@ -1295,6 +1946,18 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="fluo_b_sample_1"/>
     <field labelOnTop="0" name="fluo_b_sample_2"/>
     <field labelOnTop="0" name="fluo_b_sample_3"/>
+    <field labelOnTop="1" name="fluo_ldm_cuvet1_chl"/>
+    <field labelOnTop="1" name="fluo_ldm_cuvet1_pc"/>
+    <field labelOnTop="1" name="fluo_ldm_cuvet2_chl"/>
+    <field labelOnTop="1" name="fluo_ldm_cuvet2_pc"/>
+    <field labelOnTop="1" name="fluo_ldm_cuvet3_chl"/>
+    <field labelOnTop="1" name="fluo_ldm_cuvet3_pc"/>
+    <field labelOnTop="1" name="fluo_ldm_turb_cuvet1_chl"/>
+    <field labelOnTop="1" name="fluo_ldm_turb_cuvet1_turb"/>
+    <field labelOnTop="1" name="fluo_ldm_turb_cuvet2_chl"/>
+    <field labelOnTop="1" name="fluo_ldm_turb_cuvet2_turb"/>
+    <field labelOnTop="1" name="fluo_ldm_turb_cuvet3_chl"/>
+    <field labelOnTop="1" name="fluo_ldm_turb_cuvet3_turb"/>
     <field labelOnTop="0" name="grts_address"/>
     <field labelOnTop="0" name="infos"/>
     <field labelOnTop="0" name="is_cell_center"/>
@@ -1308,15 +1971,42 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="samplingpoint_marked"/>
     <field labelOnTop="0" name="stratum"/>
     <field labelOnTop="0" name="teammember_id"/>
-    <field labelOnTop="0" name="torch_a_freewater_1"/>
-    <field labelOnTop="0" name="torch_a_freewater_2"/>
-    <field labelOnTop="0" name="torch_a_freewater_3"/>
+    <field labelOnTop="1" name="torch_a_freewater_1"/>
+    <field labelOnTop="1" name="torch_a_freewater_2"/>
+    <field labelOnTop="1" name="torch_a_freewater_3"/>
     <field labelOnTop="0" name="torch_a_sample_1"/>
     <field labelOnTop="0" name="torch_a_sample_2"/>
     <field labelOnTop="0" name="torch_a_sample_3"/>
     <field labelOnTop="0" name="torch_b_sample_1"/>
     <field labelOnTop="0" name="torch_b_sample_2"/>
     <field labelOnTop="0" name="torch_b_sample_3"/>
+    <field labelOnTop="1" name="torch_bregt_bucket1_cyano"/>
+    <field labelOnTop="1" name="torch_bregt_bucket1_totalchl"/>
+    <field labelOnTop="1" name="torch_bregt_bucket1_turb"/>
+    <field labelOnTop="1" name="torch_bregt_bucket2_cyano"/>
+    <field labelOnTop="1" name="torch_bregt_bucket2_totalchl"/>
+    <field labelOnTop="1" name="torch_bregt_bucket2_turb"/>
+    <field labelOnTop="1" name="torch_bregt_bucket3_cyano"/>
+    <field labelOnTop="1" name="torch_bregt_bucket3_totalchl"/>
+    <field labelOnTop="1" name="torch_bregt_bucket3_turb"/>
+    <field labelOnTop="1" name="torch_bregt_freewater1_cyano"/>
+    <field labelOnTop="1" name="torch_bregt_freewater1_totalchl"/>
+    <field labelOnTop="1" name="torch_bregt_freewater1_turb"/>
+    <field labelOnTop="1" name="torch_bregt_freewater2_cyano"/>
+    <field labelOnTop="1" name="torch_bregt_freewater2_totalchl"/>
+    <field labelOnTop="1" name="torch_bregt_freewater2_turb"/>
+    <field labelOnTop="1" name="torch_bregt_freewater3_cyano"/>
+    <field labelOnTop="1" name="torch_bregt_freewater3_totalchl"/>
+    <field labelOnTop="1" name="torch_bregt_freewater3_turb"/>
+    <field labelOnTop="1" name="torch_kul_bucket1_cyano"/>
+    <field labelOnTop="1" name="torch_kul_bucket1_totalchl"/>
+    <field labelOnTop="1" name="torch_kul_bucket1_turb"/>
+    <field labelOnTop="1" name="torch_kul_bucket2_cyano"/>
+    <field labelOnTop="1" name="torch_kul_bucket2_totalchl"/>
+    <field labelOnTop="1" name="torch_kul_bucket2_turb"/>
+    <field labelOnTop="1" name="torch_kul_bucket3_cyano"/>
+    <field labelOnTop="1" name="torch_kul_bucket3_totalchl"/>
+    <field labelOnTop="1" name="torch_kul_bucket3_turb"/>
     <field labelOnTop="0" name="visit_done"/>
     <field labelOnTop="0" name="watertemperature_celsius"/>
   </labelOnTop>
@@ -1330,6 +2020,18 @@ def my_form_open(dialog, layer, feature):
     <field name="fluo_b_sample_1" reuseLastValuePolicy="NotAllowed"/>
     <field name="fluo_b_sample_2" reuseLastValuePolicy="NotAllowed"/>
     <field name="fluo_b_sample_3" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_cuvet1_chl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_cuvet1_pc" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_cuvet2_chl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_cuvet2_pc" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_cuvet3_chl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_cuvet3_pc" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_turb_cuvet1_chl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_turb_cuvet1_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_turb_cuvet2_chl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_turb_cuvet2_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_turb_cuvet3_chl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="fluo_ldm_turb_cuvet3_turb" reuseLastValuePolicy="NotAllowed"/>
     <field name="grts_address" reuseLastValuePolicy="NotAllowed"/>
     <field name="infos" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_cell_center" reuseLastValuePolicy="NotAllowed"/>
@@ -1352,6 +2054,33 @@ def my_form_open(dialog, layer, feature):
     <field name="torch_b_sample_1" reuseLastValuePolicy="NotAllowed"/>
     <field name="torch_b_sample_2" reuseLastValuePolicy="NotAllowed"/>
     <field name="torch_b_sample_3" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket1_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket1_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket1_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket2_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket2_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket2_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket3_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket3_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_bucket3_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater1_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater1_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater1_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater2_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater2_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater2_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater3_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater3_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_bregt_freewater3_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket1_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket1_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket1_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket2_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket2_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket2_turb" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket3_cyano" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket3_totalchl" reuseLastValuePolicy="NotAllowed"/>
+    <field name="torch_kul_bucket3_turb" reuseLastValuePolicy="NotAllowed"/>
     <field name="visit_done" reuseLastValuePolicy="NotAllowed"/>
     <field name="watertemperature_celsius" reuseLastValuePolicy="NotAllowed"/>
   </reuseLastValuePolicy>
