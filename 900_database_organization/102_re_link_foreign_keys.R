@@ -455,6 +455,15 @@ stitch_table_connection(
 )
 
 
+# link ChlorophyllMeasurements back to Locations
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "ChlorophyllMeasurements",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
 # mnmsurfdb$query_table("Visits") %>%
 #   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
 #   knitr::kable()

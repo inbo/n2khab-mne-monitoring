@@ -24,6 +24,7 @@ SELECT
   INFO.landowner,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
+  INFO.is_secret_location,
   LOCEVAL.loceval_date,
   LOCEVAL.loceval_name,
   LOCEVAL.type_assessed,
@@ -324,7 +325,8 @@ DO ALSO
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit,
   recovery_hints = NEW.recovery_hints,
-  equipment_recommendations = NEW.equipment_recommendations
+  equipment_recommendations = NEW.equipment_recommendations,
+  is_secret_location = NEW.is_secret_location
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 

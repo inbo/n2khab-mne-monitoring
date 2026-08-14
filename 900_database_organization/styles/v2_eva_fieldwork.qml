@@ -1,5 +1,11 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis autoRefreshMode="Disabled" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" labelsEnabled="1" layerType="Vector" maxScale="0" minScale="100000000" simplifyAlgorithm="0" simplifyDrawingHints="0" simplifyDrawingTol="1" simplifyLocal="1" simplifyMaxScale="1" styleCategories="Actions|MapTips|Rendering|CustomProperties|GeometryOptions|Relations|Temporal|Legend|Elevation|Notes|AllVisualStyleCategories|AllAttributeCategories" symbologyReferenceScale="-1" version="4.0.3-Norrköping">
+<qgis autoRefreshMode="Disabled" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" labelsEnabled="1" layerType="Vector" maxScale="0" minScale="100000000" readOnly="0" simplifyAlgorithm="0" simplifyDrawingHints="0" simplifyDrawingTol="1" simplifyLocal="1" simplifyMaxScale="1" styleCategories="AllStyleCategories" symbologyReferenceScale="-1" version="4.2.1-Belém do Pará">
+  <flags>
+    <Identifiable>1</Identifiable>
+    <Removable>1</Removable>
+    <Searchable>1</Searchable>
+    <Private>0</Private>
+  </flags>
   <temporal accumulate="0" durationField="ogc_fid" durationUnit="min" enabled="0" endExpression="" endField="" fixedDuration="0" limitMode="0" mode="0" startExpression="" startField="mhq_assessment_date">
     <fixedRange>
       <start></start>
@@ -1217,7 +1223,6 @@
       <Option name="QFieldSync/value_map_button_interface_threshold" type="int" value="0"/>
       <Option name="dualview/previewExpressions" type="List">
         <Option type="QString" value="'[' || CASE WHEN priority IS NULL THEN '-' ELSE priority END || '] ' || type || ' - ' || represent_value( &quot;activity_group_id&quot; )"/>
-        <Option type="QString" value="'[' || priority || '] ' || type || ' - ' || represent_value( &quot;activity_group_id&quot; )"/>
       </Option>
       <Option name="embeddedWidgets/count" type="int" value="0"/>
       <Option name="variableNames"/>
@@ -1235,7 +1240,7 @@
   <referencedLayers/>
   <referencingLayers/>
   <fieldConfiguration>
-    <field configurationFlags="NoFlag" name="ogc_fid">
+    <field configurationFlags="0" name="ogc_fid">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1249,7 +1254,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="location_id">
+    <field configurationFlags="0" name="location_id">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1263,7 +1268,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="grts_address">
+    <field configurationFlags="0" name="grts_address">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1273,7 +1278,14 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="sampleunit_id">
+    <field configurationFlags="0" name="is_cell_center">
+      <editWidget type="CheckBox">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="sampleunit_id">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1287,7 +1299,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="grts_join_method">
+    <field configurationFlags="0" name="grts_join_method">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1297,7 +1309,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="schemes">
+    <field configurationFlags="0" name="schemes">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1307,7 +1319,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="scheme_ps_targetpanels">
+    <field configurationFlags="0" name="scheme_ps_targetpanels">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1317,7 +1329,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="type">
+    <field configurationFlags="0" name="type">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1327,7 +1339,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="domain_part">
+    <field configurationFlags="0" name="domain_part">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1337,7 +1349,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="is_forest">
+    <field configurationFlags="0" name="is_forest">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1349,7 +1361,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="in_mhq_samples">
+    <field configurationFlags="0" name="in_mhq_samples">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1361,7 +1373,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="has_mhq_assessment">
+    <field configurationFlags="0" name="has_mhq_assessment">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1373,7 +1385,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="mhq_assessment_date">
+    <field configurationFlags="0" name="mhq_assessment_date">
       <editWidget type="DateTime">
         <config>
           <Option type="Map">
@@ -1387,7 +1399,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="previous_notes">
+    <field configurationFlags="0" name="previous_notes">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1397,7 +1409,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="replacement_ongoing">
+    <field configurationFlags="0" name="replacement_ongoing">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1409,7 +1421,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="replacement_reason">
+    <field configurationFlags="0" name="replacement_reason">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1419,7 +1431,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="replacement_permanence">
+    <field configurationFlags="0" name="replacement_permanence">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1429,7 +1441,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="is_replaced">
+    <field configurationFlags="0" name="is_replaced">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1441,7 +1453,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="type_is_absent">
+    <field configurationFlags="0" name="type_is_absent">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1453,7 +1465,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="fieldcalendar_id">
+    <field configurationFlags="0" name="fieldcalendar_id">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1467,7 +1479,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="activity_group_id">
+    <field configurationFlags="0" name="activity_group_id">
       <editWidget type="ValueRelation">
         <config>
           <Option type="Map">
@@ -1494,7 +1506,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="date_start">
+    <field configurationFlags="0" name="date_start">
       <editWidget type="DateTime">
         <config>
           <Option type="Map">
@@ -1508,7 +1520,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="date_end">
+    <field configurationFlags="0" name="date_end">
       <editWidget type="DateTime">
         <config>
           <Option type="Map">
@@ -1522,7 +1534,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="date_interval">
+    <field configurationFlags="0" name="date_interval">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1532,7 +1544,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="days_to_deadline">
+    <field configurationFlags="0" name="days_to_deadline">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1546,7 +1558,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="activity_rank">
+    <field configurationFlags="0" name="activity_rank">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1560,7 +1572,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="priority">
+    <field configurationFlags="0" name="priority">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1574,7 +1586,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="wait_any">
+    <field configurationFlags="0" name="wait_any">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1586,7 +1598,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="wait_watersurface">
+    <field configurationFlags="0" name="wait_watersurface">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1598,7 +1610,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="wait_3260">
+    <field configurationFlags="0" name="wait_3260">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1610,7 +1622,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="wait_7220">
+    <field configurationFlags="0" name="wait_7220">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1622,7 +1634,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="wait_floating">
+    <field configurationFlags="0" name="wait_floating">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1634,7 +1646,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="wait_obsolete_types">
+    <field configurationFlags="0" name="wait_obsolete_types">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1646,7 +1658,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="excluded">
+    <field configurationFlags="0" name="excluded">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1658,7 +1670,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="excluded_reason">
+    <field configurationFlags="0" name="excluded_reason">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1668,7 +1680,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="teammember_assigned">
+    <field configurationFlags="0" name="teammember_assigned">
       <editWidget type="ValueRelation">
         <config>
           <Option type="Map">
@@ -1695,7 +1707,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="date_visit_planned">
+    <field configurationFlags="0" name="date_visit_planned">
       <editWidget type="DateTime">
         <config>
           <Option type="Map">
@@ -1709,7 +1721,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="days_to_visit">
+    <field configurationFlags="0" name="days_to_visit">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1723,7 +1735,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="no_visit_planned">
+    <field configurationFlags="0" name="no_visit_planned">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1735,7 +1747,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="preparation_notes">
+    <field configurationFlags="0" name="preparation_notes">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1745,7 +1757,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="done_planning">
+    <field configurationFlags="0" name="done_planning">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1757,7 +1769,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="is_frozen">
+    <field configurationFlags="0" name="is_frozen">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1769,7 +1781,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="visit_id">
+    <field configurationFlags="0" name="visit_id">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -1783,7 +1795,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="teammember_id">
+    <field configurationFlags="0" name="teammember_id">
       <editWidget type="ValueRelation">
         <config>
           <Option type="Map">
@@ -1810,7 +1822,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="date_visit">
+    <field configurationFlags="0" name="date_visit">
       <editWidget type="DateTime">
         <config>
           <Option type="Map">
@@ -1824,7 +1836,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="type_assessed">
+    <field configurationFlags="0" name="type_assessed">
       <editWidget type="ValueRelation">
         <config>
           <Option type="Map">
@@ -1851,7 +1863,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="is_well_developed_type">
+    <field configurationFlags="0" name="is_well_developed_type">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1863,7 +1875,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="gps_type">
+    <field configurationFlags="0" name="gps_type">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1873,7 +1885,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="gps_accuracy_cm">
+    <field configurationFlags="0" name="gps_accuracy_cm">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1883,7 +1895,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="notes">
+    <field configurationFlags="0" name="notes">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1893,7 +1905,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="photo">
+    <field configurationFlags="0" name="photo">
       <editWidget type="ExternalResource">
         <config>
           <Option type="Map">
@@ -1917,7 +1929,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="issues">
+    <field configurationFlags="0" name="issues">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1929,7 +1941,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="show_othervisits">
+    <field configurationFlags="0" name="show_othervisits">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1941,7 +1953,14 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="show_aquatictypevisits">
+    <field configurationFlags="0" name="is_samplingpoint_activity">
+      <editWidget type="CheckBox">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="show_aquatictypevisits">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1953,7 +1972,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="samplingpoint_selection_done">
+    <field configurationFlags="0" name="samplingpoint_selection_done">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1965,7 +1984,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="crassula_was_here">
+    <field configurationFlags="0" name="crassula_was_here">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1977,7 +1996,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="show_terrestrialtypevisits">
+    <field configurationFlags="0" name="show_terrestrialtypevisits">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -1989,7 +2008,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="replacement_recovery_notes">
+    <field configurationFlags="0" name="replacement_recovery_notes">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -1999,7 +2018,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="visit_done">
+    <field configurationFlags="0" name="visit_done">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -2011,7 +2030,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="locationinfo_id">
+    <field configurationFlags="0" name="locationinfo_id">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -2025,7 +2044,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="landowner">
+    <field configurationFlags="0" name="landowner">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -2035,7 +2054,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="accessibility_inaccessible">
+    <field configurationFlags="0" name="accessibility_inaccessible">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -2047,7 +2066,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="accessibility_revisit">
+    <field configurationFlags="0" name="accessibility_revisit">
       <editWidget type="DateTime">
         <config>
           <Option type="Map">
@@ -2061,7 +2080,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="recovery_hints">
+    <field configurationFlags="0" name="recovery_hints">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -2071,7 +2090,17 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="orthophoto_assessment_done">
+    <field configurationFlags="0" name="equipment_recommendations">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="is_secret_location">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -2083,7 +2112,19 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="NoFlag" name="orthophoto_notes">
+    <field configurationFlags="0" name="orthophoto_assessment_done">
+      <editWidget type="CheckBox">
+        <config>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="orthophoto_notes">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -2098,70 +2139,77 @@
     <alias field="ogc_fid" index="0" name=""/>
     <alias field="location_id" index="1" name=""/>
     <alias field="grts_address" index="2" name="GRTS"/>
-    <alias field="sampleunit_id" index="3" name=""/>
-    <alias field="grts_join_method" index="4" name=""/>
-    <alias field="schemes" index="5" name="meetnetten"/>
-    <alias field="scheme_ps_targetpanels" index="6" name="meetnetten/panelsets/targetpanels"/>
-    <alias field="type" index="7" name="type (gepland)"/>
-    <alias field="domain_part" index="8" name="domain partition"/>
-    <alias field="is_forest" index="9" name=""/>
-    <alias field="in_mhq_samples" index="10" name="is MHQ sample"/>
-    <alias field="has_mhq_assessment" index="11" name="heeft MHQ assessment"/>
-    <alias field="mhq_assessment_date" index="12" name="datum MHQ assessment"/>
-    <alias field="previous_notes" index="13" name=""/>
-    <alias field="replacement_ongoing" index="14" name="lokale vervanging nodig"/>
-    <alias field="replacement_reason" index="15" name="reden voor vervanging"/>
-    <alias field="replacement_permanence" index="16" name="vervanging permanent?"/>
-    <alias field="is_replaced" index="17" name="vervanging gedaan"/>
-    <alias field="type_is_absent" index="18" name="type niet gevonden"/>
-    <alias field="fieldcalendar_id" index="19" name=""/>
-    <alias field="activity_group_id" index="20" name="activiteitsgroep"/>
-    <alias field="date_start" index="21" name="startdatum"/>
-    <alias field="date_end" index="22" name="einddatum"/>
-    <alias field="date_interval" index="23" name=""/>
-    <alias field="days_to_deadline" index="24" name=""/>
-    <alias field="activity_rank" index="25" name=""/>
-    <alias field="priority" index="26" name="prioriteit"/>
-    <alias field="wait_any" index="27" name="wachtend"/>
-    <alias field="wait_watersurface" index="28" name=""/>
-    <alias field="wait_3260" index="29" name=""/>
-    <alias field="wait_7220" index="30" name=""/>
-    <alias field="wait_floating" index="31" name=""/>
-    <alias field="wait_obsolete_types" index="32" name=""/>
-    <alias field="excluded" index="33" name="geen bezoek gepland"/>
-    <alias field="excluded_reason" index="34" name="reden geen bezoek gepland"/>
-    <alias field="teammember_assigned" index="35" name="toegewezen teamlid"/>
-    <alias field="date_visit_planned" index="36" name="geplande bezoekdatum"/>
-    <alias field="days_to_visit" index="37" name="dagen verblijvend tot bezoek"/>
-    <alias field="no_visit_planned" index="38" name="geen bezoek gepland"/>
-    <alias field="preparation_notes" index="39" name="notities voorbereiding"/>
-    <alias field="done_planning" index="40" name="planning gedaan"/>
-    <alias field="is_frozen" index="41" name="oude REP locatie"/>
-    <alias field="visit_id" index="42" name=""/>
-    <alias field="teammember_id" index="43" name="teamlid uitvoering"/>
-    <alias field="date_visit" index="44" name="datum bezoek"/>
-    <alias field="type_assessed" index="45" name="type (vastgesteld)"/>
-    <alias field="is_well_developed_type" index="46" name="goed ontwikkeld type"/>
-    <alias field="gps_type" index="47" name="GPS: type"/>
-    <alias field="gps_accuracy_cm" index="48" name="GPS: nauwkeurigheid (cm)"/>
-    <alias field="notes" index="49" name="notities"/>
-    <alias field="photo" index="50" name="foto"/>
-    <alias field="issues" index="51" name="problemen opgetreden"/>
-    <alias field="show_othervisits" index="52" name=""/>
-    <alias field="show_aquatictypevisits" index="53" name=""/>
-    <alias field="samplingpoint_selection_done" index="54" name="check: staalnamepunt gezet"/>
-    <alias field="crassula_was_here" index="55" name="waarneming watercrassula"/>
-    <alias field="show_terrestrialtypevisits" index="56" name=""/>
-    <alias field="replacement_recovery_notes" index="57" name="terugvindnotities (vervangcel)"/>
-    <alias field="visit_done" index="58" name="bezoek gedaan"/>
-    <alias field="locationinfo_id" index="59" name=""/>
-    <alias field="landowner" index="60" name="landgebruik info"/>
-    <alias field="accessibility_inaccessible" index="61" name="locatie ontoegankelijk"/>
-    <alias field="accessibility_revisit" index="62" name="inschatting eind ontoegankelijkheid"/>
-    <alias field="recovery_hints" index="63" name="terugvindhulp puntmarkering"/>
-    <alias field="orthophoto_assessment_done" index="64" name=""/>
-    <alias field="orthophoto_notes" index="65" name="notities orthofotoevaluatie"/>
+    <alias field="is_cell_center" index="3" name=""/>
+    <alias field="sampleunit_id" index="4" name=""/>
+    <alias field="grts_join_method" index="5" name=""/>
+    <alias field="schemes" index="6" name="meetnetten"/>
+    <alias field="scheme_ps_targetpanels" index="7" name="meetnetten/panelsets/targetpanels"/>
+    <alias field="type" index="8" name="type (gepland)"/>
+    <alias field="domain_part" index="9" name="domain partition"/>
+    <alias field="is_forest" index="10" name=""/>
+    <alias field="in_mhq_samples" index="11" name="is MHQ sample"/>
+    <alias field="has_mhq_assessment" index="12" name="heeft MHQ assessment"/>
+    <alias field="mhq_assessment_date" index="13" name="datum MHQ assessment"/>
+    <alias field="previous_notes" index="14" name=""/>
+    <alias field="replacement_ongoing" index="15" name="lokale vervanging nodig"/>
+    <alias field="replacement_reason" index="16" name="reden voor vervanging"/>
+    <alias field="replacement_permanence" index="17" name="vervanging permanent?"/>
+    <alias field="is_replaced" index="18" name="vervanging gedaan"/>
+    <alias field="type_is_absent" index="19" name="type niet gevonden"/>
+    <alias field="fieldcalendar_id" index="20" name=""/>
+    <alias field="activity_group_id" index="21" name="activiteitsgroep"/>
+    <alias field="date_start" index="22" name="startdatum"/>
+    <alias field="date_end" index="23" name="einddatum"/>
+    <alias field="date_interval" index="24" name=""/>
+    <alias field="days_to_deadline" index="25" name=""/>
+    <alias field="activity_rank" index="26" name=""/>
+    <alias field="priority" index="27" name="prioriteit"/>
+    <alias field="wait_any" index="28" name="wachtend"/>
+    <alias field="wait_watersurface" index="29" name=""/>
+    <alias field="wait_3260" index="30" name=""/>
+    <alias field="wait_7220" index="31" name=""/>
+    <alias field="wait_floating" index="32" name=""/>
+    <alias field="wait_obsolete_types" index="33" name=""/>
+    <alias field="excluded" index="34" name="geen bezoek gepland"/>
+    <alias field="excluded_reason" index="35" name="reden geen bezoek gepland"/>
+    <alias field="teammember_assigned" index="36" name="toegewezen teamlid"/>
+    <alias field="date_visit_planned" index="37" name="geplande bezoekdatum"/>
+    <alias field="days_to_visit" index="38" name="dagen verblijvend tot bezoek"/>
+    <alias field="no_visit_planned" index="39" name="geen bezoek gepland"/>
+    <alias field="preparation_notes" index="40" name="notities voorbereiding"/>
+    <alias field="done_planning" index="41" name="planning gedaan"/>
+    <alias field="is_frozen" index="42" name="oude REP locatie"/>
+    <alias field="visit_id" index="43" name=""/>
+    <alias field="teammember_id" index="44" name="teamlid uitvoering"/>
+    <alias field="date_visit" index="45" name="datum bezoek"/>
+    <alias field="type_assessed" index="46" name="type (vastgesteld)"/>
+    <alias field="is_well_developed_type" index="47" name="goed ontwikkeld type"/>
+    <alias field="gps_type" index="48" name="GPS: type"/>
+    <alias field="gps_accuracy_cm" index="49" name="GPS: nauwkeurigheid (cm)"/>
+    <alias field="notes" index="50" name="opmerkingen"/>
+    <alias field="photo" index="51" name="foto"/>
+    <alias field="issues" index="52" name="problemen opgetreden"/>
+    <alias field="show_othervisits" index="53" name=""/>
+    <alias field="is_samplingpoint_activity" index="54" name=""/>
+    <alias field="show_aquatictypevisits" index="55" name=""/>
+    <alias field="samplingpoint_selection_done" index="56" name="check: staalnamepunt gezet"/>
+    <alias field="crassula_was_here" index="57" name="waarneming watercrassula"/>
+    <alias field="show_terrestrialtypevisits" index="58" name=""/>
+    <alias field="replacement_recovery_notes" index="59" name="terugvindnotities (vervangcel)"/>
+    <alias field="visit_done" index="60" name="bezoek gedaan"/>
+    <alias field="locationinfo_id" index="61" name=""/>
+    <alias field="landowner" index="62" name="landgebruik info"/>
+    <alias field="accessibility_inaccessible" index="63" name="locatie ontoegankelijk"/>
+    <alias field="accessibility_revisit" index="64" name="inschatting eind ontoegankelijkheid"/>
+    <alias field="recovery_hints" index="65" name="terugvindhulp puntmarkering"/>
+    <alias field="equipment_recommendations" index="66" name="uitrusting aanbevolen"/>
+    <alias field="is_secret_location" index="67" name="privé"/>
+    <alias field="orthophoto_assessment_done" index="68" name=""/>
+    <alias field="orthophoto_notes" index="69" name="notities orthofotoevaluatie"/>
   </aliases>
+  <customComments>
+    <customComment field="is_secret_location" value="verdere info: zie geheime google sheet"/>
+  </customComments>
   <splitPolicies>
     <policy field="ogc_fid" policy="DefaultValue"/>
     <policy field="location_id" policy="DefaultValue"/>
@@ -2227,6 +2275,8 @@
     <policy field="accessibility_inaccessible" policy="DefaultValue"/>
     <policy field="accessibility_revisit" policy="DefaultValue"/>
     <policy field="recovery_hints" policy="DefaultValue"/>
+    <policy field="equipment_recommendations" policy="DefaultValue"/>
+    <policy field="is_secret_location" policy="DefaultValue"/>
     <policy field="orthophoto_assessment_done" policy="DefaultValue"/>
     <policy field="orthophoto_notes" policy="DefaultValue"/>
   </splitPolicies>
@@ -2234,6 +2284,7 @@
     <default applyOnUpdate="0" expression="" field="ogc_fid"/>
     <default applyOnUpdate="0" expression="" field="location_id"/>
     <default applyOnUpdate="0" expression="" field="grts_address"/>
+    <default applyOnUpdate="0" expression="" field="is_cell_center"/>
     <default applyOnUpdate="0" expression="" field="sampleunit_id"/>
     <default applyOnUpdate="0" expression="" field="grts_join_method"/>
     <default applyOnUpdate="0" expression="" field="schemes"/>
@@ -2284,6 +2335,7 @@
     <default applyOnUpdate="0" expression="" field="photo"/>
     <default applyOnUpdate="0" expression="" field="issues"/>
     <default applyOnUpdate="0" expression="" field="show_othervisits"/>
+    <default applyOnUpdate="0" expression="" field="is_samplingpoint_activity"/>
     <default applyOnUpdate="0" expression="" field="show_aquatictypevisits"/>
     <default applyOnUpdate="0" expression="" field="samplingpoint_selection_done"/>
     <default applyOnUpdate="0" expression="" field="crassula_was_here"/>
@@ -2295,6 +2347,8 @@
     <default applyOnUpdate="0" expression="" field="accessibility_inaccessible"/>
     <default applyOnUpdate="0" expression="" field="accessibility_revisit"/>
     <default applyOnUpdate="0" expression="" field="recovery_hints"/>
+    <default applyOnUpdate="0" expression="" field="equipment_recommendations"/>
+    <default applyOnUpdate="0" expression="" field="is_secret_location"/>
     <default applyOnUpdate="0" expression="" field="orthophoto_assessment_done"/>
     <default applyOnUpdate="0" expression="" field="orthophoto_notes"/>
   </defaults>
@@ -2302,6 +2356,7 @@
     <constraint constraints="0" exp_strength="0" field="ogc_fid" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="location_id" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="grts_address" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="is_cell_center" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="sampleunit_id" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="grts_join_method" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="schemes" notnull_strength="0" unique_strength="0"/>
@@ -2352,6 +2407,7 @@
     <constraint constraints="0" exp_strength="0" field="photo" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="issues" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="show_othervisits" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="is_samplingpoint_activity" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="show_aquatictypevisits" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="samplingpoint_selection_done" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="crassula_was_here" notnull_strength="0" unique_strength="0"/>
@@ -2363,6 +2419,8 @@
     <constraint constraints="0" exp_strength="0" field="accessibility_inaccessible" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="accessibility_revisit" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="recovery_hints" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="equipment_recommendations" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="is_secret_location" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="orthophoto_assessment_done" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="orthophoto_notes" notnull_strength="0" unique_strength="0"/>
   </constraints>
@@ -2370,6 +2428,7 @@
     <constraint desc="" exp="" field="ogc_fid"/>
     <constraint desc="" exp="" field="location_id"/>
     <constraint desc="" exp="" field="grts_address"/>
+    <constraint desc="" exp="" field="is_cell_center"/>
     <constraint desc="" exp="" field="sampleunit_id"/>
     <constraint desc="" exp="" field="grts_join_method"/>
     <constraint desc="" exp="" field="schemes"/>
@@ -2420,6 +2479,7 @@
     <constraint desc="" exp="" field="photo"/>
     <constraint desc="" exp="" field="issues"/>
     <constraint desc="" exp="" field="show_othervisits"/>
+    <constraint desc="" exp="" field="is_samplingpoint_activity"/>
     <constraint desc="" exp="" field="show_aquatictypevisits"/>
     <constraint desc="" exp="" field="samplingpoint_selection_done"/>
     <constraint desc="" exp="" field="crassula_was_here"/>
@@ -2431,6 +2491,8 @@
     <constraint desc="" exp="" field="accessibility_inaccessible"/>
     <constraint desc="" exp="" field="accessibility_revisit"/>
     <constraint desc="" exp="" field="recovery_hints"/>
+    <constraint desc="" exp="" field="equipment_recommendations"/>
+    <constraint desc="" exp="" field="is_secret_location"/>
     <constraint desc="" exp="" field="orthophoto_assessment_done"/>
     <constraint desc="" exp="" field="orthophoto_notes"/>
   </constraintExpressions>
@@ -2438,7 +2500,7 @@
   <attributeactions>
     <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
   </attributeactions>
-  <attributetableconfig actionWidgetStyle="dropDown" sortExpression="&quot;grts_address&quot;" sortOrder="0">
+  <attributetableconfig actionWidgetStyle="dropDown" sortExpression="&quot;replacement_permanence&quot;" sortOrder="1">
     <columns>
       <column hidden="0" name="ogc_fid" type="field" width="-1"/>
       <column hidden="0" name="location_id" type="field" width="-1"/>
@@ -2506,6 +2568,10 @@
       <column hidden="0" name="show_terrestrialtypevisits" type="field" width="-1"/>
       <column hidden="0" name="samplingpoint_selection_done" type="field" width="-1"/>
       <column hidden="0" name="crassula_was_here" type="field" width="-1"/>
+      <column hidden="0" name="is_cell_center" type="field" width="-1"/>
+      <column hidden="0" name="equipment_recommendations" type="field" width="-1"/>
+      <column hidden="0" name="is_samplingpoint_activity" type="field" width="-1"/>
+      <column hidden="0" name="is_secret_location" type="field" width="-1"/>
       <column hidden="1" type="actions" width="-1"/>
     </columns>
   </attributetableconfig>
@@ -2539,7 +2605,7 @@ def my_form_open(dialog, layer, feature):
   <editorlayout>tablayout</editorlayout>
   <attributeEditorForm>
     <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-      <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+      <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
     </labelStyle>
     <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="info" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
@@ -2550,67 +2616,67 @@ def my_form_open(dialog, layer, feature):
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="7" name="type" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="8" name="type" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="4" name="grts_join_method" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="5" name="grts_join_method" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="5" name="schemes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="6" name="schemes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="8" name="domain_part" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="9" name="domain_part" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="20" name="activity_group_id" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="21" name="activity_group_id" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="21" name="date_start" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="22" name="date_start" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="22" name="date_end" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="23" name="date_end" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="27" name="wait_any" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="28" name="wait_any" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="10" name="in_mhq_samples" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="11" name="in_mhq_samples" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="12" name="mhq_assessment_date" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="13" name="mhq_assessment_date" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="65" name="orthophoto_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="69" name="orthophoto_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="60" name="landowner" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="62" name="landowner" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="41" name="is_frozen" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="42" name="is_frozen" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -2620,47 +2686,47 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="26" name="priority" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="27" name="priority" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="23" name="date_interval" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="24" name="date_interval" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="37" name="days_to_visit" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="38" name="days_to_visit" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="35" name="teammember_assigned" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="36" name="teammember_assigned" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="36" name="date_visit_planned" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="37" name="date_visit_planned" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="39" name="preparation_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="40" name="preparation_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="38" name="no_visit_planned" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="39" name="no_visit_planned" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="34" name="excluded_reason" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="35" name="excluded_reason" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="40" name="done_planning" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="41" name="done_planning" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -2670,57 +2736,67 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="7" name="type" showLabel="0" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="8" name="type" showLabel="0" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="43" name="teammember_id" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="44" name="teammember_id" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="44" name="date_visit" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="45" name="date_visit" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="45" name="type_assessed" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="46" name="type_assessed" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="61" name="accessibility_inaccessible" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="63" name="accessibility_inaccessible" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="62" name="accessibility_revisit" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="64" name="accessibility_revisit" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="50" name="photo" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="51" name="photo" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="46" name="is_well_developed_type" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="47" name="is_well_developed_type" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="47" name="gps_type" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="48" name="gps_type" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="48" name="gps_accuracy_cm" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="49" name="gps_accuracy_cm" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="51" name="issues" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="66" name="equipment_recommendations" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="67" name="is_secret_location" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="52" name="issues" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -2729,12 +2805,17 @@ def my_form_open(dialog, layer, feature):
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-        <attributeEditorField horizontalStretch="0" index="55" name="crassula_was_here" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="57" name="crassula_was_here" showLabel="1" verticalStretch="0">
           <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
             <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
           </labelStyle>
         </attributeEditorField>
-        <attributeEditorField horizontalStretch="0" index="54" name="samplingpoint_selection_done" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="56" name="samplingpoint_selection_done" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+        <attributeEditorField horizontalStretch="0" index="19" name="type_is_absent" showLabel="1" verticalStretch="0">
           <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
             <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
           </labelStyle>
@@ -2744,23 +2825,23 @@ def my_form_open(dialog, layer, feature):
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-        <attributeEditorField horizontalStretch="0" index="63" name="recovery_hints" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="65" name="recovery_hints" showLabel="1" verticalStretch="0">
           <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
             <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
           </labelStyle>
         </attributeEditorField>
-        <attributeEditorField horizontalStretch="0" index="14" name="replacement_ongoing" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="15" name="replacement_ongoing" showLabel="1" verticalStretch="0">
           <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
             <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
           </labelStyle>
         </attributeEditorField>
       </attributeEditorContainer>
-      <attributeEditorField horizontalStretch="0" index="49" name="notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="50" name="notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="58" name="visit_done" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="60" name="visit_done" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -2770,27 +2851,27 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="15" name="replacement_reason" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="16" name="replacement_reason" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="16" name="replacement_permanence" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="17" name="replacement_permanence" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="57" name="replacement_recovery_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="59" name="replacement_recovery_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="17" name="is_replaced" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="18" name="is_replaced" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="18" name="type_is_absent" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="19" name="type_is_absent" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -2816,6 +2897,7 @@ def my_form_open(dialog, layer, feature):
     <field editable="0" name="days_to_visit"/>
     <field editable="0" name="domain_part"/>
     <field editable="1" name="done_planning"/>
+    <field editable="1" name="equipment_recommendations"/>
     <field editable="1" name="excluded"/>
     <field editable="1" name="excluded_reason"/>
     <field editable="1" name="extravisit_id"/>
@@ -2828,10 +2910,13 @@ def my_form_open(dialog, layer, feature):
     <field editable="0" name="grts_join_method"/>
     <field editable="0" name="has_mhq_assessment"/>
     <field editable="0" name="in_mhq_samples"/>
+    <field editable="1" name="is_cell_center"/>
     <field editable="0" name="is_forest"/>
     <field editable="0" name="is_frozen"/>
     <field editable="1" name="is_replaced"/>
+    <field editable="1" name="is_samplingpoint_activity"/>
     <field editable="0" name="is_scheduled"/>
+    <field editable="1" name="is_secret_location"/>
     <field editable="1" name="is_well_developed_type"/>
     <field editable="1" name="issues"/>
     <field editable="0" name="landowner"/>
@@ -2899,6 +2984,7 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="days_to_visit"/>
     <field labelOnTop="0" name="domain_part"/>
     <field labelOnTop="0" name="done_planning"/>
+    <field labelOnTop="0" name="equipment_recommendations"/>
     <field labelOnTop="0" name="excluded"/>
     <field labelOnTop="0" name="excluded_reason"/>
     <field labelOnTop="0" name="extravisit_id"/>
@@ -2911,10 +2997,13 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="grts_join_method"/>
     <field labelOnTop="0" name="has_mhq_assessment"/>
     <field labelOnTop="0" name="in_mhq_samples"/>
+    <field labelOnTop="0" name="is_cell_center"/>
     <field labelOnTop="0" name="is_forest"/>
     <field labelOnTop="0" name="is_frozen"/>
     <field labelOnTop="0" name="is_replaced"/>
+    <field labelOnTop="0" name="is_samplingpoint_activity"/>
     <field labelOnTop="0" name="is_scheduled"/>
+    <field labelOnTop="0" name="is_secret_location"/>
     <field labelOnTop="0" name="is_well_developed_type"/>
     <field labelOnTop="0" name="issues"/>
     <field labelOnTop="0" name="landowner"/>
@@ -2982,6 +3071,7 @@ def my_form_open(dialog, layer, feature):
     <field name="days_to_visit" reuseLastValuePolicy="NotAllowed"/>
     <field name="domain_part" reuseLastValuePolicy="NotAllowed"/>
     <field name="done_planning" reuseLastValuePolicy="NotAllowed"/>
+    <field name="equipment_recommendations" reuseLastValuePolicy="NotAllowed"/>
     <field name="excluded" reuseLastValuePolicy="NotAllowed"/>
     <field name="excluded_reason" reuseLastValuePolicy="NotAllowed"/>
     <field name="extravisit_id" reuseLastValuePolicy="NotAllowed"/>
@@ -2994,10 +3084,13 @@ def my_form_open(dialog, layer, feature):
     <field name="grts_join_method" reuseLastValuePolicy="NotAllowed"/>
     <field name="has_mhq_assessment" reuseLastValuePolicy="NotAllowed"/>
     <field name="in_mhq_samples" reuseLastValuePolicy="NotAllowed"/>
+    <field name="is_cell_center" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_forest" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_frozen" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_replaced" reuseLastValuePolicy="NotAllowed"/>
+    <field name="is_samplingpoint_activity" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_scheduled" reuseLastValuePolicy="NotAllowed"/>
+    <field name="is_secret_location" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_well_developed_type" reuseLastValuePolicy="NotAllowed"/>
     <field name="issues" reuseLastValuePolicy="NotAllowed"/>
     <field name="landowner" reuseLastValuePolicy="NotAllowed"/>
@@ -3048,6 +3141,7 @@ def my_form_open(dialog, layer, feature):
   </reuseLastValuePolicy>
   <dataDefinedFieldProperties/>
   <widgets/>
+  <previewExpression>'[' || CASE WHEN priority IS NULL THEN '-' ELSE priority END || '] ' || type || ' - ' || represent_value( "activity_group_id" )</previewExpression>
   <mapTip enabled="1"></mapTip>
   <layerGeometryType>0</layerGeometryType>
 </qgis>

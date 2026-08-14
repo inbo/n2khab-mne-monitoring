@@ -19,6 +19,7 @@ SELECT
   INFO.landowner,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
+  INFO.is_secret_location,
   FCAL.fieldcalendar_id,
   FCAL.activity_group_id,
   FAG.activity_group,
@@ -161,7 +162,8 @@ ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
-  equipment_recommendations = NEW.equipment_recommendations
+  equipment_recommendations = NEW.equipment_recommendations,
+  is_secret_location = NEW.is_secret_location
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 

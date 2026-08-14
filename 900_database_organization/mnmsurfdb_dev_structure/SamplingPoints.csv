@@ -5,6 +5,7 @@ log_creation,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) t
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
 date_sampling,date,False,NULL,False,False,,,,the date of sampling point selection (preference for the newest)
+purpose_chlorophyll,boolean,False,0,False,False,,,,flag sample points marked for chlorophyll measurements
 photo,varchar,False,NULL,False,False,,,,optional photo of the sampling location to illustrate irregularities
 notes,text,False,NULL,False,False,,,,extra notes about the sampling point
-wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location
+wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): actual sampling location

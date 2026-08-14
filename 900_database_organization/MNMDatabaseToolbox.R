@@ -2143,6 +2143,7 @@ precedence_columns <- list(
   ),
   "SamplingPoints" = c(
     "date_sampling",
+    "purpose_chlorophyll",
     "photo",
     "notes"
   ),
@@ -2256,6 +2257,31 @@ precedence_columns <- list(
     "equipment_recommendations",
     "watina_code_1",
     "watina_code_2"
+  ),
+  "ChlorophyllMeasurements" = c(
+    "teammember_id",
+    "datetime_visit",
+    "notes",
+    "issues",
+    "photo",
+    "watertemperature_celsius",
+    "torch_a_freewater_1",
+    "torch_a_freewater_2",
+    "torch_a_freewater_3",
+    "torch_a_sample_1",
+    "torch_a_sample_2",
+    "torch_a_sample_3",
+    "torch_b_sample_1",
+    "torch_b_sample_2",
+    "torch_b_sample_3",
+    "fluo_a_sample_1",
+    "fluo_a_sample_2",
+    "fluo_a_sample_3",
+    "fluo_b_sample_1",
+    "fluo_b_sample_2",
+    "fluo_b_sample_3",
+    "samplingpoint_marked",
+    "visit_done"
   )
 )
 

@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis autoRefreshMode="Disabled" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" labelsEnabled="1" layerType="Vector" maxScale="0" minScale="100000000" readOnly="0" simplifyAlgorithm="0" simplifyDrawingHints="0" simplifyDrawingTol="1" simplifyLocal="1" simplifyMaxScale="1" styleCategories="AllStyleCategories" symbologyReferenceScale="-1" version="4.2.0-Belém do Pará">
+<qgis autoRefreshMode="Disabled" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" labelsEnabled="1" layerType="Vector" maxScale="0" minScale="100000000" readOnly="0" simplifyAlgorithm="0" simplifyDrawingHints="0" simplifyDrawingTol="1" simplifyLocal="1" simplifyMaxScale="1" styleCategories="AllStyleCategories" symbologyReferenceScale="-1" version="4.2.1-Belém do Pará">
   <flags>
     <Identifiable>1</Identifiable>
     <Removable>1</Removable>
@@ -146,12 +146,51 @@
   </elevation>
   <renderer-v2 attr="CASE WHEN  &quot;issues&quot; THEN 'issues' ELSE (CASE WHEN visit_done THEN 'done' ELSE '' END) END" enableorderby="0" forceraster="0" referencescale="-1" symbollevels="0" type="categorizedSymbol">
     <categories>
-      <category label="issues" render="true" symbol="0" type="string" uuid="{31b6c40e-dfa1-4b67-87f8-0fba5237e2c3}" value="issues"/>
-      <category label="TODO" render="true" symbol="1" type="string" uuid="{81c9535d-2deb-45d4-8c43-c25565666e8b}" value=""/>
-      <category label="done" render="true" symbol="2" type="string" uuid="{022d96c1-0c81-4cc7-8dd2-46fc3ccb6a6c}" value="done"/>
+      <category label="done" render="true" symbol="0" type="string" uuid="{022d96c1-0c81-4cc7-8dd2-46fc3ccb6a6c}" value="done"/>
+      <category label="issues" render="true" symbol="1" type="string" uuid="{31b6c40e-dfa1-4b67-87f8-0fba5237e2c3}" value="issues"/>
+      <category label="TODO" render="true" symbol="2" type="string" uuid="{81c9535d-2deb-45d4-8c43-c25565666e8b}" value=""/>
     </categories>
     <symbols>
       <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="0" type="marker">
+        <data_defined_properties>
+          <Option type="Map">
+            <Option name="name" type="QString" value=""/>
+            <Option name="properties"/>
+            <Option name="type" type="QString" value="collection"/>
+          </Option>
+        </data_defined_properties>
+        <layer class="SimpleMarker" enabled="1" id="{85e5890e-24ad-48dd-a131-3e1781bbda52}" locked="0" pass="0">
+          <Option type="Map">
+            <Option name="angle" type="QString" value="0"/>
+            <Option name="cap_style" type="QString" value="square"/>
+            <Option name="color" type="QString" value="181,255,161,255,hsv:0.29741665720939636,0.37039750814437866,1,1"/>
+            <Option name="horizontal_anchor_point" type="QString" value="1"/>
+            <Option name="joinstyle" type="QString" value="bevel"/>
+            <Option name="name" type="QString" value="circle"/>
+            <Option name="offset" type="QString" value="0,0"/>
+            <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
+            <Option name="offset_unit" type="QString" value="MM"/>
+            <Option name="outline_color" type="QString" value="0,0,0,255,hsv:0.98799997568130493,0.86718547344207764,0,1"/>
+            <Option name="outline_style" type="QString" value="solid"/>
+            <Option name="outline_width" type="QString" value="0.4"/>
+            <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
+            <Option name="outline_width_unit" type="QString" value="MM"/>
+            <Option name="scale_method" type="QString" value="diameter"/>
+            <Option name="size" type="QString" value="2"/>
+            <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
+            <Option name="size_unit" type="QString" value="MM"/>
+            <Option name="vertical_anchor_point" type="QString" value="1"/>
+          </Option>
+          <data_defined_properties>
+            <Option type="Map">
+              <Option name="name" type="QString" value=""/>
+              <Option name="properties"/>
+              <Option name="type" type="QString" value="collection"/>
+            </Option>
+          </data_defined_properties>
+        </layer>
+      </symbol>
+      <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="1" type="marker">
         <data_defined_properties>
           <Option type="Map">
             <Option name="name" type="QString" value=""/>
@@ -190,7 +229,7 @@
           </data_defined_properties>
         </layer>
       </symbol>
-      <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="1" type="marker">
+      <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="2" type="marker">
         <data_defined_properties>
           <Option type="Map">
             <Option name="name" type="QString" value=""/>
@@ -216,45 +255,6 @@
             <Option name="outline_width_unit" type="QString" value="MM"/>
             <Option name="scale_method" type="QString" value="diameter"/>
             <Option name="size" type="QString" value="4"/>
-            <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="size_unit" type="QString" value="MM"/>
-            <Option name="vertical_anchor_point" type="QString" value="1"/>
-          </Option>
-          <data_defined_properties>
-            <Option type="Map">
-              <Option name="name" type="QString" value=""/>
-              <Option name="properties"/>
-              <Option name="type" type="QString" value="collection"/>
-            </Option>
-          </data_defined_properties>
-        </layer>
-      </symbol>
-      <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="2" type="marker">
-        <data_defined_properties>
-          <Option type="Map">
-            <Option name="name" type="QString" value=""/>
-            <Option name="properties"/>
-            <Option name="type" type="QString" value="collection"/>
-          </Option>
-        </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{85e5890e-24ad-48dd-a131-3e1781bbda52}" locked="0" pass="0">
-          <Option type="Map">
-            <Option name="angle" type="QString" value="0"/>
-            <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="181,255,161,255,hsv:0.29741665720939636,0.37039750814437866,1,1"/>
-            <Option name="horizontal_anchor_point" type="QString" value="1"/>
-            <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="name" type="QString" value="circle"/>
-            <Option name="offset" type="QString" value="0,0"/>
-            <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="0,0,0,255,hsv:0.98799997568130493,0.86718547344207764,0,1"/>
-            <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0.4"/>
-            <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="outline_width_unit" type="QString" value="MM"/>
-            <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="2"/>
             <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="size_unit" type="QString" value="MM"/>
             <Option name="vertical_anchor_point" type="QString" value="1"/>
@@ -619,16 +619,16 @@
   <customproperties>
     <Option type="Map">
       <Option name="QFieldSync/action" type="QString" value="no_action"/>
-      <Option name="QFieldSync/attachment_naming" type="QString" value="{&quot;photo&quot;: &quot;'DCIM/fieldwork_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil&quot;: &quot;'DCIM/soilprofile_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_well&quot;: &quot;'DCIM/wellplacement_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil_1_peilbuis&quot;: &quot;'DCIM/soilpb_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil_2_piezometer&quot;: &quot;'DCIM/soilpz_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;loceval_photo&quot;: &quot;'DCIM/mijn-veldwerk_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;samplecontext_photo&quot;: &quot;'DCIM/mijn-veldwerk_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;perturbation_photo&quot;: &quot;'DCIM/mijn-veldwerk_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;meteo_photo&quot;: &quot;'DCIM/mijn-veldwerk_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}"/>
-      <Option name="QFieldSync/attribute_editing_locked_expression" type="QString" value=""/>
+      <Option name="QFieldSync/attachment_naming" type="QString" value="{&quot;photo&quot;: &quot;'DCIM/fieldwork_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil&quot;: &quot;'DCIM/soilprofile_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_well&quot;: &quot;'DCIM/wellplacement_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil_1_peilbuis&quot;: &quot;'DCIM/soilpb_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil_2_piezometer&quot;: &quot;'DCIM/soilpz_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;loceval_photo&quot;: &quot;'DCIM/loceval_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;samplecontext_photo&quot;: &quot;'DCIM/observation_samplecontext_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;perturbation_photo&quot;: &quot;'DCIM/observation_perturb_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;meteo_photo&quot;: &quot;'DCIM/observation_meteo_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;xphoto_sample&quot;: &quot;'DCIM/x_sample_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}"/>
+      <Option name="QFieldSync/attribute_editing_locked_expression" type="invalid"/>
       <Option name="QFieldSync/cloud_action" type="QString" value="no_action"/>
-      <Option name="QFieldSync/feature_addition_locked_expression" type="QString" value=""/>
-      <Option name="QFieldSync/feature_deletion_locked_expression" type="QString" value=""/>
-      <Option name="QFieldSync/geometry_editing_locked_expression" type="QString" value=""/>
+      <Option name="QFieldSync/feature_addition_locked_expression" type="invalid"/>
+      <Option name="QFieldSync/feature_deletion_locked_expression" type="invalid"/>
+      <Option name="QFieldSync/geometry_editing_locked_expression" type="invalid"/>
       <Option name="QFieldSync/is_feature_addition_locked" type="bool" value="true"/>
       <Option name="QFieldSync/is_feature_deletion_locked" type="bool" value="true"/>
       <Option name="QFieldSync/is_geometry_editing_locked" type="bool" value="true"/>
-      <Option name="QFieldSync/photo_naming" type="QString" value="{&quot;photo&quot;: &quot;'DCIM/fieldwork_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil&quot;: &quot;'DCIM/soilprofile_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_well&quot;: &quot;'DCIM/wellplacement_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil_1_peilbuis&quot;: &quot;'DCIM/soilpb_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil_2_piezometer&quot;: &quot;'DCIM/soilpz_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;loceval_photo&quot;: &quot;'DCIM/mijn-veldwerk_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;samplecontext_photo&quot;: &quot;'DCIM/mijn-veldwerk_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;perturbation_photo&quot;: &quot;'DCIM/mijn-veldwerk_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;meteo_photo&quot;: &quot;'DCIM/mijn-veldwerk_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}"/>
+      <Option name="QFieldSync/photo_naming" type="QString" value="{&quot;photo&quot;: &quot;'DCIM/fieldwork_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil&quot;: &quot;'DCIM/soilprofile_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_well&quot;: &quot;'DCIM/wellplacement_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil_1_peilbuis&quot;: &quot;'DCIM/soilpb_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;photo_soil_2_piezometer&quot;: &quot;'DCIM/soilpz_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;loceval_photo&quot;: &quot;'DCIM/loceval_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;samplecontext_photo&quot;: &quot;'DCIM/observation_samplecontext_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;perturbation_photo&quot;: &quot;'DCIM/observation_perturb_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;meteo_photo&quot;: &quot;'DCIM/observation_meteo_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;, &quot;xphoto_sample&quot;: &quot;'DCIM/x_sample_' || format_date(now(),'yyyyMMddhhmmsszzz') || '.{extension}'&quot;}"/>
       <Option name="QFieldSync/relationship_maximum_visible" type="QString" value="{}"/>
       <Option name="QFieldSync/tracking_distance_requirement_minimum_meters" type="int" value="30"/>
       <Option name="QFieldSync/tracking_erroneous_distance_safeguard_maximum_meters" type="int" value="1"/>
@@ -994,6 +994,18 @@
         </config>
       </editWidget>
     </field>
+    <field configurationFlags="0" name="is_secret_location">
+      <editWidget type="CheckBox">
+        <config>
+          <Option type="Map">
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
     <field configurationFlags="0" name="loceval_date">
       <editWidget type="DateTime">
         <config>
@@ -1136,12 +1148,12 @@
         <config>
           <Option type="Map">
             <Option name="AllowMulti" type="bool" value="false"/>
-            <Option name="AllowNull" type="bool" value="true"/>
+            <Option name="AllowNull" type="bool" value="false"/>
             <Option name="CompleterMatchFlags" type="int" value="2"/>
             <Option name="Description" type="QString" value=""/>
             <Option name="DisplayGroupName" type="bool" value="false"/>
             <Option name="FilterExpression" type="invalid"/>
-            <Option name="Group" type="invalid"/>
+            <Option name="Group" type="QString" value="given_name"/>
             <Option name="Key" type="QString" value="teammember_id"/>
             <Option name="Layer" type="QString" value="TeamMembers_7b130dfb_4e81_4a64_b8ab_98b1126d4e5e"/>
             <Option name="LayerName" type="QString" value="teamleden"/>
@@ -1192,16 +1204,16 @@
             <Option name="DocumentViewerWidth" type="int" value="0"/>
             <Option name="FileWidget" type="bool" value="true"/>
             <Option name="FileWidgetButton" type="bool" value="true"/>
-            <Option name="FileWidgetFilter" type="QString" value=""/>
+            <Option name="FileWidgetFilter" type="invalid"/>
             <Option name="PropertyCollection" type="Map">
-              <Option name="name" type="QString" value=""/>
-              <Option name="properties"/>
+              <Option name="name" type="invalid"/>
+              <Option name="properties" type="invalid"/>
               <Option name="type" type="QString" value="collection"/>
             </Option>
             <Option name="RelativeStorage" type="int" value="1"/>
-            <Option name="StorageAuthConfigId" type="QString" value=""/>
+            <Option name="StorageAuthConfigId" type="invalid"/>
             <Option name="StorageMode" type="int" value="0"/>
-            <Option name="StorageType" type="QString" value=""/>
+            <Option name="StorageType" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1211,9 +1223,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1223,9 +1235,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1235,9 +1247,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1314,20 +1326,6 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="latest_calibration">
-      <editWidget type="DateTime">
-        <config>
-          <Option type="Map">
-            <Option name="allow_null" type="bool" value="true"/>
-            <Option name="calendar_popup" type="bool" value="true"/>
-            <Option name="display_format" type="QString" value="yyyy-MM-dd"/>
-            <Option name="field_format" type="QString" value="yyyy-MM-dd"/>
-            <Option name="field_format_overwrite" type="bool" value="false"/>
-            <Option name="field_iso_format" type="bool" value="false"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
     <field configurationFlags="0" name="watertemperature_celsius">
       <editWidget type="TextEdit">
         <config>
@@ -1339,11 +1337,15 @@
       </editWidget>
     </field>
     <field configurationFlags="0" name="sample_ph">
-      <editWidget type="TextEdit">
+      <editWidget type="Range">
         <config>
           <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="false"/>
-            <Option name="UseHtml" type="bool" value="false"/>
+            <Option name="AllowNull" type="bool" value="true"/>
+            <Option name="Max" type="double" value="14"/>
+            <Option name="Min" type="double" value="0"/>
+            <Option name="Precision" type="int" value="4"/>
+            <Option name="Step" type="double" value="0.1"/>
+            <Option name="Style" type="QString" value="SpinBox"/>
           </Option>
         </config>
       </editWidget>
@@ -1383,9 +1385,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1401,11 +1403,15 @@
       </editWidget>
     </field>
     <field configurationFlags="0" name="sneller_cm">
-      <editWidget type="TextEdit">
+      <editWidget type="Range">
         <config>
           <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="false"/>
-            <Option name="UseHtml" type="bool" value="false"/>
+            <Option name="AllowNull" type="bool" value="true"/>
+            <Option name="Max" type="double" value="200"/>
+            <Option name="Min" type="double" value="0"/>
+            <Option name="Precision" type="int" value="1"/>
+            <Option name="Step" type="double" value="0.5"/>
+            <Option name="Style" type="QString" value="SpinBox"/>
           </Option>
         </config>
       </editWidget>
@@ -1450,6 +1456,30 @@
         </config>
       </editWidget>
     </field>
+    <field configurationFlags="0" name="xphoto_sample">
+      <editWidget type="ExternalResource">
+        <config>
+          <Option type="Map">
+            <Option name="DefaultRoot" type="QString" value="DCIM"/>
+            <Option name="DocumentViewer" type="int" value="1"/>
+            <Option name="DocumentViewerHeight" type="int" value="0"/>
+            <Option name="DocumentViewerWidth" type="int" value="0"/>
+            <Option name="FileWidget" type="bool" value="true"/>
+            <Option name="FileWidgetButton" type="bool" value="true"/>
+            <Option name="FileWidgetFilter" type="invalid"/>
+            <Option name="PropertyCollection" type="Map">
+              <Option name="name" type="invalid"/>
+              <Option name="properties" type="invalid"/>
+              <Option name="type" type="QString" value="collection"/>
+            </Option>
+            <Option name="RelativeStorage" type="int" value="1"/>
+            <Option name="StorageAuthConfigId" type="invalid"/>
+            <Option name="StorageMode" type="int" value="0"/>
+            <Option name="StorageType" type="invalid"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
     <field configurationFlags="0" name="equipment">
       <editWidget type="TextEdit">
         <config>
@@ -1465,9 +1495,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1507,9 +1537,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1520,6 +1550,20 @@
           <Option type="Map">
             <Option name="IsMultiline" type="bool" value="false"/>
             <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="waterlevel_elevation_mtaw">
+      <editWidget type="Range">
+        <config>
+          <Option type="Map">
+            <Option name="AllowNull" type="bool" value="true"/>
+            <Option name="Max" type="double" value="1000"/>
+            <Option name="Min" type="double" value="-100"/>
+            <Option name="Precision" type="int" value="2"/>
+            <Option name="Step" type="double" value="0.5"/>
+            <Option name="Style" type="QString" value="SpinBox"/>
           </Option>
         </config>
       </editWidget>
@@ -1589,9 +1633,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1625,9 +1669,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1642,16 +1686,16 @@
             <Option name="DocumentViewerWidth" type="int" value="0"/>
             <Option name="FileWidget" type="bool" value="true"/>
             <Option name="FileWidgetButton" type="bool" value="true"/>
-            <Option name="FileWidgetFilter" type="QString" value=""/>
+            <Option name="FileWidgetFilter" type="invalid"/>
             <Option name="PropertyCollection" type="Map">
-              <Option name="name" type="QString" value=""/>
-              <Option name="properties"/>
+              <Option name="name" type="invalid"/>
+              <Option name="properties" type="invalid"/>
               <Option name="type" type="QString" value="collection"/>
             </Option>
             <Option name="RelativeStorage" type="int" value="1"/>
-            <Option name="StorageAuthConfigId" type="QString" value=""/>
+            <Option name="StorageAuthConfigId" type="invalid"/>
             <Option name="StorageMode" type="int" value="0"/>
-            <Option name="StorageType" type="QString" value=""/>
+            <Option name="StorageType" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1831,9 +1875,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1867,9 +1911,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1884,16 +1928,16 @@
             <Option name="DocumentViewerWidth" type="int" value="0"/>
             <Option name="FileWidget" type="bool" value="true"/>
             <Option name="FileWidgetButton" type="bool" value="true"/>
-            <Option name="FileWidgetFilter" type="QString" value=""/>
+            <Option name="FileWidgetFilter" type="invalid"/>
             <Option name="PropertyCollection" type="Map">
-              <Option name="name" type="QString" value=""/>
-              <Option name="properties"/>
+              <Option name="name" type="invalid"/>
+              <Option name="properties" type="invalid"/>
               <Option name="type" type="QString" value="collection"/>
             </Option>
             <Option name="RelativeStorage" type="int" value="1"/>
-            <Option name="StorageAuthConfigId" type="QString" value=""/>
+            <Option name="StorageAuthConfigId" type="invalid"/>
             <Option name="StorageMode" type="int" value="0"/>
-            <Option name="StorageType" type="QString" value=""/>
+            <Option name="StorageType" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1913,9 +1957,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1925,9 +1969,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1937,9 +1981,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1949,9 +1993,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1961,9 +2005,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1973,9 +2017,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1985,9 +2029,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -1997,9 +2041,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2009,9 +2053,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2021,9 +2065,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2033,9 +2077,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2045,9 +2089,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2057,9 +2101,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2069,9 +2113,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2081,29 +2125,33 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
     </field>
     <field configurationFlags="0" name="drainage_structures">
-      <editWidget type="TextEdit">
+      <editWidget type="CheckBox">
         <config>
           <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="false"/>
-            <Option name="UseHtml" type="bool" value="false"/>
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
     </field>
     <field configurationFlags="0" name="fencing">
-      <editWidget type="TextEdit">
+      <editWidget type="CheckBox">
         <config>
           <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="false"/>
-            <Option name="UseHtml" type="bool" value="false"/>
+            <Option name="AllowNullState" type="bool" value="false"/>
+            <Option name="CheckedState" type="invalid"/>
+            <Option name="TextDisplayMethod" type="int" value="0"/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2113,9 +2161,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2149,9 +2197,9 @@
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2166,21 +2214,31 @@
             <Option name="DocumentViewerWidth" type="int" value="0"/>
             <Option name="FileWidget" type="bool" value="true"/>
             <Option name="FileWidgetButton" type="bool" value="true"/>
-            <Option name="FileWidgetFilter" type="QString" value=""/>
+            <Option name="FileWidgetFilter" type="invalid"/>
             <Option name="PropertyCollection" type="Map">
-              <Option name="name" type="QString" value=""/>
-              <Option name="properties"/>
+              <Option name="name" type="invalid"/>
+              <Option name="properties" type="invalid"/>
               <Option name="type" type="QString" value="collection"/>
             </Option>
             <Option name="RelativeStorage" type="int" value="1"/>
-            <Option name="StorageAuthConfigId" type="QString" value=""/>
+            <Option name="StorageAuthConfigId" type="invalid"/>
             <Option name="StorageMode" type="int" value="0"/>
-            <Option name="StorageType" type="QString" value=""/>
+            <Option name="StorageType" type="invalid"/>
           </Option>
         </config>
       </editWidget>
     </field>
     <field configurationFlags="0" name="prior_48h">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="true"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="exceptional">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -2190,26 +2248,14 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="exceptional">
-      <editWidget type="CheckBox">
-        <config>
-          <Option type="Map">
-            <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
-            <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
     <field configurationFlags="0" name="precipitation">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
             <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="QString" value=""/>
+            <Option name="CheckedState" type="invalid"/>
             <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="QString" value=""/>
+            <Option name="UncheckedState" type="invalid"/>
           </Option>
         </config>
       </editWidget>
@@ -2292,35 +2338,35 @@
     <alias field="preparation_notes" index="13" name="vorige notities"/>
     <alias field="locationinfo_id" index="14" name="index locatie-info's (technisch)"/>
     <alias field="accessibility_inaccessible" index="15" name="locatie ontoegankelijk"/>
-    <alias field="accessibility_revisit" index="16" name="ontoegankelijkheid eind (inschatting)"/>
+    <alias field="accessibility_revisit" index="16" name="ontoegankelijkheid eind"/>
     <alias field="landowner" index="17" name="eigenaar"/>
     <alias field="recovery_hints" index="18" name="terugvind-tips"/>
     <alias field="equipment_recommendations" index="19" name="uitrusting aanbevolen"/>
-    <alias field="loceval_date" index="20" name="datum loceval"/>
-    <alias field="loceval_name" index="21" name="teamlid loceval"/>
-    <alias field="type_assessed" index="22" name=""/>
-    <alias field="type_is_absent" index="23" name=""/>
-    <alias field="loceval_photo" index="24" name="foto loceval"/>
-    <alias field="loceval_notes" index="25" name="notities loceval"/>
-    <alias field="activity_group" index="26" name="activiteitsgroep"/>
-    <alias field="is_field_activity" index="27" name="is veldactiviteit"/>
-    <alias field="is_surf_activity" index="28" name="is oppervlaktewateractiviteit"/>
-    <alias field="protocols" index="29" name="protocollen"/>
-    <alias field="visit_id" index="30" name="bezoeks-id (technisch)"/>
-    <alias field="teammember_id" index="31" name="teamlid uitvoering"/>
-    <alias field="datetime_visit" index="32" name="datum/tijd bezoek"/>
-    <alias field="notes" index="33" name="opmerkingen"/>
-    <alias field="photo" index="34" name="foto locatie"/>
-    <alias field="issues" index="35" name="problemen opgetreden?"/>
-    <alias field="sampling_done" index="36" name="staalname gedaan"/>
-    <alias field="visit_done" index="37" name="bezoek gedaan"/>
-    <alias field="lenticvisit_id" index="38" name=""/>
-    <alias field="loticvisit_id" index="39" name=""/>
-    <alias field="show_lenticvisits" index="40" name=""/>
-    <alias field="show_loticvisits" index="41" name=""/>
-    <alias field="project_code" index="42" name="projectcode LIMS"/>
-    <alias field="recipient_code" index="43" name="recipient code LIMS"/>
-    <alias field="latest_calibration" index="44" name="datum calibratie sondes"/>
+    <alias field="is_secret_location" index="20" name="privé"/>
+    <alias field="loceval_date" index="21" name="datum loceval"/>
+    <alias field="loceval_name" index="22" name="teamlid loceval"/>
+    <alias field="type_assessed" index="23" name=""/>
+    <alias field="type_is_absent" index="24" name=""/>
+    <alias field="loceval_photo" index="25" name="foto loceval"/>
+    <alias field="loceval_notes" index="26" name="notities loceval"/>
+    <alias field="activity_group" index="27" name="activiteitsgroep"/>
+    <alias field="is_field_activity" index="28" name="is veldactiviteit"/>
+    <alias field="is_surf_activity" index="29" name="is oppervlaktewateractiviteit"/>
+    <alias field="protocols" index="30" name="protocollen"/>
+    <alias field="visit_id" index="31" name="bezoeks-id (technisch)"/>
+    <alias field="teammember_id" index="32" name="teamlid uitvoering"/>
+    <alias field="datetime_visit" index="33" name="datum/tijd bezoek"/>
+    <alias field="notes" index="34" name="opmerkingen"/>
+    <alias field="photo" index="35" name="foto locatie t.h.v. staalnamepunt"/>
+    <alias field="issues" index="36" name="problemen opgetreden?"/>
+    <alias field="sampling_done" index="37" name="staalname gedaan"/>
+    <alias field="visit_done" index="38" name="bezoek gedaan"/>
+    <alias field="lenticvisit_id" index="39" name=""/>
+    <alias field="loticvisit_id" index="40" name=""/>
+    <alias field="show_lenticvisits" index="41" name=""/>
+    <alias field="show_loticvisits" index="42" name=""/>
+    <alias field="project_code" index="43" name="projectcode LIMS"/>
+    <alias field="recipient_code" index="44" name="recipient code LIMS"/>
     <alias field="watertemperature_celsius" index="45" name="watertemperatuur (°C)"/>
     <alias field="sample_ph" index="46" name="pH"/>
     <alias field="electric_conductivity_mus_cm" index="47" name="EC (µS/cm)"/>
@@ -2333,82 +2379,133 @@
     <alias field="smell" index="54" name="geur"/>
     <alias field="zooplankton" index="55" name="zoöplankton"/>
     <alias field="macroinvertebrates" index="56" name="macroinvertebraten"/>
-    <alias field="equipment" index="57" name="monstername apparatuur"/>
-    <alias field="chlorophytae_presence" index="58" name="aanwezigheid vegetatie/metaphyton/drijflaag"/>
-    <alias field="chlorophytae_specification" index="59" name="specificatie phytae"/>
-    <alias field="waterdepth_samplingpoint_cm" index="60" name="waterdiepte staalnamepunt (cm)"/>
-    <alias field="secchi_depth_cm" index="61" name="Secchidiepte (cm)"/>
-    <alias field="clear_to_bottom" index="62" name="bodem zichtbaar"/>
-    <alias field="sludge_thickness" index="63" name="sliplaag dikte"/>
-    <alias field="sample_notes" index="64" name="opmerkingen staal"/>
-    <alias field="meandering" index="65" name=""/>
-    <alias field="flowvel" index="66" name=""/>
-    <alias field="flowvel_method" index="67" name=""/>
-    <alias field="barriers" index="68" name=""/>
-    <alias field="current_pits" index="69" name=""/>
-    <alias field="link_observation_samplecontext" index="70" name="poel en context"/>
-    <alias field="samplecontextobservation_id" index="71" name=""/>
-    <alias field="samplecontext_notes" index="72" name="opmerkingen"/>
-    <alias field="samplecontext_alert" index="73" name="aandacht!"/>
-    <alias field="samplecontext_photo" index="74" name="foto staalnamepunt"/>
-    <alias field="max_depth_cm" index="75" name="maximale diepte (cm)"/>
-    <alias field="connectivity" index="76" name="connectiviteit"/>
-    <alias field="seep_influence" index="77" name="kwelinvloed"/>
-    <alias field="coverage_rate" index="78" name="niet-open wateroppervlak (bedekking %) "/>
-    <alias field="shading" index="79" name="beschaduwing (%)"/>
-    <alias field="leaf_deposition" index="80" name="bladinval (%)"/>
-    <alias field="organic_material" index="81" name="grof organisch materiaal"/>
-    <alias field="emergents" index="82" name="emergente vegetatie (bedekking %)"/>
-    <alias field="float_pleustophytes" index="83" name="pleustofyten (bedekking %)"/>
-    <alias field="float_nymphaeids" index="84" name="nymphaeiden (bedekking %)"/>
-    <alias field="submers_coverage" index="85" name="submerse vegetatie (bedekking %)"/>
-    <alias field="submers_pvi" index="86" name="submerse vegetatie (PVI)"/>
-    <alias field="metaphyton" index="87" name="metaphyton (bedekking %)"/>
-    <alias field="link_observation_perturbation" index="88" name="verstoringen"/>
-    <alias field="perturbationobservation_id" index="89" name=""/>
-    <alias field="perturbation_notes" index="90" name="opmerking"/>
-    <alias field="perturbation_alert" index="91" name="aandacht!"/>
-    <alias field="perturbation_photo" index="92" name="foto verstoring"/>
-    <alias field="other_perturbations" index="93" name="andere verstoringen"/>
-    <alias field="cow_pats" index="94" name="koeienvlaaien"/>
-    <alias field="other_animal_manure" index="95" name="andere dierlijke mest"/>
-    <alias field="grazers" index="96" name="grazers"/>
-    <alias field="trampling" index="97" name="trampling"/>
-    <alias field="intense_livestock_farming" index="98" name="(Intensieve) veehouderij in de buurt"/>
-    <alias field="agriculture_nearby" index="99" name="akkers in de buurt"/>
-    <alias field="recent_fertilization_nearby" index="100" name="recente bemesting in de buurt"/>
-    <alias field="busy_roads_nearby" index="101" name="drukke verkeerswegen in de buurt"/>
-    <alias field="industry_nearby" index="102" name="industrie in de buurt"/>
-    <alias field="fish" index="103" name="vis"/>
-    <alias field="birds" index="104" name="vogels"/>
-    <alias field="bird_droppings" index="105" name="vogeluitwerpselen"/>
-    <alias field="beaver" index="106" name="bever"/>
-    <alias field="invasive_species" index="107" name="invasieve soorten"/>
-    <alias field="bank_reinforcement" index="108" name="oeverversteviging"/>
-    <alias field="drainage_structures" index="109" name="drainagestructuren"/>
-    <alias field="fencing" index="110" name="prikkel- of schrikdraad"/>
-    <alias field="link_observation_meteorology" index="111" name="meteorologie"/>
-    <alias field="meteorolobservation_id" index="112" name=""/>
-    <alias field="meteo_notes" index="113" name="opmerkingen"/>
-    <alias field="meteo_alert" index="114" name="aandacht!"/>
-    <alias field="meteo_photo" index="115" name="foto weer"/>
-    <alias field="prior_48h" index="116" name="weer afgelopen 48 uur"/>
-    <alias field="exceptional" index="117" name="uitzonderlijke/extreme weersomstandigheden"/>
-    <alias field="precipitation" index="118" name="neerslag nu"/>
-    <alias field="precipitation_specify" index="119" name="soort neerslag"/>
-    <alias field="precipitation_intensity" index="120" name="intensiteit neerslag"/>
-    <alias field="overcast" index="121" name="actuele bewolking"/>
-    <alias field="airtemperature_celsius" index="122" name="luchttemperatuur (°C)"/>
-    <alias field="wind" index="123" name="actuele windcondities"/>
-    <alias field="ice_layer_cm" index="124" name="ijslaag (dikte, cm)"/>
+    <alias field="xphoto_sample" index="57" name="foto staal (optioneel)"/>
+    <alias field="equipment" index="58" name="monstername apparatuur"/>
+    <alias field="chlorophytae_presence" index="59" name="aanwezigheid vegetatie/metaphyton/drijflaag"/>
+    <alias field="chlorophytae_specification" index="60" name="specificatie afwijking open water en effect op staal"/>
+    <alias field="waterdepth_samplingpoint_cm" index="61" name="waterdiepte staalnamepunt (cm)"/>
+    <alias field="secchi_depth_cm" index="62" name="Secchidiepte (cm)"/>
+    <alias field="clear_to_bottom" index="63" name="Secchi bodemzicht"/>
+    <alias field="sludge_thickness" index="64" name="sliblaag dikte (cm)"/>
+    <alias field="waterlevel_elevation_mtaw" index="65" name="waterpeil (mTAW) handinvoer"/>
+    <alias field="sample_notes" index="66" name="opmerkingen staal"/>
+    <alias field="meandering" index="67" name=""/>
+    <alias field="flowvel" index="68" name=""/>
+    <alias field="flowvel_method" index="69" name=""/>
+    <alias field="barriers" index="70" name=""/>
+    <alias field="current_pits" index="71" name=""/>
+    <alias field="link_observation_samplecontext" index="72" name="poel"/>
+    <alias field="samplecontextobservation_id" index="73" name=""/>
+    <alias field="samplecontext_notes" index="74" name="opmerkingen"/>
+    <alias field="samplecontext_alert" index="75" name="aandacht!"/>
+    <alias field="samplecontext_photo" index="76" name="foto omgeving"/>
+    <alias field="max_depth_cm" index="77" name="maximale diepte (cm)"/>
+    <alias field="connectivity" index="78" name="connectiviteit"/>
+    <alias field="seep_influence" index="79" name="kwelinvloed"/>
+    <alias field="coverage_rate" index="80" name="bedekkingsgraad wateroppervlak (%) "/>
+    <alias field="shading" index="81" name="beschaduwing (%)"/>
+    <alias field="leaf_deposition" index="82" name="bladinval (%)"/>
+    <alias field="organic_material" index="83" name="grof organisch materiaal"/>
+    <alias field="emergents" index="84" name="emergente vegetatie (%)"/>
+    <alias field="float_pleustophytes" index="85" name="pleustofyten (%)"/>
+    <alias field="float_nymphaeids" index="86" name="nymphaeiden (%)"/>
+    <alias field="submers_coverage" index="87" name="submerse vegetatie (%)"/>
+    <alias field="submers_pvi" index="88" name="submerse vegetatie (PVI)"/>
+    <alias field="metaphyton" index="89" name="metaphyton (%)"/>
+    <alias field="link_observation_perturbation" index="90" name="verstoringen"/>
+    <alias field="perturbationobservation_id" index="91" name=""/>
+    <alias field="perturbation_notes" index="92" name="opmerking"/>
+    <alias field="perturbation_alert" index="93" name="aandacht!"/>
+    <alias field="perturbation_photo" index="94" name="foto verstoring"/>
+    <alias field="other_perturbations" index="95" name="andere verstoringen"/>
+    <alias field="cow_pats" index="96" name="koeienvlaaien"/>
+    <alias field="other_animal_manure" index="97" name="andere dierlijke mest"/>
+    <alias field="grazers" index="98" name="grazers"/>
+    <alias field="trampling" index="99" name="trampling"/>
+    <alias field="intense_livestock_farming" index="100" name="(Intensieve) veehouderij in de buurt"/>
+    <alias field="agriculture_nearby" index="101" name="akkers in de buurt"/>
+    <alias field="recent_fertilization_nearby" index="102" name="recente bemesting in de buurt"/>
+    <alias field="busy_roads_nearby" index="103" name="drukke verkeerswegen in de buurt"/>
+    <alias field="industry_nearby" index="104" name="industrie in de buurt"/>
+    <alias field="fish" index="105" name="vis"/>
+    <alias field="birds" index="106" name="vogels"/>
+    <alias field="bird_droppings" index="107" name="vogeluitwerpselen"/>
+    <alias field="beaver" index="108" name="bever"/>
+    <alias field="invasive_species" index="109" name="invasieve soorten"/>
+    <alias field="bank_reinforcement" index="110" name="oeverversteviging"/>
+    <alias field="drainage_structures" index="111" name="drainagestructuren"/>
+    <alias field="fencing" index="112" name="prikkel- of schrikdraad"/>
+    <alias field="link_observation_meteorology" index="113" name="meteorologie"/>
+    <alias field="meteorolobservation_id" index="114" name=""/>
+    <alias field="meteo_notes" index="115" name="opmerkingen"/>
+    <alias field="meteo_alert" index="116" name="aandacht!"/>
+    <alias field="meteo_photo" index="117" name="foto weer"/>
+    <alias field="prior_48h" index="118" name="weer afgelopen 48 uur"/>
+    <alias field="exceptional" index="119" name="uitzonderlijke/extreme weersomstandigheden"/>
+    <alias field="precipitation" index="120" name="neerslag nu"/>
+    <alias field="precipitation_specify" index="121" name="soort neerslag"/>
+    <alias field="precipitation_intensity" index="122" name="intensiteit neerslag"/>
+    <alias field="overcast" index="123" name="actuele bewolking"/>
+    <alias field="airtemperature_celsius" index="124" name="luchttemperatuur (°C)"/>
+    <alias field="wind" index="125" name="actuele windcondities"/>
+    <alias field="ice_layer_cm" index="126" name="ijslaag (dikte, cm)"/>
   </aliases>
   <customComments>
+    <customComment field="accessibility_revisit" value="(inschatting)"/>
+    <customComment field="is_secret_location" value="verdere info: zie geheime google sheet"/>
+    <customComment field="notes" value="(locatie/activiteit algemeen)"/>
+    <customComment field="photo" value="t.h.v. staalnamepunt; verplicht"/>
+    <customComment field="issues" value="specifieer in de opmerkingen"/>
+    <customComment field="sample_ph" value="-log10([H+])"/>
     <customComment field="electric_conductivity_mus_cm" value="elektrische geleidbaarheid"/>
     <customComment field="dissolved_oxygen_mg_l" value="zuurstofgehalte"/>
     <customComment field="dissolved_oxygen_percent" value="zuurstofgehalte"/>
+    <customComment field="sample_contamination" value="(contaminatie)"/>
+    <customComment field="color" value="(geen, geel, oranje, bruin, zwart, groen, grijs, rood)"/>
+    <customComment field="smell" value="(geen, metallisch, zwavel, ammoniak, mest, riool, visachtig)"/>
+    <customComment field="zooplankton" value="(geen, weinig, matig, veel)"/>
+    <customComment field="macroinvertebrates" value="(geen, weinig, matig, veel)"/>
+    <customComment field="xphoto_sample" value=" (optioneel)"/>
+    <customComment field="equipment" value="(wadend, schepstok)"/>
+    <customComment field="chlorophytae_specification" value="vegetatie/metaphyton/drijflaag"/>
+    <customComment field="clear_to_bottom" value="Secchi-schijf tot op de bodem zichtbaar"/>
+    <customComment field="sludge_thickness" value="(cm)"/>
+    <customComment field="waterlevel_elevation_mtaw" value="meters TAW; handinvoer"/>
+    <customComment field="samplecontext_alert" value="hier moeten we nog iets achteraf bekijken"/>
+    <customComment field="max_depth_cm" value="van de plas"/>
+    <customComment field="connectivity" value="(gesloten, instroom, doorstroom, overstroomd)"/>
+    <customComment field="seep_influence" value="(niet, iriserende film, roestbruinig water of slib)"/>
+    <customComment field="coverage_rate" value="bedekking %"/>
     <customComment field="organic_material" value="(weinig, matig, veel)"/>
+    <customComment field="emergents" value="bedekking"/>
+    <customComment field="float_pleustophytes" value="bedekking"/>
+    <customComment field="float_nymphaeids" value="bedekking"/>
+    <customComment field="submers_coverage" value="bedekking"/>
+    <customComment field="metaphyton" value="bedekking"/>
+    <customComment field="perturbation_alert" value="hier moeten we nog iets achteraf bekijken"/>
+    <customComment field="cow_pats" value="(aanwezig/niet)"/>
+    <customComment field="other_animal_manure" value="(aanwezig/niet)"/>
+    <customComment field="grazers" value="(aanwezig/niet)"/>
+    <customComment field="trampling" value="(aanwezig/niet)"/>
+    <customComment field="intense_livestock_farming" value="(waar/onwaar)"/>
+    <customComment field="agriculture_nearby" value="(waar/onwaar)"/>
+    <customComment field="recent_fertilization_nearby" value="(waar/onwaar)"/>
+    <customComment field="busy_roads_nearby" value="(waar/onwaar)"/>
+    <customComment field="industry_nearby" value="(waar/onwaar)"/>
+    <customComment field="fish" value="(waar/onwaar)"/>
+    <customComment field="birds" value="(waar/onwaar)"/>
+    <customComment field="bird_droppings" value="(waar/onwaar)"/>
+    <customComment field="beaver" value="(waar/onwaar)"/>
+    <customComment field="invasive_species" value="(waar/onwaar)"/>
+    <customComment field="bank_reinforcement" value="(waar/onwaar)"/>
     <customComment field="drainage_structures" value="(buizen, grachten)"/>
-    <customComment field="precipitation" value="op moment van staalname (true/false)"/>
+    <customComment field="meteo_alert" value="hier moeten we nog iets achteraf bekijken"/>
+    <customComment field="precipitation" value="(waar/onwaar) op moment van staalname"/>
+    <customComment field="precipitation_specify" value="(regen, hagel, sneeuw)"/>
+    <customComment field="precipitation_intensity" value="(licht, matig, zwaar)"/>
+    <customComment field="overcast" value="(zonnig, licht, zwaar, betrokken, mistig)"/>
+    <customComment field="wind" value="(geen, zwak, matig, sterk)"/>
+    <customComment field="ice_layer_cm" value="(indien aanwezig)"/>
   </customComments>
   <splitPolicies>
     <policy field="ogc_fid" policy="DefaultValue"/>
@@ -2431,6 +2528,7 @@
     <policy field="landowner" policy="DefaultValue"/>
     <policy field="recovery_hints" policy="DefaultValue"/>
     <policy field="equipment_recommendations" policy="DefaultValue"/>
+    <policy field="is_secret_location" policy="DefaultValue"/>
     <policy field="loceval_date" policy="DefaultValue"/>
     <policy field="loceval_name" policy="DefaultValue"/>
     <policy field="type_assessed" policy="DefaultValue"/>
@@ -2455,7 +2553,6 @@
     <policy field="show_loticvisits" policy="DefaultValue"/>
     <policy field="project_code" policy="DefaultValue"/>
     <policy field="recipient_code" policy="DefaultValue"/>
-    <policy field="latest_calibration" policy="DefaultValue"/>
     <policy field="watertemperature_celsius" policy="DefaultValue"/>
     <policy field="sample_ph" policy="DefaultValue"/>
     <policy field="electric_conductivity_mus_cm" policy="DefaultValue"/>
@@ -2468,6 +2565,7 @@
     <policy field="smell" policy="DefaultValue"/>
     <policy field="zooplankton" policy="DefaultValue"/>
     <policy field="macroinvertebrates" policy="DefaultValue"/>
+    <policy field="xphoto_sample" policy="DefaultValue"/>
     <policy field="equipment" policy="DefaultValue"/>
     <policy field="chlorophytae_presence" policy="DefaultValue"/>
     <policy field="chlorophytae_specification" policy="DefaultValue"/>
@@ -2475,6 +2573,7 @@
     <policy field="secchi_depth_cm" policy="DefaultValue"/>
     <policy field="clear_to_bottom" policy="DefaultValue"/>
     <policy field="sludge_thickness" policy="DefaultValue"/>
+    <policy field="waterlevel_elevation_mtaw" policy="DefaultValue"/>
     <policy field="sample_notes" policy="DefaultValue"/>
     <policy field="meandering" policy="DefaultValue"/>
     <policy field="flowvel" policy="DefaultValue"/>
@@ -2558,6 +2657,7 @@
     <default applyOnUpdate="0" expression="" field="landowner"/>
     <default applyOnUpdate="0" expression="" field="recovery_hints"/>
     <default applyOnUpdate="0" expression="" field="equipment_recommendations"/>
+    <default applyOnUpdate="0" expression="" field="is_secret_location"/>
     <default applyOnUpdate="0" expression="" field="loceval_date"/>
     <default applyOnUpdate="0" expression="" field="loceval_name"/>
     <default applyOnUpdate="0" expression="" field="type_assessed"/>
@@ -2582,7 +2682,6 @@
     <default applyOnUpdate="0" expression="" field="show_loticvisits"/>
     <default applyOnUpdate="0" expression="" field="project_code"/>
     <default applyOnUpdate="0" expression="" field="recipient_code"/>
-    <default applyOnUpdate="0" expression="" field="latest_calibration"/>
     <default applyOnUpdate="0" expression="" field="watertemperature_celsius"/>
     <default applyOnUpdate="0" expression="" field="sample_ph"/>
     <default applyOnUpdate="0" expression="" field="electric_conductivity_mus_cm"/>
@@ -2595,6 +2694,7 @@
     <default applyOnUpdate="0" expression="" field="smell"/>
     <default applyOnUpdate="0" expression="" field="zooplankton"/>
     <default applyOnUpdate="0" expression="" field="macroinvertebrates"/>
+    <default applyOnUpdate="0" expression="" field="xphoto_sample"/>
     <default applyOnUpdate="0" expression="" field="equipment"/>
     <default applyOnUpdate="0" expression="" field="chlorophytae_presence"/>
     <default applyOnUpdate="0" expression="" field="chlorophytae_specification"/>
@@ -2602,6 +2702,7 @@
     <default applyOnUpdate="0" expression="" field="secchi_depth_cm"/>
     <default applyOnUpdate="0" expression="" field="clear_to_bottom"/>
     <default applyOnUpdate="0" expression="" field="sludge_thickness"/>
+    <default applyOnUpdate="0" expression="" field="waterlevel_elevation_mtaw"/>
     <default applyOnUpdate="0" expression="" field="sample_notes"/>
     <default applyOnUpdate="0" expression="" field="meandering"/>
     <default applyOnUpdate="0" expression="" field="flowvel"/>
@@ -2685,6 +2786,7 @@
     <constraint constraints="0" exp_strength="0" field="landowner" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="recovery_hints" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="equipment_recommendations" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="is_secret_location" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="loceval_date" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="loceval_name" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="type_assessed" notnull_strength="0" unique_strength="0"/>
@@ -2701,7 +2803,7 @@
     <constraint constraints="0" exp_strength="0" field="notes" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="photo" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="issues" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="1" exp_strength="0" field="sampling_done" notnull_strength="1" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="sampling_done" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="visit_done" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="lenticvisit_id" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="loticvisit_id" notnull_strength="0" unique_strength="0"/>
@@ -2709,7 +2811,6 @@
     <constraint constraints="0" exp_strength="0" field="show_loticvisits" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="project_code" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="recipient_code" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="latest_calibration" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="watertemperature_celsius" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="sample_ph" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="electric_conductivity_mus_cm" notnull_strength="0" unique_strength="0"/>
@@ -2722,6 +2823,7 @@
     <constraint constraints="0" exp_strength="0" field="smell" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="zooplankton" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="macroinvertebrates" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="xphoto_sample" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="equipment" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="chlorophytae_presence" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="chlorophytae_specification" notnull_strength="0" unique_strength="0"/>
@@ -2729,6 +2831,7 @@
     <constraint constraints="0" exp_strength="0" field="secchi_depth_cm" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="clear_to_bottom" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="sludge_thickness" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="waterlevel_elevation_mtaw" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="sample_notes" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="meandering" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="flowvel" notnull_strength="0" unique_strength="0"/>
@@ -2812,6 +2915,7 @@
     <constraint desc="" exp="" field="landowner"/>
     <constraint desc="" exp="" field="recovery_hints"/>
     <constraint desc="" exp="" field="equipment_recommendations"/>
+    <constraint desc="" exp="" field="is_secret_location"/>
     <constraint desc="" exp="" field="loceval_date"/>
     <constraint desc="" exp="" field="loceval_name"/>
     <constraint desc="" exp="" field="type_assessed"/>
@@ -2836,7 +2940,6 @@
     <constraint desc="" exp="" field="show_loticvisits"/>
     <constraint desc="" exp="" field="project_code"/>
     <constraint desc="" exp="" field="recipient_code"/>
-    <constraint desc="" exp="" field="latest_calibration"/>
     <constraint desc="" exp="" field="watertemperature_celsius"/>
     <constraint desc="" exp="" field="sample_ph"/>
     <constraint desc="" exp="" field="electric_conductivity_mus_cm"/>
@@ -2849,6 +2952,7 @@
     <constraint desc="" exp="" field="smell"/>
     <constraint desc="" exp="" field="zooplankton"/>
     <constraint desc="" exp="" field="macroinvertebrates"/>
+    <constraint desc="" exp="" field="xphoto_sample"/>
     <constraint desc="" exp="" field="equipment"/>
     <constraint desc="" exp="" field="chlorophytae_presence"/>
     <constraint desc="" exp="" field="chlorophytae_specification"/>
@@ -2856,6 +2960,7 @@
     <constraint desc="" exp="" field="secchi_depth_cm"/>
     <constraint desc="" exp="" field="clear_to_bottom"/>
     <constraint desc="" exp="" field="sludge_thickness"/>
+    <constraint desc="" exp="" field="waterlevel_elevation_mtaw"/>
     <constraint desc="" exp="" field="sample_notes"/>
     <constraint desc="" exp="" field="meandering"/>
     <constraint desc="" exp="" field="flowvel"/>
@@ -2980,7 +3085,6 @@
       <column hidden="0" name="barriers" type="field" width="-1"/>
       <column hidden="0" name="current_pits" type="field" width="-1"/>
       <column hidden="0" name="sampling_done" type="field" width="-1"/>
-      <column hidden="0" name="latest_calibration" type="field" width="-1"/>
       <column hidden="0" name="zooplankton" type="field" width="-1"/>
       <column hidden="0" name="macroinvertebrates" type="field" width="-1"/>
       <column hidden="0" name="clear_to_bottom" type="field" width="-1"/>
@@ -3049,6 +3153,9 @@
       <column hidden="0" name="overcast" type="field" width="-1"/>
       <column hidden="0" name="airtemperature_celsius" type="field" width="-1"/>
       <column hidden="0" name="wind" type="field" width="-1"/>
+      <column hidden="0" name="xphoto_sample" type="field" width="-1"/>
+      <column hidden="0" name="waterlevel_elevation_mtaw" type="field" width="-1"/>
+      <column hidden="0" name="is_secret_location" type="field" width="-1"/>
       <column hidden="1" type="actions" width="-1"/>
     </columns>
   </attributetableconfig>
@@ -3082,7 +3189,7 @@ def my_form_open(dialog, layer, feature):
   <editorlayout>tablayout</editorlayout>
   <attributeEditorForm>
     <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-      <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+      <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
     </labelStyle>
     <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="infos" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
       <labelStyle labelColor="0,0,0,255,rgb:0,0,0,1" overrideLabelColor="0" overrideLabelFont="0">
@@ -3133,17 +3240,17 @@ def my_form_open(dialog, layer, feature):
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="25" name="loceval_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="26" name="loceval_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="24" name="loceval_photo" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="25" name="loceval_photo" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="0,0,0,255,rgb:0,0,0,1" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="Cantarell,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="29" name="protocols" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="30" name="protocols" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3153,12 +3260,12 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="31" name="teammember_id" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="32" name="teammember_id" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="32" name="datetime_visit" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="33" name="datetime_visit" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3175,65 +3282,70 @@ def my_form_open(dialog, layer, feature):
       </attributeEditorField>
       <attributeEditorField horizontalStretch="0" index="19" name="equipment_recommendations" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          <labelFont bold="0" description="DejaVu LGC Sans,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="33" name="notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="20" name="is_secret_location" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="34" name="notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="34" name="photo" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="35" name="photo" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="35" name="issues" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="36" name="issues" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="37" name="visit_done" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="38" name="visit_done" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
     </attributeEditorContainer>
-    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="staalname en staanamepunt" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="staalname en staalnamepunt" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="36" name="sampling_done" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="37" name="sampling_done" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="57" name="equipment" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="58" name="equipment" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="60" name="waterdepth_samplingpoint_cm" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="61" name="waterdepth_samplingpoint_cm" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="61" name="secchi_depth_cm" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="62" name="secchi_depth_cm" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="62" name="clear_to_bottom" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="63" name="clear_to_bottom" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="63" name="sludge_thickness" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="64" name="sludge_thickness" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="58" name="chlorophytae_presence" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="59" name="chlorophytae_presence" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3242,28 +3354,33 @@ def my_form_open(dialog, layer, feature):
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-        <attributeEditorField horizontalStretch="0" index="59" name="chlorophytae_specification" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="60" name="chlorophytae_specification" showLabel="1" verticalStretch="0">
           <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
             <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
           </labelStyle>
         </attributeEditorField>
       </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="(gelieve bij anomaliën foto en notities aan &quot;staalname effectief&quot; toe te voegen)" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorContainer>
+      <attributeEditorField horizontalStretch="0" index="65" name="waterlevel_elevation_mtaw" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
     </attributeEditorContainer>
     <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="staalchemie" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="42" name="project_code" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="43" name="project_code" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="43" name="recipient_code" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="44" name="latest_calibration" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="44" name="recipient_code" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3293,7 +3410,7 @@ def my_form_open(dialog, layer, feature):
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="64" name="sample_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="66" name="sample_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3323,27 +3440,52 @@ def my_form_open(dialog, layer, feature):
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="53" name="color" showLabel="1" verticalStretch="0">
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="kleur: geen, geel, oranje, bruin, zwart, groen, grijs, rood" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+        <attributeEditorField horizontalStretch="0" index="53" name="color" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="geur: geen, metallisch, zwavel, ammoniak, mest, riool, visachtig" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+        <attributeEditorField horizontalStretch="0" index="54" name="smell" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="zoöplankton: geen, weinig, matig, veel" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+        <attributeEditorField horizontalStretch="0" index="55" name="zooplankton" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="macroinvertebraten: geen, weinig, matig, veel" showLabel="0" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+        <attributeEditorField horizontalStretch="0" index="56" name="macroinvertebrates" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorField horizontalStretch="0" index="57" name="xphoto_sample" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="54" name="smell" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="55" name="zooplankton" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="56" name="macroinvertebrates" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="64" name="sample_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="66" name="sample_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3353,137 +3495,147 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="65" name="meandering" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="67" name="meandering" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="66" name="flowvel" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="68" name="flowvel" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="67" name="flowvel_method" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="69" name="flowvel_method" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="68" name="barriers" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="70" name="barriers" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="69" name="current_pits" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="71" name="current_pits" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
     </attributeEditorContainer>
-    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="bijkomend" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="omgevingsdata" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="aanduiden bijkomende info" showLabel="0" type="Row" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+      <attributeEditorField horizontalStretch="0" index="72" name="link_observation_samplecontext" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="90" name="link_observation_perturbation" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="113" name="link_observation_meteorology" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+    </attributeEditorContainer>
+    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="poel" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="&quot;link_observation_samplecontext&quot;" visibilityExpressionEnabled="1">
+      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+        <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+      </labelStyle>
+      <attributeEditorField horizontalStretch="0" index="77" name="max_depth_cm" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="connectiviteit: gesloten, instroom, doorstroom, overstroomd" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+        <attributeEditorField horizontalStretch="0" index="78" name="connectivity" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
       </attributeEditorContainer>
-      <attributeEditorField horizontalStretch="0" index="70" name="link_observation_samplecontext" showLabel="1" verticalStretch="0">
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="kwelinvloed: niet, iriserende film, roestbruinig water of slib" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+        <attributeEditorField horizontalStretch="0" index="79" name="seep_influence" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorField horizontalStretch="0" index="80" name="coverage_rate" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="88" name="link_observation_perturbation" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="81" name="shading" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="111" name="link_observation_meteorology" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="82" name="leaf_deposition" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-    </attributeEditorContainer>
-    <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="0" horizontalStretch="0" name="poel en context" showLabel="1" type="Tab" verticalStretch="0" visibilityExpression="&quot;link_observation_samplecontext&quot;" visibilityExpressionEnabled="1">
-      <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-        <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-      </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="72" name="samplecontext_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorContainer collapsed="0" collapsedExpression="" collapsedExpressionEnabled="0" columnCount="1" groupBox="1" horizontalStretch="0" name="organisch materiaal: weinig, matig, veel" showLabel="1" type="GroupBox" verticalStretch="0" visibilityExpression="" visibilityExpressionEnabled="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+        <attributeEditorField horizontalStretch="0" index="83" name="organic_material" showLabel="1" verticalStretch="0">
+          <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+            <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+          </labelStyle>
+        </attributeEditorField>
+      </attributeEditorContainer>
+      <attributeEditorField horizontalStretch="0" index="84" name="emergents" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="73" name="samplecontext_alert" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="85" name="float_pleustophytes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="74" name="samplecontext_photo" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="86" name="float_nymphaeids" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="75" name="max_depth_cm" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="87" name="submers_coverage" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="76" name="connectivity" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="88" name="submers_pvi" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="77" name="seep_influence" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="89" name="metaphyton" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="78" name="coverage_rate" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="74" name="samplecontext_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="79" name="shading" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="76" name="samplecontext_photo" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="80" name="leaf_deposition" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="81" name="organic_material" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="82" name="emergents" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="83" name="float_pleustophytes" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="84" name="float_nymphaeids" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="85" name="submers_coverage" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="86" name="submers_pvi" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="87" name="metaphyton" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="75" name="samplecontext_alert" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3493,107 +3645,107 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="90" name="perturbation_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="96" name="cow_pats" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="91" name="perturbation_alert" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="97" name="other_animal_manure" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="92" name="perturbation_photo" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="98" name="grazers" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="94" name="cow_pats" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="99" name="trampling" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="95" name="other_animal_manure" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="100" name="intense_livestock_farming" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="96" name="grazers" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="101" name="agriculture_nearby" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="97" name="trampling" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="102" name="recent_fertilization_nearby" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="98" name="intense_livestock_farming" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="103" name="busy_roads_nearby" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="99" name="agriculture_nearby" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="104" name="industry_nearby" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="100" name="recent_fertilization_nearby" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="105" name="fish" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="101" name="busy_roads_nearby" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="106" name="birds" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="102" name="industry_nearby" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="107" name="bird_droppings" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="103" name="fish" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="108" name="beaver" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="104" name="birds" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="109" name="invasive_species" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="105" name="bird_droppings" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="110" name="bank_reinforcement" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="106" name="beaver" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="111" name="drainage_structures" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="107" name="invasive_species" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="112" name="fencing" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="108" name="bank_reinforcement" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="95" name="other_perturbations" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="109" name="drainage_structures" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="92" name="perturbation_notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="110" name="fencing" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="94" name="perturbation_photo" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="93" name="other_perturbations" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="93" name="perturbation_alert" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3603,27 +3755,12 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="113" name="meteo_notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="119" name="exceptional" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="114" name="meteo_alert" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="115" name="meteo_photo" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="117" name="exceptional" showLabel="1" verticalStretch="0">
-        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
-          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
-        </labelStyle>
-      </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="118" name="precipitation" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="120" name="precipitation" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3632,38 +3769,53 @@ def my_form_open(dialog, layer, feature):
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
-        <attributeEditorField horizontalStretch="0" index="119" name="precipitation_specify" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="121" name="precipitation_specify" showLabel="1" verticalStretch="0">
           <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
             <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
           </labelStyle>
         </attributeEditorField>
-        <attributeEditorField horizontalStretch="0" index="120" name="precipitation_intensity" showLabel="1" verticalStretch="0">
+        <attributeEditorField horizontalStretch="0" index="122" name="precipitation_intensity" showLabel="1" verticalStretch="0">
           <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
             <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
           </labelStyle>
         </attributeEditorField>
       </attributeEditorContainer>
-      <attributeEditorField horizontalStretch="0" index="121" name="overcast" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="123" name="overcast" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="122" name="airtemperature_celsius" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="124" name="airtemperature_celsius" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="123" name="wind" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="125" name="wind" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="116" name="prior_48h" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="118" name="prior_48h" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="124" name="ice_layer_cm" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="126" name="ice_layer_cm" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="115" name="meteo_notes" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="117" name="meteo_photo" showLabel="1" verticalStretch="0">
+        <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
+          <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
+        </labelStyle>
+      </attributeEditorField>
+      <attributeEditorField horizontalStretch="0" index="116" name="meteo_alert" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3673,27 +3825,27 @@ def my_form_open(dialog, layer, feature):
       <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
         <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
       </labelStyle>
-      <attributeEditorField horizontalStretch="0" index="33" name="notes" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="34" name="notes" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="34" name="photo" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="35" name="photo" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="35" name="issues" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="36" name="issues" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="36" name="sampling_done" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="37" name="sampling_done" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
       </attributeEditorField>
-      <attributeEditorField horizontalStretch="0" index="37" name="visit_done" showLabel="1" verticalStretch="0">
+      <attributeEditorField horizontalStretch="0" index="38" name="visit_done" showLabel="1" verticalStretch="0">
         <labelStyle labelColor="" overrideLabelColor="0" overrideLabelFont="0">
           <labelFont bold="0" description="DejaVu LGC Sans,12,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" italic="0" strikethrough="0" style="" underline="0"/>
         </labelStyle>
@@ -3759,6 +3911,7 @@ def my_form_open(dialog, layer, feature):
     <field editable="0" name="is_field_activity"/>
     <field editable="0" name="is_gw_activity"/>
     <field editable="0" name="is_scheduled"/>
+    <field editable="1" name="is_secret_location"/>
     <field editable="0" name="is_surf_activity"/>
     <field editable="1" name="issues"/>
     <field editable="0" name="landowner"/>
@@ -3860,6 +4013,7 @@ def my_form_open(dialog, layer, feature):
     <field editable="1" name="water_clarity"/>
     <field editable="1" name="waterdepth_samplingpoint_cm"/>
     <field editable="1" name="waterdepth_samplingpoint_m"/>
+    <field editable="1" name="waterlevel_elevation_mtaw"/>
     <field editable="1" name="watertemperature_celsius"/>
     <field editable="0" name="watina_code_1"/>
     <field editable="0" name="watina_code_2"/>
@@ -3869,6 +4023,7 @@ def my_form_open(dialog, layer, feature):
     <field editable="1" name="watina_code_used_2_piezometer"/>
     <field editable="1" name="wind"/>
     <field editable="0" name="work_for_me"/>
+    <field editable="1" name="xphoto_sample"/>
     <field editable="1" name="zooplankton"/>
   </editable>
   <labelOnTop>
@@ -3886,7 +4041,7 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="birds"/>
     <field labelOnTop="0" name="busy_roads_nearby"/>
     <field labelOnTop="0" name="chlorophytae_presence"/>
-    <field labelOnTop="0" name="chlorophytae_specification"/>
+    <field labelOnTop="1" name="chlorophytae_specification"/>
     <field labelOnTop="0" name="clear_to_bottom"/>
     <field labelOnTop="0" name="color"/>
     <field labelOnTop="0" name="connectivity"/>
@@ -3902,14 +4057,14 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="dissolved_oxygen_mg_l"/>
     <field labelOnTop="0" name="dissolved_oxygen_percent"/>
     <field labelOnTop="0" name="diver_id"/>
-    <field labelOnTop="1" name="drainage_structures"/>
+    <field labelOnTop="0" name="drainage_structures"/>
     <field labelOnTop="0" name="electric_conductivity_mus_cm"/>
     <field labelOnTop="0" name="emergents"/>
     <field labelOnTop="0" name="equipment"/>
     <field labelOnTop="0" name="equipment_recommendations"/>
     <field labelOnTop="0" name="exceptional"/>
     <field labelOnTop="0" name="extra_tab"/>
-    <field labelOnTop="1" name="fencing"/>
+    <field labelOnTop="0" name="fencing"/>
     <field labelOnTop="0" name="fieldwork_id"/>
     <field labelOnTop="0" name="fish"/>
     <field labelOnTop="0" name="float_layer"/>
@@ -3930,6 +4085,7 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="is_field_activity"/>
     <field labelOnTop="0" name="is_gw_activity"/>
     <field labelOnTop="0" name="is_scheduled"/>
+    <field labelOnTop="0" name="is_secret_location"/>
     <field labelOnTop="0" name="is_surf_activity"/>
     <field labelOnTop="0" name="issues"/>
     <field labelOnTop="0" name="landowner"/>
@@ -3975,8 +4131,8 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="phytoplankton"/>
     <field labelOnTop="0" name="positioningvisit_id"/>
     <field labelOnTop="0" name="precipitation"/>
-    <field labelOnTop="0" name="precipitation_intensity"/>
-    <field labelOnTop="0" name="precipitation_specify"/>
+    <field labelOnTop="1" name="precipitation_intensity"/>
+    <field labelOnTop="1" name="precipitation_specify"/>
     <field labelOnTop="0" name="preparation_notes"/>
     <field labelOnTop="0" name="prior_48h"/>
     <field labelOnTop="0" name="project_code"/>
@@ -3990,7 +4146,7 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="reused_well_reference"/>
     <field labelOnTop="0" name="reused_with_replacement"/>
     <field labelOnTop="0" name="sample_contamination"/>
-    <field labelOnTop="0" name="sample_contamination_reason"/>
+    <field labelOnTop="1" name="sample_contamination_reason"/>
     <field labelOnTop="0" name="sample_notes"/>
     <field labelOnTop="0" name="sample_ph"/>
     <field labelOnTop="0" name="samplecontext_alert"/>
@@ -4031,6 +4187,7 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="water_clarity"/>
     <field labelOnTop="0" name="waterdepth_samplingpoint_cm"/>
     <field labelOnTop="0" name="waterdepth_samplingpoint_m"/>
+    <field labelOnTop="0" name="waterlevel_elevation_mtaw"/>
     <field labelOnTop="0" name="watertemperature_celsius"/>
     <field labelOnTop="0" name="watina_code_1"/>
     <field labelOnTop="0" name="watina_code_2"/>
@@ -4040,6 +4197,7 @@ def my_form_open(dialog, layer, feature):
     <field labelOnTop="0" name="watina_code_used_2_piezometer"/>
     <field labelOnTop="0" name="wind"/>
     <field labelOnTop="0" name="work_for_me"/>
+    <field labelOnTop="0" name="xphoto_sample"/>
     <field labelOnTop="0" name="zooplankton"/>
   </labelOnTop>
   <reuseLastValuePolicy>
@@ -4101,6 +4259,7 @@ def my_form_open(dialog, layer, feature):
     <field name="is_field_activity" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_gw_activity" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_scheduled" reuseLastValuePolicy="NotAllowed"/>
+    <field name="is_secret_location" reuseLastValuePolicy="NotAllowed"/>
     <field name="is_surf_activity" reuseLastValuePolicy="NotAllowed"/>
     <field name="issues" reuseLastValuePolicy="NotAllowed"/>
     <field name="landowner" reuseLastValuePolicy="NotAllowed"/>
@@ -4202,6 +4361,7 @@ def my_form_open(dialog, layer, feature):
     <field name="water_clarity" reuseLastValuePolicy="NotAllowed"/>
     <field name="waterdepth_samplingpoint_cm" reuseLastValuePolicy="NotAllowed"/>
     <field name="waterdepth_samplingpoint_m" reuseLastValuePolicy="NotAllowed"/>
+    <field name="waterlevel_elevation_mtaw" reuseLastValuePolicy="NotAllowed"/>
     <field name="watertemperature_celsius" reuseLastValuePolicy="NotAllowed"/>
     <field name="watina_code_1" reuseLastValuePolicy="NotAllowed"/>
     <field name="watina_code_2" reuseLastValuePolicy="NotAllowed"/>
@@ -4211,6 +4371,7 @@ def my_form_open(dialog, layer, feature):
     <field name="watina_code_used_2_piezometer" reuseLastValuePolicy="NotAllowed"/>
     <field name="wind" reuseLastValuePolicy="NotAllowed"/>
     <field name="work_for_me" reuseLastValuePolicy="NotAllowed"/>
+    <field name="xphoto_sample" reuseLastValuePolicy="NotAllowed"/>
     <field name="zooplankton" reuseLastValuePolicy="NotAllowed"/>
   </reuseLastValuePolicy>
   <dataDefinedFieldProperties/>
