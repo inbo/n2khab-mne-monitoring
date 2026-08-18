@@ -574,7 +574,7 @@ upload_data_and_update_dependencies <- function(
   # mnmdb <- locevaldb
   if (
     (mnmdb$mirror_short == "") ||
-    (mnmdb$database %in% c("loceval", "mnmgwdb"))
+    (mnmdb$database %in% c("mnmsyncdb", "loceval", "mnmgwdb", "mnmsurfdb"))
     ) {
     prompt <- glue::glue("
       You are working on *{mnmdb$connection_profile}*.
@@ -597,6 +597,8 @@ upload_data_and_update_dependencies <- function(
   # INSERT new data, appending the empty table
   #    (to make use of the "ON DELETE SET NULL" rule)
   mnmdb$insert_data(table_label, data_replacement)
+  ## issue with datetime
+  # data_replacement %>% distinct(date_visit, datetime_visit)
 
   # data_replacement %>%
   #   filter(grts_address == 871030, activity_group_id == 4) %>%
@@ -2255,6 +2257,7 @@ precedence_columns <- list(
     "accessibility_revisit",
     "recovery_hints",
     "equipment_recommendations",
+    "is_secret_location",
     "watina_code_1",
     "watina_code_2"
   ),

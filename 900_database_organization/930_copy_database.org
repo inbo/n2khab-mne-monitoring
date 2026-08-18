@@ -385,10 +385,18 @@ handle_NA_nolog_update_column <- function(lojos) {
     return()
 }
 
+
+dateconvert_fcn <- \(x) if (is.na(x)) return(NA) else convert_timestamp_to_ms_character(lubridate::as_datetime(x))
+
 handle_datetime_column <- function(visits) {
-  convert_fcn <- \(x) if (is.na(x)) return(NA) else convert_timestamp_to_ms_character(lubridate::as_datetime(x))
-  visits %>%
-    dplyr::mutate(datetime_visit = unlist(purrr::map(datetime_visit, convert_fcn))) %>%
+  if (nrow(visits) == 0){
+    visits_modified <- visits %>% mutate(datetime_visit = as.character(datetime_visit))
+  } else {
+  visits_modified <- visits %>%
+    dplyr::mutate(datetime_visit = unlist(purrr::map(datetime_visit, dateconvert_fcn)))
+  }
+
+  visits_modified %>%
     return()
 }
 
@@ -402,7 +410,8 @@ table_modification <- c(
   "LenticVisits" = handle_datetime_column, # (almost) anything you like
   "LoticVisits" = handle_datetime_column, # (almost) anything you like
   # "OtherVisits" = handle_datetime_column, # (almost) anything you like
-  "ChlorophyllMeasurements" = handle_datetime_column # (almost) anything you like
+  "ChlorophyllMeasurements" = handle_datetime_column, # (almost) anything you like
+  "TargetPoints" = \(tp) tp %>% mutate(log_creation = unlist(purrr::map(log_creation, dateconvert_fcn)))
   # "FieldCalendars" = function (fac) rename_FieldCalendars(fac) # (almost) anything you like
 )
 
@@ -484,6 +493,7 @@ process_db_table_copy <- function(table_idx) {
 
   table_label <- table_list[[table_idx, "table"]]
   # table_label <- "LocationCells"
+  # table_label <- "OtherVisits"
   # table_idx <- table_list %>% mutate(table_idx = seq_len(nrow(table_list))) %>% filter(table == table_label) %>% pull(table_idx)
 
   table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
