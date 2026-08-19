@@ -11,7 +11,7 @@ rm(list = ls(all.names = TRUE))
 source("MNMLibraryCollection.R")
 
 load_rep_common_libraries()
-load_rep_rdata(reload = FALSE, to_env = globalenv())
+load_rep_rdata(reload = TRUE, to_env = globalenv())
 # remember gargle login prompt!
 
 # store the current path as "snippet base path" in global env
