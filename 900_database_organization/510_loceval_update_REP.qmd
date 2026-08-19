@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload - loceval"
-date: "2026-08-11"
+date: "2026-08-19"
 format:
   html:
     toc: true
@@ -24,6 +24,7 @@ knitr:
 - 20260626 preview REP 0.17.0 -> `SURF_03.4_LENTIC`
 - 20260703 actual REP 0.17.0 -> `SURF_03.4_LENTIC`
 - 20260811 quarterly prio update 
+- 20260819 REP 0.18.0
 
 
 # TODO
@@ -620,6 +621,8 @@ locations_lookup <- update_cascade_lookup(
 
 
 ```
+
+
 
 ```{r check-locations}
 #| eval: false
@@ -1812,7 +1815,10 @@ stratum_grts_spsamples_lentic_sf %>%
   filter_out(is.na(sampleunit_id)) %>%
   select(sampleunit_id, polygon_id)
 
+
+# TODO: 20260819 I don't remember why/when I started this (about a month ago?), miss documentation, and cannot make much sense of it.
 ```
+
 
 
 # Wrap-up
