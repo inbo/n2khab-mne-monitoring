@@ -113,7 +113,8 @@ Take your time, expect things to crash, and celebrate if everything goes smoothl
 
 Once all the REP update scripts ran successfully,
 reassure the colleagues that they can continue work (they did, anyways),
-commit and merge all changes.
+commit and merge all changes,
+copy pre-/post dumps to the backup folder.
 
 
 ## What If It Fails?

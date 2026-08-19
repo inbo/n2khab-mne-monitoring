@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload"
-date: "2026-08-11"
+date: "2026-08-19"
 format:
   html:
     toc: true
@@ -27,6 +27,7 @@ Let's bring the sample to the field - again!
 - 20260527 REP update
 - 20260703 update to REP 0.17.0 / SNIP 0.17.0
 - 20260811 quarterly prio update 
+- 20260819 REP 0.18.0
 
 
 # TODO
@@ -200,8 +201,8 @@ if (FALSE) {
   # version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
   # version_notes <- "SURF_03.4_LENTIC"
 
-  version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
-  version_notes <- "quarterly prio update"
+  version_tag <- "snip:0.18.0_rep:0.18.0" # data_iteration = 1
+  version_notes <- "REP 0.18.0 refinements on lentic sample units"
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
