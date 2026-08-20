@@ -29,13 +29,13 @@ mnmdb <- connect_mnm_database(
 message(mnmdb$shellstring)
 
 ### connect to databases
-loceval_connection <- connect_mnm_database(
-  config_filepath = config_filepath,
-  database = "loceval",
-  user = "monkey",
-  password = NA
-)
-# message(loceval_connection$shellstring)
+# loceval_connection <- connect_mnm_database(
+#   config_filepath = config_filepath,
+#   database = "loceval",
+#   user = "monkey",
+#   password = NA
+# )
+# # message(loceval_connection$shellstring)
 
 
 if (TRUE) {

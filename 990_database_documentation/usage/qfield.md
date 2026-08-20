@@ -2,10 +2,12 @@
 aliases:
   - software/qfield
   - qfield
+  - QField
 tags: 
   - gis
   - mobile
   - app
+  - qfield
 ---
 
 - <https://qfield.org>
@@ -44,4 +46,4 @@ If everything was done correctly, the app should now automatically log in to our
 - in the project menu (icon with three bars on the top left), select *project settings* (folder icon with gears)
 - in the menu of the DCIM folder (three vertical dots on the right)
 - send compressed folder to... e.g. Drive
-- store the `zip` file on our shared drive under "photos"
+- store the `zip` file on our shared drive under "`photos/photos_incoming`"

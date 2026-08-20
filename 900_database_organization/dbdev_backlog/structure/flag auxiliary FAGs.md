@@ -17,9 +17,10 @@ status: true
 > FAGs that are _not_ linked one-to-one to the collection of data that apply to a specific point in time (sampling, measuring), but that potentially apply to a time series of data.
 
 ```r
-fag_is_auxiliary = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT|LEVREADDIVER" )
-fag_is_preponable = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT" )
+fag_is_auxiliary = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT|SAMPLPOINT|LEVREADDIVER" )
+fag_is_preponable = str_detect( field_activity_group, "LOCEVAL|INST|SPATPOSIT|SAMPLPOINT" )
 ```
+*edit [[timeline/2026-06-23|2026-06-23]]: add `*SAMPLPOINT` / confirmed with #FV.*
 
 overview:
 ```sql

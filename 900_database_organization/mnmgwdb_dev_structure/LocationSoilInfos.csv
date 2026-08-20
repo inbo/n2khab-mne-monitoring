@@ -1,6 +1,6 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
 locationsoilinfo_id,int,True,,True,True,,,,soil info index (technical)
-location_id,int,True,,False,False,metadata.Locations.location_id,,,location index (technical)
+location_id,int,False,NULL,False,False,metadata.Locations.location_id,,,location index (technical)
 grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,GRTS address
 region,varchar,False,NULL,False,False,,,,name of the region
 converted,varchar,False,NULL,False,False,,,,Were morphogenetic texture and drainage variables derived from a conversion table?

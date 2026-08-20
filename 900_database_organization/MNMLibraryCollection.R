@@ -44,8 +44,10 @@ database_interaction_libraries <- c(
   "glue",
   "here",
   "keyring",
+  "lubridate",
   "processx",
-  "sf"
+  "sf",
+  "tidyselect"
 )
 load_database_interaction_libraries <- function(
   ) load_libraries(database_interaction_libraries)
@@ -151,7 +153,9 @@ reload_rep_code_snippets <- function(fresh_snippet_path = NULL, to_env = NULL) {
   # load variables into environment
   load(fresh_snippet_path, envir = to_env)
 
-} # /load_rep_code_snippets
+  message(glue::glue("Snippets as of {snippet_packaging_date} were loaded."))
+
+} # /reload_rep_code_snippets
 
 
 
@@ -210,7 +214,7 @@ verify_rep_objects <- function() {
   # orthophotos
   stopifnot(
     "snip snap >> `orthophoto grts` not found" =
-      exists("orthophoto_shortterm_type_grts")
+      exists("orthophoto_shortterm_terrtype_grts")
   )
 
   # shout out success!

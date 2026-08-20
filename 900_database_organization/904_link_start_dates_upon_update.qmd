@@ -18,7 +18,7 @@ knitr:
 The purpose of this script is to revert the issues caused by premature POC update and *the `start_date` issue*.
 
 ::: {.callout-note}
-The `start_date` issue refers to an issue caused by the use of the `start_date` column as a characteristic column to identify uniqueness of a table entry in `FieldActivityCalendar`/`FieldworkCalendar`, `Visits`, and "Special Activity" tables.
+The `start_date` issue refers to an issue caused by the use of the `start_date` column as a characteristic column to identify uniqueness of a table entry in `FieldCalendars`/`FieldworkCalendar`, `Visits`, and "Special Activity" tables.
 The issue occurred upon update from POC version `0.13.1` to `0.14.0`.
 
 Because start data could change upon calendar adjustments, related entries were not linked, and previously planned activities disappeared in the archives (due to filtering `archive_version_id` column).
@@ -73,7 +73,7 @@ Ideally, they should be
 
 ```{sql}
 SELECT *
-FROM "outbound"."FieldActivityCalendar" AS FAC
+FROM "outbound"."FieldCalendars" AS FAC
 WHERE done_planning;
 ```
 
@@ -207,26 +207,26 @@ grouped_activity_lookup %>% count(activity_group) %>% filter(n > 1)
 ```
 
 
-All activities trace back to the FieldActivityCalendar.
+All activities trace back to the FieldCalendars.
 
 ```{r query-calendar}
 status_quo <- locevaldb$query_columns(
-    "FieldActivityCalendar",
+    "FieldCalendars",
     c("grts_address",
       "type",
       "activity_group_id",
       "date_start",
       "done_planning",
       "archive_version_id",
-      "fieldactivitycalendar_id"
+      "fieldcalendar_id"
     )
   )  %>%
   left_join(
     locevaldb$query_columns(
       "Visits",
-      c("fieldactivitycalendar_id", "visit_done")
+      c("fieldcalendar_id", "visit_done")
     ),
-    by = join_by(fieldactivitycalendar_id)
+    by = join_by(fieldcalendar_id)
   )  %>% 
   arrange(date_start) %>% 
   mutate(date_id = row_number(), .by = c("grts_address", "type", "activity_group_id"))

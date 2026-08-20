@@ -3,7 +3,7 @@ aliases:
   - remove precedence columns
 tags:
   - MNMDatabaseToolbox
-  - precedence columns
+  - precedence_columns
 started:
 finished:
 execution:

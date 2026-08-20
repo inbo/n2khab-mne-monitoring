@@ -13,6 +13,9 @@ status: true
 
 [[procedures/create view]]
 
+> [!warning] Ambiguous Usage of `AllVisits`
+> #AllVisits is used in #mnmsurfdb as a generic interface.
+
 This view simply assembles all info from Visits, as if it was one big table.
 *cf.* <https://github.com/inbo/tutorials/tree/sql_inheritance>
 

@@ -1,9 +1,16 @@
 -- SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
+SELECT *,
+  CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
+FROM "outbound"."FieldworkCalendar"
+  WHERE grts_address = 1176286
+  AND activity_group_id = 4
+;
+
 
 -- !!! also re-create update MyFieldWork
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
-CREATE VIEW "inbound"."FieldWork" AS
+CREATE OR REPLACE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
   SLOC.strata AS type,
@@ -26,10 +33,13 @@ SELECT
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
   INFO.recovery_hints,
+  INFO.equipment_recommendations,
+  INFO.is_secret_location,
   INFO.landowner,
   INFO.watina_code_1,
   INFO.watina_code_2,
   SOIL.soil_info,
+  LOCEVAL.loceval_notes,
   LOCEVAL.loceval_photo,
   GAP.activity_group,
   GAP.is_field_activity,
@@ -79,7 +89,7 @@ LEFT JOIN (
   ON LOC.location_id = SOIL.location_id
 LEFT JOIN (
   SELECT *,
-    CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning = TRUE END AS is_scheduled
+    CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
   FROM "outbound"."FieldworkCalendar")
   AS FwCAL ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN "outbound"."SampleLocations" AS SLOC
@@ -102,27 +112,30 @@ LEFT JOIN (
   ) AS GAP
   ON GAP.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
-  SELECT samplelocation_id, loceval_photo
+  SELECT samplelocation_id, loceval_notes, loceval_photo
   FROM (
     SELECT DISTINCT
       samplelocation_id,
       MAX(eval_date) AS latest_visit,
       eval_date,
+      notes AS loceval_notes,
       photo AS loceval_photo
     FROM "outbound"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
-    GROUP BY samplelocation_id, eval_date, photo
-  ) WHERE eval_date = latest_visit AND loceval_photo IS NOT NULL
+    GROUP BY samplelocation_id, eval_date, notes, photo
+  ) WHERE eval_date = latest_visit
+    AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL))
 ) AS LOCEVAL
   ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
 WHERE TRUE
-  AND FwCAL.is_scheduled
+  AND (FwCAL.is_scheduled OR FwCAL.done_planning)
   AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
   AND NOT FwCAL.excluded
   AND GAP.is_gw_activity
   AND (VISIT.visit_done OR (FwCAL.archive_version_id IS NULL))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
+
 
 
 -- https://stackoverflow.com/q/44005446
@@ -155,7 +168,9 @@ DO ALSO
  SET
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit,
-  recovery_hints = NEW.recovery_hints
+  recovery_hints = NEW.recovery_hints,
+  equipment_recommendations = NEW.equipment_recommendations,
+  is_secret_location = NEW.is_secret_location
  WHERE locationinfo_id = OLD.locationinfo_id
 ;
 
@@ -208,8 +223,8 @@ DO ALSO
    AND positioningvisit_id IS NOT NULL
 ;
 
-GRANT SELECT ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
-GRANT UPDATE ON  "inbound"."FieldWork"  TO  tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+GRANT SELECT ON  "inbound"."FieldWork"  TO  viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."FieldWork"  TO  user_gwdb;
 
 
 

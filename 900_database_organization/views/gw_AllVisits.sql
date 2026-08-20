@@ -6,6 +6,7 @@ FROM ONLY "inbound"."Visits"
 NATURAL FULL JOIN "inbound"."InstallationVisits"
 NATURAL FULL JOIN "inbound"."SamplingVisits"
 NATURAL FULL JOIN "inbound"."PositioningVisits"
+NATURAL FULL JOIN "inbound"."OtherVisits"
 ORDER BY visit_id ASC
 ;
 

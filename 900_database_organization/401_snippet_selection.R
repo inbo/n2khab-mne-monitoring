@@ -12,7 +12,7 @@
 # the conditional allows for setting a different git root from other places
 # [!] the variable name `snippet_base_path` must be consistent with `MNMLibraryCollection.R`
 if (!exists("snippet_base_path")) {
-  snippet_base_path <- rprojroot::find_root(is_git_root)
+  snippet_base_path <- rprojroot::find_root(rprojroot::is_git_root)
 }
 
 source_snippet_supplements <- function(file_name) {
@@ -31,7 +31,12 @@ source_snippet_supplements("calendar_operations_and_priorities.R")
 
 # Checking the existence of the correct data source files in the correct
 # directories
-versions_required <- c(versions_required, "habitatmap_2024_v99_interim")
+if (isFALSE("habitatmap" %in% names(versions_required))) {
+versions_required <- c(
+  versions_required,
+  habitatmap = "habitatmap_2024_v99_interim"
+)
+}
 verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
 
 
@@ -93,9 +98,11 @@ n2khab_types_expanded_properties %>%
 # with the currently active modules, module_combo_code has a single unique value
 # for each scheme. We take advantage of this uniqueness to keep things as simple
 # as possible. Checking that foregoing statement is TRUE:
-scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  distinct(scheme, module_combo_code) %>%
-  {nrow(.) == nrow(distinct(., scheme))}
+stopifnot(
+  scheme_moco_ps_stratum_targetpanel_spsamples %>%
+    distinct(scheme, module_combo_code) %>%
+    {nrow(.) == nrow(distinct(., scheme))}
+)
 
 # nesting scheme, panel set, targetpanel, still distinguishing strata separately
 # (even though they may share their location: this is unreal in the case of
@@ -104,7 +111,7 @@ scheme_moco_ps_stratum_targetpanel_spsamples %>%
 stratum_schemepstargetpanel_spsamples <-
   scheme_moco_ps_stratum_targetpanel_spsamples %>%
   select(-module_combo_code) %>%
-  nest_and_flatten_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = FALSE, for_fag_occasions = FALSE) %>%
   relocate(scheme_ps_targetpanels) %>%
   arrange(pick(stratum:grts_address))
 
@@ -122,40 +129,62 @@ if (interactive()) {
 }
 
 
-## Inspecting VBI locations that overlap sampling units --------------------------
-
-# vbi_overlaps represents the VBI plot centers that overlap MNE sampling units.
-# For privacy reasons, the full list of VBI locations is not stored publicly.
-
-vbi_overlaps %>%
-  inner_join_121_ed(
-    stratum_schemepstargetpanel_spsamples %>%
-      filter(is_forest) %>%
-      select(
-        stratum,
-        grts_address_final,
-        scheme_ps_targetpanels
-      ),
-    join_by(grts_address == grts_address_final)
-  )
-
-# representing as points object
-vbi_overlaps_sf <-
-  vbi_overlaps %>%
-  st_as_sf(coords = c("x", "y"), crs = 31370)
-
-
-
-
-
 ## Sampling unit geometries --------------------------------------
 
 # obtaining geometries of the sampling units themselves:
-# - for aquatic types, see code from
-#   https://github.com/inbo/n2khab-mne-monitoring/pull/2, but then do use the
-#   POC RData file used here
+# - for lentic types, the result is in object 'stratum_grts_spsamples_lentic_sf'
+#   from the REP; it is explored and handled below for demonstration
+# - for lotic types, see code in
+#   inbo/n2khab-mne-monitoring/010_aq_piezometer_positioning, but then do use
+#   the REP RData file used here
 # - for type 7220 (springs) as a whole, see code provided below
 # - for terrestrial types, these are cells; see code provided below
+
+
+
+# geometries of the spatial sampling units of lentic types (watersurface
+# polygons)
+# /////////////////////////////////////////////////////////////////////////
+
+# The geometries of lentic spatial sampling units are in following object.
+if (interactive()) glimpse(stratum_grts_spsamples_lentic_sf)
+
+# The spatial sampling unit is always identified by stratum x grts_address by
+# definition. Note that, as usual, grts_address_final is the GRTS address linked
+# to the actual location (watersurface polygon), while grts_address is the GRTS
+# address from the sample draw. This distinction supports local replacements.
+# However, for lentic types we don't have a difference between both columns, but
+# if we choose to support local replacements for lentic types in the future,
+# then it can be accommodated.
+#
+# Note that polygon_id is kept only for information and perhaps to join extra
+# attributes from its datasources watersurfaces_hab and watersurfaces; the
+# stable column to identify the polygons is grts_address_final! This is because
+# polygon_id values can change with the versions of watersurfaces_hab and
+# watersurfaces.
+
+# Multiple strata often co-occur in the same location (watersurface geometry).
+# Each location is uniquely identified by its GRTS address. So we can easily
+# construct a spatial object of lentic locations, each with its unique GRTS
+# address on each row, also mentioning the types for which the location was
+# drawn:
+grts_lentic_sf <-
+  stratum_grts_spsamples_lentic_sf %>%
+  # using type instead of stratum, since it is only going to serve as an
+  # attribute here (but note that multiple strata exist per lentic type!)
+  inner_join(
+    n2khab_strata,
+    join_by(stratum),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  summarise(
+    types_in_sample =
+      str_flatten(sort(unique(type)), collapse = "|") %>% factor(),
+    .by = c(starts_with("grts_address"), polygon_id, geom)
+  ) %>%
+  relocate(geom, .after = last_col())
+
 
 
 # geometries of 7220 units are represented by points, labelled with their GRTS
@@ -169,10 +198,11 @@ flanders_buffer <-
 # pre-load grts-master habitat objects: `grts_mh` and `grts_mh_index`
 load_grts_mh_to_env(environment())
 
-# following function will be adapted to support the latest version of the data
-# source; for now use version habitatsprings_2020v2
 units_7220 <-
-  read_habitatsprings(units_7220 = TRUE) %>%
+  read_habitatsprings(
+    units_7220 = TRUE,
+    version = versions_required["habitatsprings"]
+  ) %>%
   .[flanders_buffer, ] %>%
   mutate(unit_id = as.character(unit_id)) %>%
   # replacing unit_id by the grts_address
@@ -226,7 +256,8 @@ units_cell_polygon <-
   as_tibble() %>%
   # it appears that the CRS is actually retrieved from the tibble, but I don't
   # understand how (so the crs argument below isn't needed)
-  st_as_sf(crs = "EPSG:31370")
+  st_as_sf(crs = "EPSG:31370", agr = "identity") %>%
+  mutate(grts_address_final = as.integer(grts_address_final))
 
 # adding the sampling unit attributes to these polygons, arranged as in
 # stratum_schemepstargetpanel_spsamples. Note that this duplicates cells with
@@ -256,6 +287,96 @@ units_cell_polygon_attrib <-
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(stratum_scheme_ps_targetpanels, grts_address)
+
+
+
+
+
+## Inspecting VBI locations that overlap sampling units --------------------------
+
+# vbi_overlaps represents the center coordinates of VBI plots (circles with
+# radius 18 m) that overlap MNE sampling units. For privacy reasons, the full
+# list of VBI locations is not stored publicly.
+#
+# Below, some further processing is demonstrated.
+
+# joining attributes stratum and scheme_ps_targetpanels to vbi_overlaps:
+vbi_overlaps %>%
+  inner_join_121_ed(
+    stratum_schemepstargetpanel_spsamples %>%
+      select(
+        stratum,
+        grts_address_final,
+        scheme_ps_targetpanels
+      ),
+    join_by(grts_address_overlapped_cell == grts_address_final)
+  )
+
+# some VBI locations may overlap more than one MNE sampling unit:
+vbi_overlaps %>%
+  count(plot_id) %>%
+  filter(n > 1)
+
+# representing the involved VBI locations as polygons object (circles)
+vbi_overlaps_sf <-
+  vbi_overlaps %>%
+  distinct(plot_id, x, y) %>%
+  st_as_sf(
+    coords = c("x", "y"),
+    remove = FALSE,
+    crs = 31370,
+    agr = "identity"
+  ) %>%
+  st_buffer(18)
+
+# calculating the overlapped surface area per MNE sampling unit
+units_cell_polygon %>%
+  st_intersection(vbi_overlaps_sf) %>%
+  mutate(overlapped_cell_area = st_area(.)) %>%
+  st_drop_geometry() %>%
+  rename(grts_address_overlapped_cell = grts_address_final)
+
+
+
+
+
+## Support in reusing legacy lentic watersample locations ---------------------
+
+# The below spatial points object lists legacy watersample points in the
+# locations (grts_address_final) that apply to the (current) lentic sampling
+# units. Notably, these points serve as a candidate for re-use.
+
+if (interactive()) glimpse(legacy_watersamplepoints_spslocs_lentic)
+
+# As usual, the stable column to identify the polygons is grts_address_final and
+# the corresponding (less stable) polygon_id is for information (see higher:
+# object 'stratum_grts_spsamples_lentic_sf' under Sampling unit geometries). x
+# and y mirror the geometry column.
+#
+# More specifically, the object contains a legacy_try_first column: for each
+# polygon (represented by grts_address_final), TRUE marks the point that should
+# be favoured for data collection, if the field criteria for point validity
+# still hold. In some cases, multiple different points with TRUE may be present,
+# in which case field criteria must be used. If the TRUE point does not fulfill
+# criteria, then (historical) points marked as FALSE can still be considered,
+# making use of the field criteria. If multiple points still survive in either
+# of these cases (TRUE, or FALSE if TRUE isn’t successful), then additional
+# information can be inspected to make a choice, such as active_in_db_from &
+# active_in_db_till (but these refer to database activity (automated fields),
+# not to a period of field validity). Also columns annotation and ranknr are
+# background information; annotation has been used in creating legacy_try_first
+# already and a higher ranknr refers to a later addition in the source database.
+#
+# If the latest legacy sampling date of the location
+# (lastdate_legacysampling_polygon) is recent enough, the SAMPLPOINT FAG for the
+# unit in the FAG calendar can be ignored. However, if during fieldwork it is
+# found that the point where legacy_try_first == TRUE does not fulfill criteria,
+# then the SAMPLPOINT FAG still needs to be executed since the sampling date
+# does not apply to older points (the same adhoc SAMPLPOINT approach applies
+# when revisiting points created within MNE). For this reason, this date is only
+# present in the rows where legacy_try_first is TRUE.
+
+
 
 
 
@@ -362,8 +483,8 @@ missing_polygons <-
 
 # adding all GRTS addresses that belong to these polygons, by cell-center
 missing_pol_grts <-
-  extract(grts_mh, missing_polygons, small = FALSE) %>%
-  as_tibble() %>%
+  terra::extract(grts_mh, missing_polygons, small = FALSE) %>%
+  dplyr::as_tibble() %>%
   inner_join_12m_e(
     tibble(
       ID = seq_len(nrow(missing_polygons)),
@@ -373,7 +494,7 @@ missing_pol_grts <-
     join_by(ID)
   ) %>%
   select(-ID, grts_address = GRTSmaster_habitats) %>%
-  # filtering is needed since all polygons are listed by extract():
+  # filtering is needed since all polygons are listed by terra::extract():
   filter(!is.na(grts_address))
 
 # Finally, joining the stratum from the sampling-units-that-missed-their-polygon
@@ -764,7 +885,7 @@ actseqs_actgroups_acts <-
   )
 
 
-fag_stratum_grts_calendar
+if (interactive()) fag_stratum_grts_calendar
 
 # fag_stratum_grts_calendar defines the needed visits of the spatial sampling
 # units and is organized at the FAG level. The rank is an indication of the
@@ -796,24 +917,24 @@ fag_fa_stratum_grts_calendar <-
 # during which the auxiliary FAG (in the scheduled time interval) is still
 # relevant to subsequent FAGs in that scheme.
 
-cal_0.14.0_continuation
+if (interactive()) cal_old_continuation
 
-# cal_0.14.0_continuation is a subset of fag_stratum_grts_calendar (without
+# cal_old_continuation is a subset of fag_stratum_grts_calendar (without
 # assessment columns) that represents GWSHALL* and READDIVER FAG occasions in
-# 2026 and 2027 from rep_0.14.0, that are retained in newer FAG calendar
+# 2026 and 2027 from older REP versions, that are retained in newer FAG calendar
 # versions regardless of the fact that those FAG occasions are no part of the
-# new revisit design. So they are supplementary. Their timing will be kept
-# fixed; however units may still be dropped as they disappear from later
-# versions of the new FAG calendar.
+# new revisit design or even the spatial sample. So they are supplementary.
+# Their timing will be kept fixed; however units may still be dropped in future
+# revisit cycles as they disappear from later versions of the new FAG calendar.
 
-# cal_0.14.0_continuation is the only object that defines a second targetpanel
+# cal_old_continuation is the only object that defines a second targetpanel
 # specifically for those FAG occasions; the format is OLDPANELxx (xx being the
 # number). These locations are at the same time part of a regular 'PANELyy',
 # which is not linked to specific FAG occasions, hence not part of the new
 # revisit design: it is just a location attribute. The regular targetpanels are
 # dynamic, i.e. their units can change, while this is not relevant for the FAG
-# occasions of cal_0.14.0, which got the frozen revisit pattern of the panels at
-# the time, which we now call OLDPANELxx.
+# occasions of cal_old_continuation, which got the frozen revisit pattern of the
+# panels at the time, which we now call OLDPANELxx.
 
 # Link between field activities and their protocol
 fa_protocol <-
@@ -825,9 +946,8 @@ fa_protocol <-
   )
 
 # List of variables / variable sets to be collected in the field (will expand
-# when mod_scheme_vars expands). Note 1: currently only target variables are
-# involved in mod_scheme_vars. Note 2: this only concerns MNE, so it still
-# misses the LSVI field measurement of the LSVITERR & LSVIAQ field activities.
+# when mod_scheme_vars expands). This only concerns MNE, so it still misses the
+# LSVI field measurement of the LSVITERR & LSVIAQ field activities.
 scheme_moco_fa_fieldvar <-
   mod_scheme_vars %>%
   # bring to module combo level
@@ -874,13 +994,17 @@ scheme_moco_fa_fieldvar <-
 # Derive the short-term FAG calendar at the stratum x location x FAG occasion,
 # and include some of the location attributes.
 #
-# Note that the scheme_ps_targetpanels attribute created below by
-# nest_and_flatten_scheme_ps_targetpanel() is a shrinked version of the one at
-# the level of the whole sample (see sampling unit attributes in the beginning),
-# since we limited the activities to those planned before main_year + 1
-# (sometimes later), and then generate stratum_scheme_ps_targetpanels as a
-# location attribute. So it says specifically which schemes x panel sets x
-# targetpanels are served by the specific fieldwork at a specific date interval.
+# Note that the scheme_ps_targetpanels_served attribute created below by
+# nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked
+# version of scheme_ps_targetpanels at the level of the whole sample (see
+# sampling unit attributes in the beginning), since it is specific to the FAG
+# occasion and since we limited the activities to those planned before main_year
+# + 1 (sometimes later), before generating scheme_ps_targetpanels_served. So it
+# says specifically which schemes x panel sets x targetpanels are served by the
+# specific fieldwork at a specific date interval. Note that we substitute the
+# targetpanel with the OLD targetpanel if the targetpanel is missing, i.e. for
+# sampling units missing from the current FAG calendar. This is done to avoid
+# missing values in derived objects or overviews.
 main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
@@ -897,14 +1021,16 @@ fag_stratum_grts_calendar_shortterm_attribs <-
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
   unnest_and_join_sampling_unit_attributes() %>%
-  nest_and_flatten_scheme_ps_targetpanel() %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE, for_fag_occasions = TRUE) %>%
+  mark_matching_occasions() %>%
   relocate(
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     schemes_served_all,
     starts_with("nr_schemes")
-  )
+  ) %>%
+  relocate(matching_occasion, .after = rank)
 
-# Derive an object where stratum x scheme_ps_targetpanels is flattened per
+# Derive an object where stratum x scheme_ps_targetpanels_served is flattened per
 # location x FAG occasion. Beware that in reality, more locations will emerge
 # due to local replacement, so this is misleading for counting & planning (but
 # useful in spatial visualization).
@@ -916,15 +1042,15 @@ fag_grts_calendar_shortterm_attribs <-
   ) %>%
   unite_stratum_and_schemepstargetpanels() %>%
   summarize(
-    stratum_scheme_ps_targetpanels =
+    stratum_scheme_ps_targetpanels_served =
       str_flatten(
-        unique(stratum_scheme_ps_targetpanels),
+        unique(stratum_scheme_ps_targetpanels_served),
         collapse = " \u2588 "
       ) %>%
       factor(),
-    .by = !stratum_scheme_ps_targetpanels
+    .by = !stratum_scheme_ps_targetpanels_served
   ) %>%
-  relocate(stratum_scheme_ps_targetpanels)
+  relocate(stratum_scheme_ps_targetpanels_served)
 
 # A simple derived spatial object (as points; see earlier for the actual unit
 # geometries). Points are still repeated because of different date_interval &
@@ -948,6 +1074,7 @@ fieldwork_shortterm_prioritization_by_stratum <-
     wait_7220,
     wait_floating,
     wait_mhq,
+    wait_obsolete_types,
     wait_any,
     stratum,
     grts_address,
@@ -959,12 +1086,12 @@ fieldwork_shortterm_prioritization_by_stratum <-
 fieldwork_shortterm_targetpanels_prioritization_count <-
   fieldwork_shortterm_prioritization_by_stratum %>%
   count(
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     priority,
-    pick(starts_with("wait"), -wait_any),
+    pick(starts_with("wait")),
     field_activity_group
   ) %>%
-  arrange(priority, pick(starts_with("wait"))) %>%
+  arrange(priority, pick(starts_with("wait"), -wait_any)) %>%
   pivot_wider(
     names_from = field_activity_group,
     names_sort = TRUE,
@@ -978,10 +1105,10 @@ fieldwork_shortterm_dates_prioritization_count <-
     date_interval,
     date_end,
     priority,
-    pick(starts_with("wait"), -wait_any),
+    pick(starts_with("wait")),
     field_activity_group
   ) %>%
-  arrange(date_end, priority, pick(starts_with("wait"))) %>%
+  arrange(date_end, priority, pick(starts_with("wait"), -wait_any)) %>%
   select(-date_end) %>%
   pivot_wider(
     names_from = field_activity_group,
@@ -1031,18 +1158,18 @@ fag_stratum_grts_calendar %>%
 ## Making selections for short-term orthophoto assessments ---------------------
 
 
-# Making a list of terrestrial locations to be assessed using orthophotos
+### Making a list of terrestrial locations to be assessed using orthophotos ----
 
-orthophoto_shortterm_type_grts <-
+orthophoto_shortterm_terrtype_grts <-
   fieldwork_shortterm_prioritization_by_stratum %>%
   filter(
     str_detect(field_activity_group, "LOCEVAL"),
     # only keep cell-based types (aquatic & 7220 will be more reliable or simply
     # not possible to evaluate on orthophoto)
-    str_detect(grts_join_method, "cell")
+    str_detect(sample_support_code, "cell")
   ) %>%
   convert_stratum_to_type() %>%
-  select(-rank, -scheme_ps_oldtargetpanel) %>%
+  select(-rank, -scheme_ps_oldtargetpanels_served, -matching_occasion) %>%
   arrange(
     priority,
     type,
@@ -1053,7 +1180,10 @@ orthophoto_shortterm_type_grts <-
 # unit geometries (cells):
 orthophoto_shortterm_cells <-
   units_cell_polygon %>%
-  inner_join_12m_de(orthophoto_shortterm_type_grts, join_by(grts_address_final)) %>%
+  inner_join_12m_de(
+    orthophoto_shortterm_terrtype_grts,
+    join_by(grts_address_final)
+  ) %>%
   relocate(grts_address_final, .after = grts_address) %>%
   relocate(geometry, .after = last_col()) %>%
   arrange(
@@ -1065,8 +1195,51 @@ orthophoto_shortterm_cells <-
 
 # cell centers:
 orthophoto_shortterm_cell_centers <-
-  orthophoto_shortterm_type_grts %>%
+  orthophoto_shortterm_terrtype_grts %>%
   add_point_coords_grts_mh(grts_var = "grts_address_final")
+
+
+
+### Making a list of lentic locations to be assessed using orthophotos ----
+
+orthophoto_shortterm_lentictype_grts <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
+  filter(str_detect(field_activity_group, "LOCEVAL")) %>%
+  # the polygons that are no member of the watersurfaces data source are the
+  # ones to be screened
+  semi_join(
+    stratum_grts_polygon_spsamples_lentic %>%
+      filter(!str_detect(polygon_id, "^(ANT|LIM|WVL|OVL|VBR)")),
+    join_by(stratum, grts_address_final)
+  ) %>%
+  # converting stratum to type (keeping stratum)
+  inner_join_m21_ed(n2khab_strata, join_by(stratum)) %>%
+  relocate(type, .after = stratum) %>%
+  select(-rank, -scheme_ps_oldtargetpanels_served) %>%
+  arrange(
+    priority,
+    type,
+    domain_part,
+    grts_address
+  )
+
+# unit geometries (polygons)
+orthophoto_shortterm_watersurfaces <-
+  stratum_grts_spsamples_lentic_sf %>%
+  inner_join_12m_de(
+    orthophoto_shortterm_lentictype_grts,
+    join_by(stratum, grts_address, grts_address_final)
+  ) %>%
+  relocate(type, stratum, .after = polygon_id) %>%
+  relocate(grts_address, grts_address_final, .after = sample_support_code) %>%
+  relocate(geom, .after = last_col()) %>%
+  arrange(
+    priority,
+    type,
+    domain_part,
+    grts_address
+  )
+
 
 
 
@@ -1093,7 +1266,7 @@ different_checksums <-
 if (nrow(different_checksums) > 0) {
   warning(
     "Different checksums detected than expected.",
-    "\nPlease inspect the object `different_checksums, shown below`."
+    "\nPlease inspect the object `different_checksums`, shown below."
   )
   different_checksums %>%
     knitr::kable()

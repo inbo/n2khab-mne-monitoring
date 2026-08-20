@@ -33,7 +33,7 @@ update_cascade_testing <- parametrize_cascaded_update(test_db)
 
 # SELECT * FROM "metadata"."Locations" WHERE grts_address = 871030;
 # SELECT * FROM "outbound"."SampleUnits" WHERE grts_address = 871030;
-# SELECT * FROM "outbound"."FieldActivityCalendar" WHERE grts_address = 871030;
+# SELECT * FROM "outbound"."FieldCalendars" WHERE grts_address = 871030;
 
 #_______________________________________________________________________________
 ### basic database connection functions in place?

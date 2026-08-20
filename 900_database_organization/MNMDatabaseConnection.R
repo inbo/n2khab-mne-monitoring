@@ -115,6 +115,69 @@ grts_datatype_to_integer <- function(data) {
 }
 
 
+#' convert a timestamp to a character string with millisecond accuracy
+#'
+#' https://stackoverflow.com/questions/79959088/lubridatefloor-date-returns-inaccurate-values-just-below-the-actual-roundin
+#'
+#' @param ts a timestamp as.POSIXct
+#' @return timestamp, in milliseconds, as.character
+convert_timestamp_to_ms_character <- function(ts) {
+  # timestamp string in seconds
+
+  if (length(ts) == 0) return(NA)
+  if (is.scalar.na(ts)) return(NA)
+
+  stopifnot("Timestamp must be POSIXct type." = is.POSIXct(ts))
+
+  ts_char <- strftime(ts, format = "%Y-%m-%d %H:%M:%OS0", tz = "UTC")
+
+  # milliseconds
+  ts_ms_char <- as.character(floor(unclass(ts)*1000))
+  l <- nchar(ts_ms_char)
+  ms <- substr(ts_ms_char, start = l-2, stop = l)
+
+  # timezone
+  tz <- format(ts, format = "%Z")
+
+  return(paste0(c(ts_char, ".", ms, " ", tz), collapse = ""))
+} # /convert_timestamp_to_ms_character
+
+## testing
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.000", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.001", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.002", tz = "Europe/London"))
+# convert_timestamp_to_ms_character(as.POSIXct("1970-01-01 12:00:00.999999", tz = "Europe/London"))
+# for (i in seq_len(100)) {
+#   print(convert_timestamp_to_ms_character(Sys.time()))
+# }
+
+#' unlist, retaining NA occurrences
+#'
+#' the regular unlist wil loose NULLs/NAs when used with purrr
+#' so this is a necessary extra step
+#'
+unlist_keep_na <- function(x) {
+  x_un <- unlist(x)
+  if (is.null(x_un)) return(NA)
+  return(x_un)
+}
+
+
+#' convert all POSIXct types in a data frame to string
+convert_df_datetime_types_to_character <- function(df) {
+
+  # purrr::map(df$log_creation, convert_timestamp_to_ms_character)
+  # x <- df$log_creation
+
+  df %>%
+    mutate_if(
+      is.POSIXct,
+      \(x) unlist_keep_na(purrr::map(x, convert_timestamp_to_ms_character))
+    ) %>%
+    return()
+}
+
+
 execute_sql <- function(db_connection, sql_command, verbose = TRUE) {
   # a rather trivial wrapper for dbExecute
   # which doesn't even work for multi-commands :/
@@ -612,15 +675,26 @@ connect_mnm_database <- function(
 mnmdb_assemble_structure_lookups <- function(db) {
 
   # tables and their relations
+  # db$folder <- "mnmsyncdb_dev_structure"
   db$tables <- bind_rows(
-      read.csv(file.path(db$folder, "TABLES.csv")) %>%
+    read.csv(file.path(db$folder, "TABLES.csv")) %>%
         select(table, schema, geometry, inherits, excluded) %>%
-        mutate(is_view = FALSE),
-      read.csv(file.path(db$folder, "VIEWS.csv")) %>%
+        mutate(
+          is_view = FALSE,
+        ) %>%
+        mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
+        mutate_at(vars(excluded), as.logical),
+    read.csv(file.path(db$folder, "VIEWS.csv")) %>%
         select(table = view, schema, excluded) %>%
-        mutate(geometry = "", inherits = "", is_view = TRUE)
+        mutate(
+          geometry = "",
+          inherits = "",
+          is_view = TRUE,
+        ) %>%
+        mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
+        mutate_at(vars(excluded), as.logical)
     ) %>%
-    mutate(excluded = as.logical(coalesce(excluded, 0)))
+    mutate(excluded = as.logical(coalesce(excluded, FALSE)))
     # %>% filter(!excluded)
   # db$tables %>% knitr::kable()
 
@@ -734,7 +808,9 @@ mnmdb_assemble_structure_lookups <- function(db) {
   db$load_table_info <- function(table_label) {
     table_info <- read.csv(
       file.path(db$folder, glue::glue("{table_label}.csv"))
-    )
+    ) %>%
+    mutate_at(vars(default, foreign_key, constraint, freesql), as.character)
+
     return(table_info)
   }
   # db$load_table_info("FreeFieldNotes")
@@ -759,10 +835,13 @@ mnmdb_assemble_structure_lookups <- function(db) {
     # db$tables %>% filter(table == "PositioningVisits") %>% pull(inherits)
     # db$tables %>% filter(table == "TeamMembers") %>% pull(inherits)
     ancestors <- db$get_ancestor_tables(table_label)
+    # db$load_table_info(ancestors[[1]]) %>% glimpse()
+    # full_table_info %>% glimpse()
+
     if (length(ancestors) > 0) {
       for (ancestor in ancestors) {
         full_table_info <- bind_rows(
-          db$load_table_info(ancestors),
+          db$load_table_info(ancestor),
           full_table_info
         )
       }
@@ -911,20 +990,22 @@ mnmdb_assemble_query_functions <- function(db) {
       # currently, we do not use inheritance on spatial tables.
       has_descendants <- 0 < length(db$get_descendant_tables(table_label))
       if (ONLY & has_descendants) message(glue::glue(
-        "WARNING: ONLY flag not available for spatial tables; returning ALL rows of {table_label}."
+        "WARNING: ONLY flag not available for spatial tables; returning ALL rows of #{table_label}."
         )
       )
 
       # load and return data
       data <- sf::st_read(
           db$connection,
-          layer = db$get_table_id(table_label)
+          layer = db$get_table_id(table_label),
+          geometry_column = "wkb_geometry"
         ) %>%
-        dplyr::select(-ogc_fid)
+        dplyr::select(-ogc_fid) %>%
+        sf::st_as_sf(crs = 31370)
 
       sf::st_geometry(data) <- "wkb_geometry"
 
-      if (!is.scalar.na(subselect)) {
+      if (isFALSE(is.scalar.na(subselect))) {
         data <- data %>%
           dplyr::select(!!!rlang::syms(subselect))
       }
@@ -937,8 +1018,13 @@ mnmdb_assemble_query_functions <- function(db) {
         dplyr::collect()
     }
 
+    # data %>% mutate(test =
+    #   unlist_keep_na(purrr::map(log_creation, convert_timestamp_to_ms_character))
+    # ) %>% pull(test)
+
     data %>%
       grts_datatype_to_integer() %>%
+      convert_df_datetime_types_to_character() %>%
       dplyr::as_tibble() %>%
       return()
   } # /query_table
@@ -1096,9 +1182,12 @@ mnmdb_assemble_query_functions <- function(db) {
 
     } else if (new_key_value == "max") {
       # set to current max value in the database
-      nextval <- db$get_sequence_last_value(sequence_label)
-      max_pk <- db$pull_column(table_label, pk, ONLY = FALSE) %>% max
-      new_key_value <- max(c(nextval, max_pk))
+      new_key_value <- db$get_sequence_last_value(sequence_label)
+
+      current_pk <- db$pull_column(table_label, pk, ONLY = FALSE)
+      if (length(current_pk) > 0) {
+        new_key_value <- max(c(new_key_value, max(current_pk)))
+      }
 
     }
 
@@ -1126,7 +1215,7 @@ mnmdb_assemble_query_functions <- function(db) {
     # upload_data <- data_replacement
 
     if (isFALSE(db$has_table(table_label))) {
-      stop(glue::glue("There is no table called {table_label}"))
+      stop(glue::glue("There is no table called #{table_label}"))
     }
 
     if ("ogc_fid" %in% names(upload_data)) {
@@ -1443,6 +1532,7 @@ lock_keyring_delayed <- function(keyring_label = "mnmdb_postgis", delay = 1800) 
 
   # background-execute the script with a delay
   system(glue::glue("sleep {delay} && {cmd} &", wait = FALSE))
+  # TODO might this work with processx?
 
 } # /lock_keyring_delayed
 

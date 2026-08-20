@@ -1,0 +1,13 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+n2khabstratum_id,smallint,True,,True,True,,,,natura 2000 habitat (sub-)type index (technical)
+stratum,varchar(16),True,,False,False,,UNIQUE,,"natura 2000 habitat (sub-)type short label, split to strata for some aquatic types"
+type,varchar(16),True,,False,False,,,,natura 2000 habitat (sub-)type short label
+typelevel,varchar,False,,False,False,,,,"""main_type"" or ""subtype"""
+main_type,varchar,False,,False,False,,,,reference to the main type
+typeclass,varchar,False,,False,False,,,,type class
+hydr_class,varchar,False,,False,False,,,,hydrology class
+groundw_dep,varchar,False,,False,False,,,,groundwater dependency level
+flood_dep,varchar,False,,False,False,,,,flood dependency level
+grts_join_method,varchar,False,,False,False,,,,GRTS join method
+sample_support,varchar,False,,False,False,,,,sample support
+sample_support_code,varchar,False,NULL,False,False,,,,sample support code
