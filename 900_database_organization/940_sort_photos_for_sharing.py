@@ -215,8 +215,8 @@ if __name__ == "__main__":
     all_photos.to_csv(PL.Path("data")/"photos_all.csv")
 
 
+    ### Distribute Files
     # folder structure: MNM/[region]/{watina_code}_{date_visit}_{given_name}_{occasion}.{ext}
-
 
     path_in = PL.Path(".") / "photos"
     path_out = PL.Path(".") / "Foto-archief MNM"
