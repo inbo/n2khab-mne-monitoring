@@ -245,3 +245,6 @@ if __name__ == "__main__":
     missing.to_csv(PL.Path("data")/"photos_missing.csv")
 
     print("done!")
+
+
+    # example: loceval_20260713162820191
