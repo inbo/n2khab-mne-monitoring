@@ -5,6 +5,7 @@ aliases:
   - QGIS
 tags: 
   - gis
+  - qgis
 ---
 
 <https://qgis.org>
