@@ -146,9 +146,11 @@ n2khab_types_expanded_properties %>%
 # with the currently active modules, module_combo_code has a single unique value
 # for each scheme. We take advantage of this uniqueness to keep things as simple
 # as possible. Checking that foregoing statement is TRUE:
-scheme_moco_ps_stratum_targetpanel_spsamples %>%
-  distinct(scheme, module_combo_code) %>%
-  {nrow(.) == nrow(distinct(., scheme))}
+stopifnot(
+  scheme_moco_ps_stratum_targetpanel_spsamples %>%
+    distinct(scheme, module_combo_code) %>%
+    {nrow(.) == nrow(distinct(., scheme))}
+)
 
 # nesting scheme, panel set, targetpanel, still distinguishing strata separately
 # (even though they may share their location: this is unreal in the case of
@@ -193,7 +195,7 @@ if (interactive()) {
 # /////////////////////////////////////////////////////////////////////////
 
 # The geometries of lentic spatial sampling units are in following object.
-glimpse(stratum_grts_spsamples_lentic_sf)
+if (interactive()) glimpse(stratum_grts_spsamples_lentic_sf)
 
 # The spatial sampling unit is always identified by stratum x grts_address by
 # definition. Note that, as usual, grts_address_final is the GRTS address linked
@@ -392,7 +394,7 @@ units_cell_polygon %>%
 # locations (grts_address_final) that apply to the (current) lentic sampling
 # units. Notably, these points serve as a candidate for re-use.
 
-glimpse(legacy_watersamplepoints_spslocs_lentic)
+if (interactive()) glimpse(legacy_watersamplepoints_spslocs_lentic)
 
 # As usual, the stable column to identify the polygons is grts_address_final and
 # the corresponding (less stable) polygon_id is for information (see higher:
@@ -931,7 +933,7 @@ actseqs_actgroups_acts <-
   )
 
 
-fag_stratum_grts_calendar
+if (interactive()) fag_stratum_grts_calendar
 
 # fag_stratum_grts_calendar defines the needed visits of the spatial sampling
 # units and is organized at the FAG level. The rank is an indication of the
@@ -963,7 +965,7 @@ fag_fa_stratum_grts_calendar <-
 # during which the auxiliary FAG (in the scheduled time interval) is still
 # relevant to subsequent FAGs in that scheme.
 
-cal_old_continuation
+if (interactive()) cal_old_continuation
 
 # cal_old_continuation is a subset of fag_stratum_grts_calendar (without
 # assessment columns) that represents GWSHALL* and READDIVER FAG occasions in
