@@ -103,9 +103,15 @@ def ConfigToConnectionString(config: dict) -> str:
         # ensure port numeric to string
         config_relevant["port"] = f"{config_relevant["port"]:%.0f}"
 
-    conn_str = """postgresql://{user}:{password}@{host}:{port}/{database}""".format(
-        **config_relevant
-    )
+    if config["password"] is None:
+        conn_str = """postgresql://{user}@{host}:{port}/{database}""".format(
+            **config_relevant
+        )
+
+    else:
+        conn_str = """postgresql://{user}:{password}@{host}:{port}/{database}""".format(
+            **config_relevant
+        )
 
     return(conn_str)
 
@@ -195,6 +201,33 @@ def ExecuteSQL(db_connection, sql_command, verbose = True, test_dry = False) -> 
 
     if verbose:
         print("done.")
+
+
+def QueryTable(db_connection: DatabaseConnection, schema_table: list, is_spatial: bool = False, **kwargs) -> PD.DataFrame:
+    # query a single table (just a shortcut)
+
+    if is_spatial:
+        query = f"""
+               SELECT *
+               FROM "{schema_table[0]}"."{schema_table[1]}";
+           """
+
+        data = GPD.read_postgis( \
+            query, \
+            con = db_connection.connection, \
+            geom_col = "wkb_geometry" \
+            )
+
+    else:
+        data = PD.read_sql_table( \
+            schema_table[1], \
+            schema = schema_table[0], \
+            con = db_connection.connection, \
+            **kwargs
+        )
+
+    return(data)
+
 
 
 def CreateSchema(db_connection, definition_csv: str, selection: set = None, drop: bool = True, verbose: bool = True, dry: bool = False):
@@ -927,7 +960,7 @@ class Database(dict):
               relation_store.write(storage_file)
 
 
-    def QueryAllExistingData(self, db_connection, filter_tables = None):
+    def QueryAllExistingData(self, db_connection: DatabaseConnection, filter_tables: list = None):
         # load current data of all tables from the database
 
         for table_name, table in self.items():
