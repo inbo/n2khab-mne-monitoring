@@ -134,7 +134,7 @@ generate_random_sampling_square <- function(
 locations_sf <- mnmgwdb$query_table("Locations") %>%
   sf::st_as_sf()
 
-sample_locations <- mnmgwdb$query_table("SampleLocations")
+sample_units <- mnmgwdb$query_table("SampleLocations")
 
 
 ## load cell maps and join them with nearest locations
@@ -150,7 +150,7 @@ cellmaps_sf$location_id <- locations_sf$location_id[nearest]
 
 locations_all <- locations_sf %>%
   inner_join(
-    sample_locations %>% select(-grts_address),
+    sample_units %>% select(-grts_address),
     by = join_by(location_id)
   ) %>%
   mutate(
@@ -439,8 +439,12 @@ sf::st_write(all_points,
 all_points %>%
   # filter(random_point_rank <= 24) %>%
   sf::st_drop_geometry() %>%
+  left_join(
+    sample_units %>% select(samplelocation_id, strata),
+    by = join_by(samplelocation_id)
+  ) %>%
   mutate(
-    Naam = glue::glue("{grts_address}_{random_point_rank}"),
+    Naam = glue::glue("{grts_address}_{strata}_{random_point_rank}"),
     Height = 0,
     Code = glue::glue("{random_point_group}")
   ) %>%
@@ -448,14 +452,15 @@ all_points %>%
     # index = point_id,
     # grts_address,
     Naam,
-    Easting = lambert_lon,
     Northing = lambert_lat,
+    Easting = lambert_lon,
     Height,
     Code
   ) %>%
   write.table(
     file = "./data/random_elevation_points.csv",
     col.names = FALSE,
+    row.names = FALSE,
     dec = ".",
     sep = ",",
     quote = FALSE
