@@ -174,6 +174,13 @@ sample_locations <- mnmgwdb$query_table("SampleLocations")
 
 
 ## load cell maps and join them with nearest locations
+registered_locevals <- loceval_connection$query_table("Visits") %>%
+  filter(
+    visit_done,
+    isFALSE(issues),
+    type == type_assessed
+  ) %>%
+  distinct(grts_address, type)
 
 cellmaps_sf <- loceval_connection$query_table("CellMaps") %>%
   sf::st_as_sf()
@@ -199,6 +206,7 @@ locations_all <- locations_sf %>%
 # TODO: work with a subset for testing
 locations <- locations_all %>%
   filter(!sf::st_is_empty(wkb_geometry)) # %>%
+  # filter(grts_address %in% c(5798622, 77278)) # 5798622: a 7150 without 4010; 77278: both present
 # filter(grts_address %in% c(131806)) # 83694
 #  filter(grts_address %in% c(48897, 1818369))
 #  filter(grts_address %in% c(23238, 23091910, 6314694))
@@ -300,16 +308,28 @@ generate_random_placement_points <- function(
   # see notes on `non_center_coupled_types` above
   # often multiple subparts are chosen
   if (one_location$stratum %in% non_center_coupled_types) {
-    # is there a center-coupled reference on this co-location?
+
+    # condition 1: there must be a loceval for center_coupled_reference (CCR);
+    # if not, this one has to be used anyways
+    ccr_loceval <- locations %>%
+      filter(grts_address == one_location$grts_address) %>%
+      dplyr::filter_out(
+        stratum %in% c(non_center_coupled_types)
+      )
+
+    # condition 2: is there a cellmap of center-coupled reference on this co-location?
     # then skip this one
-    center_coupled_reference <- cellmaps_sf %>%
+    ccr_cellmaps <- cellmaps_sf %>%
       dplyr::filter(
         location_id == one_location$location_id
       ) %>%
       dplyr::filter_out(
         type %in% c(non_center_coupled_types)
       )
-    if (nrow(center_coupled_reference) > 0) return(invisible(NULL))
+
+
+    if ((nrow(ccr_loceval) > 0) && (nrow(ccr_cellmaps) > 0)) return(invisible(NULL))
+
   }
 
   # cellmap polygons of this type and co-located non-center-coupled types
@@ -410,7 +430,7 @@ pb <- txtProgressBar(
   initial = 0, style = 1
 )
 
-# location_row <- 1 # 234
+# location_row <- 2 # 234
 # location_row <- which(locations$grts_address == 83694)
 randompoints_locationwise <- function(location_row) {
 

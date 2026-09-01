@@ -10,7 +10,7 @@ set -e # stop on error
 cd /data/git/n2khab-mne-monitoring_dbtools/900_database_organization
 
 # sync the -staging mirrors
-sh yad/sync_staging.sh
+# sh yad/sync_staging.sh
 
 Rscript 110_sync_FreeFieldNotes.R -staging # will often segfault on first attempt
 Rscript 110_sync_FreeFieldNotes.R -staging
