@@ -15,6 +15,8 @@ Note that there is a new tab with QField settings in the layer properties of eac
 - Database layers should be set to "`directly access data source`", with editing permissions as restrictive as possible.
 - Geopackage layers should be set to "offline editing" (although they are usually not edited).
 
+The export then happens via the "Package for QField" button (box with the green inward arrow); please take care to solve all error messages and thoroughly follow the export wizard.
+
 ## Paths
 To ensure that all content of the project is correctly (and not doubly) distributed, the following settings are recommended.
 
@@ -24,6 +26,11 @@ To ensure that all content of the project is correctly (and not doubly) distribu
     ![[attachments/qfield_relativepaths_2.webp]]
 3) Make sure the QField Sync export will store to a full path (no symlinks, no relative path).
     ![[attachments/qfield_relativepaths_3.webp]]
+
+Note that some basic path behavior might not follow general intuition:
+
++ The linux home folder shortcut `~` might not work (e.g. for QField export).
++ Relative paths for data sources are relative to the working directory of QGIS; they can only be displayed if QGIS is launched from within the project folder.
 
 
 ## Distribution Helper Script
