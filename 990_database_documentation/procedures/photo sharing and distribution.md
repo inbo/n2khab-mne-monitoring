@@ -58,3 +58,5 @@ These are stored in a specific folder structure, and the script `900_database_or
 > [!note] Note to Self
 > occasionally helpful:
 > - zip only image files with `find . -iname \*.jpg -o -iname \*.png | zip -9 -@ photos.zip`
+
+A low-res version of each photo is [[procedures/packaging a QGIS project for QField|distributed with the QField projects]].
