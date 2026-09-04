@@ -1,0 +1,602 @@
+---
+title: "Watershed Area Identification"
+subtitle: "Using watershed analysis to find the area of intrest for flow direction calculation"
+date: "2025-11-25"
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+---
+
+
+# The Watershed Transform
+
+Information about this procedure might be confusing at first because two algorithm variants exist.
+
+
+Take a "landscape" of quasi-continuous measurements in any dimension.
+Examples are a waterlevel time series (2D landscape plot of water level x, plotted against time), a query from [DHMV](https://inbo.github.io/inbospatial/articles/spatial_dhmv_query.html) which covers elevation (z) as a function of space (x, y), or a CT scan (grey values as a function of x, y, and z).
+
+
+The first variant of watershed finds all local minima, and fills the landscape from bottom to top. 
+I think of it as "bottom-up" watershed.
+
+
+The second variant, which leans more to the present use case, "drops" virtual water everywhere on the measurement landscape to see which way they roll. 
+Sprinkling from the top, this is "top-down watershed".
+
+Resources on the second, "top-down" variant:
+
++ J. Cousty, G. Bertrand, L. Najman and M. Couprie. Watershed Cuts: Minimum Spanning Forests and the Drop of Water Principle, IEEE Transactions on Pattern Analysis and Machine Intelligence 31(8) pp. 1362-1374, 2009, <https://inria.hal.science/hal-01113462/document>; <https://doi.org/10.1109/TPAMI.2008.173>
++ https://lochbihler.nl/practice-your-r-two-options-to-implement-the-watershed-segmentation/
+
+
+A straight forward implementation is found in the second reference.
+
+
+# Strategy
+
+One of the feedback points we received on the first iteration of this "aquatic sample placement" analysis was that a fixed circumference around a given water body might not be correct to determine its inflow situation.
+Rather, a kind of watershed analysis could be used to infer the actual area of water intake.
+
+
+# Code Dev
+
+## DHMV Query
+
+```{r libraries}
+
+# source(here::here("..", "R", "import_aquatic_positioning.R"))
+# confirm_n2khab_data_consistency()
+
+library("sf")
+library("terra")
+library("inbospatial")
+
+```
+
+
+```{R load-DHMV}
+bbox <- sf::st_bbox(
+   c(xmin = 148000, xmax = 149000, ymin = 208000, ymax = 209000),
+   crs = sf::st_crs(31370)
+)
+test_raster <- inbospatial::get_coverage_wcs(
+  wcs = "dhmv",
+  bbox = bbox,
+  layername = "DHMVII_DTM_1m",
+  version = "2.0.1",
+  wcs_crs = "EPSG:31370",
+  resolution = 1
+)
+
+# plot(test_raster, col = gray.colors(256))
+```
+
+
+It might be useful to resample the surface, if at least to ensure projection of the input data onto a regular grid.
+
+```{r resample}
+
+n_grid <- as.integer(101)
+
+xtnt <- sf::st_bbox(test_raster)
+#     setNames(as.vector()
+#   c("xmin", "xmax", "ymin", "ymax"))
+
+coarse_grid <- terra::rast(
+  nrows = n_grid, ncols = n_grid,
+  xmin = xtnt[["xmin"]],
+  xmax = xtnt[["xmax"]],
+  ymin = xtnt[["ymin"]],
+  ymax = xtnt[["ymax"]],
+  )
+crs(coarse_grid) <- "EPSG:31370"
+test_resampled <- terra::resample(
+  test_raster,
+  coarse_grid,
+  method = "lanczos"
+  # method = "bilinear"
+)
+plot(test_resampled, col = gray.colors(256))
+```
+
+
+```{r grid-to-matrix}
+test_matrix <- as.matrix(test_resampled, geom = "XY", wide = T)
+# coarse_matrix <- extract(test_resampled, coarse_grid)
+print(test_matrix[1:10, 1:16])
+```
+
+
+```{r smooth}
+# compute the difference of all elements of one vector to each other
+self_difference <- function(vec) outer(X = vec, Y = vec, FUN = function(X, Y) Y - X )
+# 
+# Calculate the Euclidean distance of the x and y columns in a data frame.
+Euclid <- function(x, y) sqrt(self_difference(x)^2 + self_difference(y)^2 )
+
+# return the lower triangle of a matrix, unpacking it into a vector of unique values
+lower_triangle <- function(mat) mat[lower.tri(mat)]
+
+# smoothing 2D data
+smooth <- function(data, sigma = NULL) {
+  # data <- test_matrix
+  # 
+  
+  if (sigma <= 0 || is.null(sigma) || is.na(sigma)) {
+    return(data)
+  }
+
+  dist <- Euclid(seq_len(dim(data)[1]), seq_len(dim(data)[2]))
+  # sigma <- extent / 3
+  weight <- dnorm(dist, 0, sigma)
+  weight <- weight / colSums(weight)
+  # do.call("cbind", rep(list(data$z), length(data$z)))
+  
+  zmoothed <- weight %*% data
+  return(zmoothed)
+}
+
+test_smoothed <- smooth(
+  test_matrix,
+  sigma = 2^3
+)
+
+x <- test_smoothed
+
+plot(terra::rast(x), col = gray.colors(256))
+```
+
+
+```{r shift-matrix}
+shift.vectors <- matrix(
+  c(1, 1,   #1
+    1, 0,   #2
+    1, -1,  #3
+    0, 1,   #4
+    0, 0,   #5
+    0, -1,  #6
+    -1, 1,  #7
+    -1, 0,  #8
+    -1, -1),#9
+    ncol = 2,
+    byrow = TRUE
+  )
+
+data.shifted <- array(0.0, dim = c(dim(x)[1], dim(x)[2], 9))
+for (i in 1:9) {
+  data.shifted[, , i] <- magic::ashift(x, v = shift.vectors[i, ])
+}
+```
+
+
+```{r get-direction}
+data.direction <- reshape2::melt(
+  apply(data.shifted, FUN = which.min, MARGIN = c(1, 2))
+  )
+# data.direction <- data.direction[, c(2, 1, 3)]
+
+data.direction[data.direction[, 1] == 1, 3] <- 5
+data.direction[data.direction[, 1] == dim(x)[1], 3] <- 5
+data.direction[data.direction[, 2] == 1, 3] <- 5
+data.direction[data.direction[, 2] == dim(x)[1], 3] <- 5
+
+# data.direction[, 2] <- -data.direction[, 2] + max(data.direction[, 2])
+
+flow <- terra::terrain(
+    terra::rast(x),
+    v = "flowdir",
+    neighbors = 8
+  ) %>%
+  log2 %>%
+  (\(x) x + 1) # %>%
+  # tidyr::replace_na(0)
+flow[isFALSE(is.finite(flow))] <- 0
+
+par(mfrow = c(1, 2))
+plot(terra::rast(data.direction, type = "xyz"), col = gray.colors(256))
+plot(flow)
+```
+
+Note above: the `data.direction` is transposed and horizontally mirrored!
+
+
+```{r iterative-move}
+# generate initial coordinates for each drop of the input matrix
+init.coor <- expand.grid(seq(1, dim(x)[1]), seq(1, dim(x)[2]))
+
+# initialize, then loop and let drops flow along the gradient
+changed <- TRUE
+old.coor <- init.coor
+new.coor <- init.coor
+
+while (changed) {
+  # calculate new coordinates
+  new.coor[, 1] <-
+    old.coor[, 1] - shift.vectors[data.direction[(old.coor[, 2] - 1) * dim(x)[1] + old.coor[, 1], 3], 1]
+  new.coor[, 2] <-
+    old.coor[, 2] - shift.vectors[data.direction[(old.coor[, 2] - 1) * dim(x)[1] + old.coor[, 1], 3], 2]
+
+  # boundary checks
+  # new.coor[new.coor[, 1] > dim(x)[1], 1] <- dim(x)[1]
+  # new.coor[new.coor[, 2] > dim(x)[2], 2] <- dim(x)[2]
+  # new.coor[new.coor[, 1] < 1, 1] <- 1
+  # new.coor[new.coor[, 2] < 1, 2] <- 1
+
+  # check if anything changed
+  if (all(new.coor == old.coor)) {
+    changed <- FALSE
+  } else {
+    # update old.coor for next iteration
+    old.coor <- new.coor
+  }
+}
+
+# plot(old.coor, col = gray.colors(256))
+sinks <- old.coor
+
+sinks <- sinks[, c(2, 1)]
+sinks[, 2] <- max(sinks[, 2]) + 1 - sinks[, 2]
+```
+
+```{r bind-labels}
+labels <- cbind(init.coor, #[,c(2,1)],
+  old.coor %>%
+  dplyr::left_join(
+    old.coor %>%
+      dplyr::distinct() %>%
+      dplyr::mutate(i = seq_len(dplyr::n())),
+    by = dplyr::join_by(Var1, Var2)
+  ) %>%
+  dplyr::select(i) %>%
+  as.matrix() 
+)
+labels <- labels[, c(2, 1, 3)]
+labels[, 2] <- max(labels[, 2]) + 1 -labels[, 2]
+
+par(mfrow = c(1, 2))
+plot(terra::rast(x), col = gray.colors(256))
+points(sinks, col = gray.colors(256))
+plot(terra::rast(labels, type = "xyz"))
+points(sinks, col = gray.colors(256))
+```
+
+
+```{r watershed-output}
+data.output <- matrix(0, nrow = dim(x)[1], ncol = dim(x)[2])
+loc.min <- as.integer(rownames(data.direction[data.direction[, 3] == 5, c(1, 2)]))
+
+for (i in 1:length(loc.min)) {
+  data.output[seq(1, dim(x)[1] * dim(x)[2])[(old.coor[, 2] - 1) * dim(x)[1] + old.coor[, 1] == loc.min[i]]] <- i
+}
+
+par(mfrow = c(1, 2))
+plot(terra::rast(x), col = gray.colors(256))
+points(labels[loc.min, c(1, 2)] - 0.5)
+plot(terra::rast(data.output))
+points(labels[loc.min, c(1, 2)] - 0.5)
+```
+
+
+## terra
+
+Oh, well, there is also a built-in function in `terra`.
+<https://rspatial.github.io/terra/reference/watershed.html>
+
+```{r terra-builtin-watershed}
+#| eval: false
+pourpoint <- cbind(
+  mean(sf::st_bbox(test_raster)[c("xmin", "xmax")]),
+  mean(sf::st_bbox(test_raster)[c("ymin", "ymax")])
+)
+flowdir <- terra::terrain(terra::rast(x), "flowdir")
+ws <- terra::watershed(flowdir, pourpoint)
+
+par(mfrow = c(1, 3))
+plot(terra::rast(x), col = gray.colors(256))
+plot(flowdir)
+plot(ws)
+```
+
+... but I can't get it to work correctly.
+
+
+# Excourse: Smoothing/Denoising
+
+It turns out that smoothing is critical, and Gaussian might be just too rough.
+
+There is the "whitebox" geoprocessing toolbox with open source rust core, looks pretty decent:
+<https://www.whiteboxgeo.com/manual/wbt_book/available_tools/image_processing_tools_filters.html>
+<https://www.whiteboxgeo.com/manual/wbt_book/available_tools/hydrological_analysis.html#Watershed>
+
+They implement this algorithm:
+<https://doi.org/10.1109/TVCG.2007.1065>
+
+```{r try-qgisprocess}
+#| eval: false
+# trying to find grass::r.denoise via qgisprocess
+library("qgisprocess")
+library("terra")
+qgis_enable_plugins()
+
+qgis_search_algorithms("denoise") |>
+  dplyr::select(provider_title, algorithm)
+```
+
+<https://grass.osgeo.org/grass-stable/manuals/addons/r.denoise.html>
+
+```{sh install-mdsource-mesh-filtering}
+#| eval: false
+wget http://www.cs.cf.ac.uk/meshfiltering/index_files/Doc/mdsource.zip
+unzip mdsource.zip
+cd mdenoise
+g++ -o mdenoise mdenoise.cpp triangle.c
+ln -s `pwd`/mdenoise /usr/bin/mdenoise
+```
+
+```{r try-rgrass}
+#| eval: false
+library("rgrass")
+link2GI::linkGRASS(test_raster, ver_select = TRUE)
+rgrass::write_RAST(test_raster, vname = "test")
+rgrass::execGRASS(
+  cmd = "r.denoise", input = "test", output = "test_denoised",
+  iterations = 5, threshold = 0.93
+)
+
+
+```
+
+```{r try-shell-denoise}
+#| eval: false
+xyz <- writeRaster(test_raster, "test.xyz", filetype="XYZ", overwrite=TRUE)
+```
+
+```{sh shell-denoise}
+#| eval: false
+mdenoise -i test.xyz -n 5 -t 0.93 -z -o test_denoised.xyz
+```
+
+```{r reload-shell-denoise}
+#| eval: false
+# test_denoised <- rast("test_denoised.xyz")
+xyz_denoised <- read.csv2("test_denoised.xyz", sep = " ", header = FALSE)
+# xyz_denoised %>% head()
+raster_denoised <- terra::rast(xyz_denoised)
+
+par(mfrow = c(1, 2))
+plot(test_raster, col = gray.colors(256))
+plot(raster_denoised, col = gray.colors(256))
+
+spat_raster <- test_raster
+```
+
+
+
+# Generalization
+
+I am channeling the chaos above into few convenience functions.
+
+```{r generalization}
+library("inbospatial")
+source(here::here("..", "R", "watershed.R"))
+
+# bbox <- sf::st_bbox(
+#    c(xmin = 148000, xmax = 149000, ymin = 208000, ymax = 209000),
+#    crs = sf::st_crs(31370)
+# )
+offset <- -900 # scanning around for a good spot
+bbox <- sf::st_bbox(
+   c(
+     xmin = 252400+offset, xmax = 252700+offset,
+     ymin = 159400, ymax = 159700
+   ),
+   crs = sf::st_crs(31370)
+)
+
+test_raster <- inbospatial::get_coverage_wcs(
+  wcs = "dhmv",
+  bbox = bbox,
+  layername = "DHMVII_DTM_1m",
+  version = "2.0.1",
+  wcs_crs = "EPSG:31370",
+  resolution = 1
+)
+
+test_smoothed <- mdenoise(test_raster, n = 8, t = 0.6)
+
+resample_width <- 16 #m
+test_resampled <- resample_to_grid(
+  test_smoothed,
+  nrows = as.integer(dim(test_smoothed)[1]/resample_width),
+  ncols = as.integer(dim(test_smoothed)[1]/resample_width)
+)
+smooth_sigma <- 4
+test_resmoothed <- smooth_raster(test_resampled, sigma = smooth_sigma)
+test_watershed_raw <- compute_watershed(test_raster)
+test_watershed_smooth <- compute_watershed(test_smoothed)
+test_watershed_resampled <- compute_watershed(test_resampled)
+test_watershed_resmoothed <- compute_watershed(test_resmoothed)
+# spat_raster <- test_resampled
+
+plot_points <- function(ws, ...) {
+  sinks <- ws[["sinks"]]
+  points(sinks[["x"]], sinks[["y"]], ...)
+}
+
+par(mfrow = c(2, 4))
+plot(test_raster, col = gray.colors(256))
+plot_points(test_watershed_raw, col = "green")
+plot(test_smoothed, col = gray.colors(256))
+plot_points(test_watershed_smooth, col = "green")
+plot(test_resampled, col = gray.colors(256))
+plot_points(test_watershed_resampled, col = "green")
+plot(test_resmoothed, col = gray.colors(256))
+plot_points(test_watershed_resmoothed, col = "green")
+plot(test_watershed_raw[["watershed"]])
+plot_points(test_watershed_raw, col = "red")
+plot(test_watershed_smooth[["watershed"]])
+plot_points(test_watershed_smooth, col = "red")
+plot(test_watershed_resampled[["watershed"]])
+plot_points(test_watershed_resampled, col = "red")
+plot(test_watershed_resmoothed[["watershed"]])
+plot_points(test_watershed_resmoothed, col = "red")
+
+
+# TODO By now, matrix must be square for Gaussian/Euclid ...
+
+```
+
+
+# Water Body Fixing
+
+We know our water bodies.
+On the rainflow watershed, we can sink all drops which enter the lake to a given point in the lake.
+ <https://stackoverflow.com/questions/69071990/indexing-using-a-boolean-matrix-in-r>
+```{r testing-matrix-masks}
+ 
+nx <- 3
+ny <- 4
+
+mask <- matrix(c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE, TRUE, FALSE), nrow = nx, ncol = ny, byrow = TRUE)
+
+data <- matrix(c(1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4), nrow = nx, ncol = ny, byrow = TRUE)
+
+
+coords_initial <- expand.grid(
+  seq(1, nx),
+  seq(1, ny)
+)
+
+# mask[coords_initial[,1], coords_initial[,2]]
+
+get_mask_array <- function(coords) {
+  mask_array <- sapply(
+    seq_len(nrow(coords)),
+    FUN = function(i) mask[coords[i, 1], coords[i, 2]]
+  ) 
+  return(mask_array)
+}
+
+mask_coordinates <- coords_initial[get_mask_array(coords_initial),]
+centroid_idx <- mask_coordinates[as.integer(ceiling(nrow(mask_coordinates)/2)), ]
+
+coords_new <- coords_initial
+mask_array <- get_mask_array(coords_new)
+coords_new[mask_array, 1] <- centroid_idx[[1]]
+coords_new[mask_array, 2] <- centroid_idx[[2]]
+
+print(coords_new)
+```
+
+
+In application:
+```{r lakesink-watershed}
+
+library("inbospatial")
+source(here::here("..", "R", "watershed.R"))
+
+bbox <- sf::st_bbox(
+   c(
+     xmin = 251500, xmax = 251800,
+     ymin = 159450, ymax = 159650
+   ),
+   crs = sf::st_crs(31370)
+)
+
+test_raster <- inbospatial::get_coverage_wcs(
+  wcs = "dhmv",
+  bbox = bbox,
+  layername = "DHMVII_DTM_1m",
+  version = "2.0.1",
+  wcs_crs = "EPSG:31370",
+  resolution = 1
+)
+
+test_smoothed <- mdenoise(test_raster, n = 8, t = 0.6)
+
+
+mask <- is.na(matrix(,
+  nrow = dim(test_smoothed)[1],
+  ncol = dim(test_smoothed)[2]
+))
+mask[1:100,] <- FALSE
+mask[121:200,] <- FALSE
+mask[,1:100] <- FALSE
+mask[,201:300] <- FALSE
+
+raster_mask <- terra::deepcopy(test_raster)
+raster_mask[, ] <- mask
+
+test_ws <- compute_watershed(test_smoothed)
+test_ws_drained <- compute_watershed_drained(
+  test_smoothed,
+  mask
+)
+# spat_raster <- test_smoothed
+
+
+plot_points <- function(ws, ...) {
+  sinks <- ws[["sinks"]]
+  points(sinks[["x"]], sinks[["y"]], ...)
+}
+
+par(mfrow = c(2, 2))
+plot(test_smoothed, col = gray.colors(256))
+title("raw data")
+plot_points(test_ws, col = "lightblue", pch = 17)
+plot_points(test_ws_drained, col = "orange", pch = 22)
+plot(test_ws[["watershed"]])
+title("regular watershed")
+plot_points(test_ws, col = "lightblue", pch = 17)
+plot(raster_mask, col = rev(gray.colors(256)))
+title("mask")
+plot(test_ws_drained[["watershed"]])
+title("masked watershed")
+plot_points(test_ws_drained, col = "orange", pch = 15)
+
+```
+
+
+# Lessons Learned
+
+:::{.callout-warning title="Take-Home Messages"}
+
+Watershed is tremendously sensitive to noise!
+
+- As so often, (2D) Gaussian smoothing is insufficient.
+- "Feature-preserving denoising" (Sun et al., 2007) seems good. Parameters need fine-tuning.
+
+
+Watershed is crucially affected by grid / resampling!
+
+- Too coarse grid: features lost and flow inaccurate.
+- Too fine grid: noise and microstructure; computation time.
+
+
+As a result, water bodies get fragmented (see stream above).
+
+- Surface water is approximately level.
+- In that situation, small fluctuations catch the instream.
+
+A solution would be to add prior knowledge:
+provide a mask for the water body of interest and join all inflow.
+
+- This matches the actual question for standing waters or stream segments.
+- ~~However, the masking is inefficient in R and computationally inefficient.~~ Adapted (flow sink precalculation).
+
+
+The implemented watershed algorithm is simplistic and limited.
+
+- It works with 8 directions, and thus flows tend to go along straight or diagonal lines.
+- But: it works!
+
+:::
+
+
