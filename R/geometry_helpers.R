@@ -6,7 +6,8 @@
 nonnan <- function(vec) vec[!is.na(vec)]
 
 # mean, excluding NAs
-nanmean <- function(vec) mean(nonnan(vec))
+nanmean <- function(vec) mean(vec, na.rm = TRUE)
+zero_centered <- function(vec) vec - nanmean(vec)
 
 # Euclidean distance of elements of two vectors
 Euclid <- function(x, y) sqrt(x^2 + y^2)
@@ -14,8 +15,8 @@ Euclid <- function(x, y) sqrt(x^2 + y^2)
 # filter coordinates within radius
 within_radius <- function(x, y, r = 128) {
   dist <- Euclid(
-    nonnan(x) - nanmean(x),
-    nonnan(y) - nanmean(y)
+    zero_centered(nonnan(x)),
+    zero_centered(nonnan(y))
   )
   return(dist < r)
 }

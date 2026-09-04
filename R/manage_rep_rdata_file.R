@@ -15,7 +15,7 @@
 #' @examples
 #' \dontrun{
 #'   force_reload <- TRUE
-#'   sample_filepath <- file.path("data/latest_POC.RData")
+#'   sample_filepath <- file.path("data", "latest_POC.RData")
 #'
 #'   if (force_reload || !file.exists(sample_filepath)) {
 #'     download_poc_rdata_file(sample_filepath, overwrite = TRUE)
@@ -24,7 +24,8 @@
 #'
 download_poc_rdata_file <- function(sample_filepath, overwrite = FALSE) {
   googledrive::drive_download(
-    googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"),
+    googledrive::as_id("1a42qESF5L8tfnEseHXbTn9hYR1phqS-S"), #since 20260904
+    # googledrive::as_id("1Z93w-C3XRQ8756W3835JPfxggGEstjKR"), # long ago
     path = sample_filepath,
     overwrite = overwrite
   )

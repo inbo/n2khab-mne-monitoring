@@ -97,8 +97,9 @@ n2khab_types <-
   arrange(type)
 
 # `wsh` are the polygons that contain standing water types
-# (cf. https://inbo.github.io/n2khab/reference/read_watersurfaces_hab.html, https://doi.org/10.21436/inbor.114075267)
-wsh <- read_watersurfaces_hab(interpreted = TRUE)
+# - Watervlakken 2024: https://doi.org/10.21436/inbor.114075267
+# - `n2khab` function to read them: https://inbo.github.io/n2khab/reference/read_watersurfaces_hab.html
+wsh <- read_watersurfaces_hab()#interpreted = TRUE)
 
 # we are interested in the types which are part of the n2khab monitoring list
 wsh_occ <-
@@ -142,10 +143,10 @@ Download the sample data (unless it is already there).
 
 
 force_reload_sample <- FALSE
-sample_filepath <- file.path("./data", "objects_for_aq_piezometers_panfl_pan5.RData")
+sample_filepath <- file.path("./data", "objects_panflpan5.RData")
 
 if (force_reload_sample || !file.exists(sample_filepath)) {
-  download_poc_rdata_file(sample_filepath, overwrite = TRUE)
+  download_rep_rdata_file(sample_filepath, overwrite = TRUE)
 }
 
 # deprecated: 
@@ -159,7 +160,7 @@ env_extradata <- load_rdata_environment(sample_filepath)
 
 ```
 
-(adjusted to read full POC `.RData`, [see here](https://github.com/inbo/n2khab-mne-design/blob/7a08ab9d36669d3a5b64d12b8bc35ff7c7a6a5d1/100_design_common/010_prototyping_sampling_and_revisit_design/helper_scripts/support_dcp_and_fieldwork.R))
+(adjusted to read full REP `.RData`, [see here](https://github.com/inbo/n2khab-mne-design/blob/7a08ab9d36669d3a5b64d12b8bc35ff7c7a6a5d1/100_design_common/010_prototyping_sampling_and_revisit_design/helper_scripts/support_dcp_and_fieldwork.R))
 
 
 restore sample data structure
@@ -242,6 +243,7 @@ kableprint(stratum_units_grts_aquatic_gw_spsamples_spares)
 ::: {.callout-caution}
 REMINDER:
 we de-duplicated units with the same GRTS address by selecting the 1st.
+In database jargon: we work on *Locations*, not on *SampleUnits*.
 :::
 
 
@@ -303,10 +305,17 @@ watersurfaces_polygons <- stratum_units_grts_aquatic_gw_spsamples_spares %>%
 ```
 
 
+:::{.callout-note}
+Change 09/2026:
+We better use the `sf::st_point_on_surface()` function
+to be consistent with the `Location` point in REP and `mnmsurfdb`.
+Implications are inferred experimentally.
+:::
+
 ```{r polygons-to-centroids}
 watersurfaces_data <- watersurfaces_polygons %>%
-  sf::st_centroid() %>%
-  # sf::st_point_on_surface() %>%
+  # sf::st_centroid() %>%
+  sf::st_point_on_surface() %>%
   suppressWarnings()
 
 # mapview(watersurfaces_data)
@@ -393,7 +402,8 @@ Some research:
 - <https://gis.stackexchange.com/questions/244769/grass-calculation-of-centroids-very-important-differences-with-qgis-calculatio>
 
 
-DONE revisited this issue: had to do with the wrong data source.
+DONE (1) revisited this issue: had to do with the wrong data source.
+DONE (2) using `sf::st_point_on_surface()` to make sure points are within the target water body; consistent with REP approach.
 
 
 ### filter test data
@@ -442,15 +452,6 @@ m2+m1
 
 ```
 
-We immediately encounter the problem of centroids outside the polygon.
-Some research: 
-
-- <https://www.spatialanalysisonline.com/HTML/centroids_and_centers.htm>
-- <https://github.com/r-spatial/sf/issues/1302#issuecomment-599226372>
-- <https://gis.stackexchange.com/a/76563>
-- <https://stackoverflow.com/a/13745559> ! 
-- <https://grass.osgeo.org/grass-stable/manuals/v.centroids.html>
-- <https://gis.stackexchange.com/questions/244769/grass-calculation-of-centroids-very-important-differences-with-qgis-calculatio>
 
 # Case Study: LIM*@DHMV
 
@@ -716,8 +717,9 @@ pracma::quiver(
 
 
 ```{r average-direction}
-nonnan <- function(vec) vec[!is.na(vec)]
-nanmean <- function(vec) mean(nonnan(vec))
+# nonnan <- function(vec) vec[!is.na(vec)]
+# nanmean <- function(vec) mean(nonnan(vec))
+nanmean <- function(vec) mean(vec, na.rm = TRUE)
 print(paste0(nanmean(dx), ", ", nanmean(dy)))
 
 ```
@@ -725,7 +727,7 @@ print(paste0(nanmean(dx), ", ", nanmean(dy)))
 
 ```{r radius}
 nonnan <- function(vec) vec[!is.na(vec)]
-nanmean <- function(vec) mean(vec[!is.na(vec)])
+nanmean <- function(vec) mean(vec, na.rm = TRUE) # mean(vec[!is.na(vec)])
 Euclid <- function(x, y) sqrt(x^2 + y^2)
 within_radius <- function(x, y, r = 128) {
   dist <- Euclid(
@@ -1181,44 +1183,11 @@ m1 + m2 + m3
 ```
 
 
-
-
-# TODOs
-
 - [X] where do [the spaces](https://github.com/inbo/inbospatial/issues/18) come from? -> from "inbospatial", hence the name
 - [X] flow direction for a point
 - target area | `sample_support_code` 
   - [X] for water surfaces
   - [X] streams
   - [X] springs
-- [ ] streams: is it possible to get the stream *width* at a given segment?
-- [ ] extensive function documentation
-  - continue: `work_linestream...` extra functions
-- [ ] harden functions (dependencies, weird input, curvature unavailable)
-- [ ] flow direction: dependence on buffer area and cell grid size (brief exploration)
-- [ ] `inbospatial::get_coverage_wcs` may cripple or fail on large water surfaces.
 - [X] gather functions in package main:
-  - `confirm_n2khab_data_consistency()`
-  - `calculate_flow_direction(...)`
-- [ ] add unit tests for `c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")` locations (but hardcode xy)
 - [X] `rank` in streams seems to be faulty? (see example zig-zag in higher ranks) -> *no. was just ggplot.*
-
-
-to ~~be discussed~~ keep in mind:
-
-- **water everywhere** 
-  - what if there is more water in the target area? -> *ignored for now*
-- **non-aquatic aquatics**
-  - There are some points which appear not to be wet 
-  - e.g. `LIMGNK0062`
-  - might have to do with GRTS raster ["partial volumes"]("https://en.wikipedia.org/wiki/Partial_volume_(imaging)").
-  - or temporal change (vegetation, eutrophication, drying)
-  - also: think of a U-shaped water
-  -> *solved with use of `wsh_pol` and pre-/postprocessing.* 
-- **does size matter?**
-  - some vast water bodies (`LIMGNK0055`); will be challenging to get elevation gradient.
-  - on the other hand, what is the minimum size? (springs!)
-  -> *check individually*
-- **go with the flow**
-  - does `rank` count upstream or downstream? -> *upstream*
-  - how far to go away from a stream? -> *flexible (args)*

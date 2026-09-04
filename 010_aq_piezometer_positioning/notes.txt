@@ -1,5 +1,43 @@
 
-watershed
+# TODO restart 09/2026
+
+- `ERROR: file watersurfaces_hab.gpkg changed on disk.` in `confirm_n2khab_data_consistency()`
+- 11 missing polygons?
+
+
+- [ ] streams: is it possible to get the stream *width* at a given segment?
+- [ ] extensive function documentation
+  - continue: `work_linestream...` extra functions
+- [ ] harden functions (dependencies, weird input, curvature unavailable)
+- [ ] flow direction: dependence on buffer area and cell grid size (brief exploration)
+- [ ] `inbospatial::get_coverage_wcs` may cripple or fail on large water surfaces.
+  - `confirm_n2khab_data_consistency()`
+  - `calculate_flow_direction(...)`
+- [ ] add unit tests for `c("LIMGNK0062", "LIMGNK0055", "LIMGNK0010")` locations (but hardcode xy)
+
+
+to ~~be discussed~~ keep in mind:
+
+- **water everywhere**
+  - what if there is more water in the target area? -> *ignored for now*
+- **non-aquatic aquatics**
+  - There are some points which appear not to be wet
+  - e.g. `LIMGNK0062`
+  - might have to do with GRTS raster ["partial volumes"]("https://en.wikipedia.org/wiki/Partial_volume_(imaging)").
+  - or temporal change (vegetation, eutrophication, drying)
+  - also: think of a U-shaped water
+  -> *solved with use of `wsh_pol` and pre-/postprocessing.*
+- **does size matter?**
+  - some vast water bodies (`LIMGNK0055`); will be challenging to get elevation gradient.
+  - on the other hand, what is the minimum size? (springs!)
+  -> *check individually*
+- **go with the flow**
+  - does `rank` count upstream or downstream? -> *upstream*
+  - how far to go away from a stream? -> *flexible (args)*
+
+
+
+# watershed
 https://lochbihler.nl/practice-your-r-two-options-to-implement-the-watershed-segmentation/
 
 
