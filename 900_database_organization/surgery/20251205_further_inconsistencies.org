@@ -1,0 +1,115 @@
+#+title: Further Inconsistencies
+#+date: 20251205
+
+via mnmgwdb consistency dashboard:
+
+* Visits
+
+#+begin_example
+visit_id grts_address stratum   activity_group_id date_start
+<int>        <int> <chr>                 <int> <date>
+1     5924       709330 7140_meso                 4 2032-04-01
+2     5927       709330 7140_meso                28 2032-04-01
+3     6005       780114 6230_hmo                  4 2031-10-01
+4     6010       780114 6230_hmo                 28 2031-10-01
+5     7414      8826293 1330_hpr                 28 2025-07-01
+7     7409      8826293 1330_hpr                  4 2025-07-01
+6     7727     17912057 91E0_vn                   4 2026-04-01
+#+end_example
+
+
+Quick and dirty deletion, after conscious and careful inspection:
+
+
+#+begin_example
+mnmgwdb=# SELECT * FROM "inbound"."Visits" WHERE grts_address = 709330 AND archive_version_id IS NOT NULL;
+visit_id |  log_user  |         log_update         | fieldworkcalendar_id | samplelocation_id | location_id | sspstapa_id | grts_address | activity_group_id | date_start | teammember_id | date_visit | notes | ph
+oto | issues | visit_done |  stratum  | archive_version_id
+----------+------------+----------------------------+----------------------+-------------------+-------------+-------------+--------------+-------------------+------------+---------------+------------+-------+---
+----+--------+------------+-----------+--------------------
+5924 | salamandra | 2025-12-05 07:53:09.199482 |                      |               810 |         776 |             |       709330 |                 4 | 2032-04-01 |               |            |       |
+| f      | f          | 7140_meso |                  3
+5927 | salamandra | 2025-12-05 07:53:09.199482 |                      |               810 |         776 |             |       709330 |                28 | 2032-04-01 |               |            |       |
+| f      | f          | 7140_meso |                  3
+(2 rows)
+#+end_example
+
+#+begin_example
+mnmgwdb=# SELECT * FROM "inbound"."Visits" WHERE grts_address = 780114 AND archive_version_id IS NOT NULL;
+ visit_id |  log_user  |         log_update         | fieldworkcalendar_id | samplelocation_id | location_id | sspstapa_id | grts_address | activity_group_id | date_start | teammember_id | date_visit | notes | ph
+oto | issues | visit_done | stratum  | archive_version_id
+----------+------------+----------------------------+----------------------+-------------------+-------------+-------------+--------------+-------------------+------------+---------------+------------+-------+---
+----+--------+------------+----------+--------------------
+     6005 | salamandra | 2025-12-05 07:53:09.199482 |                      |               842 |         807 |             |       780114 |                 4 | 2031-10-01 |               |            |       |
+    | f      | f          | 6230_hmo |                  3
+     6010 | salamandra | 2025-12-05 07:53:09.199482 |                      |               842 |         807 |             |       780114 |                28 | 2031-10-01 |               |            |       |
+    | f      | f          | 6230_hmo |                  3
+(2 rows)
+#+end_example
+
+
+#+begin_example
+mnmgwdb=# SELECT * FROM "inbound"."Visits" WHERE grts_address = 8826293 AND archive_version_id IS NOT NULL AND fieldworkcalendar_id IS NULL;
+visit_id |  log_user  |         log_update         | fieldworkcalendar_id | samplelocation_id | location_id | sspstapa_id | grts_address | activity_group_id | date_start | teammember_id | date_visit | notes | ph
+oto | issues | visit_done | stratum  | archive_version_id
+----------+------------+----------------------------+----------------------+-------------------+-------------+-------------+--------------+-------------------+------------+---------------+------------+-------+---
+----+--------+------------+----------+--------------------
+7414 | salamandra | 2025-12-05 07:53:09.199482 |                      |              1546 |        1482 |             |      8826293 |                28 | 2025-07-01 |               |            |       |
+| f      | f          | 1330_hpr |                  3
+7409 | salamandra | 2025-12-05 07:53:09.199482 |                      |              1546 |        1482 |             |      8826293 |                 4 | 2025-07-01 |               |            |       |
+| f      | f          | 1330_hpr |                  3
+(2 rows)
+#+end_example
+
+
+#+begin_example
+mnmgwdb=# SELECT * FROM "inbound"."Visits" WHERE archive_version_id IS NOT NULL AND fieldworkcalendar_id IS NULL AND grts_address = 17912057;
+ visit_id |  log_user  |         log_update         | fieldworkcalendar_id | samplelocation_id | location_id | sspstapa_id | grts_address | activity_group_id | date_start | teammember_id | date_visit | notes | ph
+oto | issues | visit_done | stratum | archive_version_id
+----------+------------+----------------------------+----------------------+-------------------+-------------+-------------+--------------+-------------------+------------+---------------+------------+-------+---
+----+--------+------------+---------+--------------------
+     7727 | salamandra | 2025-12-05 07:53:09.199482 |                      |              1684 |        1614 |         236 |     17912057 |                 4 | 2026-04-01 |               |            |       |
+    | f      | f          | 91E0_vn |                  3
+(1 row)
+#+end_example
+
+
+* WellInstallationActivities
+
+
+#+begin_example
+mnmgwdb=> SELECT * FROM "inbound"."WellInstallationActivities" WHERE visit_id IS NULL OR fieldworkcalendar_id IS NULL;
+ fieldwork_id |  log_user  |         log_update         | samplelocation_id | fieldworkcalendar_id | visit_id | grts_address | activity_group_id | date_start | photo_soil_1_peilbuis | photo_well | watina_code_use
+d_1_peilbuis | watina_code_used_2_piezometer | no_diver | diver_id | photo_soil_2_piezometer | free_diver | soilprofile_notes | soilprofile_unclear | random_point_number | stratum  | used_water_from_tap | used_wa
+ter_source | reused_existing_well | reused_with_replacement
+--------------+------------+----------------------------+-------------------+----------------------+----------+--------------+-------------------+------------+-----------------------+------------+----------------
+-------------+-------------------------------+----------+----------+-------------------------+------------+-------------------+---------------------+---------------------+----------+---------------------+--------
+-----------+----------------------+-------------------------
+          827 | salamandra | 2025-12-05 11:47:22.254641 |              1684 |                      |          |     17912057 |                 4 | 2026-04-01 |                       |            |
+             |                               | f        |          |                         |            |                   | f                   |                     | 91E0_vn  |                     |
+           | f                    | f
+          266 | salamandra | 2025-12-05 11:47:22.254641 |               489 |                      |          |       196022 |                 4 | 2026-10-01 |                       |            |
+             |                               | f        |          |                         |            |                   | f                   |                     | 91E0_vo  |                     |
+           | f                    | f
+          748 | salamandra | 2025-12-05 11:47:22.254641 |              1546 |                      |          |      8826293 |                 4 | 2025-07-01 |                       |            |
+             |                               | f        |          |                         |            |                   | f                   |                     | 1330_hpr |                     |
+           | f                    | f
+          418 | salamandra | 2025-12-05 11:47:22.254641 |               844 |                      |          |       790918 |                 4 | 2026-01-01 |                       |            |
+             |                               | f        |          |                         |            |                   | f                   |                     | 6410_mo  |                     |
+           | f                    | f
+          794 | salamandra | 2025-12-05 11:47:22.254641 |              1628 |                      |          |     13038894 |                 4 | 2026-01-01 |                       |            |
+             |                               | f        |          |                         |            |                   | f                   |                     | 7150     |                     |
+           | f                    | f
+(5 rows)
+#+end_example
+
+
+* ChemicalSamplingActivities
+
+#+begin_example
+mnmgwdb=> SELECT * FROM "inbound"."ChemicalSamplingActivities" WHERE visit_id IS NULL OR fieldworkcalendar_id IS NULL;
+ fieldwork_id |  log_user  |         log_update         | samplelocation_id | fieldworkcalendar_id | visit_id | grts_address | activity_group_id | date_start | recipient_code | project_code |  stratum
+--------------+------------+----------------------------+-------------------+----------------------+----------+--------------+-------------------+------------+----------------+--------------+-----------
+        10205 | salamandra | 2025-12-05 11:47:22.556588 |              1310 |                      |          |      3664630 |                13 | 2025-10-01 |                |              | 7140_meso
+(1 row)
+#+end_example

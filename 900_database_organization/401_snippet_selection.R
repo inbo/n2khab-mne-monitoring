@@ -1,0 +1,1276 @@
+#!/usr/bin/env Rscript
+
+# Below is a copy of a subset of the code snippets provided by @florisvdh
+# https://github.com/inbo/n2khab-mne-monitoring/tree/main/020_fieldwork_organization
+#
+# These specific snippets are used for updating the POC in the database.
+# UPDATE: I now copy essentially everything over,
+#     except for the header and google drive `.RData` download
+#     Note that all the "plot" functions below must be commented out manually.
+
+# Set project root; works everywhere as the RStudio project file is in the repo
+# the conditional allows for setting a different git root from other places
+# [!] the variable name `snippet_base_path` must be consistent with `MNMLibraryCollection.R`
+if (!exists("snippet_base_path")) {
+  snippet_base_path <- rprojroot::find_root(rprojroot::is_git_root)
+}
+
+source_snippet_supplements <- function(file_name) {
+  source(file.path(snippet_base_path, "020_fieldwork_organization", "R", file_name))
+}
+
+
+# Load custom functions from source files
+source_snippet_supplements("system_helpers.R")
+source_snippet_supplements("misc.R")
+source_snippet_supplements("repetitive_join_functions.R")
+source_snippet_supplements("grts.R")
+source_snippet_supplements("grts_mh.R")
+source_snippet_supplements("location_attribute_processing.R")
+source_snippet_supplements("calendar_operations_and_priorities.R")
+
+# Checking the existence of the correct data source files in the correct
+# directories
+if (isFALSE("habitatmap" %in% names(versions_required))) {
+versions_required <- c(
+  versions_required,
+  habitatmap = "habitatmap_2024_v99_interim"
+)
+}
+verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+
+
+
+## Sampling unit attributes -----------------------------
+
+# attributes of spatial sampling units (~grts_address_final), useful in maps,
+# selections and decisions. Note that we *identify* sampling units as stratum x
+# grts_address; a unit_id is not needed provided that units don't share the same
+# GRTS address (if some still do, it means that the GRTS raster is too coarse
+# for those types, and will eventually need extra levels inside those specific
+# cells)
+scheme_moco_ps_stratum_targetpanel_spsamples <-
+  scheme_moco_ps_spsubset_targetfag_stratum_sppost_spsamples_calendar %>%
+  inner_join_m21_ed(domainpart_grts_n2khab, join_by(grts_address)) %>%
+  inner_join_m21_ed(n2khab_strata, join_by(stratum)) %>%
+  inner_join_m21_ed(
+    n2khab_types_expanded_properties %>%
+      select(type, grts_join_method, sample_support_code),
+    join_by(type)
+  ) %>%
+  left_join_m21_d(
+    mhq_samples %>%
+      mutate(in_mhq_samples = TRUE),
+    join_by(grts_address, stratum)
+  ) %>%
+  mutate(
+    is_forest = str_detect(type, "^9|^2180|^rbbppm"),
+    # in_mhq_samples = coalesce(in_mhq_samples, FALSE)
+    in_mhq_samples = ifelse(is.na(in_mhq_samples), FALSE, in_mhq_samples)
+  ) %>%
+  distinct(
+    scheme,
+    module_combo_code,
+    panel_set,
+    targetpanel,
+    stratum,
+    # 'aquatic' column will be improved for 7220 later on (now it simply has a
+    # duplication (TRUE + FALSE) of all locations)
+    is_aquatic = in_aquatic_subset,
+    is_forest,
+    grts_join_method,
+    sample_support_code,
+    grts_address,
+    grts_address_final,
+    domain_part,
+    in_mhq_samples,
+    last_type_assessment = assessment_date,
+    last_type_assessment_in_field = assessed_in_field,
+    last_inaccessible = inaccessible
+  ) %>%
+  arrange(pick(scheme:grts_address))
+
+# existing sample support codes and spatial GRTS join methods:
+n2khab_types_expanded_properties %>%
+  distinct(grts_join_method, sample_support_code, sample_support) %>%
+  arrange(grts_join_method, sample_support_code)
+
+# with the currently active modules, module_combo_code has a single unique value
+# for each scheme. We take advantage of this uniqueness to keep things as simple
+# as possible. Checking that foregoing statement is TRUE:
+stopifnot(
+  scheme_moco_ps_stratum_targetpanel_spsamples %>%
+    distinct(scheme, module_combo_code) %>%
+    {nrow(.) == nrow(distinct(., scheme))}
+)
+
+# nesting scheme, panel set, targetpanel, still distinguishing strata separately
+# (even though they may share their location: this is unreal in the case of
+# multiple cell-centered strata). For now, not distinguishing module_combo as
+# explained above.
+stratum_schemepstargetpanel_spsamples <-
+  scheme_moco_ps_stratum_targetpanel_spsamples %>%
+  select(-module_combo_code) %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = FALSE, for_fag_occasions = FALSE) %>%
+  relocate(scheme_ps_targetpanels) %>%
+  arrange(pick(stratum:grts_address))
+
+# Note: if grts_address_final differs from grts_address, then this means a local
+# replacement took place already in the past. If now it appears that the stratum
+# is no longer present in the field, then a new replacement procedure must take
+# place using grts_address as the anchor, provided that the type still occurs in
+# the polygon. If not, the absence must be noted and sampling frame + sample are
+# to be updated.
+if (interactive()) {
+  scheme_moco_ps_stratum_targetpanel_spsamples %>%
+    filter(grts_address != grts_address_final) %>%
+    glimpse()
+
+}
+
+
+## Sampling unit geometries --------------------------------------
+
+# obtaining geometries of the sampling units themselves:
+# - for lentic types, the result is in object 'stratum_grts_spsamples_lentic_sf'
+#   from the REP; it is explored and handled below for demonstration
+# - for lotic types, see code in
+#   inbo/n2khab-mne-monitoring/010_aq_piezometer_positioning, but then do use
+#   the REP RData file used here
+# - for type 7220 (springs) as a whole, see code provided below
+# - for terrestrial types, these are cells; see code provided below
+
+
+
+# geometries of the spatial sampling units of lentic types (watersurface
+# polygons)
+# /////////////////////////////////////////////////////////////////////////
+
+# The geometries of lentic spatial sampling units are in following object.
+if (interactive()) glimpse(stratum_grts_spsamples_lentic_sf)
+
+# The spatial sampling unit is always identified by stratum x grts_address by
+# definition. Note that, as usual, grts_address_final is the GRTS address linked
+# to the actual location (watersurface polygon), while grts_address is the GRTS
+# address from the sample draw. This distinction supports local replacements.
+# However, for lentic types we don't have a difference between both columns, but
+# if we choose to support local replacements for lentic types in the future,
+# then it can be accommodated.
+#
+# Note that polygon_id is kept only for information and perhaps to join extra
+# attributes from its datasources watersurfaces_hab and watersurfaces; the
+# stable column to identify the polygons is grts_address_final! This is because
+# polygon_id values can change with the versions of watersurfaces_hab and
+# watersurfaces.
+
+# Multiple strata often co-occur in the same location (watersurface geometry).
+# Each location is uniquely identified by its GRTS address. So we can easily
+# construct a spatial object of lentic locations, each with its unique GRTS
+# address on each row, also mentioning the types for which the location was
+# drawn:
+grts_lentic_sf <-
+  stratum_grts_spsamples_lentic_sf %>%
+  # using type instead of stratum, since it is only going to serve as an
+  # attribute here (but note that multiple strata exist per lentic type!)
+  inner_join(
+    n2khab_strata,
+    join_by(stratum),
+    relationship = "many-to-one",
+    unmatched = c("error", "drop")
+  ) %>%
+  summarise(
+    types_in_sample =
+      str_flatten(sort(unique(type)), collapse = "|") %>% factor(),
+    .by = c(starts_with("grts_address"), polygon_id, geom)
+  ) %>%
+  relocate(geom, .after = last_col())
+
+
+
+# geometries of 7220 units are represented by points, labelled with their GRTS
+# address
+# ////////////////////////////////////////////////////////////////////////////
+
+flanders_buffer <-
+  read_admin_areas(dsn = "flanders") %>%
+  st_buffer(40)
+
+# pre-load grts-master habitat objects: `grts_mh` and `grts_mh_index`
+load_grts_mh_to_env(environment())
+
+units_7220 <-
+  read_habitatsprings(
+    units_7220 = TRUE,
+    version = versions_required["habitatsprings"]
+  ) %>%
+  .[flanders_buffer, ] %>%
+  mutate(unit_id = as.character(unit_id)) %>%
+  # replacing unit_id by the grts_address
+  inner_join_121_ed(
+    units_non_cell_n2khab_grts %>%
+      filter(sample_support_code == "spring") %>%
+      select(-sample_support_code),
+    join_by(unit_id)
+  ) %>%
+  # to be solved later; a hack which looses one unit for now:
+  filter(!is.na(grts_address)) %>%
+  select(
+    -unit_id,
+    grts_address_final = grts_address
+  ) %>%
+  relocate(grts_address_final)
+
+
+# geometries of terrestrial types, excluding 7220: these are cells
+# ////////////////////////////////////////////////////////////////////////////
+
+
+# cell centers of the terrestrial sampling units (excluding 7220):
+units_cell_cellcenter <-
+  stratum_schemepstargetpanel_spsamples %>%
+  filter_for_cells() %>%
+  add_point_coords_grts_mh(grts_var = "grts_address_final")
+
+# sampling units as raster cells:
+units_cell_rast <-
+  stratum_schemepstargetpanel_spsamples %>%
+  filter_for_cells() %>%
+  pull(grts_address_final) %>%
+  filter_grtsraster_by_address_mh()
+
+set.names(units_cell_rast, "grts_address_final")
+
+# the number of non-NA cells matches the number of unique GRTS addresses
+stratum_schemepstargetpanel_spsamples %>%
+  filter_for_cells() %>%
+  distinct(grts_address_final) %>%
+  nrow() %>%
+  all.equal(global(units_cell_rast, "notNA")[1, 1])
+
+# representing this limited number of cells as polygons: useful for plotting etc
+units_cell_polygon <-
+  units_cell_rast %>%
+  as.polygons(aggregate = FALSE) %>%
+  st_as_sf() %>%
+  # to prefer the tibble approach in sf, we need to convert forth and back
+  as_tibble() %>%
+  # it appears that the CRS is actually retrieved from the tibble, but I don't
+  # understand how (so the crs argument below isn't needed)
+  st_as_sf(crs = "EPSG:31370", agr = "identity") %>%
+  mutate(grts_address_final = as.integer(grts_address_final))
+
+# adding the sampling unit attributes to these polygons, arranged as in
+# stratum_schemepstargetpanel_spsamples. Note that this duplicates cells with
+# multiple strata!
+units_cell_polygon_stratum_attribs <-
+  units_cell_polygon %>%
+  inner_join_12m_e(
+    stratum_schemepstargetpanel_spsamples %>%
+      filter_for_cells(),
+    join_by(grts_address_final)
+  ) %>%
+  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(geometry, .after = last_col()) %>%
+  arrange(pick(stratum:grts_address))
+
+# merging strata as well for visualization (where we want each row to represent
+# another location):
+schemepstargetpanel_spsamples_terr <-
+  stratum_schemepstargetpanel_spsamples %>%
+  filter_for_cells() %>%
+  concatenate_stratum_scheme_ps_targetpanels() %>%
+  distinct(stratum_scheme_ps_targetpanels, grts_address, grts_address_final)
+
+units_cell_polygon_attrib <-
+  units_cell_polygon %>%
+  inner_join_12m_e(schemepstargetpanel_spsamples_terr, join_by(grts_address_final)) %>%
+  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(geometry, .after = last_col()) %>%
+  arrange(stratum_scheme_ps_targetpanels, grts_address)
+
+
+
+
+
+## Inspecting VBI locations that overlap sampling units --------------------------
+
+# vbi_overlaps represents the center coordinates of VBI plots (circles with
+# radius 18 m) that overlap MNE sampling units. For privacy reasons, the full
+# list of VBI locations is not stored publicly.
+#
+# Below, some further processing is demonstrated.
+
+# joining attributes stratum and scheme_ps_targetpanels to vbi_overlaps:
+vbi_overlaps %>%
+  inner_join_121_ed(
+    stratum_schemepstargetpanel_spsamples %>%
+      select(
+        stratum,
+        grts_address_final,
+        scheme_ps_targetpanels
+      ),
+    join_by(grts_address_overlapped_cell == grts_address_final)
+  )
+
+# some VBI locations may overlap more than one MNE sampling unit:
+vbi_overlaps %>%
+  count(plot_id) %>%
+  filter(n > 1)
+
+# representing the involved VBI locations as polygons object (circles)
+vbi_overlaps_sf <-
+  vbi_overlaps %>%
+  distinct(plot_id, x, y) %>%
+  st_as_sf(
+    coords = c("x", "y"),
+    remove = FALSE,
+    crs = 31370,
+    agr = "identity"
+  ) %>%
+  st_buffer(18)
+
+# calculating the overlapped surface area per MNE sampling unit
+units_cell_polygon %>%
+  st_intersection(vbi_overlaps_sf) %>%
+  mutate(overlapped_cell_area = st_area(.)) %>%
+  st_drop_geometry() %>%
+  rename(grts_address_overlapped_cell = grts_address_final)
+
+
+
+
+
+## Support in reusing legacy lentic watersample locations ---------------------
+
+# The below spatial points object lists legacy watersample points in the
+# locations (grts_address_final) that apply to the (current) lentic sampling
+# units. Notably, these points serve as a candidate for re-use.
+
+if (interactive()) glimpse(legacy_watersamplepoints_spslocs_lentic)
+
+# As usual, the stable column to identify the polygons is grts_address_final and
+# the corresponding (less stable) polygon_id is for information (see higher:
+# object 'stratum_grts_spsamples_lentic_sf' under Sampling unit geometries). x
+# and y mirror the geometry column.
+#
+# More specifically, the object contains a legacy_try_first column: for each
+# polygon (represented by grts_address_final), TRUE marks the point that should
+# be favoured for data collection, if the field criteria for point validity
+# still hold. In some cases, multiple different points with TRUE may be present,
+# in which case field criteria must be used. If the TRUE point does not fulfill
+# criteria, then (historical) points marked as FALSE can still be considered,
+# making use of the field criteria. If multiple points still survive in either
+# of these cases (TRUE, or FALSE if TRUE isn’t successful), then additional
+# information can be inspected to make a choice, such as active_in_db_from &
+# active_in_db_till (but these refer to database activity (automated fields),
+# not to a period of field validity). Also columns annotation and ranknr are
+# background information; annotation has been used in creating legacy_try_first
+# already and a higher ranknr refers to a later addition in the source database.
+#
+# If the latest legacy sampling date of the location
+# (lastdate_legacysampling_polygon) is recent enough, the SAMPLPOINT FAG for the
+# unit in the FAG calendar can be ignored. However, if during fieldwork it is
+# found that the point where legacy_try_first == TRUE does not fulfill criteria,
+# then the SAMPLPOINT FAG still needs to be executed since the sampling date
+# does not apply to older points (the same adhoc SAMPLPOINT approach applies
+# when revisiting points created within MNE). For this reason, this date is only
+# present in the rows where legacy_try_first is TRUE.
+
+
+
+
+
+
+
+## Cells for local unit replacement in terrestrial types except 7220 -------
+
+
+# The units that are eligible for local replacement of a specific cell-based
+# sampling unit are the other cells that belong to the same habitatmap polygon.
+# In case that this polygon is too large, i.e. exceeds 64 cells, OR if it has at
+# least 32 cells in combination with too 'long' dimensions (evaluated from the
+# bounding box of the polygon's cell centers), then the replacement cells
+# (within the polygon) are kept that belong to the same 'level 3' GRTS address
+# as the considered unit (we call this the anchor level 3 cell). The level 3
+# address is the GRTS address of the enclosing large cell (256 * 256 quare
+# meters; i.e. 64 level 0 units) of the coarser level3 GRTS raster. These
+# replacement cells are still supplemented by those of the 'next' level 3 cell
+# of the polygon if such one exists and if the anchor level 3 cell has no more
+# than 16 cells, which is done to end up with a reasonable amount of replacement
+# cells, at the same time applying a decent split of the polygon. With 'next
+# level 3 cell' we mean the next level 3 address that is attached to the
+# polygon, or the lowest one if the anchor level 3 cell already had the highest
+# address (since this is how lower level addresses cyclically 'walk through' the
+# higher level addresses).
+
+# I. Getting the replacement cells based on polygon
+# /////////////////////////////////////////////////////////////////////////////
+
+# Beware that we must rely on grts_address if grts_address_final is different,
+# so we can just use grts_address.
+
+# Before joining polygon_ids to stratum x grts_address, we must 'unexpand'
+# hmt_pol_stratum_grts_cell_all_n2khab to match the strata in n2khab_strata.
+hmt_pol_stratum_grts_cell_all_n2khab_collapsed <-
+  hmt_pol_stratum_grts_cell_all_n2khab %>%
+  collapse_strata()
+
+# Further, some sampling units concern previously assessed sites with the type,
+# while this information is not present in habitatmap_terr, hence also not in
+# hmt_pol_stratum_grts_cell_all_n2khab_collapsed, so that the polygon_id is
+# missing. Consequently, we need a left join to keep all sampling units, but
+# essentially, we use below object to be able to solve the problem.
+stratum_schemepstargetpanel_spsamples_terr_polygons <-
+  stratum_schemepstargetpanel_spsamples %>%
+  filter_for_cells() %>%
+  # adding polygon_id attribute (sometimes missing, sometimes more than one, as
+  # explained above)
+  left_join_m2m_d(
+    hmt_pol_stratum_grts_cell_all_n2khab_collapsed,
+    join_by(stratum, grts_address)
+  )
+
+# I.1. Solving the problem of missing polygons
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# We will fetch the missing polygons from the raw habitatmap data source, and
+# use it to extend hmt_pol_stratum_grts_cell_all_n2khab_collapsed.
+
+# It appeared that only cell-centered strata are concerned. We keep checking
+# this in case this would ever change ('cell' types are handled differently).
+stratum_schemepstargetpanel_spsamples_terr_polygons %>%
+  filter(is.na(polygon_id)) %>%
+  distinct(stratum) %>%
+  inner_join_121_ed(n2khab_strata, join_by(stratum)) %>%
+  distinct(type) %>%
+  inner_join_121_ed(
+    n2khab_types_expanded_properties %>%
+      select(type, grts_join_method),
+    join_by(type)
+  ) %>%
+  filter(grts_join_method == "cell") %>%
+  {nrow(.) == 0} %>%
+  stopifnot()
+
+# cell centers of the polygon-less sampling units as points
+stratum_grts_address_nopolygon_sf <-
+  stratum_schemepstargetpanel_spsamples_terr_polygons %>%
+  filter(is.na(polygon_id)) %>%
+  select(stratum, grts_address) %>%
+  add_point_coords_grts_mh(grts_var = "grts_address")
+
+# Selecting the missing polygons from the habitatmap. Up to terra 1.8-86, terra
+# was used to read and filter, because it can handle some exotic geometries from
+# habitatmap out of the box (to do this with sf, see
+# /src/miscellaneous/habitatmap.Rmd in the interim branch of
+# n2khab-preprocessing, but this is more laborious). terra 1.8-93 causes a
+# crash, reported in https://github.com/rspatial/terra/issues/2037. While
+# preparing the issue, it was however discovered that we don't actually keep any
+# of the MULTISURFACE geometries causing the problem. This has led to the
+# simpler way, using sf, excluding the MULTISURFACE geometries. There's a chance
+# that terra 1.8-86 actually did the same, so we should still check with later
+# terra versions if new differences appear.
+missing_polygons <-
+  read_sf(file.path(
+    locate_n2khab_data(),
+    "10_raw/habitatmap/habitatmap.gpkg"
+  )) %>%
+  mutate(geomtype = st_geometry_type(.)) %>%
+  filter(geomtype != "MULTISURFACE") %>%
+  .[stratum_grts_address_nopolygon_sf, ] %>%
+  select(polygon_id = globalid_BWK) %>%
+  vect()
+
+# adding all GRTS addresses that belong to these polygons, by cell-center
+missing_pol_grts <-
+  terra::extract(grts_mh, missing_polygons, small = FALSE) %>%
+  dplyr::as_tibble() %>%
+  inner_join_12m_e(
+    tibble(
+      ID = seq_len(nrow(missing_polygons)),
+      polygon_id = missing_polygons$polygon_id
+    ),
+    .,
+    join_by(ID)
+  ) %>%
+  select(-ID, grts_address = GRTSmaster_habitats) %>%
+  # filtering is needed since all polygons are listed by terra::extract():
+  filter(!is.na(grts_address))
+
+# Finally, joining the stratum from the sampling-units-that-missed-their-polygon
+# to the polygon-level. The result has the same columns as
+# hmt_pol_stratum_grts_cell_all_n2khab_collapsed.
+missing_pol_stratum_grts <-
+  stratum_schemepstargetpanel_spsamples_terr_polygons %>%
+  filter(is.na(polygon_id)) %>%
+  select(stratum, grts_address) %>%
+  # joining polygon_id based on the sampling unit's grts_address
+  inner_join_m21_ed(missing_pol_grts, join_by(grts_address)) %>%
+  # joining all GRTS addresses based on polygon_id
+  select(-grts_address) %>%
+  inner_join(
+    missing_pol_grts,
+    join_by(polygon_id),
+    relationship = "many-to-many",
+    unmatched = "error"
+  ) %>%
+  relocate(polygon_id)
+
+# now combining polygon x stratum x GRTS address from the cell and cell-center
+# types in the unexpanded base sampling frame with missing_pol_stratum_grts
+hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended <-
+  bind_rows(
+    hmt_pol_stratum_grts_cell_all_n2khab_collapsed,
+    missing_pol_stratum_grts
+  ) %>%
+  mutate(polygon_id = factor(polygon_id))
+
+
+# I.2. Getting the replacement cells based on polygon.
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# Getting the replacement cells based on polygon. Beware that we must rely on
+# grts_address if grts_address_final is different, so we can just use
+# grts_address. In the case of the 'cell' join method, it is possible to get
+# multiple polygons attached to the same considered cell, provided that these
+# polygons have been labelled to contain the specific type.
+stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells <-
+  stratum_schemepstargetpanel_spsamples %>%
+  filter_for_cells() %>%
+  # We drop domain_part since its value can change within a polygon, which
+  # otherwise requires extra attention in grouping operations. As we always
+  # _identify_ the sampling units using grts_address x stratum (not
+  # grts_address_final, which is only relevant for fieldwork), we also use its
+  # domain_part attribute, regardless whether a local replacement took place.
+  select(-domain_part) %>%
+  # adding polygon_id attribute (sometimes more than one, as explained above)
+  inner_join_m2m_ed(
+    hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended,
+    join_by(stratum, grts_address)
+  ) %>%
+  # adding all GRTS addresses of the polygon, taking into account the stratum's
+  # GRTS join method
+  inner_join_m2m_ed(
+    hmt_pol_stratum_grts_cell_all_n2khab_collapsed_extended %>%
+      rename(grts_address_replac = grts_address),
+    join_by(stratum, polygon_id)
+  ) %>%
+  select(-polygon_id) %>%
+  # we also determine the 'next GRTS address' per grts_address x stratum, which
+  # we will need to determine the 'next level 3 cell' per grts_address x
+  # stratum. This acts like 'within polygon', but for cell-joined types several
+  # adjacent polygons can be selected which we combine since we abstracted
+  # polygon_id away.
+  nest(addr_replac = grts_address_replac) %>%
+  mutate(
+    grts_address_next = map2_int(grts_address, addr_replac, function(grts, ar) {
+      if (all(is.na(ar$grts_address_replac))) {
+        return(NA_integer_)
+      }
+      grts_r <- sort(unique(ar$grts_address_replac))
+      grts_next_i <- which(grts_r == grts) + 1
+      # this gives back NA if grts_next_i is out of range, which is what we
+      # want:
+      grts_r[grts_next_i]
+    })
+  ) %>%
+  # GRTS addresses of the considered stratum that are member of the sample,
+  # either drawn or already in use as a replacement, are considered forbidden
+  # area to use as a replacement within the polygon for this stratum, since this
+  # would generate problems in the sample management. This step also drops the
+  # to-be-replaced address that is under consideration, which is no problem.
+  # Note that the following nesting step makes unique rows per stratum x
+  # set of replacement cells (~ mostly a single polygon).
+  nest(addr_sampled = c(
+    scheme_ps_targetpanels,
+    grts_address,
+    grts_address_final,
+    in_mhq_samples,
+    last_type_assessment,
+    last_type_assessment_in_field,
+    last_inaccessible,
+    grts_address_next
+  )) %>%
+  # filter replacement addresses as described above and make them unique
+  mutate(
+    addr_replac = map2(addr_replac, addr_sampled, function(ar, as) {
+      ar %>%
+        filter(
+          !(grts_address_replac %in% as$grts_address),
+          !(grts_address_replac %in% as$grts_address_final)
+        ) %>%
+        distinct()
+    })
+  ) %>%
+  # unnest the list columns sequentially, and don't drop rows if no replacement
+  # cells are available: we want to keep all sampled locations in this data
+  # frame
+  unnest(addr_sampled) %>%
+  relocate(scheme_ps_targetpanels) %>%
+  unnest(addr_replac, keep_empty = TRUE) %>%
+  # get cell numbers of the replacement addresses (useful in visualization)
+  left_join_m21_d(
+    grts_mh_index %>%
+      rename(cellnr_replac = id),
+    join_by(grts_address_replac == grts_address)
+  ) %>%
+  # nesting polygon ids, cellnr & replacement addresses; the number of rows is
+  # the same as before the first join above
+  nest(polygon_replacement_cells = c(
+    cellnr_replac,
+    grts_address_replac
+  )) %>%
+  relocate(polygon_replacement_cells, .after = grts_address_final)
+
+# distribution of the number of polygon replacement cells per sampling unit:
+stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells %>%
+  mutate(nrcells = map_int(polygon_replacement_cells, nrow)) %>%
+  pull(nrcells) %>%
+  summary()
+
+
+# II. Resolving the eligible replacement cells, including the level 3 approach
+# /////////////////////////////////////////////////////////////////////////////
+
+# reading the level0-resolution SpatRaster layer that holds the level 3
+# addresses, to prepare for potential restriction to level 3 cells
+grts_mh_brick_lev3 <- read_GRTSmh(brick = TRUE)[["level3"]]
+# create a spatial index of the level 3 GRTS values
+grts_mh_brick_lev3_index <- tibble(
+  id = seq_len(ncell(grts_mh_brick_lev3)),
+  grts_address = values(grts_mh_brick_lev3)[, 1]
+) %>%
+  filter(!is.na(grts_address))
+
+# In order to restrict to the level 3 cells, we generate the level 3 replacement
+# cells as a separate list column. Beware that we must rely on grts_address if
+# grts_address_final is different, so we can just use grts_address. First, we
+# set the several criteria to decide about the level 3 restriction.
+
+# Maximum allowed bboxdiag: if exceeded and there are at least 32 replacement
+# cells in the polygon, we apply level 3 restriction. Dimensions are based on
+# those of a level 3 cell
+max_allowed_bboxdiag <- sqrt(2 * 256^2)
+min_nrcells_tosplit <- (2^3)^2 / 2
+# Maximum allowed number of cells in polygon; based on number of cells in a
+# level 3 cell. If exceeded, we apply level 3 restriction.
+max_allowed_nrcells <- (2^3)^2
+# Maximum nr of replacement cells after first level 3 cell restriction, below
+# which it is decided to add the second level 3 cell if available
+max_insufficient_nrcells_level3 <- (2^3)^2 / 4
+
+# Resolving the eligible replacement cells (column replacement_cells) from
+# polygon replacement cells, level 3 replacement cells (from current + next
+# level3-cell) and the application of criteria that determine how to use these.
+# The tibbles in the replacement_cells column have a column 'ranknr' to show the
+# order in which a replacement cell can be elected: the first positive
+# evaluation for the considered stratum determines which cell must be used as
+# replacement.
+
+stratum_schemepstargetpanel_spsamples_terr_replacementcells <-
+  stratum_schemepstargetpanel_spsamples_terr_polygonreplacementcells %>%
+  mutate(
+    # calculate diagonal length of bounding box of replacement cell centers
+    bboxdiag = map_dbl(polygon_replacement_cells, \(df) {
+      coo <- xyFromCell(grts_mh, df$cellnr_replac)
+      xdiff <- max(coo[, "x"]) - min(coo[, "x"])
+      ydiff <- max(coo[, "y"]) - min(coo[, "y"])
+      sqrt(xdiff^2 + ydiff^2)
+    }),
+    # calculate level3 address of current and next level0 address
+    level3_address = convert_level0_to_level3(
+      grts_address,
+      spatrast = grts_mh,
+      spatrast_index = grts_mh_index,
+      spatrast_lev3 = grts_mh_brick_lev3
+    ),
+    level3_address_next = convert_level0_to_level3(
+      grts_address_next,
+      spatrast = grts_mh,
+      spatrast_index = grts_mh_index,
+      spatrast_lev3 = grts_mh_brick_lev3
+    ),
+    # get level 3 replacement cells for current GRTS address
+    level3_replacement_cells = get_level3replacement_cellnrs(
+      grts_address,
+      spatrast = grts_mh,
+      spatrast_index = grts_mh_index,
+      spatrast_lev3 = grts_mh_brick_lev3,
+      spatrast_lev3_index = grts_mh_brick_lev3_index
+    ),
+    # get level 3 replacement cells for next GRTS address
+    nextlevel3_replacement_cells = ifelse(
+      is.na(level3_address_next) | level3_address_next == level3_address,
+      list(NULL),
+      get_level3replacement_cellnrs(
+        grts_address_next,
+        spatrast = grts_mh,
+        spatrast_index = grts_mh_index,
+        spatrast_lev3 = grts_mh_brick_lev3,
+        spatrast_lev3_index = grts_mh_brick_lev3_index
+      )
+    ),
+    # determine final replacement cells
+    replacement_cells = pmap(
+      list(
+        polygon_replacement_cells,
+        bboxdiag,
+        level3_replacement_cells,
+        nextlevel3_replacement_cells
+      ),
+      function(poladr, d, lev3adr, nextlev3adr) {
+        poladr_unique <- unique(poladr$grts_address_replac)
+        if (
+          length(poladr_unique) > max_allowed_nrcells | (
+            d > max_allowed_bboxdiag &
+            length(poladr_unique) >= min_nrcells_tosplit
+          )
+        ) {
+          # if polygon too large, apply 'polygon x level3-cell' constrained
+          # replacement. If the result is quite small, add the next level3-cell
+          # if available, but keep its level0 ranks after the first one, since
+          # the idea is still to 'split' the polygon in the replacement
+          # procedure, only relaxing it if no replacement was possible in the
+          # first level3-cell. If no second level3-cell is available, this means
+          # that all polygon cells belong to the same level3-cell).
+          lev3_constrained <-
+            lev3adr %>%
+            filter(grts_address_replac %in% poladr_unique) %>%
+            mutate(ranknr = row_number(grts_address_replac))
+          if (
+            !is.null(nextlev3adr) &
+            nrow(lev3_constrained) <= max_insufficient_nrcells_level3
+          ) {
+            bind_rows(
+              lev3_constrained,
+              nextlev3adr %>%
+                filter(grts_address_replac %in% poladr_unique) %>%
+                mutate(
+                  ranknr =
+                    row_number(grts_address_replac) + nrow(lev3_constrained)
+                )
+            )
+          } else {
+            lev3_constrained
+          }
+        } else {
+          # If polygon not too large, just apply polygon-constrained
+          # replacement. This also handles the case where no replacement cells
+          # are available (small polygons): a single row with NA values is
+          # returned.
+          poladr %>%
+            distinct(cellnr_replac, grts_address_replac) %>%
+            mutate(ranknr = row_number(grts_address_replac))
+        }
+      }
+    )
+  ) %>%
+  select(
+    -polygon_replacement_cells,
+    -bboxdiag,
+    -grts_address_next,
+    -contains("level3")
+  ) %>%
+  relocate(replacement_cells, .after = grts_address_final)
+
+
+
+# distribution of the number of replacement cells per sampling unit:
+stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+  mutate(nrcells = map_int(replacement_cells, nrow)) %>%
+  pull(nrcells) %>%
+  summary()
+
+# plotting some examples using terra's plot method
+plot_replacement_example <- function(
+    min_nr_replacement_cells,
+    max_nr_replacement_cells
+) {
+  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+    mutate(nrcells = map_int(replacement_cells, nrow)) %>%
+    filter(between(
+      nrcells,
+      min_nr_replacement_cells,
+      max_nr_replacement_cells
+    )) %>%
+    slice_sample(n = 1) %>%
+    (\(df) {cat(as.character(df$stratum), df$grts_address); df}) %>%
+    pluck("replacement_cells", 1) %>%
+    pull(cellnr_replac) %>%
+    {grts_mh[., drop = FALSE]} %>%
+    plot()
+}
+# plot_replacement_example(65, 80)
+# plot_replacement_example(46, 64)
+# plot_replacement_example(40, 45)
+# plot_replacement_example(30, 35)
+# plot_replacement_example(12, 20)
+# plot_replacement_example(5, 8)
+
+# we may like to have a single vector of all replacement cell numbers
+cellnrs_replacement <-
+  stratum_schemepstargetpanel_spsamples_terr_replacementcells %>%
+  select(replacement_cells) %>%
+  unnest(replacement_cells) %>%
+  distinct(cellnr_replac) %>%
+  # not including the 'no replacement cells available' case (i.e. small
+  # polygons)
+  filter(!is.na(cellnr_replac)) %>%
+  pull(cellnr_replac)
+
+# generate sf points object of all replacement cell centers
+coords <- xyFromCell(grts_mh, cellnrs_replacement)
+replacement_cellcenters <- tibble(
+  cellnr = cellnrs_replacement,
+  grts_address = grts_mh[cellnrs_replacement][, 1],
+  x = coords[, "x"],
+  y = coords[, "y"]
+) %>%
+  st_as_sf(coords = c("x", "y"), crs = crs(grts_mh))
+
+# SpatRaster of all replacement cells; note the use of the cells argument:
+replacement_cell_rast <-
+  filter_grtsraster_by_address(
+    spatrast = grts_mh,
+    spatrast_index = grts_mh_index,
+    cells = cellnrs_replacement
+  )
+global(replacement_cell_rast, "notNA")[1, 1] == length(cellnrs_replacement)
+
+
+
+
+## FAG occasions, field activities and variables ------------------------
+
+# field activities (FAs) per field activity group (FAG) in the active modules
+# and schemes (considered without the spatial overlap between core and non-core
+# schemes). A FAG represents the field activities that must happen during the
+# same location visit.
+fag_fa <-
+  mod_scheme_field_activity %>%
+  semi_join(mod_scheme_yrs_moco_ps, join_by(module, scheme)) %>%
+  distinct(field_activity_group, field_activity) %>%
+  arrange(field_activity_group, field_activity) %>%
+  inner_join_m21_ed(field_activities, join_by(field_activity))
+
+# Field activity sequences define the sequence of activities needed for some
+# objective (determining a variable). An activity sequence may be used by
+# different schemes, and a single scheme may combine more than one, since
+# multiple variables are determined by a single scheme.
+faseqs <-
+  mod_scheme_field_activity %>%
+  semi_join(mod_scheme_yrs_moco_ps, join_by(module, scheme)) %>%
+  distinct(activity_sequence, in_aquatic_subset, scheme) %>%
+  summarize(
+    schemes = str_flatten(scheme, collapse = ", "),
+    .by = c(activity_sequence, in_aquatic_subset)
+  )
+
+# faseqs_fag_fa shows the individual FAs and FAGs for each field activity
+# sequence
+faseqs_fag_fa <-
+  field_activity_sequences %>%
+  semi_join(faseqs, join_by(activity_sequence)) %>%
+  inner_join_m21_ed(field_activities, join_by(field_activity))
+
+# Note that following has a more elaborate set of (partially non-field)
+# activities:
+actseqs_actgroups_acts <-
+  activity_sequences %>%
+  semi_join(faseqs, join_by(activity_sequence)) %>%
+  inner_join_m21_ed(
+    activities %>%
+      select(activity, activity_name),
+    join_by(activity)
+  )
+
+
+if (interactive()) fag_stratum_grts_calendar
+
+# fag_stratum_grts_calendar defines the needed visits of the spatial sampling
+# units and is organized at the FAG level. The rank is an indication of the
+# needed order of different FAGs at one location, in the same cycle. In some
+# cases repetitions do happen for certain FAGs in a scheme, not all FAGs, as
+# prescribed by the date interval.
+
+# Below code brings the FAG calendar at the resolution of each field activity.
+fag_fa_stratum_grts_calendar <-
+  fag_stratum_grts_calendar %>%
+  inner_join_m2m_ed(
+    fag_fa,
+    join_by(field_activity_group)
+  ) %>%
+  select(-c(typelevel_certain:inaccessible))
+
+# Note that both calendar objects have a scheme_moco_ps column that makes clear
+# which combinations of scheme x module combo x panel set the FAG is serving.
+# This may be a SUBSET of the same information at the level of the spatial
+# sampling unit without considering FAG occasions, since not all field
+# activities necessarily serve all schemes. The tibbles in the scheme_moco_ps
+# list column also make clear what was the (original) date interval for this FAG
+# in the related schemes. Only for auxiliary FAGs, i.e. where the timing doesn't
+# essentially impact the measurement of the target variable, this date interval
+# can be later than that of the planned FAG itself (stated by
+# 'is_current_occasion'). It means that a deduplication has taken place in order
+# to cater for multiple schemes by a single FAG occasion. A listed later
+# 'upcoming' date interval of an associated scheme is restricted to the period
+# during which the auxiliary FAG (in the scheduled time interval) is still
+# relevant to subsequent FAGs in that scheme.
+
+if (interactive()) cal_old_continuation
+
+# cal_old_continuation is a subset of fag_stratum_grts_calendar (without
+# assessment columns) that represents GWSHALL* and READDIVER FAG occasions in
+# 2026 and 2027 from older REP versions, that are retained in newer FAG calendar
+# versions regardless of the fact that those FAG occasions are no part of the
+# new revisit design or even the spatial sample. So they are supplementary.
+# Their timing will be kept fixed; however units may still be dropped in future
+# revisit cycles as they disappear from later versions of the new FAG calendar.
+
+# cal_old_continuation is the only object that defines a second targetpanel
+# specifically for those FAG occasions; the format is OLDPANELxx (xx being the
+# number). These locations are at the same time part of a regular 'PANELyy',
+# which is not linked to specific FAG occasions, hence not part of the new
+# revisit design: it is just a location attribute. The regular targetpanels are
+# dynamic, i.e. their units can change, while this is not relevant for the FAG
+# occasions of cal_old_continuation, which got the frozen revisit pattern of the
+# panels at the time, which we now call OLDPANELxx.
+
+# Link between field activities and their protocol
+fa_protocol <-
+  field_activities %>%
+  inner_join_121_ed(
+    activities %>%
+      select(activity, protocol),
+    join_by(field_activity == activity)
+  )
+
+# List of variables / variable sets to be collected in the field (will expand
+# when mod_scheme_vars expands). This only concerns MNE, so it still misses the
+# LSVI field measurement of the LSVITERR & LSVIAQ field activities.
+scheme_moco_fa_fieldvar <-
+  mod_scheme_vars %>%
+  # bring to module combo level
+  inner_join(
+    mod_scheme_yrs_moco_ps %>%
+      distinct(module, scheme, module_combo_code),
+    join_by(module, scheme),
+    relationship = "many-to-one",
+    unmatched = "drop"
+  ) %>%
+  relocate(module_combo_code, .after = scheme) %>%
+  # field activities only
+  semi_join(
+    field_activities,
+    join_by(main_datacollection_method == field_activity)
+  ) %>%
+  select(
+    -module,
+    field_activity = main_datacollection_method
+  ) %>%
+  # make unique after dropping module:
+  distinct(
+    scheme,
+    module_combo_code,
+    field_activity,
+    variable_set,
+    # # not including variable: the (target) variable is either the same as the
+    # # measurement variable, or it is an aggregated variable which we don't
+    # # measure as such in the field
+    # variable,
+    measurement_var
+  ) %>%
+  # variables with the SAMP field activity are variables to be determined in the
+  # lab, so not relevant for the fieldwork (but the sampling protocol is)
+  filter(!str_detect(field_activity, "SAMP"))
+
+
+
+## Processing the FAG calendar wrt prioritizing short-term fieldwork ----
+
+# This section is primarily intended as support for fieldwork planning by the
+# compartment scheme responsible, who will use these R objects directly.
+
+# Derive the short-term FAG calendar at the stratum x location x FAG occasion,
+# and include some of the location attributes.
+#
+# Note that the scheme_ps_targetpanels_served attribute created below by
+# nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked
+# version of scheme_ps_targetpanels at the level of the whole sample (see
+# sampling unit attributes in the beginning), since it is specific to the FAG
+# occasion and since we limited the activities to those planned before main_year
+# + 1 (sometimes later), before generating scheme_ps_targetpanels_served. So it
+# says specifically which schemes x panel sets x targetpanels are served by the
+# specific fieldwork at a specific date interval. Note that we substitute the
+# targetpanel with the OLD targetpanel if the targetpanel is missing, i.e. for
+# sampling units missing from the current FAG calendar. This is done to avoid
+# missing values in derived objects or overviews.
+main_year <- 2026
+fag_stratum_grts_calendar_shortterm_attribs <-
+  fag_stratum_grts_calendar %>%
+  select(
+    scheme_moco_ps,
+    stratum,
+    grts_address,
+    starts_with("date"),
+    field_activity_group,
+    rank
+  ) %>%
+  filter_until_year_max_except_first_auxiliary_activities_gw(main_year, remove_has_gw = TRUE) %>%
+  postpone_selected_past_activities() %>%
+  drop_past_activities(min_year = main_year) %>%
+  extend_and_update_scheme_attributes() %>%
+  unnest_and_join_sampling_unit_attributes() %>%
+  nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE, for_fag_occasions = TRUE) %>%
+  mark_matching_occasions() %>%
+  relocate(
+    scheme_ps_targetpanels_served,
+    schemes_served_all,
+    starts_with("nr_schemes")
+  ) %>%
+  relocate(matching_occasion, .after = rank)
+
+# Derive an object where stratum x scheme_ps_targetpanels_served is flattened per
+# location x FAG occasion. Beware that in reality, more locations will emerge
+# due to local replacement, so this is misleading for counting & planning (but
+# useful in spatial visualization).
+fag_grts_calendar_shortterm_attribs <-
+  fag_stratum_grts_calendar_shortterm_attribs %>%
+  select(
+    -schemes_served_all,
+    -starts_with("nr_schemes")
+  ) %>%
+  unite_stratum_and_schemepstargetpanels() %>%
+  summarize(
+    stratum_scheme_ps_targetpanels_served =
+      str_flatten(
+        unique(stratum_scheme_ps_targetpanels_served),
+        collapse = " \u2588 "
+      ) %>%
+      factor(),
+    .by = !stratum_scheme_ps_targetpanels_served
+  ) %>%
+  relocate(stratum_scheme_ps_targetpanels_served)
+
+# A simple derived spatial object (as points; see earlier for the actual unit
+# geometries). Points are still repeated because of different date_interval &
+# FAG values at the same location.
+fag_grts_calendar_shortterm_attribs_sf <-
+  fag_grts_calendar_shortterm_attribs %>%
+  add_point_coords_grts_mh(grts_var = "grts_address_final")
+
+
+# prioritization of short-term fieldwork with stratum distinguished (preferred for
+# counts and for planning):
+fieldwork_shortterm_prioritization_by_stratum <-
+  fag_stratum_grts_calendar_shortterm_attribs %>%
+  prioritize_all_fieldwork() %>%
+  add_wait_columns() %>%
+  arrange(
+    date_end,
+    priority,
+    wait_watersurface,
+    wait_3260,
+    wait_7220,
+    wait_floating,
+    wait_mhq,
+    wait_obsolete_types,
+    wait_any,
+    stratum,
+    grts_address,
+    rank,
+    field_activity_group
+  )
+
+# overview short-term fieldwork prioritization according to schemes & panels:
+fieldwork_shortterm_targetpanels_prioritization_count <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
+  count(
+    scheme_ps_targetpanels_served,
+    priority,
+    pick(starts_with("wait")),
+    field_activity_group
+  ) %>%
+  arrange(priority, pick(starts_with("wait"), -wait_any)) %>%
+  pivot_wider(
+    names_from = field_activity_group,
+    names_sort = TRUE,
+    values_from = n
+  )
+
+# overview short-term fieldwork prioritization according to date intervals:
+fieldwork_shortterm_dates_prioritization_count <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
+  count(
+    date_interval,
+    date_end,
+    priority,
+    pick(starts_with("wait")),
+    field_activity_group
+  ) %>%
+  arrange(date_end, priority, pick(starts_with("wait"), -wait_any)) %>%
+  select(-date_end) %>%
+  pivot_wider(
+    names_from = field_activity_group,
+    names_sort = TRUE,
+    values_from = n
+  )
+
+
+
+
+
+## Processing the FAG calendar wrt specific questions -------------------------
+
+# Classifying strata in groundwater schemes according to different allowed
+# maximum depths for the PIEZ/WELL installation
+
+fag_stratum_grts_calendar %>%
+  filter(str_detect(field_activity_group, "INST")) %>%
+  unnest(scheme_moco_ps) %>%
+  filter(
+    str_detect(scheme, "^GW"),
+    is_current_occasion
+  ) %>%
+  distinct(stratum) %>%
+  # adding type attributes
+  inner_join_m21_ed(n2khab_strata, join_by(stratum)) %>%
+  inner_join_m21_ed(
+    n2khab_types_expanded_properties %>%
+      select(type, grts_join_method, groundw_dep),
+    join_by(type)
+  ) %>%
+  mutate(
+    max_depth_groups = case_when(
+      # non-cell types can go much deeper (soil surface is not the relevant
+      # reference)
+      !str_detect(grts_join_method, "cell") ~ 3L,
+      # strictly groundwater dependent cell types get more strict rules
+      groundw_dep == "GD2" ~ 2L,
+      # remaining cell types get the most strict rules
+      .default = 1L
+    )
+  )
+
+
+
+
+## Making selections for short-term orthophoto assessments ---------------------
+
+
+### Making a list of terrestrial locations to be assessed using orthophotos ----
+
+orthophoto_shortterm_terrtype_grts <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
+  filter(
+    str_detect(field_activity_group, "LOCEVAL"),
+    # only keep cell-based types (aquatic & 7220 will be more reliable or simply
+    # not possible to evaluate on orthophoto)
+    str_detect(sample_support_code, "cell")
+  ) %>%
+  convert_stratum_to_type() %>%
+  select(-rank, -scheme_ps_oldtargetpanels_served, -matching_occasion) %>%
+  arrange(
+    priority,
+    type,
+    domain_part,
+    grts_address
+  )
+
+# unit geometries (cells):
+orthophoto_shortterm_cells <-
+  units_cell_polygon %>%
+  inner_join_12m_de(
+    orthophoto_shortterm_terrtype_grts,
+    join_by(grts_address_final)
+  ) %>%
+  relocate(grts_address_final, .after = grts_address) %>%
+  relocate(geometry, .after = last_col()) %>%
+  arrange(
+    priority,
+    type,
+    domain_part,
+    grts_address
+  )
+
+# cell centers:
+orthophoto_shortterm_cell_centers <-
+  orthophoto_shortterm_terrtype_grts %>%
+  add_point_coords_grts_mh(grts_var = "grts_address_final")
+
+
+
+### Making a list of lentic locations to be assessed using orthophotos ----
+
+orthophoto_shortterm_lentictype_grts <-
+  fieldwork_shortterm_prioritization_by_stratum %>%
+  filter(str_detect(field_activity_group, "LOCEVAL")) %>%
+  # the polygons that are no member of the watersurfaces data source are the
+  # ones to be screened
+  semi_join(
+    stratum_grts_polygon_spsamples_lentic %>%
+      filter(!str_detect(polygon_id, "^(ANT|LIM|WVL|OVL|VBR)")),
+    join_by(stratum, grts_address_final)
+  ) %>%
+  # converting stratum to type (keeping stratum)
+  inner_join_m21_ed(n2khab_strata, join_by(stratum)) %>%
+  relocate(type, .after = stratum) %>%
+  select(-rank, -scheme_ps_oldtargetpanels_served) %>%
+  arrange(
+    priority,
+    type,
+    domain_part,
+    grts_address
+  )
+
+# unit geometries (polygons)
+orthophoto_shortterm_watersurfaces <-
+  stratum_grts_spsamples_lentic_sf %>%
+  inner_join_12m_de(
+    orthophoto_shortterm_lentictype_grts,
+    join_by(stratum, grts_address, grts_address_final)
+  ) %>%
+  relocate(type, stratum, .after = polygon_id) %>%
+  relocate(grts_address, grts_address_final, .after = sample_support_code) %>%
+  relocate(geom, .after = last_col()) %>%
+  arrange(
+    priority,
+    type,
+    domain_part,
+    grts_address
+  )
+
+
+
+
+## Comparing object checksums with reference to verify reproducibility --------
+
+checksumfile <- file.path(snippet_base_path, "fieldworg_checksums.csv")
+ref_checksums <- read_csv(checksumfile, col_types = "cc")
+available_obj <- ls()
+different_checksums <-
+  ref_checksums %>%
+  rename(xxh64sum_ref = xxh64sum) %>%
+  filter(name %in% available_obj) %>%
+  mutate(
+    xxh64sum_current = map_chr(name, \(x) {
+      # terra objects need special handling;
+      # https://github.com/rspatial/terra/issues/1844
+      if (inherits(eval(str2lang(x)), c("SpatRaster", "SpatVector"))) {
+        x <- paste0("terra::wrap(", x, ")")
+      }
+      digest::digest(eval(str2lang(x)), algo = "xxhash64")
+    })
+  ) %>%
+  filter(xxh64sum_current != xxh64sum_ref)
+if (nrow(different_checksums) > 0) {
+  warning(
+    "Different checksums detected than expected.",
+    "\nPlease inspect the object `different_checksums`, shown below."
+  )
+  different_checksums %>%
+    knitr::kable()
+} else {
+  message("All loaded objects are identical to their reference :-)")
+}
+

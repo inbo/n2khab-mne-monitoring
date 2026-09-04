@@ -3,7 +3,7 @@
 This repo aims at providing operational components of the Monitoring programme for the Natural Environment (MNE) in Flanders.
 These can be e.g.:
 
-- source code to generate and update detailed planning based on field activity calendar objects coming either from the n2khab-mne-design [^private] repository or regenerated here (once code has become more portable);
+- source code to generate and update detailed planning based on field activity calendar objects coming either from the [n2khab-mne-designs](https://github.com/inbo/n2khab-mne-designs) repository or regenerated here (once code has become more portable);
 - data unique to this repository, needed to drive field work or coming from the field;
 - (source code of) tools to plan, organize and automate data flows in the field and the office;
 - data validation scripts and output;
@@ -14,15 +14,14 @@ Whether more elaborate analyses and reporting of the environmental data should b
 Some parts of this repo, such as public-facing reporting, may be in Dutch because of the primarily Flemish audience.
 At least variables, functions, scripts and code chunks are in English in order to ease internationalization.
 
-[^private]: The n2khab-mne-design repo is a non-public repo used for development and testing.
-Only its 'main' (internally accepted) branch is public, through the mirrored [n2khab-mne-design1](https://github.com/inbo/n2khab-mne-design1) repo.
-
 ## Repository structure
 
 Explanation of main directory structure:
 
-- _to be updated as needed_
-- 
+- `900_database_organization` contains database tooling under active development.
+- Folder `990_database_documentation` is an [obsidian](https://obsidian.md) vault with documentation about the MNE databases.
+- Folders with lower index numbers generally contain sub-projects and components to support or report about operative work on the MNE.
+
 
 ## Relation with N2KHAB packages and repositories
 

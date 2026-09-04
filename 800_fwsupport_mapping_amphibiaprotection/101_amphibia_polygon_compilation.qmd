@@ -1,0 +1,173 @@
+---
+title: "Sample Unit Overview"
+author: Falk Mielke
+date: today
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+  pdf:
+    toc: false
+    margin-left: 1cm
+    margin-top: 1cm
+    margin-rechts: 1cm
+    margin-bottom: 1cm
+knitr:
+  opts_chunk:
+    echo: false
+---
+
+
+
+
+```{r libraries}
+silently <- suppressPackageStartupMessages
+library("dplyr") |> silently()
+library("stringr") |> silently() # forest finder
+library("glue") |> silently() 
+library("knitr") |> silently() # table printing
+library("sf") |> silently()
+library("mapview") |> silently() # quick inspection
+library("purrr") |> silently() # apply spatial operations
+library("inbospatial") |> silently() # wfs query
+
+```
+
+
+```{r load-anb}
+anb <- readRDS("./data/anbdata_domeinen.rds") %>% 
+  rename(name = domeinnaam) %>%
+  select(-filterstring) %>% 
+  mutate_at(vars(id), as.integer) %>%
+  sf::st_transform(31370)
+
+sf::st_geometry(anb) <- "geometry"
+```
+
+```{r load-osm}
+osm <- readRDS("./data/osmdata_nature_reserves.rds") %>%
+  rename(id = osm_id) %>%
+  mutate_at(vars(id), as.integer) %>% 
+  sf::st_transform(31370)
+  
+```
+
+```{r load-osmid}
+rds_files <- c(
+  "Brouwierbos_187211309.rds",
+  "Heynsdaelebos_183869225.rds",
+  "Hoog Deurne - Tombele_42673552.rds",
+  "Kluisbos_17363093.rds",
+  "Kluisbos_386899957.rds",
+  "Kluisbos_408541392.rds",
+  "Lembeekbos_3707905.rds",
+  "Meerdaalwoud_6685681.rds",
+  "Smetledebos_7796463.rds",
+  "Voeren_404525.rds",
+  "Zoniënwoud_4003369.rds"
+)
+
+ex_id <- \(fi) as.integer(sub("^(?:.*_)?([^_/]+)\\.rds$", "\\1", fi))
+ex_name <- \(fi) str_split(fi, "_")[[1]][1]
+
+other_osm <- bind_rows(
+  lapply(
+    rds_files,
+    \(fi) readRDS(glue("./data/{fi}")) %>% as_tibble() %>%
+            mutate(id = ex_id(fi), name = ex_name(fi))
+  )
+)
+other_osm <- sf::st_as_sf(other_osm)
+
+```
+
+```{r handmade}
+handmade <- sf::st_read("./data/kapellenbos.shp") %>%
+  as_tibble()
+  
+```
+
+
+```{r union-data}
+
+data <- bind_rows(anb, osm, other_osm, handmade)
+
+data <- bind_rows(lapply(
+  seq_len(nrow(data)),
+  FUN = \(i) data[i, ] %>%
+    st_buffer(2**7) %>%
+    st_convex_hull()
+))
+
+# mapview(data)
+```
+
+
+```{r rename-areas}
+# data %>% pull(name)
+# data_areas %>% pull(name)
+
+character_removals <- c(
+  " - Eig. OCMW Oudenaarde",
+  " - Eig OCMW Oudenaarde",
+  " - Eig. Gem. Kluisbergen",
+  " - Eig. Gem Kluisbergen",
+  " - Eig. OCMW Kluisbergen",
+  "complex: Karkoolbos",
+  "Openbare Bossen ",
+  "Loods ",
+  " (Everbeekse bossen)"
+)
+data <- data %>% mutate_at(vars(name), ~gsub(paste0(character_removals, collapse = "|"), "", .))
+
+data <- data %>% 
+  mutate_at(vars(name), ~gsub("Bos Terrijst", "Bos Ter Rijst", .)) %>% 
+  mutate_at(vars(name), ~gsub("Brouwierbos", "Brouwier", .)) %>% 
+  mutate_at(vars(name), ~gsub("Brouwier", "Brouwierbos", .)) %>% 
+  mutate_at(vars(name), ~gsub("Buggenhoutbos", "Buggenhout", .)) %>% 
+  mutate_at(vars(name), ~gsub("Buggenhout", "Buggenhoutbos", .)) %>% 
+  mutate_at(vars(name), ~gsub("Heynsdaelebos", "Heynsdaele", .)) %>% 
+  mutate_at(vars(name), ~gsub("Heynsdaele", "Heynsdaelebos", .)) %>% 
+  mutate_at(vars(name), ~gsub("Ingelbos", "Hotondbos", .)) %>% 
+  mutate_at(vars(name), ~gsub("Hotond - Scherpenberg", "Hotondbos", .)) %>% 
+  mutate_at(vars(name), ~gsub("Makegembos / Harentbeekbos / Bruinbos ", "", .)) %>% 
+  mutate_at(vars(name), ~gsub("Makegemse bossen", "Makegemse Bossen", .)) %>% 
+  mutate_at(vars(name), ~gsub("\\(Makegemse Bossen\\)", "Makegemse Bossen", .)) %>% 
+  mutate_at(vars(name), ~gsub(" Gent", "", .)) %>% 
+  mutate_at(vars(name), ~gsub("Spijkerbos-Elenebos", "Spijkerbos / Elenebos", .)) %>% 
+  mutate_at(vars(name), ~gsub("Zonienwoud", "Zoniënwoud", .))
+
+```
+
+
+```{r group-areas}
+
+area_names <- data %>% distinct(name) %>% pull(name)
+# area_names
+
+data_areas <- bind_rows(lapply(
+  area_names,
+  FUN = \(aname) data %>%
+    filter(name == aname) %>%
+    sf::st_union() %>%
+    sf::st_cast("POLYGON") %>% 
+    as_tibble() %>%
+    st_as_sf() %>% 
+    mutate(name = aname)
+)) 
+
+mapview(data_areas)
+```
+
+```{r data-export}
+st_write(data_areas, dsn="amphibia_areas.gpkg", layer='amphibia_protection_areas')
+```
+
+
+# Changelog - *post processing* by Tom
+
+- het Parkbos van Gent,  Steenbergen in Erpe-Mere, Kluisbos in Halle (verwijderd uit geopackage)
+- Het Kapellenbos van Kapellen is ingetekend, niet dat van Brakel (verwijderd uit geopackage, het correcte Kapelbos werd reeds afgedekt)
+- Hauwstraat, Hul/Kanakkendries is een complex in Brakel. (toegevoegd aan geopackage)

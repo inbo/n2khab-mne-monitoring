@@ -1,0 +1,58 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+chlorophyllmeasurement_id,int,True,,True,True,,,,visit index
+log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
+log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
+location_id,int,False,,False,False,,,,"the technical sequence of all locations, put here for quick join"
+grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements) needed for retainer lookup"
+stratum,varchar,True,,False,False,,,,strata (optional/informative)
+iteration,int,True,,False,False,,,,counting chlorophyll capturings
+pool_in_rep,boolean,False,,False,False,,,,whether the pool is part of the REP sample
+date_first_visit,date,False,,False,False,,,,start of the panel activity sequence (included to keep recurrent visits unique)
+infos,text,False,NULL,False,False,,,,infos about the target location
+teammember_id,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,link to the user who performed the visit
+datetime_visit,timestamp(0),False,,False,False,,,,date and time of the field activity
+notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
+issues,boolean,True,0,False,False,,,,highlight issues (use notes to specify)
+photo,varchar,False,NULL,False,False,,,,mandatory photo of the sampling site at target location
+watertemperature_celsius,double precision,False,NULL,False,False,,CHECK (watertemperature_celsius >= -273.15),,water temperature at the sampling spot
+torch_bregt_freewater1_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_freewater1_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_freewater1_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_freewater2_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_freewater2_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_freewater2_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_freewater3_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_freewater3_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_freewater3_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket1_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket1_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket1_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket2_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket2_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket2_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket3_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket3_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_bregt_bucket3_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket1_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket1_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket1_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket2_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket2_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket2_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket3_totalchl,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket3_cyano,double precision,False,NULL,False,False,,,,(repeated measurements)
+torch_kul_bucket3_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_cuvet1_chl,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_cuvet1_pc,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_turb_cuvet1_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_turb_cuvet1_chl,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_cuvet2_chl,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_cuvet2_pc,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_turb_cuvet2_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_turb_cuvet2_chl,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_cuvet3_chl,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_cuvet3_pc,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_turb_cuvet3_turb,double precision,False,NULL,False,False,,,,(repeated measurements)
+fluo_ldm_turb_cuvet3_chl,double precision,False,NULL,False,False,,,,(repeated measurements)
+samplingpoint_marked,boolean,True,0,False,False,,,,check that the sampling point was marked on the map
+visit_done,boolean,True,0,False,False,,,,filter column for locations which have already been visited

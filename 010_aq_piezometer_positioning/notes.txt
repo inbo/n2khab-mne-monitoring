@@ -1,0 +1,7 @@
+
+watershed
+https://lochbihler.nl/practice-your-r-two-options-to-implement-the-watershed-segmentation/
+
+
+J. Cousty, G. Bertrand, L. Najman and M. Couprie. Watershed Cuts: Minimum Spanning Forests and the Drop of Water Principle, IEEE Transactions on Pattern Analysis and Machine Intelligence 31(8) pp. 1362-1374, 2009, https://inria.hal.science/hal-01113462/document
+https://doi.org/10.1109/TPAMI.2008.173

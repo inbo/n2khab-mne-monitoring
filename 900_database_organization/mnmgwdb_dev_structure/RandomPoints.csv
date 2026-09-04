@@ -1,0 +1,13 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+randompoint_id,int,True,,True,True,,,,random point index (technical)
+samplelocation_id,int,False,,False,False,,,,optional link to sample locations
+location_id,int,False,,False,False,,,,optional link to locations
+grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements)"
+random_point_rank,smallint,True,,False,False,,,,serial = priority of the random point
+lambert_lon,double precision,False,NULL,False,False,,,,"Lambert coord, longitude"
+lambert_lat,double precision,False,NULL,False,False,,,,"Lambert coord, latitude"
+compass,varchar(3),False,NULL,False,False,,,,compass direction
+angle,double precision,False,NULL,False,False,,,,"compass angle, cell center to point"
+angle_look,double precision,False,NULL,False,False,,,,"compas angle inverse, point to cell center"
+distance_m,double precision,False,NULL,False,False,,,,distance in meters
+wkb_geometry,,False,,False,False,,,,polygon geometry (31370 / Lambert 72): target location

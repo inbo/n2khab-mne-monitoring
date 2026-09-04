@@ -93,9 +93,27 @@ wsh <- read_watersurfaces_hab(interpreted = TRUE)
 # we are interested in the types which are part of the n2khab monitoring list
 wsh_occ <-
   wsh$watersurfaces_types %>%
-  # in general we restrict types using an expanded type list tailored to the
-  # type levels present in data sources, but for the aquatic types expansion and
-  # subsequent collapse of types are redundant steps
+  # this code takes a minimum part (for watersurfaces) from collapse_strata() in
+  # the REP at 2dca1a36
+  left_join(
+    tribble(
+      ~main_type, ~subtype,
+      "3130", "3130_aom",
+      "3130", "3130_na"
+    ),
+    join_by(type == main_type),
+    relationship = "many-to-many",
+    unmatched = "drop"
+  ) %>%
+  mutate(
+    type = ifelse(is.na(subtype), type, subtype) %>%
+      as.character() %>%
+      factor(levels = levels(n2khab_types$type))
+  ) %>%
+  select(-subtype) %>%
+  # some polygons can theoretically have had the main type and the subtype, so
+  # we need to deduplicate
+  distinct() %>%
   semi_join(n2khab_types, join_by(type))
 
 # of the focus-type watersurface polygons, we extract the polygon id

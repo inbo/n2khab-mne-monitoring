@@ -1,0 +1,3 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+positioningvisit_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+require_total_station,boolean,False,NULL,False,False,,,,whether or not total station will be / was required for sattelite connection upon positioning

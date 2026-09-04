@@ -1,0 +1,500 @@
+#!/usr/bin/env Rscript
+
+# libraries
+source("MNMLibraryCollection.R")
+# load_rep_common_libraries()
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+
+
+# library("mapview") # debugging only
+# mapviewOptions(platform = "mapdeck")
+
+
+
+config_filepath <- file.path("./mnm_database_connection.conf")
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  mirror <- commandline_args[1]
+} else {
+  mirror <- ""
+  # mirror <- "-staging" # "-testing"
+}
+
+
+#_______________________________________________________________________________
+#### LOCEVAL
+
+# ... and mnmgwdb
+locevaldb_mirror <- glue::glue("loceval{mirror}")
+
+locevaldb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = locevaldb_mirror
+)
+# keyring::keyring_delete(keyring = "mnmdb_temp")
+
+# print(locevaldb$shellstring)
+
+
+# Locations
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "LocationInfos",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "SampleUnits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "LocationAssessments",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "LocationJournals",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+# SampleUnits
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Replacements",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type"),
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "FieldCalendars",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "LocationAssessments",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type")
+)
+
+# Calendar
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "Visits",
+  reference_table = "FieldCalendars",
+  link_key_column = "fieldcalendar_id",
+  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+)
+
+
+# MHQ Polygons
+#
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "MHQPolygons",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
+  table_label = "MHQPolygons",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address")
+)
+
+
+
+
+
+#_______________________________________________________________________________
+#### MNMGWDB
+
+# mirror from above
+# mirror <- ""
+# mirror <- "-staging"
+
+# ... and mnmgwdb
+mnmgwdb_mirror <- glue::glue("mnmgwdb{mirror}")
+
+mnmgwdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmgwdb_mirror
+)
+
+# print(mnmgwdb$shellstring)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "SampleLocations",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "LocationInfos",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "LocationSoilInfos",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "LocationJournals",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "InstallationRemovals",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "LocationEvaluations",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "type"),
+  reference_mod = function(x) if (x == "type") {"strata"} else {x}
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "MHQPolygons",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "MHQPolygons",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address")
+)
+
+
+# # the location id of coordinates is irrelevant
+# stitch_table_connection(
+#   mnmdb = mnmgwdb,
+#   table_label = "Coordinates",
+#   reference_table = "Locations",
+#   link_key_column = "location_id",
+#   lookup_columns = c("grts_address")
+# )
+
+
+
+# link FieldworkCalender back to SampleLocations
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "FieldworkCalendar",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+)
+
+
+
+# link Visits back to Locations
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "Visits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+# link Visits back to SampleLocations
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "Visits",
+  reference_table = "SampleLocations",
+  link_key_column = "samplelocation_id",
+  lookup_columns = c("grts_address", "stratum"),
+  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+)
+
+
+# link Visits back to FieldworkCalendar
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "Visits",
+  reference_table = "FieldworkCalendar",
+  link_key_column = "fieldworkcalendar_id",
+  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+)
+
+
+# mnmgwdb$query_table("Visits") %>%
+#   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+#   knitr::kable()
+
+
+
+# REMOVED WIA/CSA/SPA
+
+
+# there is `samplelocation_id` in "transfer"."ReplacementData"
+# column names are non-standard, hence the "gefoefel".
+trgtab <- '"transfer"."ReplacementData"'
+srctab <- '"outbound"."SampleLocations"'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    samplelocation_id = SRCTAB.samplelocation_id
+  FROM {srctab} AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address_replacement = SRCTAB.grts_address)
+   AND (TRGTAB.type = SRCTAB.strata)
+;")
+
+mnmgwdb$execute_sql(update_string, verbose = FALSE)
+
+
+
+# # no printout because this script is called as a helper from others.
+# message("")
+# message("________________________________________________________________")
+# message(" >>>>>  Finished re-linking foreign keys. ")
+# message("________________________________________________________________")
+
+
+
+#_______________________________________________________________________________
+#### MNMSURFDB
+
+# mirror from above
+# mirror <- "-staging"
+
+# connect mnmsurfdb
+mnmsurfdb_mirror <- glue::glue("mnmsurfdb{mirror}")
+
+mnmsurfdb <- connect_mnm_database(
+  config_filepath,
+  database_mirror = mnmsurfdb_mirror
+)
+
+# print(mnmsurfdb$shellstring)
+
+
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "SampleUnits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "LocationInfos",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "LocationJournals",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "LocationEvaluations",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "type"),
+  reference_mod = function(x) if (x == "type") {"stratum"} else {x}
+)
+
+
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "MHQPolygons",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "MHQPolygons",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address")
+)
+
+
+# # the location id of coordinates is irrelevant
+# stitch_table_connection(
+#   mnmdb = mnmsurfdb,
+#   table_label = "Coordinates",
+#   reference_table = "Locations",
+#   link_key_column = "location_id",
+#   lookup_columns = c("grts_address")
+# )
+
+
+
+
+# link FieldworkCalender back to SampleLocations
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "FieldCalendars",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
+)
+
+
+
+# link Visits back to Locations
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "Visits",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+
+# link Visits back to SampleLocations
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "Visits",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
+)
+
+
+# link Visits back to FieldworkCalendar
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "Visits",
+  reference_table = "FieldCalendars",
+  link_key_column = "fieldcalendar_id",
+  lookup_columns =
+    c("grts_address", "stratum", "activity_group_id", "date_start")
+)
+
+
+# link ChlorophyllMeasurements back to Locations
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "ChlorophyllMeasurements",
+  reference_table = "Locations",
+  link_key_column = "location_id",
+  lookup_columns = c("grts_address")
+)
+
+# mnmsurfdb$query_table("Visits") %>%
+#   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+#   knitr::kable()
+
+# link Observations back to Visits
+stitch_table_connection(
+  mnmdb = mnmsurfdb,
+  table_label = "Observations",
+  reference_table = "Visits",
+  link_key_column = "visit_id",
+  lookup_columns =
+    c("grts_address", "teammember_id", "date_visit")
+)
+
+
+
+# REMOVED WIA/CSA/SPA
+
+
+# there is `samplelocation_id` in "transfer"."ReplacementData"
+# column names are non-standard, hence the "gefoefel".
+trgtab <- '"transfer"."ReplacementData"'
+srctab <- '"outbound"."SampleUnits"'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    sampleunit_id = SRCTAB.sampleunit_id
+  FROM {srctab} AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address_replacement = SRCTAB.grts_address)
+   AND (TRGTAB.type = SRCTAB.stratum)
+;")
+
+mnmsurfdb$execute_sql(update_string, verbose = FALSE)

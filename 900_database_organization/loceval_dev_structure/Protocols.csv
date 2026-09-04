@@ -1,0 +1,9 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+protocol_id,smallint,True,,True,True,,,,protocol index (technical)
+protocol_code,varchar,True,,False,False,,,,protocol short label
+protocol_version,varchar,True,,False,False,,,,protocol version
+title,varchar,False,NULL,False,False,,,,descriptive title of the protocol
+subtitle,varchar,False,NULL,False,False,,,,optional subtitle
+language,varchar,False,NULL,False,False,,,,"Dutch, usually"
+theme,varchar,False,NULL,False,False,,,,"category/topic of the protocol (optional, but useful)"
+manager,varchar,False,NULL,False,False,,,,the person to contact for questions

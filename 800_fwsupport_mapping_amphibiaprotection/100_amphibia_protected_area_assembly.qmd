@@ -1,0 +1,750 @@
+---
+title: "Sample Unit Overview"
+author: Falk Mielke
+date: today
+format:
+  html:
+    toc: true
+    html-math-method: katex
+    code-fold: false
+    embed-resources: true
+  pdf:
+    toc: false
+    margin-left: 1cm
+    margin-top: 1cm
+    margin-rechts: 1cm
+    margin-bottom: 1cm
+knitr:
+  opts_chunk:
+    echo: false
+---
+
+
+
+
+# Introduction
+## Rationale
+
+There have been ongoing efforts to prohibit the spread of pathogens which endanger amphibia populations worldwide and in Flanders.
+More info on the specific issues of Chytridiomycosis (*Batrachochytrium*) and Ranavirosis (*Ranavirus*) can be found [in this document](https://natuurenbos.vlaanderen.be/sites/default/files/documenten/2021-bioveiligheid-amfibie.pdf) [1].
+
+
+For fieldwork within the scope of the MNM project, we take active preventive measures to prevent pathogen spread.
+
+This notebook assembles the code to assemble data and create GIS map layers which indicate protected areas on our fieldwork projects.
+For this purpose, I simply gather the indicated locations from a [public WFS data layer](https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/2d9fe2d9-c204-4f02-b228-45658e7ff7fb) ("Public forests and nature reserves managed by ANB on behalf of the Flemish government") [2]. 
+The areas are buffered and exported for use in our QGIS projects.
+
+
+## Protected Area Search
+
+As of the latest information available to the author, the following table contains all specially protected areas [1].
+
+| Locatie                                           | Gemeente                    | Provincie                      |
+|:--------------------------------------------------|:----------------------------|:-------------------------------|
+| Bos Terrijst                                      | Maarkedal                   | Oost-Vlaanderen                |
+| Brakelbos                                         | Brakel                      | Oost-Vlaanderen                |
+| Brouwierbos (Gerrebroekbeek)                      | Brakel                      | Oost-Vlaanderen                |
+| Buggenhoutbos                                     | Buggenhout                  | Oost-Vlaanderen                |
+| Eeckhoutbos                                       | Maarkedal                   | Oost-Vlaanderen                |
+| Elenebos (Spijkerbos) / Paapschure Noord          | Kluisbergen / Maarkedal     | Oost-Vlaanderen                |
+| Hallerbos                                         | Halle                       | Vlaams-Brabant                 |
+| Hauwstraat, Hul/Kanakkendries                     | Brakel                      | Oost-Vlaanderen                |
+| Hayesbos                                          | Brakel                      | Oost-Vlaanderen                |
+| Heynsdaele                                        | Ronse                       | Oost-Vlaanderen                |
+| Hoog Deurne - Tombele                             | Ronse                       | Oost-Vlaanderen                |
+| Hotond / Ingelbos / Wittentak                     | Kluisbergen                 | Oost-Vlaanderen                |
+| Kapellenbos                                       | Brakel                      | Oost-Vlaanderen                |
+| Kasteel van Horst                                 | Holsbeek                    | Vlaams-Brabant                 |
+| Kluisbos                                          | Kluisbergen                 | Oost-Vlaanderen                |
+| Kravaalbos                                        | Aalst / Asse                | Oost-Vlaanderen/Vlaams-Brabant |
+| Lembeekbos                                        | Halle                       | Vlaams-Brabant                 |
+| Longkruidbosje Ladeuze                            | Maarkedal                   | Oost-Vlaanderen                |
+| Makegemse Bossen                                  | Merelbeke                   | Oost-Vlaanderen                |
+| Makenbos                                          | Merelbeke                   | Oost-Vlaanderen                |
+| Meerdaalwoud                                      | Bierbeek / Oud-Heverlee     | Vlaams-Brabant                 |
+| Montenakenbos                                     | Aarschot                    | Vlaams-Brabant                 |
+| Muziekbos                                         | Ronse                       | Oost-Vlaanderen                |
+| Parikebos                                         | Brakel                      | Oost-Vlaanderen                |
+| Parkbos                                           | Herzele / Lierde / Zottegem | Oost-Vlaanderen                |
+| Perlinkvallei (Maalbroekbos, Sint-Blasius-Boekel) | Zwalm                       | Oost-Vlaanderen                |
+| Plaatsbeek (Bos de Kollebroeken)                  | Brakel                      | Oost-Vlaanderen                |
+| Pyreneeën (Ter Guchten)                           | Ronse                       | Oost-Vlaanderen                |
+| Raspaillebos                                      | Geraardsbergen              | Oost-Vlaanderen                |
+| Smetledebos                                       | Lede                        | Oost-Vlaanderen                |
+| Steenbergbos                                      | Brakel                      | Oost-Vlaanderen                |
+| 't Burreken                                       | Maarkedal / Brakel          | Oost-Vlaanderen                |
+| Trimpont                                          | Brakel                      | Oost-Vlaanderen                |
+| Zoniënwoud                                        | Brussel                     | Brussel                        |
+| Voeren                                            | Voeren                      | Limburg                        |
+: List of protected areas, according to [1]
+
+
+## Strategy
+
+Unfortunately, the area names indicated in the official documents do not match the exact labels in the available GIS layers.
+Hence, the first step is to fuzzy match the locations.
+They are then extracted, polygons are cleaned up and simplified, before exporting them to a geopackage.
+
+
+# Data
+## Data Loading
+
+First challenge is to load the public web feature service (WFS) containing all forestry areas of Flanders to R.
+[Inbospatial](https://inbo.github.io/inbospatial) will help.
+
+```{r install-inbospatial}
+#| eval: false
+update.packages(ask = F) # make sure to have all installed packages up to date
+remotes::install_github("inbo/inbospatial") # install inbospatial from github
+```
+
+
+```{r libraries}
+silently <- suppressPackageStartupMessages
+library("dplyr") |> silently()
+library("stringr") |> silently() # forest finder
+library("glue") |> silently() 
+library("knitr") |> silently() # table printing
+library("sf") |> silently()
+library("mapview") |> silently() # quick inspection
+library("purrr") |> silently() # apply spatial operations
+library("inbospatial") |> silently() # wfs query
+
+```
+
+
+```{r query-forests}
+wfs_mercator_pub <- "https://www.mercator.vlaanderen.be/raadpleegdienstenmercatorpubliek/wfs"
+
+anb_public_forests <- inbospatial::get_feature_wfs(
+  wfs = wfs_mercator_pub,
+  layername = "am:am_patdat",
+  crs = "EPSG:31370"
+)
+
+```
+
+
+Example visualization:
+
+```{r example-map}
+voeren <- anb_public_forests %>%
+  filter(stringr::str_detect(tolower(domeinnaam), "voeren")) # %>%
+  # sf::st_cast("GEOMETRYCOLLECTION") %>% 
+
+voeren %>%
+  sf::st_drop_geometry() %>% 
+  select(id, regio, provincie, domeinnaam) %>%
+  knitr::kable()
+
+
+voeren %>% 
+  st_cast("GEOMETRYCOLLECTION") %>%
+  st_collection_extract("POLYGON") %>% 
+  sf::st_buffer(100) %>% 
+  mapview::mapview(col.regions = "red")
+
+```
+
+Nice example: the tiny forest "Aan de Reservoeren" contains the string "Voeren".
+This will have to be filtered.
+
+## Data Processing
+
+The geometry casting should be a general procedure.
+And a \(100 m\) buffer for safety can already be applied.
+
+```{r casting-and-buffering}
+
+anb_public_forests <- anb_public_forests %>%
+  st_cast("GEOMETRYCOLLECTION") %>%
+  st_collection_extract("POLYGON") %>% 
+  sf::st_buffer(100) 
+
+```
+
+
+## Area Matching
+
+This requires manually going through the list and filtering for forest names.
+Then, manually verifying that the correct polygons are selected.
+
+```{r filter-functions}
+
+filter_and_mapview <- function(filter_string, case_insensitive = FALSE) {
+
+  if (case_insensitive) {
+    str_trafo <- tolower
+  } else {
+    str_trafo <- \(x) x
+  }
+  
+  selected_area <- anb_public_forests %>%
+    filter(stringr::str_detect(str_trafo(domeinnaam), str_trafo(filter_string))) 
+  
+  selected_area %>% 
+    mapview::mapview(col.regions = "red") %>%
+    print()
+
+  return(selected_area)
+
+}
+
+```
+
+```{r filter-tests-individual}
+filter_and_mapview("Voeren", TRUE) %>% 
+    select(id, regio, provincie, domeinnaam) %>%
+    sf::st_drop_geometry() %>% 
+    knitr::kable()
+
+```
+
+
+| NA | Locatie                                           | search string               | case insensitive | notes                    |
+|:---|:--------------------------------------------------|:----------------------------|:-----------------|--------------------------|
+|    | Bos Terrijst                                      | Bos Terrijst                |                  |                          |
+|    | Brakelbos                                         | Brakelbos                   |                  |                          |
+|    | Brouwierbos (Gerrebroekbeek)                      | Brouwier                    |                  |                          |
+|    | Buggenhoutbos                                     | Buggenhout                  |                  | incl. "Loods"            |
+| X  | Eeckhoutbos                                       |                             |                  | Maarkebeekvallei         |
+|    | Elenebos (Spijkerbos) / Paapschure Noord          | Elenebos\|Spijkerbos        |                  |                          |
+|    | Hallerbos                                         | Hallerbos                   |                  |                          |
+| X  | Hauwstraat, Hul/Kanakkendries                     |                             |                  |                          |
+| X  | Hayesbos                                          |                             |                  |                          |
+|    | Heynsdaele                                        | Heynsda[e]le                |                  | with or without `e`      |
+| X  | Hoog Deurne - Tombele                             |                             |                  |                          |
+|    | Hotond / Ingelbos / Wittentak                     | Hotond\|Ingelbos\|Wittentak |                  |                          |
+| X  | Kapellenbos                                       |                             |                  |  fragmented                        |
+| X  | Kasteel van Horst                                 |                             |                  |                          |
+|    | Kluisbos                                          | Kluisbergen                 |                  | there are multiple!      |
+|    | Kravaalbos                                        | Kravaalbos                  |                  |                          |
+|    | Lembeekbos                                        | Lembeekbos                  |                  |                          |
+| X  | Longkruidbosje Ladeuze                            |                             |                  |                          |
+|    | Makegemse Bossen                                  | Makegemse                   |                  |                          |
+|    | ~~Makenbos~~                                      |                             |                  | part of Makegemse Bossen |
+|    | Meerdaalwoud                                      | Meerdaalwoud                |                  |                          |
+|    | Montenakenbos                                     | Montenaken                  |                  |                          |
+|    | Muziekbos                                         | Muziekbos                   |                  |                          |
+|    | Parikebos                                         | Parike                      |                  |                          |
+|    | Parkbos                                           | Parkbos                     |                  |                          |
+| X  | Perlinkvallei (Maalbroekbos, Sint-Blasius-Boekel) |                             |                  |                          |
+| X  | Plaatsbeek (Bos de Kollebroeken)                  |                             |                  |                          |
+| X  | Pyreneeën (Ter Guchten)                           |                             |                  |                          |
+|    | Raspaillebos                                      | Raspaillebos                |                  |                          |
+| X  | Smetledebos                                       |                             |                  |                          |
+|    | Steenbergbos                                      | Steenbergen                 |                  |                          |
+| X  | 't Burreken                                       |                             |                  |                          |
+| X  | Trimpont                                          |                             |                  |                          |
+|    | Zoniënwoud                                        | Zonienwoud                  |                  |                          |
+|    | Voeren                                            | Voeren                      | F                |                          |
+: List of protected areas, according to [1]
+
+
+```{r save-anb-polygons}
+
+bosfilters <- c(
+  "Bos Terrijst",
+  "Brakelbos",
+  "Brouwier",
+  "Buggenhout",
+  "Elenebos|Spijkerbos",
+  "Hallerbos",
+  "Heynsda[e]le",
+  "Hotond|Ingelbos|Wittentak",
+  "Kluisbergen",
+  "Kravaalbos",
+  "Lembeekbos",
+  "Makegemse",
+  "Meerdaalwoud",
+  "Montenaken",
+  "Muziekbos",
+  "Parike",
+  "Parkbos",
+  "Raspaillebos",
+  "Steenbergen",
+  "Zonienwoud",
+  "Voeren"
+)
+
+filter_anb <- function(filter_string) {
+  case_insensitive = isFALSE(filter_string == "Voeren")
+
+  if (case_insensitive) {
+    str_trafo <- tolower
+  } else {
+    str_trafo <- \(x) x
+  }
+  
+  selected_area <- anb_public_forests %>%
+    filter(stringr::str_detect(str_trafo(domeinnaam), str_trafo(filter_string))) %>% 
+    select(id, domeinnaam) %>%
+    mutate(filterstring = filter_string)
+  
+  return(selected_area)
+
+}
+
+areas_to_save <- lapply(bosfilters, filter_anb) %>% bind_rows()
+saveRDS(areas_to_save, glue::glue("./data/anbdata_domeinen.rds"))
+mapview(areas_to_save)
+
+
+```
+
+
+
+
+Brouwierbos (Gerrebroekbeek) https://maps.app.goo.gl/ghbebQv3PCqhe8jG7
+Eeckhoutbos = Maarkebeekvallei https://www.openstreetmap.org/way/192115932#map=15/50.82091/3.64673
+Hayesbos (Everbeekse bossen) https://www.openstreetmap.org/search?query=Everbeekse+bossen
+Hoog Deurne - Tombele -> Hoogdeurnestraat Tombelle? https://maps.app.goo.gl/ZaEgv9ch47PrvdNR9
+Kapellenbos https://www.openstreetmap.org/node/2571099982
+Kasteel[domein] van Horst https://www.openstreetmap.org/way/118646956
+Longkruidbosje Ladeuze https://www.openstreetmap.org/way/191954772
+Makenbos https://www.openstreetmap.org/way/200025029
+Perlinkvallei https://www.openstreetmap.org/way/191119531
+Pyreneeën-Tombele | Patersbos  https://www.openstreetmap.org/way/670272039
+Smetledebos https://www.openstreetmap.org/relation/7796463
+'t Burreken https://www.openstreetmap.org/way/121507794
+Trimpontbos https://www.openstreetmap.org/way/37649070
+
+## OpenStreetMap
+
+There might be a better hit rate with openstreetmap?
+
+```{r install-osmdata}
+#| eval: false
+remotes::install_github("ropensci/osmdata")
+```
+
+Specifically, I saw many forests well entered as nature reserves.
+
+```{r find-osm}
+library("osmdata") |> silently()
+
+# osm_query <- opq(bbox = "Vlaanderen") |>
+#   add_osm_feature(key = "leisure", value = "nature_reserve")
+osm_query <- opq(bbox = "Vlaanderen") |>
+  add_osm_features(features = list(
+        # "landuse" = "forest",
+        "leisure" = "nature_reserve"
+    )) 
+
+
+osm_raw <- osm_query %>% osmdata_sf()
+osm_reservate_polygons <- osm_raw %>%
+  .$osm_polygons %>%  
+  sf::st_make_valid() 
+
+osm_reservate_multipolygons <- osm_raw %>%
+  .$osm_multipolygons %>%
+  sf::st_cast("POLYGON") %>% 
+  sf::st_make_valid() 
+
+osm_reservate_allpolygons <- bind_rows(
+    osm_reservate_polygons %>% select(osm_id, name),
+    osm_reservate_multipolygons %>% select(osm_id, name)
+  ) %>% 
+  sf::st_buffer(100)
+  
+
+```
+
+```{r osm-filter-example}
+
+# example
+everbeekse_bossen <- osm_reservate_allpolygons %>%
+  filter(stringr::str_detect(name, "(Everbeekse bossen)"))
+
+everbeekse_bossen %>%
+  mapview::mapview()
+```
+
+This is useful.
+
+```{r filter-osm-data}
+
+filter_osm_and_mapview <- function(filter_string, case_insensitive = FALSE) {
+
+  if (case_insensitive) {
+    str_trafo <- tolower
+  } else {
+    str_trafo <- \(x) x
+  }
+  
+  selected_area <- osm_reservate_allpolygons %>%
+    filter(stringr::str_detect(str_trafo(name), str_trafo(filter_string))) 
+  
+  selected_area %>% 
+    mapview::mapview(col.regions = "red") %>%
+    print()
+
+  return(selected_area)
+
+}
+
+```
+
+
+As above:
+
+```{r filter-osm-tests-individual}
+
+filter_osm_and_mapview("Zoniënwoud", TRUE) %>% 
+  select(osm_id, name) %>%
+  sf::st_drop_geometry() %>% 
+  knitr::kable()
+
+```
+
+
+
+Hauwstraat, Hul/Kanakkendries is just unclear
+Kapellenbos is fragmented https://www.openstreetmap.org/node/2571099982
+Montenakenbos does not have an ID
+
+Brouwierbos (Gerrebroekbeek) https://www.openstreetmap.org/way/187211309
+Heynsdaelebos https://www.openstreetmap.org/way/183869225
+Hoog Deurne - Tombele https://www.openstreetmap.org/way/42673552
+Kluisbos https://www.openstreetmap.org/way/386899957
+Kluisbos https://www.openstreetmap.org/way/408541392
+Kluisbos https://www.openstreetmap.org/relation/17363093
+Lembeekbos https://www.openstreetmap.org/relation/3707905
+Meerdaalwoud https://www.openstreetmap.org/relation/6685681
+Smetledebos https://www.openstreetmap.org/relation/7796463
+Zoniënwoud https://www.openstreetmap.org/relation/4003369
+Voeren https://www.openstreetmap.org/relation/404525
+
+| NA | Locatie                                           | search string               | notes                        |
+|:---|:--------------------------------------------------|:----------------------------|------------------------------|
+|    | Bos Terrijst                                      | Bos Ter Rijst               |                              |
+|    | Brakelbos                                         | Brakelbos                   |                              |
+| ID | Brouwierbos (Gerrebroekbeek)                      |                             |                              |
+|    | Buggenhoutbos                                     | Buggenhoutbos               |                              |
+|    | Eeckhoutbos                                       | Eeckhoutbos                 |                              |
+|    | Elenebos (Spijkerbos) / Paapschure Noord          | Elenebos                    |                              |
+|    | Hallerbos                                         | Hallerbos                   |                              |
+| X  | Hauwstraat, Hul/Kanakkendries                     |                             |                              |
+|    | Hayesbos                                          | Hayesbos                    |                              |
+| ID | Heynsdaele                                        |                             |                              |
+| ID | Hoog Deurne - Tombele                             |                             |                              |
+|    | Hotond / Ingelbos / Wittentak                     | Hotond\|Ingelbos\|Wittentak |                              |
+| X  | Kapellenbos                                       |                             |                              |
+|    | Kasteel van Horst                                 | Kasteeldomein van Horst     |                              |
+| ID | Kluisbos                                          |                             |                              |
+|    | Kravaalbos                                        | Kravaalbos                  |                              |
+| ID | Lembeekbos                                        |                             |                              |
+|    | Longkruidbosje Ladeuze                            | Longkruidbosje              |                              |
+|    | Makegemse Bossen                                  | Makegemse Bossen            |                              |
+|    | ~~Makenbos~~                                      |                             |                              |
+| ID | Meerdaalwoud                                      |                             |                              |
+| X  | Montenakenbos                                     |                             |                              |
+|    | Muziekbos                                         | Muziekbos                   |                              |
+|    | Parikebos                                         | Parikebos                   |                              |
+|    | Parkbos                                           | ^Parkbos$                   |                              |
+|    | Perlinkvallei (Maalbroekbos, Sint-Blasius-Boekel) | Perlinkvallei               |                              |
+|    | Plaatsbeek (Bos de Kollebroeken)                  | Kollebroeken                |                              |
+|    | Pyreneeën (Ter Guchten)                           | Tombele                     | Patersbos/ Pyreneeën-Tombele |
+|    | Raspaillebos                                      | Raspaillebos                |                              |
+| ID | Smetledebos                                       |                             |                              |
+|    | Steenbergbos                                      | Steenbergbos                |                              |
+|    | 't Burreken                                       | Burreken                    |                              |
+|    | Trimpont                                          | Trimpont                    |                              |
+| ID | Zoniënwoud                                        |                             |                              |
+| ID | Voeren                                            |                             |                              |
+: List of protected areas, according to [1]
+
+
+
+
+
+<https://stackoverflow.com/questions/78758864/get-relation-data-from-osmdata>
+
+
+```{r save-osm-polygons}
+
+bosfilters <- c(
+"Bos Ter Rijst",
+"Brakelbos",
+"Buggenhoutbos",
+"Eeckhoutbos",
+"Elenebos",
+"Hallerbos",
+"Hayesbos",
+"Hotond|Ingelbos|Wittentak",
+"Kasteeldomein van Horst",
+"Kravaalbos",
+"Longkruidbosje",
+"Makegemse Bossen",
+"Muziekbos",
+"Parikebos",
+"^Parkbos$",
+"Perlinkvallei",
+"Kollebroeken",
+"Tombele",
+"Raspaillebos",
+"Steenbergbos",
+"Burreken",
+"Trimpont"
+)
+
+filter_osm <- function(filter_string, case_insensitive = FALSE) {
+
+  if (case_insensitive) {
+    str_trafo <- tolower
+  } else {
+    str_trafo <- \(x) x
+  }
+  
+  selected_area <- osm_reservate_allpolygons %>%
+    filter(stringr::str_detect(str_trafo(name), str_trafo(filter_string))) 
+  
+  return(selected_area)
+
+}
+
+areas_to_save <- lapply(bosfilters, filter_osm) %>% bind_rows
+saveRDS(areas_to_save, glue::glue("./data/osmdata_nature_reserves.rds"))
+mapview(areas_to_save)
+
+
+```
+
+## ID-wise query
+
+Brouwierbos (Gerrebroekbeek) https://www.openstreetmap.org/way/187211309
+Heynsdaelebos https://www.openstreetmap.org/way/183869225
+Hoog Deurne - Tombele https://www.openstreetmap.org/way/42673552
+Kluisbos https://www.openstreetmap.org/way/386899957
+Kluisbos https://www.openstreetmap.org/way/408541392
+Kluisbos https://www.openstreetmap.org/relation/17363093
+Lembeekbos https://www.openstreetmap.org/relation/3707905
+Meerdaalwoud https://www.openstreetmap.org/relation/6685681
+Smetledebos https://www.openstreetmap.org/relation/7796463
+Zoniënwoud https://www.openstreetmap.org/relation/4003369
+Voeren https://www.openstreetmap.org/relation/404525
+
+```{r query_by_id}
+
+osm_others <- read.table(
+  text = "
+    name,osm_type,osm_id
+    Brouwierbos,way,187211309
+    Heynsdaelebos,way,183869225
+    Hoog Deurne - Tombele,way,42673552
+    Kluisbos,way,386899957
+    Kluisbos,way,408541392
+    Kluisbos,relation,17363093
+    Lembeekbos,relation,3707905
+    Meerdaalwoud,relation,6685681
+    Smetledebos,relation,7796463
+    Zoniënwoud,relation,4003369
+    Voeren,relation,404525",
+  sep = ",",
+  header = TRUE,
+  stringsAsFactors = FALSE
+) %>%
+  mutate_at(vars(osm_id), as.numeric)
+
+for (row_nr in seq_len(nrow(osm_others))) {
+  test_label <- trimws(osm_others[row_nr, "name"])
+  test_id <- osm_others[row_nr, "osm_id"]
+  test_type <- osm_others[row_nr, "osm_type"]
+  
+  unsuccessful <- TRUE
+  count <- 0
+  while (unsuccessful) {
+    tryCatch({
+      print(test_label)
+      test_xml <- # opq(bbox = "Vlaanderen", osm_types = "relation") |>
+        opq_osm_id(
+          id = test_id,
+          type = test_type, # "relation", "way"
+          open_url = FALSE,
+          out = "body",
+          timeout = 25*1000
+        ) |>
+        opq_string () |>
+        osmdata_xml()
+      unsuccessful <- FALSE
+    },
+    error = function(wrnmsg){
+      count <- count + 1
+      print(count)
+    }
+    )
+  }
+  
+  test_polygon <- xml2::xml_find_all(
+      test_xml,
+      "//node"
+    )  %>% 
+    map(\(x) xml2::xml_attrs(x)) %>% 
+    bind_rows() %>%
+    mutate_at(vars(id, lat, lon), as.numeric) %>% 
+    sf::st_as_sf(coords = c("lon", "lat"), crs = "wgs84") %>%
+    sf::st_transform(31370) %>% 
+    st_combine()
+  # %>% 
+  #   st_convex_hull() %>%
+  #   st_cast("POLYGON", warn = FALSE)
+  
+  
+  saveRDS(test_polygon, glue::glue("./data/{test_label}_{test_id}.rds"))
+
+}
+# mapview::mapview(test_polygon)
+
+```
+
+```{r unsuccesfull-query-all}
+#| eval: false
+query_osm_id_convex_hull <- function(test_id, test_type = "relation") {
+  print(test_id) # test_id = 187211309
+  print(test_type) # test_type = "way"
+
+  response_xml <- opq_osm_id(
+      id = test_id,
+      type = test_type, # "relation",
+      open_url = FALSE,
+      out = "body",
+      timeout = 25 * 1000
+    ) |>
+    opq_string () |>
+    osmdata_xml()
+
+  response_nodes <- xml2::xml_find_all(
+      response_xml,
+      "//node"
+    )  %>%
+    map(\(x) xml2::xml_attrs(x)) %>%
+    bind_rows() %>%
+    mutate(area_id = test_id) %>%
+    mutate_at(vars(id, lat, lon), as.numeric) %>% 
+    sf::st_as_sf(coords = c("lon", "lat"), crs = "wgs84") %>%
+    sf::st_transform(31370) %>% 
+    st_combine() %>% 
+    st_convex_hull() %>%
+    st_cast("POLYGON", warn = FALSE)
+    # %>% st_cast("POLYGON", warn = FALSE)
+
+  return(response_polygon)
+}
+
+
+osm_others <- read.table(
+  text = "
+    name,osm_type,osm_id
+    Brouwierbos,way,187211309
+    Hoog Deurne - Tombele,way,42673552
+    Kluisbos,relation,17363093
+    Lembeekbos,relation,3707905
+    Meerdaalwoud,relation,6685681
+    Zoniënwoud,relation,4003369
+    Voeren,relation,404525",
+  sep = ",",
+  header = TRUE,
+  stringsAsFactors = FALSE
+)
+
+    # Kluisbos,way,386899957
+    # Kluisbos,way,408541392
+    # Heynsdaelebos,way,183869225
+    # Smetledebos,relation,7796463
+
+query_other_osms <- function(row_nr) {
+  row <- osm_others[row_nr, ]
+  query_osm_id_convex_hull(as.numeric(row$osm_id), row$osm_type) %>%
+    return()
+}
+
+osm_results_by_id <- lapply(
+  seq_len(nrow(osm_others)),
+  FUN = query_other_osms
+)
+
+```
+
+```{r}
+
+# response_polygons <- xml2::xml_find_all(
+#     response_xml,
+#     "//node"
+#   )  %>%
+#   map(\(x) xml2::xml_attrs(x)) %>%
+#   bind_rows() %>%
+#   mutate_at(vars(id, lat, lon), as.numeric)
+# 
+# 
+# response_polygons_sf <- response_polygons %>%
+#     sf::st_as_sf(coords = c("lon", "lat"), crs = "wgs84")  %>%
+#     sf::st_transform(31370)   
+# 
+# extract_polygon <- function(id_osm){
+#   id_osm <- 404525
+#   rp <-  %>%
+#     st_combine() %>%
+#     st_convex_hull() %>% sf::st_cast("POLYGON", warn = FALSE)
+#   return(rp)
+# }
+
+# the_extraction <- lapply(
+#   osm_others$osm_id,
+#   FUN = extract_polygon
+# )
+
+```
+
+
+```{r}
+#| eval: false
+response_xml <- opq_osm_id(
+    id = as.numeric(osm_others$osm_id),
+    type = osm_others$osm_type, # "relation",
+    open_url = FALSE,
+    out = "body",
+    timeout = 25 * 1000
+  ) |>
+  opq_string () |>
+  osmdata_xml()
+```
+
+## Forests Per Region OBSOLETE
+
+| Antwerp         | Antwerpen         |
+| East Flanders   | Oost-Vlaanderen   |
+| Flemish Brabant | Vlaams-Brabant    |
+| Limburg         | Limburg (Belgium) |
+| West Flanders   | West-Vlaanderen   |
+
+```{r osm-query-by-region}
+#| eval: false
+query_osm_region_forests <- function(region, feature_name) {
+  
+  osm_query <- opq(bbox = "Oost-Vlaanderen") |>
+    add_osm_feature(key = "landuse", value = "forest") |> 
+    add_osm_feature(key = "name", value = "Brouwierbos")
+
+  # https://www.openstreetmap.org/way/187211309
+
+  osm_raw <- osm_query %>% osmdata_sf()
+
+  return(osm_raw$osm_polygons)
+}
+
+
+`````
+
+
+## Polygon Cleanup
+
+?? Use convex hull instead of union?
+
+# References
+
+- [1] Veiligheidsvoorschriften Veldwerkzaamheden (2021): <https://natuurenbos.vlaanderen.be/sites/default/files/documenten/2021-bioveiligheid-amfibie.pdf>; ANB, WHG, INBO, HYLA, Natuurpunt
+- [2] Openbare bossen en natuurdomeinen beheerd door ANB in naam van de Vlaamse overheid (2021): <https://www.vlaanderen.be/datavindplaats/catalogus/openbare-bossen-en-natuurdomeinen-beheerd-door-anb-in-naam-van-de-vlaamse-overheid>; ANB public dataset, via <https://www.geopunt.be>; see also [detailed metadata](https://metadata.vlaanderen.be/srv/dut/catalog.search#/metadata/2d9fe2d9-c204-4f02-b228-45658e7ff7fb)
+- [3] TODO https://cran.r-project.org/web/packages/osmdata/vignettes/osmdata.html
+

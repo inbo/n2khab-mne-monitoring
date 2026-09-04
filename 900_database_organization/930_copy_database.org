@@ -1,0 +1,693 @@
+#+title: Copy Database
+#+author: Falk Mielke
+
+
+* Purpose
+
+Databases are astonishingly dynamic and volatile.
+We would like to be able to move ours, in design and content, from one place to the other.
+
+Here I document the required steps.
+
+
+Terminology is quite straight-forward:
++ *source* is the database from which we migrate the data
++ *target*, on the otherhand, will mirror the source after this procedure
+
+
+This document is an [[https://orgmode.org][orgmode]] document because, like the whole branch, it uses =sh=, =R=, and =Python=.
+Orgmode allows me to "tangle" codeblocks to subsidiary files in the push of a button.
+
+
+* Target Database
+
+** create
+First of all, unless you have one already, it makes sense to create a new database.
+
+The following steps are to be taken on the postgis server of choice.
+Assuming you =ssh= into the server and switch to the =postgres= user.
+
+
+#+begin_src sh :eval no :tangle no
+# switch to database maintainence
+su - postgres
+
+# drop-create
+# dropdb <database> -p <port>
+createdb <database> -O <owner> -p <port>
+#+end_src
+
+
+** extend
+Next, we require the *postgis extension*:
+
+#+begin_src sh :eval no :tangle no
+# switch to database maintainence
+su - postgres
+
+# either log in as maintainer:
+psql -p <port> -d <target database>
+
+# or use the database owner, via the whole connection specs:
+# psql -U <owner> -h <host-ip> -p <port> -d <target database> -W
+#+end_src
+
+#+begin_src sql :eval no :tangle no
+CREATE EXTENSION postgis;
+CREATE EXTENSION postgis_topology;
+CREATE EXTENSION fuzzystrmatch;
+CREATE EXTENSION postgis_tiger_geocoder;
+
+#+end_src
+
+
+** login automation
+Some procedures, such as database backups, might need to be instantiated for the novel /target/.
+
+
+For that purpose, occasional convenience is provided by [[https://www.postgresql.org/docs/current/libpq-pgpass.html][a =.pgpass= file]].
+
+It can be appended by editing the =~/.pgpass=, appending a line for /target/:
+
+#+begin_src sql :eval no :tangle no
+<target-host>:<port>:<target-database>:<read-only-user>:<password>
+#+end_src
+
+
+If the /target/ is of permanent relevance, consider setting up a backup cronjob.
+Details are documented in the [[https://github.com/inbo/n2khab-mne-monitoring/blob/main/990_database_documentation/database/backups.md][MNE database documentation]].
+
+* Use Case 0: /tabula rasa/
+
+** re-create empty
+
+Trivially, you can just create the new database as you created the original one.
+There are python scripts for this purpose.
+
+#+begin_src python :eval no :tangle 931_create_empty_testing.py
+# DO NOT MODIFY
+# this file is "tangled" automatically from `930_copy_database.org`.
+
+import MNMDatabaseToolbox as DTB
+
+# database:
+base_folder = DTB.PL.Path(".")
+structure_folder = base_folder/"loceval_db_structure"
+DTB.ODStoCSVs(base_folder/"loceval_db_structure.ods", structure_folder)
+
+db_target = DTB.ConnectDatabase(
+    "mnm_database_connection.conf",
+    connection_config = "loceval-testing",
+    database = "loceval_testing"
+    )
+db = DTB.Database( \
+    structure_folder = structure_folder, \
+    definition_csv = "TABLES.csv", \
+    lazy_creation = False, \
+    db_connection = db_target, \
+    tabula_rasa = False
+    )
+#+end_src
+
+
+** limitation
+
+Obviously, this misses the point:
+no database content is copied here, only the skeleton of the database is mirrored.
+
+
+I can imagine certain situations in which you would like to restart empty.
+And this might be a preliminary step for [[Use Case 2: /tabula semi-replenta/][the second use case, below]].
+
+
+* Use Case 1: /tabula plena/
+
+** dump-reload
+
+Now, it turns out that you can achieve the result we attempt below by a simple *dump-reload*.
+
+#+begin_src sh :eval no :tangle no
+pg_dump -U <user1> -h <host1> -p <port1> -d <source> -W \
+    > $(date +"%Y%m%d")_migration_dump.sql
+
+psql -U <user2> -h <host2> -p <port2> -d <source> -W \
+    < $(date +"%Y%m%d")_migration_dump.sql
+#+end_src
+
+
+** limitation
+
+The dump-reload strategy might be a bit too drastic in certain situations, e.g.:
++ if there is already a structure and data on /target/
++ if you would like to slightly alter the /target/ structure
++ if user/role permissions differ on the two databases
+
+
+* Use Case 2: /tabula semi-replenta/
+
+** purpose
+
+This is the most surgical of the procedures.
+Situation is that you have a /target/ structure, possibly with valuable data,
+but you would like to partially copy or append from a /source/ to /target/.
+
+
+
+Imagine you would like to copy over the =Protocols= table.
+
+1. Get the original data.
+2. (optional) Modify / adjust / update the data.
+3. Then, move it over.
+
+
+** source
+
+The source of your data can be any table which has approximately the same fields as the target database table.
+You could use a =.csv= file, or another database.
+
+Getting the data is as simple as establishing a connection and querying the table content.
+
+
+#+begin_src R :eval no :tangle 932_production_to_testing_example.R
+# DO NOT MODIFY
+# this file is "tangled" automatically from `930_copy_database.org`.
+
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+# keyring::key_set("DBPassword", "db_user_password")
+
+table_label <- "Protocols" #"LocationCells"# "Protocols"
+
+config_filepath <- file.path("./mnm_database_connection.conf")
+
+source_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = "loceval"
+)
+
+target_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = "loceval-testing"
+)
+
+source_data <- source_db$query_table(table_label)
+
+dplyr::glimpse(source_data)
+
+#+end_src
+
+
+** modify
+
+This is open to the concrete task.
+Nevertheless, I find it useful to functionalize a bit, for reasons to be clarified below.
+
+In the example case, we will just sort the protocols.
+
+
+#+begin_src R :eval no :tangle 932_production_to_testing_example.R
+#_______________________________________________________________________________
+### ENTER YOUR CODE here to modify the data!
+new_data <- source_data
+
+sort_protocols <- function(prt) {
+  if ("protocol_code" %in% names(prt)) {
+    prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code))
+  }
+  return(prt)
+}
+new_data <- sort_protocols(new_data)
+
+
+# handle_datetime_column <- function(visits) {
+#   if (isFALSE("datetime_visit" %in% names(visits))) return(visits)
+#   convert_fcn <- \(x) if (is.na(x)) return(NA) else convert_timestamp_to_ms_character(lubridate::as_datetime(x))
+#   visits %>%
+#     mutate(datetime_visit = unlist(purrr::map(datetime_visit, convert_fcn))) %>%
+#     return()
+# }
+#
+# handle_datetime_column(new_data) %>% distinct(datetime_visit) %>% knitr::kable()
+
+
+# further modification are possible
+if ("protocol_id" %in% names(source_data)) {
+  source_data <- source_data %>%
+    select(-protocol_id)
+}
+#_______________________________________________________________________________
+#+end_src
+
+
+** target
+
+
+The third step was derived in detail in the =200_organized_backups.qmd= notebook,
+and the =MNMDatabaseToolbox.R= contains a convenient function for it.
+
+#+begin_src R :eval no :tangle 932_production_to_testing_example.R
+
+characteristic_columns <- target_db$get_characteristic_columns(table_label)
+
+if (is.scalar.na(characteristic_columns)) {
+  # just take all columns
+  characteristic_columns <- names(new_data)
+}
+
+# if all else fails (e.g. LocationCells), use the target columns
+if (length(characteristic_columns) == 0) {
+  # pk <- target_db$get_primary_key(table_label)
+  # characteristic_columns <- c(pk)
+  characteristic_columns <-
+    target_db$load_table_info(table_label) %>%
+      pull(column)
+  print(characteristic_columns)
+
+  if (target_db$is_spatial(table_label)) {
+    new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+    sf::st_crs(new_data) <- 31370
+    sf::st_geometry(new_data) <- "wkb_geometry"
+  }
+}
+
+
+upload_data_and_update_dependencies(
+  target_db,
+  table_label = table_label,
+  data_replacement = new_data,
+  characteristic_columns = characteristic_columns,
+  verbose = FALSE
+)
+#+end_src
+
+
+20260616: join issue duplicate characteristics on =MHQPolygons=
+#+begin_src sql
+
+SELECT DISTINCT location_id, grts_address, count(*) AS N
+FROM "outbound"."MHQPolygons"
+GROUP BY location_id, grts_address
+ORDER BY N DESC
+LIMIT 10
+
+#+end_src
+
+
+* Generalization
+
+Above is a simple example of table content moving from one to the other place.
+Simple enough to be script-used heavily.
+
+Make sure a read-only user is in =~/.pgpass=!
+
+
+This requires minimal preparations, modification catalogue, and a loop.
+
+#+begin_src R :eval no :tangle 933_populate_testing_db.R
+# DO NOT MODIFY
+# this file is "tangled" automatically from `930_copy_database.org`.
+
+source("MNMLibraryCollection.R")
+load_database_interaction_libraries()
+
+source("MNMDatabaseConnection.R")
+source("MNMDatabaseToolbox.R")
+# keyring::key_set("DBPassword", "db_user_password")
+
+# credentials are stored for easy access
+config_filepath <- file.path("./mnm_database_connection.conf")
+
+# choose database via the command line
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  database_label <- commandline_args[1]
+} else {
+  stop("please provide a database label as command line argument, e.g. 'loceval'.")
+}
+# database_label <- "loceval"
+# database_label <- "mnmgwdb"
+# database_label <- "mnmsurfdb"
+stopifnot(database_label %in% c("mnmsyncdb", "loceval", "mnmgwdb", "mnmsurfdb"))
+
+source_mirror <- glue::glue("{database_label}") # -staging
+target_mirror <- glue::glue("{database_label}-testing")
+
+message(glue::glue("copying `{source_mirror}` to `{target_mirror}`."))
+
+# from source...
+source_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = source_mirror,
+  user = "monkey",
+  password = NA
+)
+# source_db$shellstring
+
+
+# ... to target
+target_db <- connect_mnm_database(
+  config_filepath,
+  database_mirror = target_mirror
+)
+# target_db$shellstring
+
+#+end_src
+
+
+We certainly need to modify some tables.
+
+#+begin_src R :eval no :tangle 933_populate_testing_db.R
+
+# TODO limitation: we should leave the primary and foreign keys unchanged!
+
+#_______________________________________________________________________________
+### define functions here to modify the data!
+# modification is "on the go":
+#   each of these functions should receive exactly one data frame,
+#   just to give exactly one back.
+sort_protocols <- function(prt) {
+  prt <- prt %>% dplyr::arrange(dplyr::desc(protocol_code), dplyr::desc(protocol_version))
+  return(prt)
+}
+
+rename_FieldCalendars <- function(fac) {
+  fac <- fac %>% dplyr::rename(accessibility_revisit = acceccibility_revisit)
+  return(fac)
+}
+
+handle_NA_nolog_update_column <- function(lojos) {
+  lojos %>%
+    mutate(nolog_update = dplyr::na_if(nolog_update, "NA.NA NA")) %>%
+    return()
+}
+
+
+dateconvert_fcn <- \(x) if (is.na(x)) return(NA) else convert_timestamp_to_ms_character(lubridate::as_datetime(x))
+
+handle_datetime_column <- function(visits) {
+  if (nrow(visits) == 0){
+    visits_modified <- visits %>% mutate(datetime_visit = as.character(datetime_visit))
+  } else {
+  visits_modified <- visits %>%
+    dplyr::mutate(datetime_visit = unlist(purrr::map(datetime_visit, dateconvert_fcn)))
+  }
+
+  visits_modified %>%
+    return()
+}
+
+#_______________________________________________________________________________
+### associate the functions with table names
+
+table_modification <- c(
+  # "Protocols" = function (prt) sort_protocols(prt), # (almost) anything you like
+  # "MHQPolygons" = function (mhqpolys) mhqpolys %>% filter(FALSE),
+  "LocationJournals" = function (lojos) handle_NA_nolog_update_column(lojos), # (almost) anything you like
+  "LenticVisits" = handle_datetime_column, # (almost) anything you like
+  "LoticVisits" = handle_datetime_column, # (almost) anything you like
+  # "OtherVisits" = handle_datetime_column, # (almost) anything you like
+  "ChlorophyllMeasurements" = handle_datetime_column, # (almost) anything you like
+  "TargetPoints" = \(tp) tp %>% mutate(log_creation = unlist(purrr::map(log_creation, dateconvert_fcn)))
+  # "FieldCalendars" = function (fac) rename_FieldCalendars(fac) # (almost) anything you like
+)
+
+#_______________________________________________________________________________
+
+#+end_src
+
+
+#+begin_quote
+Nothing ever changes if noone uploads any data.
+#+end_quote
+Here we go.
+
+#+begin_src R :eval no :tangle 933_populate_testing_db.R
+
+copy_over_single_table <- function(table_label, new_data, ...) {
+  # parametrization of the `upload_data_and_update_dependencies` functions
+  # just to make the loop code below look a little less convoluted.
+
+  ## infer characteristic columns
+  characteristic_columns <- target_db$get_characteristic_columns(table_label)
+
+  if (is.scalar.na(characteristic_columns)) {
+    # just take all columns
+    characteristic_columns <- names(new_data)
+  }
+
+  # if all else fails (e.g. LocationCells), use the target columns
+  if (length(characteristic_columns) == 0) {
+    # pk <- target_db$get_primary_key(table_label)
+    # characteristic_columns <- c(pk)
+    characteristic_columns <-
+      target_db$load_table_info(table_label) %>%
+      pull(column)
+    # print(characteristic_columns)
+  }
+
+  # fix characteristic columns of `ReplacementArchives`
+  if (table_label == "ReplacementArchives") {
+    characteristic_columns <- c(
+      characteristic_columns,
+      "version_id"
+    )
+  }
+
+  # # fix crs of table
+  # if (target_db$is_spatial(table_label)) {
+  #   new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+  #   # sf::st_crs(new_data) <- 31370
+  #   sf::st_geometry(new_data) <- "wkb_geometry"
+  # }
+
+  # push the update
+  upload_data_and_update_dependencies(
+    mnmdb = target_db,
+    table_label = table_label,
+    data_replacement = new_data,
+    characteristic_columns = characteristic_columns,
+    verbose = FALSE,
+    ...
+  )
+
+} # /copy_over_single_table
+
+#+end_src
+
+
+Actually, what do we want to do to which tables?
+Here we find out.
+
+#+begin_src R :eval no :tangle 933_populate_testing_db.R
+
+table_list_file <- file.path(glue::glue("{source_db$folder}/TABLES.csv"))
+table_list <- read.csv(table_list_file)
+
+# table_idx <- 1
+process_db_table_copy <- function(table_idx) {
+
+  table_label <- table_list[[table_idx, "table"]]
+  # table_label <- "LocationCells"
+  # table_label <- "OtherVisits"
+  # table_idx <- table_list %>% mutate(table_idx = seq_len(nrow(table_list))) %>% filter(table == table_label) %>% pull(table_idx)
+
+  table_exclusion <- !is.na(table_list[[table_idx, "excluded"]]) && table_list[[table_idx, "excluded"]] == 1
+  if (table_exclusion) return()
+
+  print(glue::glue("processing {table_idx} / {nrow(table_list)}: {target_db$get_namestring(table_label)}"))
+
+  # download
+  source_data <- source_db$query_table(table_label, ONLY = TRUE)
+
+  # modify
+  if (table_label %in% names(table_modification)){
+    new_data <- table_modification[[table_label]](source_data)
+  } else {
+    # ... unless there is nothing to modify
+    new_data <- source_data
+  }
+
+  copy_over_single_table(
+    table_label,
+    new_data,
+    skip_stitch_table_connections = TRUE
+    #, skip_sequence_reset = TRUE
+  )
+
+} # /process_db_table_copy
+
+
+#+end_src
+
+
+
+
+Apply to all the table (never tired of reminding: *order matters*):
+
+#+begin_src R :eval no :tangle 933_populate_testing_db.R
+
+#_______________________________________________________________________________
+# Finally, COPY ALL DATA
+
+
+invisible(lapply(seq_len(nrow(table_list)), FUN = process_db_table_copy))
+
+# re-link keys
+out <- processx::run(
+  "Rscript",
+  c("102_re_link_foreign_keys.R", sprintf("-%s", target_db$mirror_short)),
+  spinner = TRUE
+)
+
+#+end_src
+
+
+This is tested by comparing =pg_dump= of both databases after copying.
+
+
+You might want to modify permissions for certain users on the target database.
+
+#+begin_src sql :eval no :tangle no
+
+SET search_path TO public,"metadata","outbound","inbound","archive","analysis";
+
+GRANT USAGE ON SCHEMA "metadata" TO tester;
+GRANT SELECT ON ALL TABLES IN SCHEMA "metadata" TO tester;
+-- ...
+
+#+end_src
+
+
+* Debugging
+
+*** fix crs mismatch when copying polygon cells
+CLOSED: <2026-06-01 Mon>
+
+The issue here was a combination of cascaded deletion and therefore an unexpected empty table.
+
+The loop above did not work (it cascade-deleted LocationCells each time I tested), whereas the code below would execute flawlessly:
+
+#+begin_src R :eval no :tangle no
+# to be run after manual `populate_testing_db.R`
+
+table_idx = 8
+table_label <- "LocationCells"
+source_data <- source_db$query_table(table_label)
+target_data <- target_db$query_table(table_label)
+
+new_data <- source_data
+characteristic_columns <-
+  target_db$load_table_info(table_label) %>%
+  pull(column)
+
+
+# infer characteristic columns
+characteristic_columns <- target_db$get_characteristic_columns(table_label)
+if (length(characteristic_columns) == 0) {
+  # pk <- target_db$get_primary_key(table_label)
+  # characteristic_columns <- c(pk)
+  characteristic_columns <-
+    target_db$load_table_info(table_label) %>%
+    pull(column)
+  print(characteristic_columns)
+}
+
+
+# correct crs
+if (target_db$is_spatial(table_label)) {
+  new_data <- new_data %>% sf::st_as_sf(crs = 31370)
+
+  # sf::st_crs(new_data) <- 31370
+  sf::st_geometry(new_data) <- "wkb_geometry"
+}
+
+
+
+upload_data_and_update_dependencies(
+  mnmdb = target_db,
+  table_label = table_label,
+  data_replacement = new_data,
+  characteristic_columns = characteristic_columns,
+  skip_sequence_reset = TRUE,
+  verbose = FALSE
+)
+
+#+end_src
+
+
+** fix =location_id IS NULL=
+
+#+begin_src python :eval no :tangle no :echo no
+
+# TODO due to ON DELETE SET NULL from "Locations", location_id's temporarily become NULL.
+#      Updating would be cumbersome.
+constraints_mod_OBSOLETE <- function(do = c("DROP", "SET")) {
+
+  toggle_null_constraint <- function(schema, table_label, column) {
+    # {dis/en}able fk for these tables
+    target_db$execute_sql(
+      glue::glue('ALTER TABLE "{schema}"."{table_label}" ALTER COLUMN {column} {do} NOT NULL;'),
+      verbose = FALSE
+    ) # /sql
+  } # /toggle_mod
+
+
+  if (database_label == "loceval") {
+    # To prevent failure, I temporarily remove the constraint.
+    for (table_label in c("LocationAssessments", "SampleUnits", "LocationInfos")){
+      toggle_null_constraint("outbound", table_label, "location_id")
+    } # /loop
+
+    toggle_null_constraint("inbound", "Visits", "location_id")
+    toggle_null_constraint("outbound", "ReplacementCells", "replacement_id")
+  }
+
+  if (database_label == "mnmgwdb") {
+    # To prevent failure, I temporarily remove the constraint.
+    for (table_label in c("SampleLocations", "LocationInfos")){
+      toggle_null_constraint("outbound", table_label, "location_id")
+    } # /loop
+
+    toggle_null_constraint("inbound", "Visits", "location_id")
+  }
+
+} #/constraints_mod
+
+# constraints_mod("DROP")
+# constraints_mod("SET")
+
+#+end_src
+
+** MHQPolygons are not unique
+
+
+
+* Brief Data Inspection
+
+Some code snippets to check on relevant data (specific to =loceval=):
+
+#+begin_src sql :tangle no :eval no
+SET search_path TO public,"metadata","outbound","inbound";
+SELECT DISTINCT assessment_done, COUNT(*) AS n FROM "outbound"."LocationAssessments" GROUP BY assessment_done;
+SELECT * FROM "inbound"."FreeFieldNotes";
+SELECT * FROM "inbound"."Visits" WHERE NOT (log_user = 'update');
+SELECT * FROM "inbound"."CellMaps";
+SELECT * FROM "archive"."ReplacementArchives";
+
+#+end_src
+
+
+* Summary
+
+We now have a surgical method to transfer data from one to the other database.
+Note the flexibility of the procedure above:
++ =table_modifications= can be applied on the way to match database structures in development
++ =update_datatable_and_dependent_keys= has some unused keywords which enable better data matching and column renaming.
+
+
+One immediate purpose of these functions is to process updates of the POC.

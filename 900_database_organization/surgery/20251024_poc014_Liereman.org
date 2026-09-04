@@ -1,0 +1,33 @@
+#+title: POC update 0.14.0 - Re-Activate "De Liereman"
+#+date: 20251024 
+
+
+
+* extra: De Liereman
+2136622 7140_oli
+3185198 7140_oli
+15538734 7150
+219694 91E0_vo
+
+
+
+
+#+begin_src sql
+\COPY (
+SELECT *
+FROM "outbound"."FieldworkCalendar"
+WHERE grts_address IN (2136622, 3185198, 15538734, 219694)
+) TO '/data/mnm_db_backups/20251024_Liereman.csv' With CSV DELIMITER ',' HEADER
+;
+
+
+-- UPDATE "outbound"."FieldworkCalendar"
+UPDATE "inbound"."Visits"
+SET archive_version_id = NULL
+WHERE grts_address IN (2136622, 3185198, 15538734, 219694)
+AND archive_version_id = 3
+AND activity_group_id IN (4, 28)
+;
+
+#+end_src
+

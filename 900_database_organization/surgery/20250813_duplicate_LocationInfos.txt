@@ -1,0 +1,213 @@
+
+I did:
+- delete duplicates
+- run 090, 092, 094 and 095
+- drop pk constraint on LocationInfos
+- re-ran 095
+then these appeared:
+
+----------------------------------------------------------------------------------------
+| locationinfo_id | log_user |         log_update         | location_id | grts_address |
+|-----------------+----------+----------------------------+-------------+--------------|
+|             728 | tom      | 2025-08-08 10:40:21.959436 |         399 |     37843062 |
+|             728 | tom      | 2025-08-08 10:40:21.959436 |         399 |     37843062 |
+|             728 | ward     | 2025-08-08 15:11:41.634612 |         399 |     37843062 |
+|             708 | tom      | 2025-08-08 10:40:21.959436 |         399 |     51474550 |
+|             720 | tom      | 2025-08-08 10:40:21.959436 |         399 |     51474550 |
+|             399 | ward     | 2025-08-08 15:11:41.634612 |         399 |     51474550 |
+----------------------------------------------------------------------------------------
+(6 rows)
+
+They are a complete replacement.
+-> to be correct, duplicate of the LocationInfos should also get a Location.
+
+
+SELECT *
+FROM "outbound"."LocationInfos"
+WHERE grts_address IN (
+  SELECT grts_address
+  FROM (
+    SELECT DISTINCT
+      grts_address,
+      COUNT(locationinfo_id) AS n
+    FROM "outbound"."LocationInfos"
+    GROUP BY grts_address
+    ORDER BY n DESC
+   )
+  WHERE n > 1
+)
+ORDER BY grts_address, log_update, locationinfo_id
+;
+
+- script adjusted
+- ran
+    DELETE FROM "outbound"."LocationInfos" WHERE grts_address = 37843062;
+    -- DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 399;
+    -- DELETE FROM "outbound"."LocationInfos" WHERE locationinfo_id = 708;
+
+
+also check location_id duplicates:
+
+SELECT
+  locationinfo_id,
+  log_user, log_update,
+  location_id, grts_address,
+  accessibility_inaccessible AS acc,
+  recovery_hints
+FROM "outbound"."LocationInfos"
+WHERE location_id IN (
+  SELECT location_id
+  FROM (
+    SELECT DISTINCT
+      location_id,
+      COUNT(*) AS n
+    FROM "outbound"."LocationInfos"
+    GROUP BY location_id
+    ORDER BY n DESC
+   )
+  WHERE n > 1
+)
+ORDER BY location_id, log_update, locationinfo_id
+;
+
+Those seem to be duplicates from modified/replaced locations
+e.g.
+SELECT *
+FROM "metadata"."Locations"
+WHERE location_id = 243
+;
+
+-> outer join to delete them
+
+SELECT *
+-- DELETE
+FROM "outbound"."LocationInfos"
+WHERE locationinfo_id NOT IN (
+  SELECT DISTINCT locationinfo_id
+  FROM "outbound"."LocationInfos" INFOS, "metadata"."Locations" LOCS
+  WHERE INFOS.grts_address = LOCS.grts_address
+    AND INFOS.location_id = LOCS.location_id
+)
+;
+
+
+Also, there is a parking space (fieldnote_id 35-61 in loceval, 31-57 on mnmgwdb):
+SELECT *
+FROM "inbound"."FreeFieldNotes"
+WHERE fieldnote_id BETWEEN 35 AND 61;
+
+Uploading from **loceval** to **mnmgwdb**:
+                    wkb_geometry log_creator               log_creation log_user                 log_update   hide  ...                                         field_note   note_date location activity photo audio
+0   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:16.720727     ward 2025-08-12 13:04:16.720727  False  ...                                            Parking  2025-08-12     None     None  None  None
+1   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:40.849603     ward 2025-08-12 13:04:40.849603  False  ...                                           Parking   2025-08-12     None     None  None  None
+2   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:41.738724     ward 2025-08-12 13:04:41.738724  False  ...                                     Parking zinder  2025-08-12     None     None  None  None
+3   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:42.381650     ward 2025-08-12 13:04:42.381650  False  ...                                    Parking zinder   2025-08-12     None     None  None  None
+4   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:43.051605     ward 2025-08-12 13:04:43.051605  False  ...                             Parking zinder sleutel  2025-08-12     None     None  None  None
+5   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:43.681659     ward 2025-08-12 13:04:43.681659  False  ...                            Parking zinder sleutel   2025-08-12     None     None  None  None
+6   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:44.139484     ward 2025-08-12 13:04:44.139484  False  ...                           Parking zinder sleutel    2025-08-12     None     None  None  None
+7   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:44.813540     ward 2025-08-12 13:04:44.813540  False  ...                     Parking zinder sleutel  zonder  2025-08-12     None     None  None  None
+8   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:45.932608     ward 2025-08-12 13:04:45.932608  False  ...                    Parking zinder sleutel  zonder   2025-08-12     None     None  None  None
+9   POINT (237553.258 179297.81)        ward 2025-08-12 13:04:46.680695     ward 2025-08-12 13:04:46.680695  False  ...             Parking zinder sleutel  zonder sleutel  2025-08-12     None     None  None  None
+10  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:50.708668     ward 2025-08-12 13:04:50.708668  False  ...              Parking zinder sleute  zonder sleutel  2025-08-12     None     None  None  None
+11  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:51.208520     ward 2025-08-12 13:04:51.208520  False  ...               Parking zinder sleut  zonder sleutel  2025-08-12     None     None  None  None
+12  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:51.621555     ward 2025-08-12 13:04:51.621555  False  ...                Parking zinder sleu  zonder sleutel  2025-08-12     None     None  None  None
+13  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:52.261713     ward 2025-08-12 13:04:52.261713  False  ...                 Parking zinder sle  zonder sleutel  2025-08-12     None     None  None  None
+14  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:52.688581     ward 2025-08-12 13:04:52.688581  False  ...                  Parking zinder sl  zonder sleutel  2025-08-12     None     None  None  None
+15  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:53.091586     ward 2025-08-12 13:04:53.091586  False  ...                   Parking zinder s  zonder sleutel  2025-08-12     None     None  None  None
+16  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:53.536680     ward 2025-08-12 13:04:53.536680  False  ...                    Parking zinder   zonder sleutel  2025-08-12     None     None  None  None
+17  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:54.051571     ward 2025-08-12 13:04:54.051571  False  ...                     Parking zinder  zonder sleutel  2025-08-12     None     None  None  None
+18  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:54.473642     ward 2025-08-12 13:04:54.473642  False  ...                      Parking zinde  zonder sleutel  2025-08-12     None     None  None  None
+19  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:54.928609     ward 2025-08-12 13:04:54.928609  False  ...                       Parking zind  zonder sleutel  2025-08-12     None     None  None  None
+20  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:55.584682     ward 2025-08-12 13:04:55.584682  False  ...                        Parking zin  zonder sleutel  2025-08-12     None     None  None  None
+21  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:56.019613     ward 2025-08-12 13:04:56.019613  False  ...                         Parking zi  zonder sleutel  2025-08-12     None     None  None  None
+22  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:57.604562     ward 2025-08-12 13:04:57.604562  False  ...                          Parking z  zonder sleutel  2025-08-12     None     None  None  None
+23  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:58.318576     ward 2025-08-12 13:04:58.318576  False  ...                           Parking   zonder sleutel  2025-08-12     None     None  None  None
+24  POINT (237553.258 179297.81)        ward 2025-08-12 13:04:59.336594     ward 2025-08-12 13:04:59.336594  False  ...                            Parking  zonder sleutel  2025-08-12     None     None  None  None
+25  POINT (237553.258 179297.81)        ward 2025-08-12 13:05:01.089643     ward 2025-08-12 13:05:01.089643  False  ...                            Parking  zonder sleutel  2025-08-12     None     None  None  None
+26  POINT (237553.258 179297.81)        ward 2025-08-12 13:05:04.736647     ward 2025-08-12 13:05:04.736647  False  ...                            Parking  zonder sleutel  2025-08-12     None     None  None  None
+27  POINT (237553.258 179297.81)        ward 2025-08-12 13:05:06.520703     ward 2025-08-12 13:05:06.520703  False  ...                            Parking  zonder sleutel  2025-08-12     None     None  None  None
+51  POINT (237890.15 179455.095)        ward 2025-08-12 12:54:35.022788     ward 2025-08-12 12:55:59.779859  False  ...  Poort met slot ANB. Slechtere grindweg tot dic...  2025-08-12     None     None  None  None
+
+
+
+
+SELECT *
+FROM "outbound"."LocationInfos"
+WHERE grts_address IN (
+  SELECT grts_address
+  FROM (
+    SELECT DISTINCT
+      grts_address,
+      COUNT(locationinfo_id) AS n
+    FROM "outbound"."LocationInfos"
+    GROUP BY grts_address
+    ORDER BY n DESC
+   )
+  WHERE n > 1
+)
+ORDER BY grts_address, log_update, locationinfo_id
+;
+
+SELECT DISTINCT grts_address
+FROM "outbound"."LocationInfos"
+WHERE grts_address IN (
+  SELECT grts_address
+  FROM (
+    SELECT DISTINCT
+      grts_address,
+      COUNT(locationinfo_id) AS n
+    FROM "outbound"."LocationInfos"
+    GROUP BY grts_address
+    ORDER BY n DESC
+   )
+  WHERE n > 1
+)
+ORDER BY grts_address
+;
+
+        17318
+      4211622
+
+SELECT DISTINCT grts_address
+FROM "outbound"."LocationInfos"
+WHERE grts_address IN (
+  SELECT grts_address
+  FROM (
+    SELECT DISTINCT
+      grts_address,
+      COUNT(locationinfo_id) AS n
+    FROM "outbound"."LocationInfos"
+    GROUP BY grts_address
+    ORDER BY n DESC
+   )
+  WHERE n > 1
+)
+AND NOT (
+    accessibility_inaccessible IS NULL
+    AND accessibility_revisit IS NULL
+    AND recovery_hints IS NULL
+  )
+ORDER BY grts_address
+;
+
+
+DELETE
+FROM "outbound"."LocationInfos"
+WHERE grts_address IN (
+  SELECT grts_address
+  FROM (
+    SELECT DISTINCT
+      grts_address,
+      COUNT(locationinfo_id) AS n
+    FROM "outbound"."LocationInfos"
+    GROUP BY grts_address
+    ORDER BY n DESC
+   )
+  WHERE n > 1
+)
+AND (
+    accessibility_inaccessible IS NULL
+    AND accessibility_revisit IS NULL
+    AND recovery_hints IS NULL
+  )
+;

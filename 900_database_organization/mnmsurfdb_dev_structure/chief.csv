@@ -1,0 +1,6 @@
+The owner of this database mirror is:,yoda,(tester included)
+planners:,planner_surfdb,
+list of other users:,user_surfdb,
+read-only users:,viewer_mnmdb,
+reporter users:,reporter_mnmdb,
+testing user:,", tester_mnmdb",

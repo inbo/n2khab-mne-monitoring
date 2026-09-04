@@ -1,0 +1,3 @@
+column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
+sspstapa_id,smallint,True,,True,True,,,,stratum_scheme_ps_targetpanel_id
+stratum_scheme_ps_targetpanels,varchar,True,,False,False,,UNIQUE,,unique stratum_scheme_ps_targetpanels combinations

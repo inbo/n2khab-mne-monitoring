@@ -1,0 +1,4 @@
+grts_address,stratum,activity_group_id,date_start,date_end,date_interval,activity_rank,priority,wait_any,wait_watersurface,wait_3260,wait_7220,wait_floating,notes
+21323197,1310_pol,4,"2028-01-02","2028-03-31","2028-01-01 CET--2028-03-31 CEST",2,9,0,0,0,0,0,"opvolging: bezoek van 29/9/2025 -> Stieren op de weide, nog tot eind november. Code voor het hangslot aan de poort in Oud Arenberg is bekend. "
+21323197,1310_pol,28,"2028-01-02","2028-06-30","2028-01-01 CET--2028-06-30 CEST",3,9,0,0,0,0,0,"opvolging: bezoek van 29/9/2025 -> Stieren. Code voor het hangslot aan de poort in Oud Arenberg is bekend. "
+21323197,1310_pol,9,"2028-07-02","2028-09-30","2028-07-01 CEST--2028-09-30 CEST",3,9,0,0,0,0,0,"opvolging: bezoek van 29/9/2025 -> Stieren. Code voor het hangslot aan de poort in Oud Arenberg is bekend. "

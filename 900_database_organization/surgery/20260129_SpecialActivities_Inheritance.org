@@ -1,0 +1,341 @@
+#+title: Special Activities - Inheritance
+#+date: 20260129
+
+* Priming
+I learned of [[https://www.postgresql.org/docs/current/ddl-inherit.html][inheritance in postgresql]] and my head is spinning about the possibilities this opens.
+
+The first and most relevant implementation would be an abstract interface for all the =SpecialActivities= of =mnmgwdb=, inherited to =WIA=, =CSA=, =SPA=, and future variants.
+
+
+* Structure/Design
+
+** overview
+shared, inherited columns:
+
+#+begin_example
+fieldwork_id
+log_user
+log_update
+samplelocation_id
+fieldworkcalendar_id
+visit_id
+grts_address *
+stratum *
+activity_group_id *
+date_start *
+#+end_example
+
+These go in a =SpecialActivities= table.
+On top of that, there are extra columns.
+
+*UPDATE 08:46:* these are all elements of =Visits=.
+Maybe I should couple them directly?
+
+** KILL Drafting - with Activities Interface
+
+*** =SpecialActivities=
+#+begin_src sql :eval no
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"inbound";
+
+DROP TABLE IF EXISTS "inbound"."SpecialActivities" CASCADE;
+
+BEGIN;
+CREATE TABLE "inbound"."SpecialActivities"();
+
+COMMENT ON TABLE "inbound"."SpecialActivities" IS E'abstract interface for information collected for certain activities; linked to a subset of Visits';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN specialactivity_id int NOT NULL PRIMARY KEY;
+COMMENT ON COLUMN "inbound"."SpecialActivities".specialactivity_id IS E'fieldwork index: shared index over multiple fieldwork activity tables';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN log_user varchar NOT NULL DEFAULT current_user;
+COMMENT ON COLUMN "inbound"."SpecialActivities".log_user IS E'(technical) user who modified the entry';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN log_update timestamp NOT NULL DEFAULT current_timestamp;
+COMMENT ON COLUMN "inbound"."SpecialActivities".log_update IS E'(technical) timestamp of last modification';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN samplelocation_id int;
+COMMENT ON COLUMN "inbound"."SpecialActivities".samplelocation_id IS E'sample location index (technical) or NULL for obsolete visits';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN fieldworkcalendar_id int;
+COMMENT ON COLUMN "inbound"."SpecialActivities".fieldworkcalendar_id IS E'link to FwC';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN visit_id int;
+COMMENT ON COLUMN "inbound"."SpecialActivities".visit_id IS E'link to the `Visits`';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN grts_address bigint NOT NULL CHECK (grts_address > 0);
+COMMENT ON COLUMN "inbound"."SpecialActivities".grts_address IS E'GRTS address (`final`, i.e. after prior replacements) needed for retainer lookup';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN stratum varchar NOT NULL;
+COMMENT ON COLUMN "inbound"."SpecialActivities".stratum IS E'strata for which the cell is eligible';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN activity_group_id smallint NOT NULL;
+COMMENT ON COLUMN "inbound"."SpecialActivities".activity_group_id IS E'a link to the activity metadata, brought here via fieldworkcalendar for convenience';
+ALTER TABLE "inbound"."SpecialActivities" ADD COLUMN date_start date NOT NULL;
+COMMENT ON COLUMN "inbound"."SpecialActivities".date_start IS E'start of the panel activity sequence (included to keep recurrent visits unique)';
+
+
+COMMIT;
+
+-- foreign key fieldworkcalendar_id
+ALTER TABLE "inbound"."SpecialActivities" DROP CONSTRAINT IF EXISTS fk_FieldworkCalendar_SpecialActivities CASCADE;
+ALTER TABLE "inbound"."SpecialActivities" ADD CONSTRAINT fk_FieldworkCalendar_SpecialActivities FOREIGN KEY (fieldworkcalendar_id)
+REFERENCES "outbound"."FieldworkCalendar" (fieldworkcalendar_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- foreign key visit_id
+-- ALTER TABLE "inbound"."SpecialActivities" DROP CONSTRAINT IF EXISTS fk_Visits_SpecialActivities CASCADE;
+-- ALTER TABLE "inbound"."SpecialActivities" ADD CONSTRAINT fk_Visits_SpecialActivities FOREIGN KEY (visit_id)
+-- REFERENCES "inbound"."Visits" (visit_id) MATCH SIMPLE
+-- ON DELETE SET NULL ON UPDATE CASCADE;
+
+GRANT SELECT ON "inbound"."SpecialActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+
+
+GRANT INSERT ON "inbound"."SpecialActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+GRANT UPDATE ON "inbound"."SpecialActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+GRANT DELETE ON "inbound"."SpecialActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+
+#+end_src
+
+
+*** =WellInstallationActivities=
+
+#+begin_src sql :eval no
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"inbound";
+
+DROP TABLE IF EXISTS "inbound"."WellInstallationActivities" CASCADE;
+
+BEGIN;
+CREATE TABLE "inbound"."WellInstallationActivities"() INHERITS ("inbound"."SpecialActivities");
+COMMENT ON TABLE "inbound"."WellInstallationActivities" IS E'information collected during well installations; inherits SpecialActivities';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN photo_soil_1_peilbuis varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".photo_soil_1_peilbuis IS E'photo of the soil drill profile: peilbuis';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN photo_soil_2_piezometer varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".photo_soil_2_piezometer IS E'photo of the soil drill profile: piezometer';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN photo_well varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".photo_well IS E'photo of the placed well/pair';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN watina_code_used_1_peilbuis varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".watina_code_used_1_peilbuis IS E'watina code of the `odd` subset of wells';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN watina_code_used_2_piezometer varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".watina_code_used_2_piezometer IS E'watina code of the `even` subset of wells';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN soilprofile_notes varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".soilprofile_notes IS E'notes about the soil profiles';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN soilprofile_unclear boolean NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".soilprofile_unclear IS E'help requested for evaluation of the soil profile';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN random_point_number smallint;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".random_point_number IS E'if so, which random point was chosen';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN no_diver boolean NOT NULL DEFAULT FALSE;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".no_diver IS E'highlight issues (use notes to specify)';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN diver_id varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".diver_id IS E'link to the table of available divers';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN free_diver varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".free_diver IS E'free field to enter a non-registered diver code';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN reused_existing_well boolean DEFAULT FALSE;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".reused_existing_well IS E'flag if an existing installation was reused';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN reused_with_replacement boolean DEFAULT FALSE;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".reused_with_replacement IS E'whether an existing installation was reused and refreshed';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN used_water_from_tap boolean;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".used_water_from_tap IS E'whether or not tap water was used for installation';
+
+ALTER TABLE "inbound"."WellInstallationActivities" ADD COLUMN used_water_source varchar;
+COMMENT ON COLUMN "inbound"."WellInstallationActivities".used_water_source IS E'source of the water used for facilitating installation';
+
+COMMIT;
+
+GRANT SELECT ON "inbound"."WellInstallationActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+
+GRANT INSERT ON "inbound"."WellInstallationActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+GRANT UPDATE ON "inbound"."WellInstallationActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+GRANT DELETE ON "inbound"."WellInstallationActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+#+end_src
+
+
+*** =ChemicalSamplingActivities=
+
+#+begin_src sql :eval no
+
+SET standard_conforming_strings = ON;
+-- SET search_path TO pg_catalog,public,"inbound";
+
+DROP TABLE IF EXISTS "inbound"."ChemicalSamplingActivities" CASCADE;
+
+BEGIN;
+CREATE TABLE "inbound"."ChemicalSamplingActivities"() INHERITS ("inbound"."SpecialActivities");;
+COMMENT ON TABLE "inbound"."ChemicalSamplingActivities" IS E'information collected during sampling; inherits SpecialActivities';
+
+ALTER TABLE "inbound"."ChemicalSamplingActivities" ADD COLUMN project_code varchar;
+COMMENT ON COLUMN "inbound"."ChemicalSamplingActivities".project_code IS E'LIMS project code of this sample';
+
+ALTER TABLE "inbound"."ChemicalSamplingActivities" ADD COLUMN recipient_code varchar;
+COMMENT ON COLUMN "inbound"."ChemicalSamplingActivities".recipient_code IS E'LIMS recipient code of this sample';
+
+COMMIT;
+
+
+GRANT SELECT ON "inbound"."ChemicalSamplingActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk, ward, monkey;
+
+GRANT INSERT ON "inbound"."ChemicalSamplingActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+GRANT UPDATE ON "inbound"."ChemicalSamplingActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+GRANT DELETE ON "inbound"."ChemicalSamplingActivities" TO
+tom, yglinga, jens, lise, wouter, floris, karen, janne, falk;
+
+
+#+end_src
+
+
+
+*** =SpatialPositioningActivities=
+/relevant, but not here for testing/
+
+*** first test
+
+syntax is good, this worked well on =_dev=.
+
+** DONE Doubt
+CLOSED: [2026-01-30 Fri]
+Should I keep "SpecialActivities"? [A]
+Or should I directly couple to "Visits"? [B]
+
+Direct coupling has the advantage of significantly reduced redundancy.
+Disadvantage is that all scripts need to work differently:
++ the calendar of activities must be split by activity_id and directly distributed to the different tables.
++ remove the name =~Activities= and use =WellInstallations= (etc.) directly.
++ will the update functions in the toolbox handle it correctly?
++ =FieldWork= view might go bogus, which I cannot allow
+
+I feel this is a major bunch of work,
+yet it makes so much sense that I might be daring.
+
+Prior tests: tutorial-like implementation with a View.
+
+
+* Next Steps
+** TODO Drafting - Direct =Visits= - =mnmgwdb_dev=
+
+Premise: *have a quarto notebook which assembles all migration steps*
++ works on a specified database mirror
++ first mirrors =-staging= from production; good to (a) start fresh or (b) have a working backup
+
+With that:
++ assemble structural adjustments
++ copy over data
++ clean up
+
+see [[remaining]] steps below for coverage.
+
+
+* Migration Considerations
+** KILL renaming
+CLOSED: [2026-02-11 Wed 10:39]
++ =fieldwork_id= -> =specialactivity_id=
+
+/will all be visit_id/
+
+** table creation script
+first, adjust the structure sheets to outsource SpecialActivities
+there must be a new flag for =INHERITS= in the TABLES overview.
+The Python scripts must be adjusted to append the =INHERITS(SpecialActivities)=.
+
+** data migration
++ rename existing
++ create new
++ copy data with UPDATE... FROM
+
+** view migration
+... should be trivial, but the ones triggered are
++ "inbound"."FieldWork"
++ "inbound"."MyFieldWork"
++ "outbound"."FieldworkPlanning"
+
+note [[renaming]]
+
+** script migration
++ check whether scripts need to loop over all SA's, or work on the interface directly.
+
+** /ex post/
++ do not forget the /ex post/ scripts, e.g. for triggering =log_= columns on update
+
+* DONE Tutorial
+CLOSED: [2026-01-30 Fri 12:56]
+
+using the abstract ideas of a "calender" (=todos=)
+and variants of =activities= with extra columns
+-> directly couple to =todos=
+-> make a view to inspect all TODOs simultaneously
+
+https://github.com/inbo/tutorials/pull/371
+
+Lessons learned:
+- =NATURAL FULL JOIN=
++ inheritans works more like automatic =UNION=
++ computation efficiency is unclear; elegance is definite
++ I tend to favor the "Interface" route; however, in our specific case, just some special activities would make sense
+
+* KILL Unit Tests?
+CLOSED: [2026-02-11 Wed 10:35]
+I think I should use unit tests.
+Idea: some queries we regularly use elsewhere; store results before/after
+
+Issue: the content is rather dynamic with the complex tooling we already have (i.e. I cannot guarantee that ID's stay constant while implementing the change).
+I could work on parallel worlds by keeping the old SpecialActivities in tact,
+but then the unit tests are of very limited, temporal use.
+
+So, /glory to the brave/, I will try to just straight implement.
+BUT /glory to the douchebags/ I will also keep the SpecialActivities alive as they are until dust settles, so that I can make /ad hoc/ comparative queries before shutting down.
+No real unit tests, but at least a fallback.
+
+
+* (Not) My Next Project?
+** =Locations=? No!
+can =Locations= be formed into an abstract for =LocationInfos=, =LocationCells=, etc.?
+-> certainly no good, since the content overlaps (Infos also have Cells; they are non-exclusive) and geometry would conflict
+-> better keep this up with keys
+
+** =Events=? No!
+(to centralize characteristic columns)
+observation:
++ redundant use of grts+type+date_start+activity_group_id
+  + 1:1 relation of calendar and visits
++ better solved by key linkage
+
+Issue: this is *content* inheritance, only limited *structure* inheritance.
+
+** WAIT =LocationEvaluations= from different teams -> Yes
+
+Table =mnmgwdb."outbound"."LocationEvaluations"= combines loceval by MNM and MHQ (distinguished by =eval_source=).
+Should be Frankensteined with inheritance stuff?
+
++ one abstract table for biotic stuff
++ two distinct tables for our Locevals and Others'
++ the latter may have fewer/different columns.
+
+
+* TODO ToDos
+
++ [ ] expost rules to structure sheet
