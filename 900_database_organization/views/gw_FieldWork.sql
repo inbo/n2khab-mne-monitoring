@@ -13,7 +13,7 @@ DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
-  SLOC.strata AS type,
+  UNIT.stratum AS type,
   FwCAL.date_start,
   FwCAL.activity_group_id,
   FwCAL.teammember_assigned,
@@ -92,8 +92,8 @@ LEFT JOIN (
     CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
   FROM "outbound"."FieldworkCalendar")
   AS FwCAL ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON FwCAL.samplelocation_id = SLOC.samplelocation_id
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON FwCAL.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
   SELECT DISTINCT
     activity_group_id,
@@ -112,21 +112,21 @@ LEFT JOIN (
   ) AS GAP
   ON GAP.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
-  SELECT samplelocation_id, loceval_notes, loceval_photo
+  SELECT sampleunit_id, loceval_notes, loceval_photo
   FROM (
     SELECT DISTINCT
-      samplelocation_id,
+      sampleunit_id,
       MAX(eval_date) AS latest_visit,
       eval_date,
       notes AS loceval_notes,
       photo AS loceval_photo
     FROM "outbound"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
-    GROUP BY samplelocation_id, eval_date, notes, photo
+    GROUP BY sampleunit_id, eval_date, notes, photo
   ) WHERE eval_date = latest_visit
     AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL))
 ) AS LOCEVAL
-  ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
+  ON UNIT.sampleunit_id = LOCEVAL.sampleunit_id
 WHERE TRUE
   AND (FwCAL.is_scheduled OR FwCAL.done_planning)
   AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))

@@ -37,3 +37,4 @@ These should be corrected.
 docs: https://www.postgresql.org/docs/current/ddl-alter.html
 
 There seems to be no simple way to create a permanent alias, except with #views.
+
