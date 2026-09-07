@@ -14,7 +14,7 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./mnm_database_connection.conf")
 
-# TODO this does not yet work for `loceval` (based on SampleLocations)
+# TODO this does not yet work for `loceval` (based on SampleUnits)
 database_label <- "mnmgwdb"
 
 commandline_args <- commandArgs(trailingOnly = TRUE)
@@ -98,9 +98,9 @@ locations_lookup <- mnmgwdb$query_columns(
   )
 
 # TODO anti-join to find missing slocs
-samplelocations_lookup <- mnmgwdb$query_columns(
-    table_label = "SampleLocations",
-    select_columns = c("samplelocation_id", "grts_address", "strata")
+sampleunits_lookup <- mnmgwdb$query_columns(
+    table_label = "SampleUnits",
+    select_columns = c("sampleunit_id", "grts_address", "stratum")
   )
 
 
@@ -219,7 +219,7 @@ locations_lookup <- redistribute_calendar_data(
 
 # fieldwork_shortterm_prioritization_by_stratum %>%
 # fieldwork_calendar %>%
-# samplelocations_lookup %>%
+# sampleunit_lookup %>%
 #   filter(grts_address == 871030)
 
 # fieldwork_shortterm_prioritization_by_stratum %>%
@@ -236,11 +236,11 @@ fieldwork_calendar <-
   apply_local_replacement_to_grts() %>%
   relocate(grts_address) %>%
   inner_join(
-    samplelocations_lookup %>% rename(stratum = strata),
+    sampleunit_lookup,
     by = join_by(grts_address, stratum),
     relationship = "many-to-one"
   ) %>%
-  relocate(samplelocation_id) %>%
+  relocate(sampleunit_id) %>%
   rename(
     activity_rank = rank,
     activity_group = field_activity_group
@@ -340,7 +340,7 @@ calendar_to_sideload <- load_table_sideload_content(
     reload_previous = TRUE
   ) %>%
   inner_join(
-    samplelocations_lookup %>% rename(stratum = strata),
+    sampleunit_lookup,
     by = join_by(grts_address, stratum),
     relationship = "many-to-many", # TODO
     unmatched = "drop"
@@ -436,7 +436,7 @@ check <- function(df, ...) {
   df %>%
     filter(...) %>%
     select(
-      samplelocation_id,
+      sampleunit_id,
       grts_address,
       stratum,
       date_start,
@@ -523,7 +523,7 @@ fieldworkcalendar_lookup <- redistribute_calendar_data(
 
 
 mnmgwdb$query_table("FieldworkCalendar") %>%
-  count(is.na(samplelocation_id)) %>%
+  count(is.na(sampleunit_id)) %>%
   knitr::kable()
 
 

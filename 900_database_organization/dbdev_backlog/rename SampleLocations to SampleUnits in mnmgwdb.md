@@ -110,3 +110,5 @@ update names in all views
 - gw_FieldworkPlanning.sql
 
 update names in all maintenance scripts
+
+update QGIS projects

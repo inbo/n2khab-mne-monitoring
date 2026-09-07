@@ -143,22 +143,22 @@ mnmgwdb$insert_data(
 
 
 # SELECT *
-# FROM "outbound"."SampleLocations" AS SLOC
+# FROM "outbound"."SampleUnits" AS SLOC
 # LEFT JOIN "metadata"."LocationCells" AS CELL
 #   ON CELL.location_id = SLOC.location_id
 # ;
 
 if (FALSE) {
-sample_locations <- mnmgwdb$query_table("SampleLocations")
+sample_units <- mnmgwdb$query_table("SampleUnits")
 location_cells <- mnmgwdb$query_table("LocationCells") %>% sf::st_as_sf()
 
 mapview::mapview(
   location_cells %>%
     inner_join(
-      sample_locations,
+      sample_units,
       by = join_by(location_id)
     ),
-  zcol = "strata"
+  zcol = "stratum"
 )
 }
 

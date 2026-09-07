@@ -215,17 +215,17 @@ update_cascade_lookup_syncdb(
 
 ## general data
 sampleunit_tablelabels <- c(
-  "mnmgwdb" = "SampleLocations",
+  "mnmgwdb" = "SampleUnits",
   "mnmsurfdb" = "SampleUnits"
 )
 
 sampleunit_indices <- c(
-  "mnmgwdb" = "samplelocation_id",
+  "mnmgwdb" = "sampleunit_id",
   "mnmsurfdb" = "sampleunit_id"
 )
 
 sampleunit_typecolumns <- c(
-  "mnmgwdb" = "strata",
+  "mnmgwdb" = "stratum",
   "mnmsurfdb" = "stratum"
 )
 
@@ -352,12 +352,12 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   existing_sampleunits <- mnmdb$query_table(su_tablab)
 
   # HOTFIX rename that damn old `strata` column
-  if (udb == "mnmgwdb") {
-    existing_sampleunits %<>% rename(
-      sampleunit_id = samplelocation_id,
-      stratum = strata
-    )
-  }
+  # if (udb == "mnmgwdb") {
+  #   existing_sampleunits %<>% rename(
+  #     sampleunit_id = sampleunit_id,
+  #     stratum = strata
+  #   )
+  # }
   # existing_locations <- existing_locations %>%
   #   filter(grts_address != 1286278, grts_address != 18063494) # testing a local replacement
   #
@@ -498,11 +498,11 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
     mutate(is_replacement = TRUE)
 
   # HOTFIX revert
-  if (udb == "mnmgwdb") {
-    sampleunits_upload %<>% rename(
-      strata = stratum
-    )
-  }
+  # if (udb == "mnmgwdb") {
+  #   sampleunits_upload %<>% rename(
+  #     strata = stratum
+  #   )
+  # }
 
   # verbose
   if (nrow(sampleunits_upload) > 0) {
@@ -528,12 +528,12 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
     )
 
   # HOTFIX: rename columns for uniformity
-  if (udb == "mnmgwdb") {
-    sampleunits_lookup %<>% rename(
-      stratum = strata,
-      sampleunit_id = samplelocation_id
-    )
-  }
+  # if (udb == "mnmgwdb") {
+  #   sampleunits_lookup %<>% rename(
+  #     stratum = strata,
+  #     sampleunit_id = samplelocation_id
+  #   )
+  # }
 
 
   ## join the new, corrected sample location id to the list of replacements
@@ -590,8 +590,8 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # HOTFIX again
   if (udb == "mnmgwdb") {
     to_upload %<>% rename(
-      strata = type,
-      samplelocation_id = sampleunit_id
+      stratum = type
+      # samplelocation_id = sampleunit_id
     )
   }
 
@@ -736,9 +736,9 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
     )
 
   # penultimate HOTFIX, maybe
-  if (udb == "mnmgwdb") {
-    replacements_upload %<>% rename(samplelocation_id = sampleunit_id)
-  }
+  # if (udb == "mnmgwdb") {
+  #   replacements_upload %<>% rename(samplelocation_id = sampleunit_id)
+  # }
 
   replacements_lookup <- update_cascade_lookup_userdb(
     table_label = "ReplacementData",
@@ -787,11 +787,7 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
   # (only location id of target database is relevant)
 
   # NOT (only) A HOTFIX: here the general stratum/type difference cuts in
-  if (udb == "mnmgwdb") {
-    transfer_data %<>% dplyr::rename(strata = type)
-  } else {
-    transfer_data %<>% dplyr::rename(stratum = type)
-  }
+  transfer_data %<>% dplyr::rename(stratum = type)
 
   locevals_joined <- transfer_data %>%
     dplyr::left_join(
@@ -816,11 +812,7 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
       eval_date = dplyr::coalesce(eval_date, as.Date(log_update))
     )
 
-  if (udb == "mnmgwdb") {
-    locevals_joined %<>% dplyr::rename(type = strata)
-  } else {
-    locevals_joined %<>% dplyr::rename(type = stratum)
-  }
+  locevals_joined %<>% dplyr::rename(type = stratum)
 
   loceval_characols <- c(
     "grts_address",

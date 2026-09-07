@@ -84,7 +84,7 @@ if (TRUE) {
 
 ### MHQ input
 # check which cells are subject to MHQ assessment
-## not necessary: now stored in SampleLocations
+## not necessary: now stored in SampleUnits
 # assessment_lookup <- bind_rows(
 #   fag_stratum_grts_calendar %>%
 #     distinct(grts_address_final, assessed_in_field) %>%
@@ -165,12 +165,12 @@ generate_centerweighted_random_sampling <- function(
 
 
 
-## load SampleLocations
+## load SampleUnits
 
 locations_sf <- mnmgwdb$query_table("Locations") %>%
   sf::st_as_sf()
 
-sample_locations <- mnmgwdb$query_table("SampleLocations")
+sample_units <- mnmgwdb$query_table("SampleUnits")
 
 
 ## load cell maps and join them with nearest locations
@@ -194,7 +194,7 @@ cellmaps_sf$unused <- TRUE
 
 locations_all <- locations_sf %>%
   inner_join(
-    sample_locations %>% select(-grts_address),
+    sample_units %>% select(-grts_address),
     by = join_by(location_id)
   ) %>%
   mutate(
@@ -512,7 +512,7 @@ randompoints_locationwise <- function(location_row) {
 
   rnd20_points <- rnd20_points %>%
     dplyr::mutate(
-      samplelocation_id = one_location$samplelocation_id,
+      sampleunit_id = one_location$sampleunit_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,
       random_point_rank = seq_len(nrow(rnd20_points))
@@ -619,7 +619,7 @@ if (FALSE) {
 
 # """
 # \COPY (
-#   SELECT samplelocation_id,
+#   SELECT sampleunit_id,
 #     location_id,
 #     grts_address,
 #     random_point_rank,
