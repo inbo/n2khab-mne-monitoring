@@ -621,17 +621,17 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # check for / retain prior visits
   visits_namestring <- mnmdb$get_namestring("Visits")
   calendar_visits_done <- glue::glue("
-    SELECT DISTINCT fieldworkcalendar_id
+    SELECT DISTINCT fieldcalendar_id
     FROM {visits_namestring}
     WHERE visit_done
   ")
   visits_not_done_filter <- glue::glue(
-    "fieldworkcalendar_id NOT IN ({calendar_visits_done})"
+    "fieldcalendar_id NOT IN ({calendar_visits_done})"
   )
 
   # must contain all tables which are to be affected
   extra_filters <- c(
-    "FieldworkCalendar" = visits_not_done_filter,
+    "FieldCalendars" = visits_not_done_filter,
     "FieldCalendar" = visits_not_done_filter,
     "Visits" = visits_not_done_filter
   )
@@ -643,7 +643,7 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
     spinner = TRUE
   )
 
-  # UPDATE the grts_address in FieldworkCalendar and Visits
+  # UPDATE the grts_address in FieldCalendars and Visits
   for (row_nr in seq_len(nrow(to_upload))) {
     row <- to_upload[row_nr, ]
 

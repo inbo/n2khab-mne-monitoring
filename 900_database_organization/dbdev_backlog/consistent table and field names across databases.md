@@ -17,7 +17,7 @@ These should be corrected.
 [[procedures/steps to rename a table and columns|steps to rename a table and columns]]
 
 + [x] #loceval: `FieldActivityCalendar` -> #FieldCalendars 
-+ [ ] #mnmgwdb: `RandomPoints` -> #RandomPlacementPoints
++ [ ] #mnmgwdb: `RandomPoints` -> #PlacementPoints
 + [ ] #mnmgwdb:  use redirection views!
 	+ [ ] `SampleLocations` -> #SampleUnits 
 	+ [ ] `"outbound"."SampleLocations".strata` -> #stratum
