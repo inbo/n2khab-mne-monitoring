@@ -220,7 +220,7 @@ stitch_table_connection(
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address", "type"),
-  reference_mod = function(x) if (x == "type") {"strata"} else {x}
+  reference_mod = function(x) if (x == "type") {"stratum"} else {x}
 )
 
 
@@ -252,14 +252,14 @@ stitch_table_connection(
 
 
 
-# link FieldworkCalender back to SampleUnits
+# link FieldCalendars back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmgwdb,
-  table_label = "FieldworkCalendar",
+  table_label = "FieldCalendars",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  lookup_columns = c("grts_address", "stratum")
+  # reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
 
@@ -280,23 +280,23 @@ stitch_table_connection(
   table_label = "Visits",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  lookup_columns = c("grts_address", "stratum")
+  # reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
 
-# link Visits back to FieldworkCalendar
+# link Visits back to FieldCalendars
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "Visits",
-  reference_table = "FieldworkCalendar",
-  link_key_column = "fieldworkcalendar_id",
+  reference_table = "FieldCalendars",
+  link_key_column = "fieldcalendar_id",
   lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
 )
 
 
 # mnmgwdb$query_table("Visits") %>%
-#   count(is.na(sampleunit_id), is.na(fieldworkcalendar_id)) %>%
+#   count(is.na(sampleunit_id), is.na(fieldcalendar_id)) %>%
 #   knitr::kable()
 
 
@@ -413,7 +413,7 @@ stitch_table_connection(
 
 
 
-# link FieldworkCalender back to SampleUnits
+# link FieldCalendars back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmsurfdb,
   table_label = "FieldCalendars",
@@ -444,7 +444,7 @@ stitch_table_connection(
 )
 
 
-# link Visits back to FieldworkCalendar
+# link Visits back to FieldCalendars
 stitch_table_connection(
   mnmdb = mnmsurfdb,
   table_label = "Visits",
@@ -465,7 +465,7 @@ stitch_table_connection(
 )
 
 # mnmsurfdb$query_table("Visits") %>%
-#   count(is.na(sampleunit_id), is.na(fieldworkcalendar_id)) %>%
+#   count(is.na(sampleunit_id), is.na(fieldcalendar_id)) %>%
 #   knitr::kable()
 
 # link Observations back to Visits

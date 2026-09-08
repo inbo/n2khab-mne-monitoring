@@ -11,7 +11,7 @@ ORDER BY visit_id ASC
 ;
 
 
--- first, erase all default updating activities
+-- remove all default updating activities
 CREATE RULE AllVisits_upd0 AS
 ON UPDATE TO "inbound"."AllVisits"
 DO INSTEAD NOTHING;

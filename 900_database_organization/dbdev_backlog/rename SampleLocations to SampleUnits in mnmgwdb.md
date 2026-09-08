@@ -4,7 +4,7 @@ tags:
   - SampleUnits
   - stratum
   - rename
-started:
+started: 2026-09-07
 finished:
 execution:
 status: false
@@ -45,7 +45,7 @@ ALTER TABLE "inbound"."Visits"
 ALTER SEQUENCE "outbound".seq_samplelocation_id RENAME TO seq_sampleunit_id;
 
 -- comment on Visits
-COMMENT ON TABLE "inbound"."Visits" IS E'inbound information about location visits, planned in FieldworkCalendar, linked to SampleUnits and field activity GROUP';
+COMMENT ON TABLE "inbound"."Visits" IS E'inbound information about location visits, planned in FieldCalendars, linked to SampleUnits and field activity GROUP';
 
 -- comment on SampleUnits archive_version_id
 COMMENT ON COLUMN "outbound"."SampleUnits".archive_version_id IS E'archived SampleUnits are retained but flagged';
