@@ -17,6 +17,9 @@ BEGIN;
 ALTER TABLE "outbound"."LocationEvaluations" SET SCHEMA "transfer";
 ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
 
+TODO create a redirecting view!
+
+
 SET standard_conforming_strings = ON;
 
 
