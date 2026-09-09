@@ -6,7 +6,7 @@ SELECT *
 FROM "outbound"."MHQPolygons"
 WHERE sampleunit_id IN (
     SELECT DISTINCT sampleunit_id
-    FROM "outbound"."LocationEvaluations"
+    FROM "transfer"."LocationEvaluations"
     WHERE eval_source = 'loceval'
   )
 ;

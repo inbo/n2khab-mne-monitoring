@@ -10,7 +10,7 @@ WHERE location_id IN (
   WHERE sampleunit_id
   IN (
     SELECT DISTINCT sampleunit_id
-    FROM "outbound"."FieldworkCalendar"
+    FROM "outbound"."FieldCalendars"
     WHERE archive_version_id IS NULL
   )
 )

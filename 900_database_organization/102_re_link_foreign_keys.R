@@ -224,6 +224,16 @@ stitch_table_connection(
 )
 
 
+# --- new! ---
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "InstallationPoints",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
+)
+
+
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "MHQPolygons",

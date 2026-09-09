@@ -1,4 +1,4 @@
--- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldworkcalendar_id = 3;
+-- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldcalendar_id = 3;
 --
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
@@ -24,7 +24,7 @@ SELECT
   INFO.watina_code_1,
   INFO.watina_code_2,
   SOIL.soil_info,
-  FWCAL.fieldworkcalendar_id,
+  FWCAL.fieldcalendar_id,
   FWCAL.sampleunit_id,
   FWCAL.date_start,
   FWCAL.date_end,
@@ -63,7 +63,7 @@ SELECT
   LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes
-FROM "outbound"."FieldworkCalendar" AS FWCAL
+FROM "outbound"."FieldCalendars" AS FWCAL
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON UNIT.sampleunit_id = FWCAL.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -76,7 +76,7 @@ LEFT JOIN (
   ) AS SOIL
   ON LOC.location_id = SOIL.location_id
 LEFT JOIN "inbound"."Visits" AS VISIT
-  ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
+  ON FWCAL.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN (
   SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
     FROM "metadata"."GroupedActivities"
@@ -118,7 +118,7 @@ LEFT JOIN (
       ) AS loceval_positive,
       photo AS loceval_photo,
       notes AS loceval_notes
-    FROM "outbound"."LocationEvaluations"
+    FROM "transfer"."LocationEvaluations"
     WHERE eval_source = 'loceval'
   ) AS LE
     ON (LE.grts_address = LJ.grts_address)
@@ -177,7 +177,7 @@ DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd1 AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
- UPDATE "outbound"."FieldworkCalendar"
+ UPDATE "outbound"."FieldCalendars"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
@@ -186,7 +186,7 @@ DO ALSO
   no_visit_planned = NEW.no_visit_planned,
   notes = NEW.notes,
   done_planning = NEW.done_planning
- WHERE fieldworkcalendar_id = OLD.fieldworkcalendar_id
+ WHERE fieldcalendar_id = OLD.fieldcalendar_id
 ;
 
 DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";

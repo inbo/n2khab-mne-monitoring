@@ -624,7 +624,7 @@ query_special_activity <- function(shorthand) {
 
 ```{r sample-locations}
 
-slocs <- mnmdb$query_table("SampleLocations") %>%
+slocs <- mnmdb$query_table("SampleUnits") %>%
   filter(grts_address %in% grts)
 
 
@@ -643,13 +643,13 @@ slocs <- slocs %>%
 gw_print_slocs <- function() {
   slocs %>%
     dplyr::rename(
-      slid = samplelocation_id,
+      slid = sampleunit_id,
       lid = location_id,
       replaced = is_replacement,
     ) %>%
     dplyr::select(
       grts_address,
-      strata,
+      stratum,
       domain_part,
       schemes,
       lid,
@@ -669,14 +669,14 @@ gw_print_slocs <- function() {
 
 -- The Work: Calendar and Visits
 
-```{r fieldwork-calendar}
+```{r field-calendar}
 
-fwcal <- mnmdb$query_table("FieldworkCalendar") %>%
+fwcal <- mnmdb$query_table("FieldCalendars") %>%
   filter(grts_address %in% grts) %>%
   join_activity_groups() # %>%
   # left_join(
   #   mnmdb$query_table("Visits"),
-  #   by = join_by(fieldworkcalendar_id),
+  #   by = join_by(fieldcalendar_id),
   #   suffix = c("", "_vis")
   # )
 
@@ -684,8 +684,8 @@ gw_print_fwcal <- function() {
   fwcal %>%
     dplyr::rename(
       grts = grts_address,
-      fcid = fieldworkcalendar_id,
-      slid = samplelocation_id,
+      fcid = fieldcalendar_id,
+      slid = sampleunit_id,
       agid = activity_group_id,
       frz = is_frozen,
       archv = archive_version_id,
@@ -722,9 +722,9 @@ gw_print_visits <- function() {
     dplyr::rename(
       grts = grts_address,
       lid = location_id,
-      slid = samplelocation_id,
+      slid = sampleunit_id,
       agid = activity_group_id,
-      fcid = fieldworkcalendar_id,
+      fcid = fieldcalendar_id,
       archv = archive_version_id,
       vid = visit_id,
       tid = teammember_id
@@ -765,9 +765,9 @@ gw_print_special_activities <- function() {
   activities %>%
     dplyr::rename(
       grts = grts_address,
-      slid = samplelocation_id,
+      slid = sampleunit_id,
       agid = activity_group_id,
-      fcid = fieldworkcalendar_id,
+      fcid = fieldcalendar_id,
       vid = visit_id,
     ) %>%
     dplyr::select(
@@ -857,7 +857,7 @@ gw_print_replacement <- function() {
       grts = grts_address_original,
       rep = grts_address_replacement,
       ldat = loceval_date,
-      slid = samplelocation_id
+      slid = sampleunit_id
     ) %>%
     dplyr::select(
       type,

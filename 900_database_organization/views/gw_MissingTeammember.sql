@@ -2,7 +2,7 @@
 DROP VIEW IF EXISTS "outbound"."MissingTeammember" ;
 CREATE VIEW "outbound"."MissingTeammember" AS
 SELECT DISTINCT LOC.*
-FROM "outbound"."FieldworkCalendar" AS FwCal
+FROM "outbound"."FieldCalendars" AS FwCal
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON FwCal.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC

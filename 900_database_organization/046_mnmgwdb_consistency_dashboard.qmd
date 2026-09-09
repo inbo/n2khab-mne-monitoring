@@ -115,8 +115,8 @@ count_table_content(c(
 #| echo: false
 
 count_table_content(c(
-    "SampleLocations",
-    "FieldworkCalendar",
+    "SampleUnits",
+    "FieldCalendars",
     "Visits",
     "InstallationRemovals"
   ))
@@ -141,7 +141,7 @@ count_table_content(c(
 #| echo: false
 
 count_table_content(c(
-    "RandomPoints",
+    "InstallationPoints",
     "MHQPolygons",
     "Divers"
   ))
@@ -304,7 +304,7 @@ check_foreignkey_connection(
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "SampleLocations", fk = "location_id",
+  table_label = "SampleUnits", fk = "location_id",
   characteristic_columns = c("grts_address"),
   ref_table = "Locations", pk = "location_id"
 )
@@ -338,14 +338,20 @@ check_foreignkey_connection(
 ```
 
 
-```{r random-points}
+```{r random-placement-points}
 #| eval: true
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "RandomPoints", fk = "location_id",
+  table_label = "InstallationPoints", fk = "location_id",
   characteristic_columns = c("grts_address"),
   ref_table = "Locations", pk = "location_id"
+)
+
+check_foreignkey_connection(
+  table_label = "InstallationPoints", fk = "sampleunit_id",
+  characteristic_columns = c("grts_address", "stratum"),
+  ref_table = "SampleUnits", pk = "sampleunit_id"
 )
 
 ```
@@ -355,7 +361,7 @@ check_foreignkey_connection(
 
 :::{ .callout-warning }
 
-`SampleLocations` are currently not hard-referenced, i.e. I de-activated the foreign key constraint in favor of quick-and-dirty processing at some point.
+`SampleUnits` are currently not hard-referenced, i.e. I de-activated the foreign key constraint in favor of quick-and-dirty processing at some point.
 
 :::
 
@@ -365,10 +371,10 @@ check_foreignkey_connection(
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "FieldworkCalendar", fk = "samplelocation_id",
+  table_label = "FieldCalendars", fk = "sampleunit_id",
   characteristic_columns = c("grts_address", "stratum"),
-  ref_table = "SampleLocations", pk = "samplelocation_id",
-  rename_ref = c("strata" = "stratum")
+  ref_table = "SampleUnits", pk = "sampleunit_id"
+  #, rename_ref = c("strata" = "stratum")
 )
 
 ```
@@ -379,43 +385,17 @@ check_foreignkey_connection(
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "Visits", fk = "samplelocation_id",
+  table_label = "Visits", fk = "sampleunit_id",
   characteristic_columns = c("grts_address", "stratum"),
-  ref_table = "SampleLocations", pk = "samplelocation_id",
-  rename_ref = c("strata" = "stratum")
+  ref_table = "SampleUnits", pk = "sampleunit_id"
+  #, rename_ref = c("strata" = "stratum")
 )
 
 ```
 
 
 
-
-```{sql OBSOLETE}
---| eval: false
---| echo: false
-
--- FROM "inbound"."WellInstallationActivities" AS SACT
--- FROM "inbound"."ChemicalSamplingActivities" AS SACT
-
-SELECT *
-FROM "inbound"."ChemicalSamplingActivities" AS SACT
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON (SLOC.grts_address = SACT.grts_address)
-  AND (SLOC.strata = SACT.stratum)
-WHERE SACT.grts_address = 437685;
-
-NOT(SLOC.samplelocation_id = SACT.samplelocation_id)
-;
-
-SELECT * FROM "outbound"."SampleLocations" WHERE grts_address = 437685;
-SELECT * FROM "outbound"."ChemicalSamplingActivities" WHERE grts_address = 437685;
-
-vervanging  437685 -> 8826293
-```
-
-
-
-## Fieldwork Calendar and Visits
+## FieldCalendars and Visits
 
 
 ```{r visits-fwcal}
@@ -423,9 +403,9 @@ vervanging  437685 -> 8826293
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "Visits", fk = "fieldworkcalendar_id",
+  table_label = "Visits", fk = "fieldcalendar_id",
   characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "FieldworkCalendar" 
+  ref_table = "FieldCalendars" 
   )
 
 ```
@@ -461,7 +441,7 @@ count_archived_content <- function(table_list) {
 
 
 count_archived_content(
-    table_list = c("SampleLocations", "FieldworkCalendar", "Visits")
+    table_list = c("SampleUnits", "FieldCalendars", "Visits")
   ) %>%
   knitr::kable()
 
@@ -470,16 +450,15 @@ count_archived_content(
 
 ## Consistency
 
-("archive" tag set along the line of `SampleLocation` -> `FieldworkCalendar` -> `Visits`)
+("archive" tag set along the line of `SampleUnits` -> `FieldCalendars` -> `Visits`)
 
 ```{r consistent-archive}
 #| eval: false
 #| echo: false
 
-archives <- mnmgwdb$query_table("SampleLocations") %>%
-  rename(stratum = strata) %>% 
+archives <- mnmgwdb$query_table("SampleUnits") %>%
   left_join(
-    mnmgwdb$query_table("FieldworkCalendar"),
+    mnmgwdb$query_table("FieldCalendars"),
     by = join_by(grts_address, stratum),
     suffix = c("", "_fwcal")
   ) %>% 

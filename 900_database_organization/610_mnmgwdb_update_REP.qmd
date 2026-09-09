@@ -886,10 +886,10 @@ sampleunits_lookup <- redistribute_calendar_data(
 
 ## FieldCalendar
 
-```{r assemble-fieldwork-calendar}
+```{r assemble-field-calendar}
 # sampleunits_lookup <- mnmgwdb$query_columns("SampleUnits", c("grts_address", "type", "sampleunit_id"))
 
-fieldwork_calendar_columns <- c(
+fieldcalendar_columns <- c(
   "sampleunit_id",
   "grts_address",
   "stratum",
@@ -958,7 +958,7 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
     )
   ) %>%
   mutate(is_frozen = FALSE, is_sideloaded = FALSE) %>% 
-  select(!!!rlang::syms(fieldwork_calendar_columns))
+  select(!!!rlang::syms(fieldcalendar_columns))
 
 # fieldwork_calendar_updated %>% glimpse()
 # fieldwork_calendar_updated %>% count(priority)
@@ -973,10 +973,10 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
 Normally, all calendar entries from the `freeze` have already be removed, so the `anti_join` is a no-op.
 
 
-```{r assemble-fieldwork-calendar-freeze}
+```{r assemble-field-calendar-freeze}
 
 fieldwork_calendar_retained <- mnmgwdb_freeze %>%
-  select(tidyselect::any_of(c(fieldwork_calendar_columns, "done_planning"))) %>% 
+  select(tidyselect::any_of(c(fieldcalendar_columns, "done_planning"))) %>% 
   anti_join(
     fieldwork_calendar_updated,
     by = join_by(!!!rlang::syms(fieldcalendar_characols))
@@ -1014,10 +1014,10 @@ fieldwork_calendar_new <- bind_rows(
 
 ```{r stitch-fwcal-to-slocs}
 
-# link FieldworkCalender back to SampleUnits
+# link FieldCalendars back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmgwdb,
-  table_label = "FieldworkCalendar",
+  table_label = "FieldCalendars",
   reference_table = "SampleUnits",
   link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address", "stratum")
@@ -1033,7 +1033,7 @@ stitch_table_connection(
 # sideloading: extra activities e.g. to follow up issues in the field
 calendar_to_sideload <- load_table_sideload_content(
     mnmdb = mnmgwdb,
-    table_label = "FieldworkCalendar",
+    table_label = "FieldCalendars",
     characteristic_columns = fieldcalendar_characols,
     data_filepath = "sideload/mnmgwdb_calendars.csv",
     reload_previous = TRUE
@@ -1070,7 +1070,7 @@ fieldwork_calendar_new <- bind_rows(
 
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = mnmgwdb,
-  table_label = "FieldworkCalendar",
+  table_label = "FieldCalendars",
   data_future = fieldwork_calendar_new,
   characteristic_columns = fieldcalendar_characols,
   other_table_labels = c("Visits")
@@ -1082,9 +1082,9 @@ if (startdate_updates_happened) message("Startdate updates happened!")
 
 
 
-```{r categorize-fieldworkcalendar}
+```{r categorize-fieldcalendar}
 
-table_label <- "FieldworkCalendar"
+table_label <- "FieldCalendars"
 data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
@@ -1109,7 +1109,7 @@ print_category_count(distribution, table_label)
 ```
 
 
-```{r sync-fieldworkcalendar}
+```{r sync-fieldcalendar}
 
 distribution$to_upload <- distribution$to_upload %>% 
   mutate(
@@ -1139,12 +1139,12 @@ intermediate check
 
 ```{r re-inspect-fieldworkcalendar}
 
-mnmgwdb$query_table("FieldworkCalendar") %>% 
+mnmgwdb$query_table("FieldCalendars") %>% 
   count(is.na(sampleunit_id)) %>%
   knitr::kable()
 
 # compare stored to true sample location
-mnmgwdb$query_table("FieldworkCalendar") %>%
+mnmgwdb$query_table("FieldCalendars") %>%
   left_join(
     mnmgwdb$query_table("SampleUnits"),
     by = join_by(grts_address, stratum)
@@ -1163,8 +1163,8 @@ stitch_visits <- function() {
   stitch_table_connection(
     mnmdb = mnmgwdb,
     table_label = "Visits",
-    reference_table = "FieldworkCalendar",
-    link_key_column = "fieldworkcalendar_id",
+    reference_table = "FieldCalendars",
+    link_key_column = "fieldcalendar_id",
     lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
   )
   
@@ -1196,7 +1196,7 @@ visits_characols <- fieldcalendar_characols
 
 potential_visits <- fieldworkcalendar_lookup %>%
   select(
-    !!!rlang::syms(c("fieldworkcalendar_id", visits_characols))
+    !!!rlang::syms(c("fieldcalendar_id", visits_characols))
   ) %>%
   left_join(
     locations_lookup,
@@ -1295,7 +1295,7 @@ for (table_label in names(selection_of_activities)) {
     anti_join(
       special_visits,
       by = join_by(
-        fieldworkcalendar_id,
+        fieldcalendar_id,
         grts_address,
         stratum,
         activity_group_id,
@@ -1330,7 +1330,7 @@ mnmgwdb$query_table("Visits") %>%
   count(
     is.na(location_id),
     is.na(sampleunit_id),
-    is.na(fieldworkcalendar_id)
+    is.na(fieldcalendar_id)
   ) %>%
   knitr::kable()
 
@@ -1342,9 +1342,9 @@ archive visits of archived FWCals
 ```{r archive-visits-fwcal}
 
 trgtab <- mnmgwdb$get_namestring("Visits")
-srctab <- mnmgwdb$get_namestring("FieldworkCalendar")
+srctab <- mnmgwdb$get_namestring("FieldCalendars")
 link_key_column <- "archive_version_id"
-lookup_criteria <- c("TRGTAB.fieldworkcalendar_id = SRCTAB.fieldworkcalendar_id")
+lookup_criteria <- c("TRGTAB.fieldcalendar_id = SRCTAB.fieldcalendar_id")
 
 update_string <- glue::glue("
   UPDATE {trgtab} AS TRGTAB
@@ -1357,10 +1357,10 @@ update_string <- glue::glue("
 
 mnmgwdb$execute_sql(update_string)
 
-mnmgwdb$query_table("FieldworkCalendar") %>%
+mnmgwdb$query_table("FieldCalendars") %>%
   anti_join(
     mnmgwdb$query_table("Visits"),
-    by = join_by(fieldworkcalendar_id, archive_version_id)
+    by = join_by(fieldcalendar_id, archive_version_id)
   ) %>% nrow()
 
 ```
@@ -1483,6 +1483,7 @@ out <- processx::run(
     SELECT sampleunit_id,
       location_id,
       grts_address,
+      stratum,
       random_point_rank,
       compass,
       angle,
@@ -1490,9 +1491,9 @@ out <- processx::run(
       distance_m,
       lambert_lon,
       lambert_lat
-    FROM "outbound"."RandomPoints"
+    FROM "outbound"."InstallationPoints"
     WHERE angle IS NOT NULL
-    ORDER BY grts_address ASC, random_point_rank ASC
+    ORDER BY grts_address ASC, stratum ASC,, random_point_rank ASC
 ) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
 ;
 

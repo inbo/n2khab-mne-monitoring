@@ -1,7 +1,7 @@
 -- SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
 SELECT *,
   CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
-FROM "outbound"."FieldworkCalendar"
+FROM "outbound"."FieldCalendars"
   WHERE grts_address = 1176286
   AND activity_group_id = 4
 ;
@@ -90,8 +90,8 @@ LEFT JOIN (
 LEFT JOIN (
   SELECT *,
     CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
-  FROM "outbound"."FieldworkCalendar")
-  AS FwCAL ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
+  FROM "outbound"."FieldCalendars")
+  AS FwCAL ON FwCAL.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON FwCAL.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
@@ -120,7 +120,7 @@ LEFT JOIN (
       eval_date,
       notes AS loceval_notes,
       photo AS loceval_photo
-    FROM "outbound"."LocationEvaluations" AS LE
+    FROM "transfer"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
     GROUP BY sampleunit_id, eval_date, notes, photo
   ) WHERE eval_date = latest_visit
@@ -243,9 +243,3 @@ WHERE teammember_assigned IN (
 GRANT SELECT ON  "inbound"."MyFieldWork"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  user_gwdb;
 
--- only on testing:
--- GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
--- GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
-
--- GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tester;
--- GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tester;

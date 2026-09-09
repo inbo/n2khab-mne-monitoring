@@ -300,7 +300,7 @@ pb <- txtProgressBar(
 )
 
 # location_row <- 234 #1 #234
-randompoints_locationwise <- function(location_row) {
+elevationpoints_locationwise <- function(location_row) {
 
   setTxtProgressBar(pb, location_row)
 
@@ -383,12 +383,12 @@ randompoints_locationwise <- function(location_row) {
 
   return(rnd50_points)
 
-} # /randompoints_locationwise
+} # /elevationpoints_locationwise
 
 
 all_points <- lapply(
   seq_len(nrow(locations)),
-  FUN = randompoints_locationwise
+  FUN = elevationpoints_locationwise
 )
 close(pb) # close the progress bar
 

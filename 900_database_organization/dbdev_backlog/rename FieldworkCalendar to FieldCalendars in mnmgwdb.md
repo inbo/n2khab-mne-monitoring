@@ -14,7 +14,6 @@ Changing an #mnmgwdb table name ( #FieldCalendars ) for consistency across datab
 
 
 
-
 ```sql
 BEGIN;
 
@@ -35,6 +34,7 @@ COMMENT ON COLUMN "inbound"."Visits".activity_group_id IS E'a link to the activi
 
 -- ensure trigger stays active
 DROP TRIGGER IF EXISTS log_fieldworkcalendar ON "outbound"."FieldCalendars";
+DROP TRIGGER IF EXISTS log_fieldcalendar ON "outbound"."FieldCalendars";
 DROP TRIGGER IF EXISTS log_fieldcalendars ON "outbound"."FieldCalendars";
 CREATE TRIGGER log_fieldcalendars
 BEFORE UPDATE ON "outbound"."FieldCalendars"
@@ -79,12 +79,12 @@ SELECT
 FROM "outbound"."FieldCalendars"
 ;
 
-
+ALTER TABLE "inbound"."Visits" RENAME CONSTRAINT fk_fieldworkcalendar_visits TO fk_fieldcalendars_visits;
 
 COMMIT;
 ```
 
-- [ ] check explicit foreign key on `Visits.fieldcalendar_id`
+- [x] check explicit foreign key on `Visits.fieldcalendar_id` with `\d+ "inbound"."Visits"`
 
 
 Views: 

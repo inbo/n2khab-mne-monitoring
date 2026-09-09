@@ -198,10 +198,9 @@ locations_all <- locations_sf %>%
     by = join_by(location_id)
   ) %>%
   mutate(
-    is_forest_previously_for_comparison = stringr::str_detect(strata, "^9|^2180|^rbbppm")
-    # is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
-  ) %>%
-  rename(stratum = strata)
+    is_forest_previously_for_comparison = stringr::str_detect(stratum, "^9|^2180|^rbbppm")
+    # is_forest = stringr::str_detect(stratum, "^9|^2180|^rbbppm")
+  )
 
 # TODO: work with a subset for testing
 locations <- locations_all %>%
@@ -515,6 +514,7 @@ randompoints_locationwise <- function(location_row) {
       sampleunit_id = one_location$sampleunit_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,
+      stratum = one_location$stratum,
       random_point_rank = seq_len(nrow(rnd20_points))
     )
 
@@ -562,7 +562,7 @@ if (FALSE) {
 ## TODO northing - correct to magnetic north
 all_points <- all_points %>%
   mutate(
-    randompoint_id = seq_len(nrow(all_points)),
+    installationpoint_id = seq_len(nrow(all_points)),
     angle = -(phi+90) %% 360,
     # angle_look = (-angle) + 360, # wrong, updated 20250812
     angle_look = (angle + 180) %% 360,
@@ -591,16 +591,16 @@ all_points <- cbind(all_points, lamberts) %>%
 sf::st_geometry(all_points) <- "wkb_geometry"
 
 message("________________________________________________________________")
-message(glue::glue("DELETE/INSERT of outbound.RandomPoints"))
+message(glue::glue("DELETE/INSERT of outbound.InstallationPoints"))
 
 if (TRUE) {
   mnmgwdb$execute_sql(
-    glue::glue('DELETE FROM "outbound"."RandomPoints";'),
+    glue::glue('DELETE FROM "outbound"."InstallationPoints";'),
     verbose = TRUE
   )
 
   mnmgwdb$insert_data(
-    table_label = "RandomPoints",
+    table_label = "InstallationPoints",
     upload_data = all_points %>% select(-r, -phi)
   )
 
@@ -622,6 +622,7 @@ if (FALSE) {
 #   SELECT sampleunit_id,
 #     location_id,
 #     grts_address,
+#     stratum,
 #     random_point_rank,
 #     compass,
 #     angle,
@@ -629,9 +630,9 @@ if (FALSE) {
 #     distance_m,
 #     lambert_lon,
 #     lambert_lat
-#   FROM "outbound"."RandomPoints"
+#   FROM "outbound"."InstallationPoints"
 #   WHERE angle IS NOT NULL
-#   ORDER BY grts_address ASC, random_point_rank ASC
+#   ORDER BY grts_address ASC, stratum ASC, random_point_rank ASC
 # ) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
 # ;
 # """

@@ -91,7 +91,7 @@ make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
 
 
 
-## load SampleLocations
+## load SampleUnits
 
 locations_sf <- mnmdb$query_table("Locations") %>%
   sf::st_as_sf()
@@ -243,7 +243,6 @@ if (TRUE) {
 }
 
 # mapview::mapview(mhq_polygons)
-# source('230_random_placementpoints.R')
 
 message("")
 message("________________________________________________________________")

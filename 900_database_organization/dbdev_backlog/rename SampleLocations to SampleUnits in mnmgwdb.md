@@ -79,12 +79,6 @@ SELECT
 FROM "outbound"."SampleUnits"
 ;
 
-
--- unrelated:
-ALTER TABLE "outbound"."LocationEvaluations" SET SCHEMA "transfer";
-ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
--- adjust views! (Fw, FwP, LocevalInfo)
-
 COMMIT;
 ```
 
