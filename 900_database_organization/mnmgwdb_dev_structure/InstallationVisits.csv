@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-installationvisit_id,int,True,,False,True,,,,"technical index (extra, on top of visit_id)"
+installationvisit_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
 photo_soil_1_peilbuis,varchar,False,NULL,False,False,,,,photo of the soil drill profile: peilbuis
 photo_soil_2_piezometer,varchar,False,NULL,False,False,,,,photo of the soil drill profile: piezometer
 photo_well,varchar,False,NULL,False,False,,,,photo of the placed well/pair

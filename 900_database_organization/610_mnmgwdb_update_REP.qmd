@@ -1310,7 +1310,7 @@ for (table_label in names(selection_of_activities)) {
 
 only_visits_lookup <- upload_and_lookup(
   mnmgwdb,
-  table_label = "Visits",
+  table_label = "OtherVisits",
   data_to_append = remaining_new_visits,
   characteristic_columns = visits_characols,
   index_columns = c("visit_id"),
