@@ -14,7 +14,7 @@ source("MNMDatabaseToolbox.R")
 # credentials are stored for easy access
 config_filepath <- file.path("./mnm_database_connection.conf")
 
-# TODO this does not yet work for `loceval` (based on SampleLocations)
+# TODO this does not yet work for `loceval` (based on SampleUnits)
 database_label <- "mnmgwdb"
 
 commandline_args <- commandArgs(trailingOnly = TRUE)
@@ -98,9 +98,9 @@ locations_lookup <- mnmgwdb$query_columns(
   )
 
 # TODO anti-join to find missing slocs
-samplelocations_lookup <- mnmgwdb$query_columns(
-    table_label = "SampleLocations",
-    select_columns = c("samplelocation_id", "grts_address", "strata")
+sampleunits_lookup <- mnmgwdb$query_columns(
+    table_label = "SampleUnits",
+    select_columns = c("sampleunit_id", "grts_address", "stratum")
   )
 
 
@@ -160,7 +160,7 @@ locations_grts_collection <- bind_rows(
     mnmgwdb$query_columns("ReplacementData", c("grts_address")),
     mnmgwdb$query_columns("ReplacementData", c("grts_address_replacement")) %>%
       rename(grts_address = grts_address_replacement),
-    mnmgwdb$query_columns("FieldworkCalendar", c("grts_address")),
+    mnmgwdb$query_columns("FieldCalendars", c("grts_address")),
     mnmgwdb$query_columns("Visits", c("grts_address"), ONLY = FALSE)
   ) %>%
   mutate(grts_address = as.integer(grts_address)) %>%
@@ -219,7 +219,7 @@ locations_lookup <- redistribute_calendar_data(
 
 # fieldwork_shortterm_prioritization_by_stratum %>%
 # fieldwork_calendar %>%
-# samplelocations_lookup %>%
+# sampleunit_lookup %>%
 #   filter(grts_address == 871030)
 
 # fieldwork_shortterm_prioritization_by_stratum %>%
@@ -236,11 +236,11 @@ fieldwork_calendar <-
   apply_local_replacement_to_grts() %>%
   relocate(grts_address) %>%
   inner_join(
-    samplelocations_lookup %>% rename(stratum = strata),
+    sampleunit_lookup,
     by = join_by(grts_address, stratum),
     relationship = "many-to-one"
   ) %>%
-  relocate(samplelocation_id) %>%
+  relocate(sampleunit_id) %>%
   rename(
     activity_rank = rank,
     activity_group = field_activity_group
@@ -283,7 +283,7 @@ fieldwork_calendar <-
 ### query previous calendar
 ## ----save-previous-FACs----------------------------------------------
 
-# previous_calendar_plans <- mnmgwdb$query_table("FieldworkCalendar") %>%
+# previous_calendar_plans <- mnmgwdb$query_table("FieldCalendars") %>%
 #   left_join(
 #     mnmgwdb$query_table("SSPSTaPas"),
 #     by = join_by(sspstapa_id)
@@ -334,13 +334,13 @@ fieldcalendar_characols <- c(
 # sideloading: extra activities e.g. to follow up issues in the field
 calendar_to_sideload <- load_table_sideload_content(
     mnmdb = mnmgwdb,
-    table_label = "FieldworkCalendar",
+    table_label = "FieldCalendars",
     characteristic_columns = fieldcalendar_characols,
     data_filepath = "sideload/mnmgwdb_calendars.csv",
     reload_previous = TRUE
   ) %>%
   inner_join(
-    samplelocations_lookup %>% rename(stratum = strata),
+    sampleunit_lookup,
     by = join_by(grts_address, stratum),
     relationship = "many-to-many", # TODO
     unmatched = "drop"
@@ -365,7 +365,7 @@ fieldwork_calendar_new <- bind_rows(
 
 
 
-table_label <- "FieldworkCalendar"
+table_label <- "FieldCalendars"
 data_nouveau <- fieldwork_calendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- mnmgwdb$get_primary_key(table_label)
@@ -407,7 +407,7 @@ print_category_count(distribution, table_label)
 if (FALSE) {
 # manual checks
 
-current_calendar_db <- mnmgwdb$query_table("FieldworkCalendar") %>%
+current_calendar_db <- mnmgwdb$query_table("FieldCalendars") %>%
   left_join(
     mnmgwdb$query_table("SSPSTaPas"),
     by = join_by(sspstapa_id)
@@ -436,7 +436,7 @@ check <- function(df, ...) {
   df %>%
     filter(...) %>%
     select(
-      samplelocation_id,
+      sampleunit_id,
       grts_address,
       stratum,
       date_start,
@@ -512,7 +512,7 @@ distribution$to_upload <- distribution$to_upload %>%
   )
 
 
-fieldworkcalendar_lookup <- redistribute_calendar_data(
+fieldcalendar_lookup <- redistribute_calendar_data(
   mnmdb = mnmgwdb,
   table_label = table_label,
   distribution = distribution,
@@ -522,8 +522,8 @@ fieldworkcalendar_lookup <- redistribute_calendar_data(
 )
 
 
-mnmgwdb$query_table("FieldworkCalendar") %>%
-  count(is.na(samplelocation_id)) %>%
+mnmgwdb$query_table("FieldCalendars") %>%
+  count(is.na(sampleunit_id)) %>%
   knitr::kable()
 
 
@@ -531,9 +531,9 @@ mnmgwdb$query_table("FieldworkCalendar") %>%
 #_______________________________________________________________________________
 ### Visits: the "inbound" side of the calendar.
 
-visits_characols <- c(fieldcalendar_characols) # "fieldworkcalendar_id",
+visits_characols <- c(fieldcalendar_characols) # "fieldcalendar_id",
 
-new_visits <- fieldworkcalendar_lookup %>%
+new_visits <- fieldcalendar_lookup %>%
   select(
     !!!visits_characols
   ) %>%
@@ -644,12 +644,12 @@ for (table_label in names(selection_of_activities)) {
 }
 
 
-# link Visits back to FieldworkCalendar
+# link Visits back to FieldCalendars
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "Visits",
-  reference_table = "FieldworkCalendar",
-  link_key_column = "fieldworkcalendar_id",
+  reference_table = "FieldCalendars",
+  link_key_column = "fieldcalendar_id",
   lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
 )
 
@@ -667,15 +667,15 @@ visits_lookup <- update_cascade_lookup(
 
 mnmgwdb$query_table("Visits") %>%
   # filter(grts_address == 23238) %>%
-  count(is.na(fieldworkcalendar_id)) %>%
+  count(is.na(fieldcalendar_id)) %>%
   knitr::kable()
 
 
 # archive visits of archived FWCals
 trgtab <- mnmgwdb$get_namestring("Visits")
-srctab <- mnmgwdb$get_namestring("FieldworkCalendar")
+srctab <- mnmgwdb$get_namestring("FieldCalendars")
 link_key_column <- "archive_version_id"
-lookup_criteria <- c("TRGTAB.fieldworkcalendar_id = SRCTAB.fieldworkcalendar_id")
+lookup_criteria <- c("TRGTAB.fieldcalendar_id = SRCTAB.fieldcalendar_id")
 
 update_string <- glue::glue("
   UPDATE {trgtab} AS TRGTAB
@@ -688,10 +688,10 @@ update_string <- glue::glue("
 
 mnmgwdb$execute_sql(update_string)
 
-mnmgwdb$query_table("FieldworkCalendar") %>%
+mnmgwdb$query_table("FieldCalendars") %>%
   anti_join(
     mnmgwdb$query_table("Visits"),
-    by = join_by(fieldworkcalendar_id, archive_version_id)
+    by = join_by(fieldcalendar_id, archive_version_id)
   ) %>% nrow()
 
 
@@ -709,22 +709,22 @@ absent_type_fwcals <- mnmgwdb$query_table("LocationEvaluations") %>%
   rename(stratum = type) %>%
   left_join(
     mnmgwdb$query_columns(
-      "FieldworkCalendar",
-      c("grts_address", "stratum", "fieldworkcalendar_id")
+      "FieldCalendars",
+      c("grts_address", "stratum", "fieldcalendar_id")
     ) %>% distinct(),
     by = join_by(grts_address, stratum)
   ) %>%
-  filter(!is.na(fieldworkcalendar_id)) %>%
-  pull(fieldworkcalendar_id)
+  filter(!is.na(fieldcalendar_id)) %>%
+  pull(fieldcalendar_id)
 
 
-present_type_fwcals <- mnmgwdb$query_table("FieldworkCalendar") %>%
+present_type_fwcals <- mnmgwdb$query_table("FieldCalendars") %>%
   filter(
     excluded,
     grepl("type_is_absent", excluded_reason),
-    !(fieldworkcalendar_id %in% absent_type_fwcals)
+    !(fieldcalendar_id %in% absent_type_fwcals)
   ) %>%
-  select(fieldworkcalendar_id, grts_address, excluded_reason)
+  select(fieldcalendar_id, grts_address, excluded_reason)
 
 
 # exclude cells where the expected type was not found
@@ -736,9 +736,9 @@ message(glue::glue("excluding: fwcal ⊆ {absent_type_fwcals}"))
 
 mnmgwdb$execute_sql(
   glue::glue("
-    UPDATE {mnmgwdb$get_namestring('FieldworkCalendar')}
+    UPDATE {mnmgwdb$get_namestring('FieldCalendars')}
     SET excluded = TRUE, excluded_reason = 'loceval: type_is_absent'
-    WHERE fieldworkcalendar_id IN ({absent_type_fwcals})
+    WHERE fieldcalendar_id IN ({absent_type_fwcals})
     ;
   ")
 )
@@ -746,20 +746,20 @@ mnmgwdb$execute_sql(
 
 
 if (nrow(present_type_fwcals) > 0) {
-  restore_type_fwcals <- paste0(present_type_fwcals$fieldworkcalendar_id, collapse = ", ")
+  restore_type_fwcals <- paste0(present_type_fwcals$fieldcalendar_id, collapse = ", ")
   message(glue::glue("reverting exclusion: fwcal ⊆ {restore_type_fwcals}"))
 
   # restore "non-absent type" cells
   for (row_nr in seq_len(nrow(present_type_fwcals))) {
-    fwcal_id <- present_type_fwcals[row_nr, ][["fieldworkcalendar_id"]]
+    fwcal_id <- present_type_fwcals[row_nr, ][["fieldcalendar_id"]]
     excluded_reason <- present_type_fwcals[row_nr, ][["excluded_reason"]]
     excluded_reason <- gsub("loceval: type_is_absent", "", excluded_reason)
 
     mnmgwdb$execute_sql(
       glue::glue("
-        UPDATE {mnmgwdb$get_namestring('FieldworkCalendar')}
+        UPDATE {mnmgwdb$get_namestring('FieldCalendars')}
         SET excluded = FALSE, excluded_reason = '{excluded_reason}'
-        WHERE fieldworkcalendar_id = {fwcal_id}
+        WHERE fieldcalendar_id = {fwcal_id}
         ;
       ")
     )

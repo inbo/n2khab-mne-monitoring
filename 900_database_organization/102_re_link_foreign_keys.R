@@ -171,7 +171,7 @@ mnmgwdb <- connect_mnm_database(
 
 stitch_table_connection(
   mnmdb = mnmgwdb,
-  table_label = "SampleLocations",
+  table_label = "SampleUnits",
   reference_table = "Locations",
   link_key_column = "location_id",
   lookup_columns = c("grts_address")
@@ -217,10 +217,20 @@ stitch_table_connection(
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "LocationEvaluations",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address", "type"),
-  reference_mod = function(x) if (x == "type") {"strata"} else {x}
+  reference_mod = function(x) if (x == "type") {"stratum"} else {x}
+)
+
+
+# --- new! ---
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "InstallationPoints",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
 )
 
 
@@ -235,8 +245,8 @@ stitch_table_connection(
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "MHQPolygons",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address")
 )
 
@@ -252,14 +262,14 @@ stitch_table_connection(
 
 
 
-# link FieldworkCalender back to SampleLocations
+# link FieldCalendars back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmgwdb,
-  table_label = "FieldworkCalendar",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
-  lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  table_label = "FieldCalendars",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
+  # reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
 
@@ -274,29 +284,29 @@ stitch_table_connection(
 )
 
 
-# link Visits back to SampleLocations
+# link Visits back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "Visits",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
-  lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
+  # reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
 
-# link Visits back to FieldworkCalendar
+# link Visits back to FieldCalendars
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "Visits",
-  reference_table = "FieldworkCalendar",
-  link_key_column = "fieldworkcalendar_id",
+  reference_table = "FieldCalendars",
+  link_key_column = "fieldcalendar_id",
   lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
 )
 
 
 # mnmgwdb$query_table("Visits") %>%
-#   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+#   count(is.na(sampleunit_id), is.na(fieldcalendar_id)) %>%
 #   knitr::kable()
 
 
@@ -304,14 +314,14 @@ stitch_table_connection(
 # REMOVED WIA/CSA/SPA
 
 
-# there is `samplelocation_id` in "transfer"."ReplacementData"
+# there is `sampleunit_id` in "transfer"."ReplacementData"
 # column names are non-standard, hence the "gefoefel".
 trgtab <- '"transfer"."ReplacementData"'
-srctab <- '"outbound"."SampleLocations"'
+srctab <- '"outbound"."SampleUnits"'
 update_string <- glue::glue("
 UPDATE {trgtab} AS TRGTAB
   SET
-    samplelocation_id = SRCTAB.samplelocation_id
+    sampleunit_id = SRCTAB.sampleunit_id
   FROM {srctab} AS SRCTAB
   WHERE
    (TRGTAB.grts_address_replacement = SRCTAB.grts_address)
@@ -413,7 +423,7 @@ stitch_table_connection(
 
 
 
-# link FieldworkCalender back to SampleLocations
+# link FieldCalendars back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmsurfdb,
   table_label = "FieldCalendars",
@@ -434,7 +444,7 @@ stitch_table_connection(
 )
 
 
-# link Visits back to SampleLocations
+# link Visits back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmsurfdb,
   table_label = "Visits",
@@ -444,7 +454,7 @@ stitch_table_connection(
 )
 
 
-# link Visits back to FieldworkCalendar
+# link Visits back to FieldCalendars
 stitch_table_connection(
   mnmdb = mnmsurfdb,
   table_label = "Visits",
@@ -465,7 +475,7 @@ stitch_table_connection(
 )
 
 # mnmsurfdb$query_table("Visits") %>%
-#   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+#   count(is.na(sampleunit_id), is.na(fieldcalendar_id)) %>%
 #   knitr::kable()
 
 # link Observations back to Visits
@@ -483,7 +493,7 @@ stitch_table_connection(
 # REMOVED WIA/CSA/SPA
 
 
-# there is `samplelocation_id` in "transfer"."ReplacementData"
+# there is `sampleunit_id` in "transfer"."ReplacementData"
 # column names are non-standard, hence the "gefoefel".
 trgtab <- '"transfer"."ReplacementData"'
 srctab <- '"outbound"."SampleUnits"'

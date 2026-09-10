@@ -1,0 +1,32 @@
+---
+aliases:
+tags:
+  - mnmgwdb
+  - rename
+  - redirection
+started:
+finished:
+execution:
+status: false
+priority:
+---
+
+*cf.* [[consistent table and field names across databases summer 2026]]
+
++ `DROP VIEW IF EXISTS "outbound"."SampleLocations";`
++ remove alias column `strata` from `gw_FieldWork.sql` and `gw_FieldworkPlanning.sql`
++ `DROP VIEW IF EXISTS  "outbound"."FieldworkCalendar";`
++ `DROP VIEW IF EXISTS "outbound"."RandomPoints";`
++ `DROP VIEW IF EXISTS "outbound"."CellMaps";`
++ `DROP VIEW IF EXISTS "outbound"."LocationEvaluations";`
++ `DROP VIEW IF EXISTS  "outbound"."RandomCellPoints" CASCADE;`
+ +  in fieldwork(planning) view FWCAL.fieldcalendar_id AS fieldworkcalendar_id,
+ 
+
+While at it, also check:
+```
+GeoObservations
+TerraBioObservations
+AquaBioObservations
+LanduseObservations
+```

@@ -1,17 +1,18 @@
--- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldworkcalendar_id = 3;
+-- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldcalendar_id = 3;
 --
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
-  SLOC.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
-  SLOC.schemes,
-  SLOC.strata,
-  SLOC.is_forest,
-  SLOC.in_mhq_samples,
-  SLOC.has_mhq_assessment,
-  SLOC.is_replacement,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
+  UNIT.schemes,
+  UNIT.stratum,
+  UNIT.stratum AS strata,
+  UNIT.is_forest,
+  UNIT.in_mhq_samples,
+  UNIT.has_mhq_assessment,
+  UNIT.is_replacement,
   REP.grts_address_rep,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
@@ -23,8 +24,10 @@ SELECT
   INFO.watina_code_1,
   INFO.watina_code_2,
   SOIL.soil_info,
-  FWCAL.fieldworkcalendar_id,
-  FWCAL.samplelocation_id,
+  FWCAL.fieldcalendar_id,
+  FWCAL.fieldcalendar_id AS fieldworkcalendar_id,
+  FWCAL.sampleunit_id,
+  FWCAL.sampleunit_id AS samplelocation_id,
   FWCAL.date_start,
   FWCAL.date_end,
   FWCAL.date_interval,
@@ -62,11 +65,11 @@ SELECT
   LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes
-FROM "outbound"."FieldworkCalendar" AS FWCAL
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON SLOC.samplelocation_id = FWCAL.samplelocation_id
+FROM "outbound"."FieldCalendars" AS FWCAL
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON UNIT.sampleunit_id = FWCAL.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
-  ON LOC.location_id = SLOC.location_id
+  ON LOC.location_id = UNIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
 LEFT JOIN (
@@ -75,7 +78,7 @@ LEFT JOIN (
   ) AS SOIL
   ON LOC.location_id = SOIL.location_id
 LEFT JOIN "inbound"."Visits" AS VISIT
-  ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
+  ON FWCAL.fieldcalendar_id = VISIT.fieldcalendar_id
 LEFT JOIN (
   SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
     FROM "metadata"."GroupedActivities"
@@ -117,7 +120,7 @@ LEFT JOIN (
       ) AS loceval_positive,
       photo AS loceval_photo,
       notes AS loceval_notes
-    FROM "outbound"."LocationEvaluations"
+    FROM "transfer"."LocationEvaluations"
     WHERE eval_source = 'loceval'
   ) AS LE
     ON (LE.grts_address = LJ.grts_address)
@@ -127,8 +130,8 @@ LEFT JOIN (
     AND (loceval_replacement OR NOT loceval_type_absence)
     AND LE.grts_address IS NOT NULL
 ) AS LOCEVAL
-  ON SLOC.grts_address = LOCEVAL.grts_address
-  AND SLOC.strata = LOCEVAL.stratum
+  ON UNIT.grts_address = LOCEVAL.grts_address
+  AND UNIT.stratum = LOCEVAL.stratum
 LEFT JOIN (
   SELECT DISTINCT
     type,
@@ -137,8 +140,8 @@ LEFT JOIN (
   FROM "transfer"."ReplacementData"
   GROUP BY type, grts_address_original, grts_address_replacement
 ) AS REP
-  ON ((REP.grts_address = SLOC.grts_address)
-  AND (SLOC.strata = REP.type))
+  ON ((REP.grts_address = UNIT.grts_address)
+  AND (UNIT.stratum = REP.type))
 LEFT JOIN (
   SELECT
     location_id,
@@ -152,13 +155,13 @@ LEFT JOIN (
 ) AS INST
   ON (LOC.location_id = INST.location_id)
 WHERE is_gw_activity
-  AND (SLOC.archive_version_id IS NULL)
+  AND (UNIT.archive_version_id IS NULL)
   AND (FWCAL.archive_version_id IS NULL)
 ORDER BY
   FWCAL.date_end,
   FWCAL.priority,
   is_waiting,
-  SLOC.strata,
+  UNIT.stratum,
   FWCAL.grts_address,
   FWCAL.activity_rank,
   FWCAL.activity_group_id
@@ -176,7 +179,7 @@ DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd1 AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
- UPDATE "outbound"."FieldworkCalendar"
+ UPDATE "outbound"."FieldCalendars"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
@@ -185,7 +188,7 @@ DO ALSO
   no_visit_planned = NEW.no_visit_planned,
   notes = NEW.notes,
   done_planning = NEW.done_planning
- WHERE fieldworkcalendar_id = OLD.fieldworkcalendar_id
+ WHERE fieldcalendar_id = OLD.fieldcalendar_id
 ;
 
 DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";

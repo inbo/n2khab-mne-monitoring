@@ -1,5 +1,6 @@
 -- view all kinds of Visits at once
 
+DROP VIEW IF EXISTS "inbound"."AllVisits" CASCADE;
 CREATE VIEW "inbound"."AllVisits" AS
 SELECT *
 FROM ONLY "inbound"."Visits"
@@ -11,7 +12,7 @@ ORDER BY visit_id ASC
 ;
 
 
--- first, erase all default updating activities
+-- remove all default updating activities
 CREATE RULE AllVisits_upd0 AS
 ON UPDATE TO "inbound"."AllVisits"
 DO INSTEAD NOTHING;

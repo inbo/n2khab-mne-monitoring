@@ -133,11 +133,11 @@ split_replacements_loceval <- function(df) {
 # grts local replacement (2): the inversion for info mnmgwdb to loceval
 replacements_to_loceval <- function(df) {
 
-  # special case: column "strata" in "SampleLocations"
-  rename_strata <- "strata" %in% names(df)
-  if (rename_strata) {
-    df <- df %>% dplyr::rename(stratum = strata)
-  }
+  # special case: column "strata" in "SampleUnits"
+  # rename_strata <- "strata" %in% names(df)
+  # if (rename_strata) {
+  #   df <- df %>% dplyr::rename(stratum = strata)
+  # }
 
   df <- df %>%
     dplyr::left_join(
@@ -154,9 +154,9 @@ replacements_to_loceval <- function(df) {
     dplyr::select(-grts_address_original)
 
   # revert rename
-  if (rename_strata) {
-    df <- df %>% dplyr::rename(strata = stratum)
-  }
+  # if (rename_strata) {
+  #   df <- df %>% dplyr::rename(strata = stratum)
+  # }
   return(df)
 
 }
@@ -169,7 +169,7 @@ replacements_to_loceval <- function(df) {
 #     head(5) %>%
 #     knitr::kable()
 
-# test <- mnmgwdb$query_table("SampleLocations") %>%
+# test <- mnmgwdb$query_table("SampleUnits") %>%
 #   sf::st_drop_geometry()
 # replacements_to_loceval(test) %>%
 #     filter(grts_address %in% c(23238, 6314694, 23091910)) %>%

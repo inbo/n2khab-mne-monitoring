@@ -10,7 +10,6 @@ source("MNMDatabaseToolbox.R")
 config_filepath <- file.path("./mnm_database_connection.conf")
 
 database_label <- "mnmgwdb"
-db_using_locations <- grep("mnmgwdb", database_label)
 
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {
@@ -92,20 +91,14 @@ make_polygon <- function(point_matrix, coord_cols = NULL, crs = 31370) {
 
 
 
-## load SampleLocations
+## load SampleUnits
 
 locations_sf <- mnmdb$query_table("Locations") %>%
   sf::st_as_sf()
 
-if (db_using_locations) {
-  sample_locations <- mnmdb$query_table("SampleLocations")
-  type_col <- "strata"
+sample_locations <- mnmdb$query_table("SampleUnits")
+type_col <- "type"
 
-} else {
-  sample_locations <- mnmdb$query_table("SampleUnits")
-  type_col <- "type"
-
-}
 
 ## load cell maps and join them with nearest locations
 locations_all <- locations_sf %>%
@@ -201,21 +194,12 @@ mhq_locationwise <- function(location_row) {
   if (is.na(mhq_safety)) return(NULL)
 
 
-  if (db_using_locations){
-  mhq_safety <- mhq_safety %>%
-    mutate(
-      samplelocation_id = one_location$samplelocation_id,
-      location_id = one_location$location_id,
-      grts_address = one_location$grts_address,
-    )
-  } else {
   mhq_safety <- mhq_safety %>%
     mutate(
       sampleunit_id = one_location$sampleunit_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,
     )
-  }
 
   return(mhq_safety)
 
@@ -259,7 +243,6 @@ if (TRUE) {
 }
 
 # mapview::mapview(mhq_polygons)
-# source('230_random_placementpoints.R')
 
 message("")
 message("________________________________________________________________")

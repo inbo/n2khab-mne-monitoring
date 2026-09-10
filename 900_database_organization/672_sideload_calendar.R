@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # to lookup:
-#  samplelocation_id
+#  sampleunit_id
 #  location_id
 #
 # given:
@@ -26,7 +26,7 @@
 
 
 message("._______________________________________________________________.")
-message("|  sideloading outbound.FieldworkCalendar and depdc to mnmgwdb  |")
+message("|  sideloading outbound.FieldCalendar and depdc to mnmgwdb  |")
 message("._______________________________________________________________.")
 
 
@@ -97,20 +97,20 @@ calendar_characols <- c(
 # load the rows to sideload
 calendar_to_sideload <- load_table_sideload_content(
   mnmdb = mnmgwdb,
-  table_label = "FieldworkCalendar",
+  table_label = "FieldCalendar",
   characteristic_columns = calendar_characols,
   data_filepath = "sideload/mnmgwdb_calendars.csv"
 )
 
 
-samplelocations_lookup <- mnmgwdb$query_columns(
-  "SampleLocations", c("grts_address", "strata", "samplelocation_id", "location_id")
-) %>% rename(stratum = strata)
+sampleunits_lookup <- mnmgwdb$query_columns(
+  "SampleUnits", c("grts_address", "stratum", "sampleunit_id", "location_id")
+)
 
 
 calendar_upload <- calendar_to_sideload %>%
   inner_join(
-    samplelocations_lookup,
+    sampleunits_lookup,
     by = join_by(grts_address, stratum),
     relationship = "many-to-many", # TODO
     unmatched = "drop"
@@ -128,9 +128,9 @@ calendar_upload %>% t() %>% knitr::kable()
 
 
 calendar_lookup <- update_cascade_lookup(
-  table_label = "FieldworkCalendar",
+  table_label = "FieldCalendar",
   new_data = calendar_upload %>% select(-location_id),
-  index_columns = c("fieldworkcalendar_id"),
+  index_columns = c("fieldcalendar_id"),
   characteristic_columns = calendar_characols,
   tabula_rasa = FALSE, # !!!
   verbose = TRUE
@@ -144,13 +144,13 @@ fwcalendar_upload <- calendar_upload %>%
 
 #_______________________________________________________________________________
 
-visits_characols <- c("fieldworkcalendar_id", calendar_characols)
+visits_characols <- c("fieldcalendar_id", calendar_characols)
 
 
 visits_upload <- fwcalendar_upload %>%
   select(
-    fieldworkcalendar_id,
-    samplelocation_id,
+    fieldcalendar_id,
+    sampleunit_id,
     location_id,
     grts_address,
     stratum,
@@ -183,9 +183,11 @@ visits_lookup <- update_cascade_lookup(
 
 # SELECT DISTINCT activity_group, activity_group_id FROM "metadata"."GroupedActivities" WHERE activity_group LIKE 'GW%SAMP%';
 
+stop("obsolete!")
+
 speacial_activity_basecols <- c(
-  "samplelocation_id",
-  "fieldworkcalendar_id",
+  "sampleunit_id",
+  "fieldcalendar_id",
   "visit_id",
   "grts_address",
   "stratum",

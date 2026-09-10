@@ -7,7 +7,7 @@ execution:
 status: false
 ---
 
-prerequisite: [[consistent table and field names across databases]] for #mnmgwdb
+prerequisite: [[consistent table and field names across databases summer 2026]] for #mnmgwdb
 
 - `117loceval_mhq_areas.R`
 - `117mnmgwdb_mhq_areas.R`

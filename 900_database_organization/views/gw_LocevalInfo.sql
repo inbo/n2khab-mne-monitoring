@@ -13,11 +13,11 @@ SELECT
   LOCEVAL.eval_date,
   LOCEVAL.notes,
   LOCEVAL.photo
-FROM "outbound"."LocationEvaluations" AS LOCEVAL
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON (LOCEVAL.samplelocation_id = SLOC.samplelocation_id)
+FROM "transfer"."LocationEvaluations" AS LOCEVAL
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON (LOCEVAL.sampleunit_id = UNIT.sampleunit_id)
 LEFT JOIN "metadata"."Locations" AS LOC
-  ON LOC.location_id = SLOC.location_id
+  ON LOC.location_id = UNIT.location_id
 WHERE TRUE
   AND eval_source = 'loceval'
 ;
