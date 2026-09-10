@@ -11,7 +11,7 @@ status: false
 priority:
 ---
 
-*cf.* [[consistent table and field names across databases]]
+*cf.* [[consistent table and field names across databases summer 2026]]
 
 + `DROP VIEW IF EXISTS "outbound"."SampleLocations";`
 + remove alias column `strata` from `gw_FieldWork.sql` and `gw_FieldworkPlanning.sql`

@@ -76,6 +76,7 @@ Staging:
 	+ connection info (key: e.g. replace `key=fieldactivitycalendar_id` by `key='fieldcalendar_id'` in `"outbound"."FieldworkPlanning"`)
 	+ overhaul attribute forms
 	+ if unavoidable: re-distribute the project files (was better announced beforehand)
++ check documentation and backlog for mentions of the old table names
 
 ## Examples
 + [[structure/locevaldb consistent naming rename FieldActivityCalendar to FieldCalendars|locevaldb rename FieldActivityCalendar to FieldCalendars]]

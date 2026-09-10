@@ -5,6 +5,7 @@ tags:
   - rename
   - schema
   - mnmgwdb
+  - constraints
 started: 2026-09-09
 finished:
 execution:
@@ -12,6 +13,9 @@ execution:
 status: false
 priority:
 ---
+
+side task: adding the #primarykey constraints for #InstallationVisits, #SamplingVisits, #PositioningVisits 
+
 
 ```sql
 BEGIN;
