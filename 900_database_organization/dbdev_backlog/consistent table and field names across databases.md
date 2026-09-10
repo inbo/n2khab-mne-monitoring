@@ -17,18 +17,13 @@ These should be corrected.
 [[procedures/steps to rename a table and columns|steps to rename a table and columns]]
 
 + [x] #loceval: `FieldActivityCalendar` -> #FieldCalendars 
-+ [ ] #mnmgwdb: `RandomPoints` -> #PlacementPoints
++ [ ] #mnmgwdb: `RandomPoints` -> #InstallationPoints
 + [ ] #mnmgwdb:  use redirection views!
 	+ [ ] `SampleLocations` -> #SampleUnits 
 	+ [ ] `"outbound"."SampleLocations".strata` -> #stratum
 + [ ] #mnmgwdb: `FieldworkCalendar` -> #FieldCalendars
 + [ ] #mnmgwdb: `Visits` -> #OtherVisits and use #Visits as an interface
 + [ ] #mnmgwdb: move `CellMaps` and `LocationEvaluations` to schema `transfer`
-	+ ```sql
-     ALTER TABLE "outbound"."LocationEvaluations" SET SCHEMA "transfer";
-     ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
-     -- adjust views! (Fw, FwP, LocevalInfo)
-     ```
 
 + [x] #mnmgwdb #ReplacementData:
 	+ [x] `grts_address` -> `grts_address_original`
@@ -38,3 +33,8 @@ docs: https://www.postgresql.org/docs/current/ddl-alter.html
 
 There seems to be no simple way to create a permanent alias, except with #views.
 
+
+- [[structure/rename SampleLocations to SampleUnits in mnmgwdb]]
+- [[rename FieldworkCalendar to FieldCalendars in mnmgwdb]]
+- [[rename RandomPoints to InstallationPoints in mnmgwdb]]
+- [[redirecting views for tables which moved to schema transfer - LocationEvaluations, CellMaps]]

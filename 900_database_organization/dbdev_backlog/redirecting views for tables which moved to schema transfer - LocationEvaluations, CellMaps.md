@@ -4,9 +4,11 @@ tags:
   - CellMaps
   - rename
   - schema
-started:
+  - mnmgwdb
+started: 2026-09-09
 finished:
 execution:
+  - FM
 status: false
 priority:
 ---
@@ -17,7 +19,13 @@ BEGIN;
 ALTER TABLE "outbound"."LocationEvaluations" SET SCHEMA "transfer";
 ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
 
-TODO create a redirecting view!
+DROP VIEW IF EXISTS "outbound"."LocationEvaluations";
+CREATE VIEW "outbound"."LocationEvaluations" AS
+SELECT * FROM "transfer"."LocationEvaluations";
+
+DROP VIEW IF EXISTS "outbound"."CellMaps";
+CREATE VIEW "outbound"."CellMaps" AS
+SELECT * FROM "transfer"."CellMaps";
 
 
 SET standard_conforming_strings = ON;
