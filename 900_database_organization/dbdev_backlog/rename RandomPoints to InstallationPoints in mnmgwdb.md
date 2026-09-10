@@ -11,8 +11,10 @@ status: false
 priority:
 ---
 
+another table rename, part 3 of [[consistent table and field names across databases summer 2026|the big renaming todo list summer 2026]]
+- while at it, add column `stratum`
 
-- add column `stratum`
+
 
 ```sql
 BEGIN;

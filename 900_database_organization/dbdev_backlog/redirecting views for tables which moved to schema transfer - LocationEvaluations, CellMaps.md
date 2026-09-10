@@ -1,11 +1,13 @@
 ---
 aliases:
+  - move content from Visits to OtherVisits and make Visits a true interface
 tags:
   - CellMaps
   - rename
   - schema
   - mnmgwdb
   - constraints
+  - Visits
 started: 2026-09-09
 finished:
 execution:
@@ -14,7 +16,9 @@ status: false
 priority:
 ---
 
-side task: adding the #primarykey constraints for #InstallationVisits, #SamplingVisits, #PositioningVisits 
+part 4 of [[consistent table and field names across databases summer 2026|the big renaming todo list summer 2026]]
++ side task: move content from #Visits to #OtherVisits and make Visits a true interface
++ side task: adding the #primarykey constraints for #InstallationVisits, #SamplingVisits, #PositioningVisits 
 
 
 ```sql
