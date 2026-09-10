@@ -29,7 +29,7 @@ SELECT setval(pg_get_serial_sequence('"outbound"."InstallationPoints"', 'install
 
 
 -- new column: stratum
-ALTER TABLE "outbound"."InstallationPoints" ADD COLUMN stratum varchar NOT NULL; 
+ALTER TABLE "outbound"."InstallationPoints" ADD COLUMN stratum varchar; -- NOT NULL; 
 COMMENT ON COLUMN "outbound"."InstallationPoints".stratum IS E'stratum for which the cell is eligible';
 
 UPDATE "outbound"."InstallationPoints" AS TRGTAB
@@ -39,6 +39,8 @@ UPDATE "outbound"."InstallationPoints" AS TRGTAB
   WHERE
    (TRGTAB.sampleunit_id = SRCTAB.sampleunit_id) AND (TRGTAB.grts_address = SRCTAB.grts_address)
 ;
+
+ALTER TABLE "outbound"."InstallationPoints" ALTER COLUMN stratum SET NOT NULL; 
 
 -- redirecting view
 DROP VIEW IF EXISTS "outbound"."RandomPoints" ;

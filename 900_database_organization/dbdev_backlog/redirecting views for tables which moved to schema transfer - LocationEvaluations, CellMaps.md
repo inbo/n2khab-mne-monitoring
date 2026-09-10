@@ -107,7 +107,7 @@ SELECT
     issues,
     visit_done,
     archive_version_id
-FROM "inbound"."Visits"
+FROM ONLY "inbound"."Visits"
 ;
 
 

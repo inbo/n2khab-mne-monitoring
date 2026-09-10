@@ -1,5 +1,6 @@
 -- view all kinds of Visits at once
 
+DROP VIEW IF EXISTS "inbound"."AllVisits" CASCADE;
 CREATE VIEW "inbound"."AllVisits" AS
 SELECT *
 FROM ONLY "inbound"."Visits"

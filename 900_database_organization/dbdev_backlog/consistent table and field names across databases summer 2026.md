@@ -18,17 +18,17 @@ These should be corrected.
 docs: https://www.postgresql.org/docs/current/ddl-alter.html
 
 + [x] #loceval: `FieldActivityCalendar` -> #FieldCalendars 
-+ [ ] #mnmgwdb:  rename #SampleLocations to #SampleUnits
++ [x] #mnmgwdb:  rename #SampleLocations to #SampleUnits
 	+ [[structure/rename SampleLocations to SampleUnits in mnmgwdb]]
-	+ [ ] `SampleLocations` -> #SampleUnits 
-	+ [ ] `"outbound"."SampleLocations".strata` -> #stratum
-+ [ ] #mnmgwdb: `FieldworkCalendar` -> #FieldCalendars
+	+ [x] `SampleLocations` -> #SampleUnits 
+	+ [x] `"outbound"."SampleLocations".strata` -> #stratum
++ [x] #mnmgwdb: `FieldworkCalendar` -> #FieldCalendars
 	+ [[rename FieldworkCalendar to FieldCalendars in mnmgwdb]]
-+ [ ] #mnmgwdb: `RandomPoints` -> #InstallationPoints
++ [x] #mnmgwdb: `RandomPoints` -> #InstallationPoints
 	+ [[rename RandomPoints to InstallationPoints in mnmgwdb]]
-+ [ ] #mnmgwdb: move `CellMaps` and `LocationEvaluations` to schema `transfer`
++ [x] #mnmgwdb: move `CellMaps` and `LocationEvaluations` to schema `transfer`
 	+ [[redirecting views for tables which moved to schema transfer - LocationEvaluations, CellMaps]]
-+ [ ] #mnmgwdb: `Visits` -> #OtherVisits and use #Visits as an interface
++ [x] #mnmgwdb: `Visits` -> #OtherVisits and use #Visits as an interface
 	+ [[redirecting views for tables which moved to schema transfer - LocationEvaluations, CellMaps]]
 	+ side task: primary key constraints for all Visits derivative tables
 + [x] #mnmgwdb #ReplacementData:
@@ -36,5 +36,8 @@ docs: https://www.postgresql.org/docs/current/ddl-alter.html
 	+ [x] `is_replaced` -> `is_chosen_replacement` (mind the #views)
 
 To create a temporary alias, use #views.
+
+**Showtime!**
+- [[timeline/2026-09-09|2026-09-09]] 10:15 applied to production (after final test and backups)
 
 *post hoc:* [[timeline/2026-10-09|2026-10-09]] cleanup

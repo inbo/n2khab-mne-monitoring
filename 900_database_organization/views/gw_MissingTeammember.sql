@@ -14,4 +14,4 @@ WHERE done_planning
 ;
 
 GRANT SELECT ON  "outbound"."MissingTeammember" TO  viewer_mnmdb;
-GRANT UPDATE ON  "outbound"."MissingTeammember" TO  planner_mnmdb;
+GRANT UPDATE ON  "outbound"."MissingTeammember" TO  planner_gwdb;

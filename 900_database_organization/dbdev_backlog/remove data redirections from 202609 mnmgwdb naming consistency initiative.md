@@ -19,6 +19,7 @@ priority:
 + `DROP VIEW IF EXISTS "outbound"."RandomPoints";`
 + `DROP VIEW IF EXISTS "outbound"."CellMaps";`
 + `DROP VIEW IF EXISTS "outbound"."LocationEvaluations";`
++ `DROP VIEW IF EXISTS  "outbound"."RandomCellPoints" CASCADE;`
 
 
 While at it, also check:
