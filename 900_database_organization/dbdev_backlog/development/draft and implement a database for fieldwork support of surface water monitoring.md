@@ -91,7 +91,7 @@ status: true
 - [x] new user #roles: `planner_surfdb`, `user_surfdb`; granted to the specific users
 - [x] new entry in #TeamMembers: `all_surfers`
 - [x] also add columns in #GroupedActivities to all other databases: `is_surf_activity`
-- [x] `SampleLocations` are more usefully labeled #SampleUnits / *cf.* [[consistent table and field names across databases summer 2026]]
+- [x] `SampleLocations` are more usefully labeled #SampleUnits / *cf.* [[structure/consistent table and field names across databases summer 2026]]
 - [x] adjust `Expost` queries for new table logic
 - [x] add cronjob for backups
 - [x] does #MHQPolygons need to link to `sampleunit_id` #mnmgwdb ?

@@ -15,7 +15,7 @@ priority:
 
 
 Finally, introducing #SampleUnits for #mnmgwdb.
-part 1 of [[consistent table and field names across databases summer 2026|the big renaming todo list summer 2026]]
+part 1 of [[structure/consistent table and field names across databases summer 2026|the big renaming todo list summer 2026]]
 
 Rename all tables and fields in [[locations/structure sheets|structure sheets]]
 + SampleLocations --> #SampleUnits

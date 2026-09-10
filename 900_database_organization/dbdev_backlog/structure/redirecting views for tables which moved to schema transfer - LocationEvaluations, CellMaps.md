@@ -16,7 +16,7 @@ status: true
 priority:
 ---
 
-part 4 of [[consistent table and field names across databases summer 2026|the big renaming todo list summer 2026]]
+part 4 of [[structure/consistent table and field names across databases summer 2026|the big renaming todo list summer 2026]]
 + side task: move content from #Visits to #OtherVisits and make Visits a true interface
 + side task: adding the #primarykey constraints for #InstallationVisits, #SamplingVisits, #PositioningVisits 
 

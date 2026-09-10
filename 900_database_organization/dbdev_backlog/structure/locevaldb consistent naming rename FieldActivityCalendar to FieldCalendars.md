@@ -14,7 +14,7 @@ status: true
 ---
 
 
-[[consistent table and field names across databases summer 2026]]
+[[structure/consistent table and field names across databases summer 2026]]
 Rename `FieldActivityCalendar` to `FieldCalendars`
 
 [[procedures/steps to rename a table and columns|steps to rename a table and columns]] 

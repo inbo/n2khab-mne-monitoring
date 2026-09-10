@@ -12,7 +12,7 @@ priority:
 ---
 
 Changing an #mnmgwdb table name ( #FieldCalendars ) for consistency across databases.
-part 2 of [[consistent table and field names across databases summer 2026|the big renaming todo list summer 2026]]
+part 2 of [[structure/consistent table and field names across databases summer 2026|the big renaming todo list summer 2026]]
 
 
 ```sql
