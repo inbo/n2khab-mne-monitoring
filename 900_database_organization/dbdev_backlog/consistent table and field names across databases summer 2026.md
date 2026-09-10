@@ -6,10 +6,10 @@ tags:
   - alldatabases
   - improvement
 started: 2026-06-11
-finished:
+finished: 
 execution:
   - FM
-status: false
+status: true
 ---
 
 Historically, databases use different names for the same tables.
@@ -40,9 +40,14 @@ To create a temporary alias, use #views.
 **Showtime!**
 - [x] [[timeline/2026-09-09|2026-09-09]] 10:15 applied to production (after final test and backups)
 - [x] re-applied all views
-- [ ] restore #staging and test dump-restore
+- [x] restore #staging and test dump-restore
 	- [[constraint renames caused staging-production inconsistencies after The Great Rename summer 2026]]
-- [ ] qfield projects
-- [ ] 
+- [x] QGIS projects
+	- some layers were not working: mostly due to obsolete primary keys / missing aliases and table names / view permissions in the layer definitions
+- [x] test old QField projects
+	- [x] issue with permissions for redirecting views -> solved
+- [x] adjusted version number for QField projects (new)
+- [x] finish distribution and announcement
 
-*post hoc:* [[timeline/2026-10-09|2026-10-09]] cleanup
+- [ ] test all maintenance and data update scripts
+- [ ] *post hoc:* [[timeline/2026-10-09|2026-10-09]] cleanup

@@ -41,7 +41,7 @@ Staging:
 	+ rename constraints, e.g. `ALTER TABLE "inbound"."Visits" RENAME CONSTRAINT fk_fieldworkcalendar_visits TO fk_fieldcalendars_visits;`
 	+ reset sequence, e.g. `SELECT setval(pg_get_serial_sequence('"outbound"."FieldCalendars"', 'fieldcalendar_id'), COALESCE(MAX(fieldcalendar_id), 1)) FROM "outbound"."FieldCalendars";`
 + create a view to redirect changes; if necessary define update rules for redirection
-	+ e.g. 
+	+ e.g. within views
 	+ ```sql
         DROP VIEW IF EXISTS  "outbound"."SampleLocations" ;
         CREATE VIEW "outbound"."SampleLocations" AS
@@ -50,6 +50,13 @@ Staging:
           location_id,
           -- <list all columns here; with optional aliasing>
         FROM "outbound"."SampleUnits";
+	  ```
+	+ e.g. for views which redirect tables ; mind permissions!
+	+ ```sql
+        DROP VIEW IF EXISTS "outbound"."CellMaps";
+        CREATE VIEW "outbound"."CellMaps" AS
+        SELECT * FROM "transfer"."CellMaps";
+        GRANT SELECT ON  "outbound"."CellMaps"  TO  viewer_mnmdb;
 	  ```
 + #expostcode (e.g. `sync_mod`) adjust/apply for new table name
 	+ ```sql
@@ -77,6 +84,7 @@ Staging:
 + restore #staging from structure sheets and test dump-restore
 	+ this will expose obsolete keys on production, which must be manually corrected
 	+ e.g. [[constraint renames caused staging-production inconsistencies after The Great Rename summer 2026]]
++ test old projects in (i) QGIS and (ii) QField to ensure redirection works
 + adjust #qgis projects
 	+ connection info (key: e.g. replace `key=fieldactivitycalendar_id` by `key='fieldcalendar_id'` in `"outbound"."FieldworkPlanning"`)
 	+ overhaul attribute forms

@@ -9,10 +9,10 @@ tags:
   - constraints
   - Visits
 started: 2026-09-09
-finished:
+finished: 2026-09-10
 execution:
   - FM
-status: false
+status: true
 priority:
 ---
 
@@ -30,10 +30,12 @@ ALTER TABLE "outbound"."CellMaps" SET SCHEMA "transfer";
 DROP VIEW IF EXISTS "outbound"."LocationEvaluations";
 CREATE VIEW "outbound"."LocationEvaluations" AS
 SELECT * FROM "transfer"."LocationEvaluations";
+GRANT SELECT ON  "outbound"."LocationEvaluations"  TO  viewer_mnmdb;
 
 DROP VIEW IF EXISTS "outbound"."CellMaps";
 CREATE VIEW "outbound"."CellMaps" AS
 SELECT * FROM "transfer"."CellMaps";
+GRANT SELECT ON  "outbound"."CellMaps"  TO  viewer_mnmdb;
 
 
 SET standard_conforming_strings = ON;

@@ -20,7 +20,8 @@ priority:
 + `DROP VIEW IF EXISTS "outbound"."CellMaps";`
 + `DROP VIEW IF EXISTS "outbound"."LocationEvaluations";`
 + `DROP VIEW IF EXISTS  "outbound"."RandomCellPoints" CASCADE;`
-
+ +  in fieldwork(planning) view FWCAL.fieldcalendar_id AS fieldworkcalendar_id,
+ 
 
 While at it, also check:
 ```

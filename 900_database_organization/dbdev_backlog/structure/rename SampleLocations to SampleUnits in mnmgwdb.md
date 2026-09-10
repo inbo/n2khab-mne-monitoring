@@ -6,9 +6,10 @@ tags:
   - rename
   - mnmgwdb
 started: 2026-09-07
-finished:
+finished: 2026-09-10
 execution:
-status: false
+  - FM
+status: true
 priority:
 ---
 
