@@ -72,11 +72,18 @@ Staging:
 + adjust all scripts! (init; dailies; inspection; ...)
 + update all `COMMENT`s on tables and columns (via find-replace in structure sheet; then manual intervention)
 	+ e.g. `COMMENT ON TABLE "inbound"."Visits" IS E'inbound information about location visits, planned in FieldCalendars, linked to SampleUnits and field activity GROUP';`
++ on table renames, make sure to remove the table structure `.csv` files in structure folders; they do not get removed automatically
+	+ this is a bonus to expose dead links to old tables in the maintenance scripts
++ restore #staging from structure sheets and test dump-restore
+	+ this will expose obsolete keys on production, which must be manually corrected
+	+ e.g. [[constraint renames caused staging-production inconsistencies after The Great Rename summer 2026]]
 + adjust #qgis projects
 	+ connection info (key: e.g. replace `key=fieldactivitycalendar_id` by `key='fieldcalendar_id'` in `"outbound"."FieldworkPlanning"`)
 	+ overhaul attribute forms
 	+ if unavoidable: re-distribute the project files (was better announced beforehand)
++ carefully execute maintenance scripts (on `-staging` first) to confirm successful migration
 + check documentation and backlog for mentions of the old table names
+
 
 ## Examples
 + [[structure/locevaldb consistent naming rename FieldActivityCalendar to FieldCalendars|locevaldb rename FieldActivityCalendar to FieldCalendars]]

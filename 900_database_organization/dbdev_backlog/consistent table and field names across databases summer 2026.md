@@ -38,6 +38,11 @@ docs: https://www.postgresql.org/docs/current/ddl-alter.html
 To create a temporary alias, use #views.
 
 **Showtime!**
-- [[timeline/2026-09-09|2026-09-09]] 10:15 applied to production (after final test and backups)
+- [x] [[timeline/2026-09-09|2026-09-09]] 10:15 applied to production (after final test and backups)
+- [x] re-applied all views
+- [ ] restore #staging and test dump-restore
+	- [[constraint renames caused staging-production inconsistencies after The Great Rename summer 2026]]
+- [ ] qfield projects
+- [ ] 
 
 *post hoc:* [[timeline/2026-10-09|2026-10-09]] cleanup
