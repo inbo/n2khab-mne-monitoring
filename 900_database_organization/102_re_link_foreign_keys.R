@@ -325,7 +325,7 @@ UPDATE {trgtab} AS TRGTAB
   FROM {srctab} AS SRCTAB
   WHERE
    (TRGTAB.grts_address_replacement = SRCTAB.grts_address)
-   AND (TRGTAB.type = SRCTAB.strata)
+   AND (TRGTAB.type = SRCTAB.stratum)
 ;")
 
 mnmgwdb$execute_sql(update_string, verbose = FALSE)

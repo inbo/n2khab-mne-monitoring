@@ -506,9 +506,9 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
   # verbose
   if (nrow(sampleunits_upload) > 0) {
-    message("\t--- New sample locations to be uploaded:")
-    sampleunits_upload %>%
-      t() %>% knitr::kable()
+    message("\t--- New sample units to be uploaded:")
+    message(sampleunits_upload %>%
+      select(grts_address, stratum))
   }
 
   sampleunits_lookup <- update_cascade_lookup_userdb(
@@ -851,7 +851,7 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
 } # /distribute_locationevaluations_to_userdatabases
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-#### Cell Mapping
+#### Cell Mapping -> CellMaps
 #///////////////////////////////////////////////////////////////////////////////
 # TODO currently bypassing `mnmsyncdb`, but could as well be stored there.
 
@@ -966,4 +966,3 @@ message(glue::glue(
   )
 )
 message("________________________________________________________________")
-

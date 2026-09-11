@@ -2061,9 +2061,6 @@ load_table_sideload_content <- function(
 # eventually get better. I am embarassed.
 # Last update: 20251205
 precedence_columns <- list(
-  "SampleLocations" = c(
-    # "is_replacement"
-  ),
   "SampleUnits" = c(
     # "is_replacement",
     # "was_replaced_by_grts"
@@ -2083,28 +2080,6 @@ precedence_columns <- list(
     "type_suggested",
     "implications_habitatmap",
     "notes"
-  ),
-  "FieldCalendar" = c( # not quite obsolete - used in gwdb
-    "is_sideloaded",
-    "is_frozen",
-    "excluded",
-    "excluded_reason",
-    "teammember_assigned",
-    "date_visit_planned",
-    "no_visit_planned",
-    "notes",
-    "done_planning"
-  ),
-  "FieldworkCalendar" = c(
-    "excluded",
-    "excluded_reason",
-    "teammember_assigned",
-    "date_visit_planned",
-    "no_visit_planned",
-    "notes",
-    "done_planning",
-    "is_sideloaded",
-    "is_frozen"
   ),
   "FieldCalendars" = c(
     "is_sideloaded",

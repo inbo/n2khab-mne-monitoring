@@ -855,7 +855,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
         (foreign_key == "")
         ) %>%
       pull(column)
-    # this misses non-linked sequences: samplelocation_id, location_id
+    # this misses non-linked sequences: sampleunit_id, location_id
 
     characteristic_columns <- full_table_info %>%
       filter(
