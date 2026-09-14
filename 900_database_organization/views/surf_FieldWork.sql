@@ -1,5 +1,95 @@
 -- SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
 
+SELECT DISTINCT
+  grts_address,
+  stratum,
+  date_start,
+  activity_group_id,
+  COUNT(*) AS n
+FROM "inbound"."FieldWork"
+GROUP BY
+  grts_address,
+  stratum,
+  date_start,
+  activity_group_id
+;
+
+3514038 | 3130_aom_5_50
+3514038 | 3150_5_50
+
+ 231150 | 3130_aom_0_1   | 2026-07-01 |                32 | 1
+ 231150 | 3130_aom_0_1   | 2026-08-01 |                32 | 1
+ 231150 | 3130_na_0_1    | 2026-07-01 |                32 | 1
+ 231150 | 3130_na_0_1    | 2026-08-01 |                32 | 1
+ 231150 | 3150_0_1       | 2026-07-01 |                32 | 1
+ 231150 | 3150_0_1       | 2026-08-01 |                32 | 1
+
+
+
+
+SELECT
+  sampleunit_id,
+  loceval_name,
+  loceval_date,
+  type_assessed,
+  type_is_absent,
+  loceval_notes,
+  loceval_photo
+FROM (
+  SELECT DISTINCT
+    sampleunit_id,
+    MAX(eval_date) AS latest_visit,
+    eval_date AS loceval_date,
+    eval_name AS loceval_name,
+    type AS type_planned,
+    type_assessed,
+    type_is_absent,
+    notes AS loceval_notes,
+    photo AS loceval_photo
+  FROM "transfer"."LocationEvaluations" AS LE
+  WHERE eval_source = 'loceval'
+  GROUP BY sampleunit_id,
+  eval_date,
+  eval_name,
+  type,
+  type_assessed,
+  type_is_absent,
+  notes,
+  photo
+) WHERE loceval_date = latest_visit
+  AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL) OR (type_assessed IS NOT NULL))
+  AND sampleunit_id IN (SELECT DISTINCT sampleunit_id FROM "outbound"."SampleUnits" WHERE grts_address IN (3514038, 231150))
+;
+
+
+SELECT *
+FROM "inbound"."SampleContextObservations" AS SCOBS
+WHERE grts_address = 231150
+;
+
+
+SELECT *
+FROM "inbound"."SampleContextObservations" AS SCOBS
+WHERE grts_address = 3514038
+;
+
+
+  ON (LOC.grts_address = SCOBS.grts_address
+  AND VISIT.date_visit = SCOBS.date_visit)
+
+
+
+LEFT JOIN "inbound"."SampleContextObservations" AS SCOBS
+  ON (LOC.grts_address = SCOBS.grts_address
+  AND VISIT.date_visit = SCOBS.date_visit)
+LEFT JOIN "inbound"."PerturbationObservations" AS POBS
+  ON (LOC.grts_address = POBS.grts_address
+  AND VISIT.date_visit = POBS.date_visit)
+LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
+  ON (LOC.grts_address = MOBS.grts_address
+  AND VISIT.date_visit = MOBS.date_visit)
+
+
 -- !!! also re-create update MyFieldWork (below)
 
 
@@ -54,8 +144,8 @@ SELECT
   VISIT.electric_conductivity_mus_cm,
   VISIT.dissolved_oxygen_mg_l,
   VISIT.dissolved_oxygen_percent,
-VISIT.sample_contamination,
-VISIT.sample_contamination_reason,
+  VISIT.sample_contamination,
+  VISIT.sample_contamination_reason,
   VISIT.sneller_cm,
   VISIT.color,
   VISIT.smell,
@@ -63,8 +153,8 @@ VISIT.sample_contamination_reason,
   VISIT.macroinvertebrates,
   VISIT.xphoto_sample,
   VISIT.equipment,
-VISIT.chlorophytae_presence,
-VISIT.chlorophytae_specification,
+  VISIT.chlorophytae_presence,
+  VISIT.chlorophytae_specification,
   VISIT.waterdepth_samplingpoint_cm,
   VISIT.secchi_depth_cm,
   VISIT.clear_to_bottom,
@@ -76,61 +166,61 @@ VISIT.chlorophytae_specification,
   VISIT.flowvel_method,
   VISIT.barriers,
   VISIT.current_pits,
-VISIT.link_observation_samplecontext,
-SCOBS.samplecontextobservation_id,
-SCOBS.notes AS samplecontext_notes,
-SCOBS.alert AS samplecontext_alert,
-SCOBS.photo AS samplecontext_photo,
-SCOBS.max_depth_cm,
-SCOBS.connectivity,
-SCOBS.seep_influence,
-SCOBS.coverage_rate,
-SCOBS.shading,
-SCOBS.leaf_deposition,
-SCOBS.organic_material,
-SCOBS.emergents,
-SCOBS.float_pleustophytes,
-SCOBS.float_nymphaeids,
-SCOBS.submers_coverage,
-SCOBS.submers_pvi,
-SCOBS.metaphyton,
-VISIT.link_observation_perturbation,
-POBS.perturbationobservation_id,
-POBS.notes AS perturbation_notes,
-POBS.alert AS perturbation_alert,
-POBS.photo AS perturbation_photo,
-POBS.other_perturbations,
-POBS.cow_pats,
-POBS.other_animal_manure,
-POBS.grazers,
-POBS.trampling,
-POBS.intense_livestock_farming,
-POBS.agriculture_nearby,
-POBS.recent_fertilization_nearby,
-POBS.busy_roads_nearby,
-POBS.industry_nearby,
-POBS.fish,
-POBS.birds,
-POBS.bird_droppings,
-POBS.beaver,
-POBS.invasive_species,
-POBS.bank_reinforcement,
-POBS.drainage_structures,
-POBS.fencing,
-VISIT.link_observation_meteorology,
-MOBS.meteorolobservation_id,
-MOBS.notes AS meteo_notes,
-MOBS.alert AS meteo_alert,
-MOBS.photo AS meteo_photo,
-MOBS.prior_48h,
-MOBS.exceptional,
-MOBS.precipitation,
-MOBS.precipitation_specify,
-MOBS.precipitation_intensity,
-MOBS.overcast,
-MOBS.airtemperature_celsius,
-MOBS.wind,
-MOBS.ice_layer_cm
+  VISIT.link_observation_samplecontext,
+  SCOBS.samplecontextobservation_id,
+  SCOBS.notes AS samplecontext_notes,
+  SCOBS.alert AS samplecontext_alert,
+  SCOBS.photo AS samplecontext_photo,
+  SCOBS.max_depth_cm,
+  SCOBS.connectivity,
+  SCOBS.seep_influence,
+  SCOBS.coverage_rate,
+  SCOBS.shading,
+  SCOBS.leaf_deposition,
+  SCOBS.organic_material,
+  SCOBS.emergents,
+  SCOBS.float_pleustophytes,
+  SCOBS.float_nymphaeids,
+  SCOBS.submers_coverage,
+  SCOBS.submers_pvi,
+  SCOBS.metaphyton,
+  VISIT.link_observation_perturbation,
+  POBS.perturbationobservation_id,
+  POBS.notes AS perturbation_notes,
+  POBS.alert AS perturbation_alert,
+  POBS.photo AS perturbation_photo,
+  POBS.other_perturbations,
+  POBS.cow_pats,
+  POBS.other_animal_manure,
+  POBS.grazers,
+  POBS.trampling,
+  POBS.intense_livestock_farming,
+  POBS.agriculture_nearby,
+  POBS.recent_fertilization_nearby,
+  POBS.busy_roads_nearby,
+  POBS.industry_nearby,
+  POBS.fish,
+  POBS.birds,
+  POBS.bird_droppings,
+  POBS.beaver,
+  POBS.invasive_species,
+  POBS.bank_reinforcement,
+  POBS.drainage_structures,
+  POBS.fencing,
+  VISIT.link_observation_meteorology,
+  MOBS.meteorolobservation_id,
+  MOBS.notes AS meteo_notes,
+  MOBS.alert AS meteo_alert,
+  MOBS.photo AS meteo_photo,
+  MOBS.prior_48h,
+  MOBS.exceptional,
+  MOBS.precipitation,
+  MOBS.precipitation_specify,
+  MOBS.precipitation_intensity,
+  MOBS.overcast,
+  MOBS.airtemperature_celsius,
+  MOBS.wind,
+  MOBS.ice_layer_cm
 FROM (
   SELECT *
   FROM ONLY "inbound"."Visits"
@@ -272,6 +362,7 @@ DO ALSO
   secchi_depth_cm = NEW.secchi_depth_cm,
   clear_to_bottom = NEW.clear_to_bottom,
   sludge_thickness = NEW.sludge_thickness,
+  waterlevel_elevation_mtaw = NEW.waterlevel_elevation_mtaw,
   sample_notes = NEW.sample_notes
  WHERE lenticvisit_id = OLD.lenticvisit_id
    AND visit_id = OLD.visit_id
@@ -304,6 +395,7 @@ DO ALSO
   clear_to_bottom = NEW.clear_to_bottom,
   waterdepth_samplingpoint_cm = NEW.waterdepth_samplingpoint_cm,
   sludge_thickness = NEW.sludge_thickness,
+  waterlevel_elevation_mtaw = NEW.waterlevel_elevation_mtaw,
   ice_layer_cm = NEW.ice_layer_cm,
   meandering = NEW.meandering,
   flowvel = NEW.flowvel,

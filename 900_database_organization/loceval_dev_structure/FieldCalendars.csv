@@ -10,6 +10,8 @@ date_start,date,True,,False,False,,,,start of the panel activity sequence
 date_end,date,True,,False,False,,,,end date for the panel activity sequence
 date_interval,varchar,False,NULL,False,False,,,,experimenting with date intervals (yolo)
 activity_rank,smallint,False,,False,False,,CHECK (activity_rank > 0),,execution order of the field activities
+matching_occasion,varchar,False,,False,False,,,,group label of actifity groups which may be combined (optional match)
+date_suggested,date,False,,False,False,,,,earliest date of activities in an optional matching group
 priority,smallint,False,NULL,False,False,,,,"priority, based on scheme, panel, and stratum"
 wait_any,boolean,False,,False,False,,,,"must I always be waiting, waiting on you? *whistle*"
 wait_watersurface,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection

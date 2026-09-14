@@ -121,7 +121,9 @@ fieldwork_shortterm_prioritization_by_stratum %>%
     stratum,
     scheme_ps_targetpanels_served,
     date_start,
-    priority
+    in_mhq_samples,
+    last_type_assessment
+    # priority
   ) %>%
   knitr::kable()
 
