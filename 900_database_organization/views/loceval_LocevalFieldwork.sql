@@ -84,6 +84,10 @@ SELECT
   INFO.recovery_hints,
   INFO.equipment_recommendations,
   INFO.is_secret_location,
+  (UNIT.archive_version_id IS NOT NULL)
+    OR (FAC.archive_version_id IS NOT NULL)
+    OR (VISIT.archive_version_id IS NOT NULL)
+    AS is_archived,
   OPHO.assessment_done AS orthophoto_assessment_done,
   OPHO.notes AS orthophoto_notes
 FROM (
@@ -130,9 +134,9 @@ WHERE TRUE
   AND VISIT.date_start = FAC.date_start
   AND VISIT.activity_group_id = FAC.activity_group_id
   AND FAC.wait_any IS FALSE
-  AND (UNIT.archive_version_id IS NULL)
-  AND (FAC.archive_version_id IS NULL)
-  AND (VISIT.archive_version_id IS NULL)
+  AND (VISIT.visit_done OR UNIT.archive_version_id IS NULL)
+  AND (VISIT.visit_done OR FAC.archive_version_id IS NULL)
+  AND (VISIT.visit_done OR VISIT.archive_version_id IS NULL)
   AND ((OPHO.cell_disapproved IS NULL) OR (NOT OPHO.cell_disapproved))
   AND ACT.is_loceval_activity
 ;
