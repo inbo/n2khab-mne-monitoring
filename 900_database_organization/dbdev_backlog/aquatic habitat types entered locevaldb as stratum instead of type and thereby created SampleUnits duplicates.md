@@ -21,10 +21,112 @@ they were accidentally stored with their `stratum` information in the `type` col
 The #N2kHabStrata table should get a `type` column in addition to the `n2khabtype_id`, which simplifies direct lookup.
 There are missing ones, so first make the Union set.
 
+*UPDATE:* the following transient lookup can be used in a `WHERE` environment.
+
+```sql
+  SELECT type, COALESCE(stratum, type) AS stratum
+  FROM "metadata"."N2kHabTypes" TYP
+  LEFT JOIN "metadata"."N2kHabStrata" STRAT
+  ON TYP.n2khabtype_id = STRAT.n2khabtype_id
+  ;
+```
+
+### make sure all strata are present
+
+```sql
+
+INSERT INTO "metadata"."N2kHabStrata" (stratum, n2khabtype_id)
+VALUES (
+  '3110_5_50',
+  (SELECT DISTINCT n2khabtype_id
+  FROM "metadata"."N2kHabTypes"
+  WHERE type = '3110')
+);
+
+```
+
 ## Chapter 1: Fix the Data
 Assuming each table by itself uses *either* stratum *or* type in the field called `type`,
-this might be solved by an `UPDATE... FROM`:
-```
+this was solved by an `UPDATE... FROM`:
+
+```sql
+
+BEGIN;
+
+WITH stratum_lookup AS (
+  SELECT type, COALESCE(stratum, type) AS stratum
+  FROM "metadata"."N2kHabTypes" TYP
+  LEFT JOIN "metadata"."N2kHabStrata" STRAT
+  ON TYP.n2khabtype_id = STRAT.n2khabtype_id
+)
+UPDATE "inbound"."Visits" AS TRGTAB
+SET
+  type = SRCTAB.type
+FROM stratum_lookup AS SRCTAB
+WHERE
+  (TRGTAB.type = SRCTAB.stratum)
+  AND TRGTAB.type NOT IN (
+  SELECT DISTINCT type
+  FROM "metadata"."N2kHabTypes"
+)
+;
+
+WITH stratum_lookup AS (
+  SELECT type, COALESCE(stratum, type) AS stratum
+  FROM "metadata"."N2kHabTypes" TYP
+  LEFT JOIN "metadata"."N2kHabStrata" STRAT
+  ON TYP.n2khabtype_id = STRAT.n2khabtype_id
+)
+UPDATE "outbound"."FieldCalendars" AS TRGTAB
+SET
+  type = SRCTAB.type
+FROM stratum_lookup AS SRCTAB
+WHERE
+  (TRGTAB.type = SRCTAB.stratum)
+  AND TRGTAB.type NOT IN (
+  SELECT DISTINCT type
+  FROM "metadata"."N2kHabTypes"
+)
+;
+
+WITH stratum_lookup AS (
+  SELECT type, COALESCE(stratum, type) AS stratum
+  FROM "metadata"."N2kHabTypes" TYP
+  LEFT JOIN "metadata"."N2kHabStrata" STRAT
+  ON TYP.n2khabtype_id = STRAT.n2khabtype_id
+)
+UPDATE "outbound"."SampleUnits" AS TRGTAB
+SET
+  type = SRCTAB.type
+FROM stratum_lookup AS SRCTAB
+WHERE
+  (TRGTAB.type = SRCTAB.stratum)
+  AND TRGTAB.type NOT IN (
+  SELECT DISTINCT type
+  FROM "metadata"."N2kHabTypes"
+)
+;
+
+
+WITH stratum_lookup AS (
+  SELECT type, COALESCE(stratum, type) AS stratum
+  FROM "metadata"."N2kHabTypes" TYP
+  LEFT JOIN "metadata"."N2kHabStrata" STRAT
+  ON TYP.n2khabtype_id = STRAT.n2khabtype_id
+)
+UPDATE "outbound"."LocationAssessments" AS TRGTAB
+SET
+  type = SRCTAB.type
+FROM stratum_lookup AS SRCTAB
+WHERE
+  (TRGTAB.type = SRCTAB.stratum)
+  AND TRGTAB.type NOT IN (
+  SELECT DISTINCT type
+  FROM "metadata"."N2kHabTypes"
+)
+;
+
+COMMIT;
 
 ```
 
@@ -62,8 +164,10 @@ FROM (
     ON SU.type = CAL.type AND SU.grts_address = CAL.grts_address
 )
 GROUP BY grts_address, type
+HAVING count(*) > 1
 ORDER BY n DESC, m DESC
 ;
+
 
 SELECT *
 FROM "outbound"."FieldCalendars"
@@ -100,9 +204,122 @@ WHERE NOT (stratum = type)
 ```
 
 
-
 + make sure this does not repeat on next REP update
 + #LoJos are affected; there better be back-and-forth translation between #mnmsyncdb and #locevaldb: `SELECT DISTINCT type_subset FROM "outbound"."LocationJournals";`
+
+
+## fix duplicates after preemptive fix
+
+Flag duplicates in the database
+```sql
+ALTER TABLE "outbound"."SampleUnits"
+ADD COLUMN is_duplicate boolean DEFAULT FALSE;
+
+SELECT DISTINCT
+grts_address, type, COUNT(*) AS n
+FROM "outbound"."SampleUnits"
+GROUP BY grts_address, type
+HAVING COUNT(*) > 1
+;
+
+WITH duplicate_list AS (
+  SELECT DISTINCT
+  grts_address, type, TRUE AS is_duplicate
+  FROM "outbound"."SampleUnits"
+  GROUP BY grts_address, type
+  HAVING COUNT(*) > 1
+  )
+UPDATE "outbound"."SampleUnits" TRGTAB
+SET is_duplicate = SRCTAB.is_duplicate
+FROM duplicate_list AS SRCTAB
+WHERE SRCTAB.grts_address = TRGTAB.grts_address
+  AND SRCTAB.type = TRGTAB.type
+;
+
+```
+
+```sql
+\COPY (
+  SELECT *
+  FROM "outbound"."SampleUnits" AS UNIT
+  LEFT JOIN (
+      SELECT DISTINCT sampleunit_id, COUNT(*) AS n_visits
+      FROM "inbound"."Visits"
+      WHERE visit_done
+      GROUP BY sampleunit_id
+    ) AS VISIT
+    ON UNIT.sampleunit_id = VISIT.sampleunit_id
+  WHERE UNIT.is_duplicate
+  ORDER BY grts_address, type, n_visits
+) TO '~/20260915_duplicate_SampleUnits.csv' With CSV DELIMITER ',' HEADER
+;
+
+```
+
+Seems like all the obsolete ones have an `archive_version_id`!
+
+```sql
+
+DELETE
+  FROM "outbound"."SampleUnits"
+  WHERE is_duplicate
+AND archive_version_id IS NOT NULL
+;
+
+```
+
+Quick checks:
+```sql
+
+SELECT DISTINCT
+grts_address, type, COUNT(*) AS n
+FROM "outbound"."SampleUnits"
+GROUP BY grts_address, type
+HAVING COUNT(*) > 1
+;
+
+SELECT *
+FROM "outbound"."FieldCalendars"
+WHERE sampleunit_id IS NULL
+;
+
+
+
+ALTER TABLE "outbound"."SampleUnits"
+DROP COLUMN is_duplicate;
+
+```
+
+## Corollary: Duplicate #LocationAssessments
+
+This happened because some SampleUnits disappered and LocAss were relinked.
+
+```
+ grts_address |   type   | sampleunit_id | visit_id | n
+--------------+----------+---------------+----------+---
+       377138 | 3150     |          6677 |     1897 | 2
+      1239346 | 3130_aom |          7131 |     3043 | 2
+      1239346 | 3130_na  |          7133 |     1996 | 2
+      6033970 | 3140     |          7838 |     2239 | 2
+      6033970 | 3140     |          7838 |     2846 | 2
+(5 rows)
+
+```
+
+
+-> solved by deleting some prior LocAss which had no notes.
+
+```sql
+\COPY (
+ SELECT *
+ FROM "outbound"."LocationAssessments"
+ WHERE grts_address IN (377138, 1239346, 6033970)
+ AND assessment_done AND notes IS NULL
+) TO '~/20260915_duplicate_LocationAssessments.csv' With CSV DELIMITER ',' HEADER
+;
+```
+
+
 
 # Appendix
 

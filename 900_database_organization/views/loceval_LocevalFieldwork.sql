@@ -11,7 +11,6 @@
  END
 
 
-
 DROP VIEW "inbound"."LocevalFieldwork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."LocevalFieldwork" AS
 SELECT

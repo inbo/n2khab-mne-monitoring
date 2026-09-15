@@ -496,3 +496,15 @@ ORDER BY activity_group_id ASC
 ;
 
 ```
+
+
+Duplicate SampleUnits
+
+```sql
+SELECT DISTINCT
+grts_address, type, COUNT(*) AS n
+FROM "outbound"."SampleUnits"
+GROUP BY grts_address, type
+HAVING COUNT(*) > 1
+;
+```
