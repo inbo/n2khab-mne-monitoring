@@ -1493,7 +1493,7 @@ out <- processx::run(
       lambert_lat
     FROM "outbound"."InstallationPoints"
     WHERE angle IS NOT NULL
-    ORDER BY grts_address ASC, stratum ASC,, random_point_rank ASC
+    ORDER BY grts_address ASC, stratum ASC, random_point_rank ASC
 ) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
 ;
 

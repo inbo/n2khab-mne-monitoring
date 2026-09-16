@@ -25,6 +25,7 @@ knitr:
 - 20260703 actual REP 0.17.0 -> `SURF_03.4_LENTIC`
 - 20260811 quarterly prio update 
 - 20260819 REP 0.18.0
+- 20260916 append "matching occasions"
 
 
 # TODO
@@ -185,9 +186,10 @@ if (FALSE) {
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
   # version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
   # version_notes <- "SURF_03.4_LENTIC"
+  # version_tag <- "snip:0.18.0_rep:0.18.0" "REP 0.18.0 refinements on lentic sample units"
 
   version_tag <- "snip:0.18.0_rep:0.18.0" # data_iteration = 1
-  version_notes <- "REP 0.18.0 refinements on lentic sample units"
+  version_notes <- "realize matching occasions"
 
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
@@ -263,10 +265,20 @@ Now is the chance!
 
 ```{r gather-lookups}
 
-n2khabstrata_lookup <- locevaldb$query_lookup(
-  "N2kHabStrata",
-  characteristic_columns = c("stratum")
+n2khabtypes_lookup <- locevaldb$query_columns(
+  "N2kHabTypes",
+  c("n2khabtype_id", "type")
 )
+
+n2khabstrata_lookup <- locevaldb$query_columns(
+    "N2kHabStrata",
+    c("n2khabstratum_id", "n2khabtype_id", "stratum")
+  ) %>% left_join(
+    n2khabtypes_lookup,
+    by = join_by(n2khabtype_id),
+    relationship = "many-to-one"
+  )
+# n2khabstrata_lookup %>% knitr::kable()
 
 activity_groupid_lookup <- locevaldb$query_columns(
     "GroupedActivities",
@@ -357,6 +369,20 @@ sample_unit_columns <- c(
   "previous_notes"
 )
 
+
+replace_stratum_by_type <- function(data) {
+  data %>%
+    left_join(
+      n2khabstrata_lookup %>% distinct(stratum, type),
+      by = join_by(stratum),
+      relationship = "many-to-one"
+    ) %>%
+    select(-stratum) %>%
+    relocate(type, .after = grts_address) %>%
+    return()
+    
+}
+
 # fag_stratum_grts_calendar_shortterm_attribs %>%
 #   filter(
 #     grts_address_final == 617774,
@@ -369,6 +395,7 @@ sample_unit_columns <- c(
 
 sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
+  replace_stratum_by_type() %>% 
   # only retain the activities for biotic tasks
   # otherwise there are duplicates
   #     (`schemes` filled differently on other activities)
@@ -386,7 +413,6 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   mutate(
     previous_notes = NA # FUTURE TODO
   ) %>% 
-  rename(type = stratum) %>% 
   distinct(!!!rlang::syms(sample_unit_columns)) %>% 
   mutate(across(c(
       grts_join_method,
@@ -398,6 +424,13 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
     ), as.character)
   )
 
+
+new_types <- sample_units_updated %>% pull(type)
+missing_types <- !(new_types %in% (n2khabtypes_lookup %>% pull(type)))
+if (any(missing_types)) {
+  missing_type <- new_types[missing_types]
+  stop(glue::glue("type(s) not found: {paste0(missing_type, collapse = ', ')}"))
+}
 
 # sample_units_updated %>% glimpse()
 # sample_units_updated %>% distinct(grts_address, type) %>% nrow()
@@ -433,7 +466,7 @@ sample_units_retained <- loceval_freeze %>%
 
 sample_units_retained %>% 
   glimpse()
-
+sample_units_retained %>% pull(type)
 ```
 
 
@@ -722,6 +755,11 @@ locevaldb$insert_data(
 
 
 ## Sample Units
+
+```r 
+sample_units %>% distinct(type) %>% print(n=Inf)
+```
+
 
 ```{r porcess-sample-units}
 

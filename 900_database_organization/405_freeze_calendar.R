@@ -28,7 +28,6 @@ if (length(commandline_args) > 0) {
   # suffix <- "-staging" # "-testing"
 }
 # suffix <- "-staging"
-# suffix <- "-staging"
 
 # connect loceval
 locevaldb_mirror <- glue::glue("loceval{suffix}")
@@ -80,7 +79,7 @@ connections <- list(
 
 calendar_table <- c(
   "surf" = "FieldCalendars",
-  "gw" = "FieldworkCalendar",
+  "gw" = "FieldCalendars",
   "eva" = "FieldCalendars"
 )
 
@@ -92,7 +91,7 @@ visit_table  <- c(
 
 units_table  <- c(
   "gw" = "SampleUnits",
-  "gw" = "SampleLocations",
+  "gw" = "SampleUnits",
   "eva" = "SampleUnits"
 )
 
@@ -174,7 +173,7 @@ query_frozen_tables <- function(db) {
 
   # prepare calendar
   calendar <- connections[[db]]$query_table(calendar_table[[db]])
-  cal_pk <- glue::glue("{tolower(calendar_table[[db]])}_id")
+  cal_pk <- glue::glue("{remove_plural_s(tolower(calendar_table[[db]]))}_id")
   unit_pk <- glue::glue("{remove_plural_s(tolower(units_table[[db]]))}_id")
 
   # calendar %>%
@@ -222,16 +221,19 @@ query_frozen_tables <- function(db) {
 } # /query_frozen_tables
 
 
+# query loceval freeze
+loceval_freeze <- query_frozen_tables("eva") # let it go!
+loceval_freeze %>%
+  write.csv(
+    file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv")),
+    row.names = TRUE
+  )
+
 # I have been thinking and working too long towards this variable definition
 # to apply this in a loop...
 gw_freeze <- query_frozen_tables("gw")
 gw_freeze %>%
   write.csv(file = file.path("sideload", glue::glue("freeze_mnmgwdb{suffix}.csv")))
-
-# also for loceval
-loceval_freeze <- query_frozen_tables("eva") # let it go!
-loceval_freeze %>%
-  write.csv(file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv")))
 
 # UNTESTED: surf
 surf_freeze <- query_frozen_tables("surf") # let it go!
