@@ -36,3 +36,94 @@ UPDATE "outbound"."FieldCalendars"
 SET date_suggested = date_start;
 
 ```
+
++ added field upload to `510_loceval_update_REP.qmd`
+	+ `matching_occasions` are taken as in the REP
+	+ date_suggested is the earlier date of all matching occasions
+	+ QGIS simply displays this information
+
+However, there is little to be won here:
+```
+loceval=> SELECT DISTINCT grts_address, type FROM "outbound"."FieldCalendars" WHERE date_start != date_suggested;
+ grts_address | type 
+--------------+------
+(0 rows)
+```
+
+## Intrinsic Matches for #mnmsurfdb
+
+The `SURFLENTDATACOLL` of #mnmsurfdb can co-occur for multiple types on the same location.
+However, because we work on one and the same sample, only one row is needed to fill the data.
+
+[[sql_tricks/array data types|array data types]] for `"inbound"."Visits".stratum`:
+```sql
+
+BEGIN;
+
+DROP VIEW "inbound"."AllVisits" CASCADE;
+DROP VIEW "inbound"."FieldWork" CASCADE;
+DROP VIEW "outbound"."FieldworkPlanning" CASCADE;
+
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT fk_fieldcalendar_visits;
+
+ALTER TABLE "inbound"."Visits"
+ALTER COLUMN stratum TYPE varchar ARRAY
+USING ARRAY[stratum];
+
+ALTER TABLE "inbound"."Visits"
+ALTER COLUMN fieldcalendar_id TYPE int ARRAY
+USING ARRAY[fieldcalendar_id];
+
+ALTER TABLE "inbound"."Visits"
+ALTER COLUMN sampleunit_id TYPE int ARRAY
+USING ARRAY[sampleunit_id];
+
+ALTER TABLE "inbound"."Visits"
+ADD COLUMN is_aggregated BOOLEAN NOT NULL DEFAULT FALSE;
+
+```
+
+ISSUE: the foreign key would have to be given up. <https://stackoverflow.com/a/50441059>
+
+Aggregate the data (<https://vrcacademy.com/tutorials/postgresql-distinct-array-elements/>)
+```sql
+
+SELECT DISTINCT ON (location_id) 
+  (ARRAY_AGG(log_user))[1] AS log_user,
+  location_id,
+  -- ARRAY_agg(DISTINCT UNNEST(sampleunit_id)) AS sampleunit_id,
+  ARRAY_AGG(DISTINCT fc_id ORDER BY fc_id) AS fieldcalendar_id,
+  ARRAY_AGG(DISTINCT su_id ORDER BY su_id) AS sampleunit_id,
+  ARRAY_AGG(DISTINCT strats ORDER BY strats) AS stratum,
+  MAX(log_update) AS log_update,
+  STRING_AGG(notes, ', ') AS notes,
+  TRUE AS is_aggregated
+FROM "inbound"."Visits",
+LATERAL 
+  UNNEST(fieldcalendar_id) AS fc_id,
+  UNNEST(sampleunit_id) AS su_id,
+  UNNEST(stratum) AS strats
+GROUP BY location_id
+;
+
+log_update,
+fieldcalendar_id,
+sampleunit_id,
+location_id,
+grts_address,
+stratum,
+activity_group_id,
+date_start,
+teammember_id,
+date_visit,
+datetime_visit,
+sampling_done,
+notes,
+issues,
+photo,
+visit_done,
+link_observation_samplecontext,
+link_observation_meteorology,
+link_observation_perturbation,
+archive_version_id,
+```

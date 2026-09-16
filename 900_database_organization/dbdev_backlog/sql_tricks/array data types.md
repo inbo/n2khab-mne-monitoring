@@ -25,7 +25,7 @@ https://vrcacademy.com/tutorials/postgresql-arrays/
 - nesting is possible, e.g. `array_field integer[][]`
 - `ARRAY_LENGTH`, `CARDINALITY`
 - concatenation with `||`
-- `STRUNG_TO_ARRAY`
+- `STRING_TO_ARRAY`
 
 Array containment:
 - `<@` checks if array is contained in another
@@ -35,4 +35,16 @@ Array containment:
 Array indexing:
 ```sql
 CREATE INDEX idx_skills_gin ON employee_skills USING GIN(skills);
+```
+
+lateral unnesting - example:
+```sql
+SELECT DISTINCT 
+  location_id,
+  ARRAY_AGG(DISTINCT strats ORDER BY strats) AS stratum,
+  TRUE AS is_aggregated
+FROM "inbound"."Visits",
+LATERAL UNNEST(stratum) AS strats WHERE stratum IS NOT NULL
+GROUP BY location_id
+;
 ```

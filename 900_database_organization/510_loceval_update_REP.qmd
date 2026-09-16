@@ -200,13 +200,14 @@ if (FALSE) {
     new_date_applied = version_date_applied,
     new_date_fixing = version_date_fixing
   )
-  message(glue::glue("Working on version #{version_id}."))
+  message(glue::glue("Working on NEW version #{version_id}."))
 
   # SELECT * FROM "metadata"."Versions";
 
 } else {
   # per default, the latest version is taken
   version_id <- locevaldb$load_latest_version_id()
+  message(glue::glue("Working on version #{version_id}."))
 }
 
 if (FALSE) {
@@ -1018,6 +1019,7 @@ if (startdate_updates_happened) message("Startdate updates happened!")
 calculate `date_suggested` as min date in matching_occasion group
 
 ```{r match-occasions-min-date}
+
 matching_occasions <- fieldwork_calendar_new %>% 
   summarize(
     date_suggested = min(date_start),
