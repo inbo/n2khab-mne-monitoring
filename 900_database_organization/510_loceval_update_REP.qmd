@@ -200,6 +200,7 @@ if (FALSE) {
     new_date_applied = version_date_applied,
     new_date_fixing = version_date_fixing
   )
+  message(glue::glue("Working on version #{version_id}."))
 
   # SELECT * FROM "metadata"."Versions";
 
@@ -874,6 +875,7 @@ fieldwork_calendar_columns <- c(
   "date_end",
   "date_interval",
   "matching_occasion",
+  "date_suggested",
   "priority",
   "wait_any",
   "wait_watersurface",
@@ -926,7 +928,10 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
     )
   ) %>%
   mutate(is_frozen = FALSE) %>% 
-  select(!!!rlang::syms(fieldwork_calendar_columns))
+  # select(!!!rlang::syms(fieldwork_calendar_columns))
+  select(
+    tidyselect::any_of(unique(fieldwork_calendar_columns))
+  )
 
 
 # fieldwork_calendar_updated %>% glimpse()
@@ -1006,7 +1011,28 @@ startdate_updates_happened <- associate_and_shift_start_dates(
 if (startdate_updates_happened) message("Startdate updates happened!")
 
 
-TODO introduce `date_suggested` as min date in matching_occasion group
+```
+
+
+
+calculate `date_suggested` as min date in matching_occasion group
+
+```{r match-occasions-min-date}
+matching_occasions <- fieldwork_calendar_new %>% 
+  summarize(
+    date_suggested = min(date_start),
+    .by = c(matching_occasion)
+  ) %>%
+  filter_out(is.na(matching_occasion)) 
+
+fieldwork_calendar_new <- fieldwork_calendar_new %>%
+  select(-date_suggested) %>% 
+  left_join(
+    matching_occasions,
+    by = join_by(matching_occasion),
+    relationship = "many-to-one"
+  ) %>% 
+  mutate(date_suggested = coalesce(date_suggested, date_start))
 
 ```
 

@@ -32,4 +32,7 @@ COMMENT ON COLUMN "outbound"."FieldCalendars".matching_occasion IS E'group label
 ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN date_suggested date; 
 COMMENT ON COLUMN "outbound"."FieldCalendars".date_suggested IS E'earliest date of activities in an optional matching group';
 
+UPDATE "outbound"."FieldCalendars"
+SET date_suggested = date_start;
+
 ```

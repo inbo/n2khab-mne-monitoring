@@ -39,6 +39,8 @@ SELECT
   FAC.date_end - current_date AS days_to_deadline,
   FAC.activity_rank,
   FAC.priority,
+  FAC.matching_occasion,
+  FAC.date_suggested,
   FAC.wait_any,
   FAC.wait_watersurface,
   FAC.wait_3260,
