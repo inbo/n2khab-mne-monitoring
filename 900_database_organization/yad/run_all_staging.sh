@@ -13,7 +13,6 @@ cd /data/git/n2khab-mne-monitoring_dbtools/900_database_organization
 # sh yad/sync_staging.sh
 
 Rscript 110_sync_FreeFieldNotes.R -staging # will often segfault on first attempt
-Rscript 110_sync_FreeFieldNotes.R -staging
 Rscript 110_sync_Trails.R -staging
 Rscript 111_distribute_loceval_via_mnmsyncdb.R -staging
 Rscript 112_fill_location_journals.R -staging

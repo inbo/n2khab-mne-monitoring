@@ -23,7 +23,7 @@ priority:
 
 ## Optional Matches for #locevaldb 
 
-prepare the minimum required columns
+Prepare the minimum required columns:
 
 ```sql
 ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN matching_occasion varchar; 
