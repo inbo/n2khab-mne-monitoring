@@ -464,9 +464,9 @@ sample_units_retained <- loceval_freeze %>%
     by = join_by(grts_address, type)
   )
 
-sample_units_retained %>% 
-  glimpse()
-sample_units_retained %>% pull(type)
+# sample_units_retained %>% 
+#  glimpse()
+# sample_units_retained %>% pull(type)
 ```
 
 
@@ -482,6 +482,7 @@ sample_units <- bind_rows(
 # sample_units %>% glimpse
 # sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
 # sample_units %>% filter(grts_address == 617774) %>% knitr::kable()
+# sample_units %>% distinct(type) %>% arrange(type) %>% knitr::kable()
 
 ```
 
@@ -756,10 +757,6 @@ locevaldb$insert_data(
 
 ## Sample Units
 
-```r 
-sample_units %>% distinct(type) %>% print(n=Inf)
-```
-
 
 ```{r porcess-sample-units}
 
@@ -876,6 +873,7 @@ fieldwork_calendar_columns <- c(
   "date_start",
   "date_end",
   "date_interval",
+  "matching_occasion",
   "priority",
   "wait_any",
   "wait_watersurface",
@@ -895,10 +893,9 @@ fieldcalendar_characols <- c(
 )
 
 
-
 fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
-  rename(type = stratum) %>%
+  replace_stratum_by_type() %>%
   inner_join(
     sampleunits_lookup,
     by = join_by(grts_address, type),
@@ -922,7 +919,8 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
         grts_join_method,
         date_interval,
         domain_part,
-        date_interval
+        date_interval,
+        matching_occasion
       ),
       as.character
     )
@@ -930,7 +928,9 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
   mutate(is_frozen = FALSE) %>% 
   select(!!!rlang::syms(fieldwork_calendar_columns))
 
+
 # fieldwork_calendar_updated %>% glimpse()
+# fieldwork_calendar_updated %>% distinct(matching_occasion)
 
 ```
 
@@ -1004,6 +1004,9 @@ startdate_updates_happened <- associate_and_shift_start_dates(
 ) 
 
 if (startdate_updates_happened) message("Startdate updates happened!")
+
+
+TODO introduce `date_suggested` as min date in matching_occasion group
 
 ```
 
