@@ -3,6 +3,7 @@ fieldcalendar_id,int,True,,True,True,,,,calendar index (technical)
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
 sampleunit_id,int,False,,False,False,,,,optional link to sample locations
+visit_id,int,False,NULL,False,False,inbound.Visits.visit_id,,,link to the visit which serves this calendar entry
 grts_address,int,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after corrections)"
 stratum,varchar,True,,False,False,,,,strata for which the cell is eligible
 activity_group_id,smallint,True,,False,False,,,,a link to the activity metadata
@@ -10,6 +11,8 @@ date_start,date,True,,False,False,,,,start of the panel activity sequence
 date_end,date,True,,False,False,,,,end date for the panel activity sequence
 date_interval,varchar,False,NULL,False,False,,,,experimenting with date intervals (yolo)
 activity_rank,smallint,False,,False,False,,CHECK (activity_rank > 0),,execution order of the field activities
+matching_occasion,varchar,False,,False,False,,,,group label of actifity groups which may be combined (optional match)
+date_suggested,date,False,,False,False,,,,earliest date of activities in an optional matching group
 priority,smallint,True,,False,False,,,,"priority, based on scheme, panel, and stratum"
 wait_any,boolean,False,,False,False,,,,"must I always be waiting, waiting on you? *whistle*"
 wait_watersurface,boolean,False,,False,False,,,,filter field for convenient aquatic type (de)selection

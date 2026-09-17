@@ -11,9 +11,9 @@ outbound,LocationInfos,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mn
 outbound,LocationJournals,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,"lifecycle information of a sample unit; chronological, append-only"
 outbound,SampleUnits,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,list of units currently sampled (defined by GRTS address and stratum)
 outbound,SampleUnitPolygons,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,,,watersurface/watersurface_hab polygons of the current sample locations
+inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,,,1,,"interface! -> general structure of all visits, planned in FieldCalendar, linked to SampleUnits and field activity group and thereby immediately relevant for status and trend of environmental pressures"
 outbound,FieldCalendars,yoda,"viewer_mnmdb, tester_mnmdb","planner_surfdb, tester_mnmdb",,,,,1,,field activity calender
 outbound,MHQPolygons,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,MHQ sample areas NO TRESPASSING!
-inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,,,1,,"interface! -> general structure of all visits, planned in FieldCalendar, linked to SampleUnits and field activity group and thereby immediately relevant for status and trend of environmental pressures"
 inbound,OtherVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,inbound information about field visits which are not otherwise specified
 inbound,LenticVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,field data collected for lentic habitat types (still waters); subset of Visits
 inbound,LoticVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Visits""",,1,,field data collected for lotic habitat types (streams etc); subset of Visits
