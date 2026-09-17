@@ -444,25 +444,56 @@ stitch_table_connection(
 )
 
 
-# link Visits back to SampleUnits
-stitch_table_connection(
-  mnmdb = mnmsurfdb,
-  table_label = "Visits",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "stratum")
-)
+# # link Visits back to SampleUnits and FieldCalendars
+trgtab <- '"inbound"."Visits"'
+srctab <- '"outbound"."FieldCalendars"'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    stratums = SRCTAB.stratums,
+    sampleunit_ids = SRCTAB.sampleunit_ids,
+    fieldcalendar_ids = SRCTAB.fieldcalendar_ids
+  FROM (
+    SELECT DISTINCT ON
+        (grts_address, date_start, activity_group_id, matching_occasion)
+      grts_address,
+      date_start,
+      activity_group_id,
+      matching_occasion,
+      ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+      ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+      ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids
+    FROM {srctab}
+      WHERE NOT excluded
+    GROUP BY
+      grts_address, date_start, activity_group_id, matching_occasion
+  ) AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.date_start = SRCTAB.date_start)
+   AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+   AND (SRCTAB.stratums && TRGTAB.stratums)
+;")
+
+mnmsurfdb$execute_sql(update_string, verbose = FALSE)
 
 
-# link Visits back to FieldCalendars
-stitch_table_connection(
-  mnmdb = mnmsurfdb,
-  table_label = "Visits",
-  reference_table = "FieldCalendars",
-  link_key_column = "fieldcalendar_id",
-  lookup_columns =
-    c("grts_address", "stratum", "activity_group_id", "date_start")
-)
+# link FieldCalendars back to Visits
+trgtab <- '"outbound"."FieldCalendars"'
+srctab <- '"inbound"."Visits"'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    visit_id = SRCTAB.visit_id
+  FROM {srctab} AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.date_start = SRCTAB.date_start)
+   AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+   AND (TRGTAB.stratum @> SRCTAB.stratum)
+;")
+
+mnmsurfdb$execute_sql(update_string, verbose = FALSE)
 
 
 # link ChlorophyllMeasurements back to Locations

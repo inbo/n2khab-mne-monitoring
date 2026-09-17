@@ -85,12 +85,15 @@ DROP VIEW "inbound"."FieldWork" CASCADE;
 DROP VIEW "outbound"."FieldworkPlanning" CASCADE;
 
 -- constraints will be reworked
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT fk_fieldcalendar_visits;
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT fk_FieldCalendars_Visits;
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT fk_SampleUnits_Visits
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_fieldcalendar_visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldCalendars_Visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Visits;
 
 
 -- STRUCTURE PREPARATION
+
+-- NOTE: `Visits` and `FieldCalendars` have to switch order in the TABLES structure sheet
+
 -- columns for matching occasions
 ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN matching_occasion varchar;
 COMMENT ON COLUMN "outbound"."FieldCalendars".matching_occasion IS E'group label of actifity groups which may be combined (optional match)';
@@ -103,8 +106,8 @@ SET date_suggested = date_start;
 
 
 -- visit_id as fk to FieldCalendars
-ALTER TABLE "inbound"."FieldCalendars" ADD COLUMN visit_id int DEFAULT NULL;
-COMMENT ON COLUMN "inbound"."FieldCalendars".visit_id IS E'link to the visit which serves this calendar entry';
+ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN visit_id int DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."FieldCalendars".visit_id IS E'link to the visit which serves this calendar entry';
 
 ALTER TABLE "outbound"."FieldCalendars" DROP CONSTRAINT IF EXISTS fk_Visits_FieldCalendars CASCADE;
 ALTER TABLE "outbound"."FieldCalendars" ADD CONSTRAINT fk_Visits_FieldCalendars FOREIGN KEY (visit_id)
@@ -139,6 +142,8 @@ USING ARRAY[sampleunit_id];
 ALTER TABLE "inbound"."Visits"
 RENAME COLUMN sampleunit_id TO sampleunit_ids;
 COMMENT ON COLUMN "inbound"."Visits".sampleunit_ids IS E'array of sample unit indices (technical) or NULL for obsolete visits';
+
+-- COMMIT;
 
 ```
 
@@ -193,7 +198,55 @@ ADD COLUMN is_aggregated BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- has to happen separately per *Visit class; here, `LenticVisits` is the only one used so far
 
-SELECT DISTINCT ON (location_id, grts_address, date_start, date_visit, activity_group_id)
+INSERT INTO "inbound"."LenticVisits" (
+  log_user,
+  log_update,
+  location_id,
+  fieldcalendar_ids,
+  sampleunit_ids,
+  stratums,
+  grts_address,
+  activity_group_id,
+  date_start,
+  teammember_id,
+  date_visit,
+  datetime_visit,
+  sampling_done,
+  notes,
+  photo,
+  issues,
+  visit_done,
+  link_observation_samplecontext,
+  link_observation_meteorology,
+  link_observation_perturbation,
+  archive_version_id,
+  is_aggregated,
+  equipment,
+  chlorophytae_presence,
+  chlorophytae_specification,
+  waterdepth_samplingpoint_cm,
+  secchi_depth_cm,
+  clear_to_bottom,
+  sludge_thickness,
+  waterlevel_elevation_mtaw,
+  project_code,
+  recipient_code,
+  watertemperature_celsius,
+  sample_ph,
+  electric_conductivity_mus_cm,
+  dissolved_oxygen_mg_l,
+  dissolved_oxygen_percent,
+  sample_notes,
+  sample_contamination,
+  sample_contamination_reason,
+  sneller_cm,
+  color,
+  smell,
+  zooplankton,
+  macroinvertebrates,
+  xphoto_sample
+)
+SELECT DISTINCT ON (location_id, grts_address, date_start, activity_group_id)
   COALESCE(
     (STRING_AGG(DISTINCT log_user, ',' )
      FILTER (WHERE log_user NOT IN ('maintenance'))
@@ -205,12 +258,11 @@ SELECT DISTINCT ON (location_id, grts_address, date_start, date_visit, activity_
   ARRAY_AGG(DISTINCT fc_id ORDER BY fc_id) AS fieldcalendar_ids,
   ARRAY_AGG(DISTINCT su_id ORDER BY su_id) AS sampleunit_ids,
   ARRAY_AGG(DISTINCT strats ORDER BY strats) AS stratums,
-  location_id,
   grts_address,
   activity_group_id,
   date_start,
-  MAX(teammember_id),
-  date_visit,
+  MAX(teammember_id) AS teammember_id,
+  MAX(date_visit) AS date_visit,
   MAX(datetime_visit) AS datetime_visit,
   BOOL_OR(sampling_done) AS sampling_done,
   STRING_AGG(notes, ', ') AS notes,
@@ -230,7 +282,7 @@ SELECT DISTINCT ON (location_id, grts_address, date_start, date_visit, activity_
   STRING_AGG(DISTINCT chlorophytae_specification, ', ') AS chlorophytae_specification,
   AVG(waterdepth_samplingpoint_cm) AS waterdepth_samplingpoint_cm,
   AVG(secchi_depth_cm) AS secchi_depth_cm,
-  BOOL_OR(clear_to_bottom),
+  BOOL_OR(clear_to_bottom) AS clear_to_bottom,
   AVG(sludge_thickness) AS sludge_thickness,
   AVG(waterlevel_elevation_mtaw) AS waterlevel_elevation_mtaw,
   STRING_AGG(DISTINCT project_code, ', ') AS project_code,
@@ -254,8 +306,122 @@ LATERAL
   UNNEST(fieldcalendar_ids) AS fc_id,
   UNNEST(sampleunit_ids) AS su_id,
   UNNEST(stratums) AS strats
-GROUP BY location_id, grts_address, date_start, date_visit, activity_group_id
+GROUP BY location_id, grts_address, date_start, activity_group_id
 ;
+
+
+-- some were missing in the first run, probably because of `bool_or(...NULL...)` distinction
+INSERT INTO "inbound"."LenticVisits" (
+  log_user,
+  log_update,
+  location_id,
+  fieldcalendar_ids,
+  sampleunit_ids,
+  stratums,
+  grts_address,
+  activity_group_id,
+  date_start,
+  teammember_id,
+  date_visit,
+  datetime_visit,
+  sampling_done,
+  notes,
+  photo,
+  issues,
+  visit_done,
+  link_observation_samplecontext,
+  link_observation_meteorology,
+  link_observation_perturbation,
+  archive_version_id,
+  is_aggregated,
+  equipment,
+  chlorophytae_presence,
+  chlorophytae_specification,
+  waterdepth_samplingpoint_cm,
+  secchi_depth_cm,
+  clear_to_bottom,
+  sludge_thickness,
+  waterlevel_elevation_mtaw,
+  project_code,
+  recipient_code,
+  watertemperature_celsius,
+  sample_ph,
+  electric_conductivity_mus_cm,
+  dissolved_oxygen_mg_l,
+  dissolved_oxygen_percent,
+  sample_notes,
+  sample_contamination,
+  sample_contamination_reason,
+  sneller_cm,
+  color,
+  smell,
+  zooplankton,
+  macroinvertebrates,
+  xphoto_sample,
+  is_aggregated
+)
+SELECT
+  UV.log_user,
+  UV.log_update,
+  UV.location_id,
+  UV.fieldcalendar_ids,
+  UV.sampleunit_ids,
+  UV.stratums,
+  UV.grts_address,
+  UV.activity_group_id,
+  UV.date_start,
+  UV.teammember_id,
+  UV.date_visit,
+  UV.datetime_visit,
+  UV.sampling_done,
+  UV.notes,
+  UV.photo,
+  UV.issues,
+  UV.visit_done,
+  UV.link_observation_samplecontext,
+  UV.link_observation_meteorology,
+  UV.link_observation_perturbation,
+  UV.archive_version_id,
+  UV.is_aggregated,
+  UV.equipment,
+  UV.chlorophytae_presence,
+  UV.chlorophytae_specification,
+  UV.waterdepth_samplingpoint_cm,
+  UV.secchi_depth_cm,
+  UV.clear_to_bottom,
+  UV.sludge_thickness,
+  UV.waterlevel_elevation_mtaw,
+  UV.project_code,
+  UV.recipient_code,
+  UV.watertemperature_celsius,
+  UV.sample_ph,
+  UV.electric_conductivity_mus_cm,
+  UV.dissolved_oxygen_mg_l,
+  UV.dissolved_oxygen_percent,
+  UV.sample_notes,
+  COALESCE(UV.sample_contamination, FALSE),
+  UV.sample_contamination_reason,
+  UV.sneller_cm,
+  UV.color,
+  UV.smell,
+  UV.zooplankton,
+  UV.macroinvertebrates,
+  UV.xphoto_sample,
+  TRUE
+FROM "archive"."UnaggregatedVisits" UV
+LEFT JOIN (
+  SELECT DISTINCT grts_address, stratums, fieldcalendar_ids, activity_group_id, date_start,
+  lenticvisit_id AS already_present
+  FROM "inbound"."LenticVisits" WHERE is_aggregated
+) AS LV
+  ON (UV.grts_address = LV.grts_address)
+  AND (UV.date_start = LV.date_start)
+  AND (UV.stratums <@ LV.stratums)
+  AND (UV.activity_group_id = LV.activity_group_id)
+  AND (UV.fieldcalendar_ids <@ LV.fieldcalendar_ids)
+WHERE already_present IS NULL
+;
+
 
 -- clean up
 DELETE FROM "inbound"."LenticVisits" WHERE NOT is_aggregated;
@@ -271,9 +437,82 @@ Compare pre/post to find issues
 \COPY (SELECT * FROM "inbound"."LenticVisits" WHERE visit_done)  TO '~/20260917_lentic_visits_preaggregated.csv' With CSV DELIMITER ',' HEADER;
 \COPY (SELECT * FROM "inbound"."LenticVisits" WHERE visit_done)  TO '~/20260917_lentic_visits_postaggregated.csv' With CSV DELIMITER ',' HEADER;
 
+
+-- TODO better join on SQL for comparison
+\COPY (
+  SELECT *
+  FROM "archive"."UnaggregatedVisits" UV
+  LEFT JOIN "inbound"."LenticVisits" LV
+    ON  (UV.grts_address = LV.grts_address)
+    AND (UV.date_start = LV.date_start)
+    AND (UV.activity_group_id = LV.activity_group_id)
+    AND (UV.stratums <@ LV.stratums)
+)  TO '~/20260917_lentic_visits_prepostjoined.csv' With CSV DELIMITER ',' HEADER;
+  -- WHERE UV.grts_address = 3514038 AND UV.date_start = '2026-07-01'
+
 ```
 
 Then run the MODIFIED `102_re_link_foreign_keys.R` script to re-link tables.
+
+#### Modify Scripts
+
+To get summary of aggregated #FieldCalendars:
+```sql
+SELECT DISTINCT ON
+    (grts_address, date_start, activity_group_id, matching_occasion)
+  grts_address,
+  date_start,
+  activity_group_id,
+  matching_occasion,
+  ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+  ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+  ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids
+FROM "outbound"."FieldCalendars"
+WHERE grts_address = 3514038 AND date_start = '2026-07-01'
+  AND NOT excluded
+GROUP BY
+  grts_address, date_start, activity_group_id, matching_occasion
+;
+
+```
+
+
+Actually update aggregated columns:
+
+```sql
+
+UPDATE "inbound"."Visits" AS TRGTAB
+  SET
+    stratums = SRCTAB.stratums,
+    sampleunit_ids = SRCTAB.sampleunit_ids,
+    fieldcalendar_ids = SRCTAB.fieldcalendar_ids
+  FROM (
+    SELECT DISTINCT ON
+        (grts_address, date_start, activity_group_id, matching_occasion)
+      grts_address,
+      date_start,
+      activity_group_id,
+      matching_occasion,
+      ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+      ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+      ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids
+    FROM "outbound"."FieldCalendars"
+    WHERE NOT excluded
+    GROUP BY
+      grts_address, date_start, activity_group_id, matching_occasion
+  ) AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.date_start = SRCTAB.date_start)
+   AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+   AND (SRCTAB.stratums && TRGTAB.stratums)
+;
+
+SELECT * FROM "inbound"."Visits" 
+WHERE grts_address = 3514038 AND date_start = '2026-07-01'
+;
+
+```
 
 
 #### Views for Convenience and Backwards Compatibility
