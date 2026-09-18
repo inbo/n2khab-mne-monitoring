@@ -85,7 +85,7 @@ test = PD.read_sql_table("test", engine, schema = "playground")
 print(test["arr"].apply(lambda arr: set(arr)))
 ```
 
-(`set` is not meningful, just used for test purposes.)
+(`set` is not meaningful, just used for test purposes.)
 ```
 >>> print(test["arr"].apply(lambda arr: set(arr)))
 0       {0}
