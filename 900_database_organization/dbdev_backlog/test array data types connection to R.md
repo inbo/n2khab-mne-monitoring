@@ -1,7 +1,7 @@
 ---
 aliases:
 tags:
-started:
+started: 2026-09-18
 finished:
 execution:
 status: false
@@ -67,6 +67,54 @@ Columns: 2
 $ arr    <pq__int4> {0,0}, {1,0}, {0,1}
 $ vector <pq__int4> {{0},{0}}, {{1},{0}}, {{0},{1}}
 ```
+
+### Finding a Workaround
+
+```sh
+git clone https://github.com/r-dbi/RPostgres
+cd RPostgres
+
+```
+
+*(no hint)*
+
+> Gemini is the new Google.
+Used the chatbot to find any working solution.
+It gave me five; only one worked.
+It was less than ideal (`jsonlite` dependency), so I modified it (using `array_to_string` instead of `array_to_json`).
+
+```r
+
+requireNamespace("dbplyr", quietly = FALSE) # WTF?! "quietly" will suppress warnings...
+
+data_uncollected <- dplyr::tbl(mnmdb_connection@database_connection, DBI::Id("playground", "test"))
+array_columns <- c("arr", "vector") 
+
+data_converted <- data_uncollected
+for (col in array_columns) {
+  data_converted <- data_converted %>%
+    mutate_at(
+      vars(tidyselect::all_of(c(col))),
+      \(dcol) dbplyr::sql(sprintf("array_to_string(%s, ',', 'NULL')", col))
+    )
+
+}
+data_collected <- data_converted %>% collect()
+
+
+string_to_array <- \(arr_str) stringr::str_split(arr_str, pattern = ",")
+string_array_to_int_array <- \(iarr) lapply(string_to_array(iarr), FUN = as.integer)
+
+data_final <- data_collected %>%
+  mutate_at(
+    vars(tidyselect::all_of(array_columns)),
+    string_array_to_int_array
+  )
+
+data_final %>% glimpse()
+
+```
+
 
 
 ## Python

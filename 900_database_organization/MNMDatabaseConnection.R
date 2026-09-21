@@ -676,7 +676,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
   # tables and their relations
   # db$folder <- "mnmsyncdb_dev_structure"
-  db$tables <- bind_rows(
+  db$tables <- dplyr::bind_rows(
     read.csv(file.path(db$folder, "TABLES.csv")) %>%
         dplyr::select(table, schema, geometry, inherits, excluded) %>%
         dplyr::mutate(
@@ -819,10 +819,10 @@ mnmdb_assemble_structure_lookups <- function(db) {
   # db$load_table_info("FreeFieldNotes")
 
   # check that a table has a column
-  db$table_has_column <- function(table_label, column) {
+  db$table_has_column <- function(table_label, the_column) {
     existing_columns <- db$load_table_info(table_label) %>%
       dplyr::pull(column)
-    return(column %in% existing_columns)
+    return(the_column %in% existing_columns)
   }
   # db$load_table_info("FreeFieldNotes")
 
@@ -1014,16 +1014,27 @@ mnmdb_assemble_query_functions <- function(db) {
 
 
     } else {
-
       ## else: non-spatial
+
+      # initially load data without `collect()`
       data_uncollected <- db$query_table_uncollected(table_label, ONLY, subselect)
 
       ### array types: convert to string via pg `array_to_string`
-      array_columns <- c("arr", "vector")
+      table_info <- db$load_table_info(table_label)
+      array_columns <- table_info %>%
+        dplyr::filter(grepl("array|[[]]", tolower(datatype))) %>%
+        dplyr::select(column, datatype)
+
+      int_array_columns <- array_columns %>%
+        dplyr::filter(grepl("int", tolower(datatype))) %>%
+        dplyr::pull(column)
+      other_array_columns <- array_columns %>%
+        dplyr::filter_out(column %in% int_array_columns) %>%
+        dplyr::pull(column)
 
       # looped convert array columns
       data_converted <- data_uncollected
-      for (col in array_columns) {
+      for (col in array_columns %>% dplyr::pull(column)) {
         data_converted <- data_converted %>%
           dplyr::mutate_at(
             dplyr::vars(tidyselect::all_of(c(col))),
@@ -1034,18 +1045,21 @@ mnmdb_assemble_query_functions <- function(db) {
       data_collected <- data_converted %>% dplyr::collect()
 
 
+      # undo conversion: string to list
       string_to_array <- \(arr_str) stringr::str_split(arr_str, pattern = ",")
       string_array_to_int_array <- \(iarr) lapply(string_to_array(iarr), FUN = as.integer)
 
       data <- data_collected %>%
         dplyr::mutate_at(
-          dplyr::vars(tidyselect::all_of(array_columns)),
+          dplyr::vars(tidyselect::all_of(int_array_columns)),
           string_array_to_int_array
+        ) %>%
+        dplyr::mutate_at(
+          dplyr::vars(tidyselect::all_of(other_array_columns)),
+          string_to_array
         )
 
       # data %>% glimpse()
-
-
 
     } # /spatial or else non-spatial data query
 

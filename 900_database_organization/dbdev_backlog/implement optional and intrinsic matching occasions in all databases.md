@@ -3,7 +3,7 @@ aliases:
 tags:
   - matching_occasions
   - FieldCalendars
-started:
+started: 2026-09-14
 finished:
 execution:
 status: false
@@ -58,7 +58,8 @@ loceval=> SELECT DISTINCT grts_address, type FROM "outbound"."FieldCalendars" WH
 > 	- Upon first inspection, [[sql_tricks/array data types|array data types]] seem to work fine and there is no reason to avoid that, except some [ancient dogma](https://en.wikipedia.org/wiki/First_normal_form).
 > 	- Crucial trick to still follow that dogma is to switch hierarchy: instead of hanging #Visits onto #FieldCalendars, each entry in the calendars should have at most one `visit_id` (or none).
 > 	- There will be a view #OccasionMatching which optionally provides a way to link, alike to "physical" tables.
-> - #FieldCalendars should not be aggregated: all #SampleUnits come from the REP, and some might be disapproved by #loceval, thus #FieldworkPlanning must deselect the ones which are not eligible. As a consequence, **`exclude` becomes more important!** The new `visit_id` column in `FieldCalendars` should be nullable to allow disconnection of rejected units. Conversely, `fieldcalendar_ids` must be adjusted by removing excluded ones from the array.
+> 	- R / `dplyr` seems to have some issues with the `pg__int4` or `pg__varchar` data types delivered by `RPostgres` for array fields; those issues must be circumvented.
+> - #FieldCalendars should **not** be aggregated: all #SampleUnits come from the REP, and some might be disapproved by #loceval, thus #FieldworkPlanning must deselect the ones which are not eligible. As a consequence, **`exclude` becomes more important!** The new `visit_id` column in `FieldCalendars` should be nullable to allow disconnection of rejected units. Conversely, `fieldcalendar_ids` must be adjusted by removing excluded ones from the array.
 > - #inheritance: the monarchy of #Visits should not be affected (all aggregated columns are in the parent table interface), just that there will be fewer rows.
 > - Temporal continuity (unit rejection by loceval after the visit) is no issue, because the calendar is fixed on a time point.
 > - Performance should not be an issue; however, I must ensure that the major #views ( #FieldworkPlanning, #FieldWork ) stay efficient and performant.
