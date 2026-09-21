@@ -1,6 +1,8 @@
 -- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldcalendar_id = 3;
 --
 
+
+
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
@@ -48,7 +50,7 @@ SELECT
   FWCAL.excluded_reason,
   FWCAL.teammember_assigned,
   FWCAL.date_visit_planned,
-  FWCAL.no_visit_planned,
+  FWCAL.excluded AS no_visit_planned,
   FWCAL.notes,
   FWCAL.done_planning,
   VISIT.date_visit,
@@ -185,7 +187,7 @@ DO ALSO
   excluded_reason = NEW.excluded_reason,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.no_visit_planned,
+  no_visit_planned = NEW.excluded OR NEW.no_visit_planned,
   notes = NEW.notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id

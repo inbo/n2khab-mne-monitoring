@@ -43,7 +43,7 @@ SELECT
   FCAL.excluded_reason,
   FCAL.teammember_assigned,
   FCAL.date_visit_planned,
-  FCAL.no_visit_planned,
+  FCAL.excluded AS no_visit_planned,
   FCAL.notes,
   FCAL.done_planning,
   VISIT.date_visit,
@@ -150,7 +150,7 @@ DO ALSO
   excluded_reason = NEW.excluded_reason,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.no_visit_planned,
+  no_visit_planned = NEW.excluded OR NEW.no_visit_planned,
   notes = NEW.notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id

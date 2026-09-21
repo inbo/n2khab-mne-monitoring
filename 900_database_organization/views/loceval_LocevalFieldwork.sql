@@ -11,6 +11,7 @@
  END
 
 
+
 DROP VIEW "inbound"."LocevalFieldwork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."LocevalFieldwork" AS
 SELECT
@@ -55,7 +56,7 @@ SELECT
       THEN NULL
       ELSE (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date
       END AS days_to_visit,
-  FAC.no_visit_planned,
+  FAC.excluded AS no_visit_planned,
   FAC.notes AS preparation_notes,
   FAC.done_planning,
   FAC.is_frozen,
@@ -173,7 +174,7 @@ DO ALSO
   excluded_reason = NEW.excluded_reason,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.no_visit_planned,
+  no_visit_planned = NEW.excluded OR NEW.no_visit_planned,
   notes = NEW.preparation_notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id

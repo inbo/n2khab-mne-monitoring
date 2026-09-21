@@ -77,6 +77,7 @@ FROM (
   NATURAL FULL JOIN "inbound"."InstallationVisits"
   NATURAL FULL JOIN "inbound"."SamplingVisits"
   NATURAL FULL JOIN "inbound"."PositioningVisits"
+  NATURAL FULL JOIN "inbound"."OtherVisits"
 ) AS VISIT
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
