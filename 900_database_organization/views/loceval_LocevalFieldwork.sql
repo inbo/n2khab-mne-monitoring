@@ -11,7 +11,6 @@
  END
 
 
-
 DROP VIEW "inbound"."LocevalFieldwork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."LocevalFieldwork" AS
 SELECT
@@ -110,15 +109,12 @@ LEFT JOIN "outbound"."SampleUnits" AS UNIT
 LEFT JOIN (
   SELECT DISTINCT
     sampleunit_id,
-    cell_disapproved,
-    assessment_done,
-    CONCAT(notes || ' ') AS notes
+    BOOL_OR(cell_disapproved) AS cell_disapproved,
+    BOOL_OR(assessment_done) AS assessment_done,
+    STRING_AGG(CASE WHEN notes IS NULL THEN '' ELSE notes END, '; ') AS notes
   FROM "outbound"."LocationAssessments"
   GROUP BY
-    sampleunit_id,
-    cell_disapproved,
-    assessment_done,
-    notes
+    sampleunit_id
   ) AS OPHO
   ON VISIT.sampleunit_id = OPHO.sampleunit_id
 LEFT JOIN (
@@ -135,11 +131,14 @@ WHERE TRUE
   AND VISIT.type = FAC.type
   AND VISIT.date_start = FAC.date_start
   AND VISIT.activity_group_id = FAC.activity_group_id
-  AND FAC.wait_any IS FALSE
-  AND (VISIT.visit_done OR UNIT.archive_version_id IS NULL)
-  AND (VISIT.visit_done OR FAC.archive_version_id IS NULL)
-  AND (VISIT.visit_done OR VISIT.archive_version_id IS NULL)
-  AND ((OPHO.cell_disapproved IS NULL) OR (NOT OPHO.cell_disapproved))
+  AND (
+    VISIT.visit_done OR (
+      (NOT FAC.wait_any)
+      AND (UNIT.archive_version_id IS NULL)
+      AND (FAC.archive_version_id IS NULL)
+      AND (VISIT.archive_version_id IS NULL)
+      AND ((OPHO.cell_disapproved IS NULL) OR (NOT OPHO.cell_disapproved))
+  ))
   AND ACT.is_loceval_activity
 ;
 

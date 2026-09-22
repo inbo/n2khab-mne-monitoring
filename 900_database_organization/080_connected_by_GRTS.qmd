@@ -42,7 +42,8 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 #
-grts <- c(30153) # no replacement date
+grts <- c("1770206", "1806302", "1806302", "1639134", "1770206", "49768174") # duplicate orthofoto evaluations
+  # c(30153) # no replacement date
   # c(47553522) # installation not visible -> solved
   # c(9488370) # clean and samp activity not matching for Q3 2026 # also 1062930
   # c(1466998) # no replacement cells visible
@@ -669,7 +670,7 @@ gw_print_slocs <- function() {
 
 -- The Work: Calendar and Visits
 
-```{r field-calendar}
+```{r field-calendar-gwdb}
 
 fwcal <- mnmdb$query_table("FieldCalendars") %>%
   filter(grts_address %in% grts) %>%
@@ -1047,9 +1048,9 @@ surf_print_slocs <- function() {
 
 -- The Work: Calendar and Visits
 
-```{r field-calendar}
+```{r field-calendar-surfdb}
 
-fwcal <- mnmdb$query_table("FieldCalendar") %>%
+fwcal <- mnmdb$query_table("FieldCalendars") %>%
   filter(grts_address %in% grts) %>%
   join_activity_groups() # %>%
 
