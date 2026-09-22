@@ -937,8 +937,8 @@ mnmdb_assemble_query_functions <- function(db) {
     }
 
     # the whole table content
-    inclusive_data <- query_inclusive(table_label) %>%
-      dplyr::collect()
+    inclusive_data <- query_inclusive(table_label)
+    # %>% dplyr::collect()
 
 
     # inclusive = ALL; exclusive = ONLY
@@ -949,7 +949,7 @@ mnmdb_assemble_query_functions <- function(db) {
       # listwise query
       childtable_data <- lapply(
         db$get_descendant_tables(table_label),
-        FUN = \(table) query_inclusive(table) %>% dplyr::collect()
+        FUN = \(table) query_inclusive(table) # %>% dplyr::collect()
         )
 
       # anti-join
@@ -1059,7 +1059,11 @@ mnmdb_assemble_query_functions <- function(db) {
           string_to_array
         )
 
-      # data %>% glimpse()
+      # # data %>% glimpse()
+      # data %>% filter(grts_address == 231150) %>%
+      #   select(grts_address, stratums, sampleunit_ids, fieldcalendar_ids) %>%
+      #   # purrr::map(unlist) %>%
+      #   t() %>% knitr::kable()
 
     } # /spatial or else non-spatial data query
 

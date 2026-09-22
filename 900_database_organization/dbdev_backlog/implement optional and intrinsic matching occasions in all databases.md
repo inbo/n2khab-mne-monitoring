@@ -154,11 +154,6 @@ SOLUTION: ... or not: just switching the dependency between #FieldCalendars and 
 
 Structure is in place - data has to be aggregated.
 
-#### ISSUE: array data types not supported in R
-
-- [x] [[datatypes/test array data types connection to R|implement array data types in R database connection]]
-- [x] also for INSERT via `db$insert_data` (basically a string conversion)
-- [ ] test real database on `-staging`
 
 #### Data Aggregation
 
@@ -459,6 +454,14 @@ Compare pre/post to find issues
 ```
 
 Then run the MODIFIED `102_re_link_foreign_keys.R` script to re-link tables.
+
+
+#### ISSUE: array data types not supported in R
+
+- [x] [[datatypes/test array data types connection to R|implement array data types in R database connection]]
+- [x] also for INSERT via `db$insert_data` (basically a string conversion)
+- [x] test real database on `-staging`
+
 
 #### Modify Scripts
 
