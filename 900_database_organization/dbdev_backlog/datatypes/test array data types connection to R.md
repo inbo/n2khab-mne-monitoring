@@ -1,10 +1,13 @@
 ---
 aliases:
+  - implement array data types in R database connection
 tags:
+  - arrays
+  - datatypes
 started: 2026-09-18
-finished:
-execution:
-status: false
+finished: 2026-09-22
+execution: FM
+status: true
 priority:
 ---
 
@@ -115,7 +118,52 @@ data_final %>% glimpse()
 
 ```
 
+-> implemented to `MNMDatabaseConnection.R` [[timeline/2026-09-21|2026-09-21]]
 
+### insert data
+
+```r
+# We should also be able to upload the data
+data_upload <- data_final[1,]
+
+data_upload[[1, "arr"]] <- list(c(1, 1))
+data_upload[[1, "vector"]] <- list(c(1, 1))
+
+# wrap_curls <- \(arr_str) paste0(c("ARRAY[", arr_str, "]"), collapse = "")
+wrap_curls <- \(arr_str) paste0(c("{", arr_str, "}"), collapse = "")
+listpaste <- \(arr) paste0(unlist(arr), collapse = ",")
+
+# wrap_curls(listpaste(data_upload[[1, "arr"]]))
+upload_prep <- \(x) wrap_curls(listpaste(x))
+upload_2darr <- \(x) wrap_curls(listpaste(lapply(unlist(x), FUN = wrap_curls)))
+# upload_2darr(data_upload[[1, "vector"]])
+
+data_upload <- data_upload %>%
+  mutate(
+    arr = upload_prep(arr),
+    vector = upload_2darr(vector)
+  )
+
+data_upload %>% glimpse()
+
+rs <- DBI::dbWriteTable(
+  mnmdb_connection@database_connection,
+  DBI::Id("playground", "test"),
+  data_upload,
+  row.names = FALSE,
+  overwrite = FALSE,
+  append = TRUE,
+  # binary = TRUE,
+  # copy = FALSE,
+  # field.types = c("arr" = "int[]", "vector" = "int[]")
+  factorsAsCharacter = TRUE
+)
+
+# DELETE FROM "playground"."test" WHERE arr <@ '{1,1}';
+
+```
+
+-> implemented to `MNMDatabaseConnection.R` [[timeline/2026-09-22|2026-09-22]]
 
 ## Python
 
@@ -142,6 +190,7 @@ print(test["arr"].apply(lambda arr: set(arr)))
 Name: arr, dtype: object
 ```
 
+(I have not attempted the INSERT direction)
 
 ```sh
 # pip freeze

@@ -154,6 +154,11 @@ SOLUTION: ... or not: just switching the dependency between #FieldCalendars and 
 
 Structure is in place - data has to be aggregated.
 
+#### ISSUE: array data types not supported in R
+
+- [x] [[datatypes/test array data types connection to R|implement array data types in R database connection]]
+- [x] also for INSERT via `db$insert_data` (basically a string conversion)
+- [ ] test real database on `-staging`
 
 #### Data Aggregation
 

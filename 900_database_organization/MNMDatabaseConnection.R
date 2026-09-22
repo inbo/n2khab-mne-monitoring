@@ -1268,7 +1268,25 @@ mnmdb_assemble_query_functions <- function(db) {
       upload_data <- upload_data %>% dplyr::select(-ogc_fid)
     }
 
-    # ? geometry // spatial data
+    ### array types: convert nested list to string
+    table_info <- db$load_table_info(table_label)
+    array_columns <- table_info %>%
+      dplyr::filter(grepl("array|[[]]", tolower(datatype))) %>%
+      dplyr::pull(column)
+
+    if (length(array_columns) > 0) {
+      wrap_curls <- \(arr_str) paste0(c("{", arr_str, "}"), collapse = "")
+      listpaste <- \(arr) paste0(unlist(arr), collapse = ",")
+      upload_prep <- \(x) wrap_curls(listpaste(x))
+
+      upload_data <- upload_data %>%
+        dplyr::mutate_at(
+          dplyr::vars(tidyselect::all_of(array_columns)),
+          upload_prep
+        )
+    } # convert arrays to string
+
+    ### ? geometry // spatial data
     if (db$is_spatial(table_label)) {
       ## insert spatial data
 
@@ -1298,8 +1316,8 @@ mnmdb_assemble_query_functions <- function(db) {
       )
 
     } else {
+      ### regular, non-geometry data
 
-      # regular, non-geometry data
       rs <- DBI::dbWriteTable(
         db$connection,
         db$get_table_id(table_label),
@@ -1307,8 +1325,9 @@ mnmdb_assemble_query_functions <- function(db) {
         row.names = FALSE,
         overwrite = FALSE,
         append = TRUE,
-        factorsAsCharacter = TRUE,
-        binary = TRUE
+        binary = TRUE,
+        # copy = FALSE,
+        factorsAsCharacter = TRUE
       )
     }
 
