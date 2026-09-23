@@ -34,6 +34,8 @@ message(glue::glue("connected: psql {mnmsurfdb$shellstring}"))
 update_cascade_lookup <- parametrize_cascaded_update(mnmsurfdb)
 
 
+### issue 1: problem with datetime data type
+# fixed by explicit string cast prior to collect()
 
 visits <- mnmsurfdb$query_table("Visits")
 
@@ -53,3 +55,11 @@ if ("datetime_visit" %in% colnames(test)) {
 
 test_collected <- test %>% collect()
 test_collected %>% distinct(datetime_visit) %>% knitr::kable()
+
+
+### issue 2: tbd
+
+
+db_store <- mnmsurfdb$store_table_deptree_in_memory("Locations")
+
+mnmsurfdb$restore_table_data_from_memory(db_store, verbose = TRUE)

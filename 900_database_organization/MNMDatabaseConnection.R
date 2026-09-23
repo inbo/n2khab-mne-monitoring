@@ -1023,7 +1023,8 @@ mnmdb_assemble_query_functions <- function(db) {
       if ("datetime_visit" %in% colnames(data_uncollected)) {
         data_uncollected <- data_uncollected %>%
           dplyr::mutate(
-            datetime_visit = dbplyr::sql("to_char(datetime_visit, 'YYYY-MM-DD HH24:MI:SS.FF3')")
+            datetime_visit =
+              dbplyr::sql("to_char(datetime_visit, 'YYYY-MM-DD HH24:MI:SS.FF3')")
           )
       }
 
@@ -1032,7 +1033,9 @@ mnmdb_assemble_query_functions <- function(db) {
       table_info <- db$load_table_info(table_label)
       array_columns <- table_info %>%
         dplyr::filter(grepl("array|[[]]", tolower(datatype))) %>%
-        dplyr::select(column, datatype)
+        dplyr::select(column, datatype) %>%
+        dplyr::filter(column %in% colnames(data_uncollected))
+
 
       int_array_columns <- array_columns %>%
         dplyr::filter(grepl("int", tolower(datatype))) %>%
@@ -1044,6 +1047,7 @@ mnmdb_assemble_query_functions <- function(db) {
       # looped convert array columns
       data_converted <- data_uncollected
       for (col in array_columns %>% dplyr::pull(column)) {
+        # col <- fieldcalendar_ids
         data_converted <- data_converted %>%
           dplyr::mutate_at(
             dplyr::vars(tidyselect::all_of(c(col))),

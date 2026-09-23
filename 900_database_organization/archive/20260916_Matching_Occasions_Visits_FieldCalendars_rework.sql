@@ -116,28 +116,28 @@ COMMENT ON COLUMN "inbound"."Visits".sampleunit_ids IS E'array of sample unit in
 
 -- DATA AGGREGATION
 
--- check match!
-SELECT *
-  FROM (
-SELECT DISTINCT
-  grts_address,
-  date_start,
-  activity_group_id,
-  count(*) AS n_visits
-FROM "inbound"."Visits"
-GROUP BY grts_address, date_start, activity_group_id
-) AS VZ
-NATURAL FULL JOIN (
-SELECT DISTINCT
-  grts_address,
-  date_start,
-  activity_group_id,
-  count(*) AS n_calendars
-FROM "outbound"."FieldCalendars"
-GROUP BY grts_address, date_start, activity_group_id
-) AS FC
-ORDER BY activity_group_id, date_start, grts_address
-;
+-- -- check match!
+-- SELECT *
+--   FROM (
+-- SELECT DISTINCT
+--   grts_address,
+--   date_start,
+--   activity_group_id,
+--   count(*) AS n_visits
+-- FROM "inbound"."Visits"
+-- GROUP BY grts_address, date_start, activity_group_id
+-- ) AS VZ
+-- NATURAL FULL JOIN (
+-- SELECT DISTINCT
+--   grts_address,
+--   date_start,
+--   activity_group_id,
+--   count(*) AS n_calendars
+-- FROM "outbound"."FieldCalendars"
+-- GROUP BY grts_address, date_start, activity_group_id
+-- ) AS FC
+-- ORDER BY activity_group_id, date_start, grts_address
+-- ;
 
 
 -- temporary helper column to identify the aggregated rows
