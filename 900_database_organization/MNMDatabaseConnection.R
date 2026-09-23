@@ -925,7 +925,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
       pk <- db$get_primary_key(table_label)
       df %>%
-        dplyr::select(!!!rlang::syms(unique(c(pk, subselect)))) %>%
+        dplyr::select(tidyselect::any_of(unique(c(pk, subselect)))) %>%
         return()
     }
 
@@ -1018,6 +1018,15 @@ mnmdb_assemble_query_functions <- function(db) {
 
       # initially load data without `collect()`
       data_uncollected <- db$query_table_uncollected(table_label, ONLY, subselect)
+
+      # datetime column -> always query as string
+      if ("datetime_visit" %in% colnames(data_uncollected)) {
+        data_uncollected <- data_uncollected %>%
+          dplyr::mutate(
+            datetime_visit = dbplyr::sql("to_char(datetime_visit, 'YYYY-MM-DD HH24:MI:SS.FF3')")
+          )
+      }
+
 
       ### array types: convert to string via pg `array_to_string`
       table_info <- db$load_table_info(table_label)
@@ -1277,6 +1286,7 @@ mnmdb_assemble_query_functions <- function(db) {
     array_columns <- table_info %>%
       dplyr::filter(grepl("array|[[]]", tolower(datatype))) %>%
       dplyr::pull(column)
+
 
     if (length(array_columns) > 0) {
       wrap_curls <- \(arr_str) paste0(c("{", arr_str, "}"), collapse = "")
