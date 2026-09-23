@@ -9,6 +9,9 @@ grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (
 stratums,varchar ARRAY,True,,False,False,,,,strata for which this visit can provide data
 activity_group_id,smallint,True,,False,False,,,,"a link to the activity metadata, brought here via fieldcalendar for convenience"
 date_start,date,True,,False,False,,,,start of the panel activity sequence (included to keep recurrent visits unique)
+teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee
+date_visit_planned,date,False,NULL,False,False,,,,planned date of visit
+preparation_notes,text,False,NULL,False,False,,,,Free text notes from the colleague who planned this.
 teammember_id,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,link to the user who performed the visit
 date_visit,date,False,,False,False,,,,date of the field activity as derived from datetime_visits via expost rule
 datetime_visit,timestamp(0),False,,False,False,,,,date and time of the field activity

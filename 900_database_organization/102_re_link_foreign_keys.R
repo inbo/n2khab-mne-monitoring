@@ -15,6 +15,7 @@ source("MNMDatabaseToolbox.R")
 
 
 config_filepath <- file.path("./mnm_database_connection.conf")
+
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {
   mirror <- commandline_args[1]
@@ -443,6 +444,8 @@ stitch_table_connection(
   lookup_columns = c("grts_address")
 )
 
+# TODO need to update `sampleunit_ids` on Visits?
+
 
 # # link Visits back to SampleUnits and FieldCalendars
 trgtab <- '"inbound"."Visits"'
@@ -490,8 +493,9 @@ UPDATE {trgtab} AS TRGTAB
    (TRGTAB.grts_address = SRCTAB.grts_address)
    AND (TRGTAB.date_start = SRCTAB.date_start)
    AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
-   AND (TRGTAB.stratum @> SRCTAB.stratum)
+   AND (TRGTAB.stratum = ANY(SRCTAB.stratums))
 ;")
+
 
 mnmsurfdb$execute_sql(update_string, verbose = FALSE)
 

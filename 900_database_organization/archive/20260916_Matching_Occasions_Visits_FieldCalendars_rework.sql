@@ -12,6 +12,39 @@ ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldCalendars_Visit
 ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Visits;
 
 
+
+-- some columns change table: those are planned "per visit"
+ALTER TABLE "inbound"."Visits" ADD COLUMN teammember_assigned smallint;
+COMMENT ON COLUMN "inbound"."Visits".teammember_assigned IS E'filter for an assignee';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN date_visit_planned date;
+COMMENT ON COLUMN "inbound"."Visits".date_visit_planned IS E'planned date of visit';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN preparation_notes text;
+COMMENT ON COLUMN "inbound"."Visits".preparation_notes IS E'Free text notes from the colleague who planned this.';
+
+-- foreign key teammember_assigned
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_TeamMembers_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_TeamMembers_Visits FOREIGN KEY (teammember_assigned)
+REFERENCES "metadata"."TeamMembers" (teammember_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+UPDATE "inbound"."Visits" AS TRGTAB
+  SET
+    teammember_assigned = SRCTAB.teammember_assigned,
+    date_visit_planned = SRCTAB.date_visit_planned,
+    preparation_notes = SRCTAB.notes
+  FROM "outbound"."FieldCalendars" AS SRCTAB
+  WHERE
+    SRCTAB.fieldcalendar_id = TRGTAB.fieldcalendar_id
+    AND SRCTAB.grts_address = TRGTAB.grts_address
+    AND SRCTAB.date_start = TRGTAB.date_start
+    AND SRCTAB.stratum = TRGTAB.stratum
+;
+
+
+
 -- STRUCTURE PREPARATION
 
 -- NOTE: `Visits` and `FieldCalendars` have to switch order in the TABLES structure sheet
@@ -31,10 +64,22 @@ SET date_suggested = date_start;
 ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN visit_id int DEFAULT NULL;
 COMMENT ON COLUMN "outbound"."FieldCalendars".visit_id IS E'link to the visit which serves this calendar entry';
 
-ALTER TABLE "outbound"."FieldCalendars" DROP CONSTRAINT IF EXISTS fk_Visits_FieldCalendars CASCADE;
-ALTER TABLE "outbound"."FieldCalendars" ADD CONSTRAINT fk_Visits_FieldCalendars FOREIGN KEY (visit_id)
-REFERENCES "inbound"."Visits" (visit_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
+-- ALTER TABLE "outbound"."FieldCalendars" DROP CONSTRAINT IF EXISTS fk_Visits_FieldCalendars CASCADE;
+-- ALTER TABLE "outbound"."FieldCalendars" ADD CONSTRAINT fk_Visits_FieldCalendars FOREIGN KEY (visit_id)
+-- REFERENCES "inbound"."Visits" (visit_id) MATCH SIMPLE
+-- ON DELETE SET NULL ON UPDATE CASCADE;
+
+UPDATE "outbound"."FieldCalendars" AS TRGTAB
+  SET
+    visit_id = SRCTAB.visit_id
+  FROM "inbound"."Visits" AS SRCTAB
+  WHERE
+    SRCTAB.fieldcalendar_id = TRGTAB.fieldcalendar_id
+    AND SRCTAB.grts_address = TRGTAB.grts_address
+    AND SRCTAB.date_start = TRGTAB.date_start
+    AND SRCTAB.stratum = TRGTAB.stratum
+;
+
 
 
 -- Visits.stratums
@@ -65,10 +110,36 @@ ALTER TABLE "inbound"."Visits"
 RENAME COLUMN sampleunit_id TO sampleunit_ids;
 COMMENT ON COLUMN "inbound"."Visits".sampleunit_ids IS E'array of sample unit indices (technical) or NULL for obsolete visits';
 
+
 -- COMMIT;
 
 
 -- DATA AGGREGATION
+
+-- check match!
+SELECT *
+  FROM (
+SELECT DISTINCT
+  grts_address,
+  date_start,
+  activity_group_id,
+  count(*) AS n_visits
+FROM "inbound"."Visits"
+GROUP BY grts_address, date_start, activity_group_id
+) AS VZ
+NATURAL FULL JOIN (
+SELECT DISTINCT
+  grts_address,
+  date_start,
+  activity_group_id,
+  count(*) AS n_calendars
+FROM "outbound"."FieldCalendars"
+GROUP BY grts_address, date_start, activity_group_id
+) AS FC
+ORDER BY activity_group_id, date_start, grts_address
+;
+
+
 -- temporary helper column to identify the aggregated rows
 ALTER TABLE "inbound"."Visits"
 ADD COLUMN is_aggregated BOOLEAN NOT NULL DEFAULT FALSE;
@@ -78,8 +149,8 @@ ADD COLUMN is_aggregated BOOLEAN NOT NULL DEFAULT FALSE;
 \COPY (SELECT * FROM "inbound"."LenticVisits" WHERE visit_done)  TO '~/20260917_lentic_visits_preaggregated.csv' With CSV DELIMITER ',' HEADER;
 
 -- create a copy of the existing Visits
-DROP TABLE IF EXISTS "archive"."UnaggregatedVisits";
-CREATE TABLE "archive"."UnaggregatedVisits" AS
+DROP TABLE IF EXISTS "archive"."UnaggregatedVisitsBackup";
+CREATE TABLE "archive"."UnaggregatedVisitsBackup" AS
 SELECT *
 FROM ONLY "inbound"."Visits"
 NATURAL FULL JOIN "inbound"."LenticVisits"
@@ -121,6 +192,9 @@ INSERT INTO "inbound"."LenticVisits" (
   grts_address,
   activity_group_id,
   date_start,
+  teammember_assigned,
+  date_visit_planned,
+  preparation_notes,
   teammember_id,
   date_visit,
   datetime_visit,
@@ -159,7 +233,8 @@ INSERT INTO "inbound"."LenticVisits" (
   macroinvertebrates,
   xphoto_sample
 )
-SELECT DISTINCT ON (location_id, grts_address, date_start, activity_group_id)
+SELECT DISTINCT
+-- ON (location_id, grts_address, date_start, activity_group_id)
   COALESCE(
     (STRING_AGG(DISTINCT log_user, ',' )
      FILTER (WHERE log_user NOT IN ('maintenance'))
@@ -174,6 +249,9 @@ SELECT DISTINCT ON (location_id, grts_address, date_start, activity_group_id)
   grts_address,
   activity_group_id,
   date_start,
+  MAX(teammember_assigned) AS teammember_assigned,
+  MAX(date_visit_planned) AS date_visit_planned,
+  STRING_AGG(DISTINCT preparation_notes, ', ') AS preparation_notes,
   MAX(teammember_id) AS teammember_id,
   MAX(date_visit) AS date_visit,
   MAX(datetime_visit) AS datetime_visit,
@@ -233,6 +311,9 @@ INSERT INTO "inbound"."LenticVisits" (
   grts_address,
   activity_group_id,
   date_start,
+  teammember_assigned,
+  date_visit_planned,
+  preparation_notes,
   teammember_id,
   date_visit,
   datetime_visit,
@@ -245,7 +326,6 @@ INSERT INTO "inbound"."LenticVisits" (
   link_observation_meteorology,
   link_observation_perturbation,
   archive_version_id,
-  is_aggregated,
   equipment,
   chlorophytae_presence,
   chlorophytae_specification,
@@ -282,6 +362,9 @@ SELECT
   UV.grts_address,
   UV.activity_group_id,
   UV.date_start,
+  UV.teammember_assigned,
+  UV.date_visit_planned,
+  UV.preparation_notes,
   UV.teammember_id,
   UV.date_visit,
   UV.datetime_visit,
@@ -294,7 +377,6 @@ SELECT
   UV.link_observation_meteorology,
   UV.link_observation_perturbation,
   UV.archive_version_id,
-  UV.is_aggregated,
   UV.equipment,
   UV.chlorophytae_presence,
   UV.chlorophytae_specification,
@@ -320,7 +402,7 @@ SELECT
   UV.macroinvertebrates,
   UV.xphoto_sample,
   TRUE
-FROM "archive"."UnaggregatedVisits" UV
+FROM "archive"."UnaggregatedVisitsBackup" UV
 LEFT JOIN (
   SELECT DISTINCT grts_address, stratums, fieldcalendar_ids, activity_group_id, date_start,
   lenticvisit_id AS already_present
@@ -331,14 +413,16 @@ LEFT JOIN (
   AND (UV.stratums <@ LV.stratums)
   AND (UV.activity_group_id = LV.activity_group_id)
   AND (UV.fieldcalendar_ids <@ LV.fieldcalendar_ids)
-WHERE already_present IS NULL
-;
+WHERE (already_present IS NULL)
+  AND (lenticvisit_id IS NOT NULL)
+; -- responds `(0, 0) updated`, but is fine
+
 
 DELETE FROM "inbound"."LenticVisits" WHERE NOT is_aggregated;
 
-
 ALTER TABLE "inbound"."Visits" DROP COLUMN is_aggregated;
 
+COMMIT;
 
 
 \COPY (SELECT * FROM "inbound"."LenticVisits" WHERE visit_done)  TO '~/20260917_lentic_visits_postaggregated.csv' With CSV DELIMITER ',' HEADER;
@@ -346,7 +430,7 @@ ALTER TABLE "inbound"."Visits" DROP COLUMN is_aggregated;
 -- better join on SQL for comparison
 \COPY (
   SELECT *
-  FROM "archive"."UnaggregatedVisits" UV
+  FROM "archive"."UnaggregatedVisitsBackup" UV
   LEFT JOIN "inbound"."LenticVisits" LV
     ON  (UV.grts_address = LV.grts_address)
     AND (UV.date_start = LV.date_start)
