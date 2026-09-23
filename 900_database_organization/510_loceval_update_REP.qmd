@@ -866,7 +866,7 @@ Starting at `fieldwork_shortterm_prioritization_by_stratum`, which is already fi
 
 # sampleunits_lookup <- locevaldb$query_columns("SampleUnits", c("grts_address", "type", "sampleunit_id"))
 
-fieldwork_calendar_columns <- c(
+fieldcalendar_columns <- c(
   "grts_address",
   "type",
   "sampleunit_id",
@@ -896,7 +896,7 @@ fieldcalendar_characols <- c(
 )
 
 
-fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
+fieldcalendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
   replace_stratum_by_type() %>%
   inner_join(
@@ -929,14 +929,14 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
     )
   ) %>%
   mutate(is_frozen = FALSE) %>% 
-  # select(!!!rlang::syms(fieldwork_calendar_columns))
+  # select(!!!rlang::syms(fieldcalendar_columns))
   select(
-    tidyselect::any_of(unique(fieldwork_calendar_columns))
+    tidyselect::any_of(unique(fieldcalendar_columns))
   )
 
 
-# fieldwork_calendar_updated %>% glimpse()
-# fieldwork_calendar_updated %>% distinct(matching_occasion)
+# fieldcalendar_updated %>% glimpse()
+# fieldcalendar_updated %>% distinct(matching_occasion)
 
 ```
 
@@ -946,10 +946,10 @@ Normally, all calendar entries from the `freeze` have already be removed, so the
 
 ```{r assemble-fieldwork-calendar-freeze}
 
-fieldwork_calendar_retained <- loceval_freeze %>%
-  select(tidyselect::any_of(c(fieldwork_calendar_columns, "done_planning"))) %>% 
+fieldcalendar_retained <- loceval_freeze %>%
+  select(tidyselect::any_of(c(fieldcalendar_columns, "done_planning"))) %>% 
   anti_join(
-    fieldwork_calendar_updated,
+    fieldcalendar_updated,
     by = join_by(!!!rlang::syms(fieldcalendar_characols))
   ) %>%
   select(-is_frozen) %>%
@@ -966,7 +966,7 @@ fieldwork_calendar_retained <- loceval_freeze %>%
   select(-done_planning, -is_loceval_activity)
   
 
-# fieldwork_calendar_retained %>% glimpse()
+# fieldcalendar_retained %>% glimpse()
 # loceval_freeze %>% count(activity_group_id, done_planning, visit_done)
 
 ```
@@ -975,9 +975,9 @@ fieldwork_calendar_retained <- loceval_freeze %>%
 
 ```{r union-fieldwork-calendar}
 
-fieldwork_calendar_new <- bind_rows(
-    fieldwork_calendar_retained,
-    fieldwork_calendar_updated
+fieldcalendar_new <- bind_rows(
+    fieldcalendar_retained,
+    fieldcalendar_updated
   )
 
 ```
@@ -1004,7 +1004,7 @@ Link dates of current calendar table to new calendar
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = locevaldb,
   table_label = "FieldCalendars",
-  data_future = fieldwork_calendar_new,
+  data_future = fieldcalendar_new,
   characteristic_columns = fieldcalendar_characols,
   other_table_labels = c("Visits")
 ) 
@@ -1020,14 +1020,14 @@ calculate `date_suggested` as min date in matching_occasion group
 
 ```{r match-occasions-min-date}
 
-matching_occasions <- fieldwork_calendar_new %>% 
+matching_occasions <- fieldcalendar_new %>% 
   summarize(
     date_suggested = min(date_start),
     .by = c(matching_occasion)
   ) %>%
   filter_out(is.na(matching_occasion)) 
 
-fieldwork_calendar_new <- fieldwork_calendar_new %>%
+fieldcalendar_new <- fieldcalendar_new %>%
   select(-date_suggested) %>% 
   left_join(
     matching_occasions,
@@ -1042,7 +1042,7 @@ fieldwork_calendar_new <- fieldwork_calendar_new %>%
 ```{r categorize-fieldworkcalendar}
 
 table_label <- "FieldCalendars"
-data_nouveau <- fieldwork_calendar_new
+data_nouveau <- fieldcalendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
 # data_nouveau %>% head(3) %>% t() %>% knitr::kable()

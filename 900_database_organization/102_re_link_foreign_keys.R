@@ -444,7 +444,7 @@ stitch_table_connection(
   lookup_columns = c("grts_address")
 )
 
-# TODO need to update `sampleunit_ids` on Visits?
+# update `sampleunit_ids` on Visits? -> only indirect via FieldCalendars
 
 
 # # link Visits back to SampleUnits and FieldCalendars

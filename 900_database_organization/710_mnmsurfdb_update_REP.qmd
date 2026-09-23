@@ -19,6 +19,7 @@ knitr:
 - 20260703 REP update 0.17.0
 - 20260811 quarterly prio update 
 - 20260819 REP 0.18.0
+- 20260923 intrinsic matching occasions (Visits 1 : n FieldCalendars)
 
 
 # TODO
@@ -184,9 +185,10 @@ if (FALSE) {
   # version_notes <- "activating SURF_03.4_LENTIC"
   # version_notes <- "shifting aquatics from GRTS cell to point on polygon surface"
   # version_notes <- "quarterly prio update"
+  # version_tag <- "snip:0.18.0_rep:0.18.0" # version_notes <- "REP 0.18.0 refinements on lentic sample units"
 
   version_tag <- "snip:0.18.0_rep:0.18.0" # data_iteration = 1
-  version_notes <- "REP 0.18.0 refinements on lentic sample units"
+  version_notes <- "realize matching occasions ('intrinsic')"
 
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
@@ -198,11 +200,13 @@ if (FALSE) {
     new_date_fixing = version_date_fixing
   )
 
-  # SELECT * FROM "metadata"."Versions";
+  message(glue::glue("Working on NEW version #{version_id}."))
+  # # -- SELECT * FROM "metadata"."Versions";
 
 } else {
   # per default, the latest version is taken
   version_id <- mnmsurfdb$load_latest_version_id()
+  message(glue::glue("Working on version #{version_id}."))
 }
 
 if (FALSE) {
@@ -302,7 +306,8 @@ mnmsurfdb_freeze <-
       date_start,
       date_end
     ), as.Date)
-  )
+  ) %>%
+  mutate(matching_occasions = NA, date_suggested = date_start)
 
 # TODO annoyingly, an empty `freeze` gets quite arbitrary data types in R
 
@@ -928,6 +933,8 @@ fieldcalendar_columns <- c(
   "date_start",
   "date_end",
   "date_interval",
+  "matching_occasion",
+  "date_suggested",
   "activity_rank",
   "priority",
   "wait_any",
@@ -983,7 +990,8 @@ fieldcalendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
         stratum,
         grts_join_method,
         domain_part,
-        date_interval
+        date_interval,
+        matching_occasion
       ),
       as.character
     )
@@ -1090,7 +1098,7 @@ calendar_to_sideload <- load_table_sideload_content(
     log_update = convert_timestamp_to_ms_character(Sys.time()),
     is_sideloaded = TRUE,
     excluded = FALSE,
-    no_visit_planned = FALSE,
+    # no_visit_planned = FALSE,
     done_planning = FALSE
   )
 
@@ -1128,6 +1136,29 @@ startdate_updates_happened <- associate_and_shift_start_dates(
 ) 
 
 if (startdate_updates_happened) message("Startdate updates happened!")
+
+```
+
+
+calculate `date_suggested` as min date in matching_occasion group
+
+```{r match-occasions-min-date}
+
+matching_occasions <- fieldcalendar_new %>% 
+  summarize(
+    date_suggested = min(date_start),
+    .by = c(matching_occasion)
+  ) %>%
+  filter_out(is.na(matching_occasion)) 
+
+fieldcalendar_new <- fieldcalendar_new %>%
+  select(-date_suggested) %>% 
+  left_join(
+    matching_occasions,
+    by = join_by(matching_occasion),
+    relationship = "many-to-one"
+  ) %>% 
+  mutate(date_suggested = coalesce(date_suggested, date_start))
 
 ```
 
@@ -1176,7 +1207,7 @@ distribution$to_upload <- distribution$to_upload %>%
     log_update = convert_timestamp_to_ms_character(Sys.time()),
     excluded = FALSE,
     is_frozen = FALSE,
-    no_visit_planned = FALSE,
+    # no_visit_planned = FALSE,
     done_planning = FALSE
   ) 
 
@@ -1217,23 +1248,9 @@ mnmsurfdb$query_table("FieldCalendars") %>%
 
 ```{r stitch-visits}
 
-stitch_visits <- function() {
+# TODO !!! here continue
 
-  stitch_table_connection(
-    mnmdb = mnmsurfdb,
-    table_label = "Visits",
-    reference_table = "FieldCalendars",
-    link_key_column = "fieldcalendar_id",
-    lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
-  )
-  
-  stitch_table_connection(
-    mnmdb = mnmsurfdb,
-    table_label = "Visits",
-    reference_table = "SampleUnits",
-    link_key_column = "sampleunit_id",
-    lookup_columns = c("grts_address", "stratum")
-  )
+stitch_visits <- function() {
   
   stitch_table_connection(
     mnmdb = mnmsurfdb,
@@ -1242,6 +1259,58 @@ stitch_visits <- function() {
     link_key_column = "location_id",
     lookup_columns = c("grts_address")
   )
+
+  trgtab <- '"inbound"."Visits"'
+  srctab <- '"outbound"."FieldCalendars"'
+  update_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      stratums = SRCTAB.stratums,
+      sampleunit_ids = SRCTAB.sampleunit_ids,
+      fieldcalendar_ids = SRCTAB.fieldcalendar_ids
+    FROM (
+      SELECT DISTINCT ON
+          (grts_address, date_start, activity_group_id, matching_occasion)
+        grts_address,
+        date_start,
+        activity_group_id,
+        matching_occasion,
+        ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+        ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+        ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids
+      FROM {srctab}
+        WHERE NOT excluded
+      GROUP BY
+        grts_address, date_start, activity_group_id, matching_occasion
+    ) AS SRCTAB
+    WHERE
+     (TRGTAB.grts_address = SRCTAB.grts_address)
+     AND (TRGTAB.date_start = SRCTAB.date_start)
+     AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+     AND (SRCTAB.stratums && TRGTAB.stratums)
+  ;")
+  
+  mnmsurfdb$execute_sql(update_string, verbose = FALSE)
+  
+  
+  # link FieldCalendars back to Visits
+  trgtab <- '"outbound"."FieldCalendars"'
+  srctab <- '"inbound"."Visits"'
+  update_string <- glue::glue("
+  UPDATE {trgtab} AS TRGTAB
+    SET
+      visit_id = SRCTAB.visit_id
+    FROM {srctab} AS SRCTAB
+    WHERE
+     (TRGTAB.grts_address = SRCTAB.grts_address)
+     AND (TRGTAB.date_start = SRCTAB.date_start)
+     AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+     AND (TRGTAB.stratum = ANY(SRCTAB.stratums))
+  ;")
+  
+  
+  mnmsurfdb$execute_sql(update_string, verbose = FALSE)
+
 }
 stitch_visits()
 
@@ -1250,11 +1319,17 @@ stitch_visits()
 
 ```{r assemble-new-visits}
 
-visits_characols <- fieldcalendar_characols
+visits_characols <- c(
+  "grts_address",
+  "stratums",
+  "activity_group_id",
+  "date_start"
+)
+
 
 potential_visits <- fieldcalendar_lookup %>%
   select(
-    !!!rlang::syms(c("fieldcalendar_id", visits_characols))
+    tidyselect::any_of(c("fieldcalendar_id", visits_characols))
   ) %>%
   left_join(
     locations_lookup,
