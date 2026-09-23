@@ -236,13 +236,15 @@ switch_teammember_id_to_database <- function(.data, db_from, db_to) {
     dplyr::rename({{intermediate_name}} := teammember_id) %>%
     dplyr::left_join(
       teammember_lookup %>%
-        dplyr::select(tidyselect::all_of(c(intermediate_name, replacement_name))),
-      by = dplyr::join_by(!!!rlang::syms(c(intermediate_name))),
+        dplyr::select(
+          tidyselect::all_of(c(intermediate_name, replacement_name))
+        ),
+      by = dplyr::join_by(!!!c(intermediate_name)),
       relationship = "many-to-many",
       na_matches = "never"
     ) %>%
     dplyr::relocate(
-      tidyselect::any_of(c(replacement_name)), .after = intermediate_name
+      tidyselect::any_of(c(replacement_name)), .after = {{intermediate_name}}
     ) %>%
     dplyr::select(-tidyselect::all_of(c(intermediate_name))) %>%
     dplyr::rename(teammember_id := {{replacement_name}})
