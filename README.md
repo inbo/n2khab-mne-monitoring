@@ -64,7 +64,4 @@ Hence, its primary function is to provide quantitative diagnostics of relevant e
 In addition, the monitoring results will aid in assessing the environmental subcriteria of the conservation status of habitats and provide reliable information for the monitoring reports for the European Commission (Habitats Directive article 17).
 To this end, each environmental compartment (groundwater, surface water, inundation water, atmosphere and soil) will be served by a specific MNE monitoring subprogramme aligned with the six-year cycles of the Natura 2000 policy.
 
-MNE will provide solid conclusions for (groups of) habitat types at the Flemish scale, but will be based on a selection of sites in space and time.
-Therefore, a statistical approach is needed to achieve the desired (or acceptable) level of precision, significance and power.
-
-
+More information is available on the project's website (in Dutch): [mnm.inbo.be](https://mnm.inbo.be).
