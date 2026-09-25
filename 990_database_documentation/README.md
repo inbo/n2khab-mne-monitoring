@@ -12,6 +12,11 @@ path:"server/"
 ```
 - see also: [[software/software|software]]
 ---
+## [[glossary/glossary|glossary]]
+```query
+path:"glossary/"
+```
+---
 ## [[database/database|database]]
 ```query
 path:"database/"
@@ -30,5 +35,10 @@ path:"usage/" OR (path:"R/" -path:"server/")
 ## [[sql/sql|sql]]
 ```query
 path:"sql/"
+```
+---
+## [[tables/tables|tables]]
+```query
+path:"tables/"
 ```
 ---

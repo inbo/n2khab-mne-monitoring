@@ -1,7 +1,8 @@
 ---
 aliases:
   - new column
-tags: 
+  - appending a column
+tags:
   - example
   - sql
 ---

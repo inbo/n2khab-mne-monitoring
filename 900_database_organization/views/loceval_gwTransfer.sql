@@ -10,6 +10,7 @@ SELECT
     THEN UNIT.grts_address
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
+  VISIT.date_start,
   VISIT.type_assessed,
   UNIT.type_is_absent,
   'loceval' AS eval_source,
@@ -18,7 +19,7 @@ SELECT
   VISIT.visit_id AS eval_id,
   VISIT.notes || '|' || LOREP.replacement_notes AS notes,
   VISIT.photo
-FROM "inbound"."Visits" AS VISIT
+FROM "inbound"."TerrestrialTypesVisits" AS VISIT
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."TeamMembers" AS TEAM
@@ -45,6 +46,7 @@ SELECT
     THEN UNIT.grts_address
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
+  NULL AS date_start,
   LOCASS.type_suggested AS type_assessed,
   UNIT.type_is_absent,
   'orthophotos' AS eval_source,
@@ -69,7 +71,6 @@ LEFT JOIN (
 WHERE TRUE
   AND LOCASS.assessment_done
   AND (UNIT.location_id IS NOT NULL)
-  AND UNIT.grts_address IN (826486, 51158134)
 ;
 
 

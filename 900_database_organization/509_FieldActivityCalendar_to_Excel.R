@@ -29,7 +29,7 @@ db_connection <- connect_database_configfile(
 
 fac <- dplyr::tbl(
     db_connection,
-    DBI::Id("outbound", "FieldActivityCalendar")
+    DBI::Id("outbound", "FieldCalendars")
   ) %>%
   select(
     -grts_address,

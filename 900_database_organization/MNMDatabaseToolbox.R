@@ -338,7 +338,7 @@ update_landuse_in_locationinfos <- function(mnmdb) {
     mutate(np = stringr::str_c("NP: ", np_type)) %>%
     mutate(lila = stringr::str_c("LILA: ", lila_statuut)) %>%
     mutate(durme = stringr::str_c("DURME: ", durme_reservaat)) %>%
-    mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (", perc_naameig, ")")) %>%
+    mutate(perc = stringr::str_c("PERC: ", perc_rbh, " (eigenaar ", perc_naameig, ", beheer ", perc_naambeh, ")")) %>%
     mutate(nbhp = stringr::str_c("NBHP: ", nbhp_type)) %>%
     mutate(lb = stringr::str_c("LB: ", gewasgroep, " (", lblhfdtlt, ")")) %>%
     tidyr::unite(landuse, c(
@@ -466,12 +466,20 @@ upload_data_and_update_dependencies <- function(
     characteristic_columns = NA,
     rename_characteristics = NULL,
     skip_sequence_reset = FALSE,
+    skip_stitch_table_connections = FALSE,
     sort_data_by_characteristics = TRUE,
     verbose = TRUE
     ) {
 
   # mnmdb <- mnmgwdb
   # data_replacement <- new_data
+  if (FALSE) {
+    ### DEBUG
+    print(mnmdb$shellstring)
+    print(table_label)
+    print(characteristic_columns)
+    data_replacement %>% head(3) %>% knitr::kable()
+  }
 
   stopifnot("dplyr" = requireNamespace("dplyr"))
   stopifnot("DBI" = requireNamespace("DBI"))
@@ -535,8 +543,6 @@ upload_data_and_update_dependencies <- function(
   # This happened with SSPSTapas on production already (20250825).
   # TODO review this, see also `lookups` above.
 
-  ### (5) adjust column names
-
   # use `rename_characteristics`
   # to rename cols in the data_replacement to the server data logic
   # data_replacement
@@ -568,7 +574,7 @@ upload_data_and_update_dependencies <- function(
   # mnmdb <- locevaldb
   if (
     (mnmdb$mirror_short == "") ||
-    (mnmdb$database %in% c("loceval", "mnmgwdb"))
+    (mnmdb$database %in% c("mnmsyncdb", "loceval", "mnmgwdb", "mnmsurfdb"))
     ) {
     prompt <- glue::glue("
       You are working on *{mnmdb$connection_profile}*.
@@ -591,6 +597,8 @@ upload_data_and_update_dependencies <- function(
   # INSERT new data, appending the empty table
   #    (to make use of the "ON DELETE SET NULL" rule)
   mnmdb$insert_data(table_label, data_replacement)
+  ## issue with datetime
+  # data_replacement %>% distinct(date_visit, datetime_visit)
 
   # data_replacement %>%
   #   filter(grts_address == 871030, activity_group_id == 4) %>%
@@ -611,12 +619,20 @@ upload_data_and_update_dependencies <- function(
   } else {
     cols_to_query <- c(characteristic_columns)
   }
+  if (length(cols_to_query) == 0) cols_to_query <- NA
 
   new_redownload <- mnmdb$query_columns(
     table_label,
     select_columns = cols_to_query,
     ONLY = TRUE
   )
+
+  # special case: LocationCells have no characteristic columns
+  #   and thus crash the following join
+  if (length(characteristic_columns) == 0) {
+    cols_to_query <- names(new_redownload)
+    characteristic_columns <- names(new_redownload)
+  }
 
   # THIS is the critical join of the stored old data (with key) and the reloaded, new data (key)
   # entries which were not present prior to update are not in this lookup
@@ -631,6 +647,18 @@ upload_data_and_update_dependencies <- function(
   # cols <- characteristic_columns
   # new_redownload %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
   # old_data %>% count(!!!rlang::syms(cols)) %>% arrange(desc(n)) %>% filter(n>1)
+  # message("--------------------")
+  # message(mnmdb$shellstring)
+  # message(skip_sequence_reset)
+  # message(table_label)
+  # message(characteristic_columns)
+  # message(cols_to_query)
+  # message(old_data %>% head(3) %>% knitr::kable())
+  # message(nrow(old_data))
+  # message(new_redownload %>% head(3) %>% knitr::kable())
+
+  if (nrow(old_data) > 0) {
+
   pk_lookup <- old_data %>%
     left_join(
       new_redownload,
@@ -639,6 +667,13 @@ upload_data_and_update_dependencies <- function(
       suffix = c("_old", ""),
       unmatched = "drop"
     )
+
+  } else {
+    pk_lookup <- old_data %>%
+      select(
+        tidyselect::any_of(unique(c(characteristic_columns, cols_to_query)))
+      )
+  }
 
   # if (FALSE) {
   #   # TODO return here to inspect the repercussions of previous errors
@@ -663,7 +698,7 @@ upload_data_and_update_dependencies <- function(
 
 
   ## save non-recovered rows
-  if (length(pk) > 0) {
+  if ((length(pk) > 0) && (nrow(old_data) > 0)) {
     not_found <- pk_lookup %>%
       select(!!!rlang::syms(c(glue::glue("{pk}_old"), pk)))  %>%
       filter(if_any(everything(), ~ is.na(.x)))
@@ -699,20 +734,22 @@ upload_data_and_update_dependencies <- function(
   # message(mnmdb$shellstring)
   # message(mnmdb$mirror_short)
 
-  # update key links by running script in the background
-  if (mnmdb$mirror_short == "") {
-    out <- processx::run(
-      "Rscript",
-      "102_re_link_foreign_keys.R",
-      spinner = TRUE
-    )
-  } else {
-    # prefix a minus (as ine"-mirror")
-    out <- processx::run(
-      "Rscript",
-      c("102_re_link_foreign_keys.R", sprintf("-%s", mnmdb$mirror_short)),
-      spinner = TRUE
-    )
+  if (isFALSE(skip_stitch_table_connections)) {
+    # update key links by running script in the background
+    if (mnmdb$mirror_short == "") {
+      out <- processx::run(
+        "Rscript",
+        "102_re_link_foreign_keys.R",
+        spinner = TRUE
+      )
+    } else {
+      # prefix a minus (as ine"-mirror")
+      out <- processx::run(
+        "Rscript",
+        c("102_re_link_foreign_keys.R", sprintf("-%s", mnmdb$mirror_short)),
+        spinner = TRUE
+      )
+    }
   }
 
   return(invisible(NULL))
@@ -798,6 +835,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     # # TODO this just turned up a duplicate
     # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
     # prior_content %>% filter(grts_address == 23238) %>% t() %>% knitr::kable()
+    #
 
 
     ## (1) optionally append
@@ -1107,6 +1145,7 @@ categorize_data_update <- function(
     characteristic_columns = NA,
     archive_flag_column = NA,
     exclude_columns = NA,
+    include_logging_columns = FALSE,
     skip_archive = NULL
   ) {
 
@@ -1153,7 +1192,11 @@ categorize_data_update <- function(
   #   t() %>% knitr::kable()
 
   cols <- names(data_future)
-  cols <- cols[!(cols %in% logging_columns)]
+
+  # normally, the logging columns *must* be excluded
+  if (isFALSE(include_logging_columns)) {
+    cols <- cols[!(cols %in% logging_columns)]
+  }
   data_future <- data_future %>% select(!!!cols)
 
   ## ignore input precedence columns
@@ -1268,10 +1311,10 @@ categorize_data_update <- function(
 
   ## return a list
   return(list(
-    "changed" = data_changed,
     "unchanged" = data_unchanged,
-    "to_archive" = data_to_archive,
+    "changed" = data_changed,
     "to_upload" = data_to_upload,
+    "to_archive" = data_to_archive,
     "reactivate" = data_reactivate
   ))
 } # /categorize_data_update
@@ -1306,7 +1349,7 @@ print_category_count <- function(cats, table_label = NA) {
     paste(dogs, collapse = "\n")
   )
   return(invisible(NULL))
-}
+} # /print_category_count
 
 
 ### Safely append a data table.
@@ -1329,6 +1372,7 @@ upload_additional_data <- function(mnmdb, ...) {
 # )) %>% distinct()
 
 
+
 # to update
 datatype_conversion_functions <- c(
   "int" = as.integer,
@@ -1342,7 +1386,8 @@ datatype_conversion_functions <- c(
   "varchar(3)" = as.character,
   "varchar(16)" = as.character,
   "text" = as.character,
-  "timestamp" = as.POSIXct,
+  "timestamp" = convert_timestamp_to_ms_character, # as.POSIXct
+  "timestamp(3)" = convert_timestamp_to_ms_character,
   "date" = as.Date,
   "bool" = as.logical,
   "boolean" = as.logical
@@ -1366,7 +1411,8 @@ datatype_stringconversion_catalogue <- c(
   "smallint"  = as.character, #function(val) sprintf("%.0f", val),
   "bigint"    = as.character, #function(val) sprintf("%.0f", val),
   "double precision" = function(val) sprintf("%.8f", val),
-  "timestamp" = function(val) format(val, "%Y-%m-%d %H:%M"),
+  "timestamp" = convert_timestamp_to_ms_character,
+  "timestamp(3)" = convert_timestamp_to_ms_character, # function(val) format(val, "%Y-%m-%d %H:%M:%OS3")
   "date" = function(val) format(val, "'%Y-%m-%d'")
 )
 
@@ -1947,27 +1993,42 @@ load_table_sideload_content <- function(
 
   stopifnot("dplyr" = requireNamespace("dplyr"))
 
-  # load the new data
+  # query existing data from database
+  existing_data <- mnmdb$query_table(table_label, ONLY = TRUE)
+    # %>% select(!!!rlang::syms(characteristic_columns))
+
+  if (isFALSE(file.exists(data_filepath))) {
+    # if no sideloading file exists, return an empty data frame
+    inception_data <- existing_data %>%
+      dplyr::filter(FALSE) %>%
+      select(-tidyselect::any_of(
+          unique(c(mnmdb$get_primary_key(table_label)))
+        )
+      )
+
+    return(inception_data)
+  }
+
+
+  # load the new data, if a file exists
   inception_data <- read.csv2(data_filepath, sep = ",") %>%
     dplyr::as_tibble()
 
+
   dtypes <- mnmdb$load_table_info(table_label) %>%
-    select(column, datatype)
+    dplyr::select(column, datatype)
 
   # data type adjustment
   for (col in colnames(inception_data)) {
     dtyp <- dtypes %>%
-      filter(column == col) %>%
-      pull(datatype) %>% .[1]
+      dplyr::filter(column == col) %>%
+      dplyr::pull(datatype) %>% .[1]
     dtype_conversion_fcn <- datatype_conversion_functions[[tolower(dtyp)]]
 
     inception_data <- inception_data %>%
       mutate_at(vars(!!!rlang::syms(c(col))), dtype_conversion_fcn)
   }
 
-  # query existing data from database
-  existing_data <- mnmdb$query_table(table_label, ONLY = TRUE)
-    # %>% select(!!!rlang::syms(characteristic_columns))
 
   # existing_data %>%
   #   semi_join(
@@ -2004,6 +2065,10 @@ precedence_columns <- list(
     # "is_replacement"
   ),
   "SampleUnits" = c(
+    # "is_replacement",
+    # "was_replaced_by_grts"
+  ),
+  "SampleUnits_loceval" = c(
     "previous_notes",
     "replacement_ongoing",
     "replacement_id",
@@ -2011,6 +2076,24 @@ precedence_columns <- list(
     "replacement_permanence",
     "is_replaced",
     "type_is_absent"
+  ),
+  "Replacements" = c(
+    "is_inappropriate",
+    "is_selected",
+    "type_suggested",
+    "implications_habitatmap",
+    "notes"
+  ),
+  "FieldCalendar" = c( # not quite obsolete - used in gwdb
+    "is_sideloaded",
+    "is_frozen",
+    "excluded",
+    "excluded_reason",
+    "teammember_assigned",
+    "date_visit_planned",
+    "no_visit_planned",
+    "notes",
+    "done_planning"
   ),
   "FieldworkCalendar" = c(
     "excluded",
@@ -2023,26 +2106,68 @@ precedence_columns <- list(
     "is_sideloaded",
     "is_frozen"
   ),
-  "FieldActivityCalendar" = c(
+  "FieldCalendars" = c(
+    "is_sideloaded",
+    "is_frozen",
     "excluded",
     "excluded_reason",
     "teammember_assigned",
     "date_visit_planned",
     "no_visit_planned",
     "notes",
-    "done_planning",
-    "is_frozen"
+    "done_planning"
   ),
   "Visits" = c(
     "teammember_id",
     "date_visit",
+      "datetime_visit",
+      "sampling_done",
+    "type_assessed",
+    "is_well_developed_type",
+    "gps_type",
+    "gps_accuracy_cm",
     "notes",
     "photo",
-    "lims_code",
     "issues",
-    "visit_done",
+    "visit_done"
+  ),
+  "AquaticTypesVisits" = c(
+    "samplingpoint_selection_done",
+    "crassula_was_here"
+  ),
+  "TerrestrialTypesVisits" = c(
+    "replacement_recovery_notes"
+  ),
+  "TargetPoints" = c(
+    "date_selection",
+    "notes",
+    "photo"
+  ),
+  "SamplingPoints" = c(
+    "date_sampling",
+    "purpose_chlorophyll",
+    "photo",
+    "notes"
+  ),
+  "ExtraLocevals" = c(
+    "teammember_id",
+    "date_visit",
+    "show_aquatictypevisits",
+    "type_expected",
     "type_assessed",
-    "is_well_developed_type"
+    "type_is_absent",
+    "is_well_developed_type",
+    "gps_type",
+    "gps_accuracy_cm",
+    "notes",
+    "photo",
+    "issues",
+    "samplingpoint_selection_done",
+    "crassula_was_here",
+    "recovery_hints",
+    "accessibility_inaccessible",
+    "accessibility_revisit",
+    "visit_done"
   ),
   "InstallationVisits" = c(
     "photo_soil_1_peilbuis",
@@ -2069,13 +2194,121 @@ precedence_columns <- list(
   "PositioningVisits" = c(
     "require_total_station"
   ),
+  "LenticVisits" = c(
+    "equipment",
+    "chlorophytae_presence",
+    "chlorophytae_specification",
+    "waterdepth_samplingpoint_cm",
+    "secchi_depth_cm",
+    "clear_to_bottom",
+    "sludge_thickness",
+    "waterlevel_elevation_mtaw",
+    "project_code",
+    "recipient_code",
+    "watertemperature_celsius",
+    "sample_ph",
+    "electric_conductivity_mus_cm",
+    "dissolved_oxygen_mg_l",
+    "dissolved_oxygen_percent",
+    "sample_notes",
+    "sample_contamination",
+    "sample_contamination_reason",
+    "sneller_cm",
+    "color",
+    "smell",
+    "zooplankton",
+    "macroinvertebrates",
+    "xphoto_sample"
+  ),
+  "LoticVisits" = c(
+    "equipment",
+    "chlorophytae_presence",
+    "chlorophytae_specification",
+    "waterdepth_samplingpoint_cm",
+    "secchi_depth_cm",
+    "clear_to_bottom",
+    "sludge_thickness",
+    "waterlevel_elevation_mtaw",
+    "project_code",
+    "recipient_code",
+    "watertemperature_celsius",
+    "sample_ph",
+    "electric_conductivity_mus_cm",
+    "dissolved_oxygen_mg_l",
+    "dissolved_oxygen_percent",
+    "sample_notes",
+    "sample_contamination",
+    "sample_contamination_reason",
+    "sneller_cm",
+    "color",
+    "smell",
+    "zooplankton",
+    "macroinvertebrates",
+    "xphoto_sample",
+    "meandering",
+    "flowvel",
+    "flowvel_method",
+    "barriers",
+    "current_pits"
+  ),
   "LocationInfos" = c(
-    "landowner",
+    # "landowner", # content currently non-negotiable
     "accessibility_inaccessible",
     "accessibility_revisit",
     "recovery_hints",
+    "equipment_recommendations",
+    "is_secret_location",
     "watina_code_1",
     "watina_code_2"
+  ),
+  "ChlorophyllMeasurements" = c(
+    "teammember_id",
+    "datetime_visit",
+    "notes",
+    "issues",
+    "photo",
+    "watertemperature_celsius",
+    "torch_bregt_freewater1_totalchl",
+    "torch_bregt_freewater1_cyano",
+    "torch_bregt_freewater1_turb",
+    "torch_bregt_freewater2_totalchl",
+    "torch_bregt_freewater2_cyano",
+    "torch_bregt_freewater2_turb",
+    "torch_bregt_freewater3_totalchl",
+    "torch_bregt_freewater3_cyano",
+    "torch_bregt_freewater3_turb",
+    "torch_bregt_bucket1_totalchl",
+    "torch_bregt_bucket1_cyano",
+    "torch_bregt_bucket1_turb",
+    "torch_bregt_bucket2_totalchl",
+    "torch_bregt_bucket2_cyano",
+    "torch_bregt_bucket2_turb",
+    "torch_bregt_bucket3_totalchl",
+    "torch_bregt_bucket3_cyano",
+    "torch_bregt_bucket3_turb",
+    "torch_kul_bucket1_totalchl",
+    "torch_kul_bucket1_cyano",
+    "torch_kul_bucket1_turb",
+    "torch_kul_bucket2_totalchl",
+    "torch_kul_bucket2_cyano",
+    "torch_kul_bucket2_turb",
+    "torch_kul_bucket3_totalchl",
+    "torch_kul_bucket3_cyano",
+    "torch_kul_bucket3_turb",
+    "fluo_ldm_cuvet1_chl",
+    "fluo_ldm_cuvet1_pc",
+    "fluo_ldm_turb_cuvet1_turb",
+    "fluo_ldm_turb_cuvet1_chl",
+    "fluo_ldm_cuvet2_chl",
+    "fluo_ldm_cuvet2_pc",
+    "fluo_ldm_turb_cuvet2_turb",
+    "fluo_ldm_turb_cuvet2_chl",
+    "fluo_ldm_cuvet3_chl",
+    "fluo_ldm_cuvet3_pc",
+    "fluo_ldm_turb_cuvet3_turb",
+    "fluo_ldm_turb_cuvet3_chl",
+    "samplingpoint_marked",
+    "visit_done"
   )
 )
 
@@ -2103,7 +2336,7 @@ redistribute_calendar_data <- function(
     )
   }
 
-  if (is.scalar.na(version_id)) {
+  if (is.scalar.na(version_id) & isFALSE(skip[["archive"]])) {
     version_id <- mnmdb$load_latest_version_id()
   }
 

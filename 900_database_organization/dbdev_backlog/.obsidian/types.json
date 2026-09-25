@@ -6,6 +6,7 @@
     "deadline": "date",
     "started": "date",
     "finished": "date",
-    "execution": "multitext"
+    "execution": "multitext",
+    "priority": "number"
   }
 }

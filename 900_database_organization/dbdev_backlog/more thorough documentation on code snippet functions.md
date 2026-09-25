@@ -23,4 +23,4 @@ which live in different R scripts:
   /020_fieldwork_organization/R/calendar_operations_and_priorities.R
 ```
 
-However, in March 2026, there was no time for thorough, roxygen-style documentation (*cf.* [[https://roxygen2.r-lib.org]]) due to priority of [[data update/20260313 REP update 0.15.0|20260313 REP update 0.15.0]] and other tasks.
+However, in March 2026, there was no time for thorough, roxygen-style documentation (*cf.* <https://roxygen2.r-lib.org>) due to priority of [[data update/20260313 REP update 0.15.0|20260313 REP update 0.15.0]] and other tasks.

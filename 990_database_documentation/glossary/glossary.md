@@ -1,0 +1,1 @@
+*This folder contains concepts and definitions which are special and relevant to the MNE context and/or our data pipeline.*

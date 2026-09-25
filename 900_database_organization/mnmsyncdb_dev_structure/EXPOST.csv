@@ -1,0 +1,3 @@
+sql,deactivated
+BEGIN;COMMIT;,-- placeholder
+BEGIN;COMMIT;,"-- update triggers to log user and modification time -- DROP FUNCTION IF EXISTS ""metadata"".sync_mod CASCADE; -- not used: I'd rather keep the original creation/modification times"

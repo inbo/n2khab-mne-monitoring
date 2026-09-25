@@ -5,7 +5,7 @@ SELECT
   UNIT.type,
   UNIT.grts_join_method,
   UNIT.schemes,
-  UNIT.scheme_ps_targetpanels,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
   UNIT.domain_part,
   UNIT.is_forest,
   UNIT.in_mhq_samples,

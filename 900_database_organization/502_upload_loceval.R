@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 stop("OBSOLETE! This script has not been overhauled yet.")
 
 
@@ -181,20 +183,13 @@ grouped_activities <- grouped_activities %>%
 # glimpse(grouped_activities)
 
 # tag activities for biotic location evaluation
-grouped_activities <- grouped_activities %>%
-  mutate(
-    is_loceval_activity =
-      activity_group %in% c(
-        "LOCEVALAQ",
-        "LOCEVALTERR",
-        "LSVIAQ",
-        "LSVITERR",
-        "SURFLENTLOCEVALSAMPLPOINT",
-        "SURFLOTLOCEVALSAMPLPOINT",
-        "SURFLENTSAMPLPOINT",
-        "SURFLOTSAMPLPOINT"
-        )
-  )
+source(here::here(
+  "metadata",
+  "associate_grouped_activities_with_fieldtaskforces.R"
+))
+
+grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
+
 #    , wrong_loceval_activity =
 #       activity %in% c(
 #         "LOCEVALAQ",
@@ -370,7 +365,7 @@ sample_units <-
   mutate(
     across(c(
         grts_join_method,
-        scheme_ps_targetpanels,
+        scheme_ps_targetpanels_served,
         sp_poststratum,
         type
       ),
@@ -437,7 +432,7 @@ previous_visits <- loceval_db$query_table(table_label)
 
 ## ----save-previous-FACs----------------------------------------------
 
-table_label <- "FieldActivityCalendar"
+table_label <- "FieldCalendars"
 filter_unused <- "
       (NOT excluded)
   AND (excluded_reason IS NULL)
@@ -465,7 +460,7 @@ previous_sampleunits <- loceval_db$query_table("SampleUnits") %>%
     scheme,
     panel_set,
     targetpanel,
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     sp_poststratum,
     type,
     replacement_reason,
@@ -496,7 +491,7 @@ if (nrow(previous_replacements) > 0) {
     index_columns = c("replacementarchive_id"),
     characteristic_columns = c(
       "replacement_id",
-      "scheme_ps_targetpanels",
+      "scheme_ps_targetpanels_served",
       "type",
       "grts_address",
       "grts_address_replacement",
@@ -757,7 +752,7 @@ fieldwork_calendar <-
   relocate(grts_address) %>%
   relocate(grts_join_method, .after = grts_address) %>%
   select(
-    -scheme_ps_targetpanels
+    -scheme_ps_targetpanels_served
   ) %>%
   inner_join(
     n2khab_strata,
@@ -801,9 +796,9 @@ fieldwork_calendar <-
 # fieldwork_calendar %>% glimpse
 
 fieldwork_calendar_lookup <- update_cascade_lookup(
-  table_label = "FieldActivityCalendar",
+  table_label = "FieldCalendars",
   new_data = fieldwork_calendar,
-  index_columns = c("fieldactivitycalendar_id"),
+  index_columns = c("fieldcalendar_id"),
   characteristic_columns = c(
     "sampleunit_id",
     "stratum",
@@ -1151,7 +1146,7 @@ close(pb) # close the progress bar
 
 
 landuse_reload <- loceval_db$query_columns(
-  "FieldActivityCalendar",
+  "FieldCalendars",
   c("grts_address", "landowner")
   ) %>%
   distinct()

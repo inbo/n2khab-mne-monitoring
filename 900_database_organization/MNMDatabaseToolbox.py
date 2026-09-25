@@ -103,9 +103,15 @@ def ConfigToConnectionString(config: dict) -> str:
         # ensure port numeric to string
         config_relevant["port"] = f"{config_relevant["port"]:%.0f}"
 
-    conn_str = """postgresql://{user}:{password}@{host}:{port}/{database}""".format(
-        **config_relevant
-    )
+    if config["password"] is None:
+        conn_str = """postgresql://{user}@{host}:{port}/{database}""".format(
+            **config_relevant
+        )
+
+    else:
+        conn_str = """postgresql://{user}:{password}@{host}:{port}/{database}""".format(
+            **config_relevant
+        )
 
     return(conn_str)
 
@@ -197,6 +203,33 @@ def ExecuteSQL(db_connection, sql_command, verbose = True, test_dry = False) -> 
         print("done.")
 
 
+def QueryTable(db_connection: DatabaseConnection, schema_table: list, is_spatial: bool = False, **kwargs) -> PD.DataFrame:
+    # query a single table (just a shortcut)
+
+    if is_spatial:
+        query = f"""
+               SELECT *
+               FROM "{schema_table[0]}"."{schema_table[1]}";
+           """
+
+        data = GPD.read_postgis( \
+            query, \
+            con = db_connection.connection, \
+            geom_col = "wkb_geometry" \
+            )
+
+    else:
+        data = PD.read_sql_table( \
+            schema_table[1], \
+            schema = schema_table[0], \
+            con = db_connection.connection, \
+            **kwargs
+        )
+
+    return(data)
+
+
+
 def CreateSchema(db_connection, definition_csv: str, selection: set = None, drop: bool = True, verbose: bool = True, dry: bool = False):
     # initialize a database scheme
 
@@ -255,13 +288,17 @@ def CreateSchema(db_connection, definition_csv: str, selection: set = None, drop
         print(create_string)
 
 
-def GetGeometryString(schema, table, geometry_type, crs = "31370", dims = '2'):
+def GetGeometryString(schema, table, geometry_type, crs = "31370", dims = "2"):
     # retrieve the geometry column creation string
+
+    if dims is None:
+        dims = "2"
 
     if geometry_type not in [
         "POINT", "MULTIPOINT",
         "LINESTRING", "MULTILINESTRING",
         "POLYGON", "MULTIPOLYGON",
+        "POINTM"
         ]:
         # only these types are tested and used.
         return("")
@@ -390,11 +427,13 @@ def EnsureNestedQuerySpacing(query: str) -> str:
               "SELECT", "FROM", "WHERE" \
             , "UPDATE", "ON UPDATE", "INSTEAD" \
             , " ON ", " AS " # note that "AS" without space is in "CASE", and "ON" is in "FUNCTION" \
-            , "AND NOT", " AND " \
+            , "AND NOT", " AND ", " OR " \
             , "LEFT JOIN", "UNION" \
             , "DISTINCT", "GROUP BY", "ORDER BY" \
             , "CASE WHEN", "THEN", "ELSE", "END" \
             , "BEFORE", "BEGIN", "END" \
+            , "RETURNS", "DECLARE", "INTO" \
+            , "$sync_mod$" \
             , "CREATE", "DROP", "FOR EACH", "EXECUTE" \
             , "MATCH", "SIMPLE", "ON DELETE", "ON UPDATE", "CASCADE" \
             , "INCREMENT", "MINVALUE", "MAXVALUE", "START WITH", "CACHE", "NO CYCLE" \
@@ -544,7 +583,8 @@ class dbTable(dict):
         # TODO: other geometry types
         has_geometry = not PD.isna(self.geometry)
         if has_geometry:
-            create_string += GetGeometryString(self.schema, self.table, self.geometry)
+            dims = "3" if self.geometry in ["POINTZ", "POINTM"] else None
+            create_string += GetGeometryString(self.schema, self.table, self.geometry, dims = dims)
 
             # read users require sequence USAGE to be able to update.
             for user in [self.owner] + self.read_access.split(","):
@@ -553,7 +593,7 @@ class dbTable(dict):
                 """
 
             create_string += f"""
-                GRANT SELECT ON SEQUENCE "{self.schema}"."{self.table}_ogc_fid_seq" TO monkey;
+                GRANT SELECT ON SEQUENCE "{self.schema}"."{self.table}_ogc_fid_seq" TO viewer_mnmdb;
             """
 
         # each column gets its own creation lines
@@ -602,7 +642,7 @@ class dbTable(dict):
                 """
 
             create_string += f"""
-                GRANT SELECT ON SEQUENCE "{self.schema}"."seq_{col}" TO monkey;
+                GRANT SELECT ON SEQUENCE "{self.schema}"."seq_{col}" TO viewer_mnmdb;
             """
 
         # foreign keys link to other tables
@@ -920,7 +960,7 @@ class Database(dict):
               relation_store.write(storage_file)
 
 
-    def QueryAllExistingData(self, db_connection, filter_tables = None):
+    def QueryAllExistingData(self, db_connection: DatabaseConnection, filter_tables: list = None):
         # load current data of all tables from the database
 
         for table_name, table in self.items():

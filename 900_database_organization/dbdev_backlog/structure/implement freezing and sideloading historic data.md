@@ -42,7 +42,7 @@ finished during [[data update/20260313 REP update 0.15.0|REP 0.15.0]] on [[timel
 - [x] `610_mnmgwdb_update_REP.qmd`
 
 ### (2) calendar update
-- [ ] `112_update_facalendar.R`
+- [ ] `113_update_facalendar.R`
 
 ## alternative backup procedure
 besides the characols, ALL input data of the frozen calendar entries should be dumped somewhere in case the db has to be re-installed

@@ -301,27 +301,12 @@ grouped_activities <- grouped_activities %>%
 # grouped_activities %>% distinct(activity_group)
 
 # tag activities for groundwater monitoring
-grouped_activities <- grouped_activities %>%
-  mutate(is_gw_activity =
-    activity_group %in% c(
-      "GWINSTWELLDIVER",
-      "GWINSTPIEZNODIVER",
-      "GWINSTPIEZWELL",
-      "GWINSTWELLDIVERDEEP",
-      "GWLEVREADDIVER",
-      "GWLEVREADDIVERMAN",
-      "GWLEVREADDIVERDEEP",
-      "GWSHALLCLEAN",
-      "GWSHALLSAMP",
-      "GWSHALLSAMPREADMAN",
-      "GWSURFLEVREADDIVERMAN",
-      "GWSURFSHALLSAMPREADMAN",
-      "SPATPOSITPIPE",
-      "SPATPOSITGAUGE",
-      "ADHOCDIVERREPLACE",
-      "ADHOCPIPEREPLACE"
-      )
-  )
+source(here::here(
+  "metadata",
+  "associate_grouped_activities_with_fieldtaskforces.R"
+))
+
+grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
 
 
 ## ----upload-grouped-activities------------------------------------------------
@@ -465,7 +450,7 @@ sample_units <-
   mutate(
     across(c(
         grts_join_method,
-        scheme_ps_targetpanels,
+        scheme_ps_targetpanels_served,
         sp_poststratum,
         stratum
       ),
@@ -497,8 +482,8 @@ sample_units <-
 
 sample_locations <- sample_units %>%
   summarize(
-    scheme_ps_targetpanels = str_flatten(
-      sort(unique(scheme_ps_targetpanels)),
+    scheme_ps_targetpanels_served = str_flatten(
+      sort(unique(scheme_ps_targetpanels_served)),
       collapse = " | "
     ) %>% as.character(),
     schemes = str_flatten(

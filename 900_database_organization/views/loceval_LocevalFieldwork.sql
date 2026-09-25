@@ -1,0 +1,251 @@
+
+-- AND ((FAC.no_visit_planned IS NULL) OR NOT (FAC.done_planning AND FAC.no_visit_planned))
+
+ CASE WHEN ("excluded" OR "no_visit_planned" OR "is_frozen") THEN 'irrelevant'
+ ELSE
+ CASE WHEN issues THEN 'issues'
+ ELSE
+ CASE WHEN visit_done THEN 'done'
+ ELSE "priority" END
+ END
+ END
+
+
+
+DROP VIEW "inbound"."LocevalFieldwork" CASCADE;
+CREATE OR REPLACE VIEW "inbound"."LocevalFieldwork" AS
+SELECT
+  LOC.*,
+  UNIT.sampleunit_id,
+  UNIT.grts_join_method,
+  UNIT.schemes,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
+  UNIT.type,
+  UNIT.domain_part,
+  UNIT.is_forest,
+  UNIT.in_mhq_samples,
+  UNIT.has_mhq_assessment,
+  UNIT.mhq_assessment_date,
+  UNIT.previous_notes,
+  UNIT.replacement_ongoing,
+  UNIT.replacement_reason,
+  UNIT.replacement_permanence,
+  UNIT.is_replaced,
+  UNIT.type_is_absent,
+  FAC.fieldcalendar_id,
+  FAC.activity_group_id,
+  FAC.date_start,
+  FAC.date_end,
+  FAC.date_interval,
+  FAC.date_end - current_date AS days_to_deadline,
+  FAC.activity_rank,
+  FAC.priority,
+  FAC.wait_any,
+  FAC.wait_watersurface,
+  FAC.wait_3260,
+  FAC.wait_7220,
+  FAC.wait_floating,
+  FAC.wait_obsolete_types,
+  FAC.excluded,
+  FAC.excluded_reason,
+  FAC.teammember_assigned,
+  FAC.date_visit_planned,
+  CASE WHEN (VISIT.visit_done OR FAC.no_visit_planned)
+      THEN NULL
+      ELSE (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date
+      END AS days_to_visit,
+  FAC.no_visit_planned,
+  FAC.notes AS preparation_notes,
+  FAC.done_planning,
+  FAC.is_frozen,
+  VISIT.visit_id,
+  VISIT.teammember_id,
+  VISIT.date_visit,
+  VISIT.type_assessed,
+  VISIT.is_well_developed_type,
+  VISIT.gps_type,
+  VISIT.gps_accuracy_cm,
+  VISIT.notes,
+  VISIT.photo,
+  VISIT.issues,
+  (VISIT.othervisit_id IS NOT NULL) AS show_othervisits,
+  ((VISIT.othervisit_id IS NOT NULL) AND ACT.is_samplingpoint_activity)
+      AS is_samplingpoint_activity,
+  (VISIT.aquatictypesvisit_id IS NOT NULL) AS show_aquatictypevisits,
+  VISIT.samplingpoint_selection_done,
+  VISIT.crassula_was_here,
+  (VISIT.terrestrialtypesvisit_id IS NOT NULL) AS show_terrestrialtypevisits,
+  VISIT.replacement_recovery_notes,
+  VISIT.visit_done,
+  INFO.locationinfo_id,
+  INFO.landowner,
+  INFO.accessibility_inaccessible,
+  INFO.accessibility_revisit,
+  INFO.recovery_hints,
+  INFO.equipment_recommendations,
+  INFO.is_secret_location,
+  OPHO.assessment_done AS orthophoto_assessment_done,
+  OPHO.notes AS orthophoto_notes
+FROM (
+  SELECT *
+  FROM ONLY "inbound"."Visits"
+  NATURAL FULL JOIN "inbound"."OtherVisits"
+  NATURAL FULL JOIN "inbound"."AquaticTypesVisits"
+  NATURAL FULL JOIN "inbound"."TerrestrialTypesVisits"
+) AS VISIT
+LEFT JOIN "outbound"."FieldCalendars" AS FAC
+  ON FAC.fieldcalendar_id = VISIT.fieldcalendar_id
+LEFT JOIN "metadata"."Locations" AS LOC
+  ON LOC.location_id = VISIT.location_id
+LEFT JOIN "outbound"."LocationInfos" AS INFO
+  ON INFO.location_id = VISIT.location_id
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON VISIT.sampleunit_id = UNIT.sampleunit_id
+LEFT JOIN (
+  SELECT DISTINCT
+    sampleunit_id,
+    cell_disapproved,
+    assessment_done,
+    CONCAT(notes || ' ') AS notes
+  FROM "outbound"."LocationAssessments"
+  GROUP BY
+    sampleunit_id,
+    cell_disapproved,
+    assessment_done,
+    notes
+  ) AS OPHO
+  ON VISIT.sampleunit_id = OPHO.sampleunit_id
+LEFT JOIN (
+  SELECT DISTINCT
+    activity_group_id, activity_group,
+    BOOL_OR(is_loceval_activity) AS is_loceval_activity,
+    BOOL_OR(activity LIKE 'SURF%SAMPLPOINT') AS is_samplingpoint_activity
+  FROM "metadata"."GroupedActivities"
+  WHERE archive_version_id IS NULL
+  GROUP BY activity_group_id, activity_group
+) AS ACT ON ACT.activity_group_id = FAC.activity_group_id
+WHERE TRUE
+  AND VISIT.grts_address = FAC.grts_address
+  AND VISIT.type = FAC.type
+  AND VISIT.date_start = FAC.date_start
+  AND VISIT.activity_group_id = FAC.activity_group_id
+  AND FAC.wait_any IS FALSE
+  AND (UNIT.archive_version_id IS NULL)
+  AND (FAC.archive_version_id IS NULL)
+  AND (VISIT.archive_version_id IS NULL)
+  AND ((OPHO.cell_disapproved IS NULL) OR (NOT OPHO.cell_disapproved))
+  AND ACT.is_loceval_activity
+;
+
+
+-- https://stackoverflow.com/q/44005446
+CREATE OR REPLACE RULE LocevalFieldwork_upd_reset AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO INSTEAD NOTHING
+;
+
+DROP RULE IF EXISTS LocevalFieldwork_upd_sampleunits ON "inbound"."LocevalFieldwork";
+CREATE OR REPLACE RULE LocevalFieldwork_upd_sampleunits AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO ALSO
+ UPDATE "outbound"."SampleUnits"
+ SET
+  is_replaced = NEW.is_replaced,
+  replacement_ongoing = NEW.replacement_ongoing,
+  replacement_reason = NEW.replacement_reason,
+  replacement_permanence = NEW.replacement_permanence,
+  type_is_absent = NEW.type_is_absent
+ WHERE sampleunit_id = OLD.sampleunit_id
+;
+
+DROP RULE IF EXISTS LocevalFieldwork_upd_fac ON "inbound"."LocevalFieldwork";
+CREATE OR REPLACE RULE LocevalFieldwork_upd_fac AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO ALSO
+ UPDATE "outbound"."FieldCalendars"
+ SET
+  excluded = NEW.excluded,
+  excluded_reason = NEW.excluded_reason,
+  teammember_assigned = NEW.teammember_assigned,
+  date_visit_planned = NEW.date_visit_planned,
+  no_visit_planned = NEW.no_visit_planned,
+  notes = NEW.preparation_notes,
+  done_planning = NEW.done_planning
+ WHERE fieldcalendar_id = OLD.fieldcalendar_id
+;
+
+
+DROP RULE IF EXISTS LocevalFieldwork_upd_visits ON "inbound"."LocevalFieldwork";
+CREATE OR REPLACE RULE LocevalFieldwork_upd_visits AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO ALSO
+ UPDATE "inbound"."Visits"
+ SET
+  teammember_id = NEW.teammember_id,
+  date_visit = NEW.date_visit,
+  type_assessed = NEW.type_assessed,
+  is_well_developed_type = NEW.is_well_developed_type,
+  gps_type = NEW.gps_type,
+  gps_accuracy_cm = NEW.gps_accuracy_cm,
+  notes = NEW.notes,
+  photo = NEW.photo,
+  issues = NEW.issues,
+  visit_done = NEW.visit_done
+ WHERE visit_id = OLD.visit_id
+;
+
+DROP RULE IF EXISTS FieldWork_upd_TerrestrialTypesVisits ON "inbound"."LocevalFieldwork";
+CREATE RULE FieldWork_upd_TerrestrialTypesVisits AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO ALSO
+ UPDATE "inbound"."TerrestrialTypesVisits"
+ SET
+   replacement_recovery_notes = NEW.replacement_recovery_notes
+ WHERE visit_id = OLD.visit_id
+   AND terrestrialtypesvisit_id IS NOT NULL
+;
+
+DROP RULE IF EXISTS FieldWork_upd_AquaticTypesVisits ON "inbound"."LocevalFieldwork";
+CREATE RULE FieldWork_upd_AquaticTypesVisits AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO ALSO
+ UPDATE "inbound"."AquaticTypesVisits"
+ SET
+   samplingpoint_selection_done = NEW.samplingpoint_selection_done,
+   crassula_was_here = NEW.crassula_was_here
+ WHERE visit_id = OLD.visit_id
+   AND aquatictypesvisit_id IS NOT NULL
+;
+
+
+CREATE OR REPLACE RULE LocevalFieldwork_upd_locationinfos AS
+ON UPDATE TO "inbound"."LocevalFieldwork"
+DO ALSO
+ UPDATE "outbound"."LocationInfos"
+ SET
+  recovery_hints = NEW.recovery_hints,
+  equipment_recommendations = NEW.equipment_recommendations,
+  is_secret_location = NEW.is_secret_location,
+  accessibility_inaccessible = NEW.accessibility_inaccessible,
+  accessibility_revisit = NEW.accessibility_revisit
+ WHERE locationinfo_id = OLD.locationinfo_id
+;
+
+
+
+GRANT SELECT ON  "inbound"."LocevalFieldwork"  TO viewer_mnmdb;
+GRANT UPDATE ON  "inbound"."LocevalFieldwork"  TO user_loceval;
+
+
+
+-- DROP RULE IF EXISTS FieldWork_upd_OTHERVISITS ON "inbound"."FieldWork";
+-- CREATE RULE FieldWork_upd_OTHERVISITS AS
+-- ON UPDATE TO "inbound"."LocevalFieldwork"
+-- DO ALSO
+--  UPDATE "inbound"."OtherVisits"
+--  SET
+--   project_code = NEW.project_code,
+--   recipient_code = NEW.recipient_code
+--  WHERE othervisit_id = OLD.othervisit_id
+--    AND othervisit_id IS NOT NULL
+-- ;

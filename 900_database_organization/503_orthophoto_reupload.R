@@ -6,7 +6,7 @@
 #     grts_address           <- grts_address_final
 #     grts_join_method       <- grts_join_method
 #     schemes
-#     scheme_ps_targetpanels <- scheme_ps_targetpanels
+#     scheme_ps_targetpanels_served <- scheme_ps_targetpanels_served
 #     type                   <- stratum
 #     domain_part            <- domain_part
 #     is_forest              <- is_forest
@@ -79,7 +79,7 @@ ofo_locations <- ofo_locations %>%
     grts_address = grts_address_final,
     grts_join_method,
     # schemes,
-    scheme_ps_targetpanels,
+    scheme_ps_targetpanels_served,
     type = stratum,
     domain_part,
     is_forest,
@@ -88,10 +88,10 @@ ofo_locations <- ofo_locations %>%
     mhq_assessment_date = last_type_assessment
   ) %>%
   mutate(
-    schemes = stringr::str_extract(scheme_ps_targetpanels, "^[^:]+"),
+    schemes = stringr::str_extract(scheme_ps_targetpanels_served, "^[^:]+"),
     has_mhq_assessment = !is.na(mhq_assessment_date)
   ) %>%
-  relocate(schemes, .before = scheme_ps_targetpanels) %>%
+  relocate(schemes, .before = scheme_ps_targetpanels_served) %>%
   relocate(has_mhq_assessment, .before = mhq_assessment_date)
 
 ## ----Locations----------------------------------------------------------------

@@ -67,7 +67,7 @@ GRANT DELETE ON "inbound"."SpatialPositioningActivities" TO tom;
 -- re-create views:  "inbound"."FieldWork", "inbound"."MyFieldWork" ;
 
 -- adjusted 070_update_POC.qmd
--- adjusted 112_update_facalendar.R but it crashed on re-working
+-- adjusted 113_update_facalendar.R but it crashed on re-working
 -- adjusted 046_mnmgwdb_consistency_dashboard.qmd
 -- adjusted 095_reset_fieldwork_id.R, of course; SPA gets +20000
 -- 102_re_link_foreign_keys.R
