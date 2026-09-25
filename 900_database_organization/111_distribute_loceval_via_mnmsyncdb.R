@@ -670,13 +670,13 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
       # historic visits may not be replaced
       # -> use NOT IN {visit_done} structure
       filter_further <- extra_filters[[table_label]]
-      stratum_filter <- "AND stratum = '{stratum}'"
+      stratum_filter <- glue::glue("AND stratum = '{stratum}'")
 
       # TODO special new stratum filter:
       if ((udb == "mnmsurfdb") &&
           (table_label == "Visits")
         ) {
-        stratum_filter <- "AND '{stratum}' = ANY(stratums)"
+        stratum_filter <- glue::glue("AND '{stratum}' = ANY(stratums)")
       }
 
       grts_update <- glue::glue("
