@@ -808,11 +808,30 @@ mnmdb_assemble_structure_lookups <- function(db) {
   ### specific table info
   db$load_table_info <- function(table_label) {
 
+    # escape views
+    is_view <- db$tables %>%
+      dplyr::filter(table == table_label) %>%
+      dplyr::pull(is_view)
+    if (is_view) {
+      return(dplyr::tibble(
+        column = character(),
+        datatype = character(),
+        not_null = logical(),
+        default = character(),
+        primary_key = logical(),
+        sequence = logical(),
+        foreign_key = character(),
+        constraint = character(),
+        freesql = character(),
+        comment = character()
+      ))
+    }
+
     table_info <- read.csv(
       file.path(db$folder, glue::glue("{table_label}.csv"))
     ) %>%
     dplyr::mutate_at(
-      dplyr::vars(datatype, default, foreign_key, constraint, freesql),
+      dplyr::vars(datatype, default, foreign_key, constraint, freesql, comment),
       as.character
     )
 
