@@ -7,9 +7,6 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 
-# TODO see HOTFIX labels below: table and column names are annoyingly polyform
-
-
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### a tiny bit of REP data...
 #///////////////////////////////////////////////////////////////////////////////
@@ -620,19 +617,32 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   ### (A) tables which are updated by just changing the `grts_address`
   # check for / retain prior visits
   visits_namestring <- mnmdb$get_namestring("Visits")
-  calendar_visits_done <- glue::glue("
-    SELECT DISTINCT fieldcalendar_id
-    FROM {visits_namestring}
-    WHERE visit_done
-  ")
-  visits_not_done_filter <- glue::glue(
-    "fieldcalendar_id NOT IN ({calendar_visits_done})"
-  )
+
+  # TODO new: inverse lookup from FieldCalendars to Visits via `visit_id`
+  if (udb == "mnmsurfdb") {
+    calendar_visits_done <- glue::glue("
+      SELECT DISTINCT visit_id
+      FROM {visits_namestring}
+      WHERE visit_done
+    ")
+    visits_not_done_filter <- glue::glue(
+      "visit_id NOT IN ({calendar_visits_done})"
+    )
+  } else {
+    # the conventional way: connection by fieldcalendar_id
+    calendar_visits_done <- glue::glue("
+      SELECT DISTINCT fieldcalendar_id
+      FROM {visits_namestring}
+      WHERE visit_done
+    ")
+    visits_not_done_filter <- glue::glue(
+      "fieldcalendar_id NOT IN ({calendar_visits_done})"
+    )
+  }
 
   # must contain all tables which are to be affected
   extra_filters <- c(
     "FieldCalendars" = visits_not_done_filter,
-    "FieldCalendar" = visits_not_done_filter,
     "Visits" = visits_not_done_filter
   )
 
@@ -660,15 +670,24 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
       # historic visits may not be replaced
       # -> use NOT IN {visit_done} structure
       filter_further <- extra_filters[[table_label]]
+      stratum_filter <- "AND stratum = '{stratum}'"
+
+      # TODO special new stratum filter:
+      if ((udb == "mnmsurfdb") &&
+          (table_label == "Visits")
+        ) {
+        stratum_filter <- "AND '{stratum}' = ANY(stratums)"
+      }
 
       grts_update <- glue::glue("
         UPDATE {table_namestring}
         SET grts_address = {grts_address_replacement}
         WHERE {filter_further}
           AND grts_address = {grts_address_original}
-          AND stratum = '{stratum}'
+          {stratum_filter}
       ;
       ")
+
 
       mnmdb$execute_sql(grts_update, verbose = TRUE)
 
@@ -759,7 +778,7 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   ;
   ')
 
-  mnmdb$execute_sql(update_query_link_to_replacement, verbose = TRUE)
+  mnmdb$execute_sql(update_query_link_to_replacement, verbose = FALSE)
 
 } # /distribute_replacementdata_to_userdatabases
 
