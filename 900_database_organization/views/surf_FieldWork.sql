@@ -24,41 +24,69 @@ GROUP BY
  231150 | 3150_0_1       | 2026-07-01 |                32 | 1
  231150 | 3150_0_1       | 2026-08-01 |                32 | 1
 
-
-
+19205238 triple type
 
 SELECT
-  sampleunit_id,
-  loceval_name,
-  loceval_date,
-  type_assessed,
-  type_is_absent,
-  loceval_notes,
-  loceval_photo
-FROM (
+  VISIT.grts_address,
+  VISIT.stratums,
+  VISIT.sampleunit_ids,
+  VISIT.date_start,
+  LOCEVAL.sampleunit_ids AS le_su_ids,
+  LOCEVAL.type_planned,
+  LOCEVAL.eval_name,
+  LOCEVAL.type_assessed,
+  LOCEVAL.loceval_date
+FROM "inbound"."Visits" AS VISIT
+LEFT JOIN (
   SELECT DISTINCT
-    sampleunit_id,
-    MAX(eval_date) AS latest_visit,
-    eval_date AS loceval_date,
-    eval_name AS loceval_name,
-    type AS type_planned,
-    type_assessed,
-    type_is_absent,
-    notes AS loceval_notes,
-    photo AS loceval_photo
-  FROM "transfer"."LocationEvaluations" AS LE
-  WHERE eval_source = 'loceval'
-  GROUP BY sampleunit_id,
-  eval_date,
-  eval_name,
-  type,
-  type_assessed,
-  type_is_absent,
-  notes,
-  photo
-) WHERE loceval_date = latest_visit
-  AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL) OR (type_assessed IS NOT NULL))
-  AND sampleunit_id IN (SELECT DISTINCT sampleunit_id FROM "outbound"."SampleUnits" WHERE grts_address IN (3514038, 231150))
+    grts_address,
+    ARRAY_AGG(DISTINCT type_planned) AS type_planned,
+    ARRAY_AGG(DISTINCT sampleunit_id) AS sampleunit_ids,
+    STRING_AGG(DISTINCT eval_name, ',') AS eval_name,
+    MAX(loceval_date) AS loceval_date,
+    ARRAY_AGG(DISTINCT type_assessed) AS type_assessed,
+    BOOL_AND(type_is_absent) AS type_is_absent,
+    STRING_AGG(CASE WHEN notes IS NULL THEN '' ELSE notes END, '; ') AS loceval_notes,
+    STRING_AGG(DISTINCT photo, ', ') AS loceval_photo
+  FROM(
+    SELECT DISTINCT
+      grts_address,
+      sampleunit_id,
+      MAX(eval_date) AS latest_visit,
+      eval_date AS loceval_date,
+      eval_name,
+      COALESCE(n2k_type, type) AS type_planned,
+      type_assessed,
+      type_is_absent,
+      notes,
+      photo
+    FROM "transfer"."LocationEvaluations" AS LE
+    LEFT JOIN (
+      SELECT DISTINCT stratum AS n2k_stratum, type AS n2k_type
+      FROM "metadata"."N2kHabStrata"
+      GROUP BY stratum, type
+      ) AS STRATA
+        ON LE.type = STRATA.n2k_stratum
+    WHERE eval_source = 'loceval'
+    GROUP BY grts_address,
+      sampleunit_id,
+      eval_date,
+      eval_name,
+      type,
+      n2k_type,
+      type_assessed,
+      type_is_absent,
+      notes,
+      photo
+    ORDER BY grts_address, type_planned
+  ) WHERE loceval_date = latest_visit
+    AND grts_address = 19205238
+    AND type_assessed = type_planned
+    AND ((notes IS NOT NULL) OR (photo IS NOT NULL) OR (type_assessed IS NOT NULL))
+  GROUP BY grts_address
+) AS LOCEVAL
+  ON VISIT.sampleunit_ids && LOCEVAL.sampleunit_ids
+WHERE VISIT.grts_address = 19205238
 ;
 
 
@@ -98,14 +126,14 @@ DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
-  VISIT.stratum,
-  VISIT.date_start,
+  VISIT.stratums AS stratum,
   VISIT.activity_group_id,
   VISIT.teammember_assigned,
   FCAL.activity_rank,
   CASE WHEN (VISIT.date_visit_planned IS NULL) THEN FALSE ELSE FCAL.is_scheduled END AS is_scheduled,
   VISIT.date_visit_planned,
   VISIT.date_visit_planned - current_date AS days_to_visit,
+  FCAL.date_suggested AS date_start,
   FCAL.date_end - current_date AS days_to_deadline,
   VISIT.preparation_notes,
   INFO.locationinfo_id,
@@ -238,9 +266,12 @@ LEFT JOIN (
       ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
       ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
       ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids,
+      MIN(activity_rank) AS activity_rank,
       MIN(date_suggested) AS date_suggested,
       MIN(priority) AS priority,
       MIN(date_end) AS date_end,
+      BOOL_AND(excluded) AS excluded,
+      BOOL_AND(archive_version_id IS NOT NULL) AS fcal_archived,
       CASE WHEN BOOL_AND(date_visit_planned IS NULL) THEN FALSE ELSE BOOL_OR(done_planning) END AS is_scheduled
     FROM "outbound"."FieldCalendars"
     WHERE (archive_version_id IS NULL) AND (NOT excluded) AND (NOT wait_any)
@@ -265,41 +296,53 @@ LEFT JOIN (
   ) AS FAGS
   ON FAGS.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
-  SELECT
-
-# TODO aggregate
-    sampleunit_ids,
-    loceval_name,
-    loceval_date,
-    type_assessed,
-    type_is_absent,
-    loceval_notes,
-    loceval_photo
-  FROM (
+  SELECT DISTINCT
+    grts_address,
+    ARRAY_AGG(DISTINCT type_planned) AS type_planned,
+    ARRAY_AGG(DISTINCT sampleunit_id) AS sampleunit_ids,
+    STRING_AGG(DISTINCT eval_name, ',') AS loceval_name,
+    MAX(loceval_date) AS loceval_date,
+    ARRAY_AGG(DISTINCT type_assessed) AS type_assessed,
+    BOOL_AND(type_is_absent) AS type_is_absent,
+    STRING_AGG(CASE WHEN notes IS NULL THEN '' ELSE notes END, '; ') AS loceval_notes,
+    STRING_AGG(DISTINCT photo, ', ') AS loceval_photo
+  FROM(
     SELECT DISTINCT
+      grts_address,
       sampleunit_id,
       MAX(eval_date) AS latest_visit,
       eval_date AS loceval_date,
-      eval_name AS loceval_name,
-      type AS type_planned,
+      eval_name,
+      COALESCE(n2k_type, type) AS type_planned,
       type_assessed,
       type_is_absent,
-      notes AS loceval_notes,
-      photo AS loceval_photo
+      notes,
+      photo
     FROM "transfer"."LocationEvaluations" AS LE
+    LEFT JOIN (
+      SELECT DISTINCT stratum AS n2k_stratum, type AS n2k_type
+      FROM "metadata"."N2kHabStrata"
+      GROUP BY stratum, type
+      ) AS STRATA
+        ON LE.type = STRATA.n2k_stratum
     WHERE eval_source = 'loceval'
-    GROUP BY sampleunit_id,
-    eval_date,
-    eval_name,
-    type,
-    type_assessed,
-    type_is_absent,
-    notes,
-    photo
+    GROUP BY grts_address,
+      sampleunit_id,
+      eval_date,
+      eval_name,
+      type,
+      n2k_type,
+      type_assessed,
+      type_is_absent,
+      notes,
+      photo
+    ORDER BY grts_address, type_planned
   ) WHERE loceval_date = latest_visit
-    AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL) OR (type_assessed IS NOT NULL))
+    AND type_assessed = type_planned
+    AND ((notes IS NOT NULL) OR (photo IS NOT NULL) OR (type_assessed IS NOT NULL))
+  GROUP BY grts_address
 ) AS LOCEVAL
-  ON VISIT.sampleunit_id = LOCEVAL.sampleunit_id
+  ON VISIT.sampleunit_ids && LOCEVAL.sampleunit_ids
 LEFT JOIN "inbound"."SampleContextObservations" AS SCOBS
   ON (LOC.grts_address = SCOBS.grts_address
   AND VISIT.date_visit = SCOBS.date_visit)
@@ -311,10 +354,9 @@ LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
   AND VISIT.date_visit = MOBS.date_visit)
 WHERE TRUE
   AND FCAL.is_scheduled
-  AND ((FCAL.no_visit_planned IS NULL) OR (NOT FCAL.no_visit_planned))
   AND NOT FCAL.excluded
   AND FAGS.is_surf_activity
-  AND (VISIT.visit_done OR (FCAL.archive_version_id IS NULL))
+  AND (VISIT.visit_done OR (FCAL.fcal_archived))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
 
@@ -387,32 +429,6 @@ ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
  UPDATE "inbound"."LoticVisits"
  SET
-  project_code = NEW.project_code,
-  recipient_code = NEW.recipient_code,
-  sample_ph = NEW.sample_ph,
-  watertemperature_celsius = NEW.watertemperature_celsius,
-  electric_conductivity_mus_cm = NEW.electric_conductivity_mus_cm,
-  dissolved_oxygen_mg_l = NEW.dissolved_oxygen_mg_l,
-  dissolved_oxygen_percent = NEW.dissolved_oxygen_percent,
-  equipment = NEW.equipment,
-  color = NEW.color,
-  smell = NEW.smell,
-  zooplankton = NEW.zooplankton,
-  macroinvertebrates = NEW.macroinvertebrates,
-  sample_notes = NEW.sample_notes,
-  sampling_done = NEW.sampling_done,
-  sneller_cm = NEW.sneller_cm,
-  secchi_depth_cm = NEW.secchi_depth_cm,
-  clear_to_bottom = NEW.clear_to_bottom,
-  waterdepth_samplingpoint_cm = NEW.waterdepth_samplingpoint_cm,
-  sludge_thickness = NEW.sludge_thickness,
-  waterlevel_elevation_mtaw = NEW.waterlevel_elevation_mtaw,
-  ice_layer_cm = NEW.ice_layer_cm,
-  meandering = NEW.meandering,
-  flowvel = NEW.flowvel,
-  flowvel_method = NEW.flowvel_method,
-  barriers = NEW.barriers,
-  current_pits = NEW.current_pits,
   visit_done = NEW.visit_done
  WHERE loticvisit_id = OLD.loticvisit_id
    AND visit_id = OLD.visit_id
