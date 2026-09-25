@@ -307,7 +307,7 @@ mnmsurfdb_freeze <-
       date_end
     ), as.Date)
   ) %>%
-  mutate(matching_occasions = NA, date_suggested = date_start)
+  mutate(matching_occasion = NA, date_suggested = date_start)
 
 # TODO annoyingly, an empty `freeze` gets quite arbitrary data types in R
 
@@ -997,7 +997,7 @@ fieldcalendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
     )
   ) %>%
   mutate(is_frozen = FALSE, is_sideloaded = FALSE) %>% 
-  select(!!!rlang::syms(fieldcalendar_columns))
+  select(tidyselect::any_of(fieldcalendar_columns))
 
 # fieldcalendar_updated %>% glimpse()
 # fieldcalendar_updated %>% count(priority)
@@ -1152,7 +1152,7 @@ matching_occasions <- fieldcalendar_new %>%
   filter_out(is.na(matching_occasion)) 
 
 fieldcalendar_new <- fieldcalendar_new %>%
-  select(-date_suggested) %>% 
+  # select(-tidyselect::any_of(date_suggested)) %>% 
   left_join(
     matching_occasions,
     by = join_by(matching_occasion),
@@ -1187,14 +1187,16 @@ print_category_count(distribution, table_label)
 # distribution$to_archive
 # distribution$reactivate
 # distribution$to_upload
-
+# data_ancient <- mnmsurfdb$query_columns(
+#   "FieldCalendars",
+#   colnames(data_nouveau)
+# )
+# data_nouveau %>% glimpse()
+# data_ancient %>% glimpse()
+# 
 # waldo::compare(
-#   data_nouveau %>%
-#     semi_join(
-#       distribution$changed,
-#       by = join_by(!!!rlang::syms(fieldcalendar_characols))
-#     ),
-#   distribution$changed
+#   data_nouveau %>% arrange(grts_address, stratum, date_start, activity_group_id),
+#   data_ancient %>% arrange(grts_address, stratum, date_start, activity_group_id
 # )
 ```
 
@@ -1321,15 +1323,34 @@ stitch_visits()
 
 visits_characols <- c(
   "grts_address",
-  "stratums",
   "activity_group_id",
   "date_start"
 )
 
+fieldcalendars_aggregated <- mnmsurfdb$query_columns(
+    "FieldCalendars"    ,
+    c(fieldcalendar_characols,
+      "matching_occasion",
+      "fieldcalendar_id",
+      "sampleunit_id"
+      )
+  ) %>%
+  arrange(stratum, activity_group_id, grts_address, fieldcalendar_id) %>% 
+  summarize(
+    fieldcalendar_ids = list(fieldcalendar_id),
+    stratums = list(stratum),
+    sampleunit_ids = list(sampleunit_id),
+    .by = c(grts_address, activity_group_id, date_start, matching_occasion)
+  )
 
-potential_visits <- fieldcalendar_lookup %>%
+# fieldcalendars_aggregated %>% glimpse()
+
+potential_visits <- fieldcalendars_aggregated %>%
   select(
-    tidyselect::any_of(c("fieldcalendar_id", visits_characols))
+    tidyselect::any_of(c(
+      visits_characols,
+      "stratums", "sampleunit_ids", "fieldcalendar_ids"
+    ))
   ) %>%
   left_join(
     locations_lookup,
@@ -1347,11 +1368,7 @@ visits_upload <- potential_visits %>%
   anti_join(
     mnmsurfdb$query_table("Visits"),
     by = join_by(!!!visits_characols)
-  ) %>%
-  left_join(
-    sampleunits_lookup, #  %>% select(-location_id),
-    by = join_by(grts_address, stratum)
-  ) 
+  )
 
 ```
 
@@ -1391,7 +1408,32 @@ append_defaults <- list(
 
 remaining_new_visits <- visits_upload
 
-# table_label <- "InstallationVisits"
+
+# quick fix: convert array cols to string manually
+table_info <- mnmsurfdb$load_table_info("Visits")
+table_info %>% pull(datatype)
+array_columns <- table_info %>%
+  dplyr::filter(grepl("array|[[]]", tolower(datatype))) %>%
+  dplyr::pull(column)
+
+
+if (length(array_columns) > 0) {
+  wrap_curls <- \(arr_str) paste0(c("{", arr_str, "}"), collapse = "")
+  listpaste <- \(arr) paste0(unlist(arr), collapse = ",")
+  upload_prep <- \(x) wrap_curls(listpaste(x))
+
+  # upload_prep(remaining_new_visits[1, "stratums"])
+  for (col in array_columns) {
+    remaining_new_visits <- remaining_new_visits %>%
+      dplyr::mutate(
+        {{col}} := unlist(purrr::map(!!rlang::sym(col), upload_prep))
+      )
+  }
+} # convert arrays to string
+
+remaining_new_visits %>% glimpse()
+
+# table_label <- "LenticVisits"
 for (table_label in names(selection_of_activities)) {
 
   # subset the data by using selection_of_activities -> activity_group_id's
@@ -1421,9 +1463,9 @@ for (table_label in names(selection_of_activities)) {
     anti_join(
       special_visits,
       by = join_by(
-        fieldcalendar_id,
+        fieldcalendar_ids,
         grts_address,
-        stratum,
+        stratums,
         activity_group_id,
         date_start)
     )
@@ -1455,8 +1497,8 @@ stitch_visits()
 mnmsurfdb$query_table("Visits") %>% 
   count(
     is.na(location_id),
-    is.na(sampleunit_id),
-    is.na(fieldcalendar_id)
+    is.na(sampleunit_ids),
+    is.na(fieldcalendar_ids)
   ) %>%
   knitr::kable()
 
@@ -1470,7 +1512,7 @@ archive visits of archived FWCals
 trgtab <- mnmsurfdb$get_namestring("Visits")
 srctab <- mnmsurfdb$get_namestring("FieldCalendars")
 link_key_column <- "archive_version_id"
-lookup_criteria <- c("TRGTAB.fieldcalendar_id = SRCTAB.fieldcalendar_id")
+lookup_criteria <- c("TRGTAB.fieldcalendar_ids @> SRCTAB.fieldcalendar_id")
 
 update_string <- glue::glue("
   UPDATE {trgtab} AS TRGTAB
@@ -1485,7 +1527,7 @@ mnmsurfdb$execute_sql(update_string)
 
 mnmsurfdb$query_table("FieldCalendars") %>%
   anti_join(
-    mnmsurfdb$query_table("Visits"),
+    mnmsurfdb$query_table("VisitsUnnested"),
     by = join_by(fieldcalendar_id, archive_version_id)
   ) %>% nrow()
 

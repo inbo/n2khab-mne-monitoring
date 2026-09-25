@@ -316,6 +316,7 @@ append_tabledata <- function(
     table_id,
     to_upload,
     overwrite = FALSE,
+    copy = FALSE,
     append = TRUE
   )
   # res <- DBI::dbFetch(rs)
@@ -806,6 +807,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
   ### specific table info
   db$load_table_info <- function(table_label) {
+
     table_info <- read.csv(
       file.path(db$folder, glue::glue("{table_label}.csv"))
     ) %>%
@@ -813,6 +815,25 @@ mnmdb_assemble_structure_lookups <- function(db) {
       dplyr::vars(datatype, default, foreign_key, constraint, freesql),
       as.character
     )
+
+    # additional: prepend ancestral columns
+    ancestor <- db$get_ancestor_tables(table_label)
+    if (length(ancestor) > 0) {
+
+      ancestral_info <- read.csv(
+        file.path(db$folder, glue::glue("{ancestor}.csv"))
+      ) %>%
+      dplyr::mutate_at(
+        dplyr::vars(datatype, default, foreign_key, constraint, freesql),
+        as.character
+      )
+
+      table_info <- dplyr::bind_rows(
+        ancestral_info,
+        table_info
+      )
+
+    }
 
     return(table_info)
   }
@@ -1297,11 +1318,13 @@ mnmdb_assemble_query_functions <- function(db) {
       listpaste <- \(arr) paste0(unlist(arr), collapse = ",")
       upload_prep <- \(x) wrap_curls(listpaste(x))
 
-      upload_data <- upload_data %>%
-        dplyr::mutate_at(
-          dplyr::vars(tidyselect::all_of(array_columns)),
-          upload_prep
-        )
+
+      for (col in array_columns) {
+        upload_data <- upload_data %>%
+          dplyr::mutate(
+            {{col}} := unlist(purrr::map(!!rlang::sym(col), upload_prep))
+          )
+      }
     } # convert arrays to string
 
     ### ? geometry // spatial data
@@ -1343,8 +1366,8 @@ mnmdb_assemble_query_functions <- function(db) {
         row.names = FALSE,
         overwrite = FALSE,
         append = TRUE,
-        binary = TRUE,
-        # copy = FALSE,
+        binary = FALSE,
+        copy = FALSE,
         factorsAsCharacter = TRUE
       )
     }
