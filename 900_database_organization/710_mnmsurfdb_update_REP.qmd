@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload for mnmSURFdb"
-date: "2026-08-19"
+date: "2026-08-25"
 format:
   html:
     toc: true
@@ -19,7 +19,7 @@ knitr:
 - 20260703 REP update 0.17.0
 - 20260811 quarterly prio update 
 - 20260819 REP 0.18.0
-- 20260923 intrinsic matching occasions (Visits 1 : n FieldCalendars)
+- 20260925 intrinsic matching occasions (Visits 1 : n FieldCalendars)
 
 
 # TODO
@@ -1417,7 +1417,7 @@ array_columns <- table_info %>%
   dplyr::pull(column)
 
 
-if (length(array_columns) > 0) {
+if (length(array_columns) > 0 && nrow(remaining_new_visits) > 0) {
   wrap_curls <- \(arr_str) paste0(c("{", arr_str, "}"), collapse = "")
   listpaste <- \(arr) paste0(unlist(arr), collapse = ",")
   upload_prep <- \(x) wrap_curls(listpaste(x))
@@ -1512,7 +1512,7 @@ archive visits of archived FWCals
 trgtab <- mnmsurfdb$get_namestring("Visits")
 srctab <- mnmsurfdb$get_namestring("FieldCalendars")
 link_key_column <- "archive_version_id"
-lookup_criteria <- c("TRGTAB.fieldcalendar_ids @> SRCTAB.fieldcalendar_id")
+lookup_criteria <- c("SRCTAB.visit_id = TRGTAB.visit_id ")
 
 update_string <- glue::glue("
   UPDATE {trgtab} AS TRGTAB

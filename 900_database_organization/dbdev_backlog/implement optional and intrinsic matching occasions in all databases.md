@@ -222,6 +222,8 @@ Structure is in place - data has to be aggregated.
 
 First, a backup copy is stored to `"archive"."LenticVisits"` via [CREATE TABLE ... AS ...](https://www.tutorialkart.com/postgresql/postgresql-create-table-from-another-table/)
 
+!! had to create schema archive first. And grant all the permissions.
+
 ```sql
 -- create a copy of the existing Visits
 CREATE TABLE "archive"."UnaggregatedVisitsBackup" AS
@@ -534,7 +536,6 @@ Compare pre/post to find issues
 
 Then run the MODIFIED `102_re_link_foreign_keys.R` script to re-link tables.
 
-
 #### ISSUE: array data types not supported in R
 
 - [x] [[datatypes/test array data types connection to R|implement array data types in R database connection]]
@@ -543,6 +544,7 @@ Then run the MODIFIED `102_re_link_foreign_keys.R` script to re-link tables.
 
 
 #### Modify Scripts
+
 
 ##### Helpers
 
@@ -604,6 +606,20 @@ WHERE grts_address = 3514038 AND date_start = '2026-07-01'
 
 ```
 
+
+#### run 111 script (loceval) and perform REP update
+
+new locations: c(16936630, 832386)c("91E0_vo", "6510_huk")
+
+156 -> 168 Replacements
+1739 -> 1744 locevals
+705 -> 735 cellmaps
+
+REP update:
+and repeate... forgot to download structure sheet
+
+
+But the rest went rather well.
 
 
 #### Views for Convenience and Backwards Compatibility

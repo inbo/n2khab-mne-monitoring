@@ -120,6 +120,10 @@ LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
 
 -- !!! also re-create update MyFieldWork (below)
 
+SELECT *
+FROM "inbound"."FieldWork"
+WHERE grts_address = 762158
+;
 
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
@@ -130,7 +134,7 @@ SELECT
   VISIT.activity_group_id,
   VISIT.teammember_assigned,
   FCAL.activity_rank,
-  CASE WHEN (VISIT.date_visit_planned IS NULL) THEN FALSE ELSE FCAL.is_scheduled END AS is_scheduled,
+  CASE WHEN (VISIT.date_visit_planned IS NULL) THEN FALSE ELSE FCAL.done_planning END AS is_scheduled,
   VISIT.date_visit_planned,
   VISIT.date_visit_planned - current_date AS days_to_visit,
   FCAL.date_suggested AS date_start,
@@ -271,8 +275,8 @@ LEFT JOIN (
       MIN(priority) AS priority,
       MIN(date_end) AS date_end,
       BOOL_AND(excluded) AS excluded,
-      BOOL_AND(archive_version_id IS NOT NULL) AS fcal_archived,
-      CASE WHEN BOOL_AND(date_visit_planned IS NULL) THEN FALSE ELSE BOOL_OR(done_planning) END AS is_scheduled
+      BOOL_AND(archive_version_id IS NULL) AS fcal_not_archived,
+      BOOL_OR(done_planning) AS done_planning
     FROM "outbound"."FieldCalendars"
     WHERE (archive_version_id IS NULL) AND (NOT excluded) AND (NOT wait_any)
     GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id
@@ -353,10 +357,11 @@ LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
   ON (LOC.grts_address = MOBS.grts_address
   AND VISIT.date_visit = MOBS.date_visit)
 WHERE TRUE
-  AND FCAL.is_scheduled
-  AND NOT FCAL.excluded
+  AND VISIT.date_visit_planned IS NOT NULL
+  AND FCAL.done_planning
+  AND ((FCAL.excluded IS NULL) OR (NOT FCAL.excluded))
   AND FAGS.is_surf_activity
-  AND (VISIT.visit_done OR (FCAL.fcal_archived))
+  AND (VISIT.visit_done OR (FCAL.fcal_not_archived))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
 
