@@ -39,16 +39,16 @@ For more information on the relation with associated repositories, have a look a
 
 ## How to contribute to this repository?
 
-1. Decide to which branch (c.q. pull request) you want to contribute (**reference branch**).
-1. In your local repo, make your own new branch after having checked out the reference branch. In this way, the new branch is derived from the reference branch.
-    - _Alternatively_, make your changes on the remote repo (at github.com), starting from the reference branch, and commit your changes as a new pull request. This workflow avoids the need of 1) having git installed locally and 2) managing your local repo. However, the possibilities of working with git are more limited.
+1. Decide to which branch (c.q. pull request) you want to contribute (**base branch**).
+1. In your local repo, make your own new branch after having checked out the base branch. In this way, the new branch is derived from the base branch.
+    - _Alternatively_, make your changes on the remote repo (at github.com), starting from the base branch, and commit your changes as a new pull request. This workflow avoids the need of 1) having git installed locally and 2) managing your local repo. However, the possibilities of working with git are more limited.
 1. Make the commits that you want to make, **in your branch**.
 1. Push your local brach to the remote repo (github.com).
-1. In the remote repo, start a pull request for this branch (+ request review, add clarification etc.). _Make sure to correctly set the reference branch for this pull request!_
-1. When approved, your branch will be merged with the reference branch in the remote repo (at github.com).
-1. Pull the reference branch and clean up your local repo in order to keep up with the remote.
+1. In the remote repo, start a pull request for this branch (+ request review, add clarification etc.). _Make sure to correctly set the base branch for this pull request!_
+1. When approved, your branch will be merged with the base branch (by its maintainer) in the remote repo (at github.com).
+1. Pull the base branch and clean up your local repo in order to keep up with the remote.
 
-More info on git workflows at INBO: <https://tutorials.inbo.be/tags/git/>
+The git workflow in N2KHAB monitoring repositories is further detailed [in the n2khab-monitoring repo](https://github.com/inbo/n2khab-monitoring/blob/main/git_workflow.md).
 
 
 ## General information on the MNE
