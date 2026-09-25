@@ -7,8 +7,8 @@ These can be e.g.:
 - data unique to this repository, needed to drive field work or coming from the field;
 - (source code of) tools to plan, organize and automate data flows in the field and the office;
 - data validation scripts and output;
-- source code for simple data reporting. 
-Whether more elaborate analyses and reporting of the environmental data should be part of this repository, is yet to be seen;
+- source code for simple data reporting.
+The main analyses and reporting of the environmental data will be part of the [n2khab-mne-analysis](https://github.com/inbo/n2khab-mne-analysis) repository;
 - source code of (markdown) reports, websites and other authored documents associated with above topics.
 
 Some parts of this repo, such as public-facing reporting, may be in Dutch because of the primarily Flemish audience.
