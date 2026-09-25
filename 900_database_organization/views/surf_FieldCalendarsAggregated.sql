@@ -30,6 +30,10 @@ WHERE archive_version_id IS NULL
 GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id
 ;
 
+
+GRANT SELECT ON  "outbound"."FieldCalendarsAggregated"  TO  viewer_mnmdb;
+GRANT UPDATE ON  "outbound"."FieldCalendarsAggregated"  TO  planner_surfdb;
+
 --  AND grts_address = 1012434 AND date_start = '2026-07-01'
 
 -- SELECT *

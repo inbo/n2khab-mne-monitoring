@@ -18,3 +18,7 @@ LEFT JOIN "inbound"."Visits" VZ
   AND VZ.activity_group_id = FC.activity_group_id
 WHERE VZ.visit_id IS NOT NULL
 ;
+
+
+GRANT SELECT ON  "outbound"."MatchingOccasions"  TO  viewer_mnmdb;
+-- GRANT UPDATE ON  "outbound"."MatchingOccasions"  TO  user_surfdb;

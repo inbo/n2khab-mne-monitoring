@@ -467,9 +467,9 @@ SELECT
   BOOL_AND(done_planning) AS done_planning
 FROM "outbound"."FieldCalendars"
 WHERE archive_version_id IS NULL
-  AND grts_address = 1012434 AND date_start = '2026-07-01'
 GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id
 ;
+
 DROP VIEW IF EXISTS  "inbound"."VisitsUnnested" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."VisitsUnnested" AS
 SELECT
