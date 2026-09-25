@@ -31,6 +31,8 @@ SELECT
   FCAL.date_interval,
   FCAL.date_end - current_date AS days_to_deadline,
   FCAL.priority,
+  FCAL.matching_occasion,
+  FCAL.date_suggested,
   FCAL.wait_any AS is_waiting,
   FCAL.wait_watersurface,
   FCAL.wait_3260,
@@ -41,11 +43,12 @@ SELECT
   FCAL.is_frozen,
   FCAL.excluded,
   FCAL.excluded_reason,
-  FCAL.teammember_assigned,
-  FCAL.date_visit_planned,
   FCAL.excluded AS no_visit_planned,
-  FCAL.notes,
   FCAL.done_planning,
+  FCAL.visit_id,
+  VISIT.teammember_assigned,
+  VISIT.date_visit_planned,
+  VISIT.preparation_notes,
   VISIT.date_visit,
   VISIT.photo,
   VISIT.visit_done,
@@ -56,7 +59,7 @@ SELECT
   LOCEVAL.loceval_notes
 FROM "outbound"."FieldCalendars" AS FCAL
 LEFT JOIN "inbound"."Visits" AS VISIT
-  ON FCAL.fieldcalendar_id = VISIT.fieldcalendar_id
+  ON FCAL.visit_id = VISIT.visit_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON UNIT.sampleunit_id = FCAL.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
@@ -141,6 +144,7 @@ ON UPDATE TO "outbound"."FieldworkPlanning"
 DO INSTEAD NOTHING;
 
 DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
+DROP RULE IF EXISTS FieldworkPlanning_upd_CAL ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd_CAL AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
@@ -148,16 +152,27 @@ DO ALSO
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
-  teammember_assigned = NEW.teammember_assigned,
-  date_visit_planned = NEW.date_visit_planned,
   no_visit_planned = NEW.excluded OR NEW.no_visit_planned,
-  notes = NEW.notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id
 ;
 
+DROP RULE IF EXISTS FieldworkPlanning_upd_VISITs ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd_VISITs AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO ALSO
+ UPDATE "inbound"."Visits"
+ SET
+  teammember_assigned = NEW.teammember_assigned,
+  date_visit_planned = NEW.date_visit_planned,
+  preparation_notes = NEW.preparation_notes
+ WHERE visit_id = OLD.visit_id
+;
+
+
 DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
-CREATE RULE FieldworkPlanning_upd2 AS
+DROP RULE IF EXISTS FieldworkPlanning_upd_INFOs ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd_INFOs AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
  UPDATE "outbound"."LocationInfos"

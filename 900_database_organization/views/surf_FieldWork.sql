@@ -101,13 +101,13 @@ SELECT
   VISIT.stratum,
   VISIT.date_start,
   VISIT.activity_group_id,
-  FCAL.teammember_assigned,
+  VISIT.teammember_assigned,
   FCAL.activity_rank,
-  CASE WHEN (FCAL.date_visit_planned IS NULL) THEN FALSE ELSE FCAL.done_planning = TRUE END AS is_scheduled,
-  FCAL.date_visit_planned,
-  FCAL.date_visit_planned - current_date AS days_to_visit,
+  CASE WHEN (VISIT.date_visit_planned IS NULL) THEN FALSE ELSE FCAL.is_scheduled END AS is_scheduled,
+  VISIT.date_visit_planned,
+  VISIT.date_visit_planned - current_date AS days_to_visit,
   FCAL.date_end - current_date AS days_to_deadline,
-  FCAL.notes AS preparation_notes,
+  VISIT.preparation_notes,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
@@ -233,11 +233,20 @@ LEFT JOIN "metadata"."Locations" AS LOC
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON INFO.location_id = VISIT.location_id
 LEFT JOIN (
-  SELECT *,
-    CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning = TRUE END AS is_scheduled
- FROM "outbound"."FieldCalendars"
+    SELECT
+      grts_address, date_start, activity_group_id, matching_occasion, visit_id,
+      ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+      ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+      ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids,
+      MIN(date_suggested) AS date_suggested,
+      MIN(priority) AS priority,
+      MIN(date_end) AS date_end,
+      CASE WHEN BOOL_AND(date_visit_planned IS NULL) THEN FALSE ELSE BOOL_OR(done_planning) END AS is_scheduled
+    FROM "outbound"."FieldCalendars"
+    WHERE (archive_version_id IS NULL) AND (NOT excluded) AND (NOT wait_any)
+    GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id
   ) AS FCAL
-  ON FCAL.fieldcalendar_id = VISIT.fieldcalendar_id
+  ON FCAL.visit_id = VISIT.visit_id
 LEFT JOIN (
   SELECT DISTINCT
     activity_group_id,
@@ -257,7 +266,9 @@ LEFT JOIN (
   ON FAGS.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
   SELECT
-    sampleunit_id,
+
+# TODO aggregate
+    sampleunit_ids,
     loceval_name,
     loceval_date,
     type_assessed,
