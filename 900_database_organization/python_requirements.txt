@@ -3,7 +3,7 @@ charset-normalizer==3.5.1
 contourpy==1.4.0
 cycler==0.12.1
 defusedxml==0.7.1
-fonttools==4.65.0
+fonttools==4.66.0
 GDAL==3.13.3
 GeoAlchemy2==0.20.0
 geopandas==1.1.4
@@ -24,13 +24,13 @@ pyogrio==0.13.0
 pyparsing==3.3.3
 pyproj==3.8.0
 python-dateutil==2.9.0.post0
-pytz==2026.3.post1
+pytz==2026.4
 PyYAML==6.0.3
 requests==2.34.2
 scipy==1.18.1
 shapely==2.1.2
 six==1.17.0
-SQLAlchemy==2.0.54
+SQLAlchemy==2.1.1
 tabulate==0.10.0
 tqdm==4.70.1
 typing_extensions==4.16.0
