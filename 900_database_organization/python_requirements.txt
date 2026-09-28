@@ -19,6 +19,7 @@ packaging==26.3
 pandas==3.0.6
 pathlib==1.0.1
 pillow==12.3.0
+psycopg==3.3.6
 psycopg2==2.9.13
 pyogrio==0.13.0
 pyparsing==3.3.3
