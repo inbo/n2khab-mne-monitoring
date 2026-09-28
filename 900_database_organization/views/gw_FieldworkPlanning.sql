@@ -1,6 +1,9 @@
 -- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldcalendar_id = 3;
 --
 
+
+BEGIN;
+
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
@@ -48,9 +51,10 @@ SELECT
   FWCAL.excluded_reason,
   FWCAL.teammember_assigned,
   FWCAL.date_visit_planned,
-  FWCAL.no_visit_planned,
+  FWCAL.excluded AS no_visit_planned,
   FWCAL.notes,
   FWCAL.done_planning,
+  VISIT.visit_id,
   VISIT.date_visit,
   VISIT.photo,
   VISIT.visit_done,
@@ -78,7 +82,7 @@ LEFT JOIN (
   ) AS SOIL
   ON LOC.location_id = SOIL.location_id
 LEFT JOIN "inbound"."Visits" AS VISIT
-  ON FWCAL.fieldcalendar_id = VISIT.fieldcalendar_id
+  ON FWCAL.visit_id = VISIT.visit_id
 LEFT JOIN (
   SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
     FROM "metadata"."GroupedActivities"
@@ -185,7 +189,7 @@ DO ALSO
   excluded_reason = NEW.excluded_reason,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.no_visit_planned,
+  no_visit_planned = NEW.excluded OR NEW.no_visit_planned,
   notes = NEW.notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id
@@ -206,6 +210,8 @@ DO ALSO
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  planner_gwdb;
+
+COMMIT;
 
 -- GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
 -- GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;

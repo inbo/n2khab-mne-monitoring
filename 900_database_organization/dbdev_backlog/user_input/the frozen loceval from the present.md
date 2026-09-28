@@ -222,7 +222,7 @@ GROUP BY is_frozen, no_visit_planned, visit_done
 UPDATE "outbound"."FieldworkCalendar"
 SET
 no_visit_planned = TRUE,
-notes = (notes || ' [nvp by FM 20260410]')
+notes = (CASE WHEN notes IS NULL THEN '' ELSE notes END || ' [nvp by FM 20260410]')
 WHERE fieldworkcalendar_id IN (
   SELECT DISTINCT FAC.fieldworkcalendar_id
   FROM "outbound"."FieldworkCalendar" FAC

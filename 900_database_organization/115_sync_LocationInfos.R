@@ -60,7 +60,7 @@ for (sdb in sourcedb_labels) {
 ## Permission Safety --------------------------------------------------------------
 # to avoid parallel work during the update procedure,
 # permissions are temporarily revoked, and restored afterwards.
-#    \dp "inbound"."FreeFieldNotes"
+#    \dp "outbound"."LocationInfos"
 
 # store user roles with write access
 writeaccess_userroles <- list(
@@ -69,7 +69,7 @@ writeaccess_userroles <- list(
   "loceval" = "user_loceval"
 )
 
-# Batch REVOKE or GRANT all permissions on FreeFieldNotes on all databases
+# Batch REVOKE or GRANT all permissions on LocationInfos on all databases
 batch_manage_infos_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
 
   # check input: either REVOKE, or GRANT
@@ -80,7 +80,7 @@ batch_manage_infos_write_permissions <- function(verb = c("REVOKE", "GRANT")) {
 
     mnmdb <- sourcedb_connections[[sdb]]
     role <- writeaccess_userroles[[sdb]]
-    table_namestring <- mnmdb$get_namestring("FreeFieldNotes")
+    table_namestring <- mnmdb$get_namestring("LocationInfos")
 
     # extra syntactical spice
     preposition <- dplyr::case_when(

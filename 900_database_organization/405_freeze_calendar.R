@@ -13,6 +13,16 @@ source("MNMDatabaseToolbox.R")
 # NOTE: this freeze date was set upon REP update 0.15.0, March 2026
 freeze_date <- as.Date("2025-12-31")
 
+# TODO priorities need to be set to NULL (20260921)
+# -- remove priorities from frozen activities
+# -- SELECT DISTINCT priority, COUNT(*) AS n
+# -- FROM "outbound"."FieldCalendars"
+# UPDATE "outbound"."FieldCalendars"
+# SET priority = NULL
+# WHERE is_frozen
+# -- GROUP BY priority
+# ;
+
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### connect databases

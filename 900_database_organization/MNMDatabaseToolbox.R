@@ -796,6 +796,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     ) {
     # mnmdb <- mnmgwdb
     # mnmdb <- locevaldb
+    # mnmdb <- mnmsurfdb
 
     stopifnot("glue" = requireNamespace("glue"))
 
@@ -824,8 +825,8 @@ parametrize_cascaded_update <- function(mnmdb) {
     new_characteristics <- new_data
 
     new_characteristics <- new_characteristics %>%
-      select(!!!characteristic_columns) %>%
-      distinct()
+      dplyr::select(!!!characteristic_columns) %>%
+      dplyr::distinct()
     stopifnot("Error: characteristic columns are not characteristic!" =
       nrow(new_data) == nrow(new_characteristics))
 
@@ -851,23 +852,23 @@ parametrize_cascaded_update <- function(mnmdb) {
       ]
 
       prior_content <- prior_content %>%
-        select(!!!subset_columns)
+        dplyr::select(!!!subset_columns)
 
       # "untouched" means: content which is not affected by the update
       #   (but, though unaffected, must be uploaded again).
       existing_untouched <- prior_content %>%
-        anti_join(
+        dplyr::anti_join(
           new_characteristics,
-          by = join_by(!!!characteristic_columns)
+          by = dplyr::join_by(!!!characteristic_columns)
         )
       # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
       # new_characteristics %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
       # existing_untouched %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
       existing_removed <- prior_content %>%
-        semi_join(
+        dplyr::semi_join(
           new_characteristics,
-          by = join_by(!!!characteristic_columns)
+          by = dplyr::join_by(!!!characteristic_columns)
         )
       # existing_removed %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
@@ -917,7 +918,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     ## do not upload index columns
     retain_cols <- names(new_data)
     retain_cols <- retain_cols[!(retain_cols %in% index_columns)]
-    new_data <- new_data %>% select(!!!retain_cols)
+    new_data <- new_data %>% dplyr::select(!!!retain_cols)
 
 
     ### double safety: load/catch/restore
@@ -2086,17 +2087,20 @@ precedence_columns <- list(
     "is_frozen",
     "excluded",
     "excluded_reason",
-    "teammember_assigned",
-    "date_visit_planned",
-    "no_visit_planned",
-    "notes",
+      "teammember_assigned",
+      "date_visit_planned",
+      # "no_visit_planned",
+      "notes",
     "done_planning"
   ),
   "Visits" = c(
+    "teammember_assigned",
+    "date_visit_planned",
+    "preparation_notes",
     "teammember_id",
     "date_visit",
-      "datetime_visit",
-      "sampling_done",
+    "datetime_visit",
+    "sampling_done",
     "type_assessed",
     "is_well_developed_type",
     "gps_type",

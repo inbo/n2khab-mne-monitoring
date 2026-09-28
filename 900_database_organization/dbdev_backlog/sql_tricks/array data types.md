@@ -1,18 +1,15 @@
 ---
 aliases:
 tags:
-started:
-finished:
-execution:
-status: false
-priority:
+  - arrays
+  - datatypes
 ---
 
 https://www.postgresql.org/docs/current/arrays.html
 https://www.geeksforgeeks.org/postgresql/postgresql-array-data-type/
 https://www.pgtutorial.com/postgresql-tutorial/postgresql-array/
 https://vrcacademy.com/tutorials/postgresql-arrays/
-
+https://medium.com/@vbilopav/postgresql-arrays-a33470e30861
 
 - declaration: `array_field integer[]` OR `array_field integer ARRAY`
 - for SELECT: slicing and indexing possible (just as in Python, but starting at 1)
@@ -48,3 +45,6 @@ LATERAL UNNEST(stratum) AS strats WHERE stratum IS NOT NULL
 GROUP BY location_id
 ;
 ```
+
+
+Data flows to/fro R: [[datatypes/test array data types connection to R|test array data types connection to R]]

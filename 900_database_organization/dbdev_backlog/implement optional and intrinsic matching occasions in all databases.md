@@ -3,7 +3,7 @@ aliases:
 tags:
   - matching_occasions
   - FieldCalendars
-started:
+started: 2026-09-14
 finished:
 execution:
 status: false
@@ -18,8 +18,8 @@ priority:
 > 1. There must be a distinction between "**optional matches**" (to prepone future auxiliary FAGs for efficiency) and "**intrinsic matches**" (same FAG on same date for different Sample Units).
 >  2. For intrinsic matches, we will switch to an `n : 1` linkage between FieldCalendars and Visits, thereby deviating from the historic, robust `1:1` linkage they were initiated with (which requires the use of array columns, and careful handling of existing data).
 >  3. Views and QGIS field forms on these tables are complex. Although a view-side grouping of e.g. intrinsic matches might be feasible, this would further complicate things and hinder maintenance while at the same time producing data redundancy.
->  4. The distinction of whether an activity group is optionally or intrinsically linkable depends on whether it is an auxiliary FAG. However, mnmgwdb's InstallationVisits would justify *intrinsic* grouping across time, but it will be represented as *optional* for now (reason: we might decide to pass by for an "installation refreshment".
->  5. Speaking of... there are different `*Visits` and thereby many tables | views | map layers which can be affected.
+>  4. The distinction of whether an activity group is optionally or intrinsically linkable depends on (i) whether it is an auxiliary FAG and (ii) whether activities truly co-incide, i.e. are REP-scheduled for the same date. **Only same-date primary FAGs are handled as intrinsic matching occasions.** For example, mnmgwdb's #InstallationVisits would justify "intrinsic" grouping across time, but it will be represented as *optional* for now (reason: we might decide to pass by for an "installation refreshment".
+>  5. Speaking of... there are different `*Visits` and thereby many tables | views | map layers which can be affected; however, the current implementation leaves them subsidiary to the grouped #Visits parent table.
 
 ## Optional Matches for #locevaldb 
 
@@ -43,12 +43,22 @@ SET date_suggested = date_start;
 	+ QGIS simply displays this information
 
 However, there is little to be won here:
-```
+```sql
 loceval=> SELECT DISTINCT grts_address, type FROM "outbound"."FieldCalendars" WHERE date_start != date_suggested;
  grts_address | type 
 --------------+------
 (0 rows)
 ```
+
+Yet there should be some...
+```sql
+loceval=> SELECT DISTINCT matching_occasion, count(*) AS n FROM "outbound"."FieldCalendars" GROUP BY matching_occasion HAVING count(*) >1;
+-- (45 rows)
+```
+
+>[!note] upstream adjustment
+> I assume that these start dates are already adjusted in the REP, and potential future FAGS shifted to the earlier date.
+
 
 ## Intrinsic Matches for #mnmsurfdb
 
@@ -58,15 +68,16 @@ loceval=> SELECT DISTINCT grts_address, type FROM "outbound"."FieldCalendars" WH
 > 	- Upon first inspection, [[sql_tricks/array data types|array data types]] seem to work fine and there is no reason to avoid that, except some [ancient dogma](https://en.wikipedia.org/wiki/First_normal_form).
 > 	- Crucial trick to still follow that dogma is to switch hierarchy: instead of hanging #Visits onto #FieldCalendars, each entry in the calendars should have at most one `visit_id` (or none).
 > 	- There will be a view #OccasionMatching which optionally provides a way to link, alike to "physical" tables.
-> - #FieldCalendars should not be aggregated: all #SampleUnits come from the REP, and some might be disapproved by #loceval, thus #FieldworkPlanning must deselect the ones which are not eligible. As a consequence, **`exclude` becomes more important!** The new `visit_id` column in `FieldCalendars` should be nullable to allow disconnection of rejected units. Conversely, `fieldcalendar_ids` must be adjusted by removing excluded ones from the array.
+> 	- R / `dplyr` seems to have some issues with the `pg__int4` or `pg__varchar` data types delivered by `RPostgres` for array fields; those issues must be circumvented.
+> - #FieldCalendars should **not** be aggregated: all #SampleUnits come from the REP, and some might be disapproved by #loceval, thus #FieldworkPlanning must deselect the ones which are not eligible. As a consequence, **`exclude` becomes more important!**  The array field `fieldcalendar_ids` must be adjusted dynamically by removing excluded calendar entries from the array; however `stratums` and `sampleunit_ids` stay linked to even deselected units.
 > - #inheritance: the monarchy of #Visits should not be affected (all aggregated columns are in the parent table interface), just that there will be fewer rows.
-> - Temporal continuity (unit rejection by loceval after the visit) is no issue, because the calendar is fixed on a time point.
-> - Performance should not be an issue; however, I must ensure that the major #views ( #FieldworkPlanning, #FieldWork ) stay efficient and performant.
-> - There must be complementary views: `FieldCalendarsNested` and `ViewsUnnested`, to facilitate queries of either logic.
+> - Temporal continuity (unit rejection by loceval after the visit) is no issue, because the calendar is fixed on a time point (strict co-incidence, see above).
+> - Performance should not be an issue; however, I must ensure that the major #views ( #FieldworkPlanning, #FieldWork ) stay efficient and performant ([[timeline/2026-09-28|2026-09-25]] confirmed: link is direct via `visit_id`).
+> - There must be complementary views: `FieldCalendarsAggregated` and `VisitsUnnested`, to facilitate queries of either logic. There is also a #MatchingOccasions view directly derived from #FieldCalendars.
 > - Although this applies only to #mnmsurfdb, it will be implemented for **all databases alike** to retain consistency.
 
 
-### Exploration 1: Actually Grouped Data / Array in Tables
+### Exploration 1 = Implementation: Actually Grouped Data / Array in Tables
 
 #### Structure
 The `SURFLENTDATACOLL` of #mnmsurfdb can co-occur for multiple types on the same location.
@@ -85,12 +96,49 @@ DROP VIEW "inbound"."FieldWork" CASCADE;
 DROP VIEW "outbound"."FieldworkPlanning" CASCADE;
 
 -- constraints will be reworked
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT fk_fieldcalendar_visits;
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT fk_FieldCalendars_Visits;
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT fk_SampleUnits_Visits
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_fieldcalendar_visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldCalendars_Visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_SampleUnits_Visits;
 
 
 -- STRUCTURE PREPARATION
+
+
+-- some columns change table: those are planned "per visit"
+ALTER TABLE "inbound"."Visits" ADD COLUMN teammember_assigned smallint;
+COMMENT ON COLUMN "inbound"."Visits".teammember_assigned IS E'filter for an assignee';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN date_visit_planned date;
+COMMENT ON COLUMN "inbound"."Visits".date_visit_planned IS E'planned date of visit';
+
+ALTER TABLE "inbound"."Visits" ADD COLUMN preparation_notes text;
+COMMENT ON COLUMN "inbound"."Visits".preparation_notes IS E'Free text notes from the colleague who planned this.';
+
+-- foreign key teammember_assigned
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_TeamMembers_Visits CASCADE;
+ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_TeamMembers_Visits FOREIGN KEY (teammember_assigned)
+REFERENCES "metadata"."TeamMembers" (teammember_id) MATCH SIMPLE
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+
+UPDATE "inbound"."Visits" AS TRGTAB
+  SET
+    teammember_assigned = SRCTAB.teammember_assigned,
+    date_visit_planned = SRCTAB.date_visit_planned,
+    preparation_notes = SRCTAB.notes
+  FROM "outbound"."FieldCalendars" AS SRCTAB
+  WHERE
+    SRCTAB.fieldcalendar_id = TRGTAB.fieldcalendar_id
+    AND SRCTAB.grts_address = TRGTAB.grts_address
+    AND SRCTAB.date_start = TRGTAB.date_start
+    AND SRCTAB.stratum = TRGTAB.stratum
+;
+
+
+
+
+-- NOTE: `Visits` and `FieldCalendars` have to switch order in the TABLES structure sheet
+
 -- columns for matching occasions
 ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN matching_occasion varchar;
 COMMENT ON COLUMN "outbound"."FieldCalendars".matching_occasion IS E'group label of actifity groups which may be combined (optional match)';
@@ -100,16 +148,28 @@ COMMENT ON COLUMN "outbound"."FieldCalendars".date_suggested IS E'earliest date 
 
 UPDATE "outbound"."FieldCalendars"
 SET date_suggested = date_start;
+-- will be updated by REP update script
 
 
 -- visit_id as fk to FieldCalendars
-ALTER TABLE "inbound"."FieldCalendars" ADD COLUMN visit_id int DEFAULT NULL;
-COMMENT ON COLUMN "inbound"."FieldCalendars".visit_id IS E'link to the visit which serves this calendar entry';
+ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN visit_id int DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."FieldCalendars".visit_id IS E'link to the visit which serves this calendar entry';
 
-ALTER TABLE "outbound"."FieldCalendars" DROP CONSTRAINT IF EXISTS fk_Visits_FieldCalendars CASCADE;
-ALTER TABLE "outbound"."FieldCalendars" ADD CONSTRAINT fk_Visits_FieldCalendars FOREIGN KEY (visit_id)
-REFERENCES "inbound"."Visits" (visit_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
+-- ALTER TABLE "outbound"."FieldCalendars" DROP CONSTRAINT IF EXISTS fk_Visits_FieldCalendars CASCADE;
+-- ALTER TABLE "outbound"."FieldCalendars" ADD CONSTRAINT fk_Visits_FieldCalendars FOREIGN KEY (visit_id)
+-- REFERENCES "inbound"."Visits" (visit_id) MATCH SIMPLE
+-- ON DELETE SET NULL ON UPDATE CASCADE;
+
+UPDATE "outbound"."FieldCalendars" AS TRGTAB
+  SET
+    visit_id = SRCTAB.visit_id
+  FROM "inbound"."Visits" AS SRCTAB
+  WHERE
+    SRCTAB.fieldcalendar_id = TRGTAB.fieldcalendar_id
+    AND SRCTAB.grts_address = TRGTAB.grts_address
+    AND SRCTAB.date_start = TRGTAB.date_start
+    AND SRCTAB.stratum = TRGTAB.stratum
+;
 
 
 -- Visits.stratums
@@ -140,11 +200,20 @@ ALTER TABLE "inbound"."Visits"
 RENAME COLUMN sampleunit_id TO sampleunit_ids;
 COMMENT ON COLUMN "inbound"."Visits".sampleunit_ids IS E'array of sample unit indices (technical) or NULL for obsolete visits';
 
+
+
+-- COMMIT;
+
 ```
 
 
 ISSUE: the foreign key would have to be given up. <https://stackoverflow.com/a/50441059>
 SOLUTION: ... or not: just switching the dependency between #FieldCalendars and #Visits by giving the `visit_id` to FieldCalendars (fk) and keeping `fieldcalendar_ids` as array column
+
+>[!issue] foreign key not working
+> `fk_Visits_FieldCalendars` as prepared above will not work:
+> the constraint will look for key values in `ONLY "inbound"."Visits"`, not finding matching rows which are stored in child tables via #inheritance.
+> As is common practice on these databases, we will handle the constraint as a "soft constrained", not enforced by database structure, but guaranteed by R scripts (e.g. `102_re_link_foreign_keys.R`).
 
 Structure is in place - data has to be aggregated.
 
@@ -153,9 +222,11 @@ Structure is in place - data has to be aggregated.
 
 First, a backup copy is stored to `"archive"."LenticVisits"` via [CREATE TABLE ... AS ...](https://www.tutorialkart.com/postgresql/postgresql-create-table-from-another-table/)
 
+!! had to create schema archive first. And grant all the permissions.
+
 ```sql
 -- create a copy of the existing Visits
-CREATE TABLE "archive"."UnaggregatedVisits" AS
+CREATE TABLE "archive"."UnaggregatedVisitsBackup" AS
 SELECT *
 FROM ONLY "inbound"."Visits"
 NATURAL FULL JOIN "inbound"."LenticVisits"
@@ -163,6 +234,8 @@ NATURAL FULL JOIN "inbound"."LoticVisits"
 NATURAL FULL JOIN "inbound"."OtherVisits"
 ORDER BY visit_id ASC
 ;
+
+\COPY (SELECT * FROM "inbound"."LenticVisits" WHERE visit_done)  TO '~/20260917_lentic_visits_preaggregated.csv' With CSV DELIMITER ',' HEADER;
 
 ```
 
@@ -193,7 +266,59 @@ ADD COLUMN is_aggregated BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- has to happen separately per *Visit class; here, `LenticVisits` is the only one used so far
 
-SELECT DISTINCT ON (location_id, grts_address, date_start, date_visit, activity_group_id)
+INSERT INTO "inbound"."LenticVisits" (
+  log_user,
+  log_update,
+  location_id,
+  fieldcalendar_ids,
+  sampleunit_ids,
+  stratums,
+  grts_address,
+  activity_group_id,
+  date_start,
+  teammember_assigned,
+  date_visit_planned,
+  preparation_notes,
+  teammember_id,
+  date_visit,
+  datetime_visit,
+  sampling_done,
+  notes,
+  photo,
+  issues,
+  visit_done,
+  link_observation_samplecontext,
+  link_observation_meteorology,
+  link_observation_perturbation,
+  archive_version_id,
+  is_aggregated,
+  equipment,
+  chlorophytae_presence,
+  chlorophytae_specification,
+  waterdepth_samplingpoint_cm,
+  secchi_depth_cm,
+  clear_to_bottom,
+  sludge_thickness,
+  waterlevel_elevation_mtaw,
+  project_code,
+  recipient_code,
+  watertemperature_celsius,
+  sample_ph,
+  electric_conductivity_mus_cm,
+  dissolved_oxygen_mg_l,
+  dissolved_oxygen_percent,
+  sample_notes,
+  sample_contamination,
+  sample_contamination_reason,
+  sneller_cm,
+  color,
+  smell,
+  zooplankton,
+  macroinvertebrates,
+  xphoto_sample
+)
+SELECT DISTINCT
+-- ON (location_id, grts_address, date_start, activity_group_id)
   COALESCE(
     (STRING_AGG(DISTINCT log_user, ',' )
      FILTER (WHERE log_user NOT IN ('maintenance'))
@@ -205,12 +330,14 @@ SELECT DISTINCT ON (location_id, grts_address, date_start, date_visit, activity_
   ARRAY_AGG(DISTINCT fc_id ORDER BY fc_id) AS fieldcalendar_ids,
   ARRAY_AGG(DISTINCT su_id ORDER BY su_id) AS sampleunit_ids,
   ARRAY_AGG(DISTINCT strats ORDER BY strats) AS stratums,
-  location_id,
   grts_address,
   activity_group_id,
   date_start,
-  MAX(teammember_id),
-  date_visit,
+  MAX(teammember_assigned) AS teammember_assigned,
+  MAX(date_visit_planned) AS date_visit_planned,
+  STRING_AGG(preparation_notes, ', ') AS preparation_notes,
+  MAX(teammember_id) AS teammember_id,
+  MAX(date_visit) AS date_visit,
   MAX(datetime_visit) AS datetime_visit,
   BOOL_OR(sampling_done) AS sampling_done,
   STRING_AGG(notes, ', ') AS notes,
@@ -230,7 +357,7 @@ SELECT DISTINCT ON (location_id, grts_address, date_start, date_visit, activity_
   STRING_AGG(DISTINCT chlorophytae_specification, ', ') AS chlorophytae_specification,
   AVG(waterdepth_samplingpoint_cm) AS waterdepth_samplingpoint_cm,
   AVG(secchi_depth_cm) AS secchi_depth_cm,
-  BOOL_OR(clear_to_bottom),
+  BOOL_OR(clear_to_bottom) AS clear_to_bottom,
   AVG(sludge_thickness) AS sludge_thickness,
   AVG(waterlevel_elevation_mtaw) AS waterlevel_elevation_mtaw,
   STRING_AGG(DISTINCT project_code, ', ') AS project_code,
@@ -241,7 +368,7 @@ SELECT DISTINCT ON (location_id, grts_address, date_start, date_visit, activity_
   AVG(dissolved_oxygen_mg_l) AS dissolved_oxygen_mg_l,
   AVG(dissolved_oxygen_percent) AS dissolved_oxygen_percent,
   STRING_AGG(DISTINCT sample_notes, ', ') AS sample_notes,
-  BOOL_OR(sample_contamination) AS sample_contamination,
+  BOOL_OR(COALESCE(sample_contamination, FALSE)) AS sample_contamination,
   STRING_AGG(DISTINCT sample_contamination_reason, ', ') AS sample_contamination_reason,
   AVG(sneller_cm) AS sneller_cm,
   STRING_AGG(DISTINCT color, ', ') AS color,
@@ -254,8 +381,130 @@ LATERAL
   UNNEST(fieldcalendar_ids) AS fc_id,
   UNNEST(sampleunit_ids) AS su_id,
   UNNEST(stratums) AS strats
-GROUP BY location_id, grts_address, date_start, date_visit, activity_group_id
+GROUP BY location_id, grts_address, date_start, activity_group_id
 ;
+
+
+-- some were missing in the first run, probably because of `bool_or(...NULL...)` distinction
+INSERT INTO "inbound"."LenticVisits" (
+  log_user,
+  log_update,
+  location_id,
+  fieldcalendar_ids,
+  sampleunit_ids,
+  stratums,
+  grts_address,
+  activity_group_id,
+  date_start,
+  teammember_assigned,
+  date_visit_planned,
+  preparation_notes,
+  teammember_id,
+  date_visit,
+  datetime_visit,
+  sampling_done,
+  notes,
+  photo,
+  issues,
+  visit_done,
+  link_observation_samplecontext,
+  link_observation_meteorology,
+  link_observation_perturbation,
+  archive_version_id,
+  equipment,
+  chlorophytae_presence,
+  chlorophytae_specification,
+  waterdepth_samplingpoint_cm,
+  secchi_depth_cm,
+  clear_to_bottom,
+  sludge_thickness,
+  waterlevel_elevation_mtaw,
+  project_code,
+  recipient_code,
+  watertemperature_celsius,
+  sample_ph,
+  electric_conductivity_mus_cm,
+  dissolved_oxygen_mg_l,
+  dissolved_oxygen_percent,
+  sample_notes,
+  sample_contamination,
+  sample_contamination_reason,
+  sneller_cm,
+  color,
+  smell,
+  zooplankton,
+  macroinvertebrates,
+  xphoto_sample,
+  is_aggregated
+)
+SELECT
+  UV.log_user,
+  UV.log_update,
+  UV.location_id,
+  UV.fieldcalendar_ids,
+  UV.sampleunit_ids,
+  UV.stratums,
+  UV.grts_address,
+  UV.activity_group_id,
+  UV.date_start,
+  UV.teammember_assigned,
+  UV.date_visit_planned,
+  UV.preparation_notes,
+  UV.teammember_id,
+  UV.date_visit,
+  UV.datetime_visit,
+  UV.sampling_done,
+  UV.notes,
+  UV.photo,
+  UV.issues,
+  UV.visit_done,
+  UV.link_observation_samplecontext,
+  UV.link_observation_meteorology,
+  UV.link_observation_perturbation,
+  UV.archive_version_id,
+  UV.equipment,
+  UV.chlorophytae_presence,
+  UV.chlorophytae_specification,
+  UV.waterdepth_samplingpoint_cm,
+  UV.secchi_depth_cm,
+  UV.clear_to_bottom,
+  UV.sludge_thickness,
+  UV.waterlevel_elevation_mtaw,
+  UV.project_code,
+  UV.recipient_code,
+  UV.watertemperature_celsius,
+  UV.sample_ph,
+  UV.electric_conductivity_mus_cm,
+  UV.dissolved_oxygen_mg_l,
+  UV.dissolved_oxygen_percent,
+  UV.sample_notes,
+  COALESCE(UV.sample_contamination, FALSE),
+  UV.sample_contamination_reason,
+  UV.sneller_cm,
+  UV.color,
+  UV.smell,
+  UV.zooplankton,
+  UV.macroinvertebrates,
+  UV.xphoto_sample,
+  TRUE
+FROM "archive"."UnaggregatedVisitsBackup" UV
+LEFT JOIN (
+  SELECT DISTINCT grts_address, stratums, fieldcalendar_ids, activity_group_id, date_start,
+  lenticvisit_id AS already_present
+  FROM "inbound"."LenticVisits" WHERE is_aggregated
+) AS LV
+  ON (UV.grts_address = LV.grts_address)
+  AND (UV.date_start = LV.date_start)
+  AND (UV.stratums <@ LV.stratums)
+  AND (UV.activity_group_id = LV.activity_group_id)
+  AND (UV.fieldcalendar_ids <@ LV.fieldcalendar_ids)
+WHERE (already_present IS NULL)
+  AND (lenticvisit_id IS NOT NULL)
+; -- responds `(0, 0) updated`, but is fine
+
+
+-- there are duplicates within the LoticVisits!
+
 
 -- clean up
 DELETE FROM "inbound"."LenticVisits" WHERE NOT is_aggregated;
@@ -268,20 +517,238 @@ COMMIT;
 
 Compare pre/post to find issues
 ```sql
-\COPY (SELECT * FROM "inbound"."LenticVisits" WHERE visit_done)  TO '~/20260917_lentic_visits_preaggregated.csv' With CSV DELIMITER ',' HEADER;
 \COPY (SELECT * FROM "inbound"."LenticVisits" WHERE visit_done)  TO '~/20260917_lentic_visits_postaggregated.csv' With CSV DELIMITER ',' HEADER;
+
+
+-- TODO better join on SQL for comparison
+\COPY (
+  SELECT *
+  FROM "archive"."UnaggregatedVisitsBackup" UV
+  LEFT JOIN "inbound"."LenticVisits" LV
+    ON  (UV.grts_address = LV.grts_address)
+    AND (UV.date_start = LV.date_start)
+    AND (UV.activity_group_id = LV.activity_group_id)
+    AND (UV.stratums <@ LV.stratums)
+)  TO '~/20260917_lentic_visits_prepostjoined.csv' With CSV DELIMITER ',' HEADER;
+  -- WHERE UV.grts_address = 3514038 AND UV.date_start = '2026-07-01'
 
 ```
 
 Then run the MODIFIED `102_re_link_foreign_keys.R` script to re-link tables.
 
+#### ISSUE: array data types not supported in R
 
-#### Views for Convenience and Backwards Compatibility
+- [x] [[datatypes/test array data types connection to R|implement array data types in R database connection]]
+- [x] also for INSERT via `db$insert_data` (basically a string conversion)
+- [x] test real database on `-staging`
 
+
+#### Modify Scripts
+
+
+##### Helpers
+
+To get summary of aggregated #FieldCalendars:
 ```sql
+SELECT DISTINCT ON
+    (grts_address, date_start, activity_group_id, matching_occasion)
+  grts_address,
+  date_start,
+  activity_group_id,
+  matching_occasion,
+  ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+  ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+  ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids
+FROM "outbound"."FieldCalendars"
+WHERE grts_address = 3514038 AND date_start = '2026-07-01'
+  AND NOT excluded
+GROUP BY
+  grts_address, date_start, activity_group_id, matching_occasion
+;
+
 ```
 
-### Exploration 2: Virtually Grouped Data / Array in Views (*idea discarded*)
+
+Actually update aggregated columns:
+
+```sql
+
+UPDATE "inbound"."Visits" AS TRGTAB
+  SET
+    stratums = SRCTAB.stratums,
+    sampleunit_ids = SRCTAB.sampleunit_ids,
+    fieldcalendar_ids = SRCTAB.fieldcalendar_ids
+  FROM (
+    SELECT DISTINCT ON
+        (grts_address, date_start, activity_group_id, matching_occasion)
+      grts_address,
+      date_start,
+      activity_group_id,
+      matching_occasion,
+      ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+      ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+      ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids
+    FROM "outbound"."FieldCalendars"
+    WHERE NOT excluded
+    GROUP BY
+      grts_address, date_start, activity_group_id, matching_occasion
+  ) AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.date_start = SRCTAB.date_start)
+   AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+   AND (SRCTAB.stratums && TRGTAB.stratums)
+;
+
+SELECT * FROM "inbound"."Visits" 
+WHERE grts_address = 3514038 AND date_start = '2026-07-01'
+;
+
+```
+
+
+#### run 111 script (loceval) and perform REP update
+
+new locations: c(16936630, 832386)c("91E0_vo", "6510_huk")
+
+156 -> 168 Replacements
+1739 -> 1744 locevals
+705 -> 735 cellmaps
+
+REP update:
+and repeate... forgot to download structure sheet
+
+
+But the rest went rather well.
+
+
+#### Views for Convenience and Backwards Compatibility
+##### #MatchingOccasions
+
+Includes double check for consistency
+
+```sql
+DROP VIEW IF EXISTS  "outbound"."MatchingOccasions" CASCADE;
+CREATE OR REPLACE VIEW "outbound"."MatchingOccasions" AS
+SELECT
+  FC.fieldcalendar_id,
+  FC.visit_id,
+  FC.grts_address,
+  FC.stratum,
+  FC.matching_occasion
+FROM "outbound"."FieldCalendars" FC
+LEFT JOIN "inbound"."Visits" VZ
+  ON VZ.visit_id = FC.visit_id
+  AND VZ.grts_address = FC.grts_address
+  AND VZ.date_start = FC.date_start
+  AND VZ.activity_group_id = FC.activity_group_id
+WHERE VZ.visit_id IS NOT NULL
+;
+
+```
+
+##### #FieldCalendarsAggregated
+
+```sql
+DROP VIEW IF EXISTS  "outbound"."FieldCalendarsAggregated" CASCADE;
+CREATE OR REPLACE VIEW "outbound"."FieldCalendarsAggregated" AS
+SELECT
+  grts_address, date_start, activity_group_id, matching_occasion, visit_id,
+  ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+  ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+  ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids,
+  STRING_AGG(DISTINCT log_user, ', ') AS log_users,
+  MAX(log_update) AS log_update,
+  UNNEST(ARRAY_AGG(DISTINCT date_end)) AS date_end,
+  UNNEST(ARRAY_AGG(DISTINCT date_interval)) AS date_interval,
+  UNNEST(ARRAY_AGG(DISTINCT activity_rank)) AS activity_rank,
+  MIN(date_suggested) AS date_suggested,
+  MIN(priority) AS priority,
+  BOOL_AND(wait_any) AS wait_any,
+  BOOL_AND(wait_watersurface)   AS wait_watersurface,
+  BOOL_AND(wait_3260)           AS wait_3260,
+  BOOL_AND(wait_7220)           AS wait_7220,
+  BOOL_AND(wait_floating)       AS wait_floating,
+  BOOL_AND(wait_obsolete_types) AS wait_obsolete_types,
+  BOOL_AND(is_sideloaded)       AS is_sideloaded,
+  BOOL_AND(is_frozen)           AS is_frozen,
+  BOOL_AND(excluded) AS excluded,
+  STRING_AGG(DISTINCT excluded_reason, ', ') AS excluded_reason,
+  BOOL_AND(done_planning) AS done_planning
+FROM "outbound"."FieldCalendars"
+WHERE archive_version_id IS NULL
+  AND grts_address = 1012434 AND date_start = '2026-07-01'
+GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id
+;
+
+```
+
+##### #VisitsUnnested
+
+```sql
+DROP VIEW IF EXISTS  "inbound"."VisitsUnnested" CASCADE;
+CREATE OR REPLACE VIEW "inbound"."VisitsUnnested" AS
+SELECT
+ *,
+ UNNEST(stratums) AS stratum,
+ UNNEST(sampleunit_ids) AS sampleunit_id,
+ UNNEST(fieldcalendar_ids) AS fieldcalendar_id
+FROM "inbound"."Visits"
+;
+
+```
+
+##### Helpers
+Joining #FieldCalendars and #Visits in different ways:
+```sql
+SELECT *
+  FROM
+"outbound"."FieldCalendars" AS TRGTAB,
+  "inbound"."Visits" AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.date_start = SRCTAB.date_start)
+   AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+   AND (TRGTAB.stratum = ANY(SRCTAB.stratums))
+;
+
+SELECT DISTINCT chuck, COUNT(*) AS n
+FROM (
+SELECT visit_id IS NULL AS chuck
+FROM "outbound"."FieldCalendars"
+)
+GROUP BY chuck
+;
+
+SELECT *
+FROM (
+  SELECT DISTINCT
+    grts_address,
+    date_start,
+    activity_group_id,
+    count(*) AS n_visits
+  FROM "inbound"."Visits"
+  GROUP BY grts_address, date_start, activity_group_id
+) AS VZ
+NATURAL FULL JOIN (
+  SELECT DISTINCT
+    grts_address,
+    date_start,
+    activity_group_id,
+    count(*) AS n_calendars
+  FROM "outbound"."FieldCalendars"
+  GROUP BY grts_address, date_start, activity_group_id
+) AS FC
+;
+
+
+```
+
+
+ISSUE: FieldCalendars notes by #NDT will be duplicated/must be aggregated; possibly have one "prep notes" field in Visits.
+
+
+### {archive} Exploration 2: Virtually Grouped Data / Array in Views (*idea discarded*)
 
 - array data types are somewhat discouraged because they violate some obscure principle of "[first normal form](https://en.wikipedia.org/wiki/First_normal_form)" (Codd).
 - However, in our case, arrays will only only be added for convenience; the central relation stays straight forward.
@@ -302,3 +769,67 @@ VARIANT
 - have a `VisitGroups` table which links `visit_id` to `visitgroup`
 - or another column in Visits
 - or some way of defining "`Occasions`" (as in "`matching_occasions`") as a group of FieldCalendar entries?
+
+## Database Consistency
+
+Already roll out the inverse link of #FieldCalendars and #Visits to #locevaldb and #mnmgwdb.
+
+```sql
+-- remove excess constraints
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_fieldactivitycalendar_visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_fieldworkcalendar_visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_fieldcalendar_visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldCalendars_Visits;
+
+
+ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN visit_id int DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."FieldCalendars".visit_id IS E'link to the visit which serves this calendar entry';
+
+UPDATE "outbound"."FieldCalendars" AS TRGTAB
+  SET
+    visit_id = SRCTAB.visit_id
+  FROM "inbound"."Visits" AS SRCTAB
+  WHERE
+    SRCTAB.fieldcalendar_id = TRGTAB.fieldcalendar_id
+    AND SRCTAB.grts_address = TRGTAB.grts_address
+    AND SRCTAB.date_start = TRGTAB.date_start
+    AND SRCTAB.stratum = TRGTAB.stratum -- `type` on locevaldb
+;
+
+SELECT * 
+FROM "outbound"."FieldCalendars"
+WHERE visit_id IS NULL
+;
+
+
+```
+
+anticipation on `mnmgwdb`:
+
+```sql
+
+-- columns for matching occasions
+ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN matching_occasion varchar;
+COMMENT ON COLUMN "outbound"."FieldCalendars".matching_occasion IS E'group label of actifity groups which may be combined (optional match)';
+
+ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN date_suggested date;
+COMMENT ON COLUMN "outbound"."FieldCalendars".date_suggested IS E'earliest date of activities in an optional matching group';
+
+UPDATE "outbound"."FieldCalendars"
+SET date_suggested = date_start;
+-- will be updated by REP update script
+
+```
+
+## For Later...
+
+The following fields were archived, but potentially contain data not stored elsewhere:
+`latest_calibration, water_clarity, turbidity, open_water, waterdepth_samplingpoint_m, float_layer, phytoplankton, ice_layer_cm`
+
+Those can be recovered from #UnaggregatedVisitsBackup:
+
+```sql
+
+SELECT * FROM "archive"."UnaggregatedVisitsBackup";
+
+```

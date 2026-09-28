@@ -170,7 +170,7 @@ convert_df_datetime_types_to_character <- function(df) {
   # x <- df$log_creation
 
   df %>%
-    mutate_if(
+    dplyr::mutate_if(
       is.POSIXct,
       \(x) unlist_keep_na(purrr::map(x, convert_timestamp_to_ms_character))
     ) %>%
@@ -316,6 +316,7 @@ append_tabledata <- function(
     table_id,
     to_upload,
     overwrite = FALSE,
+    copy = FALSE,
     append = TRUE
   )
   # res <- DBI::dbFetch(rs)
@@ -676,31 +677,31 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
   # tables and their relations
   # db$folder <- "mnmsyncdb_dev_structure"
-  db$tables <- bind_rows(
+  db$tables <- dplyr::bind_rows(
     read.csv(file.path(db$folder, "TABLES.csv")) %>%
-        select(table, schema, geometry, inherits, excluded) %>%
-        mutate(
+        dplyr::select(table, schema, geometry, inherits, excluded) %>%
+        dplyr::mutate(
           is_view = FALSE,
         ) %>%
-        mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
-        mutate_at(vars(excluded), as.logical),
+        dplyr::mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
+        dplyr::mutate_at(vars(excluded), as.logical),
     read.csv(file.path(db$folder, "VIEWS.csv")) %>%
-        select(table = view, schema, excluded) %>%
-        mutate(
+        dplyr::select(table = view, schema, excluded) %>%
+        dplyr::mutate(
           geometry = "",
           inherits = "",
           is_view = TRUE,
         ) %>%
-        mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
-        mutate_at(vars(excluded), as.logical)
+        dplyr::mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
+        dplyr::mutate_at(vars(excluded), as.logical)
     ) %>%
-    mutate(excluded = as.logical(coalesce(excluded, FALSE)))
-    # %>% filter(!excluded)
+    dplyr::mutate(excluded = as.logical(coalesce(excluded, FALSE)))
+    # %>% dplyr::filter(!excluded)
   # db$tables %>% knitr::kable()
 
   # check if a table exists
   db$has_table <- function(table_label) table_label %in%
-    (db$tables %>% filter(!excluded) %>% pull(table))
+    (db$tables %>% dplyr::filter(!excluded) %>% dplyr::pull(table))
 
   # this one is created by python scripts
   db$table_relations <- read_table_relations_config(
@@ -710,17 +711,17 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
   # some tables are excluded
   db$excluded_tables <- db$tables %>%
-    filter(!is.na(excluded)) %>%
-    filter(excluded == 1) %>%
-    pull(table)
+    dplyr::filter_out(is.na(excluded)) %>%
+    dplyr::filter(excluded == 1) %>%
+    dplyr::pull(table)
   # db$excluded_tables %>% knitr::kable()
 
   # get schema for a table
   db$get_schema <- function(table_label) {
     return(
       db$tables %>%
-        filter(table == table_label) %>%
-        pull(schema)
+        dplyr::filter(table == table_label) %>%
+        dplyr::pull(schema)
     )
   }
   # db$get_schema("GroupedActivities")
@@ -741,11 +742,11 @@ mnmdb_assemble_structure_lookups <- function(db) {
   # same as above, but from lowercase table key
   db$get_table_id_lowercase <- function(table_key) {
     schema <- db$tables %>%
-      filter(tolower(table) == tolower(table_key)) %>%
-      pull(schema)
+      dplyr::filter(tolower(table) == tolower(table_key)) %>%
+      dplyr::pull(schema)
     tkey_correct <- db$tables %>%
-      filter(tolower(table) == tolower(table_key)) %>%
-      pull(table)
+      dplyr::filter(tolower(table) == tolower(table_key)) %>%
+      dplyr::pull(table)
     return(DBI::Id(schema, tkey_correct))
   }
   # db$get_table_id_lowercase("locationcells")
@@ -757,9 +758,9 @@ mnmdb_assemble_structure_lookups <- function(db) {
     return(c(
       table_key,
       db$table_relations %>%
-      filter(tolower(relation_table) == tolower(table_key),
-        !(dependent_table %in% db$excluded_tables)
-      ) %>% pull(dependent_table)
+      dplyr::filter(tolower(relation_table) == tolower(table_key))  %>%
+      dplyr::filter_out(dependent_table %in% db$excluded_tables) %>%
+      dplyr::pull(dependent_table)
     ))
   }
   # db$get_dependent_tables("Locations")
@@ -779,10 +780,10 @@ mnmdb_assemble_structure_lookups <- function(db) {
   # table descendants by inheritance
   # table_label <- "Visits"
   db$get_descendant_tables <- function(table_label) {
-    db$tables %>% filter(
+    db$tables %>% dplyr::filter(
       inherits == db$get_namestring(table_label)
     ) %>%
-    pull(table) %>%
+    dplyr::pull(table) %>%
     return()
   } # /get_descendant_tables
 
@@ -791,35 +792,77 @@ mnmdb_assemble_structure_lookups <- function(db) {
   db$get_ancestor_tables <- function(table_label) {
 
     ancestors <- db$tables  %>%
-      filter(
+      dplyr::filter(
         table == table_label
       ) %>%
-      pull(inherits)
+      dplyr::pull(inherits)
 
     db$tables %>%
-      mutate(namestring = db$get_namestring(table)) %>%
-      filter(namestring %in% ancestors) %>%
-      pull(table) %>%
+      dplyr::mutate(namestring = db$get_namestring(table)) %>%
+      dplyr::filter(namestring %in% ancestors) %>%
+      dplyr::pull(table) %>%
       return()
   } # /get_ancestor_tables
 
 
   ### specific table info
   db$load_table_info <- function(table_label) {
+
+    # escape views
+    is_view <- db$tables %>%
+      dplyr::filter(table == table_label) %>%
+      dplyr::pull(is_view)
+    if (is_view) {
+      return(dplyr::tibble(
+        column = character(),
+        datatype = character(),
+        not_null = logical(),
+        default = character(),
+        primary_key = logical(),
+        sequence = logical(),
+        foreign_key = character(),
+        constraint = character(),
+        freesql = character(),
+        comment = character()
+      ))
+    }
+
     table_info <- read.csv(
       file.path(db$folder, glue::glue("{table_label}.csv"))
     ) %>%
-    mutate_at(vars(default, foreign_key, constraint, freesql), as.character)
+    dplyr::mutate_at(
+      dplyr::vars(datatype, default, foreign_key, constraint, freesql, comment),
+      as.character
+    )
+
+    # additional: prepend ancestral columns
+    ancestor <- db$get_ancestor_tables(table_label)
+    if (length(ancestor) > 0) {
+
+      ancestral_info <- read.csv(
+        file.path(db$folder, glue::glue("{ancestor}.csv"))
+      ) %>%
+      dplyr::mutate_at(
+        dplyr::vars(datatype, default, foreign_key, constraint, freesql),
+        as.character
+      )
+
+      table_info <- dplyr::bind_rows(
+        ancestral_info,
+        table_info
+      )
+
+    }
 
     return(table_info)
   }
   # db$load_table_info("FreeFieldNotes")
 
   # check that a table has a column
-  db$table_has_column <- function(table_label, column) {
+  db$table_has_column <- function(table_label, the_column) {
     existing_columns <- db$load_table_info(table_label) %>%
-      pull(column)
-    return(column %in% existing_columns)
+      dplyr::pull(column)
+    return(the_column %in% existing_columns)
   }
   # db$load_table_info("FreeFieldNotes")
 
@@ -832,15 +875,15 @@ mnmdb_assemble_structure_lookups <- function(db) {
     # table_label <- "PositioningVisits"
     full_table_info <- db$load_table_info(table_label)
 
-    # db$tables %>% filter(table == "PositioningVisits") %>% pull(inherits)
-    # db$tables %>% filter(table == "TeamMembers") %>% pull(inherits)
+    # db$tables %>% dplyr::filter(table == "PositioningVisits") %>% dplyr::pull(inherits)
+    # db$tables %>% dplyr::filter(table == "TeamMembers") %>% dplyr::pull(inherits)
     ancestors <- db$get_ancestor_tables(table_label)
     # db$load_table_info(ancestors[[1]]) %>% glimpse()
     # full_table_info %>% glimpse()
 
     if (length(ancestors) > 0) {
       for (ancestor in ancestors) {
-        full_table_info <- bind_rows(
+        full_table_info <- dplyr::bind_rows(
           db$load_table_info(ancestor),
           full_table_info
         )
@@ -849,20 +892,18 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
 
     non_sequences <- full_table_info %>%
-      mutate(foreign_key = coalesce(foreign_key, "")) %>%
-      filter(
-        (sequence == "False") &
-        (foreign_key == "")
-        ) %>%
-      pull(column)
+      dplyr::mutate(foreign_key = dplyr::coalesce(foreign_key, "")) %>%
+      dplyr::filter(
+        sequence == "False",
+        foreign_key == ""
+      ) %>%
+      dplyr::pull(column)
     # this misses non-linked sequences: sampleunit_id, location_id
 
     characteristic_columns <- full_table_info %>%
-      filter(
-        !(column %in% logging_columns),
-        (column %in% non_sequences),
-      ) %>%
-      pull(column)
+      dplyr::filter_out(column %in% logging_columns) %>%
+      dplyr::filter(column %in% non_sequences) %>%
+      dplyr::pull(column)
 
     return(characteristic_columns)
   }
@@ -875,8 +916,8 @@ mnmdb_assemble_structure_lookups <- function(db) {
   db$get_primary_key <- function(table_label) {
     return(
       db$load_table_info(table_label) %>%
-        filter(primary_key == "True") %>%
-        pull(column)
+        dplyr::filter(primary_key == "True") %>%
+        dplyr::pull(column)
     )
   }
   # db$get_primary_key("FreeFieldNotes")
@@ -897,9 +938,9 @@ mnmdb_assemble_query_functions <- function(db) {
   # check whether a table is spatial, i.e. contains `wkb_geometry`
   db$is_spatial <- function(table_key) {
     read.csv(file.path(db$folder, "TABLES.csv")) %>%
-      select(table, geometry) %>%
-      filter(tolower(table) == tolower(table_key)) %>%
-      pull(geometry) %>%
+      dplyr::select(table, geometry) %>%
+      dplyr::filter(tolower(table) == tolower(table_key)) %>%
+      dplyr::pull(geometry) %>%
       {is.na(.) || (. == "")} %>%
       isFALSE() %>%
       return()
@@ -924,7 +965,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
       pk <- db$get_primary_key(table_label)
       df %>%
-        dplyr::select(!!!rlang::syms(unique(c(pk, subselect)))) %>%
+        dplyr::select(tidyselect::any_of(unique(c(pk, subselect)))) %>%
         return()
     }
 
@@ -936,7 +977,8 @@ mnmdb_assemble_query_functions <- function(db) {
     }
 
     # the whole table content
-    inclusive_data <- query_inclusive(table_label) %>% collect()
+    inclusive_data <- query_inclusive(table_label)
+    # %>% dplyr::collect()
 
 
     # inclusive = ALL; exclusive = ONLY
@@ -947,24 +989,24 @@ mnmdb_assemble_query_functions <- function(db) {
       # listwise query
       childtable_data <- lapply(
         db$get_descendant_tables(table_label),
-        FUN = \(table) query_inclusive(table) %>% collect()
+        FUN = \(table) query_inclusive(table) # %>% dplyr::collect()
         )
 
       # anti-join
       pk <- db$get_primary_key(table_label)
-      for (ch_i in seq_len(length(childtable_data))) {
+      for (ch_i in seq_along(childtable_data)) {
         exclusive_data %>% nrow()
         childtable_data[[ch_i]] %>% nrow()
         exclusive_data %>%
-          semi_join(
+          dplyr::semi_join(
             childtable_data[[ch_i]],
-            by = join_by(!!!rlang::syms(c(pk)))
+            by = dplyr::join_by(!!!rlang::syms(c(pk)))
           ) %>% nrow()
 
         exclusive_data <- exclusive_data %>%
-          anti_join(
+          dplyr::anti_join(
             childtable_data[[ch_i]],
-            by = join_by(!!pk)
+            by = dplyr::join_by(!!pk)
           )
       } # loop descendants
 
@@ -972,7 +1014,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
     if (!is.scalar.na(subselect)) {
       exclusive_data <- exclusive_data %>%
-        dplyr::select(!!!rlang::syms(subselect))
+        dplyr::select(tidyselect::any_of(subselect))
     }
 
     exclusive_data %>%
@@ -989,7 +1031,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
       # currently, we do not use inheritance on spatial tables.
       has_descendants <- 0 < length(db$get_descendant_tables(table_label))
-      if (ONLY & has_descendants) message(glue::glue(
+      if (ONLY && has_descendants) message(glue::glue(
         "WARNING: ONLY flag not available for spatial tables; returning ALL rows of #{table_label}."
         )
       )
@@ -1007,20 +1049,80 @@ mnmdb_assemble_query_functions <- function(db) {
 
       if (isFALSE(is.scalar.na(subselect))) {
         data <- data %>%
-          dplyr::select(!!!rlang::syms(subselect))
+          dplyr::select(tidyselect::any_of(subselect))
       }
 
 
     } else {
-
       ## else: non-spatial
-      data <- db$query_table_uncollected(table_label, ONLY, subselect) %>%
-        dplyr::collect()
-    }
 
-    # data %>% mutate(test =
+      # initially load data without `collect()`
+      data_uncollected <- db$query_table_uncollected(table_label, ONLY, subselect)
+
+      # datetime column -> always query as string
+      if ("datetime_visit" %in% colnames(data_uncollected)) {
+        data_uncollected <- data_uncollected %>%
+          dplyr::mutate(
+            datetime_visit =
+              dbplyr::sql("to_char(datetime_visit, 'YYYY-MM-DD HH24:MI:SS.FF3')")
+          )
+      }
+
+
+      ### array types: convert to string via pg `array_to_string`
+      table_info <- db$load_table_info(table_label)
+      array_columns <- table_info %>%
+        dplyr::filter(grepl("array|[[]]", tolower(datatype))) %>%
+        dplyr::select(column, datatype) %>%
+        dplyr::filter(column %in% colnames(data_uncollected))
+
+
+      int_array_columns <- array_columns %>%
+        dplyr::filter(grepl("int", tolower(datatype))) %>%
+        dplyr::pull(column)
+      other_array_columns <- array_columns %>%
+        dplyr::filter_out(column %in% int_array_columns) %>%
+        dplyr::pull(column)
+
+      # looped convert array columns
+      data_converted <- data_uncollected
+      for (col in array_columns %>% dplyr::pull(column)) {
+        # col <- fieldcalendar_ids
+        data_converted <- data_converted %>%
+          dplyr::mutate_at(
+            dplyr::vars(tidyselect::all_of(c(col))),
+            \(dcol) dbplyr::sql(sprintf("array_to_string(%s, ',', 'NULL')", col))
+          )
+      } # loop array columns
+
+      data_collected <- data_converted %>% dplyr::collect()
+
+
+      # undo conversion: string to list
+      string_to_array <- \(arr_str) stringr::str_split(arr_str, pattern = ",")
+      string_array_to_int_array <- \(iarr) lapply(string_to_array(iarr), FUN = as.integer)
+
+      data <- data_collected %>%
+        dplyr::mutate_at(
+          dplyr::vars(tidyselect::all_of(int_array_columns)),
+          string_array_to_int_array
+        ) %>%
+        dplyr::mutate_at(
+          dplyr::vars(tidyselect::all_of(other_array_columns)),
+          string_to_array
+        )
+
+      # # data %>% glimpse()
+      # data %>% filter(grts_address == 231150) %>%
+      #   select(grts_address, stratums, sampleunit_ids, fieldcalendar_ids) %>%
+      #   # purrr::map(unlist) %>%
+      #   t() %>% knitr::kable()
+
+    } # /spatial or else non-spatial data query
+
+    # data %>% dplyr::mutate(test =
     #   unlist_keep_na(purrr::map(log_creation, convert_timestamp_to_ms_character))
-    # ) %>% pull(test)
+    # ) %>% dplyr::pull(test)
 
     data %>%
       grts_datatype_to_integer() %>%
@@ -1043,7 +1145,7 @@ mnmdb_assemble_query_functions <- function(db) {
     if (db$is_spatial(table_label)) {
       if (isFALSE("wkb_geometry" %in% select_columns)) {
         rs <- rs %>%
-          select(-wkb_geometry)
+          dplyr::select(-wkb_geometry)
       } else {
         sf::st_geometry(rs) <- "wkb_geometry"
       }
@@ -1104,7 +1206,7 @@ mnmdb_assemble_query_functions <- function(db) {
   #       ONLY = FALSE
   #     )
   #   ) %>%
-  #   count(visit_id) %>% filter(n>1)
+  #   count(visit_id) %>% dplyr::filter(n>1)
 
   # all dependent lookup columns
   db$lookup_dependent_columns <- function(table_label, deptab_label) {
@@ -1118,11 +1220,11 @@ mnmdb_assemble_query_functions <- function(db) {
 
     # get the foreign key columns
     dependent_key <- db$table_relations %>%
-      filter(
+      dplyr::filter(
         relation_table == tolower(table_label),
         dependent_table == deptab_label
       ) %>%
-      pull(dependent_column)
+      dplyr::pull(dependent_column)
 
     # lookup the key columns
     key_lookup <- db$query_columns(
@@ -1220,22 +1322,43 @@ mnmdb_assemble_query_functions <- function(db) {
 
     if ("ogc_fid" %in% names(upload_data)) {
       # do not upload this technical location key
-      upload_data <- upload_data %>% select(-ogc_fid)
+      upload_data <- upload_data %>% dplyr::select(-ogc_fid)
     }
 
-    # ? geometry // spatial data
+    ### array types: convert nested list to string
+    table_info <- db$load_table_info(table_label)
+    array_columns <- table_info %>%
+      dplyr::filter(grepl("array|[[]]", tolower(datatype))) %>%
+      dplyr::pull(column)
+
+
+    if (length(array_columns) > 0) {
+      wrap_curls <- \(arr_str) paste0(c("{", arr_str, "}"), collapse = "")
+      listpaste <- \(arr) paste0(unlist(arr), collapse = ",")
+      upload_prep <- \(x) wrap_curls(listpaste(x))
+
+
+      for (col in array_columns) {
+        upload_data <- upload_data %>%
+          dplyr::mutate(
+            {{col}} := unlist(purrr::map(!!rlang::sym(col), upload_prep))
+          )
+      }
+    } # convert arrays to string
+
+    ### ? geometry // spatial data
     if (db$is_spatial(table_label)) {
       ## insert spatial data
 
       upload_data <- sf::st_as_sf(upload_data)
-      type_count <- as_tibble(sf::st_geometry_type(upload_data)) %>%
-        count(value)
+      type_count <- dplyr::as_tibble(sf::st_geometry_type(upload_data)) %>%
+        dplyr::count(value)
 
       if (nrow(type_count) > 1) {
         type_most <- type_count %>%
-          arrange(desc(n)) %>%
+          dplyr::arrange(dplyr::desc(n)) %>%
           head(1) %>%
-          pull(value)
+          dplyr::pull(value)
         upload_data <- sf::st_cast(upload_data, as.character(type_most))
       }
 
@@ -1253,8 +1376,8 @@ mnmdb_assemble_query_functions <- function(db) {
       )
 
     } else {
+      ### regular, non-geometry data
 
-      # regular, non-geometry data
       rs <- DBI::dbWriteTable(
         db$connection,
         db$get_table_id(table_label),
@@ -1262,8 +1385,9 @@ mnmdb_assemble_query_functions <- function(db) {
         row.names = FALSE,
         overwrite = FALSE,
         append = TRUE,
-        factorsAsCharacter = TRUE,
-        binary = TRUE
+        binary = FALSE,
+        copy = FALSE,
+        factorsAsCharacter = TRUE
       )
     }
 
@@ -1329,7 +1453,7 @@ mnmdb_assemble_query_functions <- function(db) {
 
     # list-restore
     invisible(
-      lapply(seq_len(length(table_content_storage)), FUN = restore_)
+      lapply(seq_along(table_content_storage), FUN = restore_)
     )
 
     return(invisible(NULL))
@@ -1364,14 +1488,14 @@ mnmdb_assemble_query_functions <- function(db) {
     lapply(
       db$query_tables_data(
         db$tables %>%
-          filter(!excluded) %>%
+          dplyr::filter_out(excluded) %>%
           filter_function() %>%
-          pull(table),
+          dplyr::pull(table),
         ONLY = FALSE
       ),
       FUN = nrow
     ) %>%
-    as_tibble() %>%
+    dplyr::as_tibble() %>%
     return()
   } # /count_all_table_content
 
@@ -1396,7 +1520,7 @@ mnmdb_versions_and_archiving <- function(db) {
     # optionally filter version tag
     if (isFALSE(is.na(version_tag))) {
       version_ids <- version_ids %>%
-        filter(
+        dplyr::filter(
           version_tag == version_tag,
         )
     }
@@ -1404,21 +1528,21 @@ mnmdb_versions_and_archiving <- function(db) {
     # optionally filter data iteration
     if (isFALSE(is.na(data_iteration))) {
       version_ids <- version_ids %>%
-        filter(
+        dplyr::filter(
           data_iteration == data_iteration
         )
     }
 
     # sort versions (ascending, i.e. oldest first)
     version_ids <- version_ids %>%
-      filter(!is.na(date_applied)) %>%
-      arrange(date_applied, data_iteration)
+      dplyr::filter_out(is.na(date_applied)) %>%
+      dplyr::arrange(date_applied, data_iteration)
 
     # return the latest version
     return(
       version_ids %>%
         tail(1) %>%
-        pull(version_id)
+        dplyr::pull(version_id)
     )
 
   } # /load_latest_version_id
@@ -1435,8 +1559,8 @@ mnmdb_versions_and_archiving <- function(db) {
     versions <- db$query_table("Versions")
 
     data_iterations <- versions %>%
-      filter(version_tag == new_version_tag) %>%
-      pull(data_iteration)
+      dplyr::filter(version_tag == new_version_tag) %>%
+      dplyr::pull(data_iteration)
 
     if (length(data_iterations) == 0) {
       data_iteration <- 1
@@ -1444,7 +1568,7 @@ mnmdb_versions_and_archiving <- function(db) {
       data_iteration <- max(data_iterations) + 1
     }
 
-    version_upload <- as_tibble(list(
+    version_upload <- dplyr::as_tibble(list(
       "version_tag" = new_version_tag,
       "data_iteration" = data_iteration,
       "date_applied" = new_date_applied,
@@ -1631,14 +1755,14 @@ get_mnm_password <- function(
 
 
   # are credentials already stored?
-  credentials <- as_tibble(list("service" = service, "username" = username))
+  credentials <- dplyr::as_tibble(list("service" = service, "username" = username))
   existing <- keyring::key_list(keyring = keyring_label) %>%
-    select(service, username)
+    dplyr::select(service, username)
 
   found_credentials <- credentials %>%
-    semi_join(
+    dplyr::semi_join(
       existing,
-      by = join_by(service, username)
+      by = dplyr::join_by(service, username)
     ) %>%
     nrow() %>%
     as.logical()

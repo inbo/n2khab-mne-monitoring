@@ -341,8 +341,9 @@ load_mnmgwdb_visits <- function() {
 
 ## surfacewater work
 load_mnmsurfdb_datacoll <- function() {
-  surf_visits <- mnmsurfdb$query_table("Visits", ONLY = FALSE) %>%
-    dplyr::filter(visit_done)
+  surf_visits <- mnmsurfdb$query_table("VisitsUnnested", ONLY = FALSE) %>%
+    dplyr::filter(visit_done) %>%
+    select(-stratums, -sampleunit_ids, -fieldcalendar_ids)
 
   if (nrow(surf_visits) == 0) {
     surf_visits <- surf_visits %>%
