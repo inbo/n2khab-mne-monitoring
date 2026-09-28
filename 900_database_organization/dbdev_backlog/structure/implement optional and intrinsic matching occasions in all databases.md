@@ -4,13 +4,14 @@ tags:
   - matching_occasions
   - FieldCalendars
 started: 2026-09-14
-finished:
+finished: 2026-09-28
 execution:
-status: false
-priority:
+  - FM
+status: true
+priority: 1
 ---
 
-*supersedes [[implement matching occasions for locevals]]*
+*supersedes [[structure/implement matching occasions for locevals]]*
 
 > [!warning] Concept and Design
 > The concept of matching on the levels of #FieldCalendars and/or #Visits required some thorough considerations.

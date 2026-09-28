@@ -11,7 +11,7 @@ status: true
 priority:
 ---
 
-introducing [[sql_tricks/array data types|array data types]] for [[implement optional and intrinsic matching occasions in all databases]]
+introducing [[sql_tricks/array data types|array data types]] for [[structure/implement optional and intrinsic matching occasions in all databases]]
 testing locally whether R connection will handle them appropriately
 
 (1) create a test table
