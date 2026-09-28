@@ -1431,7 +1431,8 @@ if (length(array_columns) > 0 && nrow(remaining_new_visits) > 0) {
   }
 } # convert arrays to string
 
-remaining_new_visits %>% glimpse()
+
+# remaining_new_visits %>% glimpse()
 
 # table_label <- "LenticVisits"
 for (table_label in names(selection_of_activities)) {

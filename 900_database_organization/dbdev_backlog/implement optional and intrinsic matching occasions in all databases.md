@@ -18,8 +18,8 @@ priority:
 > 1. There must be a distinction between "**optional matches**" (to prepone future auxiliary FAGs for efficiency) and "**intrinsic matches**" (same FAG on same date for different Sample Units).
 >  2. For intrinsic matches, we will switch to an `n : 1` linkage between FieldCalendars and Visits, thereby deviating from the historic, robust `1:1` linkage they were initiated with (which requires the use of array columns, and careful handling of existing data).
 >  3. Views and QGIS field forms on these tables are complex. Although a view-side grouping of e.g. intrinsic matches might be feasible, this would further complicate things and hinder maintenance while at the same time producing data redundancy.
->  4. The distinction of whether an activity group is optionally or intrinsically linkable depends on whether it is an auxiliary FAG. However, mnmgwdb's InstallationVisits would justify *intrinsic* grouping across time, but it will be represented as *optional* for now (reason: we might decide to pass by for an "installation refreshment".
->  5. Speaking of... there are different `*Visits` and thereby many tables | views | map layers which can be affected.
+>  4. The distinction of whether an activity group is optionally or intrinsically linkable depends on (i) whether it is an auxiliary FAG and (ii) whether activities truly co-incide, i.e. are REP-scheduled for the same date. **Only same-date primary FAGs are handled as intrinsic matching occasions.** For example, mnmgwdb's #InstallationVisits would justify "intrinsic" grouping across time, but it will be represented as *optional* for now (reason: we might decide to pass by for an "installation refreshment".
+>  5. Speaking of... there are different `*Visits` and thereby many tables | views | map layers which can be affected; however, the current implementation leaves them subsidiary to the grouped #Visits parent table.
 
 ## Optional Matches for #locevaldb 
 
@@ -43,12 +43,22 @@ SET date_suggested = date_start;
 	+ QGIS simply displays this information
 
 However, there is little to be won here:
-```
+```sql
 loceval=> SELECT DISTINCT grts_address, type FROM "outbound"."FieldCalendars" WHERE date_start != date_suggested;
  grts_address | type 
 --------------+------
 (0 rows)
 ```
+
+Yet there should be some...
+```sql
+loceval=> SELECT DISTINCT matching_occasion, count(*) AS n FROM "outbound"."FieldCalendars" GROUP BY matching_occasion HAVING count(*) >1;
+-- (45 rows)
+```
+
+>[!note] upstream adjustment
+> I assume that these start dates are already adjusted in the REP, and potential future FAGS shifted to the earlier date.
+
 
 ## Intrinsic Matches for #mnmsurfdb
 
@@ -59,11 +69,11 @@ loceval=> SELECT DISTINCT grts_address, type FROM "outbound"."FieldCalendars" WH
 > 	- Crucial trick to still follow that dogma is to switch hierarchy: instead of hanging #Visits onto #FieldCalendars, each entry in the calendars should have at most one `visit_id` (or none).
 > 	- There will be a view #OccasionMatching which optionally provides a way to link, alike to "physical" tables.
 > 	- R / `dplyr` seems to have some issues with the `pg__int4` or `pg__varchar` data types delivered by `RPostgres` for array fields; those issues must be circumvented.
-> - #FieldCalendars should **not** be aggregated: all #SampleUnits come from the REP, and some might be disapproved by #loceval, thus #FieldworkPlanning must deselect the ones which are not eligible. As a consequence, **`exclude` becomes more important!** The new `visit_id` column in `FieldCalendars` should be nullable to allow disconnection of rejected units. Conversely, `fieldcalendar_ids` must be adjusted by removing excluded ones from the array.
+> - #FieldCalendars should **not** be aggregated: all #SampleUnits come from the REP, and some might be disapproved by #loceval, thus #FieldworkPlanning must deselect the ones which are not eligible. As a consequence, **`exclude` becomes more important!**  The array field `fieldcalendar_ids` must be adjusted dynamically by removing excluded calendar entries from the array; however `stratums` and `sampleunit_ids` stay linked to even deselected units.
 > - #inheritance: the monarchy of #Visits should not be affected (all aggregated columns are in the parent table interface), just that there will be fewer rows.
-> - Temporal continuity (unit rejection by loceval after the visit) is no issue, because the calendar is fixed on a time point.
-> - Performance should not be an issue; however, I must ensure that the major #views ( #FieldworkPlanning, #FieldWork ) stay efficient and performant.
-> - There must be complementary views: `FieldCalendarsNested` and `ViewsUnnested`, to facilitate queries of either logic.
+> - Temporal continuity (unit rejection by loceval after the visit) is no issue, because the calendar is fixed on a time point (strict co-incidence, see above).
+> - Performance should not be an issue; however, I must ensure that the major #views ( #FieldworkPlanning, #FieldWork ) stay efficient and performant ([[timeline/2026-09-28|2026-09-25]] confirmed: link is direct via `visit_id`).
+> - There must be complementary views: `FieldCalendarsAggregated` and `VisitsUnnested`, to facilitate queries of either logic. There is also a #MatchingOccasions view directly derived from #FieldCalendars.
 > - Although this applies only to #mnmsurfdb, it will be implemented for **all databases alike** to retain consistency.
 
 
@@ -138,6 +148,7 @@ COMMENT ON COLUMN "outbound"."FieldCalendars".date_suggested IS E'earliest date 
 
 UPDATE "outbound"."FieldCalendars"
 SET date_suggested = date_start;
+-- will be updated by REP update script
 
 
 -- visit_id as fk to FieldCalendars
@@ -191,22 +202,6 @@ COMMENT ON COLUMN "inbound"."Visits".sampleunit_ids IS E'array of sample unit in
 
 
 
-ALTER TABLE "inbound"."Visits" ADD COLUMN teammember_assigned smallint; 
-COMMENT ON COLUMN "inbound"."Visits".teammember_assigned IS E'filter for an assignee';
-
-ALTER TABLE "inbound"."Visits" ADD COLUMN date_visit_planned date; 
-COMMENT ON COLUMN "inbound"."Visits".date_visit_planned IS E'planned date of visit';
-
-ALTER TABLE "inbound"."Visits" ADD COLUMN preparation_notes text; 
-COMMENT ON COLUMN "inbound"."Visits".preparation_notes IS E'Free text notes from the colleague who planned this.';
-
--- foreign key teammember_assigned
-ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_TeamMembers_Visits CASCADE;
-ALTER TABLE "inbound"."Visits" ADD CONSTRAINT fk_TeamMembers_Visits FOREIGN KEY (teammember_assigned)
-REFERENCES "metadata"."TeamMembers" (teammember_id) MATCH SIMPLE
-ON DELETE SET NULL ON UPDATE CASCADE;
-
-
 -- COMMIT;
 
 ```
@@ -214,6 +209,11 @@ ON DELETE SET NULL ON UPDATE CASCADE;
 
 ISSUE: the foreign key would have to be given up. <https://stackoverflow.com/a/50441059>
 SOLUTION: ... or not: just switching the dependency between #FieldCalendars and #Visits by giving the `visit_id` to FieldCalendars (fk) and keeping `fieldcalendar_ids` as array column
+
+>[!issue] foreign key not working
+> `fk_Visits_FieldCalendars` as prepared above will not work:
+> the constraint will look for key values in `ONLY "inbound"."Visits"`, not finding matching rows which are stored in child tables via #inheritance.
+> As is common practice on these databases, we will handle the constraint as a "soft constrained", not enforced by database structure, but guaranteed by R scripts (e.g. `102_re_link_foreign_keys.R`).
 
 Structure is in place - data has to be aggregated.
 
@@ -747,7 +747,8 @@ NATURAL FULL JOIN (
 
 ISSUE: FieldCalendars notes by #NDT will be duplicated/must be aggregated; possibly have one "prep notes" field in Visits.
 
-### Exploration 2: Virtually Grouped Data / Array in Views (*idea discarded*)
+
+### {archive} Exploration 2: Virtually Grouped Data / Array in Views (*idea discarded*)
 
 - array data types are somewhat discouraged because they violate some obscure principle of "[first normal form](https://en.wikipedia.org/wiki/First_normal_form)" (Codd).
 - However, in our case, arrays will only only be added for convenience; the central relation stays straight forward.
@@ -768,3 +769,67 @@ VARIANT
 - have a `VisitGroups` table which links `visit_id` to `visitgroup`
 - or another column in Visits
 - or some way of defining "`Occasions`" (as in "`matching_occasions`") as a group of FieldCalendar entries?
+
+## Database Consistency
+
+Already roll out the inverse link of #FieldCalendars and #Visits to #locevaldb and #mnmgwdb.
+
+```sql
+-- remove excess constraints
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_fieldactivitycalendar_visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_fieldworkcalendar_visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_fieldcalendar_visits;
+ALTER TABLE "inbound"."Visits" DROP CONSTRAINT IF EXISTS fk_FieldCalendars_Visits;
+
+
+ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN visit_id int DEFAULT NULL;
+COMMENT ON COLUMN "outbound"."FieldCalendars".visit_id IS E'link to the visit which serves this calendar entry';
+
+UPDATE "outbound"."FieldCalendars" AS TRGTAB
+  SET
+    visit_id = SRCTAB.visit_id
+  FROM "inbound"."Visits" AS SRCTAB
+  WHERE
+    SRCTAB.fieldcalendar_id = TRGTAB.fieldcalendar_id
+    AND SRCTAB.grts_address = TRGTAB.grts_address
+    AND SRCTAB.date_start = TRGTAB.date_start
+    AND SRCTAB.stratum = TRGTAB.stratum -- `type` on locevaldb
+;
+
+SELECT * 
+FROM "outbound"."FieldCalendars"
+WHERE visit_id IS NULL
+;
+
+
+```
+
+anticipation on `mnmgwdb`:
+
+```sql
+
+-- columns for matching occasions
+ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN matching_occasion varchar;
+COMMENT ON COLUMN "outbound"."FieldCalendars".matching_occasion IS E'group label of actifity groups which may be combined (optional match)';
+
+ALTER TABLE "outbound"."FieldCalendars" ADD COLUMN date_suggested date;
+COMMENT ON COLUMN "outbound"."FieldCalendars".date_suggested IS E'earliest date of activities in an optional matching group';
+
+UPDATE "outbound"."FieldCalendars"
+SET date_suggested = date_start;
+-- will be updated by REP update script
+
+```
+
+## For Later...
+
+The following fields were archived, but potentially contain data not stored elsewhere:
+`latest_calibration, water_clarity, turbidity, open_water, waterdepth_samplingpoint_m, float_layer, phytoplankton, ice_layer_cm`
+
+Those can be recovered from #UnaggregatedVisitsBackup:
+
+```sql
+
+SELECT * FROM "archive"."UnaggregatedVisitsBackup";
+
+```

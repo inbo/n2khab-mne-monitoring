@@ -1033,7 +1033,7 @@ fieldcalendar_new <- fieldcalendar_new %>%
     matching_occasions,
     by = join_by(matching_occasion),
     relationship = "many-to-one"
-  ) %>% 
+  ) %>%
   mutate(date_suggested = coalesce(date_suggested, date_start))
 
 ```
@@ -1115,6 +1115,15 @@ locevaldb$query_table("FieldCalendars") %>%
 
 stitch_visits <- function() {
   # link Visits back to upstream tables
+
+  stitch_table_connection(
+    mnmdb = locevaldb,
+    table_label = "FieldCalendars",
+    reference_table = "Visits",
+    link_key_column = "visit_id",
+    lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+  )
+  
   stitch_table_connection(
     mnmdb = locevaldb,
     table_label = "Visits",

@@ -123,6 +123,14 @@ stitch_table_connection(
 
 stitch_table_connection(
   mnmdb = locevaldb,
+  table_label = "FieldCalendars",
+  reference_table = "Visits",
+  link_key_column = "visit_id",
+  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
   table_label = "Visits",
   reference_table = "FieldCalendars",
   link_key_column = "fieldcalendar_id",
@@ -274,6 +282,15 @@ stitch_table_connection(
 )
 
 
+# link FieldCalendars forward to Visits
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "FieldCalendars",
+  reference_table = "Visits",
+  link_key_column = "visit_id",
+  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+)
+
 
 # link Visits back to Locations
 stitch_table_connection(
@@ -294,7 +311,6 @@ stitch_table_connection(
   lookup_columns = c("grts_address", "stratum")
   # reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
-
 
 # link Visits back to FieldCalendars
 stitch_table_connection(

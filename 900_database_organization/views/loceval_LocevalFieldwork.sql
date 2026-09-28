@@ -11,6 +11,8 @@
  END
 
 
+BEGIN;
+
 DROP VIEW "inbound"."LocevalFieldwork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."LocevalFieldwork" AS
 SELECT
@@ -99,7 +101,7 @@ FROM (
   NATURAL FULL JOIN "inbound"."TerrestrialTypesVisits"
 ) AS VISIT
 LEFT JOIN "outbound"."FieldCalendars" AS FAC
-  ON FAC.fieldcalendar_id = VISIT.fieldcalendar_id
+  ON FAC.visit_id = VISIT.visit_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
@@ -241,6 +243,7 @@ DO ALSO
 GRANT SELECT ON  "inbound"."LocevalFieldwork"  TO viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."LocevalFieldwork"  TO user_loceval;
 
+COMMIT;
 
 
 -- DROP RULE IF EXISTS FieldWork_upd_OTHERVISITS ON "inbound"."FieldWork";

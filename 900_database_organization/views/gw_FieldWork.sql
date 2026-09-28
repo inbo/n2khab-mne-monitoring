@@ -8,6 +8,7 @@ FROM "outbound"."FieldCalendars"
 
 
 -- !!! also re-create update MyFieldWork
+BEGIN;
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."FieldWork" AS
@@ -91,8 +92,9 @@ LEFT JOIN (
 LEFT JOIN (
   SELECT *,
     CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
-  FROM "outbound"."FieldCalendars")
-  AS FwCAL ON FwCAL.fieldcalendar_id = VISIT.fieldcalendar_id
+  FROM "outbound"."FieldCalendars"
+  ) AS FwCAL
+    ON FwCAL.visit_id = VISIT.visit_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON FwCAL.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
@@ -244,3 +246,5 @@ WHERE teammember_assigned IN (
 GRANT SELECT ON  "inbound"."MyFieldWork"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  user_gwdb;
 
+
+COMMIT;
