@@ -88,7 +88,7 @@ LEFT JOIN (
     SELECT DISTINCT
       location_id,
       grts_address,
-      ARRAY(SELECT TRIM(UNNEST(STRING_TO_ARRAY(type_subset, ',')))) AS types ,
+      UNNEST(ARRAY(SELECT TRIM(UNNEST(STRING_TO_ARRAY(type_subset, ','))))) AS type,
       date AS loceval_latest_date,
       loceval_replacement,
       loceval_type_absence
@@ -113,7 +113,7 @@ LEFT JOIN (
     WHERE eval_source = 'loceval'
   ) AS LE
     ON (LE.grts_address = LJ.grts_address)
-    -- AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
+    AND (LE.type = LJ.type)
     -- AND (LJ.loceval_latest_date = LE.eval_date)
   WHERE TRUE
     AND (loceval_replacement OR NOT loceval_type_absence)
