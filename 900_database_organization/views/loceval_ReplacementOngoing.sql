@@ -58,7 +58,7 @@ WHERE TRUE
       FROM "metadata"."GroupedActivities"
       WHERE activity = 'LOCEVALTERR'
     )
-  AND (visible_by_ongoing OR (visible_by_selection AND visit_done))
+  AND (visible_by_ongoing OR visible_by_selection)
   AND VISIT.archive_version_id IS NULL
 ;
 
