@@ -1,5 +1,23 @@
--- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldworkcalendar_id = 3;
---
+
+-- auto-update "excluded" for disapproved LOCEVALs
+SELECT
+  grts_address,
+  type,
+  type_assessed,
+  type_is_absent,
+  CASE WHEN type_is_absent
+FROM "transfer"."LocationEvaluations"
+WHERE eval_source = "loceval"
+;
+
+SELECT *
+FROM "transfer"."ReplacementData"
+;
+
+SELECT *
+FROM "metadata"."N2kHabStrata"
+;
+
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS

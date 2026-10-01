@@ -22,7 +22,7 @@ https://medium.com/@vbilopav/postgresql-arrays-a33470e30861
 - nesting is possible, e.g. `array_field integer[][]`
 - `ARRAY_LENGTH`, `CARDINALITY`
 - concatenation with `||`
-- `STRING_TO_ARRAY`
+- `STRING_TO_ARRAY`, `ARRAY_TO_STRING`
 
 Array containment:
 - `<@` checks if array is contained in another

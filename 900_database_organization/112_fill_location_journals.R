@@ -303,6 +303,7 @@ load_mnmgwdb_visits <- function() {
     dplyr::filter(visit_done) %>%
     dplyr::select(
       grts_address,
+      # TODO lookup type
       type_subset = stratum,
       date = date_visit,
       activity_group_id,
@@ -353,6 +354,7 @@ load_mnmsurfdb_datacoll <- function() {
   surf_visits <- surf_visits %>%
     dplyr::select(
       grts_address,
+      # TODO lookup type
       type_subset = stratum,
       date = date_visit,
       activity_group_id,
