@@ -42,7 +42,8 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 #
-grts <- c("1770206", "1806302", "1806302", "1639134", "1770206", "49768174") # duplicate orthofoto evaluations
+grts <- c(3514038) # three aquatic types with only one visited
+  # c("1770206", "1806302", "1806302", "1639134", "1770206", "49768174") # duplicate orthofoto evaluations
   # c(30153) # no replacement date
   # c(47553522) # installation not visible -> solved
   # c(9488370) # clean and samp activity not matching for Q3 2026 # also 1062930
@@ -1096,16 +1097,16 @@ surf_print_visits <- function() {
     dplyr::rename(
       grts = grts_address,
       lid = location_id,
-      suid = sampleunit_id,
+      suid = sampleunit_ids,
       agid = activity_group_id,
-      fcid = fieldcalendar_id,
+      fcid = fieldcalendar_ids,
       archv = archive_version_id,
       vid = visit_id,
       tid = teammember_id
     ) %>%
     dplyr::select(
       grts,
-      stratum,
+      stratums,
       lid,
       suid,
       fcid,
@@ -1117,7 +1118,7 @@ surf_print_visits <- function() {
       issues,
       date_visit
     ) %>%
-    arrange(stratum, date_start, agid) %>% 
+    arrange(stratums, date_start, agid) %>% 
     knitr::kable()
 }
 
@@ -1140,21 +1141,21 @@ surf_print_special_activities <- function() {
   activities %>%
     dplyr::rename(
       grts = grts_address,
-      suid = sampleunit_id,
+      suid = sampleunit_ids,
       agid = activity_group_id,
-      fcid = fieldcalendar_id,
+      fcid = fieldcalendar_ids,
       vid = visit_id,
     ) %>%
     dplyr::select(
       act,
       grts,
-      stratum,
+      stratums,
       fcid,
       vid,
       agid,
       date_start
     ) %>%
-    arrange(stratum, date_start, agid) %>% 
+    arrange(stratums, date_start, agid) %>% 
     knitr::kable()
 }
 

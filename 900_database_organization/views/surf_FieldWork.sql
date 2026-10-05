@@ -126,6 +126,8 @@ WHERE grts_address = 762158
 ;
 
 
+BEGIN;
+
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE VIEW "inbound"."FieldWork" AS
 SELECT
@@ -647,6 +649,8 @@ WHERE teammember_assigned IN (
 
 GRANT SELECT ON  "inbound"."MyFieldWork"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  user_surfdb;
+
+COMMIT;
 
 -- only on testing:
 -- GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;

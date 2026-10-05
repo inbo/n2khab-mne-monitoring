@@ -19,6 +19,9 @@ FROM "metadata"."N2kHabStrata"
 ;
 
 
+
+BEGIN;
+
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
@@ -96,7 +99,8 @@ LEFT JOIN (
   SELECT
     LJ.loceval_latest_date,
     LJ.grts_address,
-    LE.type AS stratum,
+    LE.type,
+    STRAT.stratum,
     LJ.loceval_replacement,
     LE.loceval_positive,
     LE.loceval_colleague,
@@ -121,18 +125,24 @@ LEFT JOIN (
       type,
       eval_date,
       eval_name AS loceval_colleague,
-      (  ((type_assessed IS NULL)
-         OR (type_assessed = type))
-         AND NOT type_is_absent
+      (  ((LEVA.type_assessed IS NULL)
+         OR (LEVA.type_assessed = LEVA.type))
+         AND NOT LEVA.type_is_absent
       ) AS loceval_positive,
       photo AS loceval_photo,
       notes AS loceval_notes
-    FROM "transfer"."LocationEvaluations"
+    FROM "transfer"."LocationEvaluations" AS LEVA
     WHERE eval_source = 'loceval'
   ) AS LE
     ON (LE.grts_address = LJ.grts_address)
     AND (LE.type = LJ.type)
     -- AND (LJ.loceval_latest_date = LE.eval_date)
+  LEFT JOIN (
+    SELECT DISTINCT type, stratum
+    FROM "metadata"."N2kHabStrata"
+    GROUP BY type, stratum
+  ) AS STRAT
+  ON LE.type = STRAT.type -- note that this duplicates rows
   WHERE TRUE
     AND (loceval_replacement OR NOT loceval_type_absence)
     AND LE.grts_address IS NOT NULL
@@ -202,6 +212,8 @@ DO ALSO
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  planner_surfdb;
+
+COMMIT;
 
 -- GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
 -- GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
