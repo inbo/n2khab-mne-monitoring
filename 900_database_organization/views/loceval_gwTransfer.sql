@@ -48,12 +48,13 @@ SELECT
     END AS grts_address,
   NULL AS date_start,
   LOCASS.type_suggested AS type_assessed,
-  UNIT.type_is_absent,
+  LOCASS.cell_disapproved OR UNIT.type_is_absent AS type_is_absent,
   'orthophotos' AS eval_source,
   LOWER(LOCASS.log_user) AS eval_name,
   CAST(LOCASS.log_update AS DATE) AS eval_date,
   LOCASS.locationassessment_id AS eval_id,
-  LOCASS.notes,
+  CASE WHEN LOCASS.disapproval_explanation IS NOT NULL THEN LOCASS.disapproval_explanation || '; ' ELSE '' END ||
+    CASE WHEN LOCASS.notes IS NULL THEN '' ELSE LOCASS.notes END AS notes,
   NULL AS photo
 FROM "outbound"."LocationAssessments" AS LOCASS
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
