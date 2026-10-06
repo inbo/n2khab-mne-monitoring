@@ -341,12 +341,35 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
   su_tablab <- sampleunit_tablelabels[[udb]]
   su_idx <- sampleunit_indices[[udb]]
-  su_type <- sampleunit_typecolumns[[udb]]
+  su_type_or_stratum <- sampleunit_typecolumns[[udb]]
+
+  # convert "type" to "stratum"
+  type_stratum_lookup <- mnmdb$query_columns(
+      "N2kHabStrata",
+      c("stratum", "type")
+    )
+  lookup_type_for_stratum <- function(df) {
+    if (isFALSE("stratum" %in% names(df))) {
+      stop("The column `stratum` must be available in a data frame to `lookup_type_for_stratum()`.")
+    }
+    if ("type" %in% names(df)) {
+      stop("The dataframe already has a `type` column, conflicting `lookup_type_for_stratum()`.")
+    }
+
+    df %>%
+      dplyr::left_join(
+        type_stratum_lookup,
+        by = dplyr::join_by(stratum),
+        relationship = "many-to-one"
+      ) %>%
+      return()
+  }
 
 
   # load locations status quo
   existing_locations <- mnmdb$query_table("Locations")
-  existing_sampleunits <- mnmdb$query_table(su_tablab)
+  existing_sampleunits <- mnmdb$query_table(su_tablab) %>%
+      lookup_type_for_stratum()
 
   # HOTFIX rename that damn old `strata` column
   # if (udb == "mnmgwdb") {
@@ -357,33 +380,32 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # }
   # existing_locations <- existing_locations %>%
   #   filter(grts_address != 1286278, grts_address != 18063494) # testing a local replacement
-  #
 
   # re-load replacemet data
   replacement_data <- mnmsyncdb$query_table("ReplacementData") %>%
-    filter(is_latest_replacement) %>%
-    select(-replacementdata_id, -is_latest_replacement) %>%
-    semi_join(
+    dplyr::filter(is_latest_replacement) %>%
+    dplyr::select(-replacementdata_id, -is_latest_replacement) %>%
+    dplyr::semi_join(
       existing_sampleunits,
-      by = join_by(
+      by = dplyr::join_by(
         grts_address_original == grts_address,
-        type == stratum
+        type == type
       )
     )
 
 
   # identify novel locations
   new_locations <- replacement_data %>%
-    anti_join(
+    dplyr::anti_join(
       existing_locations,
-      by = join_by(grts_address_replacement == grts_address)
+      by = dplyr::join_by(grts_address_replacement == grts_address)
     )
 
   if (nrow(new_locations) > 0) {
     # upload new locations
     locations_grts_collection <- new_locations %>%
       sf::st_drop_geometry() %>%
-      select(grts_address = grts_address_replacement)
+      dplyr::select(grts_address = grts_address_replacement)
 
 
     locations_upload <- locations_grts_collection %>%
@@ -425,20 +447,20 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # join [mnmdb] location ID to the replacement data
   replacement_upload <- replacement_data %>%
     # select(-location_id) %>%
-    left_join(
+    dplyr::left_join(
       locations_lookup %>%
-        rename(grts_address_replacement = grts_address),
-      by = join_by(grts_address_replacement),
+        dplyr::rename(grts_address_replacement = grts_address),
+      by = dplyr::join_by(grts_address_replacement),
       suffix = c("_obsolete", "")
     )
 
   # check whether location IDs are missing (triv. not)
   check_na_location_id <- replacement_upload %>%
-    filter(is.na(location_id))
+    dplyr::filter(is.na(location_id))
 
   if (nrow(check_na_location_id) > 0) {
     check_na_location_id %>%
-      filter(is.na(location_id)) %>%
+      dplyr::filter(is.na(location_id)) %>%
       t() %>% knitr::kable()
     stop("A location ID is missing!")
   }
@@ -458,48 +480,47 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
   # identify novel locations
   new_sampleunits <- replacement_data %>%
-    select(type, grts_address_original, grts_address_replacement) %>%
-    semi_join(
+    dplyr::select(type, grts_address_original, grts_address_replacement) %>%
+    dplyr::semi_join(
       existing_sampleunits,
-      by = join_by(
+      by = dplyr::join_by(
         grts_address_original == grts_address,
-        type == stratum
+        type == type
       )
     ) %>%
-    anti_join(
+    dplyr::anti_join(
       existing_sampleunits,
-      by = join_by(
+      by = dplyr::join_by(
         grts_address_replacement == grts_address,
-        type == stratum
+        type == type
       )
     ) %>%
-    rename(
+    dplyr::rename(
       grts_address = grts_address_replacement
     ) %>%
-    left_join(
+    dplyr::left_join(
       locations_lookup,
-      by = join_by(grts_address)
+      by = dplyr::join_by(grts_address)
     )
   # these `new_sampleunits` are still needed below!
+
+  if ((udb == "mnmsurfdb") && nrow(new_sampleunits) > 0) {
+    stop("There is no reliable ``stratum lookup`` yet for aquatic types: as a historic shortcut, we `rename(stratum = type)` which is okay for terrestrial, but not for aquatic types.")
+  }
 
   # upload new sampleunits
   # Column `scheme_ps_targetpanels_served` doesn't exist?
   sampleunits_upload <- new_sampleunits %>%
-    rename(stratum = type) %>%
-    left_join(
+    # TODO: this is an issue - simply renaming the field is
+    #       only accidentally valid for terrestrial units.
+    dplyr::rename(stratum = type) %>%
+    dplyr::left_join(
       existing_sampleunits %>%
-        select(-location_id, -sampleunit_id),
-      by = join_by(grts_address_original == grts_address, stratum)
+        dplyr::select(-location_id, -sampleunit_id),
+      by = dplyr::join_by(grts_address_original == grts_address, stratum)
     ) %>%
-    select(-grts_address_original) %>%
-    mutate(is_replacement = TRUE)
-
-  # HOTFIX revert
-  # if (udb == "mnmgwdb") {
-  #   sampleunits_upload %<>% rename(
-  #     strata = stratum
-  #   )
-  # }
+    dplyr::select(-grts_address_original) %>%
+    dplyr::mutate(is_replacement = TRUE)
 
   # verbose
   if (nrow(sampleunits_upload) > 0) {
@@ -508,11 +529,11 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
       select(grts_address, stratum))
   }
 
-  sampleunits_lookup <- update_cascade_lookup_userdb(
+  sampleunits_lookup_incomplete <- update_cascade_lookup_userdb(
     table_label = su_tablab,
     new_data = sampleunits_upload,
     index_columns = c(su_idx),
-    characteristic_columns = c("grts_address", su_type),
+    characteristic_columns = c("grts_address", su_type_or_stratum),
     tabula_rasa = FALSE,
     verbose = TRUE
   )
@@ -521,16 +542,9 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # a better lookup (of all slocs)
   sampleunits_lookup <- mnmdb$query_columns(
       table_label = su_tablab,
-      select_columns = c("grts_address", su_type, su_idx)
-    )
-
-  # HOTFIX: rename columns for uniformity
-  # if (udb == "mnmgwdb") {
-  #   sampleunits_lookup %<>% rename(
-  #     stratum = strata,
-  #     sampleunit_id = samplelocation_id
-  #   )
-  # }
+      select_columns = c("grts_address", su_type_or_stratum, su_idx)
+    ) %>%
+    lookup_type_for_stratum()
 
 
   ## join the new, corrected sample location id to the list of replacements
@@ -539,17 +553,17 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
   # get sampleunit_id for replacement upload
   replacement_upload <- replacement_upload %>%
-    left_join(
+    dplyr::left_join(
       sampleunits_lookup,
-      by = join_by(
+      by = dplyr::join_by(
         grts_address_replacement == grts_address,
-        type == stratum
+        type == type
       ),
       relationship = "one-to-one"
     )
 
   check_na_sampleunit_id <- replacement_upload %>%
-    filter(is.na(sampleunit_id))
+    dplyr::filter(is.na(sampleunit_id))
 
   if (nrow(check_na_sampleunit_id) > 0) {
     check_na_sampleunit_id %>%
@@ -568,36 +582,26 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # or duplicate the entry
   # (useful if contains input fields, done only for LocationInfos).
 
-  # if (udb == "mnmgwdb"){
-  #   sampleunits_lookup %<>% rename(sampleunit_id = samplelocation_id)
-  # }
-
-  to_upload <- new_sampleunits %>%
-    left_join(
+  # (note: type column is joined in from `sampleunits_lookup`, but might contain
+  # the insufficient shortcut of renaming type to stratum / see above)
+  new_replacements_upload <- new_sampleunits %>%
+    dplyr::left_join(
       sampleunits_lookup,
-      by = join_by(grts_address, type == stratum)
+      by = dplyr::join_by(grts_address, type)
     ) %>%
-    select(
+    dplyr::select(
       grts_address_original,
       grts_address_replacement = grts_address,
-      type,
+      stratum,
       sampleunit_id
     )
 
-  # HOTFIX again
-  if (udb == "mnmgwdb") {
-    to_upload %<>% rename(
-      stratum = type
-      # samplelocation_id = sampleunit_id
-    )
-  }
-
   # # This safety break was used for the very first local replacement
   # stopifnot("Careful now: there is a local replacement!" =
-  #   nrow(to_upload) == 0)
-  if (nrow(to_upload) > 0) {
+  #   nrow(new_replacements_upload) == 0)
+  if (nrow(new_replacements_upload) > 0) {
     message("\t--- Applying new replacements.")
-    to_upload %>% knitr::kable()
+    new_replacements_upload %>% knitr::kable()
   }
 
 
@@ -641,7 +645,7 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   }
 
   # must contain all tables which are to be affected
-  extra_filters <- c(
+  tables_and_extra_filters <- c(
     "FieldCalendars" = visits_not_done_filter,
     "Visits" = visits_not_done_filter
   )
@@ -654,10 +658,10 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   )
 
   # UPDATE the grts_address in FieldCalendars and Visits
-  for (row_nr in seq_len(nrow(to_upload))) {
-    row <- to_upload[row_nr, ]
+  for (row_nr in seq_len(nrow(new_replacements_upload))) {
+    row <- new_replacements_upload[row_nr, ]
 
-    for (table_label in names(extra_filters)) {
+    for (table_label in names(tables_and_extra_filters)) {
 
       if (isFALSE(mnmdb$has_table(table_label))) next
 
@@ -665,11 +669,11 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
       table_namestring <- mnmdb$get_namestring(table_label)
       grts_address_replacement <- row[["grts_address_replacement"]]
       grts_address_original <- row[["grts_address_original"]]
-      stratum <- row[[su_type]]
+      stratum <- row[[su_type_or_stratum]]
 
       # historic visits may not be replaced
       # -> use NOT IN {visit_done} structure
-      filter_further <- extra_filters[[table_label]]
+      filter_further <- tables_and_extra_filters[[table_label]]
       stratum_filter <- glue::glue("AND stratum = '{stratum}'")
 
       # TODO special new stratum filter:
@@ -699,16 +703,16 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
   ### (B) tables which need a row duplicate
   #   because the old `grts_address` is still somewhat stored
-  for (row_nr in seq_len(nrow(to_upload))) {
-    row <- to_upload[row_nr, ]
+  for (row_nr in seq_len(nrow(new_replacements_upload))) {
+    row <- new_replacements_upload[row_nr, ]
 
     ### duplicate LocationInfos if applicable
     locinfos_status_quo <- mnmdb$query_table("LocationInfos")
     locinfo_id_latest <- locinfos_status_quo %>%
-      pull("locationinfo_id") %>% max() + 1
+      dplyr::pull("locationinfo_id") %>% max() + 1
     mnmdb$set_sequence_key("LocationInfos", "max")
     # SELECT last_value FROM "outbound".seq_locationinfo_id;
-    locinfos_grts_existing <- locinfos_status_quo %>% pull(grts_address)
+    locinfos_grts_existing <- locinfos_status_quo %>% dplyr::pull(grts_address)
 
 
     # using `duplicate_table_row`, defined above
@@ -738,9 +742,9 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
 
   replacements_upload <- mnmsyncdb$query_table("ReplacementData") %>%
-    filter(is_latest_replacement) %>%
-    select(-replacementdata_id, -is_latest_replacement) %>%
-    select(
+    dplyr::filter(is_latest_replacement) %>%
+    dplyr::select(-replacementdata_id, -is_latest_replacement) %>%
+    dplyr::select(
       type,
       grts_address_original,
       loceval_date,
@@ -748,10 +752,11 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
       replacement_rank #
       # is_latest_replacement
     ) %>%
-    left_join(
+    dplyr::left_join(
       sampleunits_lookup %>%
-        rename(grts_address_replacement = grts_address, type = stratum),
-      by = join_by(!!!rlang::syms(c("grts_address_replacement", "type")))
+        dplyr::rename(grts_address_replacement = grts_address) %>%
+        select(-stratum),
+      by = dplyr::join_by(!!!rlang::syms(c("grts_address_replacement", "type")))
     )
 
   # penultimate HOTFIX, maybe
@@ -771,10 +776,10 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
   # link old sampleunits to new ones via grts
   update_query_link_to_replacement <- glue::glue('
-  UPDATE "outbound"."{su_tablab}" AS SUNITS
-  SET was_replaced_by_grts = REP.grts_address_replacement
-  FROM "transfer"."ReplacementData" AS REP
-  WHERE REP.grts_address_original = SUNITS.grts_address
+    UPDATE "outbound"."{su_tablab}" AS SUNITS
+    SET was_replaced_by_grts = REP.grts_address_replacement
+    FROM "transfer"."ReplacementData" AS REP
+    WHERE REP.grts_address_original = SUNITS.grts_address
   ;
   ')
 
@@ -797,7 +802,8 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
 
   su_tablab <- sampleunit_tablelabels[[udb]]
   su_idx <- sampleunit_indices[[udb]]
-  su_type <- sampleunit_typecolumns[[udb]]
+  su_type_or_stratum <- sampleunit_typecolumns[[udb]]
+
 
   # ISSUE: gwTransfer only contains TerrestrialTypesVisits
   transverview_label <- transfer_views[[udb]]
@@ -814,12 +820,12 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
           table_label = su_tablab,
           select_columns = c(
             "grts_address",
-            su_type,
+            su_type_or_stratum,
             su_idx,
             "location_id"
           )
         ),
-      by = dplyr::join_by(!!!rlang::syms(c("grts_address", su_type)))
+      by = dplyr::join_by(!!!rlang::syms(c("grts_address", su_type_or_stratum)))
     ) %>%
     dplyr::filter_at(
       dplyr::vars(!!!rlang::syms(c("location_id", su_idx))),

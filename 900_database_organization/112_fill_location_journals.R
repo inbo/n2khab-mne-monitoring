@@ -63,6 +63,7 @@ message(mnmsurfdb$shellstring)
 #_______________________________________________________________________________
 ### local replacement conversion
 
+# TODO issue: this just has the type, not the stratum
 local_replacement_lookup <- mnmgwdb$query_columns(
     "ReplacementData",
     c("grts_address_original", "type", "grts_address_replacement")
@@ -102,8 +103,8 @@ split_replacements_loceval <- function(df) {
   #     mutate(type_is_absent_j = FALSE)
   # )
   replacements <- local_replacement_lookup %>%
-      dplyr::select(grts_address_original, type, grts_address_replacement) %>%
-      dplyr::mutate(type_is_absent_j = FALSE)
+    dplyr::select(grts_address_original, type, grts_address_replacement) %>%
+    dplyr::mutate(type_is_absent_j = FALSE)
 
   # replacements %>%
   #     filter(grts_address_original %in% c(826486, 51158134)) %>%
@@ -139,13 +140,17 @@ replacements_to_loceval <- function(df) {
   #   df <- df %>% dplyr::rename(stratum = strata)
   # }
 
+  if (isFALSE("type" %in% names(df))) {
+    stop("The dataframe misses a `type` column: loceval local replacement happens on `type` level.")
+  }
+
+
   df <- df %>%
     dplyr::left_join(
-      local_replacement_lookup %>%
-      dplyr::rename(stratum = type),
+      local_replacement_lookup,
       by = dplyr::join_by(
         grts_address == grts_address_replacement,
-        stratum == stratum
+        type == type
       )
     ) %>%
     dplyr::mutate(
@@ -299,12 +304,23 @@ load_installation_removals <- function() {
 
 ## groundwater work
 load_mnmgwdb_visits <- function() {
+
+  type_stratum_lookup <- mnmgwdb$query_columns(
+      "N2kHabStrata",
+      c("stratum", "type")
+    )
+
   gw_visits <- mnmgwdb$query_table("Visits", ONLY = FALSE) %>%
     dplyr::filter(visit_done) %>%
+    dplyr::left_join(
+      # stratum -> lookup type
+      type_stratum_lookup,
+      by = dplyr::join_by(stratum),
+      relationship = "many-to-one"
+    ) %>%
     dplyr::select(
       grts_address,
-      # TODO lookup type
-      type_subset = stratum,
+      type_subset = type,
       date = date_visit,
       activity_group_id,
       issues,
@@ -342,20 +358,31 @@ load_mnmgwdb_visits <- function() {
 
 ## surfacewater work
 load_mnmsurfdb_datacoll <- function() {
+
+  type_stratum_lookup <- mnmsurfdb$query_columns(
+      "N2kHabStrata",
+      c("stratum", "type")
+    )
+
   surf_visits <- mnmsurfdb$query_table("VisitsUnnested", ONLY = FALSE) %>%
     dplyr::filter(visit_done) %>%
+    dplyr::left_join(
+      # stratum -> lookup type
+      type_stratum_lookup,
+      by = dplyr::join_by(stratum),
+      relationship = "many-to-one"
+    ) %>%
     select(-stratums, -sampleunit_ids, -fieldcalendar_ids)
 
   if (nrow(surf_visits) == 0) {
     surf_visits <- surf_visits %>%
-      mutate_at(vars(log_update), as.character)
+      dplyr::mutate_at(dplyr::vars(log_update), as.character)
   }
 
   surf_visits <- surf_visits %>%
     dplyr::select(
       grts_address,
-      # TODO lookup type
-      type_subset = stratum,
+      type_subset = type,
       date = date_visit,
       activity_group_id,
       issues,
@@ -522,13 +549,13 @@ upload_LoJos <- function(mnmdb) {
   ))
   update_columns <- unlist(lapply(
     c(
-        "loceval_type",
-        "loceval_replacement",
-        "loceval_type_absence",
-        "issues",
-        "removal_unplanned",
-        "nolog_user",
-        "nolog_update"
+      "loceval_type",
+      "loceval_replacement",
+      "loceval_type_absence",
+      "issues",
+      "removal_unplanned",
+      "nolog_user",
+      "nolog_update"
     ),
     FUN = function(col) glue::glue("{col} = SRCTAB.{col}")
   ))
