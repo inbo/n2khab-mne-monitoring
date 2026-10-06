@@ -223,14 +223,38 @@ stitch_table_connection(
 )
 
 
-stitch_table_connection(
-  mnmdb = mnmgwdb,
-  table_label = "LocationEvaluations",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type"),
-  reference_mod = function(x) if (x == "type") {"stratum"} else {x}
-)
+# stitch_table_connection(
+#   mnmdb = mnmgwdb,
+#   table_label = "LocationEvaluations",
+#   reference_table = "SampleUnits",
+#   link_key_column = "sampleunit_id",
+#   lookup_columns = c("grts_address", "type"),
+#   reference_mod = function(x) if (x == "type") {"stratum"} else {x}
+# )
+
+# type and stratum must be matched
+trgtab <- '"transfer"."LocationEvaluations"'
+srctab <- 'SELECT
+  sampleunit_id, grts_address, type
+FROM "outbound"."SampleUnits" SU
+LEFT JOIN (
+  SELECT DISTINCT type, stratum
+  FROM "metadata"."N2kHabStrata"
+) AS STRATA
+  ON STRATA.stratum = SU.stratum
+'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    sampleunit_id = SRCTAB.sampleunit_id
+  FROM ({srctab}) AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.type = SRCTAB.type)
+;")
+
+mnmgwdb$execute_sql(update_string, verbose = FALSE)
+
 
 
 # --- new! ---
@@ -401,14 +425,37 @@ stitch_table_connection(
 )
 
 
-stitch_table_connection(
-  mnmdb = mnmsurfdb,
-  table_label = "LocationEvaluations",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type"),
-  reference_mod = function(x) if (x == "type") {"stratum"} else {x}
-)
+# stitch_table_connection(
+#   mnmdb = mnmsurfdb,
+#   table_label = "LocationEvaluations",
+#   reference_table = "SampleUnits",
+#   link_key_column = "sampleunit_id",
+#   lookup_columns = c("grts_address", "type"),
+#   reference_mod = function(x) if (x == "type") {"stratum"} else {x}
+# )
+
+# type and stratum must be matched
+trgtab <- '"transfer"."LocationEvaluations"'
+srctab <- 'SELECT
+  sampleunit_id, grts_address, type
+FROM "outbound"."SampleUnits" SU
+LEFT JOIN (
+  SELECT DISTINCT type, stratum
+  FROM "metadata"."N2kHabStrata"
+) AS STRATA
+  ON STRATA.stratum = SU.stratum
+'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    sampleunit_id = SRCTAB.sampleunit_id
+  FROM ({srctab}) AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.type = SRCTAB.type)
+;")
+
+mnmsurfdb$execute_sql(update_string, verbose = FALSE)
 
 
 stitch_table_connection(
