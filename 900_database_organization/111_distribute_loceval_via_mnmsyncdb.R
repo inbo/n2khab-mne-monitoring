@@ -7,6 +7,19 @@ source("MNMDatabaseConnection.R")
 source("MNMDatabaseToolbox.R")
 
 
+## database suffix = mirror input
+commandline_args <- commandArgs(trailingOnly = TRUE)
+if (length(commandline_args) > 0) {
+  suffix <- commandline_args[1]
+} else {
+  suffix <- ""
+  # suffix <- "-staging" # "-testing"
+}
+# suffix <- "-staging"
+
+
+
+
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### a tiny bit of REP data...
 #///////////////////////////////////////////////////////////////////////////////
@@ -30,7 +43,6 @@ grts_mh_index <- dplyr::tibble(
   dplyr::filter(!is.na(grts_address))
 
 
-
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### connect to databases
 #///////////////////////////////////////////////////////////////////////////////
@@ -43,15 +55,6 @@ grts_mh_index <- dplyr::tibble(
 config_filepath <- file.path("./mnm_database_connection.conf")
 
 database_label <- "mnmsyncdb"
-
-commandline_args <- commandArgs(trailingOnly = TRUE)
-if (length(commandline_args) > 0) {
-  suffix <- commandline_args[1]
-} else {
-  suffix <- ""
-  # suffix <- "-staging" # "-testing"
-}
-# suffix <- "-staging"
 
 
 # source: loceval
@@ -70,7 +73,7 @@ mnmsyncdb <- connect_mnm_database(
 )
 # keyring::keyring_delete(keyring = "mnmdb_temp")
 
-message(mnmsyncdb$shellstring)
+message(glue::glue("connected: psql {mnmsyncdb$shellstring}"))
 
 # parametrize cascaded update function
 update_cascade_lookup_syncdb <- parametrize_cascaded_update(mnmsyncdb)
@@ -804,15 +807,34 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
   su_idx <- sampleunit_indices[[udb]]
   su_type_or_stratum <- sampleunit_typecolumns[[udb]]
 
+  type_stratum_lookup <- mnmdb$query_columns(
+      "N2kHabStrata",
+      c("stratum", "type")
+    )
+  lookup_type_for_stratum <- function(df) {
+    if (isFALSE("stratum" %in% names(df))) {
+      stop("The column `stratum` must be available in a data frame to `lookup_type_for_stratum()`.")
+    }
+    if ("type" %in% names(df)) {
+      stop("The dataframe already has a `type` column, conflicting `lookup_type_for_stratum()`.")
+    }
+
+    df %>%
+      dplyr::left_join(
+        type_stratum_lookup,
+        by = dplyr::join_by(stratum),
+        relationship = "many-to-one"
+      ) %>%
+      return()
+  }
+
 
   # ISSUE: gwTransfer only contains TerrestrialTypesVisits
   transverview_label <- transfer_views[[udb]]
   transfer_data <- loceval_connection$query_table(transverview_label) %>%
-    dplyr::select(-tidyselect::any_of("location_id"))
+    dplyr::select(-tidyselect::any_of(c("location_id")))
   # (only location id of target database is relevant)
-
-  # NOT (only) A HOTFIX: here the general stratum/type difference cuts in
-  transfer_data %<>% dplyr::rename(stratum = type)
+  # transfer_data  %>% filter(grts_address == 1012434) %>% t() %>% knitr::kable()
 
   locevals_joined <- transfer_data %>%
     dplyr::left_join(
@@ -824,8 +846,8 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
             su_idx,
             "location_id"
           )
-        ),
-      by = dplyr::join_by(!!!rlang::syms(c("grts_address", su_type_or_stratum)))
+        ) %>% lookup_type_for_stratum(),
+      by = dplyr::join_by(!!!rlang::syms(c("grts_address", "type")))
     ) %>%
     dplyr::filter_at(
       dplyr::vars(!!!rlang::syms(c("location_id", su_idx))),
@@ -836,8 +858,6 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
       eval_name = dplyr::coalesce(eval_name, "maintenance"),
       eval_date = dplyr::coalesce(eval_date, as.Date(log_update))
     )
-
-  locevals_joined %<>% dplyr::rename(type = stratum)
 
   loceval_characols <- c(
     "grts_address",
@@ -859,10 +879,12 @@ distribute_locationevaluations_to_userdatabases <- function(udb) {
   }
 
   locevals_joined <- locevals_joined %>%
-    select(tidyselect::any_of(
+    dplyr::select(tidyselect::any_of(
       mnmdb$load_table_info("LocationEvaluations") %>%
-        pull(column)
+        dplyr::pull(column)
     ))
+  # %>% dplyr::select()
+  # locevals_joined %>% filter(grts_address == 1012434) %>% t() %>% knitr::kable()
 
   locevals_lookup <- update_cascade_lookup_userdb(
     table_label = "LocationEvaluations",
