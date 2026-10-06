@@ -53,22 +53,28 @@ SELECT
   LOWER(LOCASS.log_user) AS eval_name,
   CAST(LOCASS.log_update AS DATE) AS eval_date,
   LOCASS.locationassessment_id AS eval_id,
-  CASE WHEN LOCASS.disapproval_explanation IS NOT NULL THEN LOCASS.disapproval_explanation || '; ' ELSE '' END ||
+  CASE WHEN LOCASS.disapproval_explanation IS NOT NULL THEN (LOCASS.disapproval_explanation || '; ') ELSE '' END ||
     CASE WHEN LOCASS.notes IS NULL THEN '' ELSE LOCASS.notes END AS notes,
   NULL AS photo
 FROM "outbound"."LocationAssessments" AS LOCASS
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON (LOCASS.grts_address = UNIT.grts_address
-     AND LOCASS.type = UNIT.type)
+     AND LOCASS.type = UNIT.type
+     AND LOCASS.sampleunit_id = UNIT.sampleunit_id)
 LEFT JOIN (
   SELECT
     sampleunit_id,
+    grts_address AS grts_address_original,
+    type,
     grts_address_replacement,
     notes AS replacement_notes
   FROM "outbound"."Replacements"
   WHERE is_selected
   ) AS LOREP
-  ON UNIT.sampleunit_id = LOREP.sampleunit_id
+  ON (UNIT.sampleunit_id = LOREP.sampleunit_id
+    AND UNIT.grts_address = LOREP.grts_address_original
+    AND UNIT.type = LOREP.type
+    )
 WHERE TRUE
   AND LOCASS.assessment_done
   AND (UNIT.location_id IS NOT NULL)

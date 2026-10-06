@@ -374,15 +374,6 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   existing_sampleunits <- mnmdb$query_table(su_tablab) %>%
       lookup_type_for_stratum()
 
-  # HOTFIX rename that damn old `strata` column
-  # if (udb == "mnmgwdb") {
-  #   existing_sampleunits %<>% rename(
-  #     sampleunit_id = sampleunit_id,
-  #     stratum = strata
-  #   )
-  # }
-  # existing_locations <- existing_locations %>%
-  #   filter(grts_address != 1286278, grts_address != 18063494) # testing a local replacement
 
   # re-load replacemet data
   replacement_data <- mnmsyncdb$query_table("ReplacementData") %>%
@@ -797,6 +788,7 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
 distribute_locationevaluations_to_userdatabases <- function(udb) {
   # udb <- "mnmsurfdb"
+  # udb <- "mnmgwdb"
 
   message(glue::glue("\t>>> `LocationEvaluations`"))
 
