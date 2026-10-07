@@ -1,5 +1,5 @@
 -- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldcalendar_id = 3;
---
+--  SELECT DISTINCT loceval_positive, loceval_latest_date, loceval_colleague, count(*) FROM "outbound"."FieldworkPlanning" group by loceval_positive, loceval_latest_date, loceval_colleague;
 
 
 BEGIN;
@@ -64,6 +64,7 @@ SELECT
   INST.has_installation,
   INST.installation_date,
   INST.installation_issues,
+  LOCEVAL.loceval_type_assessed,
   LOCEVAL.loceval_positive,
   LOCEVAL.loceval_latest_date,
   LOCEVAL.loceval_colleague,
@@ -93,45 +94,53 @@ LEFT JOIN (
   SELECT
     LJ.loceval_latest_date,
     LJ.grts_address,
-    LE.type AS stratum,
+    LE.type,
+    LE.loceval_type_assessed,
+    STRAT.stratum,
     LJ.loceval_replacement,
     LE.loceval_positive,
     LE.loceval_colleague,
     LE.loceval_photo,
     LE.loceval_notes
   FROM (
-    SELECT
+    SELECT DISTINCT
       location_id,
       grts_address,
-      STRING_TO_ARRAY(type_subset, ',') AS types,
+      UNNEST(ARRAY(SELECT TRIM(UNNEST(STRING_TO_ARRAY(type_subset, ','))))) AS type,
       date AS loceval_latest_date,
       loceval_replacement,
       loceval_type_absence
     FROM "outbound"."LocationJournals"
     WHERE TRUE
-      AND category = 'biot'
+      AND category IN ('biot', 'loceval')
       AND is_latest
   ) AS LJ
   LEFT JOIN (
     SELECT
       grts_address,
       type,
+      type_assessed AS loceval_type_assessed,
       eval_date,
       eval_name AS loceval_colleague,
-      (  ((type_assessed IS NULL)
-         OR (type_assessed = type))
-         AND NOT type_is_absent
+      (  ((LEVA.type_assessed IS NULL)
+         OR (LEVA.type_assessed = LEVA.type))
+         AND NOT LEVA.type_is_absent
       ) AS loceval_positive,
       photo AS loceval_photo,
       notes AS loceval_notes
-    FROM "transfer"."LocationEvaluations"
+    FROM "transfer"."LocationEvaluations" AS LEVA
     WHERE eval_source = 'loceval'
   ) AS LE
     ON (LE.grts_address = LJ.grts_address)
-    AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
-    AND (LJ.loceval_latest_date = LE.eval_date)
+    AND (LE.type = LJ.type)
+    -- AND (LJ.loceval_latest_date = LE.eval_date)
+  LEFT JOIN (
+    SELECT DISTINCT type, stratum
+    FROM "metadata"."N2kHabStrata"
+    GROUP BY type, stratum
+  ) AS STRAT
+  ON LE.type = STRAT.type -- note that this duplicates rows
   WHERE TRUE
-    AND (loceval_replacement OR NOT loceval_type_absence)
     AND LE.grts_address IS NOT NULL
 ) AS LOCEVAL
   ON UNIT.grts_address = LOCEVAL.grts_address

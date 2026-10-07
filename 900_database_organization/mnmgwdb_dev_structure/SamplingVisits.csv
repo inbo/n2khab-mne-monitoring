@@ -2,3 +2,5 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 samplingvisit_id,int,True,,True,True,,,,"technical index (extra, on top of visit_id)"
 project_code,varchar,False,NULL,False,False,,,,LIMS project code of this sample
 recipient_code,varchar,False,NULL,False,False,,,,LIMS recipient code of this sample
+labo_batch,varchar,False,NULL,False,False,,,,
+sampling_route_group,varchar,False,NULL,False,False,,,,

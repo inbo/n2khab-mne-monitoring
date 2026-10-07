@@ -11,7 +11,8 @@ WHERE eval_source = "loceval"
 ;
 
 SELECT *
-FROM "transfer"."ReplacementData"
+FROM "outbound"."FieldworkPlanning"
+WHERE grts_address = 1012434
 ;
 
 SELECT *
@@ -73,6 +74,7 @@ SELECT
   VISIT.date_visit,
   VISIT.photo,
   VISIT.visit_done,
+  LOCEVAL.loceval_type_assessed,
   LOCEVAL.loceval_positive,
   LOCEVAL.loceval_latest_date,
   LOCEVAL.loceval_colleague,
@@ -100,6 +102,7 @@ LEFT JOIN (
     LJ.loceval_latest_date,
     LJ.grts_address,
     LE.type,
+    LE.loceval_type_assessed,
     STRAT.stratum,
     LJ.loceval_replacement,
     LE.loceval_positive,
@@ -123,6 +126,7 @@ LEFT JOIN (
     SELECT
       grts_address,
       type,
+      type_assessed AS loceval_type_assessed,
       eval_date,
       eval_name AS loceval_colleague,
       (  ((LEVA.type_assessed IS NULL)
@@ -144,7 +148,6 @@ LEFT JOIN (
   ) AS STRAT
   ON LE.type = STRAT.type -- note that this duplicates rows
   WHERE TRUE
-    AND (loceval_replacement OR NOT loceval_type_absence)
     AND LE.grts_address IS NOT NULL
 ) AS LOCEVAL
   ON UNIT.grts_address = LOCEVAL.grts_address
