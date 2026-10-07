@@ -29,6 +29,20 @@ if (nrow(different_checksums) > 0) {
 }
 
 
+#_______________________________________________________________________________
+# all activities by type
+
+fieldwork_shortterm_prioritization_by_stratum %>%
+  filter(
+    grts_address %in% c(1012434),
+    field_activity_group == "LOCEVALAQ"
+  )  %>% glimpse()
+
+fieldwork_shortterm_prioritization_by_stratum %>%
+  filter(
+    grts_address %in% c(1012434),
+    field_activity_group == "SURFLENTDATACOLL"
+  )  %>% glimpse()
 
 #_______________________________________________________________________________
 # Replacements for a given GRTS

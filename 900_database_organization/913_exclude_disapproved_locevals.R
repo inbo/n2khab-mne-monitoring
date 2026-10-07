@@ -18,8 +18,8 @@ source("MNMDatabaseToolbox.R")
 
 
 config_filepath <- file.path("./mnm_database_connection.conf")
-# suffix <- ""
-suffix <- "-staging"
+suffix <- ""
+# suffix <- "-staging"
 # suffix <- "-testing"
 
 
@@ -117,9 +117,55 @@ calendars <- mnmdb$query_table("FieldCalendars") %>%
   dplyr::semi_join(visits_done, by = dplyr::join_by(visit_id)) %>%
   dplyr::filter_out(excluded)
 
-calendars %>%
+calendars_to_exclude <- calendars %>%
   dplyr::semi_join(
     disapproval_units,
     by = dplyr::join_by(sampleunit_id)
-  ) %>%
+  )
+
+calendars_to_exclude %>%
   glimpse()
+
+
+naappeend <- \(x) if (is.scalar.na(x)) "" else paste0(x, "; ", sep = "")
+
+exclusion_keys <- calendars_to_exclude %>%
+  select(fieldcalendar_id, grts_address, stratum, excluded_reason) %>%
+  mutate(
+    excluded = TRUE,
+    excluded_reason = paste0(
+      unlist(purrr::map(excluded_reason, naappeend)),
+      "[ex post - explicit negative loceval]"
+    )
+  )
+
+srctab <- 'tmp_CalendarExclusion'
+DBI::dbWriteTable(
+  mnmdb$connection,
+  name = srctab,
+  value = exclusion_keys,
+  overwrite = TRUE,
+  temporary = TRUE # !
+)
+
+
+srctab <- glue::glue('"{srctab}"')
+
+trgtab <- mnmdb$get_namestring("FieldCalendars")
+
+update_query <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+   excluded = SRCTAB.excluded,
+   excluded_reason = SRCTAB.excluded_reason
+  FROM {srctab} AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.stratum = SRCTAB.stratum)
+   AND (TRGTAB.fieldcalendar_id = SRCTAB.fieldcalendar_id)
+;
+")
+mnmdb$execute_sql(update_query, verbose = TRUE)
+
+# strictly, cleanup is not necessary
+mnmdb$execute_sql(glue::glue("DROP TABLE {srctab};"))
