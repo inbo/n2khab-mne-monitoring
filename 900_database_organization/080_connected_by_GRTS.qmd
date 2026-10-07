@@ -43,6 +43,7 @@ choose a GRTS
 # filter(grts_address %in% c(1999406, 6417454))
 #
 grts <- c(3514038) # three aquatic types with only one visited
+  # c(1012434) # see mail 20261007 "specialeke": 2/3 locevals, 1/3 SURF visits
   # c("1770206", "1806302", "1806302", "1639134", "1770206", "49768174") # duplicate orthofoto evaluations
   # c(30153) # no replacement date
   # c(47553522) # installation not visible -> solved
@@ -361,7 +362,7 @@ eva_print_facal <- function() {
       archv = archive_version_id,
       done_p = done_planning,
       frz = is_frozen,
-      no_vis = no_visit_planned
+      excl = excluded
     ) %>%
     dplyr::select(
       type,
@@ -372,7 +373,7 @@ eva_print_facal <- function() {
       date_start,
       archv,
       frz,
-      no_vis,
+      excl,
       done_p
     ) %>%
     arrange(type, date_start, agid) %>% 
@@ -690,6 +691,7 @@ gw_print_fwcal <- function() {
       slid = sampleunit_id,
       agid = activity_group_id,
       frz = is_frozen,
+      excl = excluded,
       archv = archive_version_id,
       done_p = done_planning
     ) %>%
@@ -702,6 +704,7 @@ gw_print_fwcal <- function() {
       activity_group,
       date_start,
       frz,
+      excl,
       archv,
       # teammember_assigned,
       # date_visit_planned,
@@ -1063,6 +1066,7 @@ surf_print_fwcal <- function() {
       suid = sampleunit_id,
       agid = activity_group_id,
       frz  = is_frozen,
+      excl  = excluded,
       archv = archive_version_id,
       done_p = done_planning
     ) %>%
@@ -1075,6 +1079,7 @@ surf_print_fwcal <- function() {
       activity_group,
       date_start,
       frz,
+      excl,
       archv,
       # teammember_assigned,
       # date_visit_planned,
