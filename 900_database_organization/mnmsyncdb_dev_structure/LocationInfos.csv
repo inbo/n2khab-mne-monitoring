@@ -13,3 +13,4 @@ equipment_recommendations,text,False,NULL,False,False,,,,required equipment and 
 is_secret_location,boolean,False,NULL,False,False,,,,"this location is not really secret, but the flag should remind you of something...",
 watina_code_1,varchar,False,NULL,False,False,,,,prepared and reserved WATINA code for obs well placement (1) in mnmgwdb,
 watina_code_2,varchar,False,NULL,False,False,,,,prepared and reserved WATINA code for obs well placement (2) in mnmgwdb, 
+permission_notes,varchar,False,NULL,False,False,,,,notes on permission (related to accessibility),

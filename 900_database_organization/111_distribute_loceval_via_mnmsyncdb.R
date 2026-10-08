@@ -519,8 +519,8 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
   # verbose
   if (nrow(sampleunits_upload) > 0) {
     message("\t--- New sample units to be uploaded:")
-    message(sampleunits_upload %>%
-      select(grts_address, stratum))
+    message(paste(sampleunits_upload %>%
+      select(grts_address, stratum), collapse = " | "))
   }
 
   sampleunits_lookup_incomplete <- update_cascade_lookup_userdb(
