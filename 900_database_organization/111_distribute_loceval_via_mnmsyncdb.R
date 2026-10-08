@@ -138,7 +138,7 @@ loceval_visits <- loceval_connection$query_table("AllVisits") %>%
     log_update
   )
 
-# loceval_visits %>% filter(grts_address_original == 84598) %>%
+# loceval_visits %>% filter(grts_address_original == 36169) %>%
 #   t() %>% knitr::kable()
 
 na_visit_dates <- loceval_visits %>%
@@ -500,6 +500,9 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
 
   if ((udb == "mnmsurfdb") && nrow(new_sampleunits) > 0) {
     stop("There is no reliable ``stratum lookup`` yet for aquatic types: as a historic shortcut, we `rename(stratum = type)` which is okay for terrestrial, but not for aquatic types.")
+    # NOTE: If AQUATIC units ever come to be replaced,
+    # then we must arrange for a lookup here to convert type to stratum
+    # by taking their size into account (just as in the REP).
   }
 
   # upload new sampleunits
@@ -510,7 +513,7 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
     dplyr::rename(stratum = type) %>%
     dplyr::left_join(
       existing_sampleunits %>%
-        dplyr::select(-location_id, -sampleunit_id),
+        dplyr::select(-location_id, -sampleunit_id, -type),
       by = dplyr::join_by(grts_address_original == grts_address, stratum)
     ) %>%
     dplyr::select(-grts_address_original) %>%
