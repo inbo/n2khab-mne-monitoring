@@ -1,3 +1,4 @@
+BEGIN;
 
 DROP VIEW "inbound"."ReplacementOngoing" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."ReplacementOngoing" AS
@@ -124,6 +125,8 @@ DO ALSO
 
 GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."ReplacementOngoing"  TO user_loceval;
+
+COMMIT;
 
 -- only on testing:
 -- GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO tester_mnmdb;

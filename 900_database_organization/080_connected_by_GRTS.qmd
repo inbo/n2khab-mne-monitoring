@@ -42,7 +42,8 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 #
-grts <- c(36169) # 20261008 crash from yesterday's visit
+grts <- c(144561) # cell registered for both aquatic and terrestrial sample unit; shift of cell center is problematic
+  # c(36169) # 20261008 Visit info was filled on two Visits via ReplacementOngoing ambiguous association
   # c(3514038) # three aquatic types with only one visited
   # c(1012434) # see mail 20261007 "specialeke": 2/3 locevals, 1/3 SURF visits
   # c("1770206", "1806302", "1806302", "1639134", "1770206", "49768174") # duplicate orthofoto evaluations
