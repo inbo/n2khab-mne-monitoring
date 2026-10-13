@@ -1,12 +1,12 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis autoRefreshMode="Disabled" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" labelsEnabled="0" layerType="Vector" maxScale="0" minScale="100000000" readOnly="0" simplifyAlgorithm="0" simplifyDrawingHints="0" simplifyDrawingTol="1" simplifyLocal="1" simplifyMaxScale="1" styleCategories="AllStyleCategories" symbologyReferenceScale="-1" version="4.2.1-Belém do Pará">
+<qgis autoRefreshMode="Disabled" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" labelsEnabled="0" layerType="Vector" maxScale="0" minScale="100000000" readOnly="1" simplifyAlgorithm="0" simplifyDrawingHints="0" simplifyDrawingTol="1" simplifyLocal="1" simplifyMaxScale="1" styleCategories="AllStyleCategories" symbologyReferenceScale="-1" version="4.2.3-Belém do Pará">
   <flags>
     <Identifiable>1</Identifiable>
     <Removable>1</Removable>
     <Searchable>1</Searchable>
     <Private>0</Private>
   </flags>
-  <temporal accumulate="0" durationField="ogc_fid" durationUnit="min" enabled="0" endExpression="" endField="" fixedDuration="0" limitMode="0" mode="2" startExpression="" startField="">
+  <temporal accumulate="0" durationField="ogc_fid" durationUnit="min" enabled="0" endExpression="" endField="" fixedDuration="0" limitMode="0" mode="0" startExpression="" startField="eval_date">
     <fixedRange>
       <start></start>
       <end></end>
@@ -29,7 +29,7 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleLine" enabled="1" id="{07057abc-c8aa-4397-a80e-d8440fd7e666}" locked="0" pass="0">
+        <layer class="SimpleLine" enabled="1" id="{720ddcc7-c35d-4aeb-b235-1ed3b6239bc0}" locked="0" pass="0">
           <Option type="Map">
             <Option name="align_dash_pattern" type="QString" value="0"/>
             <Option name="capstyle" type="QString" value="square"/>
@@ -41,7 +41,7 @@
             <Option name="dash_pattern_offset_unit" type="QString" value="MM"/>
             <Option name="draw_inside_polygon" type="QString" value="0"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="line_color" type="QString" value="114,155,111,255,rgb:0.4470588,0.6078432,0.4352941,1"/>
+            <Option name="line_color" type="QString" value="145,82,45,255,rgb:0.5686275,0.3215686,0.1764706,1"/>
             <Option name="line_style" type="QString" value="solid"/>
             <Option name="line_width" type="QString" value="0.6"/>
             <Option name="line_width_unit" type="QString" value="MM"/>
@@ -78,15 +78,15 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleFill" enabled="1" id="{56f7971b-ce70-4b95-a7be-b847c30092e9}" locked="0" pass="0">
+        <layer class="SimpleFill" enabled="1" id="{1a06b1d2-9a2a-45b4-af85-5979c4f40f9b}" locked="0" pass="0">
           <Option type="Map">
             <Option name="border_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-            <Option name="color" type="QString" value="114,155,111,255,rgb:0.4470588,0.6078432,0.4352941,1"/>
+            <Option name="color" type="QString" value="145,82,45,255,rgb:0.5686275,0.3215686,0.1764706,1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
             <Option name="offset" type="QString" value="0,0"/>
             <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="81,111,79,255,rgb:0.3193255,0.4341649,0.3109178,1"/>
+            <Option name="outline_color" type="QString" value="104,59,32,255,rgb:0.4061494,0.2296788,0.1260395,1"/>
             <Option name="outline_style" type="QString" value="solid"/>
             <Option name="outline_width" type="QString" value="0.2"/>
             <Option name="outline_width_unit" type="QString" value="MM"/>
@@ -111,18 +111,18 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{9114c56d-3302-4fd8-87cc-88026da70de7}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{117b7032-2189-47e4-a261-01be69f864de}" locked="0" pass="0">
           <Option type="Map">
             <Option name="angle" type="QString" value="0"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="114,155,111,255,rgb:0.4470588,0.6078432,0.4352941,1"/>
+            <Option name="color" type="QString" value="145,82,45,255,rgb:0.5686275,0.3215686,0.1764706,1"/>
             <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
             <Option name="name" type="QString" value="diamond"/>
             <Option name="offset" type="QString" value="0,0"/>
             <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="81,111,79,255,rgb:0.3193255,0.4341649,0.3109178,1"/>
+            <Option name="outline_color" type="QString" value="104,59,32,255,rgb:0.4061494,0.2296788,0.1260395,1"/>
             <Option name="outline_style" type="QString" value="solid"/>
             <Option name="outline_width" type="QString" value="0.2"/>
             <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
@@ -144,11 +144,11 @@
       </symbol>
     </profileMarkerSymbol>
   </elevation>
-  <renderer-v2 attr="CASE WHEN &quot;visit_done&quot; OR &quot;issues&quot;&#xa;THEN 'done'&#xa;ELSE&#xa;  CASE WHEN &quot;near_future&quot; &#xa;  THEN 'near' &#xa;  ELSE&#xa;    'far'&#xa;  END&#xa;END" enableorderby="0" forceraster="0" referencescale="-1" symbollevels="0" type="categorizedSymbol">
+  <renderer-v2 attr="loceval_is_positive" enableorderby="0" forceraster="0" referencescale="-1" symbollevels="0" type="categorizedSymbol">
     <categories>
-      <category label="done" render="true" symbol="0" type="string" uuid="{7c049f83-712f-47f8-9cc6-87159dd729ef}" value="done"/>
-      <category label="near" render="true" symbol="1" type="string" uuid="{b4a4bef8-5c76-4b56-8613-628b9edd170b}" value="near"/>
-      <category label="" render="true" symbol="2" type="NULL" uuid="{b522b6c5-6416-4849-9f55-1ff7e491d301}" value="NULL"/>
+      <category label="loceval positief" render="true" symbol="0" type="string" uuid="{ea6bc630-503c-4cee-9b60-3d51e1525e27}" value="true"/>
+      <category label="loceval negatief" render="true" symbol="1" type="string" uuid="{2abdba43-9e5f-4395-84db-929838486018}" value="false"/>
+      <category label="" render="true" symbol="2" type="NULL" uuid="{6fe10e9e-779c-4a1f-baf2-06d367d33c58}" value="NULL"/>
     </categories>
     <symbols>
       <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="0" type="marker">
@@ -159,24 +159,24 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{3f7112c9-7ac5-4e09-8a3d-74a368b8d522}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{bc951888-6185-461c-995f-a4c8c92f7f34}" locked="0" pass="0">
           <Option type="Map">
-            <Option name="angle" type="QString" value="0"/>
+            <Option name="angle" type="QString" value="120"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="204,204,204,255,hsv:0.16305555403232574,0,0.79963380098342896,1"/>
-            <Option name="horizontal_anchor_point" type="QString" value="0"/>
+            <Option name="color" type="QString" value="109,153,111,204,hsv:0.34052777290344238,0.28976881504058838,0.60000002384185791,0.80000001192092896"/>
+            <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="name" type="QString" value="square"/>
+            <Option name="name" type="QString" value="equilateral_triangle"/>
             <Option name="offset" type="QString" value="0,0"/>
             <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="128,17,25,0,rgb:0.5019608,0.0666667,0.0980392,0"/>
+            <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
             <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0.4"/>
+            <Option name="outline_width" type="QString" value="0"/>
             <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="outline_width_unit" type="QString" value="MM"/>
             <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="1.2"/>
+            <Option name="size" type="QString" value="3"/>
             <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="size_unit" type="QString" value="MM"/>
             <Option name="vertical_anchor_point" type="QString" value="0"/>
@@ -190,7 +190,7 @@
           </data_defined_properties>
         </layer>
       </symbol>
-      <symbol alpha="0.4" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="1" type="marker">
+      <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="1" type="marker">
         <data_defined_properties>
           <Option type="Map">
             <Option name="name" type="QString" value=""/>
@@ -198,24 +198,24 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{3f7112c9-7ac5-4e09-8a3d-74a368b8d522}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{98810b46-438a-48d8-8f5e-73e59224b7c6}" locked="0" pass="0">
           <Option type="Map">
-            <Option name="angle" type="QString" value="0"/>
+            <Option name="angle" type="QString" value="120"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="196,243,9,255,hsv:0.19980555772781372,0.96467536687850952,0.9527122974395752,1"/>
-            <Option name="horizontal_anchor_point" type="QString" value="0"/>
+            <Option name="color" type="QString" value="236,106,0,102,hsv:0.07500000298023224,1,0.92549020051956177,0.40000000596046448"/>
+            <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="name" type="QString" value="square"/>
+            <Option name="name" type="QString" value="equilateral_triangle"/>
             <Option name="offset" type="QString" value="0,0"/>
             <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="0,0,0,255,rgb:0,0,0,1"/>
+            <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
             <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0.4"/>
+            <Option name="outline_width" type="QString" value="0"/>
             <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="outline_width_unit" type="QString" value="MM"/>
             <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="3.2"/>
+            <Option name="size" type="QString" value="3"/>
             <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="size_unit" type="QString" value="MM"/>
             <Option name="vertical_anchor_point" type="QString" value="0"/>
@@ -237,27 +237,27 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{3f7112c9-7ac5-4e09-8a3d-74a368b8d522}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{ca4df969-3d60-4f19-9ad7-90cc518ee599}" locked="0" pass="0">
           <Option type="Map">
             <Option name="angle" type="QString" value="0"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="166,210,243,255,hsv:0.57188886404037476,0.31686884164810181,0.9529411792755127,1"/>
-            <Option name="horizontal_anchor_point" type="QString" value="0"/>
+            <Option name="color" type="QString" value="205,205,205,255,hsv:0,0,0.80392158031463623,1"/>
+            <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
-            <Option name="name" type="QString" value="square"/>
+            <Option name="name" type="QString" value="circle"/>
             <Option name="offset" type="QString" value="0,0"/>
             <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="offset_unit" type="QString" value="MM"/>
-            <Option name="outline_color" type="QString" value="128,17,25,0,rgb:0.5019608,0.0666667,0.0980392,0"/>
+            <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
             <Option name="outline_style" type="QString" value="solid"/>
-            <Option name="outline_width" type="QString" value="0.4"/>
+            <Option name="outline_width" type="QString" value="0"/>
             <Option name="outline_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="outline_width_unit" type="QString" value="MM"/>
             <Option name="scale_method" type="QString" value="diameter"/>
-            <Option name="size" type="QString" value="1.2"/>
+            <Option name="size" type="QString" value="1"/>
             <Option name="size_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
             <Option name="size_unit" type="QString" value="MM"/>
-            <Option name="vertical_anchor_point" type="QString" value="0"/>
+            <Option name="vertical_anchor_point" type="QString" value="1"/>
           </Option>
           <data_defined_properties>
             <Option type="Map">
@@ -278,11 +278,11 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{8d1fd958-0c8f-4ee7-8569-3b4478cfcc75}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{c76d1840-3e87-48f5-ad56-97c344744f58}" locked="0" pass="0">
           <Option type="Map">
             <Option name="angle" type="QString" value="0"/>
             <Option name="cap_style" type="QString" value="square"/>
-            <Option name="color" type="QString" value="213,180,60,255,rgb:0.8352941,0.7058824,0.2352941,1"/>
+            <Option name="color" type="QString" value="232,113,141,255,rgb:0.9098039,0.4431373,0.5529412,1"/>
             <Option name="horizontal_anchor_point" type="QString" value="1"/>
             <Option name="joinstyle" type="QString" value="bevel"/>
             <Option name="name" type="QString" value="circle"/>
@@ -331,7 +331,7 @@
             <Option name="type" type="QString" value="collection"/>
           </Option>
         </data_defined_properties>
-        <layer class="SimpleMarker" enabled="1" id="{cfb6a7d1-22d1-40da-852a-ff1b8d03964b}" locked="0" pass="0">
+        <layer class="SimpleMarker" enabled="1" id="{5ecf1169-4a03-41c2-9c2d-0d61aed9e1b6}" locked="0" pass="0">
           <Option type="Map">
             <Option name="angle" type="QString" value="0"/>
             <Option name="cap_style" type="QString" value="square"/>
@@ -366,13 +366,16 @@
   </selection>
   <customproperties>
     <Option type="Map">
-      <Option name="QFieldSync/action" type="QString" value="offline"/>
+      <Option name="QFieldSync/action" type="QString" value="no_action"/>
       <Option name="QFieldSync/attachment_naming" type="QString" value="{}"/>
       <Option name="QFieldSync/attribute_editing_locked_expression" type="invalid"/>
-      <Option name="QFieldSync/cloud_action" type="QString" value="offline"/>
+      <Option name="QFieldSync/cloud_action" type="QString" value="no_action"/>
       <Option name="QFieldSync/feature_addition_locked_expression" type="invalid"/>
       <Option name="QFieldSync/feature_deletion_locked_expression" type="invalid"/>
       <Option name="QFieldSync/geometry_editing_locked_expression" type="invalid"/>
+      <Option name="QFieldSync/is_feature_addition_locked" type="bool" value="true"/>
+      <Option name="QFieldSync/is_feature_deletion_locked" type="bool" value="true"/>
+      <Option name="QFieldSync/is_geometry_editing_locked" type="bool" value="true"/>
       <Option name="QFieldSync/photo_naming" type="QString" value="{}"/>
       <Option name="QFieldSync/relationship_maximum_visible" type="QString" value="{}"/>
       <Option name="QFieldSync/tracking_distance_requirement_minimum_meters" type="int" value="30"/>
@@ -381,16 +384,22 @@
       <Option name="QFieldSync/tracking_time_requirement_interval_seconds" type="int" value="30"/>
       <Option name="QFieldSync/value_map_button_interface_threshold" type="int" value="0"/>
       <Option name="dualview/previewExpressions" type="List">
-        <Option type="QString" value="COALESCE( &quot;date_interval&quot;, '&lt;NULL>' )"/>
+        <Option type="QString" value="COALESCE( &quot;eval_name&quot;, '&lt;NULL>' )"/>
+        <Option type="invalid"/>
+        <Option type="QString" value="COALESCE( &quot;eval_name&quot;, '&lt;NULL>' )"/>
+        <Option type="QString" value="COALESCE( &quot;eval_name&quot;, '&lt;NULL>' )"/>
+        <Option type="invalid"/>
+        <Option type="QString" value="COALESCE( &quot;eval_name&quot;, '&lt;NULL>' )"/>
+        <Option type="invalid"/>
       </Option>
       <Option name="embeddedWidgets/count" type="int" value="0"/>
       <Option name="variableNames"/>
       <Option name="variableValues"/>
     </Option>
   </customproperties>
-  <blendMode>0</blendMode>
-  <featureBlendMode>0</featureBlendMode>
-  <layerOpacity>0.5</layerOpacity>
+  <blendMode>10</blendMode>
+  <featureBlendMode>10</featureBlendMode>
+  <layerOpacity>1</layerOpacity>
   <geometryOptions geometryPrecision="0" removeDuplicateNodes="0">
     <activeChecks/>
     <checkConfiguration/>
@@ -437,19 +446,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="is_cell_center">
-      <editWidget type="CheckBox">
-        <config>
-          <Option type="Map">
-            <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="invalid"/>
-            <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="invalid"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="fieldcalendar_id">
+    <field configurationFlags="0" name="locationevaluation_id">
       <editWidget type="Range">
         <config>
           <Option type="Map">
@@ -463,49 +460,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="activity_group_id">
-      <editWidget type="Range">
-        <config>
-          <Option type="Map">
-            <Option name="AllowNull" type="bool" value="true"/>
-            <Option name="Max" type="int" value="2147483647"/>
-            <Option name="Min" type="int" value="-2147483648"/>
-            <Option name="Precision" type="int" value="0"/>
-            <Option name="Step" type="int" value="1"/>
-            <Option name="Style" type="QString" value="SpinBox"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="date_start">
-      <editWidget type="DateTime">
-        <config>
-          <Option type="Map">
-            <Option name="allow_null" type="bool" value="true"/>
-            <Option name="calendar_popup" type="bool" value="true"/>
-            <Option name="display_format" type="QString" value="M/d/yy"/>
-            <Option name="field_format" type="QString" value="yyyy-MM-dd"/>
-            <Option name="field_format_overwrite" type="bool" value="false"/>
-            <Option name="field_iso_format" type="bool" value="false"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="date_end">
-      <editWidget type="DateTime">
-        <config>
-          <Option type="Map">
-            <Option name="allow_null" type="bool" value="true"/>
-            <Option name="calendar_popup" type="bool" value="true"/>
-            <Option name="display_format" type="QString" value="M/d/yy"/>
-            <Option name="field_format" type="QString" value="yyyy-MM-dd"/>
-            <Option name="field_format_overwrite" type="bool" value="false"/>
-            <Option name="field_iso_format" type="bool" value="false"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="date_interval">
+    <field configurationFlags="0" name="schemes">
       <editWidget type="TextEdit">
         <config>
           <Option type="Map">
@@ -515,70 +470,12 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="days_to_deadline">
-      <editWidget type="Range">
+    <field configurationFlags="0" name="type">
+      <editWidget type="TextEdit">
         <config>
           <Option type="Map">
-            <Option name="AllowNull" type="bool" value="true"/>
-            <Option name="Max" type="int" value="2147483647"/>
-            <Option name="Min" type="int" value="-2147483648"/>
-            <Option name="Precision" type="int" value="0"/>
-            <Option name="Step" type="int" value="1"/>
-            <Option name="Style" type="QString" value="SpinBox"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="near_future">
-      <editWidget type="CheckBox">
-        <config>
-          <Option type="Map">
-            <Option name="AllowNullState" type="bool" value="false"/>
-            <Option name="CheckedState" type="invalid"/>
-            <Option name="TextDisplayMethod" type="int" value="0"/>
-            <Option name="UncheckedState" type="invalid"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="visit_id">
-      <editWidget type="Range">
-        <config>
-          <Option type="Map">
-            <Option name="AllowNull" type="bool" value="true"/>
-            <Option name="Max" type="int" value="2147483647"/>
-            <Option name="Min" type="int" value="-2147483648"/>
-            <Option name="Precision" type="int" value="0"/>
-            <Option name="Step" type="int" value="1"/>
-            <Option name="Style" type="QString" value="SpinBox"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="teammember_id">
-      <editWidget type="Range">
-        <config>
-          <Option type="Map">
-            <Option name="AllowNull" type="bool" value="true"/>
-            <Option name="Max" type="int" value="2147483647"/>
-            <Option name="Min" type="int" value="-2147483648"/>
-            <Option name="Precision" type="int" value="0"/>
-            <Option name="Step" type="int" value="1"/>
-            <Option name="Style" type="QString" value="SpinBox"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="date_visit">
-      <editWidget type="DateTime">
-        <config>
-          <Option type="Map">
-            <Option name="allow_null" type="bool" value="true"/>
-            <Option name="calendar_popup" type="bool" value="true"/>
-            <Option name="display_format" type="QString" value="M/d/yy"/>
-            <Option name="field_format" type="QString" value="yyyy-MM-dd"/>
-            <Option name="field_format_overwrite" type="bool" value="false"/>
-            <Option name="field_iso_format" type="bool" value="false"/>
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
           </Option>
         </config>
       </editWidget>
@@ -593,17 +490,7 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="notes">
-      <editWidget type="TextEdit">
-        <config>
-          <Option type="Map">
-            <Option name="IsMultiline" type="bool" value="false"/>
-            <Option name="UseHtml" type="bool" value="false"/>
-          </Option>
-        </config>
-      </editWidget>
-    </field>
-    <field configurationFlags="0" name="issues">
+    <field configurationFlags="0" name="type_is_absent">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -615,7 +502,61 @@
         </config>
       </editWidget>
     </field>
-    <field configurationFlags="0" name="visit_done">
+    <field configurationFlags="0" name="eval_source">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="eval_name">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="eval_date">
+      <editWidget type="DateTime">
+        <config>
+          <Option type="Map">
+            <Option name="allow_null" type="bool" value="true"/>
+            <Option name="calendar_popup" type="bool" value="true"/>
+            <Option name="display_format" type="QString" value="yyyy-MM-dd"/>
+            <Option name="field_format" type="QString" value="yyyy-MM-dd"/>
+            <Option name="field_format_overwrite" type="bool" value="false"/>
+            <Option name="field_iso_format" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="notes">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="photo">
+      <editWidget type="TextEdit">
+        <config>
+          <Option type="Map">
+            <Option name="IsMultiline" type="bool" value="false"/>
+            <Option name="UseHtml" type="bool" value="false"/>
+          </Option>
+        </config>
+      </editWidget>
+    </field>
+    <field configurationFlags="0" name="loceval_is_positive">
       <editWidget type="CheckBox">
         <config>
           <Option type="Map">
@@ -632,101 +573,81 @@
     <alias field="ogc_fid" index="0" name=""/>
     <alias field="location_id" index="1" name=""/>
     <alias field="grts_address" index="2" name=""/>
-    <alias field="is_cell_center" index="3" name=""/>
-    <alias field="fieldcalendar_id" index="4" name=""/>
-    <alias field="activity_group_id" index="5" name=""/>
-    <alias field="date_start" index="6" name=""/>
-    <alias field="date_end" index="7" name=""/>
-    <alias field="date_interval" index="8" name=""/>
-    <alias field="days_to_deadline" index="9" name=""/>
-    <alias field="near_future" index="10" name=""/>
-    <alias field="visit_id" index="11" name=""/>
-    <alias field="teammember_id" index="12" name=""/>
-    <alias field="date_visit" index="13" name=""/>
-    <alias field="type_assessed" index="14" name=""/>
-    <alias field="notes" index="15" name=""/>
-    <alias field="issues" index="16" name=""/>
-    <alias field="visit_done" index="17" name=""/>
+    <alias field="locationevaluation_id" index="3" name=""/>
+    <alias field="schemes" index="4" name=""/>
+    <alias field="type" index="5" name=""/>
+    <alias field="type_assessed" index="6" name=""/>
+    <alias field="type_is_absent" index="7" name=""/>
+    <alias field="eval_source" index="8" name=""/>
+    <alias field="eval_name" index="9" name=""/>
+    <alias field="eval_date" index="10" name=""/>
+    <alias field="notes" index="11" name=""/>
+    <alias field="photo" index="12" name=""/>
+    <alias field="loceval_is_positive" index="13" name=""/>
   </aliases>
   <splitPolicies>
     <policy field="ogc_fid" policy="DefaultValue"/>
     <policy field="location_id" policy="DefaultValue"/>
     <policy field="grts_address" policy="DefaultValue"/>
-    <policy field="is_cell_center" policy="DefaultValue"/>
-    <policy field="fieldcalendar_id" policy="DefaultValue"/>
-    <policy field="activity_group_id" policy="DefaultValue"/>
-    <policy field="date_start" policy="DefaultValue"/>
-    <policy field="date_end" policy="DefaultValue"/>
-    <policy field="date_interval" policy="DefaultValue"/>
-    <policy field="days_to_deadline" policy="DefaultValue"/>
-    <policy field="near_future" policy="DefaultValue"/>
-    <policy field="visit_id" policy="DefaultValue"/>
-    <policy field="teammember_id" policy="DefaultValue"/>
-    <policy field="date_visit" policy="DefaultValue"/>
+    <policy field="locationevaluation_id" policy="DefaultValue"/>
+    <policy field="schemes" policy="DefaultValue"/>
+    <policy field="type" policy="DefaultValue"/>
     <policy field="type_assessed" policy="DefaultValue"/>
+    <policy field="type_is_absent" policy="DefaultValue"/>
+    <policy field="eval_source" policy="DefaultValue"/>
+    <policy field="eval_name" policy="DefaultValue"/>
+    <policy field="eval_date" policy="DefaultValue"/>
     <policy field="notes" policy="DefaultValue"/>
-    <policy field="issues" policy="DefaultValue"/>
-    <policy field="visit_done" policy="DefaultValue"/>
+    <policy field="photo" policy="DefaultValue"/>
+    <policy field="loceval_is_positive" policy="DefaultValue"/>
   </splitPolicies>
   <defaults>
     <default applyOnUpdate="0" expression="" field="ogc_fid"/>
     <default applyOnUpdate="0" expression="" field="location_id"/>
     <default applyOnUpdate="0" expression="" field="grts_address"/>
-    <default applyOnUpdate="0" expression="" field="is_cell_center"/>
-    <default applyOnUpdate="0" expression="" field="fieldcalendar_id"/>
-    <default applyOnUpdate="0" expression="" field="activity_group_id"/>
-    <default applyOnUpdate="0" expression="" field="date_start"/>
-    <default applyOnUpdate="0" expression="" field="date_end"/>
-    <default applyOnUpdate="0" expression="" field="date_interval"/>
-    <default applyOnUpdate="0" expression="" field="days_to_deadline"/>
-    <default applyOnUpdate="0" expression="" field="near_future"/>
-    <default applyOnUpdate="0" expression="" field="visit_id"/>
-    <default applyOnUpdate="0" expression="" field="teammember_id"/>
-    <default applyOnUpdate="0" expression="" field="date_visit"/>
+    <default applyOnUpdate="0" expression="" field="locationevaluation_id"/>
+    <default applyOnUpdate="0" expression="" field="schemes"/>
+    <default applyOnUpdate="0" expression="" field="type"/>
     <default applyOnUpdate="0" expression="" field="type_assessed"/>
+    <default applyOnUpdate="0" expression="" field="type_is_absent"/>
+    <default applyOnUpdate="0" expression="" field="eval_source"/>
+    <default applyOnUpdate="0" expression="" field="eval_name"/>
+    <default applyOnUpdate="0" expression="" field="eval_date"/>
     <default applyOnUpdate="0" expression="" field="notes"/>
-    <default applyOnUpdate="0" expression="" field="issues"/>
-    <default applyOnUpdate="0" expression="" field="visit_done"/>
+    <default applyOnUpdate="0" expression="" field="photo"/>
+    <default applyOnUpdate="0" expression="" field="loceval_is_positive"/>
   </defaults>
   <constraints>
     <constraint constraints="0" exp_strength="0" field="ogc_fid" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="location_id" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="grts_address" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="is_cell_center" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="fieldcalendar_id" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="activity_group_id" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="date_start" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="date_end" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="date_interval" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="days_to_deadline" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="near_future" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="3" exp_strength="0" field="visit_id" notnull_strength="1" unique_strength="1"/>
-    <constraint constraints="0" exp_strength="0" field="teammember_id" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="date_visit" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="3" exp_strength="0" field="locationevaluation_id" notnull_strength="1" unique_strength="1"/>
+    <constraint constraints="0" exp_strength="0" field="schemes" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="type" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="type_assessed" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="type_is_absent" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="eval_source" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="eval_name" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="eval_date" notnull_strength="0" unique_strength="0"/>
     <constraint constraints="0" exp_strength="0" field="notes" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="issues" notnull_strength="0" unique_strength="0"/>
-    <constraint constraints="0" exp_strength="0" field="visit_done" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="photo" notnull_strength="0" unique_strength="0"/>
+    <constraint constraints="0" exp_strength="0" field="loceval_is_positive" notnull_strength="0" unique_strength="0"/>
   </constraints>
   <constraintExpressions>
     <constraint desc="" exp="" field="ogc_fid"/>
     <constraint desc="" exp="" field="location_id"/>
     <constraint desc="" exp="" field="grts_address"/>
-    <constraint desc="" exp="" field="is_cell_center"/>
-    <constraint desc="" exp="" field="fieldcalendar_id"/>
-    <constraint desc="" exp="" field="activity_group_id"/>
-    <constraint desc="" exp="" field="date_start"/>
-    <constraint desc="" exp="" field="date_end"/>
-    <constraint desc="" exp="" field="date_interval"/>
-    <constraint desc="" exp="" field="days_to_deadline"/>
-    <constraint desc="" exp="" field="near_future"/>
-    <constraint desc="" exp="" field="visit_id"/>
-    <constraint desc="" exp="" field="teammember_id"/>
-    <constraint desc="" exp="" field="date_visit"/>
+    <constraint desc="" exp="" field="locationevaluation_id"/>
+    <constraint desc="" exp="" field="schemes"/>
+    <constraint desc="" exp="" field="type"/>
     <constraint desc="" exp="" field="type_assessed"/>
+    <constraint desc="" exp="" field="type_is_absent"/>
+    <constraint desc="" exp="" field="eval_source"/>
+    <constraint desc="" exp="" field="eval_name"/>
+    <constraint desc="" exp="" field="eval_date"/>
     <constraint desc="" exp="" field="notes"/>
-    <constraint desc="" exp="" field="issues"/>
-    <constraint desc="" exp="" field="visit_done"/>
+    <constraint desc="" exp="" field="photo"/>
+    <constraint desc="" exp="" field="loceval_is_positive"/>
   </constraintExpressions>
   <expressionfields/>
   <attributeactions>
@@ -736,22 +657,18 @@
     <columns>
       <column hidden="0" name="ogc_fid" type="field" width="-1"/>
       <column hidden="0" name="location_id" type="field" width="-1"/>
-      <column hidden="0" name="grts_address" type="field" width="-1"/>
-      <column hidden="0" name="is_cell_center" type="field" width="-1"/>
-      <column hidden="0" name="fieldcalendar_id" type="field" width="-1"/>
-      <column hidden="0" name="activity_group_id" type="field" width="-1"/>
-      <column hidden="0" name="date_start" type="field" width="-1"/>
-      <column hidden="0" name="date_end" type="field" width="-1"/>
-      <column hidden="0" name="date_interval" type="field" width="-1"/>
-      <column hidden="0" name="days_to_deadline" type="field" width="-1"/>
-      <column hidden="0" name="near_future" type="field" width="-1"/>
-      <column hidden="0" name="visit_id" type="field" width="-1"/>
-      <column hidden="0" name="teammember_id" type="field" width="-1"/>
-      <column hidden="0" name="date_visit" type="field" width="-1"/>
+      <column hidden="0" name="grts_address" type="field" width="192"/>
+      <column hidden="0" name="type" type="field" width="-1"/>
       <column hidden="0" name="type_assessed" type="field" width="-1"/>
-      <column hidden="0" name="notes" type="field" width="-1"/>
-      <column hidden="0" name="issues" type="field" width="-1"/>
-      <column hidden="0" name="visit_done" type="field" width="-1"/>
+      <column hidden="0" name="eval_source" type="field" width="-1"/>
+      <column hidden="0" name="eval_name" type="field" width="-1"/>
+      <column hidden="0" name="eval_date" type="field" width="-1"/>
+      <column hidden="0" name="notes" type="field" width="179"/>
+      <column hidden="0" name="photo" type="field" width="-1"/>
+      <column hidden="0" name="locationevaluation_id" type="field" width="-1"/>
+      <column hidden="0" name="schemes" type="field" width="-1"/>
+      <column hidden="0" name="type_is_absent" type="field" width="-1"/>
+      <column hidden="0" name="loceval_is_positive" type="field" width="-1"/>
       <column hidden="1" type="actions" width="-1"/>
     </columns>
   </attributetableconfig>
@@ -784,68 +701,62 @@ def my_form_open(dialog, layer, feature):
   <featformsuppress>0</featformsuppress>
   <editorlayout>generatedlayout</editorlayout>
   <editable>
-    <field editable="0" name="activity_group_id"/>
-    <field editable="0" name="date_end"/>
-    <field editable="0" name="date_interval"/>
-    <field editable="0" name="date_start"/>
-    <field editable="0" name="date_visit"/>
-    <field editable="0" name="days_to_deadline"/>
-    <field editable="0" name="fieldcalendar_id"/>
+    <field editable="0" name="eval_date"/>
+    <field editable="0" name="eval_name"/>
+    <field editable="0" name="eval_source"/>
     <field editable="0" name="grts_address"/>
-    <field editable="0" name="is_cell_center"/>
-    <field editable="0" name="issues"/>
     <field editable="0" name="location_id"/>
-    <field editable="0" name="near_future"/>
+    <field editable="0" name="locationevaluation_id"/>
+    <field editable="0" name="loceval_is_positive"/>
     <field editable="0" name="notes"/>
     <field editable="0" name="ogc_fid"/>
-    <field editable="0" name="teammember_id"/>
+    <field editable="0" name="photo"/>
+    <field editable="1" name="recovery_hints"/>
+    <field editable="1" name="scheme"/>
+    <field editable="0" name="schemes"/>
+    <field editable="0" name="type"/>
     <field editable="0" name="type_assessed"/>
-    <field editable="0" name="visit_done"/>
-    <field editable="0" name="visit_id"/>
+    <field editable="0" name="type_is_absent"/>
   </editable>
   <labelOnTop>
-    <field labelOnTop="0" name="activity_group_id"/>
-    <field labelOnTop="0" name="date_end"/>
-    <field labelOnTop="0" name="date_interval"/>
-    <field labelOnTop="0" name="date_start"/>
-    <field labelOnTop="0" name="date_visit"/>
-    <field labelOnTop="0" name="days_to_deadline"/>
-    <field labelOnTop="0" name="fieldcalendar_id"/>
+    <field labelOnTop="0" name="eval_date"/>
+    <field labelOnTop="0" name="eval_name"/>
+    <field labelOnTop="0" name="eval_source"/>
     <field labelOnTop="0" name="grts_address"/>
-    <field labelOnTop="0" name="is_cell_center"/>
-    <field labelOnTop="0" name="issues"/>
     <field labelOnTop="0" name="location_id"/>
-    <field labelOnTop="0" name="near_future"/>
+    <field labelOnTop="0" name="locationevaluation_id"/>
+    <field labelOnTop="0" name="loceval_is_positive"/>
     <field labelOnTop="0" name="notes"/>
     <field labelOnTop="0" name="ogc_fid"/>
-    <field labelOnTop="0" name="teammember_id"/>
+    <field labelOnTop="0" name="photo"/>
+    <field labelOnTop="0" name="recovery_hints"/>
+    <field labelOnTop="0" name="scheme"/>
+    <field labelOnTop="0" name="schemes"/>
+    <field labelOnTop="0" name="type"/>
     <field labelOnTop="0" name="type_assessed"/>
-    <field labelOnTop="0" name="visit_done"/>
-    <field labelOnTop="0" name="visit_id"/>
+    <field labelOnTop="0" name="type_is_absent"/>
   </labelOnTop>
   <reuseLastValuePolicy>
-    <field name="activity_group_id" reuseLastValuePolicy="NotAllowed"/>
-    <field name="date_end" reuseLastValuePolicy="NotAllowed"/>
-    <field name="date_interval" reuseLastValuePolicy="NotAllowed"/>
-    <field name="date_start" reuseLastValuePolicy="NotAllowed"/>
-    <field name="date_visit" reuseLastValuePolicy="NotAllowed"/>
-    <field name="days_to_deadline" reuseLastValuePolicy="NotAllowed"/>
-    <field name="fieldcalendar_id" reuseLastValuePolicy="NotAllowed"/>
+    <field name="eval_date" reuseLastValuePolicy="NotAllowed"/>
+    <field name="eval_name" reuseLastValuePolicy="NotAllowed"/>
+    <field name="eval_source" reuseLastValuePolicy="NotAllowed"/>
     <field name="grts_address" reuseLastValuePolicy="NotAllowed"/>
-    <field name="is_cell_center" reuseLastValuePolicy="NotAllowed"/>
-    <field name="issues" reuseLastValuePolicy="NotAllowed"/>
     <field name="location_id" reuseLastValuePolicy="NotAllowed"/>
-    <field name="near_future" reuseLastValuePolicy="NotAllowed"/>
+    <field name="locationevaluation_id" reuseLastValuePolicy="NotAllowed"/>
+    <field name="loceval_is_positive" reuseLastValuePolicy="NotAllowed"/>
     <field name="notes" reuseLastValuePolicy="NotAllowed"/>
     <field name="ogc_fid" reuseLastValuePolicy="NotAllowed"/>
-    <field name="teammember_id" reuseLastValuePolicy="NotAllowed"/>
+    <field name="photo" reuseLastValuePolicy="NotAllowed"/>
+    <field name="recovery_hints" reuseLastValuePolicy="NotAllowed"/>
+    <field name="scheme" reuseLastValuePolicy="NotAllowed"/>
+    <field name="schemes" reuseLastValuePolicy="NotAllowed"/>
+    <field name="type" reuseLastValuePolicy="NotAllowed"/>
     <field name="type_assessed" reuseLastValuePolicy="NotAllowed"/>
-    <field name="visit_done" reuseLastValuePolicy="NotAllowed"/>
-    <field name="visit_id" reuseLastValuePolicy="NotAllowed"/>
+    <field name="type_is_absent" reuseLastValuePolicy="NotAllowed"/>
   </reuseLastValuePolicy>
   <dataDefinedFieldProperties/>
   <widgets/>
-  <previewExpression>COALESCE( "date_interval", '&lt;NULL>' )</previewExpression>
+  <previewExpression>COALESCE( "eval_name", '&lt;NULL>' )</previewExpression>
   <mapTip enabled="1"></mapTip>
   <layerGeometryType>0</layerGeometryType>
 </qgis>

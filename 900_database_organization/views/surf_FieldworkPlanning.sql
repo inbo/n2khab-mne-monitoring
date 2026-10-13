@@ -38,6 +38,7 @@ SELECT
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
+  INFO.permission_notes,
   INFO.landowner,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
@@ -65,7 +66,6 @@ SELECT
   FCAL.is_frozen,
   FCAL.excluded,
   FCAL.excluded_reason,
-  FCAL.excluded AS no_visit_planned,
   FCAL.done_planning,
   FCAL.visit_id,
   VISIT.teammember_assigned,
@@ -183,7 +183,6 @@ DO ALSO
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
-  no_visit_planned = NEW.excluded OR NEW.no_visit_planned,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id
 ;
@@ -208,6 +207,7 @@ ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
+  permission_notes = NEW.permission_notes,
   equipment_recommendations = NEW.equipment_recommendations,
   is_secret_location = NEW.is_secret_location
  WHERE locationinfo_id = OLD.locationinfo_id

@@ -1,7 +1,10 @@
+40434990
+21167406
+4390190
 
--- AND ((FAC.no_visit_planned IS NULL) OR NOT (FAC.done_planning AND FAC.no_visit_planned))
 
- CASE WHEN ("excluded" OR "no_visit_planned" OR "is_frozen") THEN 'irrelevant'
+
+ CASE WHEN ("excluded" OR "is_frozen") THEN 'irrelevant'
  ELSE
  CASE WHEN issues THEN 'issues'
  ELSE
@@ -50,14 +53,14 @@ SELECT
   FAC.wait_floating,
   FAC.wait_obsolete_types,
   FAC.excluded,
+  FALSE AS no_visit_planned,
   FAC.excluded_reason,
   FAC.teammember_assigned,
   FAC.date_visit_planned,
-  CASE WHEN (VISIT.visit_done OR FAC.no_visit_planned)
+  CASE WHEN (VISIT.visit_done OR FAC.excluded)
       THEN NULL
       ELSE (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date
       END AS days_to_visit,
-  FAC.excluded AS no_visit_planned,
   FAC.notes AS preparation_notes,
   FAC.done_planning,
   FAC.is_frozen,
@@ -84,6 +87,7 @@ SELECT
   INFO.landowner,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
+  INFO.permission_notes,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
   INFO.is_secret_location,
@@ -175,7 +179,6 @@ DO ALSO
   excluded_reason = NEW.excluded_reason,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.excluded OR NEW.no_visit_planned,
   notes = NEW.preparation_notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id
@@ -233,6 +236,7 @@ DO ALSO
   recovery_hints = NEW.recovery_hints,
   equipment_recommendations = NEW.equipment_recommendations,
   is_secret_location = NEW.is_secret_location,
+  permission_notes = NEW.permission_notes,
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit
  WHERE locationinfo_id = OLD.locationinfo_id
