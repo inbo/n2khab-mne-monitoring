@@ -83,11 +83,11 @@ SELECT
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes,
   CASE WHEN (
-    CAL.is_frozen
-    OR CAL.wait_any
-    OR (LOCEVAL.loceval_positive IS NULL OR NOT LOCEVAL.loceval_positive)
-    OR CAL.excluded
-    OR (((CAL.date_end - current_date ) < -30) AND NOT (CAL.done_planning OR VISIT.visit_done))
+    (CAL.is_frozen IS TRUE)
+    OR (CAL.wait_any IS TRUE)
+    OR ((LOCEVAL.loceval_positive IS NULL) OR (NOT LOCEVAL.loceval_positive))
+    OR (CAL.excluded IS TRUE)
+    OR (((CAL.date_end - current_date ) < -30) AND NOT ((CAL.done_planning IS TRUE) OR (VISIT.visit_done IS TRUE)))
     )
     THEN 'noplan'
     ELSE
@@ -99,14 +99,17 @@ SELECT
       ELSE '[ ] '
       END ||
     ACT.activity_group || ' ' ||
-    CASE WHEN CAL.priority IS NULL
+    CASE WHEN
+      (CAL.priority IS NULL)
       THEN '(/) '
       ELSE '(' || priority::VARCHAR || ') '
       END ||
-    CASE WHEN ((VISIT.visit_done IS NOT NULL) AND VISIT.visit_done)
+    CASE WHEN
+      (VISIT.visit_done IS TRUE)
     THEN TO_CHAR(VISIT.visit_date, 'yyyy-mm-dd')
     ELSE
-      CASE WHEN CAL.date_visit_planned IS NULL
+      CASE WHEN
+        (CAL.date_visit_planned IS NULL)
       THEN TO_CHAR(CAL.date_start, 'yyyy-mm-dd')
       ELSE TO_CHAR(CAL.date_visit_planned, 'yyyy-mm-dd')
       END

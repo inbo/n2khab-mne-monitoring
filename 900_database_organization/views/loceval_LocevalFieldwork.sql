@@ -1,17 +1,3 @@
-40434990
-21167406
-4390190
-
-
-
- CASE WHEN ("excluded" OR "is_frozen") THEN 'irrelevant'
- ELSE
- CASE WHEN issues THEN 'issues'
- ELSE
- CASE WHEN visit_done THEN 'done'
- ELSE "priority" END
- END
- END
 
 
 BEGIN;
@@ -36,34 +22,34 @@ SELECT
   UNIT.replacement_permanence,
   UNIT.is_replaced,
   UNIT.type_is_absent,
-  FAC.fieldcalendar_id,
-  FAC.activity_group_id,
-  FAC.date_start,
-  FAC.date_end,
-  FAC.date_interval,
-  FAC.date_end - current_date AS days_to_deadline,
-  FAC.activity_rank,
-  FAC.priority,
-  FAC.matching_occasion,
-  FAC.date_suggested,
-  FAC.wait_any,
-  FAC.wait_watersurface,
-  FAC.wait_3260,
-  FAC.wait_7220,
-  FAC.wait_floating,
-  FAC.wait_obsolete_types,
-  FAC.excluded,
+  CAL.fieldcalendar_id,
+  CAL.activity_group_id,
+  CAL.date_start,
+  CAL.date_end,
+  CAL.date_interval,
+  CAL.date_end - current_date AS days_to_deadline,
+  CAL.activity_rank,
+  CAL.priority,
+  CAL.matching_occasion,
+  CAL.date_suggested,
+  CAL.wait_any,
+  CAL.wait_watersurface,
+  CAL.wait_3260,
+  CAL.wait_7220,
+  CAL.wait_floating,
+  CAL.wait_obsolete_types,
+  CAL.excluded,
   FALSE AS no_visit_planned,
-  FAC.excluded_reason,
-  FAC.teammember_assigned,
-  FAC.date_visit_planned,
-  CASE WHEN (VISIT.visit_done OR FAC.excluded)
+  CAL.excluded_reason,
+  CAL.teammember_assigned,
+  CAL.date_visit_planned,
+  CASE WHEN ((VISIT.visit_done IS TRUE) OR (CAL.excluded IS TRUE))
       THEN NULL
-      ELSE (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date
+      ELSE (CASE WHEN (CAL.date_visit_planned IS NULL) THEN CAL.date_end ELSE CAL.date_visit_planned END) - current_date
       END AS days_to_visit,
-  FAC.notes AS preparation_notes,
-  FAC.done_planning,
-  FAC.is_frozen,
+  CAL.notes AS preparation_notes,
+  CAL.done_planning,
+  CAL.is_frozen,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
@@ -92,11 +78,37 @@ SELECT
   INFO.equipment_recommendations,
   INFO.is_secret_location,
   (UNIT.archive_version_id IS NOT NULL)
-    OR (FAC.archive_version_id IS NOT NULL)
+    OR (CAL.archive_version_id IS NOT NULL)
     OR (VISIT.archive_version_id IS NOT NULL)
     AS is_archived,
   OPHO.assessment_done AS orthophoto_assessment_done,
-  OPHO.notes AS orthophoto_notes
+  OPHO.notes AS orthophoto_notes,
+  '[' ||
+    CASE WHEN
+      (CAL.priority IS NULL)
+    THEN '-'
+    ELSE CAL.priority::VARCHAR
+    END ||
+    '] ' || CAL.type || ' - ' ||
+    ACT.activity_group ||
+    ' ' || TO_CHAR(CAL.date_start, 'yyyy-mm-dd')
+    AS label,
+  CASE WHEN
+      (VISIT.visit_done IS TRUE)
+    THEN 'done'
+    ELSE
+      CASE WHEN (VISIT.issues IS TRUE)
+      THEN 'issues'
+      ELSE
+        CASE WHEN
+          ((CAL.excluded IS TRUE)
+            OR (CAL.is_frozen IS TRUE)
+          )
+        THEN 'irrelevant'
+        ELSE CAL.priority::VARCHAR
+        END
+      END
+    END AS status
 FROM (
   SELECT *
   FROM ONLY "inbound"."Visits"
@@ -104,8 +116,8 @@ FROM (
   NATURAL FULL JOIN "inbound"."AquaticTypesVisits"
   NATURAL FULL JOIN "inbound"."TerrestrialTypesVisits"
 ) AS VISIT
-LEFT JOIN "outbound"."FieldCalendars" AS FAC
-  ON FAC.visit_id = VISIT.visit_id
+LEFT JOIN "outbound"."FieldCalendars" AS CAL
+  ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
@@ -131,20 +143,21 @@ LEFT JOIN (
   FROM "metadata"."GroupedActivities"
   WHERE archive_version_id IS NULL
   GROUP BY activity_group_id, activity_group
-) AS ACT ON ACT.activity_group_id = FAC.activity_group_id
+) AS ACT ON ACT.activity_group_id = CAL.activity_group_id
 WHERE TRUE
-  AND VISIT.grts_address = FAC.grts_address
-  AND VISIT.type = FAC.type
-  AND VISIT.date_start = FAC.date_start
-  AND VISIT.activity_group_id = FAC.activity_group_id
+  AND VISIT.grts_address = CAL.grts_address
+  AND VISIT.type = CAL.type
+  AND VISIT.date_start = CAL.date_start
+  AND VISIT.activity_group_id = CAL.activity_group_id
   AND (
     VISIT.visit_done OR (
-      (NOT FAC.wait_any)
+          (NOT CAL.wait_any)
       AND (UNIT.archive_version_id IS NULL)
-      AND (FAC.archive_version_id IS NULL)
+      AND (CAL.archive_version_id IS NULL)
       AND (VISIT.archive_version_id IS NULL)
-      AND ((OPHO.cell_disapproved IS NULL) OR (NOT OPHO.cell_disapproved))
-  ))
+      AND (NOT (OPHO.cell_disapproved IS TRUE))
+    )
+  )
   AND ACT.is_loceval_activity
 ;
 
