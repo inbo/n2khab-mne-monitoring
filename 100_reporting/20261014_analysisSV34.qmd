@@ -11,6 +11,8 @@ library(tidyverse)
 
 # Data
 
+Download the required tables and save it in a folder data/analysisSV34. The data can be found on [google drive](https://drive.google.com/drive/folders/1w5dl4QCyou4eIPccrZhA4jfqr0Ejmgtw?usp=drive_link).
+
 ```{r}
 snapshot_dir <- here::here(
  "100_reporting", "data", "analysisSV34"
@@ -21,7 +23,9 @@ gw_domains <- readRDS(file.path(snapshot_dir, "gw_domains.rds"))
 surf_fieldwork <- readRDS(file.path(snapshot_dir, "surf_fieldwork.rds"))
 ```
 
-# Achterliggende queries
+# Used queries
+
+Here you can see the queries used to create the required tables.
 
 gw_fieldwork
 
@@ -128,7 +132,9 @@ AND NOT FC.excluded
 ORDER BY grts_address, stratum
 ```
 
-# Questions
+# Transformations
+
+Add domain info to the groundwater table.
 
 ```{r}
 gw_fieldwork <- gw_fieldwork |> 
@@ -137,6 +143,8 @@ gw_fieldwork <- gw_fieldwork |>
     by = "grts_address"
   )
 ```
+
+Function to aggregate the data. Depending on the **scheme** extra summaries are calculated (e.g.: for groundwater the amount of 'peilpbuizen' and 'piëzometers' is calculated). With the **group_by** argument you can decide if the summary should be calculated over a group. The **date_filter** can be used to filter out dates (the date_filter is used as 'up to including').
 
 ```{r}
 calculate_count <- function(table, scheme = c("gw", "surf"), group_by = NULL, date_filter = NULL) {
@@ -167,6 +175,8 @@ calculate_count <- function(table, scheme = c("gw", "surf"), group_by = NULL, da
     )
 }
 ```
+
+# Output
 
 ```{r}
 calculate_count(gw_fieldwork, scheme = "gw", date_filter = "2025-12-31")
