@@ -135,12 +135,12 @@ SELECT
   VISIT.stratums AS stratum,
   VISIT.activity_group_id,
   VISIT.teammember_assigned,
-  FCAL.activity_rank,
-  CASE WHEN (VISIT.date_visit_planned IS NULL) THEN FALSE ELSE FCAL.done_planning END AS is_scheduled,
+  CAL.activity_rank,
+  CASE WHEN (VISIT.date_visit_planned IS NULL) THEN FALSE ELSE CAL.done_planning END AS is_scheduled,
   VISIT.date_visit_planned,
   VISIT.date_visit_planned - current_date AS days_to_visit,
-  FCAL.date_suggested AS date_start,
-  FCAL.date_end - current_date AS days_to_deadline,
+  CAL.date_suggested AS date_start,
+  CAL.date_end - current_date AS days_to_deadline,
   VISIT.preparation_notes,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
@@ -155,10 +155,10 @@ SELECT
   LOCEVAL.type_is_absent,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes,
-  FAGS.activity_group,
-  FAGS.is_field_activity,
-  FAGS.is_surf_activity,
-  FAGS.protocols,
+  ACT.activity_group,
+  ACT.is_field_activity,
+  ACT.is_surf_activity,
+  ACT.protocols,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.datetime_visit,
@@ -254,7 +254,26 @@ SELECT
   MOBS.overcast,
   MOBS.airtemperature_celsius,
   MOBS.wind,
-  MOBS.ice_layer_cm
+  MOBS.ice_layer_cm,
+  CASE WHEN
+      (VISIT.issues IS TRUE)
+    THEN 'issues'
+    ELSE (
+      CASE WHEN (VISIT.visit_done IS TRUE)
+      THEN 'done'
+      ELSE 'todo'
+      END)
+    END AS status,
+  CASE WHEN VISIT.visit_done
+      THEN '[✓] '
+      ELSE '[ ] '
+      END ||
+    ACT.activity_group ||
+    CASE WHEN
+      (VISIT.date_visit_planned IS NOT NULL)
+    THEN ' (' || TO_CHAR(VISIT.date_visit_planned, 'yyyy-mm-dd') || ')'
+    ELSE ''
+    END AS label
 FROM (
   SELECT *
   FROM ONLY "inbound"."Visits"
@@ -282,8 +301,8 @@ LEFT JOIN (
     FROM "outbound"."FieldCalendars"
     WHERE (archive_version_id IS NULL) AND (NOT excluded) AND (NOT wait_any)
     GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id
-  ) AS FCAL
-  ON FCAL.visit_id = VISIT.visit_id
+  ) AS CAL
+  ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN (
   SELECT DISTINCT
     activity_group_id,
@@ -299,8 +318,8 @@ LEFT JOIN (
     activity_group,
     is_field_activity,
     is_surf_activity
-  ) AS FAGS
-  ON FAGS.activity_group_id = VISIT.activity_group_id
+  ) AS ACT
+  ON ACT.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
   SELECT DISTINCT
     grts_address,
@@ -360,10 +379,10 @@ LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
   AND VISIT.date_visit = MOBS.date_visit)
 WHERE TRUE
   AND VISIT.date_visit_planned IS NOT NULL
-  AND FCAL.done_planning
-  AND ((FCAL.excluded IS NULL) OR (NOT FCAL.excluded))
-  AND FAGS.is_surf_activity
-  AND (VISIT.visit_done OR (FCAL.fcal_not_archived))
+  AND CAL.done_planning
+  AND ((CAL.excluded IS NULL) OR (NOT CAL.excluded))
+  AND ACT.is_surf_activity
+  AND (VISIT.visit_done OR (CAL.fcal_not_archived))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
 
