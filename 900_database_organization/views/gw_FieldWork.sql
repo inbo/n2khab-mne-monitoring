@@ -15,15 +15,15 @@ CREATE OR REPLACE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
   UNIT.stratum AS type,
-  FwCAL.date_start,
-  FwCAL.activity_group_id,
-  FwCAL.teammember_assigned,
-  FwCAL.activity_rank,
-  CASE WHEN (FwCAL.date_visit_planned IS NULL) THEN FALSE ELSE FwCAL.done_planning = TRUE END AS is_scheduled,
-  FwCAL.date_visit_planned,
-  FwCAL.date_visit_planned - current_date AS days_to_visit,
-  FwCAL.date_end - current_date AS days_to_deadline,
-  FwCAL.notes AS preparation_notes,
+  CAL.date_start,
+  CAL.activity_group_id,
+  CAL.teammember_assigned,
+  CAL.activity_rank,
+  CASE WHEN (CAL.date_visit_planned IS NULL) THEN FALSE ELSE CAL.done_planning = TRUE END AS is_scheduled,
+  CAL.date_visit_planned,
+  CAL.date_visit_planned - current_date AS days_to_visit,
+  CAL.date_end - current_date AS days_to_deadline,
+  CAL.notes AS preparation_notes,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
@@ -42,10 +42,10 @@ SELECT
   SOIL.soil_info,
   LOCEVAL.loceval_notes,
   LOCEVAL.loceval_photo,
-  GAP.activity_group,
-  GAP.is_field_activity,
-  GAP.is_gw_activity,
-  GAP.protocols,
+  ACT.activity_group,
+  ACT.is_field_activity,
+  ACT.is_gw_activity,
+  ACT.protocols,
   VISIT.installationvisit_id,
   VISIT.samplingvisit_id,
   VISIT.positioningvisit_id,
@@ -71,7 +71,24 @@ SELECT
   VISIT.project_code,
   VISIT.recipient_code,
   VISIT.require_total_station,
-  VISIT.visit_done
+  VISIT.visit_done,
+  ACT.activity_group ||
+    CASE WHEN  VISIT.issues
+    THEN ' issues'
+    ELSE (
+      CASE WHEN VISIT.visit_done THEN ' done' ELSE ''
+      END)
+    END AS status,
+  CASE WHEN VISIT.visit_done
+      THEN '[✓] '
+      ELSE '[_] '
+      END ||
+    ACT.activity_group ||
+    CASE WHEN (CAL.date_visit_planned IS NOT NULL)
+    THEN ' (' || TO_CHAR(CAL.date_visit_planned, 'yyyy-mm-dd') || ')'
+    ELSE ''
+    END
+  AS label
 FROM (
   SELECT *
   FROM ONLY "inbound"."Visits"
@@ -93,10 +110,10 @@ LEFT JOIN (
   SELECT *,
     CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
   FROM "outbound"."FieldCalendars"
-  ) AS FwCAL
-    ON FwCAL.visit_id = VISIT.visit_id
+  ) AS CAL
+    ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON FwCAL.sampleunit_id = UNIT.sampleunit_id
+  ON CAL.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
   SELECT DISTINCT
     activity_group_id,
@@ -112,8 +129,8 @@ LEFT JOIN (
     activity_group,
     is_field_activity,
     is_gw_activity
-  ) AS GAP
-  ON GAP.activity_group_id = VISIT.activity_group_id
+  ) AS ACT
+  ON ACT.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
   SELECT sampleunit_id, loceval_notes, loceval_photo
   FROM (
@@ -131,11 +148,11 @@ LEFT JOIN (
 ) AS LOCEVAL
   ON UNIT.sampleunit_id = LOCEVAL.sampleunit_id
 WHERE TRUE
-  AND (FwCAL.is_scheduled OR FwCAL.done_planning)
-  AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
-  AND NOT FwCAL.excluded
-  AND GAP.is_gw_activity
-  AND (VISIT.visit_done OR (FwCAL.archive_version_id IS NULL))
+  AND (CAL.is_scheduled OR CAL.done_planning)
+  AND ((CAL.no_visit_planned IS NULL) OR (NOT CAL.no_visit_planned))
+  AND NOT CAL.excluded
+  AND ACT.is_gw_activity
+  AND (VISIT.visit_done OR (CAL.archive_version_id IS NULL))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
 

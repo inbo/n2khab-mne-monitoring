@@ -123,6 +123,19 @@ count_table_content(c(
 
 ```
 
+```{r count-visits}
+#| eval: true
+#| echo: false
+
+count_table_content(c(
+    "InstallationVisits",
+    "SamplingVisits",
+    "PositioningVisits",
+    "OtherVisits"
+  ))
+
+```
+
 
 ```{r count-loose-tables}
 #| eval: true
@@ -410,6 +423,21 @@ check_foreignkey_connection(
 
 ```
 
+```{r activities-and-visits}
+#| eval: true
+#| echo: false
+
+mnmgwdb$query_table("AllVisits") %>%
+  mutate(
+    iv = is.na(installationvisit_id),
+    sv = is.na(samplingvisit_id),
+    pv = is.na(positioningvisit_id),
+    ov = is.na(othervisit_id)
+  ) %>% 
+  count(activity_group_id, iv, sv, pv, ov) %>%
+  knitr::kable()
+
+```
 
 
 # Archive
@@ -427,7 +455,7 @@ count_archived_content <- function(table_list) {
     )
   bind_rows(
     lapply(
-      seq_len(length(archivecount)),
+      seq_along(archivecount),
       FUN = function(i) {
         archivecount[[i]] %>%
           mutate(table = names(archivecount)[[i]]) %>%

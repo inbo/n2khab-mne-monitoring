@@ -43,31 +43,31 @@ SELECT
   INFO.recovery_hints,
   INFO.equipment_recommendations,
   INFO.is_secret_location,
-  FCAL.fieldcalendar_id,
-  FCAL.activity_group_id,
-  FAG.activity_group,
-  FAG.activity_group LIKE '%LENT%' AS is_lentic,
-  FAG.activity_group LIKE '%LOT%' AS is_lotic,
-  FCAL.activity_rank,
-  FCAL.date_start,
-  FCAL.date_end,
-  FCAL.date_interval,
-  FCAL.date_end - current_date AS days_to_deadline,
-  FCAL.priority,
-  FCAL.matching_occasion,
-  FCAL.date_suggested,
-  FCAL.wait_any AS is_waiting,
-  FCAL.wait_watersurface,
-  FCAL.wait_3260,
-  FCAL.wait_7220,
-  FCAL.wait_floating,
-  FCAL.wait_obsolete_types,
-  FCAL.is_sideloaded,
-  FCAL.is_frozen,
-  FCAL.excluded,
-  FCAL.excluded_reason,
-  FCAL.done_planning,
-  FCAL.visit_id,
+  CAL.fieldcalendar_id,
+  CAL.activity_group_id,
+  ACT.activity_group,
+  ACT.activity_group LIKE '%LENT%' AS is_lentic,
+  ACT.activity_group LIKE '%LOT%' AS is_lotic,
+  CAL.activity_rank,
+  CAL.date_start,
+  CAL.date_end,
+  CAL.date_interval,
+  CAL.date_end - current_date AS days_to_deadline,
+  CAL.priority,
+  CAL.matching_occasion,
+  CAL.date_suggested,
+  CAL.wait_any AS is_waiting,
+  CAL.wait_watersurface,
+  CAL.wait_3260,
+  CAL.wait_7220,
+  CAL.wait_floating,
+  CAL.wait_obsolete_types,
+  CAL.is_sideloaded,
+  CAL.is_frozen,
+  CAL.excluded,
+  CAL.excluded_reason,
+  CAL.done_planning,
+  CAL.visit_id,
   VISIT.teammember_assigned,
   VISIT.date_visit_planned,
   VISIT.preparation_notes,
@@ -79,12 +79,42 @@ SELECT
   LOCEVAL.loceval_latest_date,
   LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
-  LOCEVAL.loceval_notes
-FROM "outbound"."FieldCalendars" AS FCAL
+  LOCEVAL.loceval_notes,
+  CASE WHEN
+    (CAL.is_frozen IS TRUE)
+    OR (CAL.wait_any IS TRUE)
+    OR (CAL.excluded IS TRUE)
+    THEN 'noplan'
+    ELSE
+      CASE WHEN
+        (CAL.done_planning IS FALSE)
+      THEN 'todo'
+      ELSE
+        CASE WHEN
+          (VISIT.visit_done IS TRUE)
+        THEN 'visited'
+        ELSE 'done'
+        END
+      END
+    END AS status,
+  CASE WHEN CAL.done_planning
+      THEN '[✓] '
+      ELSE '[_] '
+      END ||
+    SUBSTRING(ACT.activity_group from 4 for 5)  || ' ' ||
+    CASE WHEN
+      (CAL.priority IS NULL)
+      THEN '(/) '
+      ELSE '(' || CAL.priority::VARCHAR || ') '
+      END ||
+    TO_CHAR(CAL.date_start, 'yyyy-mm-dd') || ', ' ||
+    CAL.stratum || ')'
+  AS label
+FROM "outbound"."FieldCalendars" AS CAL
 LEFT JOIN "inbound"."Visits" AS VISIT
-  ON FCAL.visit_id = VISIT.visit_id
+  ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON UNIT.sampleunit_id = FCAL.sampleunit_id
+  ON UNIT.sampleunit_id = CAL.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = UNIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
@@ -95,8 +125,8 @@ LEFT JOIN (
      archive_version_id IS NULL AS is_active
    FROM "metadata"."GroupedActivities"
    GROUP BY activity_group_id, activity_group, is_surf_activity, archive_version_id
- ) AS FAG
-   ON FAG.activity_group_id = FCAL.activity_group_id
+ ) AS ACT
+   ON ACT.activity_group_id = CAL.activity_group_id
 LEFT JOIN (
   SELECT
     LJ.loceval_latest_date,
@@ -152,18 +182,18 @@ LEFT JOIN (
 ) AS LOCEVAL
   ON UNIT.grts_address = LOCEVAL.grts_address
   AND UNIT.stratum = LOCEVAL.stratum
-WHERE FAG.is_surf_activity
-  AND FAG.is_active
+WHERE ACT.is_surf_activity
+  AND ACT.is_active
   AND (UNIT.archive_version_id IS NULL)
-  AND (FCAL.archive_version_id IS NULL)
+  AND (CAL.archive_version_id IS NULL)
 ORDER BY
-  FCAL.date_end,
-  FCAL.priority,
+  CAL.date_end,
+  CAL.priority,
   is_waiting,
   UNIT.stratum,
   UNIT.grts_address,
-  FCAL.activity_rank,
-  FCAL.activity_group_id
+  CAL.activity_rank,
+  CAL.activity_group_id
 ;
 
 -- SELECT DISTINCT visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done;

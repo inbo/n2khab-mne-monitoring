@@ -267,7 +267,7 @@ SELECT
     END AS status,
   CASE WHEN VISIT.visit_done
       THEN '[✓] '
-      ELSE '[ ] '
+      ELSE '[_] '
       END ||
     ACT.activity_group ||
     CASE WHEN

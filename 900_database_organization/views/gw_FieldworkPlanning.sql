@@ -96,7 +96,7 @@ SELECT
     END AS status,
   CASE WHEN CAL.done_planning
       THEN '[✓] '
-      ELSE '[ ] '
+      ELSE '[_] '
       END ||
     ACT.activity_group || ' ' ||
     CASE WHEN

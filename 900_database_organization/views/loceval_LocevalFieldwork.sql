@@ -83,15 +83,21 @@ SELECT
     AS is_archived,
   OPHO.assessment_done AS orthophoto_assessment_done,
   OPHO.notes AS orthophoto_notes,
-  '[' ||
+  CASE WHEN CAL.done_planning
+      THEN '[✓] '
+      ELSE '[_] '
+      END ||
     CASE WHEN
       (CAL.priority IS NULL)
-    THEN '-'
-    ELSE CAL.priority::VARCHAR
-    END ||
-    '] ' || CAL.type || ' - ' ||
-    ACT.activity_group ||
-    ' ' || TO_CHAR(CAL.date_start, 'yyyy-mm-dd')
+      THEN ' '
+      ELSE 'prio ' || CAL.priority::VARCHAR || ' '
+      END ||
+      '`' || CAL.type || '` ' ||
+    CASE WHEN
+        (VISIT.aquatictypesvisit_id IS NOT NULL)
+      THEN '(aq)'
+      ELSE '' END ||
+    TO_CHAR(CAL.date_start, 'yyyy-mm-dd')
     AS label,
   CASE WHEN
       (VISIT.visit_done IS TRUE)
