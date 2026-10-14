@@ -126,6 +126,7 @@ WHERE grts_address = 762158
 ;
 
 
+
 BEGIN;
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
@@ -378,7 +379,7 @@ LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
   ON (LOC.grts_address = MOBS.grts_address
   AND VISIT.date_visit = MOBS.date_visit)
 WHERE TRUE
-  AND VISIT.date_visit_planned IS NOT NULL
+  AND (VISIT.date_visit_planned IS NOT NULL)
   AND CAL.done_planning
   AND ((CAL.excluded IS NULL) OR (NOT CAL.excluded))
   AND ACT.is_surf_activity
@@ -489,7 +490,23 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  wkb_geometry
+  wkb_geometry,
+  notes,
+  alert,
+  photo,
+  max_depth_cm,
+  connectivity,
+  seep_influence,
+  coverage_rate,
+  shading,
+  leaf_deposition,
+  organic_material,
+  emergents,
+  float_pleustophytes,
+  float_nymphaeids,
+  submers_coverage,
+  submers_pvi,
+  metaphyton
  ) VALUES (
   NEW.teammember_id,
   NEW.datetime_visit::date,
@@ -497,10 +514,27 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.wkb_geometry
+  NEW.wkb_geometry,
+  NEW.samplecontext_notes,
+  NEW.samplecontext_alert,
+  NEW.samplecontext_photo,
+  NEW.max_depth_cm,
+  NEW.connectivity,
+  NEW.seep_influence,
+  NEW.coverage_rate,
+  NEW.shading,
+  NEW.leaf_deposition,
+  NEW.organic_material,
+  NEW.emergents,
+  NEW.float_pleustophytes,
+  NEW.float_nymphaeids,
+  NEW.submers_coverage,
+  NEW.submers_pvi,
+  NEW.metaphyton
  )
 ;
 
+-- ISSUE: OLD.scobs_id is still NULL thus the update does not get called
 
 DROP RULE IF EXISTS fieldwork_upd_SCOBS ON "inbound"."FieldWork";
 CREATE RULE fieldwork_upd_SCOBS AS
@@ -546,7 +580,28 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  wkb_geometry
+  wkb_geometry,
+  notes,
+  alert,
+  photo,
+  other_perturbations,
+  cow_pats,
+  other_animal_manure,
+  grazers,
+  trampling,
+  intense_livestock_farming,
+  agriculture_nearby,
+  recent_fertilization_nearby,
+  busy_roads_nearby,
+  industry_nearby,
+  fish,
+  birds,
+  bird_droppings,
+  beaver,
+  invasive_species,
+  bank_reinforcement,
+  drainage_structures,
+  fencing
  ) VALUES (
   NEW.teammember_id,
   NEW.datetime_visit::date,
@@ -554,7 +609,28 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.wkb_geometry
+  NEW.wkb_geometry,
+  NEW.perturbation_notes,
+  NEW.perturbation_alert,
+  NEW.perturbation_photo,
+  NEW.other_perturbations,
+  NEW.cow_pats,
+  NEW.other_animal_manure,
+  NEW.grazers,
+  NEW.trampling,
+  NEW.intense_livestock_farming,
+  NEW.agriculture_nearby,
+  NEW.recent_fertilization_nearby,
+  NEW.busy_roads_nearby,
+  NEW.industry_nearby,
+  NEW.fish,
+  NEW.birds,
+  NEW.bird_droppings,
+  NEW.beaver,
+  NEW.invasive_species,
+  NEW.bank_reinforcement,
+  NEW.drainage_structures,
+  NEW.fencing
  )
 ;
 
@@ -609,7 +685,19 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  wkb_geometry
+  wkb_geometry,
+  notes,
+  alert,
+  photo,
+  prior_48h,
+  exceptional,
+  precipitation,
+  precipitation_specify,
+  precipitation_intensity,
+  overcast,
+  airtemperature_celsius,
+  wind,
+  ice_layer_cm
  ) VALUES (
   NEW.teammember_id,
   NEW.datetime_visit::date,
@@ -617,7 +705,19 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.wkb_geometry
+  NEW.wkb_geometry,
+  NEW.meteo_notes,
+  NEW.meteo_alert,
+  NEW.meteo_photo,
+  NEW.prior_48h,
+  NEW.exceptional,
+  NEW.precipitation,
+  NEW.precipitation_specify,
+  NEW.precipitation_intensity,
+  NEW.overcast,
+  NEW.airtemperature_celsius,
+  NEW.wind,
+  NEW.ice_layer_cm
  )
 ;
 
