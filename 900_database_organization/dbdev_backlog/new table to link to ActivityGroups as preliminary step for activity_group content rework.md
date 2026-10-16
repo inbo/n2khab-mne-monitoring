@@ -11,11 +11,15 @@ status: false
 priority:
 ---
 
+## QGIS projects
+... and by extension QField
+the new table must be imported and serve for lookups in forms
 
 ## Views
+all of them
 
 ## Scripts
-
+should be mostly good
 TODO: `411_update_grouped_activities.qmd`
 
 ## Structure
