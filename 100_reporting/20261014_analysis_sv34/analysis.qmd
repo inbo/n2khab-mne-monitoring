@@ -1,0 +1,146 @@
+---
+title: "20261014_analysisSV34"
+format: html
+---
+
+# Setup
+
+```{r}
+library(tidyverse)
+```
+
+# Data
+
+Run the code in the notebook `queries.md` or download the data from [google drive](https://drive.google.com/drive/folders/1w5dl4QCyou4eIPccrZhA4jfqr0Ejmgtw?usp=drive_link) and save it in this folder in a subfolder `data`.
+
+```{r}
+snapshot_dir <- here::here(
+ "100_reporting", "20261014_analysis_sv34", "data"
+)
+
+df_loceval <- readRDS(file.path(snapshot_dir, "le_fieldwork.rds"))
+df_installations <- readRDS(file.path(
+  snapshot_dir, "gw_fieldwork_installations.rds"
+))
+df_samples <- rbind(
+  readRDS(file.path(
+    snapshot_dir, "gw_fieldwork_samples.rds"
+  )),
+  readRDS(file.path(snapshot_dir, "surf_fieldwork.rds"))
+)
+```
+
+# Transformations
+
+Function to aggregate the data. With the **group_by** argument you can set the group used to aggregate. The **date_filter** can be used to filter out dates (the date_filter is used as 'up to including').
+
+```{r}
+filter_date <- function(table, date_filter) {
+  table |> filter(date_visit <= date_filter)
+}
+
+calculate_count <- function(
+    df_loceval,
+    df_installations,
+    df_samples,
+    group_by = c("scheme"), 
+    date_filter = NULL
+) {
+  if (!is.null(date_filter)) {
+    df_loceval <- df_loceval |> filter_date(date_filter)
+    df_installations <- df_installations |> filter_date(date_filter)
+    df_samples <- df_samples |> filter_date(date_filter)
+  }
+  
+  df1 <- df_loceval |> 
+    group_by(across(all_of(group_by))) |> 
+    summarize(
+      nr_locevals = n(),
+      nr_samplingunits = n_distinct(sampleunit_id),
+      nr_locations = n_distinct(grts_address),
+      nr_approved_locevals = sum(loceval_approved),
+      nr_approved_samplingunits = n_distinct(sampleunit_id[loceval_approved == TRUE]),
+      nr_approved_locations = n_distinct(grts_address[loceval_approved == TRUE])
+    )
+  df2 <- df_installations |>
+    group_by(across(all_of(group_by))) |>
+    summarise(
+      nr_installations = n(),
+      nr_installed_samplingunits = n_distinct(sampleunit_id),
+      nr_installed_locations = n_distinct(grts_address),
+      nr_piezometers = n_distinct(watina_code_used_2_piezometer, na.rm = TRUE),
+      nr_peilbuizen = n_distinct(watina_code_used_1_peilbuis, na.rm = TRUE)
+    )
+  df3 <- df_samples |>
+    group_by(across(all_of(group_by))) |>
+    summarise(
+      nr_samples = n(),
+      nr_sampled_samplingunits = n_distinct(sampleunit_id),
+      nr_sampled_locations = n_distinct(grts_address)
+    )
+  
+  df1 |>
+    left_join(df2, by = group_by) |>
+    left_join(df3, by = group_by) |>
+    arrange(across(all_of(group_by)))
+}
+```
+
+# Output
+
+```{r}
+df_all <- calculate_count(
+  df_loceval, df_installations, df_samples
+)
+df_all_2025 <- calculate_count(
+  df_loceval, df_installations, df_samples, 
+  date_filter = "2025-12-31"
+)
+
+df_grouped <- calculate_count(
+  df_loceval, df_installations, df_samples, 
+  group_by = c('scheme', 'domain_part')
+)
+df_grouped_2025 <- calculate_count(
+  df_loceval, df_installations, df_samples, 
+  group_by = c('scheme', 'domain_part'), 
+  date_filter = "2025-12-31"
+)
+```
+
+```{r}
+#| label: write-tables-google-sheet
+#| include: false
+
+google_sheet_id <- Sys.getenv("GOOGLE_SHEET_ID")
+
+tables_to_export <- list(
+  df_all = df_all,
+  df_all_2025 = df_all_2025,
+  df_grouped = df_grouped,
+  df_grouped_2025 = df_grouped_2025
+)
+
+prepare_table_for_google_sheets <- function(data) {
+  data |>
+    mutate(
+      across(
+        where(\(column) inherits(column, "integer64")),
+        as.character
+      )
+    )
+}
+
+if (nzchar(google_sheet_id)) {
+  googlesheets4::gs4_auth()
+  iwalk(tables_to_export, \(data, sheet_name) {
+    googlesheets4::sheet_write(
+      data = prepare_table_for_google_sheets(data),
+      ss = google_sheet_id,
+      sheet = sheet_name
+    )
+  })
+} else {
+  message("Set GOOGLE_SHEET_ID to write report tables to Google Sheets.")
+}
+```
