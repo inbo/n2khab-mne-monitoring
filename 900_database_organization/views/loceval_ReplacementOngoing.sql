@@ -23,6 +23,7 @@ LEFT JOIN (
     UNIT.location_id,
     UNIT.sampleunit_id,
     UNIT.grts_address,
+    UNIT.grts_address AS grts_address_rep,
     UNIT.type AS type_expected,
     UNIT.replacement_ongoing,
     UNIT.replacement_reason,

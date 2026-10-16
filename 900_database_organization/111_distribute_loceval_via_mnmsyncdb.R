@@ -395,12 +395,19 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
       by = dplyr::join_by(grts_address_replacement == grts_address)
     )
 
+  new_locations
+
   if (nrow(new_locations) > 0) {
     # upload new locations
     locations_grts_collection <- new_locations %>%
       sf::st_drop_geometry() %>%
-      dplyr::select(grts_address = grts_address_replacement)
-
+      dplyr::select(grts_address = grts_address_replacement) %>%
+      dplyr::distinct(
+        # in the rare case (20261016) that two different units are locally
+        # replaced by a single target cell,
+        # duplicates must be avoided.
+        grts_address
+      )
 
     locations_upload <- locations_grts_collection %>%
       add_point_coords_grts(
@@ -420,6 +427,9 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
       locations_upload[check_empty,] %>% knitr::kable()
       stop("Empty geometries in new locations.")
     }
+
+    # print(new_locations %>% knitr::kable())
+    # print(locations_upload %>% knitr::kable())
 
     # upload
     locations_lookup <- update_cascade_lookup_userdb(
@@ -498,6 +508,8 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
     )
   # these `new_sampleunits` are still needed below!
 
+  # print(new_sampleunits %>% knitr::kable())
+
   if ((udb == "mnmsurfdb") && nrow(new_sampleunits) > 0) {
     stop("There is no reliable ``stratum lookup`` yet for aquatic types: as a historic shortcut, we `rename(stratum = type)` which is okay for terrestrial, but not for aquatic types.")
     # NOTE: If AQUATIC units ever come to be replaced,
@@ -517,7 +529,9 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
       by = dplyr::join_by(grts_address_original == grts_address, stratum)
     ) %>%
     dplyr::select(-grts_address_original) %>%
-    dplyr::mutate(is_replacement = TRUE)
+    dplyr::mutate(is_replacement = TRUE) %>%
+    dplyr::distinct()
+
 
   # verbose
   if (nrow(sampleunits_upload) > 0) {
@@ -525,6 +539,8 @@ distribute_replacementdata_to_userdatabases <- function(udb) {
     message(paste(sampleunits_upload %>%
       select(grts_address, stratum), collapse = " | "))
   }
+
+  # print(sampleunits_upload %>% knitr::kable())
 
   sampleunits_lookup_incomplete <- update_cascade_lookup_userdb(
     table_label = su_tablab,
