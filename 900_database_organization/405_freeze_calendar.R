@@ -195,7 +195,7 @@ query_frozen_tables <- function(db) {
 
   # activity groups
   activity_groups <- connections[[db]]$query_columns(
-    "GroupedActivities",
+    "ActivityGroups",
     c(
       "activity_group_id",
       "activity_group",

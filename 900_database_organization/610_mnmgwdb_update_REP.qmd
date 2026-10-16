@@ -252,7 +252,7 @@ Now is the time!
 
 # stop("wait! Grouped Activities have been rearranged.")
 
-# manually adjust GroupedActivities (see db_devlog)
+# manually adjust ActivityGroups (see db_devlog)
 
 ```
 
@@ -269,21 +269,21 @@ n2khabstrata_lookup <- mnmgwdb$query_lookup(
 )
 
 activity_groupid_lookup <- mnmgwdb$query_columns(
-    "GroupedActivities",
+    "ActivityGroups",
     c("activity_group", "activity_group_id", "archive_version_id")
   ) %>%
   filter(is.na(archive_version_id)) %>% 
-  select(-archive_version_id) %>% 
-  distinct()
+  select(-archive_version_id)
+  # %>% distinct()
 
 ```
 
 
 ```{r load-activities}
 
-gw_field_activities_db <- mnmgwdb$query_table("GroupedActivities") %>%
-  filter(is_gw_activity, is_field_activity, is.na(archive_version_id)) %>%
-  distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
+gw_field_activities_db <- mnmgwdb$query_table("ActivityGroups") %>%
+  filter(is_gw_activity, is_field_activity, is.na(archive_version_id))
+  # %>% distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 ```
 

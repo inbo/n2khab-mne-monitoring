@@ -82,14 +82,14 @@ update_cascade_lookup <- parametrize_cascaded_update(mnmgwdb)
 
 ### query some lookups for later
 activity_groupid_lookup <- mnmgwdb$query_columns(
-    table_label = "GroupedActivities",
+    table_label = "ActivityGroups",
     c("activity_group", "activity_group_id")
-  ) %>%
-  distinct()
+  )
+  # %>% distinct()
 
-gw_field_activities <- mnmgwdb$query_table("GroupedActivities") %>%
-  filter(is_gw_activity, is_field_activity) %>%
-  distinct(activity_group, activity)
+gw_field_activities <- mnmgwdb$query_table("ActivityGroups") %>%
+  filter(is_gw_activity, is_field_activity)
+  # %>% distinct(activity_group, activity)
 
 
 locations_lookup <- mnmgwdb$query_columns(

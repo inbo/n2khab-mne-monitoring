@@ -41,7 +41,7 @@ fac <- dplyr::tbl(
 fags <-
   dplyr::tbl(
     db_connection,
-    DBI::Id(schema = "metadata", table = "GroupedActivities"),
+    DBI::Id(schema = "metadata", table = "ActivityGroups"),
   ) %>%
   distinct(activity_group_id, activity_group) %>%
   collect()

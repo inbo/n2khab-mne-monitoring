@@ -202,6 +202,9 @@ grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
 #   dplyr::slice_max(as.numeric(as.factor(protocol_version)))
 # grouped_activities %>% distinct(protocol)
 
+
+stop("GroupedActivities is obsolete!")
+
 # to find the correct fag auxiliary/preponable flags, it is efficient to
 # just copy over info from `loceval`.
 # This stems from `loceval`, except for `protocol_id`.

@@ -314,6 +314,8 @@ grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
 grouped_activities_upload <- grouped_activities %>%
   lookup_join(protocol_lookup, "protocol")
 
+stop("GroupedActivities is obsolete!")
+
 # grouped_activities_upload %>%
 #   filter(activity_group == "GWINSTPIEZWELL") %>%
 #   glimpse()

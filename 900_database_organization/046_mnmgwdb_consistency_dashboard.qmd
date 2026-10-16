@@ -88,7 +88,7 @@ count_table_content(c(
     "Versions",
     "TeamMembers",
     "Protocols",
-    "GroupedActivities",
+    "ActivityGroups",
     "N2kHabStrata"
   ))
 

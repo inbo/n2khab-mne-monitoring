@@ -181,7 +181,7 @@ visits_lookup <- update_cascade_lookup(
 
 #_______________________________________________________________________________
 
-# SELECT DISTINCT activity_group, activity_group_id FROM "metadata"."GroupedActivities" WHERE activity_group LIKE 'GW%SAMP%';
+# SELECT DISTINCT activity_group, activity_group_id FROM "metadata"."ActivityGroups" WHERE activity_group LIKE 'GW%SAMP%';
 
 stop("obsolete!")
 

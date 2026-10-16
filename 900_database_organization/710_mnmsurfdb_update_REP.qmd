@@ -226,7 +226,7 @@ if (FALSE) {
 ```
 
 
-# Protocols, Activities / GroupedActivities / FAGs, TeamMembers
+# Protocols, Activities / ActivityGroups / FAGs, TeamMembers
 
 :::{callout-warning}
 Any news?
@@ -241,7 +241,7 @@ Now is the time!
 
 # stop("wait! Grouped Activities have been rearranged.")
 
-# manually adjust GroupedActivities (see db_devlog)
+# manually adjust ActivityGroups (see db_devlog)
 
 ```
 
@@ -258,17 +258,17 @@ n2khabstrata_lookup <- mnmsurfdb$query_lookup(
 )
 
 activity_groupid_lookup <- mnmsurfdb$query_columns(
-    "GroupedActivities",
+    "ActivityGroups",
     c("activity_group", "activity_group_id")
-  ) %>%
-  distinct()
+  )
+  # %>% distinct()
 
 ```
 
 
 ```{r load-activities}
 
-surf_field_activities_db <- mnmsurfdb$query_table("GroupedActivities") %>%
+surf_field_activities_db <- mnmsurfdb$query_table("ActivityGroups") %>%
   filter(is_surf_activity, is_field_activity) %>%
   distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 

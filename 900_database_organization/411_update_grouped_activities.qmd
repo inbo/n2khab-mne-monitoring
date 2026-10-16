@@ -24,6 +24,10 @@ knitr:
 
 ```{r libraries}
 
+
+stop("UPDATE 20261016: new central table ActivityGroups!")
+
+
 # libraries
 source("MNMLibraryCollection.R")
 load_database_interaction_libraries()
