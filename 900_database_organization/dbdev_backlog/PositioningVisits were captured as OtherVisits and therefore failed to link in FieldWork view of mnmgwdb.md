@@ -8,12 +8,16 @@ started:
 finished:
 execution:
 status: false
-priority:
+priority: 1
 ---
 
 
 [[timeline/2026-10-14|2026-10-14]] #YDC noticed that some positioning activities did not appear in the QGIS app.
 
+> [!note] Cause:
+> The reason was that those #Visits ended up in #OtherVisits instead of the specialized `*Visits` child tables.
+
+For the #PositioningVisits , this was solved temporarily:
 
 ```sql
 BEGIN;
