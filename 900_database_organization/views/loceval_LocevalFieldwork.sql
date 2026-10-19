@@ -229,6 +229,7 @@ ON UPDATE TO "inbound"."LocevalFieldwork"
 DO ALSO
  UPDATE "inbound"."TerrestrialTypesVisits"
  SET
+   replacement_triggered = NEW.replacement_ongoing,
    replacement_recovery_notes = NEW.replacement_recovery_notes
  WHERE visit_id = OLD.visit_id
    AND terrestrialtypesvisit_id IS NOT NULL
