@@ -4,11 +4,12 @@ tags:
   - ReplacementOngoing
   - views
   - Visits
-started:
-finished:
+started: 2026-10-18
+finished: 2026-10-20
 execution:
-status: false
-priority:
+  - FM
+status: true
+priority: 1
 ---
 
 Filling fields which are supposed to link back to the #Visits while performing a #localreplacement via the #locevaldb #ReplacementOngoing #view will lead to multiple visits being filled.
@@ -53,3 +54,49 @@ WITH find_visits AS (
 -- ;
 
 ```
+
+## Overhaul: extra field for #TerrestrialTypesVisits
+
+summarized procedure in [[procedures/local replacements|local replacements]]
+
+create and fill new trigger column:
+```sql
+ALTER TABLE "inbound"."TerrestrialTypesVisits" ADD COLUMN replacement_triggered boolean NOT NULL DEFAULT FALSE; 
+COMMENT ON COLUMN "inbound"."TerrestrialTypesVisits".replacement_triggered IS E'filter for ongoing replacements, semi-coupled to `SampleUnits`.`replacement_ongoing`';
+
+
+WITH triggered_replacements AS (
+  SELECT DISTINCT
+    terrestrialtypesvisit_id
+  FROM "inbound"."TerrestrialTypesVisits" TVIS
+  LEFT JOIN "outbound"."SampleUnits" SU
+    ON SU.sampleunit_id = TVIS.sampleunit_id
+  WHERE (SU.replacement_ongoing OR SU.is_replaced)
+    AND visit_done
+  GROUP BY
+    terrestrialtypesvisit_id
+)
+UPDATE "inbound"."TerrestrialTypesVisits"
+SET replacement_triggered = TRUE
+WHERE terrestrialtypesvisit_id IN (SELECT terrestrialtypesvisit_id FROM triggered_replacements)
+;
+```
+
+re-work view; double check:
+
+```sql
+\COPY (
+SELECT *
+FROM "inbound"."ReplacementOngoing" AS RO
+LEFT JOIN "inbound"."Visits" AS VIS
+  ON VIS.visit_id = RO.visit_id
+LEFT JOIN "inbound"."ReplacementOngoingNew" AS RON
+  ON RO.visit_id = RON.visit_id
+) TO '20261019_replacement_ongoing_overhaul.csv' With CSV DELIMITER ',' HEADER
+;
+
+```
+
+update views #LocevalFieldwork and #ReplacementOngoing 
+
+Tested and announced; guerilla-implementation.

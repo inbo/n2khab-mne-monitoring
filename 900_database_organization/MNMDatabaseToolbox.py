@@ -425,7 +425,7 @@ def EnsureNestedQuerySpacing(query: str) -> str:
     # some sql keywords get crunched by gsheet cell walls
     for keyword in [ \
               "SELECT", "FROM", "WHERE" \
-            , "UPDATE", "ON UPDATE", "INSTEAD", "SET" \
+            , "UPDATE", "ON UPDATE", "INSTEAD", "SET", " SET" \
             , " ON ", " AS " # note that "AS" without space is in "CASE", and "ON" is in "FUNCTION" \
             , "AND NOT", " AND ", " OR " \
             , "LEFT JOIN", "UNION" \
@@ -447,7 +447,7 @@ def EnsureNestedQuerySpacing(query: str) -> str:
         query = query.replace(typo, replacement)
 
     # print(query.replace("    ", ""))
-    return query.replace("    ", "")
+    return query #.replace("    ", "")
 
 
 
