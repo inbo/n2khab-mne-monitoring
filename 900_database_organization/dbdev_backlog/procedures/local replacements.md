@@ -1,6 +1,14 @@
 ---
 aliases: replacement
-tags: #loceval
+tags:
+  - localreplacement
+  - localreplacements
+  - Replacements
+  - SampleUnits
+  - ReplacementOngoing
+  - ReplacementData
+  - ReplacementArchives
+  - TerrestrialTypesVisits
 ---
 
 procedure performed in case of a habitat type mismatch assessed in the field

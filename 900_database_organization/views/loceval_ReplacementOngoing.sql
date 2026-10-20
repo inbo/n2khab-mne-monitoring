@@ -1,21 +1,8 @@
-\COPY (
-SELECT *
-FROM "inbound"."ReplacementOngoing" AS RO
-LEFT JOIN "inbound"."Visits" AS VIS
-  ON VIS.visit_id = RO.visit_id
-LEFT JOIN "inbound"."ReplacementOngoingNew" AS RON
-  ON RO.visit_id = RON.visit_id
-) TO '20261019_replacement_ongoing_overhaul.csv' With CSV DELIMITER ',' HEADER
-;
-
 
 BEGIN;
 
 DROP VIEW "inbound"."ReplacementOngoing" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."ReplacementOngoing" AS
-
-DROP VIEW "inbound"."ReplacementOngoingNew" CASCADE;
-CREATE OR REPLACE VIEW "inbound"."ReplacementOngoingNew" AS
 SELECT
   REPU.*,
   VISIT.grts_address AS grts_parent,
@@ -27,7 +14,9 @@ SELECT
   VISIT.visit_id,
   VISIT.type_assessed,
   VISIT.photo,
-  VISIT.visit_done
+  VISIT.visit_done,
+  REPU.replacement_rank::varchar AS label,
+  LOWER(REPU.is_selected::varchar) AS status
 FROM "inbound"."TerrestrialTypesVisits" AS VISIT
 LEFT JOIN (
   SELECT

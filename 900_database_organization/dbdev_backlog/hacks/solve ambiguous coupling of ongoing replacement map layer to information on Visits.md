@@ -4,11 +4,12 @@ tags:
   - ReplacementOngoing
   - views
   - Visits
-started:
-finished:
+started: 2026-10-18
+finished: 2026-10-20
 execution:
-status: false
-priority:
+  - FM
+status: true
+priority: 1
 ---
 
 Filling fields which are supposed to link back to the #Visits while performing a #localreplacement via the #locevaldb #ReplacementOngoing #view will lead to multiple visits being filled.
@@ -97,3 +98,5 @@ LEFT JOIN "inbound"."ReplacementOngoingNew" AS RON
 ```
 
 update views #LocevalFieldwork and #ReplacementOngoing 
+
+Tested and announced; guerilla-implementation.
