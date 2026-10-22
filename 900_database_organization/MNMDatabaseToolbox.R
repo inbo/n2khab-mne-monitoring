@@ -527,7 +527,7 @@ upload_data_and_update_dependencies <- function(
   # attempt of sorting the data for better temporal ID consistency
   if (sort_data_by_characteristics) {
     data_replacement <- data_replacement %>%
-      arrange(!!!rlang::syms(characteristic_columns))
+      dplyr::arrange(!!!rlang::syms(characteristic_columns))
   }
 
   # TODO there must be more column match checks
@@ -547,7 +547,7 @@ upload_data_and_update_dependencies <- function(
   # to rename cols in the data_replacement to the server data logic
   # data_replacement
   # rename_characteristics
-  for (rnc in seq_len(length(rename_characteristics))) {
+  for (rnc in seq_along(rename_characteristics)) {
     new_colname <- rename_characteristics[[rnc]]
     server_colname <- names(rename_characteristics)[rnc]
     names(data_replacement)[names(data_replacement) == new_colname] <- server_colname

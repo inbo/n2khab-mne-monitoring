@@ -833,7 +833,8 @@ mnmdb_assemble_structure_lookups <- function(db) {
     dplyr::mutate_at(
       dplyr::vars(datatype, default, foreign_key, constraint, freesql, comment),
       as.character
-    )
+    ) %>%
+    dplyr::mutate(inherited = FALSE)
 
     # additional: prepend ancestral columns
     ancestor <- db$get_ancestor_tables(table_label)
@@ -845,7 +846,8 @@ mnmdb_assemble_structure_lookups <- function(db) {
       dplyr::mutate_at(
         dplyr::vars(datatype, default, foreign_key, constraint, freesql),
         as.character
-      )
+      ) %>%
+      dplyr::mutate(inherited = TRUE)
 
       table_info <- dplyr::bind_rows(
         ancestral_info,
@@ -914,11 +916,11 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
   # or need a primary key?
   db$get_primary_key <- function(table_label) {
-    return(
-      db$load_table_info(table_label) %>%
-        dplyr::filter(primary_key == "True") %>%
-        dplyr::pull(column)
-    )
+    db$load_table_info(table_label) %>%
+      dplyr::filter(primary_key == "True") %>%
+      dplyr::filter_out(inherited) %>%
+      dplyr::pull(column) %>%
+      return()
   }
   # db$get_primary_key("FreeFieldNotes")
 
@@ -1254,6 +1256,7 @@ mnmdb_assemble_query_functions <- function(db) {
     ) {
     # db <- mnmdb
     # sequence_label <- "seq_replacementarchive_id"
+    # new_key_value <- "max"
 
     # primary key -> related to sequence label
     pk <- db$get_primary_key(table_label)

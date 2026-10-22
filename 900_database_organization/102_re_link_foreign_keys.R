@@ -21,7 +21,8 @@ if (length(commandline_args) > 0) {
   mirror <- commandline_args[1]
 } else {
   mirror <- ""
-  # mirror <- "-staging" # "-testing"
+  # mirror <- "-staging"
+  # mirror <- "-testing"
 }
 
 
