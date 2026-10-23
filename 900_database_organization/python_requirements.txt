@@ -18,7 +18,7 @@ owslib==0.36.0
 packaging==26.3
 pandas==3.0.5
 pathlib==1.0.1
-pillow==12.3.0
+pillow==13.0.0
 psycopg2==2.9.12
 pyogrio==0.13.0
 pyparsing==3.3.2
