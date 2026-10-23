@@ -1,3 +1,4 @@
+
 BEGIN;
 
 DROP VIEW "inbound"."ReplacementOngoing" CASCADE;
@@ -13,7 +14,9 @@ SELECT
   VISIT.visit_id,
   VISIT.type_assessed,
   VISIT.photo,
-  VISIT.visit_done
+  VISIT.visit_done,
+  REPU.replacement_rank::varchar AS label,
+  LOWER(REPU.is_selected::varchar) AS status
 FROM "inbound"."TerrestrialTypesVisits" AS VISIT
 LEFT JOIN (
   SELECT
@@ -55,14 +58,25 @@ LEFT JOIN (
 ) AS REPU
   ON REPU.sampleunit_id = VISIT.sampleunit_id
 WHERE TRUE
-  AND activity_group_id IN (
-      SELECT DISTINCT activity_group_id
-      FROM "metadata"."GroupedActivities"
-      WHERE activity = 'LOCEVALTERR'
-    )
   AND (visible_by_ongoing OR visible_by_selection)
+  AND VISIT.replacement_triggered
+  AND terrestrialtypesvisit_id IN (
+    SELECT DISTINCT terrestrialtypesvisit_id
+    FROM (
+       SELECT *,
+         ROW_NUMBER() OVER (
+         PARTITION BY grts_address
+         ORDER BY COALESCE(date_visit, date_start) DESC
+         ) AS latest_trigger
+       FROM "inbound"."TerrestrialTypesVisits"
+       WHERE replacement_triggered
+    )
+    WHERE latest_trigger = 1
+  )
   AND VISIT.archive_version_id IS NULL
 ;
+
+
 
 
 CREATE OR REPLACE RULE ReplacementOngoing_upd_reset AS
@@ -122,6 +136,7 @@ DO ALSO
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
+-- note: replacement_triggered should not be changed back
 
 
 GRANT SELECT ON  "inbound"."ReplacementOngoing"  TO viewer_mnmdb;
