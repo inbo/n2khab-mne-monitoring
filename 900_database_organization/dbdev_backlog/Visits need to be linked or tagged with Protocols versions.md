@@ -83,3 +83,10 @@ COMMIT;
   + [x] #FieldWork
 
 + modify QGIS projects and distribute
+
++ Bonus: #ExtraLocevals 
+```sql
+ALTER TABLE "inbound"."ExtraLocevals" ADD COLUMN protocol_id int;
+COMMENT ON COLUMN "inbound"."ExtraLocevals".protocol_id IS E'link to the protocol which was specifically used for this activity';
+
+```
