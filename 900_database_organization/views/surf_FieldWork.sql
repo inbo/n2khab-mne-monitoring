@@ -159,7 +159,7 @@ SELECT
   ACT.activity_group,
   ACT.is_field_activity,
   ACT.is_surf_activity,
-  ACT.protocols,
+  ACT.default_protocol_id,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.datetime_visit,
@@ -167,6 +167,7 @@ SELECT
   VISIT.photo,
   VISIT.issues,
   VISIT.sampling_done,
+  VISIT.protocol_id,
   VISIT.visit_done,
   VISIT.lenticvisit_id,
   VISIT.loticvisit_id,
@@ -305,20 +306,14 @@ LEFT JOIN (
   ) AS CAL
   ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN (
-  SELECT DISTINCT
+  SELECT
     activity_group_id,
     activity_group,
     is_field_activity,
     is_surf_activity,
-    string_agg(DISTINCT('' || protocol_code || '/v' || protocol_version), E',') AS protocols
-  FROM "metadata"."GroupedActivities" AS GACT
-  LEFT JOIN "metadata"."Protocols" AS PRT
-    ON PRT.protocol_id = GACT.protocol_id
-  GROUP BY
-    activity_group_id,
-    activity_group,
-    is_field_activity,
-    is_surf_activity
+    protocol_id AS default_protocol_id
+  FROM "metadata"."ActivityGroups"
+  WHERE is_surf_activity
   ) AS ACT
   ON ACT.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
@@ -380,9 +375,9 @@ LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
   AND VISIT.date_visit = MOBS.date_visit)
 WHERE TRUE
   AND (VISIT.date_visit_planned IS NOT NULL)
-  AND CAL.done_planning
+  AND (CAL.done_planning)
   AND ((CAL.excluded IS NULL) OR (NOT CAL.excluded))
-  AND ACT.is_surf_activity
+  AND (ACT.activity_group IS NOT NULL)
   AND (VISIT.visit_done OR (CAL.fcal_not_archived))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
@@ -407,6 +402,7 @@ DO ALSO
   photo = NEW.photo,
   issues = NEW.issues,
   sampling_done = NEW.sampling_done,
+  protocol_id = NEW.protocol_id,
   visit_done = NEW.visit_done,
   link_observation_samplecontext = NEW.link_observation_samplecontext,
   link_observation_meteorology = NEW.link_observation_meteorology,

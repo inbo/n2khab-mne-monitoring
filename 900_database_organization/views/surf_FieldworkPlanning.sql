@@ -48,6 +48,7 @@ SELECT
   ACT.activity_group,
   ACT.activity_group LIKE '%LENT%' AS is_lentic,
   ACT.activity_group LIKE '%LOT%' AS is_lotic,
+  ACT.default_protocol_id,
   CAL.activity_rank,
   CAL.date_start,
   CAL.date_end,
@@ -73,6 +74,7 @@ SELECT
   VISIT.preparation_notes,
   VISIT.date_visit,
   VISIT.photo,
+  VISIT.protocol_id,
   VISIT.visit_done,
   LOCEVAL.loceval_type_assessed,
   LOCEVAL.loceval_positive,
@@ -120,11 +122,14 @@ LEFT JOIN "metadata"."Locations" AS LOC
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
 LEFT JOIN (
- SELECT DISTINCT
-     activity_group_id, activity_group, is_surf_activity,
-     archive_version_id IS NULL AS is_active
-   FROM "metadata"."GroupedActivities"
-   GROUP BY activity_group_id, activity_group, is_surf_activity, archive_version_id
+ SELECT
+    activity_group_id,
+    activity_group,
+    is_surf_activity,
+    protocol_id AS default_protocol_id
+   FROM "metadata"."ActivityGroups"
+   WHERE archive_version_id IS NULL
+     AND is_surf_activity
  ) AS ACT
    ON ACT.activity_group_id = CAL.activity_group_id
 LEFT JOIN (
@@ -182,8 +187,8 @@ LEFT JOIN (
 ) AS LOCEVAL
   ON UNIT.grts_address = LOCEVAL.grts_address
   AND UNIT.stratum = LOCEVAL.stratum
-WHERE ACT.is_surf_activity
-  AND ACT.is_active
+WHERE TRUE
+  AND (ACT.activity_group IS NOT NULL)
   AND (UNIT.archive_version_id IS NULL)
   AND (CAL.archive_version_id IS NULL)
 ORDER BY

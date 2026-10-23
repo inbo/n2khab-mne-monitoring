@@ -24,11 +24,16 @@ SELECT
   CAL.date_visit_planned - current_date AS days_to_visit,
   CAL.date_end - current_date AS days_to_deadline,
   CAL.notes AS preparation_notes,
+  ACT.activity_group,
+  ACT.default_protocol_id,
+  ACT.is_field_activity,
+  ACT.is_gw_activity,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
   VISIT.notes,
   VISIT.photo,
+  VISIT.protocol_id,
   VISIT.issues,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
@@ -42,10 +47,6 @@ SELECT
   SOIL.soil_info,
   LOCEVAL.loceval_notes,
   LOCEVAL.loceval_photo,
-  ACT.activity_group,
-  ACT.is_field_activity,
-  ACT.is_gw_activity,
-  ACT.protocols,
   VISIT.installationvisit_id,
   VISIT.samplingvisit_id,
   VISIT.positioningvisit_id,
@@ -115,20 +116,15 @@ LEFT JOIN (
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON CAL.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN (
-  SELECT DISTINCT
+  SELECT
     activity_group_id,
     activity_group,
     is_field_activity,
     is_gw_activity,
-    string_agg(DISTINCT('' || protocol_code || '/v' || protocol_version), E',') AS protocols
-  FROM "metadata"."GroupedActivities" AS GACT
-  LEFT JOIN "metadata"."Protocols" AS PRT
-    ON PRT.protocol_id = GACT.protocol_id
-  GROUP BY
-    activity_group_id,
-    activity_group,
-    is_field_activity,
-    is_gw_activity
+    protocol_id AS default_protocol_id
+  FROM "metadata"."ActivityGroups"
+  WHERE archive_version_id IS NULL
+  AND is_gw_activity
   ) AS ACT
   ON ACT.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
@@ -149,9 +145,8 @@ LEFT JOIN (
   ON UNIT.sampleunit_id = LOCEVAL.sampleunit_id
 WHERE TRUE
   AND (CAL.is_scheduled OR CAL.done_planning)
-  AND ((CAL.no_visit_planned IS NULL) OR (NOT CAL.no_visit_planned))
-  AND NOT CAL.excluded
-  AND ACT.is_gw_activity
+  AND (NOT CAL.excluded)
+  AND (ACT.activity_group IS NOT NULL)
   AND (VISIT.visit_done OR (CAL.archive_version_id IS NULL))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
@@ -176,6 +171,7 @@ DO ALSO
   notes = NEW.notes,
   photo = NEW.photo,
   issues = NEW.issues,
+  protocol_id = NEW.protocol_id,
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
