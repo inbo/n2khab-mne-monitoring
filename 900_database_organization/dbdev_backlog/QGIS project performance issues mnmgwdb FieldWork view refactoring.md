@@ -44,8 +44,13 @@ The LLM gave some useful hints at potential performance breakers:
 + Boolean Redundancies in WHERE and SELECT
 
 The LLM also provided a refactored query, which was broken due to missing context (it did not know which columns came from which tables, particularly for `*Visits`).
+But even after fixing these broken references, the query had some filter conflicts and yielded zero rows.
+This turned out to be an erroneous `ONLY` when querying `Visits` and joining other subtypes of visits; I suspect that the rather uncommon concept of table inheritance put the LLM under stress in this case.
+I was tempted to continue with that query; however, the `WHERE` conditions selected very wrong calendar entries (i.e. only those with `visit_done`; must have been a slop of boolean operator from OR to AND).
+However, the conceptual adjustments and general profiling insights from the LLM's answer are valuable.
 
-I sincerely thank the AI overlords for providing this answer, will evaluate the suggested changes and come up with a solution which fixes the exposed flaws in my humble, human-written code.
+I sincerely thank the AI overlords for providing an answer, will evaluate the suggested changes and come up with a solution which fixes the exposed flaws in my humble, human-written code.
+
 
 ### stacked `NATURAL FULL JOIN`s in the `VISIT` subquery
 
@@ -56,12 +61,17 @@ I sincerely thank the AI overlords for providing this answer, will evaluate the 
 Fully acknowledged, I did not consider the performance impact of the `NATURAL FULL JOIN`s.
 I anticipate that this alone will shrink the query load to sub-threshold levels.
 
+*edit: It turns out that this change, upon quick inspection, does not yield much performance improvement, unless coupled with totally wrong filters which erroneously reduce the resulting row set to a sub-trivial number.*
+
+
 ### Flawed and Costly Aggregation in `LOCEVAL`
 
 >   Because eval\_date is included in the GROUP BY list, MAX(eval\_date) is evaluated per group, meaning MAX(eval\_date) is **always equal to eval\_date**. This does not actually isolate the single latest evaluation per sample unit. Instead, it performs an expensive aggregation (GROUP BY \+ DISTINCT) across the entire LocationEvaluations table.  
 > * **Fix:** Use PostgreSQL's optimized DISTINCT ON clause:  
 
 I previously thought that the `DISTINT ON` is just a syntax variant; I will read up on this and refactor.
+
+*edit: It turned out that the LLM was wrong on this point. The suggested refactor just removed the search for the _latest_ loceval, instead falsely joining _all_ registered locevals. It turns out that this subquery and DISTINCT is no performance bottleneck at all.*
 
 ### Accidental Inner Joins Masquerading as `LEFT JOIN`s
 
@@ -92,5 +102,25 @@ I anticipate a minor performance impact, at the cost of readability and maintain
 
 This is a detail.
 
-## Manual Refactoring
+## Manual Refactoring - Lessons Learned
+
+### Only Join by `id` Columns
+
+This is slow and redundant:
+```sql
+  WHERE (VIS.visit_id = CAL.visit_id)
+    AND (VIS.grts_address = CAL.grts_address)
+    AND (VIS.stratum = CAL.stratum)
+    AND (VIS.date_start = CAL.date_start)
+    AND (VIS.activity_group_id = CAL.activity_group_id)
+```
+
+This is much quicker:
+```sql
+  WHERE (VIS.visit_id = CAL.visit_id)
+```
+
+> [!note] Joins
+> Only use index columns for joins!
+> (I know, I know: kids nowadays learn that in kindergarden.)
 
