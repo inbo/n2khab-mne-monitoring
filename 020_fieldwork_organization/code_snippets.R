@@ -401,28 +401,8 @@ if (interactive()) glimpse(legacy_watersamplepoints_spslocs_lentic)
 # object 'stratum_grts_spsamples_lentic_sf' under Sampling unit geometries). x
 # and y mirror the geometry column.
 #
-# More specifically, the object contains a legacy_try_first column: for each
-# polygon (represented by grts_address_final), TRUE marks the point that should
-# be favoured for data collection, if the field criteria for point validity
-# still hold. In some cases, multiple different points with TRUE may be present,
-# in which case field criteria must be used. If the TRUE point does not fulfill
-# criteria, then (historical) points marked as FALSE can still be considered,
-# making use of the field criteria. If multiple points still survive in either
-# of these cases (TRUE, or FALSE if TRUE isn’t successful), then additional
-# information can be inspected to make a choice, such as active_in_db_from &
-# active_in_db_till (but these refer to database activity (automated fields),
-# not to a period of field validity). Also columns annotation and ranknr are
-# background information; annotation has been used in creating legacy_try_first
-# already and a higher ranknr refers to a later addition in the source database.
-#
-# If the latest legacy sampling date of the location
-# (lastdate_legacysampling_polygon) is recent enough, the SAMPLPOINT FAG for the
-# unit in the FAG calendar can be ignored. However, if during fieldwork it is
-# found that the point where legacy_try_first == TRUE does not fulfill criteria,
-# then the SAMPLPOINT FAG still needs to be executed since the sampling date
-# does not apply to older points (the same adhoc SAMPLPOINT approach applies
-# when revisiting points created within MNE). For this reason, this date is only
-# present in the rows where legacy_try_first is TRUE.
+# How to use this object with regard to fieldwork is documented by
+# mnedesigndata::legacy_watersamplepoints_spslocs_lentic.
 
 
 
