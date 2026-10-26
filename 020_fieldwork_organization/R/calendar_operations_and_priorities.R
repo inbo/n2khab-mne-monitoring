@@ -132,9 +132,9 @@ mark_matching_occasions <- function(.data) {
     # matching occasions across strata
     dplyr::mutate(
       matching_occasion = ifelse(
-        stringr::str_detect(stratum, "^2190_a|^31") &
+        stringr::str_detect(stratum, lentic_types_regex) &
           # not using n() because that still includes terrestrial types:
-          sum(stringr::str_detect(stratum, "^2190_a|^31")) > 1,
+          sum(stringr::str_detect(stratum, lentic_types_regex)) > 1,
         stringr::str_c(
           dplyr::first(field_activity_group),
           dplyr::first(grts_address_final),
@@ -154,9 +154,9 @@ mark_matching_occasions <- function(.data) {
     # matching occasions across strata and date intervals
     dplyr::mutate(
       matching_occasion = ifelse(
-        stringr::str_detect(stratum, "^2190_a|^31") &
+        stringr::str_detect(stratum, lentic_types_regex) &
           # not using n() because that still includes terrestrial types:
-          sum(stringr::str_detect(stratum, "^2190_a|^31")) > 1 &
+          sum(stringr::str_detect(stratum, lentic_types_regex)) > 1 &
           stringr::str_detect(field_activity_group, "INST|LEVREAD|SPATPOSIT"),
         stringr::str_c(
           dplyr::first(field_activity_group),
@@ -303,7 +303,7 @@ add_wait_columns <- function(.data) {
     dplyr::mutate(
       wait_watersurface = stringr::str_detect(stratum, "^2190_a") |
         (
-          stringr::str_detect(stratum, "^31|^2190_a") &
+          stringr::str_detect(stratum, lentic_types_regex) &
             !stringr::str_detect(schemes_served_all, "SURF_03\\.4")
         ),
       wait_3260 = stratum == "3260",
