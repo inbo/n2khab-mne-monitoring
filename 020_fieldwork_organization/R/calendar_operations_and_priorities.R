@@ -12,7 +12,7 @@ filter_until_year_max_except_first_auxiliary_activities_gw <- function(
   stopifnot("magrittr" = require("magrittr"))
 
 
-  if (!exists("filter_until_year_max_except_first_auxiliary_activities_gw")) {
+  if (!exists("flag_groundwater_scheme_has_gw")) {
     stop(
       " (in function `filter_until_year_max_except_first_auxiliary_activities_gw`)",
       "\n\tlookup `flag_groundwater_scheme_has_gw` is missing.",
