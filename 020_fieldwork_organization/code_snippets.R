@@ -1026,13 +1026,13 @@ scheme_moco_fa_fieldvar <-
 # nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked
 # version of scheme_ps_targetpanels at the level of the whole sample (see
 # sampling unit attributes in the beginning), since it is specific to the FAG
-# occasion and since we limited the activities to those planned before main_year
-# + 1 (sometimes later), before generating scheme_ps_targetpanels_served. So it
-# says specifically which schemes x panel sets x targetpanels are served by the
-# specific fieldwork at a specific date interval. Note that we substitute the
-# targetpanel with the OLD targetpanel if the targetpanel is missing, i.e. for
-# sampling units missing from the current FAG calendar. This is done to avoid
-# missing values in derived objects or overviews.
+# occasion and since we limited the activities to a specific period, before
+# generating scheme_ps_targetpanels_served. So it says specifically which
+# schemes x panel sets x targetpanels are served by the specific fieldwork at a
+# specific date interval. Note that we substitute the targetpanel with the OLD
+# targetpanel if the targetpanel is missing, i.e. for sampling units missing
+# from the current FAG calendar. This is done to avoid missing values in derived
+# objects or overviews.
 main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
@@ -1044,7 +1044,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
     field_activity_group,
     rank
   ) %>%
-  filter_until_year_max_except_first_auxiliary_activities_gw(main_year, remove_has_gw = TRUE) %>%
+  filter_around_refyear_except_first_auxiliary_activities_gw(main_year, remove_has_gw = TRUE) %>%
   postpone_selected_past_activities() %>%
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%

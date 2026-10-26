@@ -2,9 +2,9 @@
 #' filter by year, but
 #' already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
 #' next years to be executed
-filter_until_year_max_except_first_auxiliary_activities_gw <- function(
+filter_around_refyear_except_first_auxiliary_activities_gw <- function(
     .data,
-    the_year_max,
+    refyear,
     remove_has_gw = FALSE
   ) {
 
@@ -14,7 +14,7 @@ filter_until_year_max_except_first_auxiliary_activities_gw <- function(
 
   if (!exists("flag_groundwater_scheme_has_gw")) {
     stop(
-      " (in function `filter_until_year_max_except_first_auxiliary_activities_gw`)",
+      " (in function `filter_around_refyear_except_first_auxiliary_activities_gw`)",
       "\n\tlookup `flag_groundwater_scheme_has_gw` is missing.",
       "\n\tPlease `source('location_attribute_processing.R')` first."
     )
@@ -29,7 +29,21 @@ filter_until_year_max_except_first_auxiliary_activities_gw <- function(
   # filter
   .data %<>%
     dplyr::filter(
-      lubridate::year(date_start) <= the_year_max |
+      # we want all FAG occasions till refyear + 1, except for LOCEVAL &
+      # SAMPLPOINT
+      (
+        lubridate::year(date_start) <= refyear + 1 &
+          !stringr::str_detect(field_activity_group, "LOCEVAL|SAMPLPOINT")
+      ) |
+        # for LOCEVAL & SAMPLPOINT, we only keep the occasions till refyear:
+        # those in refyear are the ones that prepare environmental fieldwork in
+        # refyear + 1
+        (
+          lubridate::year(date_start) <= refyear &
+            stringr::str_detect(field_activity_group, "LOCEVAL|SAMPLPOINT")
+        ) |
+        # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from
+        # later years to be executed:
         (
           has_gw &
             stringr::str_detect(
