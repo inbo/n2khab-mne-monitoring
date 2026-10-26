@@ -5,17 +5,26 @@ tags:
   - QGIS
   - mnmgwdb
   - gemini
-started:
-finished:
+  - debugging
+started: 2026-10-26
+finished: 2026-10-26
 execution:
-status: false
-priority:
+  - FM
+status: true
+priority: 1
 ---
 
 [[timeline/2026-10-26|2026-10-26]] There were persistent reports of prohibitive performance issues with the QGIS projects of `mnmgwdb`.
 
 I could trace those back to the #FieldWork view which was not optimized for efficiency.
 QGIS/QField do not query those efficiently, and repeated queries queue up on the host system to finally cause some inconveniently long lags.
+
+
+> [!important] Summary
+> This turned out to be an issue in the QGIS layer symbology.
+> Depending on the set entered in the symbols list of map properties, 
+> QGIS will construct a rather inefficient background query.
+> In the present case, this slowed the map layer notably, no matter how efficient the underlying view was.
 
 
 ## step 0: identification
@@ -28,7 +37,8 @@ I suspected the #FieldWork #view (which is behind multiple map layers in QGIS an
 
 ## step 1: asking google Gemini
 ### prompt
-#Gemini is available at our work environment.
+#Gemini is available at our work environment (the "thinking" variant).
+
 I submitted the request to 
 ```
 Evaluate the following postgreSQL query for performance: 
@@ -124,3 +134,53 @@ This is much quicker:
 > Only use index columns for joins!
 > (I know, I know: kids nowadays learn that in kindergarden.)
 
+### Calendar & Visits combination
+
+I decided to have an inner query with combined #FieldCalendars and #Visits.
+Do not think it makes much of a difference, compared to `NATURAL FULL JOIN`, with the number of rows we handle.
+
+### Join Types
+
+switched to `INNER JOIN`, wherever possible
+
+
+## The Actual Error
+### QGIS Layer Symbology
+It turned out that the actual error was one of #QGIS layer #symbology.
+
+The last row in the following screenshot was initially missing:
+![[attachments/qgis_layer_symbology_missing_others.webp]]
+
+This caused QGIS to append the running query by a filtering row:
+
+```sql
+BEGIN READ ONLY;DECLARE qgis_764 BINARY CURSOR FOR
+SELECT st_asbinary("wkb_geometry",'NDR'),
+"visit_id",
+"status"::text,
+"teammember_assigned"::text,
+"date_visit_planned"::text,
+"days_to_visit"::text,
+"activity_group_id"::text,
+"date_visit"::text
+FROM "inbound"."MyFieldWork"
+WHERE (
+  "wkb_geometry"
+  && st_makeenvelope(12649.01449002728622872,153720.51358329199138097,260818.16945691470755264,244675.71358329200302251,31370))
+AND
+  ("status" IN ('GWINSTPIEZWELL','GWINSTPIEZWELL done','GWINSTPIEZWELL issues','SPATPOSITPIPE','SPATPOSITPIPE done','SPATPOSITPIPE issues','GWSHALLCLEAN','GWSHALLCLEAN done','GWSHALLCLEAN issues','GWSHALLSAMPREADMAN','GWSHALLSAMPREADMAN done','GWSHALLSAMPREADMAN issues','NULL'))
+;
+
+```
+
+`status` uses the `text` data type, and filtering for values in this set is horribly inefficient.
+Whats more, the list of categories was actually exhaustive: there were no `NULL` or other values, all actually used values were within that set.
+
+### QGIS Query Debugging
+
+Such errors can be found in the query profiler of the #QGIS #debugging panel "Debugging / Developer Tools".
+That logger notes start and end times of queries (connected by a process id of the form `QGIS_123`).
+Only visible layers are logged.
+One can thereby find the limiting query and copy out the actual SQL for debugging.
+
+![[attachments/qgis_query_debugging.webp]]
