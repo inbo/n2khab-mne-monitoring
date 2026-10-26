@@ -171,7 +171,7 @@ mark_matching_occasions <- function(.data) {
         stringr::str_detect(stratum, lentic_types_regex) &
           # not using n() because that still includes terrestrial types:
           sum(stringr::str_detect(stratum, lentic_types_regex)) > 1 &
-          stringr::str_detect(field_activity_group, "INST|LEVREAD|SPATPOSIT"),
+          stringr::str_detect(field_activity_group, "INST|SPATPOSIT"),
         stringr::str_c(
           dplyr::first(field_activity_group),
           dplyr::first(grts_address_final),
