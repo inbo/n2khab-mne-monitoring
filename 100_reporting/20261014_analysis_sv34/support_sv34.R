@@ -110,7 +110,7 @@ surf_fieldwork %>% summary()
 surf_fieldwork %>% count(scheme)
 
 # Check that domainpart_grts_n2khab covers all GRTS addresses
-list(le_fieldwork, le_fieldwork, surf_fieldwork) %>%
+list(le_fieldwork, gw_fieldwork, surf_fieldwork) %>%
   walk(function(df) {
     stopifnot({
       df %>%
