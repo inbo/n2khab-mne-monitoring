@@ -353,28 +353,8 @@ if (interactive()) glimpse(legacy_watersamplepoints_spslocs_lentic)
 # object 'stratum_grts_spsamples_lentic_sf' under Sampling unit geometries). x
 # and y mirror the geometry column.
 #
-# More specifically, the object contains a legacy_try_first column: for each
-# polygon (represented by grts_address_final), TRUE marks the point that should
-# be favoured for data collection, if the field criteria for point validity
-# still hold. In some cases, multiple different points with TRUE may be present,
-# in which case field criteria must be used. If the TRUE point does not fulfill
-# criteria, then (historical) points marked as FALSE can still be considered,
-# making use of the field criteria. If multiple points still survive in either
-# of these cases (TRUE, or FALSE if TRUE isn’t successful), then additional
-# information can be inspected to make a choice, such as active_in_db_from &
-# active_in_db_till (but these refer to database activity (automated fields),
-# not to a period of field validity). Also columns annotation and ranknr are
-# background information; annotation has been used in creating legacy_try_first
-# already and a higher ranknr refers to a later addition in the source database.
-#
-# If the latest legacy sampling date of the location
-# (lastdate_legacysampling_polygon) is recent enough, the SAMPLPOINT FAG for the
-# unit in the FAG calendar can be ignored. However, if during fieldwork it is
-# found that the point where legacy_try_first == TRUE does not fulfill criteria,
-# then the SAMPLPOINT FAG still needs to be executed since the sampling date
-# does not apply to older points (the same adhoc SAMPLPOINT approach applies
-# when revisiting points created within MNE). For this reason, this date is only
-# present in the rows where legacy_try_first is TRUE.
+# How to use this object with regard to fieldwork is documented by
+# mnedesigndata::legacy_watersamplepoints_spslocs_lentic.
 
 
 
@@ -998,13 +978,13 @@ scheme_moco_fa_fieldvar <-
 # nest_and_flatten_scheme_ps_targetpanel(include_old = TRUE) is a shrinked
 # version of scheme_ps_targetpanels at the level of the whole sample (see
 # sampling unit attributes in the beginning), since it is specific to the FAG
-# occasion and since we limited the activities to those planned before main_year
-# + 1 (sometimes later), before generating scheme_ps_targetpanels_served. So it
-# says specifically which schemes x panel sets x targetpanels are served by the
-# specific fieldwork at a specific date interval. Note that we substitute the
-# targetpanel with the OLD targetpanel if the targetpanel is missing, i.e. for
-# sampling units missing from the current FAG calendar. This is done to avoid
-# missing values in derived objects or overviews.
+# occasion and since we limited the activities to a specific period, before
+# generating scheme_ps_targetpanels_served. So it says specifically which
+# schemes x panel sets x targetpanels are served by the specific fieldwork at a
+# specific date interval. Note that we substitute the targetpanel with the OLD
+# targetpanel if the targetpanel is missing, i.e. for sampling units missing
+# from the current FAG calendar. This is done to avoid missing values in derived
+# objects or overviews.
 main_year <- 2026
 fag_stratum_grts_calendar_shortterm_attribs <-
   fag_stratum_grts_calendar %>%
@@ -1016,7 +996,7 @@ fag_stratum_grts_calendar_shortterm_attribs <-
     field_activity_group,
     rank
   ) %>%
-  filter_until_year_max_except_first_auxiliary_activities_gw(main_year, remove_has_gw = TRUE) %>%
+  filter_around_refyear_except_first_auxiliary_activities_gw(main_year, remove_has_gw = TRUE) %>%
   postpone_selected_past_activities() %>%
   drop_past_activities(min_year = main_year) %>%
   extend_and_update_scheme_attributes() %>%
@@ -1245,7 +1225,7 @@ orthophoto_shortterm_watersurfaces <-
 
 ## Comparing object checksums with reference to verify reproducibility --------
 
-checksumfile <- file.path(snippet_base_path, "fieldworg_checksums.csv")
+checksumfile <- file.path(gitroot, "fieldworg_checksums.csv")
 ref_checksums <- read_csv(checksumfile, col_types = "cc")
 available_obj <- ls()
 different_checksums <-

@@ -20,6 +20,7 @@ knitr:
 - 20260811 quarterly prio update 
 - 20260819 REP 0.18.0
 - 20260925 intrinsic matching occasions (Visits 1 : n FieldCalendars)
+- 20261027 locations for 2027
 
 
 # TODO
