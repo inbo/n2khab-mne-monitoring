@@ -53,7 +53,7 @@ calculate_count <- function(
   }
   
   df1 <- df_loceval |> 
-    group_by(across(all_of(group_by))) |> 
+    group_by(pick(group_by)) |> 
     summarize(
       nr_locevals = n(),
       nr_samplingunits = n_distinct(sampleunit_id),
