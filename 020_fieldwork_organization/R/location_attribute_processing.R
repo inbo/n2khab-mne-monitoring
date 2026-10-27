@@ -296,8 +296,9 @@ unnest_and_join_sampling_unit_attributes <- function(.data) {
       last_type_assessment = assessment_date,
       last_inaccessible = inaccessible
     ) %>%
-    # adding old targetpanel of the imported FAG occasions from old REP versions.
-    # A part is dropped because of occasions that don't happen in the main year.
+    # adding old targetpanel of the imported FAG occasions from old REP
+    # versions. A part is dropped because of occasions that don't happen in the
+    # considered period.
     left_join_121_d(
       cal_old_continuation %>%
         tidyr::unnest(scheme_moco_ps) %>%
