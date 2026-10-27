@@ -1002,21 +1002,17 @@ associate_and_shift_start_dates <- function(
   # remove frozen calendar entries
   if ("is_frozen" %in% names(data_previous)) {
     data_previous <- data_previous %>%
-      filter(
-        !is_frozen
-      )
+      dplyr::filter_out(is_frozen)
   }
   if ("is_frozen" %in% names(data_previous)) {
     data_future <- data_future %>%
-      filter(
-        !is_frozen
-      )
+      dplyr::filter_out(is_frozen)
   }
 
   ## find the link
   data_previous_linked <- link_dates(
-    data_pre = data_previous %>% select(!!!characteristic_columns),
-    data_post = data_future %>% select(!!!characteristic_columns),
+    data_pre = data_previous %>% dplyr::select(!!!characteristic_columns),
+    data_post = data_future %>% dplyr::select(!!!characteristic_columns),
     characteristic_columns = characteristic_columns,
     date_column = "date_start",
     # date_threshold = freeze_date # TODO
@@ -1028,10 +1024,8 @@ associate_and_shift_start_dates <- function(
 
   # only changes are relevant
   date_updates <- data_previous_linked  %>%
-    filter(
-      !is.na(date_start_new),
-      date_start != date_start_new
-    )
+    dplyr::filter_out(is.na(date_start_new)) %>%
+    dplyr::filter_out(date_start == date_start_new)
   # date_updates  %>%  filter(grts_address == check_grts)
 
   if (nrow(date_updates) == 0) {
@@ -1042,7 +1036,7 @@ associate_and_shift_start_dates <- function(
   output_filename <- file.path(".", "logs", glue::glue(
       "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates_{mnmdb$mirror_short}.csv"
     ))
-  write_csv2(date_updates, output_filename)
+  readr::write_csv2(date_updates, output_filename)
 
 
   ## update the data_previous to reflect date changes
@@ -1060,12 +1054,27 @@ associate_and_shift_start_dates <- function(
     temporary = TRUE
   )
 
-  lookup_criteria <- unlist(lapply(
-    characteristic_columns,
-    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
-  ))
 
   for (tablab in c(table_label, other_table_labels)) {
+
+    lookup_criteria <- unlist(lapply(
+      characteristic_columns,
+      FUN = function(col) {
+
+        # in some dtabases, Visits do not have `stratum` any more, but `stratums` (array type)
+        if (table_label == "FieldCalendars"
+            && tablab == "Visits"
+            && col == "stratum"
+            && mnmdb$table_has_column(tablab, "stratums")
+            ) {
+          return(glue::glue("SRCTAB.stratum = ANY(TRGTAB.stratums)"))
+        } else {
+          return(glue::glue("TRGTAB.{col} = SRCTAB.{col}"))
+        }
+      }
+    ))
+
+
     trgtab <- mnmdb$get_namestring(tablab)
     update_string <- glue::glue("
       UPDATE {trgtab} AS TRGTAB
@@ -2100,6 +2109,7 @@ precedence_columns <- list(
     "teammember_id",
     "date_visit",
     "datetime_visit",
+    "protocol_id",
     "sampling_done",
     "type_assessed",
     "is_well_developed_type",
