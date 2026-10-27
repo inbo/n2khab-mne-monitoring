@@ -49,11 +49,12 @@ WITH BASE AS (
     , V.log_update as date_update
     , V.activity_group_id
     , unnest(string_to_array(SU.schemes, '|')) AS scheme
+    , 1 as loceval
     , CASE
-      WHEN V.issues THEN TRUE
-      WHEN SU.type_is_absent THEN TRUE
-      ELSE FALSE
-    END AS loceval_approved
+        WHEN V.issues THEN 0
+        WHEN SU.type_is_absent THEN  0
+        ELSE 1
+      END AS loceval_approved
   FROM "metadata"."Locations" LOC
   INNER JOIN "inbound"."Visits" V
   ON LOC.location_id = V.location_id AND LOC.grts_address = V.grts_address
