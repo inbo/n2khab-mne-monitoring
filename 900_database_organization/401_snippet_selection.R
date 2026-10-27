@@ -1225,7 +1225,7 @@ orthophoto_shortterm_watersurfaces <-
 
 ## Comparing object checksums with reference to verify reproducibility --------
 
-checksumfile <- file.path(gitroot, "fieldworg_checksums.csv")
+checksumfile <- file.path(snippet_base_path, "fieldworg_checksums.csv")
 ref_checksums <- read_csv(checksumfile, col_types = "cc")
 available_obj <- ls()
 different_checksums <-
