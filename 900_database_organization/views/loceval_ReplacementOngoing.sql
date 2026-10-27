@@ -1,4 +1,19 @@
 
+
+SELECT *,
+  ROW_NUMBER() OVER (
+  PARTITION BY grts_address
+  ORDER BY COALESCE(date_visit, date_start) DESC
+  ) AS latest_trigger
+FROM "inbound"."TerrestrialTypesVisits"
+WHERE replacement_triggered
+AND grts_address IN (893046, 23346, 2518, 16086)
+;
+
+
+
+
+
 BEGIN;
 
 DROP VIEW "inbound"."ReplacementOngoing" CASCADE;
