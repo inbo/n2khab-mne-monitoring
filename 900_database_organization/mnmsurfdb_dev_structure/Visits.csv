@@ -23,4 +23,5 @@ visit_done,boolean,True,0,False,False,,,,filter column for locations which have 
 link_observation_samplecontext,boolean,True,0,False,False,,,,choice to capture pool observation
 link_observation_meteorology,boolean,True,0,False,False,,,,choice to capture weather observation
 link_observation_perturbation,boolean,True,0,False,False,,,,choice to capture perturbation observation
+protocol_id,int,False,NULL,False,False,,,,link to the protocol which was specifically used for this activity
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived visits

@@ -34,8 +34,6 @@ SELECT
   CAL.date_interval,
   CAL.date_end - current_date AS days_to_deadline,
   CAL.activity_group_id,
-  ACT.activity_group,
-  ACT.is_gw_activity,
   CAL.activity_rank,
   CAL.priority,
   CAL.wait_any AS is_waiting,
@@ -52,11 +50,15 @@ SELECT
   CAL.sampling_route_group,
   CAL.notes,
   CAL.done_planning,
+  ACT.activity_group,
+  ACT.is_gw_activity,
+  ACT.default_protocol_id,
   VISIT.visit_id,
   VISIT.visit_date,
   VISIT.visit_photo,
   VISIT.visit_notes,
   VISIT.visit_issues,
+  VISIT.protocol_id,
   VISIT.visit_done,
   CASE WHEN VISIT.visit_date IS NULL THEN NULL
       ELSE current_date - VISIT.visit_date
@@ -133,6 +135,7 @@ LEFT JOIN (
     VIS.notes AS visit_notes,
     VIS.photo AS visit_photo,
     VIS.issues AS visit_issues,
+    VIS.protocol_id,
     VIS.visit_done,
     IVIS.installationvisit_id,
     IVIS.watina_code_used_1_peilbuis,
@@ -157,9 +160,14 @@ LEFT JOIN (
   AS VISIT
   ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN (
-  SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
-    FROM "metadata"."GroupedActivities"
-    GROUP BY activity_group_id, activity_group, is_gw_activity
+  SELECT
+      activity_group_id,
+      activity_group,
+      is_gw_activity,
+      protocol_id AS default_protocol_id
+    FROM "metadata"."ActivityGroups"
+    WHERE archive_version_id IS NULL
+    AND is_gw_activity
   ) AS ACT
     ON ACT.activity_group_id = CAL.activity_group_id
 LEFT JOIN (
@@ -239,7 +247,8 @@ LEFT JOIN (
     AND is_latest
 ) AS INST
   ON (LOC.location_id = INST.location_id)
-WHERE is_gw_activity
+WHERE TRUE
+  AND (ACT.activity_group IS NOT NULL)
   AND (UNIT.archive_version_id IS NULL)
   AND (CAL.archive_version_id IS NULL)
 ORDER BY

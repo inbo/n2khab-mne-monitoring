@@ -116,6 +116,7 @@ FROM (
   WHERE (VIS.visit_id = CAL.visit_id)
     AND (
       (CAL.done_planning IS TRUE
+      AND CAL.date_visit_planned IS NOT NULL
       AND CAL.archive_version_id IS NULL
       AND VIS.archive_version_id IS NULL
       AND NOT CAL.excluded

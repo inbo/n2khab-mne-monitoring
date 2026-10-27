@@ -50,6 +50,8 @@ SELECT
   CAL.notes AS preparation_notes,
   CAL.done_planning,
   CAL.is_frozen,
+  ACT.activity_group,
+  ACT.default_protocol_id,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
@@ -68,6 +70,7 @@ SELECT
   VISIT.crassula_was_here,
   (VISIT.terrestrialtypesvisit_id IS NOT NULL) AS show_terrestrialtypevisits,
   VISIT.replacement_recovery_notes,
+  VISIT.protocol_id,
   VISIT.visit_done,
   INFO.locationinfo_id,
   INFO.landowner,
@@ -142,18 +145,20 @@ LEFT JOIN (
   ) AS OPHO
   ON VISIT.sampleunit_id = OPHO.sampleunit_id
 LEFT JOIN (
-  SELECT DISTINCT
+  SELECT
     activity_group_id, activity_group,
-    BOOL_OR(is_loceval_activity) AS is_loceval_activity,
-    BOOL_OR(activity LIKE 'SURF%SAMPLPOINT') AS is_samplingpoint_activity
-  FROM "metadata"."GroupedActivities"
+    is_loceval_activity,
+    (activity_group LIKE 'SURF%SAMPLPOINT') AS is_samplingpoint_activity,
+    protocol_id AS default_protocol_id
+  FROM "metadata"."ActivityGroups"
   WHERE archive_version_id IS NULL
-  GROUP BY activity_group_id, activity_group
+  AND is_loceval_activity
 ) AS ACT ON ACT.activity_group_id = CAL.activity_group_id
 WHERE TRUE
-  AND VISIT.grts_address = CAL.grts_address
-  AND VISIT.type = CAL.type
-  AND VISIT.date_start = CAL.date_start
+  AND (VISIT.grts_address = CAL.grts_address)
+  AND (VISIT.type = CAL.type)
+  AND (VISIT.date_start = CAL.date_start)
+  AND (ACT.activity_group IS NOT NULL)
   AND VISIT.activity_group_id = CAL.activity_group_id
   AND (
     VISIT.visit_done OR (
@@ -164,7 +169,6 @@ WHERE TRUE
       AND (NOT (OPHO.cell_disapproved IS TRUE))
     )
   )
-  AND ACT.is_loceval_activity
 ;
 
 
@@ -219,6 +223,7 @@ DO ALSO
   notes = NEW.notes,
   photo = NEW.photo,
   issues = NEW.issues,
+  protocol_id = NEW.protocol_id,
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
