@@ -1792,7 +1792,7 @@ link_dates <- function(
     }
     dt_seq <- dt
 
-    idx <- seq_len(length(dt))
+    idx <- seq_along(dt)
 
     # all lower-sequence events are impossible
     dt_seq[idx < pos] <- Inf
@@ -1835,24 +1835,24 @@ link_dates <- function(
 
   # filter and sort data
   dpre <- data_pre[
-      data_pre %>% pull(!!date_column) >= date_threshold,
+      data_pre %>% dplyr::pull(!!date_column) >= date_threshold,
     ] %>%
-    select(!!!rlang::syms(relevant_columns)) %>%
+    dplyr::select(!!!rlang::syms(relevant_columns)) %>%
     dplyr::arrange(!!!rlang::syms(relevant_columns))
   dpost <- data_post[
-      data_post %>% pull(!!date_column) >= date_threshold,
+      data_post %>% dplyr::pull(!!date_column) >= date_threshold,
     ] %>%
-    select(!!!rlang::syms(relevant_columns)) %>%
+    dplyr::select(!!!rlang::syms(relevant_columns)) %>%
     dplyr::arrange(!!!rlang::syms(relevant_columns))
 
   # only entries that differ must be linked
   dpre_stashed <- dpre %>%
-    anti_join(
+    dplyr::anti_join(
       dpost,
       by = dplyr::join_by(!!!rlang::syms(relevant_columns))
     )
   dpost <- dpost %>%
-    anti_join(
+    dplyr::anti_join(
       dpre,
       by = dplyr::join_by(!!!rlang::syms(relevant_columns))
     )
@@ -1868,7 +1868,7 @@ link_dates <- function(
     dplyr::inner_join(
       dpost %>%
         dplyr::distinct(!!!rlang::syms(nondate_charcols)),
-      by = join_by(!!!rlang::syms(nondate_charcols))
+      by = dplyr::join_by(!!!rlang::syms(nondate_charcols))
     ) %>%
     dplyr::arrange(!!!rlang::syms(nondate_charcols))
 
@@ -1893,9 +1893,9 @@ link_dates <- function(
     if (verbose) setTxtProgressBar(pb, row_nr)
 
     grp <- dgroups %>%
-      mutate(extraction_sequence_ = seq_len(n())) %>%
-      filter(extraction_sequence_ == row_nr) %>%
-      select(-extraction_sequence_)
+      dplyr::mutate(extraction_sequence_ = seq_len(n())) %>%
+      dplyr::filter(extraction_sequence_ == row_nr) %>%
+      dplyr::select(-extraction_sequence_)
 
     pre <- dpre %>%
       dplyr::semi_join(grp, by = dplyr::join_by(!!!nondate_charcols))
