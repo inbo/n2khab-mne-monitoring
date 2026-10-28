@@ -203,7 +203,6 @@ if (FALSE) {
   )
 
   message(glue::glue("Working on NEW version #{version_id}."))
-  # # -- SELECT * FROM "metadata"."Versions";
 
 } else {
   # per default, the latest version is taken
@@ -1128,6 +1127,8 @@ fieldcalendar_new <- bind_rows(
 
 
 ```{r link-dates}
+# fieldcalendar_new %>% 
+#   dplyr::filter(grts_address == 687846, stratum == "3130_aom_0_1")
 
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = mnmsurfdb,
@@ -1200,6 +1201,7 @@ print_category_count(distribution, table_label)
 #   data_nouveau %>% arrange(grts_address, stratum, date_start, activity_group_id),
 #   data_ancient %>% arrange(grts_address, stratum, date_start, activity_group_id
 # )
+
 ```
 
 
