@@ -21,5 +21,6 @@ crassula_was_here,boolean,False,NULL,False,False,,,,flag aquatic units which are
 recovery_hints,varchar,False,NULL,False,False,,,,notes on how to find back the marking
 accessibility_inaccessible,boolean,False,NULL,False,False,,,,tag inaccessible locations
 accessibility_revisit,date,False,NULL,False,False,,,,anticipate accessibility change
+protocol_id,int,False,NULL,False,False,,,,link to the protocol which was specifically used for this activity
 visit_done,boolean,True,0,False,False,,,,indicate if all tasks were successfully executed
 wkb_geometry,,False,,False,False,,,,Point geometry (31370 / Lambert 72): target location

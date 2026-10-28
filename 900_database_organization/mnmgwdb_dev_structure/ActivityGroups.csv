@@ -1,5 +1,5 @@
 column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,freesql,comment
-activity_group_id,smallint,True,,False,False,,UNIQUE,,activity group index (technical)
+activity_group_id,smallint,True,,True,False,,UNIQUE,,activity group index (technical)
 activity_group,varchar,True,,False,False,,UNIQUE,,label for a group of activities
 is_datacollection_method,boolean,False,NULL,False,False,,,,flag: datacollection methods
 is_field_activity,boolean,False,NULL,False,False,,,,flag: field activities

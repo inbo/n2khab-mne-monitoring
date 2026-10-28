@@ -622,12 +622,6 @@ WHERE done_planning
   AND NOT excluded
   AND NOT no_visit_planned
 ;",,"viewer_mnmdb, tester_mnmdb","planner_gwdb, tester_mnmdb",planning: forgotten to add teammember_id,0
-metadata,ActivityGroups,"SELECT DISTINCT
-  activity_group_id, activity_group
-FROM ""metadata"".""GroupedActivities""
-GROUP BY activity_group_id, activity_group
-ORDER BY activity_group_id
-;",,"viewer_mnmdb, tester_mnmdb",,quick summary of only activity groups,1
 inbound,AllVisits,"SELECT *
 FROM ONLY ""inbound"".""Visits""
 NATURAL FULL JOIN ""inbound"".""InstallationVisits""
