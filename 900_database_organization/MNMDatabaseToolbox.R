@@ -997,22 +997,23 @@ associate_and_shift_start_dates <- function(
   }
 
   # load previous data
-  data_previous <- mnmdb$query_table(table_label, ONLY = TRUE)
+  data_previous <- mnmdb$query_table(table_label, ONLY = TRUE) %>%
+    dplyr::filter(is.na(archive_version_id))
 
   # remove frozen calendar entries
   if ("is_frozen" %in% names(data_previous)) {
     data_previous <- data_previous %>%
       dplyr::filter_out(is_frozen)
   }
-  if ("is_frozen" %in% names(data_previous)) {
+  if ("is_frozen" %in% names(data_future)) {
     data_future <- data_future %>%
       dplyr::filter_out(is_frozen)
   }
 
   ## find the link
   data_previous_linked <- link_dates(
-    data_pre = data_previous %>% dplyr::select(!!!characteristic_columns),
-    data_post = data_future %>% dplyr::select(!!!characteristic_columns),
+    data_pre = data_previous %>% dplyr::select(tidyselect::any_of(characteristic_columns)),
+    data_post = data_future %>% dplyr::select(tidyselect::any_of(characteristic_columns)),
     characteristic_columns = characteristic_columns,
     date_column = "date_start",
     # date_threshold = freeze_date # TODO
@@ -1851,12 +1852,12 @@ link_dates <- function(
       dpost,
       by = dplyr::join_by(!!!rlang::syms(relevant_columns))
     )
-  dpost <- dpost %>%
-    dplyr::anti_join(
-      dpre,
-      by = dplyr::join_by(!!!rlang::syms(relevant_columns))
-    )
-  data_pre <- dpre_stashed
+  # dpost <- dpost %>%
+  #   dplyr::anti_join(
+  #     dpre,
+  #     by = dplyr::join_by(!!!rlang::syms(relevant_columns))
+  #   )
+  data_pre <- dpre_stashed %>% dplyr::arrange(grts_address)
 
   # grouping by all except date column
   nondate_charcols <-
@@ -1887,13 +1888,14 @@ link_dates <- function(
   }
 
   ### groupwise comparison
-  # row_nr <- 1
+  # row_nr <- 44
   compare_group <- function(row_nr) {
 
     if (verbose) setTxtProgressBar(pb, row_nr)
 
     grp <- dgroups %>%
       dplyr::mutate(extraction_sequence_ = seq_len(n())) %>%
+      # dplyr::filter(grts_address == 687846)
       dplyr::filter(extraction_sequence_ == row_nr) %>%
       dplyr::select(-extraction_sequence_)
 
