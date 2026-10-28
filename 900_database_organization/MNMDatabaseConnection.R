@@ -683,8 +683,12 @@ mnmdb_assemble_structure_lookups <- function(db) {
         dplyr::mutate(
           is_view = FALSE,
         ) %>%
-        dplyr::mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
-        dplyr::mutate_at(vars(excluded), as.logical),
+        dplyr::mutate_at(
+          dplyr::vars(table, schema, geometry, inherits),
+          as.character
+        ) %>%
+        dplyr::mutate_at(dplyr::vars(excluded), as.logical
+      ),
     read.csv(file.path(db$folder, "VIEWS.csv")) %>%
         dplyr::select(table = view, schema, excluded) %>%
         dplyr::mutate(
@@ -692,10 +696,11 @@ mnmdb_assemble_structure_lookups <- function(db) {
           inherits = "",
           is_view = TRUE,
         ) %>%
-        dplyr::mutate_at(vars(table, schema, geometry, inherits), as.character) %>%
-        dplyr::mutate_at(vars(excluded), as.logical)
+        dplyr::mutate_at(dplyr::vars(table, schema, geometry, inherits), as.character) %>%
+        dplyr::mutate_at(dplyr::vars(excluded), as.logical
+      )
     ) %>%
-    dplyr::mutate(excluded = as.logical(coalesce(excluded, FALSE)))
+    dplyr::mutate(excluded = as.logical(dplyr::coalesce(excluded, FALSE)))
     # %>% dplyr::filter(!excluded)
   # db$tables %>% knitr::kable()
 

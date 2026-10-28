@@ -10,7 +10,6 @@ LEFT JOIN "metadata"."Locations" AS LOC
 WHERE done_planning
   AND teammember_assigned IS NULL
   AND NOT excluded
-  AND NOT no_visit_planned
 ;
 
 GRANT SELECT ON  "outbound"."MissingTeammember" TO  viewer_mnmdb;

@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload for mnmSURFdb"
-date: "2026-08-25"
+date: "2026-10-27"
 format:
   html:
     toc: true
@@ -20,6 +20,7 @@ knitr:
 - 20260811 quarterly prio update 
 - 20260819 REP 0.18.0
 - 20260925 intrinsic matching occasions (Visits 1 : n FieldCalendars)
+- 20261027 locations for 2027
 
 
 # TODO
@@ -186,9 +187,10 @@ if (FALSE) {
   # version_notes <- "shifting aquatics from GRTS cell to point on polygon surface"
   # version_notes <- "quarterly prio update"
   # version_tag <- "snip:0.18.0_rep:0.18.0" # version_notes <- "REP 0.18.0 refinements on lentic sample units"
+  # version_tag <- "snip:0.18.0_rep:0.18.0" # data_iteration = 1 version_notes <- "realize matching occasions ('intrinsic')"
 
-  version_tag <- "snip:0.18.0_rep:0.18.0" # data_iteration = 1
-  version_notes <- "realize matching occasions ('intrinsic')"
+  version_tag <- "snip:0.19.0_rep:0.18.0" # data_iteration = 1
+  version_notes <- "enable 2027 data for gw and surf"
 
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
@@ -201,7 +203,6 @@ if (FALSE) {
   )
 
   message(glue::glue("Working on NEW version #{version_id}."))
-  # # -- SELECT * FROM "metadata"."Versions";
 
 } else {
   # per default, the latest version is taken
@@ -258,8 +259,8 @@ n2khabstrata_lookup <- mnmsurfdb$query_lookup(
 )
 
 activity_groupid_lookup <- mnmsurfdb$query_columns(
-    "ActivityGroups",
-    c("activity_group", "activity_group_id")
+    table_label = "ActivityGroups",
+    select_columns = c("activity_group", "activity_group_id")
   )
   # %>% distinct()
 
@@ -270,7 +271,7 @@ activity_groupid_lookup <- mnmsurfdb$query_columns(
 
 surf_field_activities_db <- mnmsurfdb$query_table("ActivityGroups") %>%
   filter(is_surf_activity, is_field_activity) %>%
-  distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
+  distinct(activity_group, fag_is_auxiliary, fag_is_preponable)
 
 ```
 
@@ -1126,6 +1127,8 @@ fieldcalendar_new <- bind_rows(
 
 
 ```{r link-dates}
+# fieldcalendar_new %>% 
+#   dplyr::filter(grts_address == 687846, stratum == "3130_aom_0_1")
 
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = mnmsurfdb,
@@ -1198,6 +1201,7 @@ print_category_count(distribution, table_label)
 #   data_nouveau %>% arrange(grts_address, stratum, date_start, activity_group_id),
 #   data_ancient %>% arrange(grts_address, stratum, date_start, activity_group_id
 # )
+
 ```
 
 
