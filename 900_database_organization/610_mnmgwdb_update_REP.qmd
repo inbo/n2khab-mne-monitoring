@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload"
-date: "2026-08-19"
+date: "2026-10-28"
 format:
   html:
     toc: true
@@ -28,6 +28,7 @@ Let's bring the sample to the field - again!
 - 20260703 update to REP 0.17.0 / SNIP 0.17.0
 - 20260811 quarterly prio update 
 - 20260819 REP 0.18.0
+- 20261028 locations for 2027
 
 
 # TODO
@@ -200,9 +201,11 @@ if (FALSE) {
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
   # version_tag <- "snip:0.17_rep:0.17" # data_iteration = 1
   # version_notes <- "SURF_03.4_LENTIC"
+  # version_tag <- "snip:0.18.0_rep:0.18.0" # version_notes <- "REP 0.18.0 refinements on lentic sample units"
 
-  version_tag <- "snip:0.18.0_rep:0.18.0" # data_iteration = 1
-  version_notes <- "REP 0.18.0 refinements on lentic sample units"
+  version_tag <- "snip:0.19.0_rep:0.18.0" # data_iteration = 1
+  version_notes <- "enable 2027 data for gw and surf"
+  
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -213,11 +216,12 @@ if (FALSE) {
     new_date_fixing = version_date_fixing
   )
 
-  # SELECT * FROM "metadata"."Versions";
+  message(glue::glue("Working on NEW version #{version_id}."))
 
 } else {
   # per default, the latest version is taken
   version_id <- mnmgwdb$load_latest_version_id()
+  message(glue::glue("Working on version #{version_id}."))
 }
 
 if (FALSE) {
@@ -899,7 +903,7 @@ fieldcalendar_columns <- c(
   "date_interval",
   "activity_rank",
   "matching_occasion",
-  "date_suggested",
+  # "date_suggested",
   "priority",
   "wait_any",
   "wait_watersurface",
@@ -1052,7 +1056,6 @@ calendar_to_sideload <- load_table_sideload_content(
     log_update = convert_timestamp_to_ms_character(Sys.time()),
     is_sideloaded = TRUE,
     excluded = FALSE,
-    no_visit_planned = FALSE,
     done_planning = FALSE
   )
 
@@ -1096,7 +1099,7 @@ matching_occasions <- fieldcalendar_new %>%
   filter_out(is.na(matching_occasion)) 
 
 fieldcalendar_new <- fieldcalendar_new %>%
-  select(-date_suggested) %>% 
+  select(-tidyselect::any_of(c("date_suggested"))) %>% 
   left_join(
     matching_occasions,
     by = join_by(matching_occasion),
@@ -1142,7 +1145,6 @@ distribution$to_upload <- distribution$to_upload %>%
     log_update = convert_timestamp_to_ms_character(Sys.time()),
     excluded = FALSE,
     is_frozen = FALSE,
-    no_visit_planned = FALSE,
     done_planning = FALSE
   ) 
 
@@ -1271,14 +1273,14 @@ selection_of_activities <- list(
   "SamplingVisits" = activity_groupid_lookup %>%
     filter(activity_group %in%
       c(gw_field_activities_db %>%
-        filter(grepl("^GW.*SAMP", activity)) %>%
+        filter(grepl("^GW.*SAMP", activity_group)) %>%
         pull(activity_group))
       ) %>%
     pull(activity_group_id) %>% unique, # /CSA
   "PositioningVisits" = activity_groupid_lookup %>%
     filter(activity_group %in%
       c(gw_field_activities_db %>%
-        filter(grepl("^SPATPOSIT", activity)) %>%
+        filter(grepl("^SPATPOSIT", activity_group)) %>%
         pull(activity_group))
       ) %>%
     pull(activity_group_id) %>% unique # /SPA
