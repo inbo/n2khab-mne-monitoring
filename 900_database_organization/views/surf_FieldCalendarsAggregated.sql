@@ -23,8 +23,7 @@ SELECT
   BOOL_AND(is_frozen)           AS is_frozen,
   BOOL_AND(excluded) AS excluded,
   STRING_AGG(DISTINCT excluded_reason, ', ') AS excluded_reason,
-  BOOL_AND(done_planning) AS done_planning,
-  CASE WHEN BOOL_AND(date_visit_planned IS NULL) THEN FALSE ELSE BOOL_OR(done_planning) END AS is_scheduled
+  BOOL_AND(done_planning) AS done_planning
 FROM "outbound"."FieldCalendars"
 WHERE archive_version_id IS NULL
 GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id

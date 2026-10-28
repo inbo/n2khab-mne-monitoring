@@ -103,7 +103,7 @@ SELECT
       THEN '[✓] '
       ELSE '[_] '
       END ||
-    SUBSTRING(ACT.activity_group from 4 for 5)  || ' ' ||
+    SUBSTRING(ACT.activity_group from 5 for 4)  || ' ' ||
     CASE WHEN
       (CAL.priority IS NULL)
       THEN '(/) '
