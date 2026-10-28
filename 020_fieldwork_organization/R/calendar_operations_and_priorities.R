@@ -2,9 +2,9 @@
 #' filter by year, but
 #' already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from the
 #' next years to be executed
-filter_until_year_max_except_first_auxiliary_activities_gw <- function(
+filter_around_refyear_except_first_auxiliary_activities_gw <- function(
     .data,
-    the_year_max,
+    refyear,
     remove_has_gw = FALSE
   ) {
 
@@ -12,9 +12,9 @@ filter_until_year_max_except_first_auxiliary_activities_gw <- function(
   stopifnot("magrittr" = require("magrittr"))
 
 
-  if (!exists("filter_until_year_max_except_first_auxiliary_activities_gw")) {
+  if (!exists("flag_groundwater_scheme_has_gw")) {
     stop(
-      " (in function `filter_until_year_max_except_first_auxiliary_activities_gw`)",
+      " (in function `filter_around_refyear_except_first_auxiliary_activities_gw`)",
       "\n\tlookup `flag_groundwater_scheme_has_gw` is missing.",
       "\n\tPlease `source('location_attribute_processing.R')` first."
     )
@@ -29,7 +29,21 @@ filter_until_year_max_except_first_auxiliary_activities_gw <- function(
   # filter
   .data %<>%
     dplyr::filter(
-      lubridate::year(date_start) <= the_year_max |
+      # we want all FAG occasions till refyear + 1, except for LOCEVAL &
+      # SAMPLPOINT
+      (
+        lubridate::year(date_start) <= refyear + 1 &
+          !stringr::str_detect(field_activity_group, "LOCEVAL|SAMPLPOINT")
+      ) |
+        # for LOCEVAL & SAMPLPOINT, we only keep the occasions till refyear:
+        # those in refyear are the ones that prepare environmental fieldwork in
+        # refyear + 1
+        (
+          lubridate::year(date_start) <= refyear &
+            stringr::str_detect(field_activity_group, "LOCEVAL|SAMPLPOINT")
+        ) |
+        # already allow the first GWINST, GW*LEVREAD* & SPATPOSIT* FAGs from
+        # later years to be executed:
         (
           has_gw &
             stringr::str_detect(
@@ -132,9 +146,9 @@ mark_matching_occasions <- function(.data) {
     # matching occasions across strata
     dplyr::mutate(
       matching_occasion = ifelse(
-        stringr::str_detect(stratum, "^2190_a|^31") &
+        stringr::str_detect(stratum, lentic_types_regex) &
           # not using n() because that still includes terrestrial types:
-          sum(stringr::str_detect(stratum, "^2190_a|^31")) > 1,
+          sum(stringr::str_detect(stratum, lentic_types_regex)) > 1,
         stringr::str_c(
           dplyr::first(field_activity_group),
           dplyr::first(grts_address_final),
@@ -154,10 +168,10 @@ mark_matching_occasions <- function(.data) {
     # matching occasions across strata and date intervals
     dplyr::mutate(
       matching_occasion = ifelse(
-        stringr::str_detect(stratum, "^2190_a|^31") &
+        stringr::str_detect(stratum, lentic_types_regex) &
           # not using n() because that still includes terrestrial types:
-          sum(stringr::str_detect(stratum, "^2190_a|^31")) > 1 &
-          stringr::str_detect(field_activity_group, "INST|LEVREAD|SPATPOSIT"),
+          sum(stringr::str_detect(stratum, lentic_types_regex)) > 1 &
+          stringr::str_detect(field_activity_group, "INST|SPATPOSIT"),
         stringr::str_c(
           dplyr::first(field_activity_group),
           dplyr::first(grts_address_final),
@@ -303,7 +317,7 @@ add_wait_columns <- function(.data) {
     dplyr::mutate(
       wait_watersurface = stringr::str_detect(stratum, "^2190_a") |
         (
-          stringr::str_detect(stratum, "^31|^2190_a") &
+          stringr::str_detect(stratum, lentic_types_regex) &
             !stringr::str_detect(schemes_served_all, "SURF_03\\.4")
         ),
       wait_3260 = stratum == "3260",
