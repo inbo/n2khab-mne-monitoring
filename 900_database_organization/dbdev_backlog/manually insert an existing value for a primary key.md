@@ -11,7 +11,7 @@ execution:
 status: false
 ---
 
-Occurred during [[qgis/features of inherited tables cannot be deleted via QGIS|the qgis feature deletion issue for inherited tables]].
+Occurred during [[qgis and qfield/features of inherited tables cannot be deleted via QGIS|the qgis feature deletion issue for inherited tables]].
 
 When inserting a database entry with explicitly setting an existing key column, that will create a duplicate in the key column.
 This is despite the fact that the key column is set to be `UNIQUE`: the child table does not enter the uniqueness check.

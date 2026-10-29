@@ -2,13 +2,16 @@ column,datatype,not_null,default,primary_key,sequence,foreign_key,constraint,fre
 visit_id,int,True,,True,True,,,,visit index
 log_user,varchar,True,current_user,False,False,,,,(technical) user who modified the entry
 log_update,timestamp(3),True,current_timestamp(3),False,False,,,,(technical) timestamp of last modification
-fieldcalendar_id,int,False,,False,False,outbound.FieldCalendars.fieldcalendar_id,,,link to FwC
-sampleunit_id,int,False,,False,False,,,,sample location index (technical) or NULL for obsolete visits
+fieldcalendar_ids,int ARRAY,False,,False,False,,,,optional shortcut: collection of all FieldCalendars entries which are served by this visit
+sampleunit_ids,int ARRAY,False,,False,False,,,,array of sample unit indices (technical) or NULL for obsolete visits
 location_id,int,False,,False,False,,,,"the technical sequence of all locations, put here for quick join"
 grts_address,bigint,True,,False,False,,CHECK (grts_address > 0),,"GRTS address (`final`, i.e. after prior replacements) needed for retainer lookup"
-stratum,varchar,True,,False,False,,,,strata for which the cell is eligible
+stratums,varchar ARRAY,True,,False,False,,,,strata for which this visit can provide data
 activity_group_id,smallint,True,,False,False,,,,"a link to the activity metadata, brought here via fieldcalendar for convenience"
 date_start,date,True,,False,False,,,,start of the panel activity sequence (included to keep recurrent visits unique)
+teammember_assigned,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,filter for an assignee
+date_visit_planned,date,False,NULL,False,False,,,,planned date of visit
+preparation_notes,text,False,NULL,False,False,,,,Free text notes from the colleague who planned this.
 teammember_id,smallint,False,NULL,False,False,metadata.TeamMembers.teammember_id,,,link to the user who performed the visit
 date_visit,date,False,,False,False,,,,date of the field activity as derived from datetime_visits via expost rule
 datetime_visit,timestamp(0),False,,False,False,,,,date and time of the field activity
@@ -20,4 +23,5 @@ visit_done,boolean,True,0,False,False,,,,filter column for locations which have 
 link_observation_samplecontext,boolean,True,0,False,False,,,,choice to capture pool observation
 link_observation_meteorology,boolean,True,0,False,False,,,,choice to capture weather observation
 link_observation_perturbation,boolean,True,0,False,False,,,,choice to capture perturbation observation
+protocol_id,int,False,NULL,False,False,,,,link to the protocol which was specifically used for this activity
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived visits

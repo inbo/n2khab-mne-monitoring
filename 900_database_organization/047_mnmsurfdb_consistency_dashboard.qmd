@@ -88,7 +88,7 @@ count_table_content <- function(table_list) {
 count_table_content(c(
     "Versions",
     "Protocols",
-    "GroupedActivities",
+    "ActivityGroups",
     "TeamMembers",
     "N2kHabStrata"
   ))
@@ -401,9 +401,9 @@ check_foreignkey_connection(
 #| echo: false
 
 check_foreignkey_connection(
-  table_label = "Visits", fk = "fieldcalendar_id",
+  table_label = "FieldCalendars", fk = "visit_id",
   characteristic_columns = c("grts_address", "stratum", "activity_group_id", "date_start"),
-  ref_table = "FieldCalendars" 
+  ref_table = "VisitsUnnested" 
 )
 
 ```

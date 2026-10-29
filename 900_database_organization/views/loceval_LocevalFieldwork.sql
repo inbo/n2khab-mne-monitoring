@@ -1,16 +1,6 @@
 
--- AND ((FAC.no_visit_planned IS NULL) OR NOT (FAC.done_planning AND FAC.no_visit_planned))
 
- CASE WHEN ("excluded" OR "no_visit_planned" OR "is_frozen") THEN 'irrelevant'
- ELSE
- CASE WHEN issues THEN 'issues'
- ELSE
- CASE WHEN visit_done THEN 'done'
- ELSE "priority" END
- END
- END
-
-
+BEGIN;
 
 DROP VIEW "inbound"."LocevalFieldwork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."LocevalFieldwork" AS
@@ -32,32 +22,36 @@ SELECT
   UNIT.replacement_permanence,
   UNIT.is_replaced,
   UNIT.type_is_absent,
-  FAC.fieldcalendar_id,
-  FAC.activity_group_id,
-  FAC.date_start,
-  FAC.date_end,
-  FAC.date_interval,
-  FAC.date_end - current_date AS days_to_deadline,
-  FAC.activity_rank,
-  FAC.priority,
-  FAC.wait_any,
-  FAC.wait_watersurface,
-  FAC.wait_3260,
-  FAC.wait_7220,
-  FAC.wait_floating,
-  FAC.wait_obsolete_types,
-  FAC.excluded,
-  FAC.excluded_reason,
-  FAC.teammember_assigned,
-  FAC.date_visit_planned,
-  CASE WHEN (VISIT.visit_done OR FAC.no_visit_planned)
+  CAL.fieldcalendar_id,
+  CAL.activity_group_id,
+  CAL.date_start,
+  CAL.date_end,
+  CAL.date_interval,
+  CAL.date_end - current_date AS days_to_deadline,
+  CAL.activity_rank,
+  CAL.priority,
+  CAL.matching_occasion,
+  CAL.date_suggested,
+  CAL.wait_any,
+  CAL.wait_watersurface,
+  CAL.wait_3260,
+  CAL.wait_7220,
+  CAL.wait_floating,
+  CAL.wait_obsolete_types,
+  CAL.excluded,
+  FALSE AS no_visit_planned,
+  CAL.excluded_reason,
+  CAL.teammember_assigned,
+  CAL.date_visit_planned,
+  CASE WHEN ((VISIT.visit_done IS TRUE) OR (CAL.excluded IS TRUE))
       THEN NULL
-      ELSE (CASE WHEN FAC.date_visit_planned IS NULL THEN FAC.date_end ELSE FAC.date_visit_planned END) - current_date
+      ELSE (CASE WHEN (CAL.date_visit_planned IS NULL) THEN CAL.date_end ELSE CAL.date_visit_planned END) - current_date
       END AS days_to_visit,
-  FAC.no_visit_planned,
-  FAC.notes AS preparation_notes,
-  FAC.done_planning,
-  FAC.is_frozen,
+  CAL.notes AS preparation_notes,
+  CAL.done_planning,
+  CAL.is_frozen,
+  ACT.activity_group,
+  ACT.default_protocol_id,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
@@ -76,16 +70,54 @@ SELECT
   VISIT.crassula_was_here,
   (VISIT.terrestrialtypesvisit_id IS NOT NULL) AS show_terrestrialtypevisits,
   VISIT.replacement_recovery_notes,
+  VISIT.protocol_id,
   VISIT.visit_done,
   INFO.locationinfo_id,
   INFO.landowner,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
+  INFO.permission_notes,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
   INFO.is_secret_location,
+  (UNIT.archive_version_id IS NOT NULL)
+    OR (CAL.archive_version_id IS NOT NULL)
+    OR (VISIT.archive_version_id IS NOT NULL)
+    AS is_archived,
   OPHO.assessment_done AS orthophoto_assessment_done,
-  OPHO.notes AS orthophoto_notes
+  OPHO.notes AS orthophoto_notes,
+  CASE WHEN CAL.done_planning
+      THEN '[✓] '
+      ELSE '[_] '
+      END ||
+    CASE WHEN
+      (CAL.priority IS NULL)
+      THEN ' '
+      ELSE 'prio ' || CAL.priority::VARCHAR || ' '
+      END ||
+      '`' || CAL.type || '` ' ||
+    CASE WHEN
+        (VISIT.aquatictypesvisit_id IS NOT NULL)
+      THEN '(aq)'
+      ELSE '' END ||
+    TO_CHAR(CAL.date_start, 'yyyy-mm-dd')
+    AS label,
+  CASE WHEN
+      (VISIT.visit_done IS TRUE)
+    THEN 'done'
+    ELSE
+      CASE WHEN (VISIT.issues IS TRUE)
+      THEN 'issues'
+      ELSE
+        CASE WHEN
+          ((CAL.excluded IS TRUE)
+            OR (CAL.is_frozen IS TRUE)
+          )
+        THEN 'irrelevant'
+        ELSE CAL.priority::VARCHAR
+        END
+      END
+    END AS status
 FROM (
   SELECT *
   FROM ONLY "inbound"."Visits"
@@ -93,8 +125,8 @@ FROM (
   NATURAL FULL JOIN "inbound"."AquaticTypesVisits"
   NATURAL FULL JOIN "inbound"."TerrestrialTypesVisits"
 ) AS VISIT
-LEFT JOIN "outbound"."FieldCalendars" AS FAC
-  ON FAC.fieldcalendar_id = VISIT.fieldcalendar_id
+LEFT JOIN "outbound"."FieldCalendars" AS CAL
+  ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
@@ -104,37 +136,39 @@ LEFT JOIN "outbound"."SampleUnits" AS UNIT
 LEFT JOIN (
   SELECT DISTINCT
     sampleunit_id,
-    cell_disapproved,
-    assessment_done,
-    CONCAT(notes || ' ') AS notes
+    BOOL_OR(cell_disapproved) AS cell_disapproved,
+    BOOL_OR(assessment_done) AS assessment_done,
+    STRING_AGG(CASE WHEN notes IS NULL THEN '' ELSE notes END, '; ') AS notes
   FROM "outbound"."LocationAssessments"
   GROUP BY
-    sampleunit_id,
-    cell_disapproved,
-    assessment_done,
-    notes
+    sampleunit_id
   ) AS OPHO
   ON VISIT.sampleunit_id = OPHO.sampleunit_id
 LEFT JOIN (
-  SELECT DISTINCT
+  SELECT
     activity_group_id, activity_group,
-    BOOL_OR(is_loceval_activity) AS is_loceval_activity,
-    BOOL_OR(activity LIKE 'SURF%SAMPLPOINT') AS is_samplingpoint_activity
-  FROM "metadata"."GroupedActivities"
+    is_loceval_activity,
+    (activity_group LIKE 'SURF%SAMPLPOINT') AS is_samplingpoint_activity,
+    protocol_id AS default_protocol_id
+  FROM "metadata"."ActivityGroups"
   WHERE archive_version_id IS NULL
-  GROUP BY activity_group_id, activity_group
-) AS ACT ON ACT.activity_group_id = FAC.activity_group_id
+  AND is_loceval_activity
+) AS ACT ON ACT.activity_group_id = CAL.activity_group_id
 WHERE TRUE
-  AND VISIT.grts_address = FAC.grts_address
-  AND VISIT.type = FAC.type
-  AND VISIT.date_start = FAC.date_start
-  AND VISIT.activity_group_id = FAC.activity_group_id
-  AND FAC.wait_any IS FALSE
-  AND (UNIT.archive_version_id IS NULL)
-  AND (FAC.archive_version_id IS NULL)
-  AND (VISIT.archive_version_id IS NULL)
-  AND ((OPHO.cell_disapproved IS NULL) OR (NOT OPHO.cell_disapproved))
-  AND ACT.is_loceval_activity
+  AND (VISIT.grts_address = CAL.grts_address)
+  AND (VISIT.type = CAL.type)
+  AND (VISIT.date_start = CAL.date_start)
+  AND (ACT.activity_group IS NOT NULL)
+  AND VISIT.activity_group_id = CAL.activity_group_id
+  AND (
+    VISIT.visit_done OR (
+          (NOT CAL.wait_any)
+      AND (UNIT.archive_version_id IS NULL)
+      AND (CAL.archive_version_id IS NULL)
+      AND (VISIT.archive_version_id IS NULL)
+      AND (NOT (OPHO.cell_disapproved IS TRUE))
+    )
+  )
 ;
 
 
@@ -168,7 +202,6 @@ DO ALSO
   excluded_reason = NEW.excluded_reason,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.no_visit_planned,
   notes = NEW.preparation_notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id
@@ -190,6 +223,7 @@ DO ALSO
   notes = NEW.notes,
   photo = NEW.photo,
   issues = NEW.issues,
+  protocol_id = NEW.protocol_id,
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
@@ -200,7 +234,8 @@ ON UPDATE TO "inbound"."LocevalFieldwork"
 DO ALSO
  UPDATE "inbound"."TerrestrialTypesVisits"
  SET
-   replacement_recovery_notes = NEW.replacement_recovery_notes
+   replacement_recovery_notes = NEW.replacement_recovery_notes,
+   replacement_triggered = NEW.replacement_ongoing
  WHERE visit_id = OLD.visit_id
    AND terrestrialtypesvisit_id IS NOT NULL
 ;
@@ -226,6 +261,7 @@ DO ALSO
   recovery_hints = NEW.recovery_hints,
   equipment_recommendations = NEW.equipment_recommendations,
   is_secret_location = NEW.is_secret_location,
+  permission_notes = NEW.permission_notes,
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit
  WHERE locationinfo_id = OLD.locationinfo_id
@@ -236,6 +272,7 @@ DO ALSO
 GRANT SELECT ON  "inbound"."LocevalFieldwork"  TO viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."LocevalFieldwork"  TO user_loceval;
 
+COMMIT;
 
 
 -- DROP RULE IF EXISTS FieldWork_upd_OTHERVISITS ON "inbound"."FieldWork";

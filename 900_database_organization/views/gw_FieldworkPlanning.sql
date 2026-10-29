@@ -1,72 +1,126 @@
--- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldworkcalendar_id = 3;
---
+-- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldcalendar_id = 3;
+--  SELECT DISTINCT loceval_positive, loceval_latest_date, loceval_colleague, count(*) FROM "outbound"."FieldworkPlanning" group by loceval_positive, loceval_latest_date, loceval_colleague;
+
+
+BEGIN;
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
 SELECT
   LOC.*,
-  SLOC.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
-  SLOC.schemes,
-  SLOC.strata,
-  SLOC.is_forest,
-  SLOC.in_mhq_samples,
-  SLOC.has_mhq_assessment,
-  SLOC.is_replacement,
+  UNIT.scheme_ps_targetpanels_served AS scheme_ps_targetpanels,
+  UNIT.schemes,
+  UNIT.stratum,
+  UNIT.is_forest,
+  UNIT.in_mhq_samples,
+  UNIT.has_mhq_assessment,
+  UNIT.is_replacement,
   REP.grts_address_rep,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
   INFO.landowner,
+  INFO.permission_notes,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
   INFO.is_secret_location,
   INFO.watina_code_1,
   INFO.watina_code_2,
   SOIL.soil_info,
-  FWCAL.fieldworkcalendar_id,
-  FWCAL.samplelocation_id,
-  FWCAL.date_start,
-  FWCAL.date_end,
-  FWCAL.date_interval,
-  FWCAL.date_end - current_date AS days_to_deadline,
-  FWCAL.activity_group_id,
+  CAL.fieldcalendar_id,
+  CAL.sampleunit_id,
+  CAL.date_start,
+  CAL.date_end,
+  CAL.date_interval,
+  CAL.date_end - current_date AS days_to_deadline,
+  CAL.activity_group_id,
+  CAL.activity_rank,
+  CAL.priority,
+  CAL.wait_any AS is_waiting,
+  CAL.wait_watersurface,
+  CAL.wait_3260,
+  CAL.wait_7220,
+  CAL.wait_floating,
+  CAL.wait_obsolete_types,
+  CAL.is_frozen,
+  CAL.excluded,
+  CAL.excluded_reason,
+  CAL.teammember_assigned,
+  CAL.date_visit_planned,
+  CAL.sampling_route_group,
+  CAL.notes,
+  CAL.done_planning,
   ACT.activity_group,
   ACT.is_gw_activity,
-  FWCAL.activity_rank,
-  FWCAL.priority,
-  FWCAL.wait_any AS is_waiting,
-  FWCAL.wait_watersurface,
-  FWCAL.wait_3260,
-  FWCAL.wait_7220,
-  FWCAL.wait_floating,
-  FWCAL.wait_obsolete_types,
-  FWCAL.is_frozen,
-  FWCAL.excluded,
-  FWCAL.excluded_reason,
-  FWCAL.teammember_assigned,
-  FWCAL.date_visit_planned,
-  FWCAL.no_visit_planned,
-  FWCAL.notes,
-  FWCAL.done_planning,
-  VISIT.date_visit,
-  VISIT.photo,
+  ACT.default_protocol_id,
+  VISIT.visit_id,
+  VISIT.visit_date,
+  VISIT.visit_photo,
+  VISIT.visit_notes,
+  VISIT.visit_issues,
+  VISIT.protocol_id,
   VISIT.visit_done,
-  CASE WHEN VISIT.date_visit IS NULL THEN NULL
-      ELSE current_date - VISIT.date_visit
+  CASE WHEN VISIT.visit_date IS NULL THEN NULL
+      ELSE current_date - VISIT.visit_date
     END AS count_days_ws,
+  VISIT.installationvisit_id,
+  (VISIT.installationvisit_id IS NOT NULL) AS is_installationvisit,
+  VISIT.watina_code_used_1_peilbuis,
+  VISIT.watina_code_used_2_piezometer,
+  VISIT.free_diver,
+  VISIT.reused_existing_well,
+  VISIT.reused_with_replacement,
+  VISIT.samplingvisit_id,
+  (VISIT.samplingvisit_id IS NOT NULL) AS is_samplingvisit,
+  VISIT.project_code,
+  VISIT.recipient_code,
+  VISIT.labo_batch,
   INST.has_installation,
   INST.installation_date,
   INST.installation_issues,
+  LOCEVAL.loceval_type_assessed,
   LOCEVAL.loceval_positive,
   LOCEVAL.loceval_latest_date,
   LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
-  LOCEVAL.loceval_notes
-FROM "outbound"."FieldworkCalendar" AS FWCAL
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON SLOC.samplelocation_id = FWCAL.samplelocation_id
+  LOCEVAL.loceval_notes,
+  CASE WHEN (
+    (CAL.is_frozen IS TRUE)
+    OR (CAL.wait_any IS TRUE)
+    OR ((LOCEVAL.loceval_positive IS NULL) OR (NOT LOCEVAL.loceval_positive))
+    OR (CAL.excluded IS TRUE)
+    OR (((CAL.date_end - current_date ) < -30) AND NOT ((CAL.done_planning IS TRUE) OR (VISIT.visit_done IS TRUE)))
+    )
+    THEN 'noplan'
+    ELSE
+      'p' || LOWER(CAL.done_planning::VARCHAR) ||
+      ' v' || LOWER(VISIT.visit_done::VARCHAR)
+    END AS status,
+  CASE WHEN CAL.done_planning
+      THEN '[✓] '
+      ELSE '[_] '
+      END ||
+    ACT.activity_group || ' ' ||
+    CASE WHEN
+      (CAL.priority IS NULL)
+      THEN '(/) '
+      ELSE '(' || priority::VARCHAR || ') '
+      END ||
+    CASE WHEN
+      (VISIT.visit_done IS TRUE)
+    THEN TO_CHAR(VISIT.visit_date, 'yyyy-mm-dd')
+    ELSE
+      CASE WHEN
+        (CAL.date_visit_planned IS NULL)
+      THEN TO_CHAR(CAL.date_start, 'yyyy-mm-dd')
+      ELSE TO_CHAR(CAL.date_visit_planned, 'yyyy-mm-dd')
+      END
+    END AS label
+FROM "outbound"."FieldCalendars" AS CAL
+LEFT JOIN "outbound"."SampleUnits" AS UNIT
+  ON UNIT.sampleunit_id = CAL.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
-  ON LOC.location_id = SLOC.location_id
+  ON LOC.location_id = UNIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
 LEFT JOIN (
@@ -74,61 +128,103 @@ LEFT JOIN (
   FROM "metadata"."LocationSoilInfos"
   ) AS SOIL
   ON LOC.location_id = SOIL.location_id
-LEFT JOIN "inbound"."Visits" AS VISIT
-  ON FWCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
 LEFT JOIN (
-  SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
-    FROM "metadata"."GroupedActivities"
-    GROUP BY activity_group_id, activity_group, is_gw_activity
+  SELECT
+    VIS.visit_id,
+    VIS.date_visit AS visit_date,
+    VIS.notes AS visit_notes,
+    VIS.photo AS visit_photo,
+    VIS.issues AS visit_issues,
+    VIS.protocol_id,
+    VIS.visit_done,
+    IVIS.installationvisit_id,
+    IVIS.watina_code_used_1_peilbuis,
+    IVIS.watina_code_used_2_piezometer,
+    IVIS.free_diver,
+    IVIS.reused_existing_well,
+    IVIS.reused_with_replacement,
+    SVIS.samplingvisit_id,
+    SVIS.project_code,
+    SVIS.recipient_code,
+    SVIS.labo_batch
+  FROM "inbound"."Visits" VIS
+  LEFT JOIN "inbound"."InstallationVisits" IVIS
+    ON VIS.visit_id = IVIS.visit_id
+    AND VIS.grts_address = IVIS.grts_address
+    AND VIS.stratum = IVIS.stratum
+  LEFT JOIN "inbound"."SamplingVisits" SVIS
+    ON VIS.visit_id = SVIS.visit_id
+    AND VIS.grts_address = SVIS.grts_address
+    AND VIS.stratum = SVIS.stratum
+  )
+  AS VISIT
+  ON CAL.visit_id = VISIT.visit_id
+LEFT JOIN (
+  SELECT
+      activity_group_id,
+      activity_group,
+      is_gw_activity,
+      protocol_id AS default_protocol_id
+    FROM "metadata"."ActivityGroups"
+    WHERE archive_version_id IS NULL
+    AND is_gw_activity
   ) AS ACT
-    ON ACT.activity_group_id = FWCAL.activity_group_id
+    ON ACT.activity_group_id = CAL.activity_group_id
 LEFT JOIN (
   SELECT
     LJ.loceval_latest_date,
     LJ.grts_address,
-    LE.type AS stratum,
+    LE.type,
+    LE.loceval_type_assessed,
+    STRAT.stratum,
     LJ.loceval_replacement,
     LE.loceval_positive,
     LE.loceval_colleague,
     LE.loceval_photo,
     LE.loceval_notes
   FROM (
-    SELECT
+    SELECT DISTINCT
       location_id,
       grts_address,
-      STRING_TO_ARRAY(type_subset, ',') AS types,
+      UNNEST(ARRAY(SELECT TRIM(UNNEST(STRING_TO_ARRAY(type_subset, ','))))) AS type,
       date AS loceval_latest_date,
       loceval_replacement,
       loceval_type_absence
     FROM "outbound"."LocationJournals"
     WHERE TRUE
-      AND category = 'biot'
+      AND category IN ('biot', 'loceval')
       AND is_latest
   ) AS LJ
   LEFT JOIN (
     SELECT
       grts_address,
       type,
+      type_assessed AS loceval_type_assessed,
       eval_date,
       eval_name AS loceval_colleague,
-      (  ((type_assessed IS NULL)
-         OR (type_assessed = type))
-         AND NOT type_is_absent
+      (  ((LEVA.type_assessed IS NULL)
+         OR (LEVA.type_assessed = LEVA.type))
+         AND NOT LEVA.type_is_absent
       ) AS loceval_positive,
       photo AS loceval_photo,
       notes AS loceval_notes
-    FROM "outbound"."LocationEvaluations"
+    FROM "transfer"."LocationEvaluations" AS LEVA
     WHERE eval_source = 'loceval'
   ) AS LE
     ON (LE.grts_address = LJ.grts_address)
-    AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
-    AND (LJ.loceval_latest_date = LE.eval_date)
+    AND (LE.type = LJ.type)
+    -- AND (LJ.loceval_latest_date = LE.eval_date)
+  LEFT JOIN (
+    SELECT DISTINCT type, stratum
+    FROM "metadata"."N2kHabStrata"
+    GROUP BY type, stratum
+  ) AS STRAT
+  ON LE.type = STRAT.type -- note that this duplicates rows
   WHERE TRUE
-    AND (loceval_replacement OR NOT loceval_type_absence)
     AND LE.grts_address IS NOT NULL
 ) AS LOCEVAL
-  ON SLOC.grts_address = LOCEVAL.grts_address
-  AND SLOC.strata = LOCEVAL.stratum
+  ON UNIT.grts_address = LOCEVAL.grts_address
+  AND UNIT.stratum = LOCEVAL.stratum
 LEFT JOIN (
   SELECT DISTINCT
     type,
@@ -137,8 +233,8 @@ LEFT JOIN (
   FROM "transfer"."ReplacementData"
   GROUP BY type, grts_address_original, grts_address_replacement
 ) AS REP
-  ON ((REP.grts_address = SLOC.grts_address)
-  AND (SLOC.strata = REP.type))
+  ON ((REP.grts_address = UNIT.grts_address)
+  AND (UNIT.stratum = REP.type))
 LEFT JOIN (
   SELECT
     location_id,
@@ -151,17 +247,18 @@ LEFT JOIN (
     AND is_latest
 ) AS INST
   ON (LOC.location_id = INST.location_id)
-WHERE is_gw_activity
-  AND (SLOC.archive_version_id IS NULL)
-  AND (FWCAL.archive_version_id IS NULL)
+WHERE TRUE
+  AND (ACT.activity_group IS NOT NULL)
+  AND (UNIT.archive_version_id IS NULL)
+  AND (CAL.archive_version_id IS NULL)
 ORDER BY
-  FWCAL.date_end,
-  FWCAL.priority,
+  CAL.date_end,
+  CAL.priority,
   is_waiting,
-  SLOC.strata,
-  FWCAL.grts_address,
-  FWCAL.activity_rank,
-  FWCAL.activity_group_id
+  UNIT.stratum,
+  CAL.grts_address,
+  CAL.activity_rank,
+  CAL.activity_group_id
 ;
 
 -- SELECT DISTINCT visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done;
@@ -176,17 +273,41 @@ DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd1 AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
- UPDATE "outbound"."FieldworkCalendar"
+ UPDATE "outbound"."FieldCalendars"
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
   teammember_assigned = NEW.teammember_assigned,
   date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.no_visit_planned,
   notes = NEW.notes,
+  sampling_route_group = NEW.sampling_route_group,
   done_planning = NEW.done_planning
- WHERE fieldworkcalendar_id = OLD.fieldworkcalendar_id
+ WHERE fieldcalendar_id = OLD.fieldcalendar_id
 ;
+
+-- DROP RULE IF EXISTS FieldworkPlanning_upd_VISITs ON "outbound"."FieldworkPlanning";
+-- CREATE RULE FieldworkPlanning_upd_VISITs AS
+-- ON UPDATE TO "outbound"."FieldworkPlanning"
+-- DO ALSO
+--  UPDATE "inbound"."Visits"
+--  SET
+--   teammember_assigned = NEW.teammember_assigned,
+--   date_visit_planned = NEW.date_visit_planned,
+--   preparation_notes = NEW.preparation_notes
+--  WHERE visit_id = OLD.visit_id
+-- ;
+
+DROP RULE IF EXISTS FieldworkPlanning_upd_SVISITs ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd_SVISITs AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO ALSO
+ UPDATE "inbound"."SamplingVisits"
+ SET
+    labo_batch = NEW.labo_batch
+ WHERE (visit_id = OLD.visit_id)
+   AND (samplingvisit_id = OLD.samplingvisit_id)
+;
+
 
 DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd2 AS
@@ -194,6 +315,7 @@ ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
+  permission_notes = NEW.permission_notes,
   equipment_recommendations = NEW.equipment_recommendations,
   is_secret_location = NEW.is_secret_location,
   watina_code_1 = NEW.watina_code_1,
@@ -203,6 +325,8 @@ DO ALSO
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  planner_gwdb;
+
+COMMIT;
 
 -- GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
 -- GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;

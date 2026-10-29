@@ -1,6 +1,6 @@
 ---
 title: "REP Data Re-Upload - loceval"
-date: "2026-08-19"
+date: "2026-10-28"
 format:
   html:
     toc: true
@@ -25,6 +25,8 @@ knitr:
 - 20260703 actual REP 0.17.0 -> `SURF_03.4_LENTIC`
 - 20260811 quarterly prio update 
 - 20260819 REP 0.18.0
+- 20260916 append "matching occasions"
+- 20261028 locations gw/surf for 2027 -> little to no change expected
 
 
 # TODO
@@ -185,10 +187,13 @@ if (FALSE) {
   # version_tag <- "snip:0.16_rep:0.16" # "REP + snippets update 0.16"
   # version_tag <- "snip:0.17.0_rep:0.17.0" # data_iteration = 1
   # version_notes <- "SURF_03.4_LENTIC"
+  # version_tag <- "snip:0.18.0_rep:0.18.0" "REP 0.18.0 refinements on lentic sample units"
+  # version_tag <- "snip:0.18.0_rep:0.18.0" # version_notes <- "realize matching occasions"
 
-  version_tag <- "snip:0.18.0_rep:0.18.0" # data_iteration = 1
-  version_notes <- "REP 0.18.0 refinements on lentic sample units"
 
+  version_tag <- "snip:0.19.0_rep:0.18.0" # data_iteration = 1
+  version_notes <- "enable 2027 data for gw and surf"
+  
   version_date_applied <- as.integer(format(Sys.time(), "%Y%m%d"))
   version_date_fixing <- as.Date("2025-12-31")
 
@@ -198,12 +203,14 @@ if (FALSE) {
     new_date_applied = version_date_applied,
     new_date_fixing = version_date_fixing
   )
+  message(glue::glue("Working on NEW version #{version_id}."))
 
   # SELECT * FROM "metadata"."Versions";
 
 } else {
   # per default, the latest version is taken
   version_id <- locevaldb$load_latest_version_id()
+  message(glue::glue("Working on version #{version_id}."))
 }
 
 if (FALSE) {
@@ -237,7 +244,7 @@ if (FALSE) {
 
 
 
-# Protocols, GroupedActivities, TeamMembers
+# Protocols, ActivityGroups, TeamMembers
 
 :::{callout-warning}
 Any news?
@@ -251,7 +258,7 @@ Now is the chance!
 
 # stop("wait! Grouped Activities have been rearranged.")
 
-# manually adjust GroupedActivities (see db_devlog)
+# manually adjust ActivityGroups (see db_devlog)
 
 ```
 
@@ -263,13 +270,23 @@ Now is the chance!
 
 ```{r gather-lookups}
 
-n2khabstrata_lookup <- locevaldb$query_lookup(
-  "N2kHabStrata",
-  characteristic_columns = c("stratum")
+n2khabtypes_lookup <- locevaldb$query_columns(
+  "N2kHabTypes",
+  c("n2khabtype_id", "type")
 )
 
+n2khabstrata_lookup <- locevaldb$query_columns(
+    "N2kHabStrata",
+    c("n2khabstratum_id", "n2khabtype_id", "stratum")
+  ) %>% left_join(
+    n2khabtypes_lookup,
+    by = join_by(n2khabtype_id),
+    relationship = "many-to-one"
+  )
+# n2khabstrata_lookup %>% knitr::kable()
+
 activity_groupid_lookup <- locevaldb$query_columns(
-    "GroupedActivities",
+    "ActivityGroups",
     c("activity_group", "activity_group_id", "archive_version_id")
   ) %>%
   filter(is.na(archive_version_id)) %>% 
@@ -281,9 +298,9 @@ activity_groupid_lookup <- locevaldb$query_columns(
 
 ```{r load-activities}
 
-loceval_field_activities_db <- locevaldb$query_table("GroupedActivities") %>%
-  filter(is_loceval_activity, is_field_activity, is.na(archive_version_id)) %>%
-  distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
+loceval_field_activities_db <- locevaldb$query_table("ActivityGroups") %>%
+  filter(is_loceval_activity, is_field_activity, is.na(archive_version_id))
+  # %>% distinct(activity_group, activity, fag_is_auxiliary, fag_is_preponable)
 
 ```
 
@@ -357,6 +374,20 @@ sample_unit_columns <- c(
   "previous_notes"
 )
 
+
+replace_stratum_by_type <- function(data) {
+  data %>%
+    left_join(
+      n2khabstrata_lookup %>% distinct(stratum, type),
+      by = join_by(stratum),
+      relationship = "many-to-one"
+    ) %>%
+    select(-stratum) %>%
+    relocate(type, .after = grts_address) %>%
+    return()
+    
+}
+
 # fag_stratum_grts_calendar_shortterm_attribs %>%
 #   filter(
 #     grts_address_final == 617774,
@@ -369,6 +400,7 @@ sample_unit_columns <- c(
 
 sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   rename_grts_address_final_to_grts_address(keep_original = FALSE) %>%
+  replace_stratum_by_type() %>% 
   # only retain the activities for biotic tasks
   # otherwise there are duplicates
   #     (`schemes` filled differently on other activities)
@@ -386,7 +418,6 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
   mutate(
     previous_notes = NA # FUTURE TODO
   ) %>% 
-  rename(type = stratum) %>% 
   distinct(!!!rlang::syms(sample_unit_columns)) %>% 
   mutate(across(c(
       grts_join_method,
@@ -398,6 +429,13 @@ sample_units_updated <- fag_stratum_grts_calendar_shortterm_attribs %>%
     ), as.character)
   )
 
+
+new_types <- sample_units_updated %>% pull(type)
+missing_types <- !(new_types %in% (n2khabtypes_lookup %>% pull(type)))
+if (any(missing_types)) {
+  missing_type <- new_types[missing_types]
+  stop(glue::glue("type(s) not found: {paste0(missing_type, collapse = ', ')}"))
+}
 
 # sample_units_updated %>% glimpse()
 # sample_units_updated %>% distinct(grts_address, type) %>% nrow()
@@ -431,9 +469,9 @@ sample_units_retained <- loceval_freeze %>%
     by = join_by(grts_address, type)
   )
 
-sample_units_retained %>% 
-  glimpse()
-
+# sample_units_retained %>% 
+#  glimpse()
+# sample_units_retained %>% pull(type)
 ```
 
 
@@ -449,6 +487,7 @@ sample_units <- bind_rows(
 # sample_units %>% glimpse
 # sample_units %>% sample_n(3) %>% t() %>% knitr::kable()
 # sample_units %>% filter(grts_address == 617774) %>% knitr::kable()
+# sample_units %>% distinct(type) %>% arrange(type) %>% knitr::kable()
 
 ```
 
@@ -723,6 +762,7 @@ locevaldb$insert_data(
 
 ## Sample Units
 
+
 ```{r porcess-sample-units}
 
 if ("location_id" %in% names(sample_units)) {
@@ -829,7 +869,7 @@ Starting at `fieldwork_shortterm_prioritization_by_stratum`, which is already fi
 
 # sampleunits_lookup <- locevaldb$query_columns("SampleUnits", c("grts_address", "type", "sampleunit_id"))
 
-fieldwork_calendar_columns <- c(
+fieldcalendar_columns <- c(
   "grts_address",
   "type",
   "sampleunit_id",
@@ -838,6 +878,8 @@ fieldwork_calendar_columns <- c(
   "date_start",
   "date_end",
   "date_interval",
+  "matching_occasion",
+  "date_suggested",
   "priority",
   "wait_any",
   "wait_watersurface",
@@ -857,10 +899,9 @@ fieldcalendar_characols <- c(
 )
 
 
-
-fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
+fieldcalendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
   rename_grts_address_final_to_grts_address() %>%
-  rename(type = stratum) %>%
+  replace_stratum_by_type() %>%
   inner_join(
     sampleunits_lookup,
     by = join_by(grts_address, type),
@@ -884,15 +925,21 @@ fieldwork_calendar_updated <- fieldwork_shortterm_prioritization_by_stratum %>%
         grts_join_method,
         date_interval,
         domain_part,
-        date_interval
+        date_interval,
+        matching_occasion
       ),
       as.character
     )
   ) %>%
   mutate(is_frozen = FALSE) %>% 
-  select(!!!rlang::syms(fieldwork_calendar_columns))
+  # select(!!!rlang::syms(fieldcalendar_columns))
+  select(
+    tidyselect::any_of(unique(fieldcalendar_columns))
+  )
 
-# fieldwork_calendar_updated %>% glimpse()
+
+# fieldcalendar_updated %>% glimpse()
+# fieldcalendar_updated %>% distinct(matching_occasion)
 
 ```
 
@@ -902,10 +949,10 @@ Normally, all calendar entries from the `freeze` have already be removed, so the
 
 ```{r assemble-fieldwork-calendar-freeze}
 
-fieldwork_calendar_retained <- loceval_freeze %>%
-  select(tidyselect::any_of(c(fieldwork_calendar_columns, "done_planning"))) %>% 
+fieldcalendar_retained <- loceval_freeze %>%
+  select(tidyselect::any_of(c(fieldcalendar_columns, "done_planning"))) %>% 
   anti_join(
-    fieldwork_calendar_updated,
+    fieldcalendar_updated,
     by = join_by(!!!rlang::syms(fieldcalendar_characols))
   ) %>%
   select(-is_frozen) %>%
@@ -922,7 +969,7 @@ fieldwork_calendar_retained <- loceval_freeze %>%
   select(-done_planning, -is_loceval_activity)
   
 
-# fieldwork_calendar_retained %>% glimpse()
+# fieldcalendar_retained %>% glimpse()
 # loceval_freeze %>% count(activity_group_id, done_planning, visit_done)
 
 ```
@@ -931,9 +978,9 @@ fieldwork_calendar_retained <- loceval_freeze %>%
 
 ```{r union-fieldwork-calendar}
 
-fieldwork_calendar_new <- bind_rows(
-    fieldwork_calendar_retained,
-    fieldwork_calendar_updated
+fieldcalendar_new <- bind_rows(
+    fieldcalendar_retained,
+    fieldcalendar_updated
   )
 
 ```
@@ -960,12 +1007,37 @@ Link dates of current calendar table to new calendar
 startdate_updates_happened <- associate_and_shift_start_dates(
   mnmdb = locevaldb,
   table_label = "FieldCalendars",
-  data_future = fieldwork_calendar_new,
+  data_future = fieldcalendar_new,
   characteristic_columns = fieldcalendar_characols,
   other_table_labels = c("Visits")
 ) 
 
 if (startdate_updates_happened) message("Startdate updates happened!")
+
+
+```
+
+
+
+calculate `date_suggested` as min date in matching_occasion group
+
+```{r match-occasions-min-date}
+
+matching_occasions <- fieldcalendar_new %>% 
+  summarize(
+    date_suggested = min(date_start),
+    .by = c(matching_occasion)
+  ) %>%
+  filter_out(is.na(matching_occasion)) 
+
+fieldcalendar_new <- fieldcalendar_new %>%
+  select(-date_suggested) %>% 
+  left_join(
+    matching_occasions,
+    by = join_by(matching_occasion),
+    relationship = "many-to-one"
+  ) %>%
+  mutate(date_suggested = coalesce(date_suggested, date_start))
 
 ```
 
@@ -973,7 +1045,7 @@ if (startdate_updates_happened) message("Startdate updates happened!")
 ```{r categorize-fieldworkcalendar}
 
 table_label <- "FieldCalendars"
-data_nouveau <- fieldwork_calendar_new
+data_nouveau <- fieldcalendar_new
 characteristic_columns <- fieldcalendar_characols
 index_column <- locevaldb$get_primary_key(table_label)
 # data_nouveau %>% head(3) %>% t() %>% knitr::kable()
@@ -1046,6 +1118,15 @@ locevaldb$query_table("FieldCalendars") %>%
 
 stitch_visits <- function() {
   # link Visits back to upstream tables
+
+  stitch_table_connection(
+    mnmdb = locevaldb,
+    table_label = "FieldCalendars",
+    reference_table = "Visits",
+    link_key_column = "visit_id",
+    lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+  )
+  
   stitch_table_connection(
     mnmdb = locevaldb,
     table_label = "Visits",

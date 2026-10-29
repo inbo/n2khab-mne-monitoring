@@ -4,7 +4,7 @@
 #
 # SELECT DISTINCT
 #   date_start, date_end, date_interval
-# FROM "outbound"."FieldworkCalendar"
+# FROM "outbound"."FieldCalendars"
 # WHERE grts_address = 1660081
 # ;
 
@@ -112,4 +112,6 @@ mnmgwdb <- connect_mnm_database(
 message(mnmgwdb$shellstring)
 
 
-database_date_interval_update(mnmgwdb, "FieldworkCalendar")
+database_date_interval_update(mnmgwdb, "FieldCalendars")
+
+# TODO ??? database_date_interval_update({...}, "Visits") ???

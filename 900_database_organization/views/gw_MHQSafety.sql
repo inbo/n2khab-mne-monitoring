@@ -4,9 +4,9 @@ DROP VIEW IF EXISTS  "outbound"."MHQSafety" CASCADE;
 CREATE VIEW "outbound"."MHQSafety" AS
 SELECT *
 FROM "outbound"."MHQPolygons"
-WHERE samplelocation_id IN (
-    SELECT DISTINCT samplelocation_id
-    FROM "outbound"."LocationEvaluations"
+WHERE sampleunit_id IN (
+    SELECT DISTINCT sampleunit_id
+    FROM "transfer"."LocationEvaluations"
     WHERE eval_source = 'loceval'
   )
 ;

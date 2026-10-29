@@ -32,6 +32,11 @@ add [[locations/pg_hba|pg_hba]] entry
 ![[attachments/sql_r_console_20260616.jpg]]
 
 (4) via R - toolbox
+
+> [!important] UPDATE [[timeline/2026-09-15|2026-09-15]]
+> There have been efforts in wrapping the mnmdb connection into an R package, which should facilitate connection.
+> https://github.com/inbo/mnmdb
+
 best established with direct support
 https://github.com/inbo/n2khab-mne-monitoring/blob/main/990_database_documentation/R/R%20database%20connection%20usage%20example.md
 cf. [connection config file](https://github.com/inbo/n2khab-mne-monitoring/blob/main/990_database_documentation/usage/connection%20config%20file.md)

@@ -84,7 +84,7 @@ if (TRUE) {
 
 ### MHQ input
 # check which cells are subject to MHQ assessment
-## not necessary: now stored in SampleLocations
+## not necessary: now stored in SampleUnits
 # assessment_lookup <- bind_rows(
 #   fag_stratum_grts_calendar %>%
 #     distinct(grts_address_final, assessed_in_field) %>%
@@ -165,15 +165,22 @@ generate_centerweighted_random_sampling <- function(
 
 
 
-## load SampleLocations
+## load SampleUnits
 
 locations_sf <- mnmgwdb$query_table("Locations") %>%
   sf::st_as_sf()
 
-sample_locations <- mnmgwdb$query_table("SampleLocations")
+sample_units <- mnmgwdb$query_table("SampleUnits")
 
 
 ## load cell maps and join them with nearest locations
+registered_locevals <- loceval_connection$query_table("Visits") %>%
+  filter(
+    visit_done,
+    isFALSE(issues),
+    type == type_assessed
+  ) %>%
+  distinct(grts_address, type)
 
 cellmaps_sf <- loceval_connection$query_table("CellMaps") %>%
   sf::st_as_sf()
@@ -187,18 +194,18 @@ cellmaps_sf$unused <- TRUE
 
 locations_all <- locations_sf %>%
   inner_join(
-    sample_locations %>% select(-grts_address),
+    sample_units %>% select(-grts_address),
     by = join_by(location_id)
   ) %>%
   mutate(
-    is_forest_previously_for_comparison = stringr::str_detect(strata, "^9|^2180|^rbbppm")
-    # is_forest = stringr::str_detect(strata, "^9|^2180|^rbbppm")
-  ) %>%
-  rename(stratum = strata)
+    is_forest_previously_for_comparison = stringr::str_detect(stratum, "^9|^2180|^rbbppm")
+    # is_forest = stringr::str_detect(stratum, "^9|^2180|^rbbppm")
+  )
 
 # TODO: work with a subset for testing
 locations <- locations_all %>%
   filter(!sf::st_is_empty(wkb_geometry)) # %>%
+  # filter(grts_address %in% c(5798622, 77278)) # 5798622: a 7150 without 4010; 77278: both present
 # filter(grts_address %in% c(131806)) # 83694
 #  filter(grts_address %in% c(48897, 1818369))
 #  filter(grts_address %in% c(23238, 23091910, 6314694))
@@ -300,16 +307,28 @@ generate_random_placement_points <- function(
   # see notes on `non_center_coupled_types` above
   # often multiple subparts are chosen
   if (one_location$stratum %in% non_center_coupled_types) {
-    # is there a center-coupled reference on this co-location?
+
+    # condition 1: there must be a loceval for center_coupled_reference (CCR);
+    # if not, this one has to be used anyways
+    ccr_loceval <- locations %>%
+      filter(grts_address == one_location$grts_address) %>%
+      dplyr::filter_out(
+        stratum %in% c(non_center_coupled_types)
+      )
+
+    # condition 2: is there a cellmap of center-coupled reference on this co-location?
     # then skip this one
-    center_coupled_reference <- cellmaps_sf %>%
+    ccr_cellmaps <- cellmaps_sf %>%
       dplyr::filter(
         location_id == one_location$location_id
       ) %>%
       dplyr::filter_out(
         type %in% c(non_center_coupled_types)
       )
-    if (nrow(center_coupled_reference) > 0) return(invisible(NULL))
+
+
+    if ((nrow(ccr_loceval) > 0) && (nrow(ccr_cellmaps) > 0)) return(invisible(NULL))
+
   }
 
   # cellmap polygons of this type and co-located non-center-coupled types
@@ -410,7 +429,7 @@ pb <- txtProgressBar(
   initial = 0, style = 1
 )
 
-# location_row <- 1 # 234
+# location_row <- 2 # 234
 # location_row <- which(locations$grts_address == 83694)
 randompoints_locationwise <- function(location_row) {
 
@@ -492,9 +511,10 @@ randompoints_locationwise <- function(location_row) {
 
   rnd20_points <- rnd20_points %>%
     dplyr::mutate(
-      samplelocation_id = one_location$samplelocation_id,
+      sampleunit_id = one_location$sampleunit_id,
       location_id = one_location$location_id,
       grts_address = one_location$grts_address,
+      stratum = one_location$stratum,
       random_point_rank = seq_len(nrow(rnd20_points))
     )
 
@@ -542,7 +562,7 @@ if (FALSE) {
 ## TODO northing - correct to magnetic north
 all_points <- all_points %>%
   mutate(
-    randompoint_id = seq_len(nrow(all_points)),
+    installationpoint_id = seq_len(nrow(all_points)),
     angle = -(phi+90) %% 360,
     # angle_look = (-angle) + 360, # wrong, updated 20250812
     angle_look = (angle + 180) %% 360,
@@ -571,16 +591,16 @@ all_points <- cbind(all_points, lamberts) %>%
 sf::st_geometry(all_points) <- "wkb_geometry"
 
 message("________________________________________________________________")
-message(glue::glue("DELETE/INSERT of outbound.RandomPoints"))
+message(glue::glue("DELETE/INSERT of outbound.InstallationPoints"))
 
 if (TRUE) {
   mnmgwdb$execute_sql(
-    glue::glue('DELETE FROM "outbound"."RandomPoints";'),
+    glue::glue('DELETE FROM "outbound"."InstallationPoints";'),
     verbose = TRUE
   )
 
   mnmgwdb$insert_data(
-    table_label = "RandomPoints",
+    table_label = "InstallationPoints",
     upload_data = all_points %>% select(-r, -phi)
   )
 
@@ -599,9 +619,10 @@ if (FALSE) {
 
 # """
 # \COPY (
-#   SELECT samplelocation_id,
+#   SELECT sampleunit_id,
 #     location_id,
 #     grts_address,
+#     stratum,
 #     random_point_rank,
 #     compass,
 #     angle,
@@ -609,9 +630,9 @@ if (FALSE) {
 #     distance_m,
 #     lambert_lon,
 #     lambert_lat
-#   FROM "outbound"."RandomPoints"
+#   FROM "outbound"."InstallationPoints"
 #   WHERE angle IS NOT NULL
-#   ORDER BY grts_address ASC, random_point_rank ASC
+#   ORDER BY grts_address ASC, stratum ASC, random_point_rank ASC
 # ) TO '/data/mnm_db_backups/randompoints.csv' With CSV DELIMITER ',' HEADER
 # ;
 # """

@@ -1,5 +1,27 @@
--- UPDATE "outbound"."FieldworkPlanning" SET watina_code = 'XXX000' WHERE fieldworkcalendar_id = 3;
---
+
+-- auto-update "excluded" for disapproved LOCEVALs
+SELECT
+  grts_address,
+  type,
+  type_assessed,
+  type_is_absent,
+  CASE WHEN type_is_absent
+FROM "transfer"."LocationEvaluations"
+WHERE eval_source = "loceval"
+;
+
+SELECT *
+FROM "outbound"."FieldworkPlanning"
+WHERE grts_address = 1012434
+;
+
+SELECT *
+FROM "metadata"."N2kHabStrata"
+;
+
+
+
+BEGIN;
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" CASCADE;
 CREATE OR REPLACE VIEW "outbound"."FieldworkPlanning" AS
@@ -16,66 +38,107 @@ SELECT
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
+  INFO.permission_notes,
   INFO.landowner,
   INFO.recovery_hints,
   INFO.equipment_recommendations,
   INFO.is_secret_location,
-  FCAL.fieldcalendar_id,
-  FCAL.activity_group_id,
-  FAG.activity_group,
-  FAG.activity_group LIKE '%LENT%' AS is_lentic,
-  FAG.activity_group LIKE '%LOT%' AS is_lotic,
-  FCAL.activity_rank,
-  FCAL.date_start,
-  FCAL.date_end,
-  FCAL.date_interval,
-  FCAL.date_end - current_date AS days_to_deadline,
-  FCAL.priority,
-  FCAL.wait_any AS is_waiting,
-  FCAL.wait_watersurface,
-  FCAL.wait_3260,
-  FCAL.wait_7220,
-  FCAL.wait_floating,
-  FCAL.wait_obsolete_types,
-  FCAL.is_sideloaded,
-  FCAL.is_frozen,
-  FCAL.excluded,
-  FCAL.excluded_reason,
-  FCAL.teammember_assigned,
-  FCAL.date_visit_planned,
-  FCAL.no_visit_planned,
-  FCAL.notes,
-  FCAL.done_planning,
+  CAL.fieldcalendar_id,
+  CAL.activity_group_id,
+  ACT.activity_group,
+  ACT.activity_group LIKE '%LENT%' AS is_lentic,
+  ACT.activity_group LIKE '%LOT%' AS is_lotic,
+  ACT.default_protocol_id,
+  CAL.activity_rank,
+  CAL.date_start,
+  CAL.date_end,
+  CAL.date_interval,
+  CAL.date_end - current_date AS days_to_deadline,
+  CAL.priority,
+  CAL.matching_occasion,
+  CAL.date_suggested,
+  CAL.wait_any AS is_waiting,
+  CAL.wait_watersurface,
+  CAL.wait_3260,
+  CAL.wait_7220,
+  CAL.wait_floating,
+  CAL.wait_obsolete_types,
+  CAL.is_sideloaded,
+  CAL.is_frozen,
+  CAL.excluded,
+  CAL.excluded_reason,
+  CAL.done_planning,
+  CAL.visit_id,
+  VISIT.teammember_assigned,
+  VISIT.date_visit_planned,
+  VISIT.preparation_notes,
   VISIT.date_visit,
   VISIT.photo,
+  VISIT.protocol_id,
   VISIT.visit_done,
+  LOCEVAL.loceval_type_assessed,
   LOCEVAL.loceval_positive,
   LOCEVAL.loceval_latest_date,
   LOCEVAL.loceval_colleague,
   LOCEVAL.loceval_photo,
-  LOCEVAL.loceval_notes
-FROM "outbound"."FieldCalendars" AS FCAL
+  LOCEVAL.loceval_notes,
+  CASE WHEN
+    (CAL.is_frozen IS TRUE)
+    OR (CAL.wait_any IS TRUE)
+    OR (CAL.excluded IS TRUE)
+    THEN 'noplan'
+    ELSE
+      CASE WHEN
+        (CAL.done_planning IS FALSE)
+      THEN 'todo'
+      ELSE
+        CASE WHEN
+          (VISIT.visit_done IS TRUE)
+        THEN 'visited'
+        ELSE 'done'
+        END
+      END
+    END AS status,
+  CASE WHEN CAL.done_planning
+      THEN '[✓] '
+      ELSE '[_] '
+      END ||
+    SUBSTRING(ACT.activity_group from 5 for 4)  || ' ' ||
+    CASE WHEN
+      (CAL.priority IS NULL)
+      THEN '(/) '
+      ELSE '(' || CAL.priority::VARCHAR || ') '
+      END ||
+    TO_CHAR(CAL.date_start, 'yyyy-mm-dd') || ', ' ||
+    CAL.stratum || ')'
+  AS label
+FROM "outbound"."FieldCalendars" AS CAL
 LEFT JOIN "inbound"."Visits" AS VISIT
-  ON FCAL.fieldcalendar_id = VISIT.fieldcalendar_id
+  ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON UNIT.sampleunit_id = FCAL.sampleunit_id
+  ON UNIT.sampleunit_id = CAL.sampleunit_id
 LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = UNIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON LOC.location_id = INFO.location_id
 LEFT JOIN (
- SELECT DISTINCT
-     activity_group_id, activity_group, is_surf_activity,
-     archive_version_id IS NULL AS is_active
-   FROM "metadata"."GroupedActivities"
-   GROUP BY activity_group_id, activity_group, is_surf_activity, archive_version_id
- ) AS FAG
-   ON FAG.activity_group_id = FCAL.activity_group_id
+ SELECT
+    activity_group_id,
+    activity_group,
+    is_surf_activity,
+    protocol_id AS default_protocol_id
+   FROM "metadata"."ActivityGroups"
+   WHERE archive_version_id IS NULL
+     AND is_surf_activity
+ ) AS ACT
+   ON ACT.activity_group_id = CAL.activity_group_id
 LEFT JOIN (
   SELECT
     LJ.loceval_latest_date,
     LJ.grts_address,
-    LE.type AS stratum,
+    LE.type,
+    LE.loceval_type_assessed,
+    STRAT.stratum,
     LJ.loceval_replacement,
     LE.loceval_positive,
     LE.loceval_colleague,
@@ -85,7 +148,7 @@ LEFT JOIN (
     SELECT DISTINCT
       location_id,
       grts_address,
-      ARRAY(SELECT TRIM(UNNEST(STRING_TO_ARRAY(type_subset, ',')))) AS types ,
+      UNNEST(ARRAY(SELECT TRIM(UNNEST(STRING_TO_ARRAY(type_subset, ','))))) AS type,
       date AS loceval_latest_date,
       loceval_replacement,
       loceval_type_absence
@@ -98,38 +161,44 @@ LEFT JOIN (
     SELECT
       grts_address,
       type,
+      type_assessed AS loceval_type_assessed,
       eval_date,
       eval_name AS loceval_colleague,
-      (  ((type_assessed IS NULL)
-         OR (type_assessed = type))
-         AND NOT type_is_absent
+      (  ((LEVA.type_assessed IS NULL)
+         OR (LEVA.type_assessed = LEVA.type))
+         AND NOT LEVA.type_is_absent
       ) AS loceval_positive,
       photo AS loceval_photo,
       notes AS loceval_notes
-    FROM "transfer"."LocationEvaluations"
+    FROM "transfer"."LocationEvaluations" AS LEVA
     WHERE eval_source = 'loceval'
   ) AS LE
     ON (LE.grts_address = LJ.grts_address)
-    -- AND (CAST(LE.type AS TEXT) = ANY(LJ.types))
+    AND (LE.type = LJ.type)
     -- AND (LJ.loceval_latest_date = LE.eval_date)
+  LEFT JOIN (
+    SELECT DISTINCT type, stratum
+    FROM "metadata"."N2kHabStrata"
+    GROUP BY type, stratum
+  ) AS STRAT
+  ON LE.type = STRAT.type -- note that this duplicates rows
   WHERE TRUE
-    AND (loceval_replacement OR NOT loceval_type_absence)
     AND LE.grts_address IS NOT NULL
 ) AS LOCEVAL
   ON UNIT.grts_address = LOCEVAL.grts_address
   AND UNIT.stratum = LOCEVAL.stratum
-WHERE FAG.is_surf_activity
-  AND FAG.is_active
+WHERE TRUE
+  AND (ACT.activity_group IS NOT NULL)
   AND (UNIT.archive_version_id IS NULL)
-  AND (FCAL.archive_version_id IS NULL)
+  AND (CAL.archive_version_id IS NULL)
 ORDER BY
-  FCAL.date_end,
-  FCAL.priority,
+  CAL.date_end,
+  CAL.priority,
   is_waiting,
   UNIT.stratum,
   UNIT.grts_address,
-  FCAL.activity_rank,
-  FCAL.activity_group_id
+  CAL.activity_rank,
+  CAL.activity_group_id
 ;
 
 -- SELECT DISTINCT visit_done, count(*) FROM "inbound"."Visits" GROUP BY visit_done;
@@ -141,6 +210,7 @@ ON UPDATE TO "outbound"."FieldworkPlanning"
 DO INSTEAD NOTHING;
 
 DROP RULE IF EXISTS FieldworkPlanning_upd1 ON "outbound"."FieldworkPlanning";
+DROP RULE IF EXISTS FieldworkPlanning_upd_CAL ON "outbound"."FieldworkPlanning";
 CREATE RULE FieldworkPlanning_upd_CAL AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
@@ -148,20 +218,31 @@ DO ALSO
  SET
   excluded = NEW.excluded,
   excluded_reason = NEW.excluded_reason,
-  teammember_assigned = NEW.teammember_assigned,
-  date_visit_planned = NEW.date_visit_planned,
-  no_visit_planned = NEW.no_visit_planned,
-  notes = NEW.notes,
   done_planning = NEW.done_planning
  WHERE fieldcalendar_id = OLD.fieldcalendar_id
 ;
 
+DROP RULE IF EXISTS FieldworkPlanning_upd_VISITs ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd_VISITs AS
+ON UPDATE TO "outbound"."FieldworkPlanning"
+DO ALSO
+ UPDATE "inbound"."Visits"
+ SET
+  teammember_assigned = NEW.teammember_assigned,
+  date_visit_planned = NEW.date_visit_planned,
+  preparation_notes = NEW.preparation_notes
+ WHERE visit_id = OLD.visit_id
+;
+
+
 DROP RULE IF EXISTS FieldworkPlanning_upd2 ON "outbound"."FieldworkPlanning";
-CREATE RULE FieldworkPlanning_upd2 AS
+DROP RULE IF EXISTS FieldworkPlanning_upd_INFOs ON "outbound"."FieldworkPlanning";
+CREATE RULE FieldworkPlanning_upd_INFOs AS
 ON UPDATE TO "outbound"."FieldworkPlanning"
 DO ALSO
  UPDATE "outbound"."LocationInfos"
  SET
+  permission_notes = NEW.permission_notes,
   equipment_recommendations = NEW.equipment_recommendations,
   is_secret_location = NEW.is_secret_location
  WHERE locationinfo_id = OLD.locationinfo_id
@@ -169,6 +250,8 @@ DO ALSO
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  planner_surfdb;
+
+COMMIT;
 
 -- GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;
 -- GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO  tester_mnmdb;

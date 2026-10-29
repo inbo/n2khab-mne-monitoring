@@ -2,6 +2,7 @@ schema,table,owner,read_access,write_access,geometry,constraint,inherits,freesql
 metadata,Versions,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,storing the REP versions which caused the data
 metadata,Protocols,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,"protocols, linked to protocols.inbo.be"
 metadata,GroupedActivities,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,"activities (all, incl. field activities), by activity group and sequence, IMPORTANT: can have duplicate activities for multi sequences"
+metadata,ActivityGroups,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,activity groups
 metadata,TeamMembers,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,1,,list of team members
 metadata,N2kHabTypes,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,habitat type
 metadata,N2kHabStrata,yoda,"viewer_mnmdb, tester_mnmdb",,,,,,,,lookup table n2khab type to stratum

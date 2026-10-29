@@ -796,6 +796,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     ) {
     # mnmdb <- mnmgwdb
     # mnmdb <- locevaldb
+    # mnmdb <- mnmsurfdb
 
     stopifnot("glue" = requireNamespace("glue"))
 
@@ -824,8 +825,8 @@ parametrize_cascaded_update <- function(mnmdb) {
     new_characteristics <- new_data
 
     new_characteristics <- new_characteristics %>%
-      select(!!!characteristic_columns) %>%
-      distinct()
+      dplyr::select(!!!characteristic_columns) %>%
+      dplyr::distinct()
     stopifnot("Error: characteristic columns are not characteristic!" =
       nrow(new_data) == nrow(new_characteristics))
 
@@ -851,23 +852,23 @@ parametrize_cascaded_update <- function(mnmdb) {
       ]
 
       prior_content <- prior_content %>%
-        select(!!!subset_columns)
+        dplyr::select(!!!subset_columns)
 
       # "untouched" means: content which is not affected by the update
       #   (but, though unaffected, must be uploaded again).
       existing_untouched <- prior_content %>%
-        anti_join(
+        dplyr::anti_join(
           new_characteristics,
-          by = join_by(!!!characteristic_columns)
+          by = dplyr::join_by(!!!characteristic_columns)
         )
       # prior_content %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
       # new_characteristics %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
       # existing_untouched %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
       existing_removed <- prior_content %>%
-        semi_join(
+        dplyr::semi_join(
           new_characteristics,
-          by = join_by(!!!characteristic_columns)
+          by = dplyr::join_by(!!!characteristic_columns)
         )
       # existing_removed %>% filter(grts_address == 871030) %>% t() %>% knitr::kable()
 
@@ -917,7 +918,7 @@ parametrize_cascaded_update <- function(mnmdb) {
     ## do not upload index columns
     retain_cols <- names(new_data)
     retain_cols <- retain_cols[!(retain_cols %in% index_columns)]
-    new_data <- new_data %>% select(!!!retain_cols)
+    new_data <- new_data %>% dplyr::select(!!!retain_cols)
 
 
     ### double safety: load/catch/restore
@@ -996,26 +997,23 @@ associate_and_shift_start_dates <- function(
   }
 
   # load previous data
-  data_previous <- mnmdb$query_table(table_label, ONLY = TRUE)
+  data_previous <- mnmdb$query_table(table_label, ONLY = TRUE) %>%
+    dplyr::filter(is.na(archive_version_id))
 
   # remove frozen calendar entries
   if ("is_frozen" %in% names(data_previous)) {
     data_previous <- data_previous %>%
-      filter(
-        !is_frozen
-      )
+      dplyr::filter_out(is_frozen)
   }
-  if ("is_frozen" %in% names(data_previous)) {
+  if ("is_frozen" %in% names(data_future)) {
     data_future <- data_future %>%
-      filter(
-        !is_frozen
-      )
+      dplyr::filter_out(is_frozen)
   }
 
   ## find the link
   data_previous_linked <- link_dates(
-    data_pre = data_previous %>% select(!!!characteristic_columns),
-    data_post = data_future %>% select(!!!characteristic_columns),
+    data_pre = data_previous %>% dplyr::select(tidyselect::any_of(characteristic_columns)),
+    data_post = data_future %>% dplyr::select(tidyselect::any_of(characteristic_columns)),
     characteristic_columns = characteristic_columns,
     date_column = "date_start",
     # date_threshold = freeze_date # TODO
@@ -1027,10 +1025,8 @@ associate_and_shift_start_dates <- function(
 
   # only changes are relevant
   date_updates <- data_previous_linked  %>%
-    filter(
-      !is.na(date_start_new),
-      date_start != date_start_new
-    )
+    dplyr::filter_out(is.na(date_start_new)) %>%
+    dplyr::filter_out(date_start == date_start_new)
   # date_updates  %>%  filter(grts_address == check_grts)
 
   if (nrow(date_updates) == 0) {
@@ -1041,7 +1037,7 @@ associate_and_shift_start_dates <- function(
   output_filename <- file.path(".", "logs", glue::glue(
       "{format(Sys.time(), '%Y%m%d%H%M')}_date_updates_{mnmdb$mirror_short}.csv"
     ))
-  write_csv2(date_updates, output_filename)
+  readr::write_csv2(date_updates, output_filename)
 
 
   ## update the data_previous to reflect date changes
@@ -1059,12 +1055,27 @@ associate_and_shift_start_dates <- function(
     temporary = TRUE
   )
 
-  lookup_criteria <- unlist(lapply(
-    characteristic_columns,
-    FUN = function(col) glue::glue("TRGTAB.{col} = SRCTAB.{col}")
-  ))
 
   for (tablab in c(table_label, other_table_labels)) {
+
+    lookup_criteria <- unlist(lapply(
+      characteristic_columns,
+      FUN = function(col) {
+
+        # in some dtabases, Visits do not have `stratum` any more, but `stratums` (array type)
+        if (table_label == "FieldCalendars"
+            && tablab == "Visits"
+            && col == "stratum"
+            && mnmdb$table_has_column(tablab, "stratums")
+            ) {
+          return(glue::glue("SRCTAB.stratum = ANY(TRGTAB.stratums)"))
+        } else {
+          return(glue::glue("TRGTAB.{col} = SRCTAB.{col}"))
+        }
+      }
+    ))
+
+
     trgtab <- mnmdb$get_namestring(tablab)
     update_string <- glue::glue("
       UPDATE {trgtab} AS TRGTAB
@@ -1782,7 +1793,7 @@ link_dates <- function(
     }
     dt_seq <- dt
 
-    idx <- seq_len(length(dt))
+    idx <- seq_along(dt)
 
     # all lower-sequence events are impossible
     dt_seq[idx < pos] <- Inf
@@ -1825,28 +1836,28 @@ link_dates <- function(
 
   # filter and sort data
   dpre <- data_pre[
-      data_pre %>% pull(!!date_column) >= date_threshold,
+      data_pre %>% dplyr::pull(!!date_column) >= date_threshold,
     ] %>%
-    select(!!!rlang::syms(relevant_columns)) %>%
+    dplyr::select(!!!rlang::syms(relevant_columns)) %>%
     dplyr::arrange(!!!rlang::syms(relevant_columns))
   dpost <- data_post[
-      data_post %>% pull(!!date_column) >= date_threshold,
+      data_post %>% dplyr::pull(!!date_column) >= date_threshold,
     ] %>%
-    select(!!!rlang::syms(relevant_columns)) %>%
+    dplyr::select(!!!rlang::syms(relevant_columns)) %>%
     dplyr::arrange(!!!rlang::syms(relevant_columns))
 
   # only entries that differ must be linked
   dpre_stashed <- dpre %>%
-    anti_join(
+    dplyr::anti_join(
       dpost,
       by = dplyr::join_by(!!!rlang::syms(relevant_columns))
     )
-  dpost <- dpost %>%
-    anti_join(
-      dpre,
-      by = dplyr::join_by(!!!rlang::syms(relevant_columns))
-    )
-  data_pre <- dpre_stashed
+  # dpost <- dpost %>%
+  #   dplyr::anti_join(
+  #     dpre,
+  #     by = dplyr::join_by(!!!rlang::syms(relevant_columns))
+  #   )
+  data_pre <- dpre_stashed %>% dplyr::arrange(grts_address)
 
   # grouping by all except date column
   nondate_charcols <-
@@ -1858,7 +1869,7 @@ link_dates <- function(
     dplyr::inner_join(
       dpost %>%
         dplyr::distinct(!!!rlang::syms(nondate_charcols)),
-      by = join_by(!!!rlang::syms(nondate_charcols))
+      by = dplyr::join_by(!!!rlang::syms(nondate_charcols))
     ) %>%
     dplyr::arrange(!!!rlang::syms(nondate_charcols))
 
@@ -1877,15 +1888,16 @@ link_dates <- function(
   }
 
   ### groupwise comparison
-  # row_nr <- 1
+  # row_nr <- 44
   compare_group <- function(row_nr) {
 
     if (verbose) setTxtProgressBar(pb, row_nr)
 
     grp <- dgroups %>%
-      mutate(extraction_sequence_ = seq_len(n())) %>%
-      filter(extraction_sequence_ == row_nr) %>%
-      select(-extraction_sequence_)
+      dplyr::mutate(extraction_sequence_ = seq_len(n())) %>%
+      # dplyr::filter(grts_address == 687846)
+      dplyr::filter(extraction_sequence_ == row_nr) %>%
+      dplyr::select(-extraction_sequence_)
 
     pre <- dpre %>%
       dplyr::semi_join(grp, by = dplyr::join_by(!!!nondate_charcols))
@@ -2061,9 +2073,6 @@ load_table_sideload_content <- function(
 # eventually get better. I am embarassed.
 # Last update: 20251205
 precedence_columns <- list(
-  "SampleLocations" = c(
-    # "is_replacement"
-  ),
   "SampleUnits" = c(
     # "is_replacement",
     # "was_replaced_by_grts"
@@ -2084,44 +2093,26 @@ precedence_columns <- list(
     "implications_habitatmap",
     "notes"
   ),
-  "FieldCalendar" = c( # not quite obsolete - used in gwdb
-    "is_sideloaded",
-    "is_frozen",
-    "excluded",
-    "excluded_reason",
-    "teammember_assigned",
-    "date_visit_planned",
-    "no_visit_planned",
-    "notes",
-    "done_planning"
-  ),
-  "FieldworkCalendar" = c(
-    "excluded",
-    "excluded_reason",
-    "teammember_assigned",
-    "date_visit_planned",
-    "no_visit_planned",
-    "notes",
-    "done_planning",
-    "is_sideloaded",
-    "is_frozen"
-  ),
   "FieldCalendars" = c(
     "is_sideloaded",
     "is_frozen",
     "excluded",
     "excluded_reason",
-    "teammember_assigned",
-    "date_visit_planned",
-    "no_visit_planned",
-    "notes",
+      "teammember_assigned",
+      "date_visit_planned",
+      # "no_visit_planned",
+      "notes",
     "done_planning"
   ),
   "Visits" = c(
+    "teammember_assigned",
+    "date_visit_planned",
+    "preparation_notes",
     "teammember_id",
     "date_visit",
-      "datetime_visit",
-      "sampling_done",
+    "datetime_visit",
+    "protocol_id",
+    "sampling_done",
     "type_assessed",
     "is_well_developed_type",
     "gps_type",

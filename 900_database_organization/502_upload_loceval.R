@@ -211,6 +211,8 @@ grouped_activities %<>% associate_grouped_activities_with_fieldtaskforces()
 grouped_activities_upload <- grouped_activities %>%
   lookup_join(protocol_lookup, "protocol")
 
+stop("GroupedActivities is obsolete!")
+
 # NOT append_tabledata(
 #   db_connection,
 #   DBI::Id(schema = "metadata", table = "GroupedActivities"),

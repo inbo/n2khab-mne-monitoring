@@ -1,23 +1,148 @@
 -- SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
 
+SELECT DISTINCT
+  grts_address,
+  stratum,
+  date_start,
+  activity_group_id,
+  COUNT(*) AS n
+FROM "inbound"."FieldWork"
+GROUP BY
+  grts_address,
+  stratum,
+  date_start,
+  activity_group_id
+;
+
+3514038 | 3130_aom_5_50
+3514038 | 3150_5_50
+
+ 231150 | 3130_aom_0_1   | 2026-07-01 |                32 | 1
+ 231150 | 3130_aom_0_1   | 2026-08-01 |                32 | 1
+ 231150 | 3130_na_0_1    | 2026-07-01 |                32 | 1
+ 231150 | 3130_na_0_1    | 2026-08-01 |                32 | 1
+ 231150 | 3150_0_1       | 2026-07-01 |                32 | 1
+ 231150 | 3150_0_1       | 2026-08-01 |                32 | 1
+
+19205238 triple type
+
+SELECT
+  VISIT.grts_address,
+  VISIT.stratums,
+  VISIT.sampleunit_ids,
+  VISIT.date_start,
+  LOCEVAL.sampleunit_ids AS le_su_ids,
+  LOCEVAL.type_planned,
+  LOCEVAL.eval_name,
+  LOCEVAL.type_assessed,
+  LOCEVAL.loceval_date
+FROM "inbound"."Visits" AS VISIT
+LEFT JOIN (
+  SELECT DISTINCT
+    grts_address,
+    ARRAY_AGG(DISTINCT type_planned) AS type_planned,
+    ARRAY_AGG(DISTINCT sampleunit_id) AS sampleunit_ids,
+    STRING_AGG(DISTINCT eval_name, ',') AS eval_name,
+    MAX(loceval_date) AS loceval_date,
+    ARRAY_AGG(DISTINCT type_assessed) AS type_assessed,
+    BOOL_AND(type_is_absent) AS type_is_absent,
+    STRING_AGG(CASE WHEN notes IS NULL THEN '' ELSE notes END, '; ') AS loceval_notes,
+    STRING_AGG(DISTINCT photo, ', ') AS loceval_photo
+  FROM(
+    SELECT DISTINCT
+      grts_address,
+      sampleunit_id,
+      MAX(eval_date) AS latest_visit,
+      eval_date AS loceval_date,
+      eval_name,
+      COALESCE(n2k_type, type) AS type_planned,
+      type_assessed,
+      type_is_absent,
+      notes,
+      photo
+    FROM "transfer"."LocationEvaluations" AS LE
+    LEFT JOIN (
+      SELECT DISTINCT stratum AS n2k_stratum, type AS n2k_type
+      FROM "metadata"."N2kHabStrata"
+      GROUP BY stratum, type
+      ) AS STRATA
+        ON LE.type = STRATA.n2k_stratum
+    WHERE eval_source = 'loceval'
+    GROUP BY grts_address,
+      sampleunit_id,
+      eval_date,
+      eval_name,
+      type,
+      n2k_type,
+      type_assessed,
+      type_is_absent,
+      notes,
+      photo
+    ORDER BY grts_address, type_planned
+  ) WHERE loceval_date = latest_visit
+    AND grts_address = 19205238
+    AND type_assessed = type_planned
+    AND ((notes IS NOT NULL) OR (photo IS NOT NULL) OR (type_assessed IS NOT NULL))
+  GROUP BY grts_address
+) AS LOCEVAL
+  ON VISIT.sampleunit_ids && LOCEVAL.sampleunit_ids
+WHERE VISIT.grts_address = 19205238
+;
+
+
+SELECT *
+FROM "inbound"."SampleContextObservations" AS SCOBS
+WHERE grts_address = 231150
+;
+
+
+SELECT *
+FROM "inbound"."SampleContextObservations" AS SCOBS
+WHERE grts_address = 3514038
+;
+
+
+  ON (LOC.grts_address = SCOBS.grts_address
+  AND VISIT.date_visit = SCOBS.date_visit)
+
+
+
+LEFT JOIN "inbound"."SampleContextObservations" AS SCOBS
+  ON (LOC.grts_address = SCOBS.grts_address
+  AND VISIT.date_visit = SCOBS.date_visit)
+LEFT JOIN "inbound"."PerturbationObservations" AS POBS
+  ON (LOC.grts_address = POBS.grts_address
+  AND VISIT.date_visit = POBS.date_visit)
+LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
+  ON (LOC.grts_address = MOBS.grts_address
+  AND VISIT.date_visit = MOBS.date_visit)
+
+
 -- !!! also re-create update MyFieldWork (below)
 
+SELECT *
+FROM "inbound"."FieldWork"
+WHERE grts_address = 762158
+;
 
+
+
+BEGIN;
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
-  VISIT.stratum,
-  VISIT.date_start,
+  VISIT.stratums AS stratum,
   VISIT.activity_group_id,
-  FCAL.teammember_assigned,
-  FCAL.activity_rank,
-  CASE WHEN (FCAL.date_visit_planned IS NULL) THEN FALSE ELSE FCAL.done_planning = TRUE END AS is_scheduled,
-  FCAL.date_visit_planned,
-  FCAL.date_visit_planned - current_date AS days_to_visit,
-  FCAL.date_end - current_date AS days_to_deadline,
-  FCAL.notes AS preparation_notes,
+  VISIT.teammember_assigned,
+  CAL.activity_rank,
+  CASE WHEN (VISIT.date_visit_planned IS NULL) THEN FALSE ELSE CAL.done_planning END AS is_scheduled,
+  VISIT.date_visit_planned,
+  VISIT.date_visit_planned - current_date AS days_to_visit,
+  CAL.date_suggested AS date_start,
+  CAL.date_end - current_date AS days_to_deadline,
+  VISIT.preparation_notes,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
@@ -31,10 +156,10 @@ SELECT
   LOCEVAL.type_is_absent,
   LOCEVAL.loceval_photo,
   LOCEVAL.loceval_notes,
-  FAGS.activity_group,
-  FAGS.is_field_activity,
-  FAGS.is_surf_activity,
-  FAGS.protocols,
+  ACT.activity_group,
+  ACT.is_field_activity,
+  ACT.is_surf_activity,
+  ACT.default_protocol_id,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.datetime_visit,
@@ -42,6 +167,7 @@ SELECT
   VISIT.photo,
   VISIT.issues,
   VISIT.sampling_done,
+  VISIT.protocol_id,
   VISIT.visit_done,
   VISIT.lenticvisit_id,
   VISIT.loticvisit_id,
@@ -54,8 +180,8 @@ SELECT
   VISIT.electric_conductivity_mus_cm,
   VISIT.dissolved_oxygen_mg_l,
   VISIT.dissolved_oxygen_percent,
-VISIT.sample_contamination,
-VISIT.sample_contamination_reason,
+  VISIT.sample_contamination,
+  VISIT.sample_contamination_reason,
   VISIT.sneller_cm,
   VISIT.color,
   VISIT.smell,
@@ -63,8 +189,8 @@ VISIT.sample_contamination_reason,
   VISIT.macroinvertebrates,
   VISIT.xphoto_sample,
   VISIT.equipment,
-VISIT.chlorophytae_presence,
-VISIT.chlorophytae_specification,
+  VISIT.chlorophytae_presence,
+  VISIT.chlorophytae_specification,
   VISIT.waterdepth_samplingpoint_cm,
   VISIT.secchi_depth_cm,
   VISIT.clear_to_bottom,
@@ -76,61 +202,80 @@ VISIT.chlorophytae_specification,
   VISIT.flowvel_method,
   VISIT.barriers,
   VISIT.current_pits,
-VISIT.link_observation_samplecontext,
-SCOBS.samplecontextobservation_id,
-SCOBS.notes AS samplecontext_notes,
-SCOBS.alert AS samplecontext_alert,
-SCOBS.photo AS samplecontext_photo,
-SCOBS.max_depth_cm,
-SCOBS.connectivity,
-SCOBS.seep_influence,
-SCOBS.coverage_rate,
-SCOBS.shading,
-SCOBS.leaf_deposition,
-SCOBS.organic_material,
-SCOBS.emergents,
-SCOBS.float_pleustophytes,
-SCOBS.float_nymphaeids,
-SCOBS.submers_coverage,
-SCOBS.submers_pvi,
-SCOBS.metaphyton,
-VISIT.link_observation_perturbation,
-POBS.perturbationobservation_id,
-POBS.notes AS perturbation_notes,
-POBS.alert AS perturbation_alert,
-POBS.photo AS perturbation_photo,
-POBS.other_perturbations,
-POBS.cow_pats,
-POBS.other_animal_manure,
-POBS.grazers,
-POBS.trampling,
-POBS.intense_livestock_farming,
-POBS.agriculture_nearby,
-POBS.recent_fertilization_nearby,
-POBS.busy_roads_nearby,
-POBS.industry_nearby,
-POBS.fish,
-POBS.birds,
-POBS.bird_droppings,
-POBS.beaver,
-POBS.invasive_species,
-POBS.bank_reinforcement,
-POBS.drainage_structures,
-POBS.fencing,
-VISIT.link_observation_meteorology,
-MOBS.meteorolobservation_id,
-MOBS.notes AS meteo_notes,
-MOBS.alert AS meteo_alert,
-MOBS.photo AS meteo_photo,
-MOBS.prior_48h,
-MOBS.exceptional,
-MOBS.precipitation,
-MOBS.precipitation_specify,
-MOBS.precipitation_intensity,
-MOBS.overcast,
-MOBS.airtemperature_celsius,
-MOBS.wind,
-MOBS.ice_layer_cm
+  VISIT.link_observation_samplecontext,
+  SCOBS.samplecontextobservation_id,
+  SCOBS.notes AS samplecontext_notes,
+  SCOBS.alert AS samplecontext_alert,
+  SCOBS.photo AS samplecontext_photo,
+  SCOBS.max_depth_cm,
+  SCOBS.connectivity,
+  SCOBS.seep_influence,
+  SCOBS.coverage_rate,
+  SCOBS.shading,
+  SCOBS.leaf_deposition,
+  SCOBS.organic_material,
+  SCOBS.emergents,
+  SCOBS.float_pleustophytes,
+  SCOBS.float_nymphaeids,
+  SCOBS.submers_coverage,
+  SCOBS.submers_pvi,
+  SCOBS.metaphyton,
+  VISIT.link_observation_perturbation,
+  POBS.perturbationobservation_id,
+  POBS.notes AS perturbation_notes,
+  POBS.alert AS perturbation_alert,
+  POBS.photo AS perturbation_photo,
+  POBS.other_perturbations,
+  POBS.cow_pats,
+  POBS.other_animal_manure,
+  POBS.grazers,
+  POBS.trampling,
+  POBS.intense_livestock_farming,
+  POBS.agriculture_nearby,
+  POBS.recent_fertilization_nearby,
+  POBS.busy_roads_nearby,
+  POBS.industry_nearby,
+  POBS.fish,
+  POBS.birds,
+  POBS.bird_droppings,
+  POBS.beaver,
+  POBS.invasive_species,
+  POBS.bank_reinforcement,
+  POBS.drainage_structures,
+  POBS.fencing,
+  VISIT.link_observation_meteorology,
+  MOBS.meteorolobservation_id,
+  MOBS.notes AS meteo_notes,
+  MOBS.alert AS meteo_alert,
+  MOBS.photo AS meteo_photo,
+  MOBS.prior_48h,
+  MOBS.exceptional,
+  MOBS.precipitation,
+  MOBS.precipitation_specify,
+  MOBS.precipitation_intensity,
+  MOBS.overcast,
+  MOBS.airtemperature_celsius,
+  MOBS.wind,
+  MOBS.ice_layer_cm,
+  CASE WHEN
+      (VISIT.issues IS TRUE)
+    THEN 'issues'
+    ELSE (
+      CASE WHEN (VISIT.visit_done IS TRUE)
+      THEN 'done'
+      ELSE 'todo'
+      END)
+    END AS status,
+  CASE WHEN VISIT.visit_done
+      THEN '[✓] '
+      ELSE '[_] '
+      END ||
+    ACT.activity_group ||
+    CASE WHEN
+      (VISIT.date_visit_planned IS NOT NULL)
+    THEN ' (' || TO_CHAR(VISIT.date_visit_planned, 'yyyy-mm-dd') || ')'
+    ELSE ''
+    END AS label
 FROM (
   SELECT *
   FROM ONLY "inbound"."Visits"
@@ -143,62 +288,82 @@ LEFT JOIN "metadata"."Locations" AS LOC
 LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON INFO.location_id = VISIT.location_id
 LEFT JOIN (
-  SELECT *,
-    CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning = TRUE END AS is_scheduled
- FROM "outbound"."FieldCalendars"
-  ) AS FCAL
-  ON FCAL.fieldcalendar_id = VISIT.fieldcalendar_id
+    SELECT
+      grts_address, date_start, activity_group_id, matching_occasion, visit_id,
+      ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+      ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+      ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids,
+      MIN(activity_rank) AS activity_rank,
+      MIN(date_suggested) AS date_suggested,
+      MIN(priority) AS priority,
+      MIN(date_end) AS date_end,
+      BOOL_AND(excluded) AS excluded,
+      BOOL_AND(archive_version_id IS NULL) AS fcal_not_archived,
+      BOOL_OR(done_planning) AS done_planning
+    FROM "outbound"."FieldCalendars"
+    WHERE (archive_version_id IS NULL) AND (NOT excluded) AND (NOT wait_any)
+    GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id
+  ) AS CAL
+  ON CAL.visit_id = VISIT.visit_id
 LEFT JOIN (
-  SELECT DISTINCT
+  SELECT
     activity_group_id,
     activity_group,
     is_field_activity,
     is_surf_activity,
-    string_agg(DISTINCT('' || protocol_code || '/v' || protocol_version), E',') AS protocols
-  FROM "metadata"."GroupedActivities" AS GACT
-  LEFT JOIN "metadata"."Protocols" AS PRT
-    ON PRT.protocol_id = GACT.protocol_id
-  GROUP BY
-    activity_group_id,
-    activity_group,
-    is_field_activity,
-    is_surf_activity
-  ) AS FAGS
-  ON FAGS.activity_group_id = VISIT.activity_group_id
+    protocol_id AS default_protocol_id
+  FROM "metadata"."ActivityGroups"
+  WHERE is_surf_activity
+  ) AS ACT
+  ON ACT.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
-  SELECT
-    sampleunit_id,
-    loceval_name,
-    loceval_date,
-    type_assessed,
-    type_is_absent,
-    loceval_notes,
-    loceval_photo
-  FROM (
+  SELECT DISTINCT
+    grts_address,
+    ARRAY_AGG(DISTINCT type_planned) AS type_planned,
+    ARRAY_AGG(DISTINCT sampleunit_id) AS sampleunit_ids,
+    STRING_AGG(DISTINCT eval_name, ',') AS loceval_name,
+    MAX(loceval_date) AS loceval_date,
+    ARRAY_AGG(DISTINCT type_assessed) AS type_assessed,
+    BOOL_AND(type_is_absent) AS type_is_absent,
+    STRING_AGG(CASE WHEN notes IS NULL THEN '' ELSE notes END, '; ') AS loceval_notes,
+    STRING_AGG(DISTINCT photo, ', ') AS loceval_photo
+  FROM(
     SELECT DISTINCT
+      grts_address,
       sampleunit_id,
       MAX(eval_date) AS latest_visit,
       eval_date AS loceval_date,
-      eval_name AS loceval_name,
-      type AS type_planned,
+      eval_name,
+      COALESCE(n2k_type, type) AS type_planned,
       type_assessed,
       type_is_absent,
-      notes AS loceval_notes,
-      photo AS loceval_photo
+      notes,
+      photo
     FROM "transfer"."LocationEvaluations" AS LE
+    LEFT JOIN (
+      SELECT DISTINCT stratum AS n2k_stratum, type AS n2k_type
+      FROM "metadata"."N2kHabStrata"
+      GROUP BY stratum, type
+      ) AS STRATA
+        ON LE.type = STRATA.n2k_stratum
     WHERE eval_source = 'loceval'
-    GROUP BY sampleunit_id,
-    eval_date,
-    eval_name,
-    type,
-    type_assessed,
-    type_is_absent,
-    notes,
-    photo
+    GROUP BY grts_address,
+      sampleunit_id,
+      eval_date,
+      eval_name,
+      type,
+      n2k_type,
+      type_assessed,
+      type_is_absent,
+      notes,
+      photo
+    ORDER BY grts_address, type_planned
   ) WHERE loceval_date = latest_visit
-    AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL) OR (type_assessed IS NOT NULL))
+    AND type_assessed = type_planned
+    AND ((notes IS NOT NULL) OR (photo IS NOT NULL) OR (type_assessed IS NOT NULL))
+  GROUP BY grts_address
 ) AS LOCEVAL
-  ON VISIT.sampleunit_id = LOCEVAL.sampleunit_id
+  ON VISIT.sampleunit_ids && LOCEVAL.sampleunit_ids
 LEFT JOIN "inbound"."SampleContextObservations" AS SCOBS
   ON (LOC.grts_address = SCOBS.grts_address
   AND VISIT.date_visit = SCOBS.date_visit)
@@ -209,11 +374,11 @@ LEFT JOIN "inbound"."MeteorolObservations" AS MOBS
   ON (LOC.grts_address = MOBS.grts_address
   AND VISIT.date_visit = MOBS.date_visit)
 WHERE TRUE
-  AND FCAL.is_scheduled
-  AND ((FCAL.no_visit_planned IS NULL) OR (NOT FCAL.no_visit_planned))
-  AND NOT FCAL.excluded
-  AND FAGS.is_surf_activity
-  AND (VISIT.visit_done OR (FCAL.archive_version_id IS NULL))
+  AND (VISIT.date_visit_planned IS NOT NULL)
+  AND (CAL.done_planning)
+  AND ((CAL.excluded IS NULL) OR (NOT CAL.excluded))
+  AND (ACT.activity_group IS NOT NULL)
+  AND (VISIT.visit_done OR (CAL.fcal_not_archived))
   AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
 ;
 
@@ -237,6 +402,7 @@ DO ALSO
   photo = NEW.photo,
   issues = NEW.issues,
   sampling_done = NEW.sampling_done,
+  protocol_id = NEW.protocol_id,
   visit_done = NEW.visit_done,
   link_observation_samplecontext = NEW.link_observation_samplecontext,
   link_observation_meteorology = NEW.link_observation_meteorology,
@@ -272,6 +438,7 @@ DO ALSO
   secchi_depth_cm = NEW.secchi_depth_cm,
   clear_to_bottom = NEW.clear_to_bottom,
   sludge_thickness = NEW.sludge_thickness,
+  waterlevel_elevation_mtaw = NEW.waterlevel_elevation_mtaw,
   sample_notes = NEW.sample_notes
  WHERE lenticvisit_id = OLD.lenticvisit_id
    AND visit_id = OLD.visit_id
@@ -285,31 +452,6 @@ ON UPDATE TO "inbound"."FieldWork"
 DO ALSO
  UPDATE "inbound"."LoticVisits"
  SET
-  project_code = NEW.project_code,
-  recipient_code = NEW.recipient_code,
-  sample_ph = NEW.sample_ph,
-  watertemperature_celsius = NEW.watertemperature_celsius,
-  electric_conductivity_mus_cm = NEW.electric_conductivity_mus_cm,
-  dissolved_oxygen_mg_l = NEW.dissolved_oxygen_mg_l,
-  dissolved_oxygen_percent = NEW.dissolved_oxygen_percent,
-  equipment = NEW.equipment,
-  color = NEW.color,
-  smell = NEW.smell,
-  zooplankton = NEW.zooplankton,
-  macroinvertebrates = NEW.macroinvertebrates,
-  sample_notes = NEW.sample_notes,
-  sampling_done = NEW.sampling_done,
-  sneller_cm = NEW.sneller_cm,
-  secchi_depth_cm = NEW.secchi_depth_cm,
-  clear_to_bottom = NEW.clear_to_bottom,
-  waterdepth_samplingpoint_cm = NEW.waterdepth_samplingpoint_cm,
-  sludge_thickness = NEW.sludge_thickness,
-  ice_layer_cm = NEW.ice_layer_cm,
-  meandering = NEW.meandering,
-  flowvel = NEW.flowvel,
-  flowvel_method = NEW.flowvel_method,
-  barriers = NEW.barriers,
-  current_pits = NEW.current_pits,
   visit_done = NEW.visit_done
  WHERE loticvisit_id = OLD.loticvisit_id
    AND visit_id = OLD.visit_id
@@ -344,7 +486,23 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  wkb_geometry
+  wkb_geometry,
+  notes,
+  alert,
+  photo,
+  max_depth_cm,
+  connectivity,
+  seep_influence,
+  coverage_rate,
+  shading,
+  leaf_deposition,
+  organic_material,
+  emergents,
+  float_pleustophytes,
+  float_nymphaeids,
+  submers_coverage,
+  submers_pvi,
+  metaphyton
  ) VALUES (
   NEW.teammember_id,
   NEW.datetime_visit::date,
@@ -352,10 +510,27 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.wkb_geometry
+  NEW.wkb_geometry,
+  NEW.samplecontext_notes,
+  NEW.samplecontext_alert,
+  NEW.samplecontext_photo,
+  NEW.max_depth_cm,
+  NEW.connectivity,
+  NEW.seep_influence,
+  NEW.coverage_rate,
+  NEW.shading,
+  NEW.leaf_deposition,
+  NEW.organic_material,
+  NEW.emergents,
+  NEW.float_pleustophytes,
+  NEW.float_nymphaeids,
+  NEW.submers_coverage,
+  NEW.submers_pvi,
+  NEW.metaphyton
  )
 ;
 
+-- ISSUE: OLD.scobs_id is still NULL thus the update does not get called
 
 DROP RULE IF EXISTS fieldwork_upd_SCOBS ON "inbound"."FieldWork";
 CREATE RULE fieldwork_upd_SCOBS AS
@@ -401,7 +576,28 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  wkb_geometry
+  wkb_geometry,
+  notes,
+  alert,
+  photo,
+  other_perturbations,
+  cow_pats,
+  other_animal_manure,
+  grazers,
+  trampling,
+  intense_livestock_farming,
+  agriculture_nearby,
+  recent_fertilization_nearby,
+  busy_roads_nearby,
+  industry_nearby,
+  fish,
+  birds,
+  bird_droppings,
+  beaver,
+  invasive_species,
+  bank_reinforcement,
+  drainage_structures,
+  fencing
  ) VALUES (
   NEW.teammember_id,
   NEW.datetime_visit::date,
@@ -409,7 +605,28 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.wkb_geometry
+  NEW.wkb_geometry,
+  NEW.perturbation_notes,
+  NEW.perturbation_alert,
+  NEW.perturbation_photo,
+  NEW.other_perturbations,
+  NEW.cow_pats,
+  NEW.other_animal_manure,
+  NEW.grazers,
+  NEW.trampling,
+  NEW.intense_livestock_farming,
+  NEW.agriculture_nearby,
+  NEW.recent_fertilization_nearby,
+  NEW.busy_roads_nearby,
+  NEW.industry_nearby,
+  NEW.fish,
+  NEW.birds,
+  NEW.bird_droppings,
+  NEW.beaver,
+  NEW.invasive_species,
+  NEW.bank_reinforcement,
+  NEW.drainage_structures,
+  NEW.fencing
  )
 ;
 
@@ -464,7 +681,19 @@ DO ALSO
   visit_id,
   is_linked_to_visit,
   grts_address,
-  wkb_geometry
+  wkb_geometry,
+  notes,
+  alert,
+  photo,
+  prior_48h,
+  exceptional,
+  precipitation,
+  precipitation_specify,
+  precipitation_intensity,
+  overcast,
+  airtemperature_celsius,
+  wind,
+  ice_layer_cm
  ) VALUES (
   NEW.teammember_id,
   NEW.datetime_visit::date,
@@ -472,7 +701,19 @@ DO ALSO
   NEW.visit_id,
   TRUE,
   NEW.grts_address,
-  NEW.wkb_geometry
+  NEW.wkb_geometry,
+  NEW.meteo_notes,
+  NEW.meteo_alert,
+  NEW.meteo_photo,
+  NEW.prior_48h,
+  NEW.exceptional,
+  NEW.precipitation,
+  NEW.precipitation_specify,
+  NEW.precipitation_intensity,
+  NEW.overcast,
+  NEW.airtemperature_celsius,
+  NEW.wind,
+  NEW.ice_layer_cm
  )
 ;
 
@@ -523,6 +764,8 @@ WHERE teammember_assigned IN (
 
 GRANT SELECT ON  "inbound"."MyFieldWork"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  user_surfdb;
+
+COMMIT;
 
 -- only on testing:
 -- GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;

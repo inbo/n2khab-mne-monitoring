@@ -6,11 +6,11 @@ SELECT
 FROM "metadata"."LocationCells"
 WHERE location_id IN (
   SELECT DISTINCT location_id
-  FROM "outbound"."SampleLocations"
-  WHERE samplelocation_id
+  FROM "outbound"."SampleUnits"
+  WHERE sampleunit_id
   IN (
-    SELECT DISTINCT samplelocation_id
-    FROM "outbound"."FieldworkCalendar"
+    SELECT DISTINCT sampleunit_id
+    FROM "outbound"."FieldCalendars"
     WHERE archive_version_id IS NULL
   )
 )

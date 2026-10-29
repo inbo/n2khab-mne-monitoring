@@ -40,6 +40,9 @@ Then, move the `xml` to the following path on the mobile device:
 
 If everything was done correctly, the app should now automatically log in to our postgres database.
 
+> [!note] *Update (20260901)*
+> Newer version of QField seem to be able to remember the login credentials upon first entry; no manipulation of the `.xml` required.
+
 
 ## Photo Export
 - select your project

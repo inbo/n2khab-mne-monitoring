@@ -15,6 +15,7 @@ source("MNMDatabaseToolbox.R")
 
 
 config_filepath <- file.path("./mnm_database_connection.conf")
+
 commandline_args <- commandArgs(trailingOnly = TRUE)
 if (length(commandline_args) > 0) {
   mirror <- commandline_args[1]
@@ -122,6 +123,14 @@ stitch_table_connection(
 
 stitch_table_connection(
   mnmdb = locevaldb,
+  table_label = "FieldCalendars",
+  reference_table = "Visits",
+  link_key_column = "visit_id",
+  lookup_columns = c("grts_address", "type", "activity_group_id", "date_start")
+)
+
+stitch_table_connection(
+  mnmdb = locevaldb,
   table_label = "Visits",
   reference_table = "FieldCalendars",
   link_key_column = "fieldcalendar_id",
@@ -171,7 +180,7 @@ mnmgwdb <- connect_mnm_database(
 
 stitch_table_connection(
   mnmdb = mnmgwdb,
-  table_label = "SampleLocations",
+  table_label = "SampleUnits",
   reference_table = "Locations",
   link_key_column = "location_id",
   lookup_columns = c("grts_address")
@@ -214,13 +223,47 @@ stitch_table_connection(
 )
 
 
+# stitch_table_connection(
+#   mnmdb = mnmgwdb,
+#   table_label = "LocationEvaluations",
+#   reference_table = "SampleUnits",
+#   link_key_column = "sampleunit_id",
+#   lookup_columns = c("grts_address", "type"),
+#   reference_mod = function(x) if (x == "type") {"stratum"} else {x}
+# )
+
+# type and stratum must be matched
+trgtab <- '"transfer"."LocationEvaluations"'
+srctab <- 'SELECT
+  sampleunit_id, grts_address, type
+FROM "outbound"."SampleUnits" SU
+LEFT JOIN (
+  SELECT DISTINCT type, stratum
+  FROM "metadata"."N2kHabStrata"
+) AS STRATA
+  ON STRATA.stratum = SU.stratum
+'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    sampleunit_id = SRCTAB.sampleunit_id
+  FROM ({srctab}) AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.type = SRCTAB.type)
+;")
+
+mnmgwdb$execute_sql(update_string, verbose = FALSE)
+
+
+
+# --- new! ---
 stitch_table_connection(
   mnmdb = mnmgwdb,
-  table_label = "LocationEvaluations",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
-  lookup_columns = c("grts_address", "type"),
-  reference_mod = function(x) if (x == "type") {"strata"} else {x}
+  table_label = "InstallationPoints",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
 )
 
 
@@ -235,8 +278,8 @@ stitch_table_connection(
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "MHQPolygons",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
   lookup_columns = c("grts_address")
 )
 
@@ -252,16 +295,25 @@ stitch_table_connection(
 
 
 
-# link FieldworkCalender back to SampleLocations
+# link FieldCalendars back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmgwdb,
-  table_label = "FieldworkCalendar",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
-  lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  table_label = "FieldCalendars",
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
+  # reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
+
+# link FieldCalendars forward to Visits
+stitch_table_connection(
+  mnmdb = mnmgwdb,
+  table_label = "FieldCalendars",
+  reference_table = "Visits",
+  link_key_column = "visit_id",
+  lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
+)
 
 
 # link Visits back to Locations
@@ -274,29 +326,28 @@ stitch_table_connection(
 )
 
 
-# link Visits back to SampleLocations
+# link Visits back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "Visits",
-  reference_table = "SampleLocations",
-  link_key_column = "samplelocation_id",
-  lookup_columns = c("grts_address", "stratum"),
-  reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
+  reference_table = "SampleUnits",
+  link_key_column = "sampleunit_id",
+  lookup_columns = c("grts_address", "stratum")
+  # reference_mod = function(x) if (x == "stratum") {"strata"} else {x}
 )
 
-
-# link Visits back to FieldworkCalendar
+# link Visits back to FieldCalendars
 stitch_table_connection(
   mnmdb = mnmgwdb,
   table_label = "Visits",
-  reference_table = "FieldworkCalendar",
-  link_key_column = "fieldworkcalendar_id",
+  reference_table = "FieldCalendars",
+  link_key_column = "fieldcalendar_id",
   lookup_columns = c("grts_address", "stratum", "activity_group_id", "date_start")
 )
 
 
 # mnmgwdb$query_table("Visits") %>%
-#   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+#   count(is.na(sampleunit_id), is.na(fieldcalendar_id)) %>%
 #   knitr::kable()
 
 
@@ -304,18 +355,18 @@ stitch_table_connection(
 # REMOVED WIA/CSA/SPA
 
 
-# there is `samplelocation_id` in "transfer"."ReplacementData"
+# there is `sampleunit_id` in "transfer"."ReplacementData"
 # column names are non-standard, hence the "gefoefel".
 trgtab <- '"transfer"."ReplacementData"'
-srctab <- '"outbound"."SampleLocations"'
+srctab <- '"outbound"."SampleUnits"'
 update_string <- glue::glue("
 UPDATE {trgtab} AS TRGTAB
   SET
-    samplelocation_id = SRCTAB.samplelocation_id
+    sampleunit_id = SRCTAB.sampleunit_id
   FROM {srctab} AS SRCTAB
   WHERE
    (TRGTAB.grts_address_replacement = SRCTAB.grts_address)
-   AND (TRGTAB.type = SRCTAB.strata)
+   AND (TRGTAB.type = SRCTAB.stratum)
 ;")
 
 mnmgwdb$execute_sql(update_string, verbose = FALSE)
@@ -374,14 +425,37 @@ stitch_table_connection(
 )
 
 
-stitch_table_connection(
-  mnmdb = mnmsurfdb,
-  table_label = "LocationEvaluations",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "type"),
-  reference_mod = function(x) if (x == "type") {"stratum"} else {x}
-)
+# stitch_table_connection(
+#   mnmdb = mnmsurfdb,
+#   table_label = "LocationEvaluations",
+#   reference_table = "SampleUnits",
+#   link_key_column = "sampleunit_id",
+#   lookup_columns = c("grts_address", "type"),
+#   reference_mod = function(x) if (x == "type") {"stratum"} else {x}
+# )
+
+# type and stratum must be matched
+trgtab <- '"transfer"."LocationEvaluations"'
+srctab <- 'SELECT
+  sampleunit_id, grts_address, type
+FROM "outbound"."SampleUnits" SU
+LEFT JOIN (
+  SELECT DISTINCT type, stratum
+  FROM "metadata"."N2kHabStrata"
+) AS STRATA
+  ON STRATA.stratum = SU.stratum
+'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    sampleunit_id = SRCTAB.sampleunit_id
+  FROM ({srctab}) AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.type = SRCTAB.type)
+;")
+
+mnmsurfdb$execute_sql(update_string, verbose = FALSE)
 
 
 stitch_table_connection(
@@ -413,7 +487,7 @@ stitch_table_connection(
 
 
 
-# link FieldworkCalender back to SampleLocations
+# link FieldCalendars back to SampleUnits
 stitch_table_connection(
   mnmdb = mnmsurfdb,
   table_label = "FieldCalendars",
@@ -433,26 +507,60 @@ stitch_table_connection(
   lookup_columns = c("grts_address")
 )
 
-
-# link Visits back to SampleLocations
-stitch_table_connection(
-  mnmdb = mnmsurfdb,
-  table_label = "Visits",
-  reference_table = "SampleUnits",
-  link_key_column = "sampleunit_id",
-  lookup_columns = c("grts_address", "stratum")
-)
+# update `sampleunit_ids` on Visits? -> only indirect via FieldCalendars
 
 
-# link Visits back to FieldworkCalendar
-stitch_table_connection(
-  mnmdb = mnmsurfdb,
-  table_label = "Visits",
-  reference_table = "FieldCalendars",
-  link_key_column = "fieldcalendar_id",
-  lookup_columns =
-    c("grts_address", "stratum", "activity_group_id", "date_start")
-)
+# # link Visits back to SampleUnits and FieldCalendars
+trgtab <- '"inbound"."Visits"'
+srctab <- '"outbound"."FieldCalendars"'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    stratums = SRCTAB.stratums,
+    sampleunit_ids = SRCTAB.sampleunit_ids,
+    fieldcalendar_ids = SRCTAB.fieldcalendar_ids
+  FROM (
+    SELECT DISTINCT ON
+        (grts_address, date_start, activity_group_id, matching_occasion)
+      grts_address,
+      date_start,
+      activity_group_id,
+      matching_occasion,
+      ARRAY_AGG(DISTINCT stratum ORDER BY stratum) AS stratums,
+      ARRAY_AGG(DISTINCT sampleunit_id ORDER BY sampleunit_id) AS sampleunit_ids,
+      ARRAY_AGG(DISTINCT fieldcalendar_id ORDER BY fieldcalendar_id) AS fieldcalendar_ids
+    FROM {srctab}
+      WHERE NOT excluded
+    GROUP BY
+      grts_address, date_start, activity_group_id, matching_occasion
+  ) AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.date_start = SRCTAB.date_start)
+   AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+   AND (SRCTAB.stratums && TRGTAB.stratums)
+;")
+
+mnmsurfdb$execute_sql(update_string, verbose = FALSE)
+
+
+# link FieldCalendars back to Visits
+trgtab <- '"outbound"."FieldCalendars"'
+srctab <- '"inbound"."Visits"'
+update_string <- glue::glue("
+UPDATE {trgtab} AS TRGTAB
+  SET
+    visit_id = SRCTAB.visit_id
+  FROM {srctab} AS SRCTAB
+  WHERE
+   (TRGTAB.grts_address = SRCTAB.grts_address)
+   AND (TRGTAB.date_start = SRCTAB.date_start)
+   AND (TRGTAB.activity_group_id = SRCTAB.activity_group_id)
+   AND (TRGTAB.stratum = ANY(SRCTAB.stratums))
+;")
+
+
+mnmsurfdb$execute_sql(update_string, verbose = FALSE)
 
 
 # link ChlorophyllMeasurements back to Locations
@@ -465,7 +573,7 @@ stitch_table_connection(
 )
 
 # mnmsurfdb$query_table("Visits") %>%
-#   count(is.na(samplelocation_id), is.na(fieldworkcalendar_id)) %>%
+#   count(is.na(sampleunit_id), is.na(fieldcalendar_id)) %>%
 #   knitr::kable()
 
 # link Observations back to Visits
@@ -483,7 +591,7 @@ stitch_table_connection(
 # REMOVED WIA/CSA/SPA
 
 
-# there is `samplelocation_id` in "transfer"."ReplacementData"
+# there is `sampleunit_id` in "transfer"."ReplacementData"
 # column names are non-standard, hence the "gefoefel".
 trgtab <- '"transfer"."ReplacementData"'
 srctab <- '"outbound"."SampleUnits"'

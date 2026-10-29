@@ -13,6 +13,16 @@ source("MNMDatabaseToolbox.R")
 # NOTE: this freeze date was set upon REP update 0.15.0, March 2026
 freeze_date <- as.Date("2025-12-31")
 
+# TODO priorities need to be set to NULL (20260921)
+# -- remove priorities from frozen activities
+# -- SELECT DISTINCT priority, COUNT(*) AS n
+# -- FROM "outbound"."FieldCalendars"
+# UPDATE "outbound"."FieldCalendars"
+# SET priority = NULL
+# WHERE is_frozen
+# -- GROUP BY priority
+# ;
+
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 #### connect databases
@@ -27,7 +37,6 @@ if (length(commandline_args) > 0) {
   suffix <- ""
   # suffix <- "-staging" # "-testing"
 }
-# suffix <- "-staging"
 # suffix <- "-staging"
 
 # connect loceval
@@ -80,7 +89,7 @@ connections <- list(
 
 calendar_table <- c(
   "surf" = "FieldCalendars",
-  "gw" = "FieldworkCalendar",
+  "gw" = "FieldCalendars",
   "eva" = "FieldCalendars"
 )
 
@@ -92,7 +101,7 @@ visit_table  <- c(
 
 units_table  <- c(
   "gw" = "SampleUnits",
-  "gw" = "SampleLocations",
+  "gw" = "SampleUnits",
   "eva" = "SampleUnits"
 )
 
@@ -174,7 +183,7 @@ query_frozen_tables <- function(db) {
 
   # prepare calendar
   calendar <- connections[[db]]$query_table(calendar_table[[db]])
-  cal_pk <- glue::glue("{tolower(calendar_table[[db]])}_id")
+  cal_pk <- glue::glue("{remove_plural_s(tolower(calendar_table[[db]]))}_id")
   unit_pk <- glue::glue("{remove_plural_s(tolower(units_table[[db]]))}_id")
 
   # calendar %>%
@@ -186,7 +195,7 @@ query_frozen_tables <- function(db) {
 
   # activity groups
   activity_groups <- connections[[db]]$query_columns(
-    "GroupedActivities",
+    "ActivityGroups",
     c(
       "activity_group_id",
       "activity_group",
@@ -222,16 +231,19 @@ query_frozen_tables <- function(db) {
 } # /query_frozen_tables
 
 
+# query loceval freeze
+loceval_freeze <- query_frozen_tables("eva") # let it go!
+loceval_freeze %>%
+  write.csv(
+    file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv")),
+    row.names = TRUE
+  )
+
 # I have been thinking and working too long towards this variable definition
 # to apply this in a loop...
 gw_freeze <- query_frozen_tables("gw")
 gw_freeze %>%
   write.csv(file = file.path("sideload", glue::glue("freeze_mnmgwdb{suffix}.csv")))
-
-# also for loceval
-loceval_freeze <- query_frozen_tables("eva") # let it go!
-loceval_freeze %>%
-  write.csv(file = file.path("sideload", glue::glue("freeze_locevaldb{suffix}.csv")))
 
 # UNTESTED: surf
 surf_freeze <- query_frozen_tables("surf") # let it go!

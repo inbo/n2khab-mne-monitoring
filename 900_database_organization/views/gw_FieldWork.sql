@@ -1,34 +1,30 @@
--- SELECT DISTINCT visit_id, count(*) AS n FROM "inbound"."FieldWork" GROUP BY visit_id ORDER BY n DESC;
-SELECT *,
-  CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
-FROM "outbound"."FieldworkCalendar"
-  WHERE grts_address = 1176286
-  AND activity_group_id = 4
-;
-
 
 -- !!! also re-create update MyFieldWork
+BEGIN;
 
 DROP VIEW IF EXISTS  "inbound"."FieldWork" CASCADE;
 CREATE OR REPLACE VIEW "inbound"."FieldWork" AS
 SELECT
   LOC.*,
-  SLOC.strata AS type,
-  FwCAL.date_start,
-  FwCAL.activity_group_id,
-  FwCAL.teammember_assigned,
-  FwCAL.activity_rank,
-  CASE WHEN (FwCAL.date_visit_planned IS NULL) THEN FALSE ELSE FwCAL.done_planning = TRUE END AS is_scheduled,
-  FwCAL.date_visit_planned,
-  FwCAL.date_visit_planned - current_date AS days_to_visit,
-  FwCAL.date_end - current_date AS days_to_deadline,
-  FwCAL.notes AS preparation_notes,
-  VISIT.visit_id,
-  VISIT.teammember_id,
-  VISIT.date_visit,
-  VISIT.notes,
-  VISIT.photo,
-  VISIT.issues,
+  UNIT.stratum AS type,
+  CALVIS.date_start,
+  CALVIS.date_end,
+  CALVIS.date_interval,
+  CALVIS.activity_group_id,
+  CALVIS.teammember_assigned,
+  CALVIS.activity_rank,
+  CALVIS.protocol_id,
+  CALVIS.is_scheduled,
+  CALVIS.date_visit_planned,
+  CALVIS.days_to_visit,
+  CALVIS.days_to_deadline,
+  CALVIS.preparation_notes,
+  CALVIS.visit_id,
+  CALVIS.teammember_id,
+  CALVIS.date_visit,
+  CALVIS.notes,
+  CALVIS.photo,
+  CALVIS.issues,
   INFO.locationinfo_id,
   INFO.accessibility_inaccessible,
   INFO.accessibility_revisit,
@@ -41,99 +37,139 @@ SELECT
   SOIL.soil_info,
   LOCEVAL.loceval_notes,
   LOCEVAL.loceval_photo,
-  GAP.activity_group,
-  GAP.is_field_activity,
-  GAP.is_gw_activity,
-  GAP.protocols,
-  VISIT.installationvisit_id,
-  VISIT.samplingvisit_id,
-  VISIT.positioningvisit_id,
-  (VISIT.installationvisit_id IS NOT NULL) AS show_installation,
-  (VISIT.samplingvisit_id IS NOT NULL) AS show_sampling,
-  (VISIT.positioningvisit_id IS NOT NULL) AS show_positioning,
-  VISIT.photo_soil_1_peilbuis,
-  VISIT.photo_soil_2_piezometer,
-  VISIT.photo_well,
-  VISIT.watina_code_used_1_peilbuis,
-  VISIT.watina_code_used_2_piezometer,
-  VISIT.soilprofile_notes,
-  VISIT.soilprofile_unclear,
-  VISIT.no_diver,
-  VISIT.random_point_number,
-  VISIT.diver_id,
-  VISIT.free_diver,
-  VISIT.reused_existing_well,
-  VISIT.reused_with_replacement,
-  VISIT.used_water_from_tap,
-  VISIT.used_water_source,
-  VISIT.is_cattleproof,
-  VISIT.project_code,
-  VISIT.recipient_code,
-  VISIT.require_total_station,
-  VISIT.visit_done
+  ACT.activity_group,
+  ACT.default_protocol_id,
+  IVIS.installationvisit_id,
+  SVIS.samplingvisit_id,
+  PVIS.positioningvisit_id,
+  OVIS.othervisit_id,
+  (IVIS.installationvisit_id IS NOT NULL) AS show_installation,
+  (SVIS.samplingvisit_id IS NOT NULL) AS show_sampling,
+  (PVIS.positioningvisit_id IS NOT NULL) AS show_positioning,
+  (OVIS.othervisit_id IS NOT NULL) AS show_other,
+  IVIS.photo_soil_1_peilbuis,
+  IVIS.photo_soil_2_piezometer,
+  IVIS.photo_well,
+  IVIS.watina_code_used_1_peilbuis,
+  IVIS.watina_code_used_2_piezometer,
+  IVIS.soilprofile_notes,
+  IVIS.soilprofile_unclear,
+  IVIS.no_diver,
+  IVIS.random_point_number,
+  IVIS.diver_id,
+  IVIS.free_diver,
+  IVIS.reused_existing_well,
+  IVIS.reused_with_replacement,
+  IVIS.used_water_from_tap,
+  IVIS.used_water_source,
+  IVIS.is_cattleproof,
+  SVIS.project_code,
+  SVIS.recipient_code,
+  PVIS.require_total_station,
+  CALVIS.visit_done,
+  ACT.activity_group ||
+    CASE WHEN  CALVIS.issues
+    THEN ' issues'
+    ELSE (
+      CASE WHEN CALVIS.visit_done THEN ' done' ELSE ''
+      END)
+    END AS status,
+  CASE WHEN CALVIS.visit_done
+      THEN '[✓] '
+      ELSE '[_] '
+      END ||
+    ACT.activity_group ||
+    CASE WHEN (CALVIS.date_visit_planned IS NOT NULL)
+    THEN ' (' || TO_CHAR(CALVIS.date_visit_planned, 'yyyy-mm-dd') || ')'
+    ELSE ''
+    END
+  AS label
 FROM (
-  SELECT *
-  FROM ONLY "inbound"."Visits"
-  NATURAL FULL JOIN "inbound"."InstallationVisits"
-  NATURAL FULL JOIN "inbound"."SamplingVisits"
-  NATURAL FULL JOIN "inbound"."PositioningVisits"
-) AS VISIT
-LEFT JOIN "metadata"."Locations" AS LOC
-  ON LOC.location_id = VISIT.location_id
+  SELECT
+    CAL.sampleunit_id,
+    CAL.date_end,
+    CAL.date_interval,
+    CAL.teammember_assigned,
+    CAL.activity_rank,
+    CASE WHEN (CAL.date_visit_planned IS NULL) THEN FALSE ELSE CAL.done_planning = TRUE END AS is_scheduled,
+    CAL.date_visit_planned,
+    CAL.date_visit_planned - current_date AS days_to_visit,
+    CAL.date_end - current_date AS days_to_deadline,
+    CAL.notes AS preparation_notes,
+    CAL.sampling_route_group,
+    CAL.done_planning,
+    VIS.visit_id,
+    VIS.grts_address,
+    VIS.stratum,
+    VIS.activity_group_id,
+    VIS.protocol_id,
+    VIS.date_start,
+    VIS.teammember_id,
+    VIS.date_visit,
+    VIS.notes,
+    VIS.photo,
+    VIS.issues,
+    VIS.visit_done
+  FROM
+    "inbound"."Visits" AS VIS,
+    "outbound"."FieldCalendars" AS CAL
+  WHERE (VIS.visit_id = CAL.visit_id)
+    AND (
+      ((CAL.done_planning IS TRUE)
+      AND (CAL.date_visit_planned IS NOT NULL)
+      AND (CAL.archive_version_id IS NULL)
+      AND (VIS.archive_version_id IS NULL)
+      AND (CAL.excluded IS FALSE)
+      )
+      OR (VIS.visit_done IS TRUE)
+    )
+) AS CALVIS
+LEFT JOIN "inbound"."InstallationVisits" AS IVIS
+  ON IVIS.visit_id = CALVIS.visit_id
+LEFT JOIN "inbound"."SamplingVisits" AS SVIS
+  ON SVIS.visit_id = CALVIS.visit_id
+LEFT JOIN "inbound"."PositioningVisits" AS PVIS
+  ON PVIS.visit_id = CALVIS.visit_id
+LEFT JOIN "inbound"."OtherVisits" AS OVIS
+  ON OVIS.visit_id = CALVIS.visit_id
+INNER JOIN (
+  SELECT
+    activity_group_id,
+    activity_group,
+    protocol_id AS default_protocol_id
+  FROM "metadata"."ActivityGroups"
+  WHERE TRUE
+    AND archive_version_id IS NULL
+    AND is_gw_activity
+) AS ACT
+  ON ACT.activity_group_id = CALVIS.activity_group_id
+INNER JOIN "outbound"."SampleUnits" AS UNIT
+  ON UNIT.sampleunit_id = CALVIS.sampleunit_id
+INNER JOIN "metadata"."Locations" AS LOC
+  ON LOC.location_id = UNIT.location_id
 LEFT JOIN "outbound"."LocationInfos" AS INFO
-  ON INFO.location_id = VISIT.location_id
+  ON UNIT.location_id = INFO.location_id
 LEFT JOIN (
   SELECT DISTINCT location_id, info AS soil_info
   FROM "metadata"."LocationSoilInfos"
   ) AS SOIL
-  ON LOC.location_id = SOIL.location_id
+  ON UNIT.location_id = SOIL.location_id
 LEFT JOIN (
-  SELECT *,
-    CASE WHEN (date_visit_planned IS NULL) THEN FALSE ELSE done_planning END AS is_scheduled
-  FROM "outbound"."FieldworkCalendar")
-  AS FwCAL ON FwCAL.fieldworkcalendar_id = VISIT.fieldworkcalendar_id
-LEFT JOIN "outbound"."SampleLocations" AS SLOC
-  ON FwCAL.samplelocation_id = SLOC.samplelocation_id
-LEFT JOIN (
-  SELECT DISTINCT
-    activity_group_id,
-    activity_group,
-    is_field_activity,
-    is_gw_activity,
-    string_agg(DISTINCT('' || protocol_code || '/v' || protocol_version), E',') AS protocols
-  FROM "metadata"."GroupedActivities" AS GACT
-  LEFT JOIN "metadata"."Protocols" AS PRT
-    ON PRT.protocol_id = GACT.protocol_id
-  GROUP BY
-    activity_group_id,
-    activity_group,
-    is_field_activity,
-    is_gw_activity
-  ) AS GAP
-  ON GAP.activity_group_id = VISIT.activity_group_id
-LEFT JOIN (
-  SELECT samplelocation_id, loceval_notes, loceval_photo
+  SELECT sampleunit_id, loceval_notes, loceval_photo
   FROM (
     SELECT DISTINCT
-      samplelocation_id,
+      sampleunit_id,
       MAX(eval_date) AS latest_visit,
       eval_date,
       notes AS loceval_notes,
       photo AS loceval_photo
-    FROM "outbound"."LocationEvaluations" AS LE
+    FROM "transfer"."LocationEvaluations" AS LE
     WHERE eval_source = 'loceval'
-    GROUP BY samplelocation_id, eval_date, notes, photo
+    GROUP BY sampleunit_id, eval_date, notes, photo
   ) WHERE eval_date = latest_visit
     AND ((loceval_notes IS NOT NULL) OR (loceval_photo IS NOT NULL))
 ) AS LOCEVAL
-  ON SLOC.samplelocation_id = LOCEVAL.samplelocation_id
-WHERE TRUE
-  AND (FwCAL.is_scheduled OR FwCAL.done_planning)
-  AND ((FwCAL.no_visit_planned IS NULL) OR (NOT FwCAL.no_visit_planned))
-  AND NOT FwCAL.excluded
-  AND GAP.is_gw_activity
-  AND (VISIT.visit_done OR (FwCAL.archive_version_id IS NULL))
-  AND (VISIT.visit_done OR (VISIT.archive_version_id IS NULL))
+  ON UNIT.sampleunit_id = LOCEVAL.sampleunit_id
 ;
 
 
@@ -156,6 +192,7 @@ DO ALSO
   notes = NEW.notes,
   photo = NEW.photo,
   issues = NEW.issues,
+  protocol_id = NEW.protocol_id,
   visit_done = NEW.visit_done
  WHERE visit_id = OLD.visit_id
 ;
@@ -243,9 +280,5 @@ WHERE teammember_assigned IN (
 GRANT SELECT ON  "inbound"."MyFieldWork"  TO  viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  user_gwdb;
 
--- only on testing:
--- GRANT SELECT ON  "inbound"."FieldWork"  TO  tester;
--- GRANT UPDATE ON  "inbound"."FieldWork"  TO  tester;
 
--- GRANT SELECT ON  "inbound"."MyFieldWork"  TO  tester;
--- GRANT UPDATE ON  "inbound"."MyFieldWork"  TO  tester;
+COMMIT;

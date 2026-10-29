@@ -13,9 +13,9 @@ tags:
 
 The central concepts of the #REP have correspondence in the structure of the #MNE databases.
 
-- **Sample Units** -> link to metadata
-- **Calendar** -> link to REP
-- **Visits** -> interaction with fieldwork, but coupled to Calendar and REP
+- **Sample Units** -> link to metadata (e.g. "Locations" = point geometry); uniquely defined by `grts_address` and `type|stratum`.
+- **Calendar** -> link to REP; central working unit; uniquely defined by `grts_address`, `type|stratum`, `activity_group_id`, and `date_start`
+- **Visits** -> interaction with fieldwork (one visit can serve multiple Calendar activities), but coupled to Calendar and REP
 - **Observations** -> extra / explanatory information; optionally coupled to Visits but can be spatially/temporally independent
 
 An overview of the general database structure:
@@ -26,6 +26,7 @@ An overview of the general database structure:
 - tables are assigned to [[database/schema|schemas]] (not shown)
 - [[database/generation|generation]] happens via structure sheets and scripts
 - an incomplete, probably outdated overview of all [[tables/tables|tables]] is unmaintained in another subfolder of these docs
+- there are #views which simplify data access from table combinations (not shown)
 
 
 More details can be found in these notes:
