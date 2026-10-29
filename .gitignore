@@ -6,6 +6,7 @@
 .quarto
 n2khab-mne-monitoring.Rproj
 
+/100_reporting/20261014_analysis_sv34/data/
 /900_database_organization/mnm_database_connection.conf
 /900_database_organization/data/
 /900_database_organization/__pycache__/

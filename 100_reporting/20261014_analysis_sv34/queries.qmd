@@ -1,0 +1,172 @@
+---
+title: "queries"
+format: html
+---
+
+```{r}
+veldwerk_connect <- function(dbname) {
+  # Read credentials from environment variables (.Renviron)
+  host <- Sys.getenv("VELDWERK_HOST")
+  port <- Sys.getenv("VELDWERK_PORT")
+  user <- Sys.getenv("VELDWERK_USER")
+  pass <- Sys.getenv("VELDWERK_PASS")
+  
+  # Check to ensure credentials are set
+  if (host == "" || user == "" || pass == "") {
+    stop("Database credentials are missing. Check your .Renviron file.")
+  }
+  
+  DBI::dbConnect(
+    drv      = RPostgres::Postgres(),
+    dbname   = dbname,
+    host     = host,
+    port     = port,
+    user     = user,
+    password = pass
+  )
+}
+```
+
+```{r}
+con_gw <- veldwerk_connect("mnmgwdb")
+con_surf <- veldwerk_connect("mnmsurfdb")
+con_le <- veldwerk_connect("loceval")
+```
+
+# Locevals
+
+```{sql}
+--| connection: con_le
+--| output.var: le_fieldwork
+
+WITH BASE AS (
+  SELECT 
+    SU.sampleunit_id
+    , LOC.grts_address
+    , SU.domain_part
+    , V.date_start
+    , V.date_visit
+    , V.log_update as date_update
+    , V.activity_group_id
+    , unnest(string_to_array(SU.schemes, '|')) AS scheme
+    , 1 as loceval
+    , CASE
+        WHEN V.issues THEN 0
+        WHEN SU.type_is_absent THEN  0
+        ELSE 1
+      END AS loceval_approved
+  FROM "metadata"."Locations" LOC
+  INNER JOIN "inbound"."Visits" V
+  ON LOC.location_id = V.location_id AND LOC.grts_address = V.grts_address
+  INNER JOIN "outbound"."SampleUnits" SU
+  ON V.sampleunit_id = SU.sampleunit_id
+  INNER JOIN "metadata"."GroupedActivities" GA
+  ON V.activity_group_id = GA.activity_group_id
+  WHERE V.visit_done
+  AND GA.activity_group LIKE 'LOCEVAL%'
+)
+
+SELECT * 
+  FROM BASE
+WHERE scheme IN ('GW_03.3', 'SOIL_03.2', 'SURF_03.4_lentic')
+```
+
+# Groundwater
+
+```{sql}
+--| connection: con_gw
+--| output.var: gw_fieldwork_installations
+
+SELECT 
+  IV.sampleunit_id
+  , IV.grts_address
+  , SU.domain_part
+  , IV.date_start
+  , IV.date_visit
+  , IV.watina_code_used_1_peilbuis
+  , IV.watina_code_used_2_piezometer
+  , 'GW_03.3' as scheme
+FROM  "inbound"."InstallationVisits" IV
+INNER JOIN "outbound"."SampleUnits" SU
+ON IV.sampleunit_id = SU.sampleunit_id
+INNER JOIN "outbound"."FieldCalendars" FC
+ON IV.fieldcalendar_id = FC.fieldcalendar_id
+WHERE NOT IV.issues
+AND IV.visit_done
+AND NOT FC.excluded
+```
+
+```{sql}
+--| connection: con_gw
+--| output.var: gw_fieldwork_samples
+
+SELECT 
+  SV.sampleunit_id
+  , SV.grts_address
+  , SU.domain_part
+  , SV.date_start
+  , SV.date_visit
+  , SV.log_update as date_update
+  , 'GW_03.3' as scheme
+FROM  "inbound"."SamplingVisits" SV
+INNER JOIN "outbound"."SampleUnits" SU
+ON SV.sampleunit_id = SU.sampleunit_id
+INNER JOIN "outbound"."FieldCalendars" FC
+ON SV.fieldcalendar_id = FC.fieldcalendar_id
+WHERE NOT SV.issues
+AND SV.visit_done
+AND NOT FC.excluded
+```
+
+# Surface water
+
+```{sql}
+--| connection: con_surf
+--| output.var: surf_fieldwork
+
+SELECT 
+  VU.sampleunit_id
+  , LOC.grts_address
+  , SU.domain_part
+  , VU.date_start
+  , VU.date_visit
+  , VU.log_update as date_update
+  , 'SURF_03.4_lentic' as scheme
+FROM "metadata"."Locations" LOC
+INNER JOIN "inbound"."VisitsUnnested" VU
+ON LOC.location_id = VU.location_id AND LOC.grts_address = VU.grts_address
+INNER JOIN "inbound"."LenticVisits" LV
+ON VU.visit_id = LV.visit_id
+INNER JOIN "outbound"."SampleUnits" SU
+ON VU.sampleunit_id = SU.sampleunit_id
+INNER JOIN "outbound"."FieldCalendars" FC
+ON VU.visit_id = FC.visit_id AND VU.fieldcalendar_id = FC.fieldcalendar_id
+WHERE NOT VU.issues
+AND VU.visit_done
+AND NOT FC.excluded
+ORDER BY grts_address
+```
+
+# Create snapshots
+
+```{r}
+snapshot_dir <- here::here(
+  "100_reporting", "20261014_analysis_sv34", "data"
+)
+dir.create(snapshot_dir, recursive = TRUE, showWarnings = FALSE)
+
+snapshots <- list(
+  le_fieldwork = le_fieldwork,
+  gw_fieldwork_installations = gw_fieldwork_installations,
+  gw_fieldwork_samples = gw_fieldwork_samples,
+  surf_fieldwork = surf_fieldwork
+)
+
+for (name in names(snapshots)) {
+  saveRDS(
+    snapshots[[name]],
+    file.path(snapshot_dir, paste0(name, ".rds")),
+    version = 3
+  )
+}
+```
