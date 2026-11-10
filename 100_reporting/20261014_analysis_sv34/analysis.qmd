@@ -63,7 +63,7 @@ calculate_count <- function(
       nr_approved_locations = n_distinct(grts_address[loceval_approved == TRUE])
     )
   df2 <- df_installations |>
-    group_by(across(all_of(group_by))) |>
+    group_by(pick(group_by)) |>
     summarise(
       nr_installations = n(),
       nr_installed_samplingunits = n_distinct(sampleunit_id),
@@ -72,7 +72,7 @@ calculate_count <- function(
       nr_peilbuizen = n_distinct(watina_code_used_1_peilbuis, na.rm = TRUE)
     )
   df3 <- df_samples |>
-    group_by(across(all_of(group_by))) |>
+    group_by(pick(group_by)) |>
     summarise(
       nr_samples = n(),
       nr_sampled_samplingunits = n_distinct(sampleunit_id),
@@ -82,7 +82,7 @@ calculate_count <- function(
   df1 |>
     left_join(df2, by = group_by) |>
     left_join(df3, by = group_by) |>
-    arrange(across(all_of(group_by)))
+    arrange(pick(group_by))
 }
 ```
 
