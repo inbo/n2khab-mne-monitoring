@@ -19,11 +19,13 @@ SELECT
   VISIT.visit_id AS eval_id,
   VISIT.notes || '|' || LOREP.replacement_notes AS notes,
   VISIT.photo
-FROM "inbound"."TerrestrialTypesVisits" AS VISIT
+FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."TeamMembers" AS TEAM
   ON TEAM.teammember_id = VISIT.teammember_id
+LEFT JOIN "metadata"."ActivityGroups" AS ACT
+  ON ACT.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
   SELECT
     sampleunit_id,
@@ -35,6 +37,10 @@ LEFT JOIN (
   ON UNIT.sampleunit_id = LOREP.sampleunit_id
 WHERE TRUE
   AND VISIT.visit_done
+  AND (
+    (UNIT.schemes LIKE 'GW%' OR UNIT.schemes LIKE '%GW%')
+    OR (ACT.activity_group = 'LOCEVALTERR')
+  )
 UNION
 SELECT
   LOCASS.log_user,
@@ -58,9 +64,7 @@ SELECT
   NULL AS photo
 FROM "outbound"."LocationAssessments" AS LOCASS
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON (LOCASS.grts_address = UNIT.grts_address
-     AND LOCASS.type = UNIT.type
-     AND LOCASS.sampleunit_id = UNIT.sampleunit_id)
+  ON (LOCASS.sampleunit_id = UNIT.sampleunit_id)
 LEFT JOIN (
   SELECT
     sampleunit_id,
@@ -82,3 +86,6 @@ WHERE TRUE
 
 
 GRANT SELECT ON  "outbound"."gwTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
+
+
+-- SELECT count(*) FROM "outbound"."gwTransfer";

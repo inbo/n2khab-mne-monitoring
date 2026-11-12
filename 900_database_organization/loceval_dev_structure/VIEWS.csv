@@ -731,11 +731,13 @@ outbound,gwTransfer,"SELECT
   VISIT.visit_id AS eval_id,
   VISIT.notes || '|' || LOREP.replacement_notes AS notes,
   VISIT.photo
-FROM ""inbound"".""TerrestrialTypesVisits"" AS VISIT
+FROM ""inbound"".""Visits"" AS VISIT
 LEFT JOIN ""outbound"".""SampleUnits"" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN ""metadata"".""TeamMembers"" AS TEAM
   ON TEAM.teammember_id = VISIT.teammember_id
+LEFT JOIN ""metadata"".""ActivityGroups"" AS ACT
+  ON ACT.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
   SELECT
     sampleunit_id,
@@ -747,39 +749,10 @@ LEFT JOIN (
   ON UNIT.sampleunit_id = LOREP.sampleunit_id
 WHERE TRUE
   AND VISIT.visit_done
-UNION
-SELECT
-  VISIT.log_user,
-  VISIT.log_update,
-  UNIT.schemes,
-  UNIT.type,
-  UNIT.grts_address AS grts_address_original,
-  UNIT.grts_address,
-  VISIT.date_start,
-  VISIT.type_assessed,
-  UNIT.type_is_absent,
-  'loceval' AS eval_source,
-  LOWER(TEAM.username) AS eval_name,
-  VISIT.date_visit AS eval_date,
-  VISIT.visit_id AS eval_id,
-  VISIT.notes,
-  VISIT.photo
-FROM ""inbound"".""AquaticTypesVisits"" AS VISIT
-LEFT JOIN ""outbound"".""SampleUnits"" AS UNIT
-  ON VISIT.sampleunit_id = UNIT.sampleunit_id
-LEFT JOIN ""metadata"".""TeamMembers"" AS TEAM
-  ON TEAM.teammember_id = VISIT.teammember_id
-LEFT JOIN (
-  SELECT
-    sampleunit_id,
-    grts_address_replacement,
-    notes AS replacement_notes
-  FROM ""outbound"".""Replacements""
-  WHERE is_selected
-  ) AS LOREP
-  ON UNIT.sampleunit_id = LOREP.sampleunit_id
-WHERE TRUE
-  AND VISIT.visit_done
+  AND (
+    (UNIT.schemes LIKE 'GW%' OR UNIT.schemes LIKE '%GW%')
+    OR (ACT.activity_group = 'LOCEVALTERR')
+  )
 UNION
 SELECT
   LOCASS.log_user,
@@ -793,26 +766,31 @@ SELECT
     END AS grts_address,
   NULL AS date_start,
   LOCASS.type_suggested AS type_assessed,
-  UNIT.type_is_absent,
+  LOCASS.cell_disapproved OR UNIT.type_is_absent AS type_is_absent,
   'orthophotos' AS eval_source,
   LOWER(LOCASS.log_user) AS eval_name,
   CAST(LOCASS.log_update AS DATE) AS eval_date,
   LOCASS.locationassessment_id AS eval_id,
-  LOCASS.notes,
+  CASE WHEN LOCASS.disapproval_explanation IS NOT NULL THEN (LOCASS.disapproval_explanation || '; ') ELSE '' END ||
+    CASE WHEN LOCASS.notes IS NULL THEN '' ELSE LOCASS.notes END AS notes,
   NULL AS photo
 FROM ""outbound"".""LocationAssessments"" AS LOCASS
 LEFT JOIN ""outbound"".""SampleUnits"" AS UNIT
-  ON (LOCASS.grts_address = UNIT.grts_address
-     AND LOCASS.type = UNIT.type)
+  ON (LOCASS.sampleunit_id = UNIT.sampleunit_id)
 LEFT JOIN (
   SELECT
     sampleunit_id,
+    grts_address AS grts_address_original,
+    type,
     grts_address_replacement,
     notes AS replacement_notes
   FROM ""outbound"".""Replacements""
   WHERE is_selected
   ) AS LOREP
-  ON UNIT.sampleunit_id = LOREP.sampleunit_id
+  ON (UNIT.sampleunit_id = LOREP.sampleunit_id
+    AND UNIT.grts_address = LOREP.grts_address_original
+    AND UNIT.type = LOREP.type
+    )
 WHERE TRUE
   AND LOCASS.assessment_done
   AND (UNIT.location_id IS NOT NULL)
@@ -833,15 +811,21 @@ outbound,surfTransfer,"SELECT
   VISIT.visit_id AS eval_id,
   VISIT.notes,
   VISIT.photo
-FROM ""inbound"".""AquaticTypesVisits"" AS VISIT
+FROM ""inbound"".""Visits"" AS VISIT
 LEFT JOIN ""outbound"".""SampleUnits"" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN ""metadata"".""Locations"" AS LOC
   ON UNIT.location_id = LOC.location_id
 LEFT JOIN ""metadata"".""TeamMembers"" AS TEAM
   ON TEAM.teammember_id = VISIT.teammember_id
+LEFT JOIN ""metadata"".""ActivityGroups"" AS ACT
+  ON ACT.activity_group_id = VISIT.activity_group_id
 WHERE TRUE
   AND VISIT.visit_done
+  AND (
+    (ACT.activity_group = 'LOCEVALAQ')
+    OR (UNIT.schemes LIKE 'SURF%' OR UNIT.schemes LIKE '%SURF%')
+  )
 ;",,"viewer_mnmdb, reporter_mnmdb, tester_mnmdb",,information transfer to mnmsurfdb - direct line,
 outbound,LocationCoords,"SELECT
   LOC.*,
