@@ -6,6 +6,7 @@ SELECT
   LOC.*,
   LOCEVAL.locationevaluation_id,
   LOCEVAL.schemes,
+  LOCEVAL.activity_group,
   LOCEVAL.type,
   LOCEVAL.type_assessed,
   LOCEVAL.type_is_absent,
