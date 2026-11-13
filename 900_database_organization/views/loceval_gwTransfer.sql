@@ -1,3 +1,5 @@
+BEGIN;
+
 DROP VIEW IF EXISTS  "outbound"."gwTransfer" ;
 CREATE VIEW "outbound"."gwTransfer" AS
 SELECT
@@ -11,6 +13,8 @@ SELECT
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
   VISIT.date_start,
+  VISIT.activity_group_id,
+  ACT.activity_group,
   VISIT.type_assessed,
   UNIT.type_is_absent,
   'loceval' AS eval_source,
@@ -41,6 +45,7 @@ WHERE TRUE
     (UNIT.schemes LIKE 'GW%' OR UNIT.schemes LIKE '%GW%')
     OR (ACT.activity_group = 'LOCEVALTERR')
   )
+  AND (ACT.activity_group NOT LIKE '%SAMPLPOINT')
 UNION
 SELECT
   LOCASS.log_user,
@@ -53,6 +58,8 @@ SELECT
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
   NULL AS date_start,
+  NULL AS activity_group_id,
+  'ORTHOPHOTOEVAL' AS activity_group,
   LOCASS.type_suggested AS type_assessed,
   LOCASS.cell_disapproved OR UNIT.type_is_absent AS type_is_absent,
   'orthophotos' AS eval_source,
@@ -87,5 +94,15 @@ WHERE TRUE
 
 GRANT SELECT ON  "outbound"."gwTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
 
+COMMIT;
 
 -- SELECT count(*) FROM "outbound"."gwTransfer";
+
+
+
+-- SELECT DISTINCT grts_address, type, date_start, count(*) AS n
+-- FROM "outbound"."gwTransfer"
+-- WHERE eval_source = 'loceval'
+-- GROUP BY grts_address, type, date_start
+-- HAVING count(*) > 1
+-- ;

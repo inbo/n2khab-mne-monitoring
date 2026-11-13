@@ -723,6 +723,8 @@ outbound,gwTransfer,"SELECT
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
   VISIT.date_start,
+  VISIT.activity_group_id,
+  ACT.activity_group,
   VISIT.type_assessed,
   UNIT.type_is_absent,
   'loceval' AS eval_source,
@@ -753,6 +755,7 @@ WHERE TRUE
     (UNIT.schemes LIKE 'GW%' OR UNIT.schemes LIKE '%GW%')
     OR (ACT.activity_group = 'LOCEVALTERR')
   )
+  AND (ACT.activity_group NOT LIKE '%SAMPLPOINT')
 UNION
 SELECT
   LOCASS.log_user,
@@ -765,6 +768,8 @@ SELECT
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
   NULL AS date_start,
+  NULL AS activity_group_id,
+  'ORTHOPHOTOEVAL' AS activity_group,
   LOCASS.type_suggested AS type_assessed,
   LOCASS.cell_disapproved OR UNIT.type_is_absent AS type_is_absent,
   'orthophotos' AS eval_source,
@@ -803,6 +808,8 @@ outbound,surfTransfer,"SELECT
   UNIT.type,
   UNIT.grts_address AS grts_address_original,
   VISIT.date_start,
+  VISIT.activity_group_id,
+  ACT.activity_group,
   VISIT.type_assessed,
   UNIT.type_is_absent,
   'loceval' AS eval_source,
@@ -826,6 +833,7 @@ WHERE TRUE
     (ACT.activity_group = 'LOCEVALAQ')
     OR (UNIT.schemes LIKE 'SURF%' OR UNIT.schemes LIKE '%SURF%')
   )
+  AND (ACT.activity_group NOT LIKE '%SAMPLPOINT')
 ;",,"viewer_mnmdb, reporter_mnmdb, tester_mnmdb",,information transfer to mnmsurfdb - direct line,
 outbound,LocationCoords,"SELECT
   LOC.*,
