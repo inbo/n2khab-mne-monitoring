@@ -1,7 +1,7 @@
 BEGIN;
 
-DROP VIEW IF EXISTS  "outbound"."gwTransfer" ;
-CREATE VIEW "outbound"."gwTransfer" AS
+DROP VIEW IF EXISTS  "transfer"."gwTransfer" CASCADE;
+CREATE VIEW "transfer"."gwTransfer" AS
 SELECT
   VISIT.log_user,
   VISIT.log_update,
@@ -92,16 +92,23 @@ WHERE TRUE
 ;
 
 
+GRANT SELECT ON  "transfer"."gwTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
+
+-- synonym for backwards compatibility
+DROP VIEW IF EXISTS  "outbound"."gwTransfer" ;
+CREATE VIEW "outbound"."gwTransfer" AS
+SELECT * FROM "transfer"."gwTransfer";
+
 GRANT SELECT ON  "outbound"."gwTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
 
 COMMIT;
 
--- SELECT count(*) FROM "outbound"."gwTransfer";
+-- SELECT count(*) FROM "transfer"."gwTransfer";
 
 
 
 -- SELECT DISTINCT grts_address, type, date_start, count(*) AS n
--- FROM "outbound"."gwTransfer"
+-- FROM "transfer"."gwTransfer"
 -- WHERE eval_source = 'loceval'
 -- GROUP BY grts_address, type, date_start
 -- HAVING count(*) > 1

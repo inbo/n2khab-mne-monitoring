@@ -1,7 +1,7 @@
 BEGIN;
 
-DROP VIEW IF EXISTS  "outbound"."surfTransfer" ;
-CREATE VIEW "outbound"."surfTransfer" AS
+DROP VIEW IF EXISTS  "transfer"."surfTransfer" ;
+CREATE VIEW "transfer"."surfTransfer" AS
 SELECT
   LOC.*,
   VISIT.log_user,
@@ -39,14 +39,19 @@ WHERE TRUE
 ;
 
 
-GRANT SELECT ON  "outbound"."surfTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
+GRANT SELECT ON  "transfer"."surfTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
+
+DROP VIEW IF EXISTS  "outbound"."surfTransfer" ;
+CREATE VIEW "outbound"."surfTransfer" AS
+SELECT * FROM "transfer"."surfTransfer";
+
 
 COMMIT;
 
--- SELECT count(*) FROM "outbound"."surfTransfer";
+-- SELECT count(*) FROM "transfer"."surfTransfer";
 
 -- SELECT DISTINCT grts_address, type, date_start, MIN(eval_date), MAX(eval_date), count(*) AS n
--- FROM "outbound"."surfTransfer"
+-- FROM "transfer"."surfTransfer"
 -- WHERE eval_source = 'loceval'
 -- GROUP BY grts_address, type, date_start
 -- HAVING count(*) > 1

@@ -3,5 +3,6 @@
   "theme": "obsidian",
   "enabledCssSnippets": [
     "datetime_reformat"
-  ]
+  ],
+  "showRibbon": true
 }

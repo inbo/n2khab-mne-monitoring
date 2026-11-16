@@ -34,25 +34,17 @@ LEFT JOIN "metadata"."Locations" AS LOC
   ON LOC.location_id = VISIT.location_id
 LEFT JOIN "metadata"."TeamMembers" AS TEAM
   ON TEAM.teammember_id = VISIT.teammember_id
-LEFT JOIN (
-  SELECT DISTINCT activity_group_id, activity_group, is_gw_activity
-    FROM "metadata"."GroupedActivities"
-    GROUP BY activity_group_id, activity_group, is_gw_activity
-  ) AS ACT
-    ON ACT.activity_group_id = CAL.activity_group_id
-WHERE
-  VISIT.visit_done OR (
+LEFT JOIN "metadata"."ActivityGroups" AS ACT
+  ON ACT.activity_group_id = CAL.activity_group_id
+WHERE TRUE
+  AND ACT.activity_group IN ('LOCEVALTERR', 'LOCEVALAQ')
+  AND (VISIT.visit_done OR (
     CAL.priority <= 4 AND CAL.priority IS NOT NULL
     AND NOT CAL.excluded
     AND NOT CAL.no_visit_planned
     AND NOT CAL.is_frozen
     AND NOT CAL.wait_any
-  )
-  AND CAL.activity_group_id IN (
-   SELECT DISTINCT activity_group_id
-   FROM "metadata"."GroupedActivities"
-   WHERE activity_group IN ('LOCEVALTERR', 'LOCEVALAQ')
-  )
+  ))
 ;
 
 
