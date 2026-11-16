@@ -40,6 +40,7 @@ SELECT
   UNIT.mhq_assessment_date AS assessment_date,
   (UNIT.archive_version_id IS NOT NULL) AS sample_unit_obsolete,
   LOCASS.orthophotoevaluation_id,
+  LOCASS.orthophotoevaluation_id AS locationassessment_id,
   LOCASS.cell_disapproved,
   LOCASS.revisit_disapproval,
   LOCASS.disapproval_explanation,

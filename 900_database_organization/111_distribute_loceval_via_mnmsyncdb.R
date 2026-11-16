@@ -960,6 +960,7 @@ distribute_targetpoints_to_userdatabases <- function(udb) {
         log_creation,
         log_user,
         log_update,
+        unit_code,
         date_selection,
         notes,
         photo,

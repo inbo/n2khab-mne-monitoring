@@ -62,7 +62,8 @@ to_timestring <- function (ts, fmt = "%Y-%m-%d %H:%M:%OS0") {
 targetpoints_upload <- sideload_gpkg %>%
   rename(
     try_first = legacy_try_first,
-    notes = annotation
+    # notes = annotation
+    unit_code = annotation
   ) %>%
   mutate(
     # date_selection = to_timestring(lastdate_legacysampling_polygon, "%Y-%m-%d"),
@@ -79,7 +80,7 @@ targetpoints_upload <- sideload_gpkg %>%
     log_user,
     log_update,
     date_selection,
-    notes,
+    unit_code,
     is_legacypoint,
     try_first
   ) %>%
@@ -112,7 +113,7 @@ locevaldb$insert_data(
 # $ legacy_try_first                -> try_first
 # $ x                               -> NA
 # $ y                               -> NA
-# $ annotation                      -> notes
+# $ annotation                      -> unit_code # WAS: notes
 # $ ranknr                          -> NA
 # $ active_in_db_from               -> log_creation
 # $ active_in_db_till               -> NA
