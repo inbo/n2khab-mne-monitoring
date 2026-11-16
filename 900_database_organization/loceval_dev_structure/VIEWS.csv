@@ -185,7 +185,7 @@ DO ALSO
   accessibility_inaccessible = NEW.accessibility_inaccessible,
   accessibility_revisit = NEW.accessibility_revisit
  WHERE locationinfo_id = OLD.locationinfo_id
-;","viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",OBSOLETE view to store field visit info by biotic monitoring,0
+;","viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",OBSOLETE view to store field visit info by biotic monitoring,1
 outbound,FieldworkPlanning,"SELECT
   LOC.*,
   FAC.fieldcalendar_id,
@@ -298,7 +298,7 @@ DO ALSO
   accessibility_revisit = NEW.accessibility_revisit,
   recovery_hints = NEW.recovery_hints
  WHERE locationinfo_id = OLD.locationinfo_id
-;","viewer_mnmdb, tester_mnmdb","planner_loceval, tester_mnmdb",OBSOLETE Fieldwork preparation for biotic monitoring; was never really used in practice -> joined to LocevalFieldwork,0
+;","viewer_mnmdb, tester_mnmdb","planner_loceval, tester_mnmdb",OBSOLETE Fieldwork preparation for biotic monitoring; was never really used in practice -> joined to LocevalFieldwork,1
 inbound,LocevalFieldwork,"SELECT
   LOC.*,
   UNIT.sampleunit_id,

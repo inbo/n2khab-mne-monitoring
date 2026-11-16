@@ -1,4 +1,6 @@
 
+-- OBSOLETE -> replaced by "inbound"."LocevalFieldwork"
+
 SELECT *
   FROM "outbound"."FieldCalendars" AS FAC
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
@@ -19,6 +21,10 @@ LEFT JOIN (
   ON UNIT.location_id = LOCASS.location_id
 WHERE done_planning
 ;
+
+
+
+BEGIN;
 
 DROP VIEW IF EXISTS  "outbound"."FieldworkPlanning" ;
 CREATE VIEW "outbound"."FieldworkPlanning" AS
@@ -141,3 +147,6 @@ DO ALSO
 
 GRANT SELECT ON  "outbound"."FieldworkPlanning"  TO viewer_mnmdb;
 GRANT UPDATE ON  "outbound"."FieldworkPlanning"  TO planner_loceval;
+
+
+COMMIT;
