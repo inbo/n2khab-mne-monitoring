@@ -48,8 +48,8 @@ WHERE TRUE
   AND (ACT.activity_group NOT LIKE '%SAMPLPOINT')
 UNION
 SELECT
-  LOCASS.log_user,
-  LOCASS.log_update,
+  OFO.log_user,
+  OFO.log_update,
   UNIT.schemes,
   UNIT.type,
   UNIT.grts_address AS grts_address_original,
@@ -60,18 +60,18 @@ SELECT
   NULL AS date_start,
   NULL AS activity_group_id,
   'ORTHOPHOTOEVAL' AS activity_group,
-  LOCASS.type_suggested AS type_assessed,
-  LOCASS.cell_disapproved OR UNIT.type_is_absent AS type_is_absent,
+  OFO.type_suggested AS type_assessed,
+  OFO.cell_disapproved OR UNIT.type_is_absent AS type_is_absent,
   'orthophotos' AS eval_source,
-  LOWER(LOCASS.log_user) AS eval_name,
-  CAST(LOCASS.log_update AS DATE) AS eval_date,
-  LOCASS.locationassessment_id AS eval_id,
-  CASE WHEN LOCASS.disapproval_explanation IS NOT NULL THEN (LOCASS.disapproval_explanation || '; ') ELSE '' END ||
-    CASE WHEN LOCASS.notes IS NULL THEN '' ELSE LOCASS.notes END AS notes,
+  LOWER(OFO.log_user) AS eval_name,
+  CAST(OFO.log_update AS DATE) AS eval_date,
+  OFO.orthophotoevaluation_id AS eval_id,
+  CASE WHEN OFO.disapproval_explanation IS NOT NULL THEN (OFO.disapproval_explanation || '; ') ELSE '' END ||
+    CASE WHEN OFO.notes IS NULL THEN '' ELSE OFO.notes END AS notes,
   NULL AS photo
-FROM "outbound"."LocationAssessments" AS LOCASS
+FROM "outbound"."OrthophotoEvaluations" AS OFO
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON (LOCASS.sampleunit_id = UNIT.sampleunit_id)
+  ON (OFO.sampleunit_id = UNIT.sampleunit_id)
 LEFT JOIN (
   SELECT
     sampleunit_id,
@@ -87,7 +87,7 @@ LEFT JOIN (
     AND UNIT.type = LOREP.type
     )
 WHERE TRUE
-  AND LOCASS.assessment_done
+  AND OFO.assessment_done
   AND (UNIT.location_id IS NOT NULL)
 ;
 

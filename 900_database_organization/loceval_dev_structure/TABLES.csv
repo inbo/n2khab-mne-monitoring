@@ -16,7 +16,7 @@ outbound,SampleUnitPolygons,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,,,habi
 outbound,Replacements,yoda,"viewer_mnmdb, tester_mnmdb","planner_loceval, tester_mnmdb",POINT,,,,,,putative replacements for inaccessible sites
 outbound,ReplacementCells,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,,,cell polygons (squares) of the replacement cells
 outbound,MHQPolygons,yoda,"viewer_mnmdb, tester_mnmdb",,POLYGON,,,,1,,MHQ sample areas NO TRESPASSING!
-outbound,LocationAssessments,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,,,1,,"iudicium in praetorio, prior to fieldwork, e.g. via orthophotos, including assessments of obsolete locations"
+outbound,OrthophotoEvaluations,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,,,1,,"iudicium in praetorio, prior to fieldwork, e.g. via orthophotos, including assessments of obsolete locations"
 outbound,FieldCalendars,yoda,"viewer_mnmdb, tester_mnmdb","planner_loceval, tester_mnmdb",,,,,1,,field activity calender for planning fieldwork
 inbound,Visits,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,,,1,,"inbound information about location visits, linked to SampleUnits and FieldCalendars"
 inbound,OtherVisits,yoda,"viewer_mnmdb, tester_mnmdb","user_loceval, tester_mnmdb",,,"""inbound"".""Visits""",,1,,inbound information about field visits which are not otherwise specified

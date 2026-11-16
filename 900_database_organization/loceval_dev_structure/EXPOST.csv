@@ -41,9 +41,9 @@ CREATE TRIGGER log_locationinfos
 BEFORE UPDATE ON ""outbound"".""LocationInfos""
 FOR EACH ROW EXECUTE PROCEDURE ""metadata"".sync_mod();
 
-DROP TRIGGER IF EXISTS log_assessments ON ""outbound"".""LocationAssessments"";
-CREATE TRIGGER log_assessments
-BEFORE UPDATE ON ""outbound"".""LocationAssessments""
+DROP TRIGGER IF EXISTS log_orthophotoevaluations ON ""outbound"".""OrthophotoEvaluations"";
+CREATE TRIGGER log_orthophotoevaluations
+BEFORE UPDATE ON ""outbound"".""OrthophotoEvaluations""
 FOR EACH ROW EXECUTE PROCEDURE ""metadata"".sync_mod();
 
 DROP TRIGGER IF EXISTS log_fieldcalendars ON ""outbound"".""FieldCalendars"";
