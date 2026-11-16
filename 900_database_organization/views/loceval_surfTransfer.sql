@@ -45,6 +45,7 @@ DROP VIEW IF EXISTS  "outbound"."surfTransfer" ;
 CREATE VIEW "outbound"."surfTransfer" AS
 SELECT * FROM "transfer"."surfTransfer";
 
+GRANT SELECT ON  "outbound"."surfTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
 
 COMMIT;
 
