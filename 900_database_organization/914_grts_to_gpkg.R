@@ -1,4 +1,36 @@
+library("mnmdb")
+library("dplyr")
+library("sf")
 
+auth <- mnmdb::mnmdbAuthConf(
+    config_file = file.path("config_files", "mnmgwdb.conf"),
+    connect_passwordless = TRUE,
+    database = "mnmsurfdb"
+  )
+describe(auth)
+
+mnmdbconn <- mnmdb::mnmdbConnection(
+    auth = mnmdb::mnmdbAuthConf(
+      config_file = file.path("config_files", "mnmgwdb.conf"),
+      connect_passwordless = TRUE
+    )
+  )
+mnmdb::describe(mnmdbconn)
+
+# connect
+mnmdbconn <- mnmdbconn |> mnmdb::connect()
+mnmdb::describe(mnmdbconn)
+
+# query all
+all_locations <- mnmdbconn |> query_table(DBI::Id("metadata", "Locations"))
+
+all_locations$geometry <- sf::st_as_sfc(structure(as.list(all_locations$wkb_geometry), class = "WKB"), EWKB=TRUE )
+all_locations <- sf::st_as_sf(all_locations)
+
+all_locations %>% glimpse()
+
+
+# filter
 grts_list <- c(
   48897,
   454998,
@@ -105,3 +137,33 @@ grts_list <- c(
   10907414,
   12420626
 )
+
+
+selected_locations <- all_locations %>% filter(
+    grts_address %in% grts_list
+  )
+
+# check
+if (nrow(selected_locations) == length(grts_list)) {
+  message("number of locations match!")
+} else {
+  missing_locations <- all_locations %>%
+    mutate(
+      found = grts_address %in% grts_list
+    ) %>%
+    filter_out(found)
+  stop("The above GRTS addresses were not found!")
+
+}
+
+# inspect
+selected_locations %>% glimpse()
+
+mapview::mapview(selected_locations)
+
+
+sf::st_write(selected_locations,
+  dsn = "./locaties_2027_preview.gpkg",
+  layer = "Overzicht finale locaties",
+  append = FALSE
+  )
