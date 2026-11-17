@@ -41,8 +41,9 @@ choose a GRTS
 
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
-#
-grts <- c(48897) # 9130_end apparently duplicate loceval # 29073
+
+grts <- c(31682546) # location where extra activities appeared by modifying prior installations
+  # c(48897) # 9130_end apparently duplicate loceval # 29073
   # c(187061, 16964277) # no random points -> cell map was erroneously set to `2190_mp` (instead of `2190_overig`)
   # c(37049) # issue with PositioningVisits date_start non-matching
   # c(54238, 8442846) # QGIS test "permission notes" [staging]
