@@ -292,36 +292,10 @@ gw_field_activities_db <- mnmgwdb$query_table("ActivityGroups") %>%
 ```
 
 
-:::{.callout-note}
-`SSPSTaPas` are phasing out.
+
+::: {.callout-note "REMINDER"}
+`"metadata"."SSPSTaPas"` have been deleted; see if some relic `sspstapas_id` causes trouble (e.g. from "freeze" or "sideload").
 :::
-
-I had the idea that `stratum_scheme_panelset_targetpanels` could be abbreviated to 
-`sspstapas`.
-Unfortunately, I did not keep up with the speed of things.
-
-```{r ssps-tapas-fake}
-# TODO sspstapas are obsolete and this function is a fake addition
-
-replace_sspstapa_by_lookup <- function(df) {
-  df_new <- df %>%
-    mutate(sspstapa_id = NA) %>% 
-    # left_join(
-    #   sspstapas,
-    #   by = join_by(stratum_scheme_ps_targetpanels_served),
-    #   relationship = "many-to-one"
-    # ) %>%
-    relocate(
-      sspstapa_id,
-      .after = stratum_scheme_ps_targetpanels
-    ) %>%
-    select(-stratum_scheme_ps_targetpanels)
-
-  return(df_new)
-}
-
-```
-
 
 
 ## Freeze Past Fixture
@@ -1013,8 +987,7 @@ fieldwork_calendar_retained <- mnmgwdb_freeze %>%
 fieldcalendar_new <- bind_rows(
     fieldwork_calendar_retained,
     fieldwork_calendar_updated
-  ) %>% 
-  mutate(sspstapa_id = NA)
+  )
 
 ```
 

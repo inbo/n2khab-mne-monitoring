@@ -1,5 +1,7 @@
 -- view all kinds of Visits at once
 
+BEGIN;
+
 DROP VIEW IF EXISTS "inbound"."AllVisits" CASCADE;
 CREATE VIEW "inbound"."AllVisits" AS
 SELECT *
@@ -19,3 +21,5 @@ DO INSTEAD NOTHING;
 
 
 GRANT SELECT ON  "inbound"."AllVisits"  TO  viewer_mnmdb;
+
+COMMIT;
