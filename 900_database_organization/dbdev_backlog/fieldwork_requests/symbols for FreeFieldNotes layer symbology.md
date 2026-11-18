@@ -2,7 +2,7 @@
 aliases:
   - FreeFieldNotes symbols
 tags:
-  - FreeFieldNodes
+  - FreeFieldNotes
   - symbols
   - layout
 started: 2026-07-15

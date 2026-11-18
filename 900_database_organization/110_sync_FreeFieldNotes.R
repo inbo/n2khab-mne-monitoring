@@ -216,6 +216,13 @@ assemble_teammember_id_lookup_table <- function() {
 }
 
 teammember_lookup <- assemble_teammember_id_lookup_table()
+mismatch_teammembers <- teammember_lookup %>% filter(if_any(everything(), is.na))
+
+if ((mismatch_teammembers %>% nrow()) > 0) {
+  mismatch_teammembers %>% knitr::kable()
+  stop("Some teammembers went missing in some of the databases, or the `username` does not match.")
+}
+
 # teammember_lookup %>% knitr::kable()
 
 # adjust the content of the teammenber_id column

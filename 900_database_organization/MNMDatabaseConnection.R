@@ -739,7 +739,7 @@ mnmdb_assemble_structure_lookups <- function(db) {
 
   # get table Id as used DBI/dbplyr queries
   db$get_table_id <- function(table_label) DBI::Id(
-    schema = db$get_schema(table_label),
+    schema = db$get_schema(table_label)[1],
     table = table_label
   )
   # db$get_table_id("LocationCells")
@@ -816,8 +816,8 @@ mnmdb_assemble_structure_lookups <- function(db) {
     # escape views
     is_view <- db$tables %>%
       dplyr::filter(table == table_label) %>%
-      dplyr::pull(is_view)
-    if (is_view) {
+      dplyr::pull(is_view) # can yield vector for homonymous redirection
+    if (any(is_view)) {
       return(dplyr::tibble(
         column = character(),
         datatype = character(),
