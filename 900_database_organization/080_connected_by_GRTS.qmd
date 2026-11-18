@@ -42,7 +42,9 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 
-grts <- c(31682546) # location where extra activities appeared by modifying prior installations
+grts <- c(1902553) # c(187382) # c(51431410) # c(1902553) # c(127710, 1176286) # more stray activities
+  # c(48950) # stray READDIVER activity 3/2026 -> asked @YDC -> then removed visit
+  # c(31682546) # location where extra activities appeared by modifying prior installations
   # c(48897) # 9130_end apparently duplicate loceval # 29073
   # c(187061, 16964277) # no random points -> cell map was erroneously set to `2190_mp` (instead of `2190_overig`)
   # c(37049) # issue with PositioningVisits date_start non-matching
@@ -406,7 +408,8 @@ eva_print_visits <- function() {
       agid = activity_group_id,
       fcid = fieldcalendar_id,
       archv = archive_version_id,
-      vid = visit_id
+      vid = visit_id,
+      done = visit_done
     ) %>%
     dplyr::select(
       grts,
@@ -418,7 +421,8 @@ eva_print_visits <- function() {
       agid,
       date_start,
       archv,
-      date_visit
+      date_visit,
+      done
     ) %>%
     arrange(type, date_start, agid) %>% 
     knitr::kable()
@@ -741,7 +745,8 @@ gw_print_visits <- function() {
       fcid = fieldcalendar_id,
       archv = archive_version_id,
       vid = visit_id,
-      tid = teammember_id
+      tid = teammember_id,
+      done = visit_done
     ) %>%
     dplyr::select(
       grts,
@@ -755,7 +760,8 @@ gw_print_visits <- function() {
       archv,
       tid,
       issues,
-      date_visit
+      date_visit,
+      done
     ) %>%
     arrange(stratum, date_start, agid) %>% 
     knitr::kable()
@@ -1116,7 +1122,8 @@ surf_print_visits <- function() {
       fcid = fieldcalendar_ids,
       archv = archive_version_id,
       vid = visit_id,
-      tid = teammember_id
+      tid = teammember_id,
+      done = visit_done
     ) %>%
     dplyr::select(
       grts,
@@ -1130,7 +1137,8 @@ surf_print_visits <- function() {
       archv,
       tid,
       issues,
-      date_visit
+      date_visit,
+      done
     ) %>%
     arrange(stratums, date_start, agid) %>% 
     knitr::kable()

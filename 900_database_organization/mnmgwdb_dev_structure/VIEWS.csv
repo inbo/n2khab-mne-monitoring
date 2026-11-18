@@ -676,3 +676,49 @@ WHERE grts_address IN (
 )
 ;
 ",,"viewer_mnmdb, tester_mnmdb",,indicate locations where a total station is preferred for PositioningVisits,0
+inbound,VisitIncompleteCheck,"SELECT
+  LOC.*,
+  VIS.visit_id,
+  VIS.date_start,
+  ACT.activity_group,
+  VIS.teammember_id IS NULL AS teammember_missing,
+  VIS.date_visit IS NULL AS date_missing,
+  ACT.activity_group ||
+    CASE WHEN  (VIS.teammember_id IS NULL) THEN ' teamlid' ELSE '' END ||
+    CASE WHEN  (VIS.date_visit IS NULL) THEN ' datum' ELSE '' END ||
+    ' aanvullen aub!' AS label,
+  VIS.log_user || ' ' || VIS.log_update::varchar AS logging_info
+FROM ""inbound"".""Visits"" VIS
+LEFT JOIN ""metadata"".""Locations"" LOC
+  ON LOC.location_id = VIS.location_id
+LEFT JOIN ""metadata"".""ActivityGroups"" ACT
+  ON ACT.activity_group_id = VIS.activity_group_id
+WHERE visit_done
+  AND (
+    (VIS.teammember_id IS NULL)
+    OR (VIS.date_visit IS NULL)
+  )
+;",,"viewer_mnmdb, tester_mnmdb",,continuous visual check for missing information on field forms,0
+inbound,UnplannedVisitCheck,"SELECT
+  LOC.*,
+  VIS.visit_id,
+  VIS.stratum,
+  ACT.activity_group,
+  VIS.date_start,
+  VIS.log_user,
+  VIS.log_update,
+  VIS.date_visit,
+  TEAM.username,
+  ACT.activity_group || ' visit unplanned!' AS label
+FROM ""inbound"".""Visits"" VIS
+LEFT JOIN ""metadata"".""Locations"" LOC
+  ON LOC.location_id = VIS.location_id
+LEFT JOIN ""outbound"".""FieldCalendars"" CAL
+  ON VIS.visit_id = CAL.visit_id
+LEFT JOIN ""metadata"".""ActivityGroups"" ACT
+  ON ACT.activity_group_id = VIS.activity_group_id
+LEFT JOIN ""metadata"".""TeamMembers"" TEAM
+  ON TEAM.teammember_id = VIS.teammember_id
+WHERE NOT done_planning
+  AND visit_done
+;",,"viewer_mnmdb, tester_mnmdb",,"continuous visual check for visits which were executed, but never planned (artifacts, hopefully historic)",0
