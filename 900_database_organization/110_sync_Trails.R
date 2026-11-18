@@ -364,6 +364,65 @@ characteristic_join_trails <- function(
 
 ### Sync Procedure, per database
 
+# Step 0: wiggle timestamp of exactly simultaneous feature entries
+#     QGIS updates against the server on manual interaction:
+#     only after the "save layer edits" button is pressed will
+#     it generate an INSERT.
+#     This can lead to totally unrelated features receiving the
+#     exact same timestamp.
+#     And because the only identifiers we have here are
+#     `log_creator` and `log_creation`, those duplicates lead to
+#     erroneous joins and feature duplication upon sync.
+#     SOLUTION: wiggle `log_creation` by a few milliseconds.
+shift_exactly_simultaneous_features <- function(sdb) {
+  mnmdb <- sourcedb_connections[[sdb]]
+
+  table_namestring <- mnmdb$get_namestring("Trails")
+  pk_fieldname <- "trail_id"
+
+  check <- mnmdb$query_table("Trails") %>%
+    dplyr::count(log_creation) %>%
+    filter(n > 1)
+
+  n_duplicates <- check %>% pull(n) %>% sum()
+  if (isFALSE(is.scalar.na(n_duplicates)) && n_duplicates > 0) {
+    message(glue::glue(
+      "MICRO-SHIFTING `log_creation` of {n_duplicates} Trails:"
+    ))
+    knitr::kable(check) %>% message()
+  } else {
+    return(invisible(NULL))
+  }
+
+  # hacky trick: shift creation ts of a feature by the difference
+  # between that features' ID and the smallest ID in the group,
+  # converted to milliseconds.
+  # This works as long as primary keys are unique.
+
+  update_query <- glue::glue("
+    WITH rectify AS
+    (
+      SELECT DISTINCT
+        log_creation,
+        MIN({pk_fieldname}) AS millishiftback
+      FROM {table_namestring}
+      GROUP BY log_creation
+    )
+    UPDATE {table_namestring} TR
+    SET
+      log_creation = TR.log_creation + ((TR.{pk_fieldname} - RE.millishiftback) * interval '1  ms')
+    FROM rectify RE
+    WHERE TR.log_creation = RE.log_creation
+    ;
+
+  ")
+
+  mnmdb$execute_sql(update_query, verbose = FALSE)
+
+} # /shift_exactly_simultaneous_features
+
+
+
 # Step 1: user input assembled in syncdb
 synchronize_syncdb_with_data_from_sources <- function(sdb) {
   # sdb <- "mnmsurfdb"
@@ -586,6 +645,7 @@ distribute_trails_updates_to_sources <- function(sdb) {
 ### Execution: loop databases
 
 for (sdb in sourcedb_labels) {
+  shift_exactly_simultaneous_features(sdb)
   synchronize_syncdb_with_data_from_sources(sdb)
 }
 
