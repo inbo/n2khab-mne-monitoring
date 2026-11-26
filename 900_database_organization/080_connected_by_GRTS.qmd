@@ -42,7 +42,8 @@ choose a GRTS
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
 
-grts <- c(1902553) # c(187382) # c(51431410) # c(1902553) # c(127710, 1176286) # more stray activities
+grts <- c(8425) #  één van de mooiste voorbeelden van 91E0_vm in de Vlaanders
+  # c(1902553) # c(187382) # c(51431410) # c(1902553) # c(127710, 1176286) # more stray activities
   # c(48950) # stray READDIVER activity 3/2026 -> asked @YDC -> then removed visit
   # c(31682546) # location where extra activities appeared by modifying prior installations
   # c(48897) # 9130_end apparently duplicate loceval # 29073
