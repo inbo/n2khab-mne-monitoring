@@ -1,3 +1,7 @@
+
+-- OBSOLETE -> replaced by "inbound"."LocevalFieldwork"
+
+
 CASE WHEN "is_scheduled" THEN
   CASE WHEN "visit_done" THEN 'scheduled+done'
   ELSE 'scheduled' END
@@ -8,6 +12,10 @@ END
 
 'f=' || is_frozen || ' s=' || is_scheduled || ' v=' || visit_done
 
+
+
+
+BEGIN;
 
 DROP VIEW IF EXISTS  "inbound"."LocationEvaluation" ;
 CREATE VIEW "inbound"."LocationEvaluation" AS
@@ -161,3 +169,5 @@ DO ALSO
 
 GRANT SELECT ON  "inbound"."LocationEvaluation"  TO viewer_mnmdb;
 GRANT UPDATE ON  "inbound"."LocationEvaluation"  TO planner_loceval;
+
+COMMIT;

@@ -51,7 +51,7 @@ SELECT
   CAL.done_planning,
   CAL.is_frozen,
   ACT.activity_group,
-  ACT.default_protocol_id,
+  ACT.protocol_id AS default_protocol_id,
   VISIT.visit_id,
   VISIT.teammember_id,
   VISIT.date_visit,
@@ -62,9 +62,8 @@ SELECT
   VISIT.notes,
   VISIT.photo,
   VISIT.issues,
-  (VISIT.othervisit_id IS NOT NULL) AS show_othervisits,
-  ((VISIT.othervisit_id IS NOT NULL) AND ACT.is_samplingpoint_activity)
-      AS is_samplingpoint_activity,
+  FALSE AS show_othervisits,
+  FALSE AS is_samplingpoint_activity,
   (VISIT.aquatictypesvisit_id IS NOT NULL) AS show_aquatictypevisits,
   VISIT.samplingpoint_selection_done,
   VISIT.crassula_was_here,
@@ -84,7 +83,7 @@ SELECT
     OR (CAL.archive_version_id IS NOT NULL)
     OR (VISIT.archive_version_id IS NOT NULL)
     AS is_archived,
-  OPHO.assessment_done AS orthophoto_assessment_done,
+  CASE WHEN OPHO.assessment_done IS NULL THEN FALSE ELSE assessment_done END AS orthophoto_assessment_done,
   OPHO.notes AS orthophoto_notes,
   CASE WHEN CAL.done_planning
       THEN '[✓] '
@@ -121,7 +120,6 @@ SELECT
 FROM (
   SELECT *
   FROM ONLY "inbound"."Visits"
-  NATURAL FULL JOIN "inbound"."OtherVisits"
   NATURAL FULL JOIN "inbound"."AquaticTypesVisits"
   NATURAL FULL JOIN "inbound"."TerrestrialTypesVisits"
 ) AS VISIT
@@ -133,40 +131,19 @@ LEFT JOIN "outbound"."LocationInfos" AS INFO
   ON INFO.location_id = VISIT.location_id
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
-LEFT JOIN (
-  SELECT DISTINCT
-    sampleunit_id,
-    BOOL_OR(cell_disapproved) AS cell_disapproved,
-    BOOL_OR(assessment_done) AS assessment_done,
-    STRING_AGG(CASE WHEN notes IS NULL THEN '' ELSE notes END, '; ') AS notes
-  FROM "outbound"."LocationAssessments"
-  GROUP BY
-    sampleunit_id
-  ) AS OPHO
+LEFT JOIN "metadata"."ActivityGroups" AS ACT
+  ON ACT.activity_group_id = VISIT.activity_group_id
+LEFT JOIN "outbound"."OrthophotoEvaluations" AS OPHO
   ON VISIT.sampleunit_id = OPHO.sampleunit_id
-LEFT JOIN (
-  SELECT
-    activity_group_id, activity_group,
-    is_loceval_activity,
-    (activity_group LIKE 'SURF%SAMPLPOINT') AS is_samplingpoint_activity,
-    protocol_id AS default_protocol_id
-  FROM "metadata"."ActivityGroups"
-  WHERE archive_version_id IS NULL
-  AND is_loceval_activity
-) AS ACT ON ACT.activity_group_id = CAL.activity_group_id
 WHERE TRUE
-  AND (VISIT.grts_address = CAL.grts_address)
-  AND (VISIT.type = CAL.type)
-  AND (VISIT.date_start = CAL.date_start)
-  AND (ACT.activity_group IS NOT NULL)
-  AND VISIT.activity_group_id = CAL.activity_group_id
   AND (
     VISIT.visit_done OR (
           (NOT CAL.wait_any)
       AND (UNIT.archive_version_id IS NULL)
       AND (CAL.archive_version_id IS NULL)
       AND (VISIT.archive_version_id IS NULL)
-      AND (NOT (OPHO.cell_disapproved IS TRUE))
+      AND (ACT.archive_version_id IS NULL)
+      AND ((OPHO.cell_disapproved IS FALSE) OR (OPHO.cell_disapproved IS NULL))
     )
   )
 ;

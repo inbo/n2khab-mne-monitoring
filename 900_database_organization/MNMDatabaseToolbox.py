@@ -854,7 +854,7 @@ class Database(dict):
 
     def CreateSchema(self, db_connection: DatabaseConnection) -> None:
         # create all schema's from the SCHEMA definition file
-        CreateSchema(db_connection, self.structure_folder/"SCHEMA.csv", selection = self.GetSchemas())
+        CreateSchema(db_connection, self.structure_folder/"SCHEMA.csv")# , selection = self.GetSchemas())
 
 
     def CreateTables(self, db_connection: DatabaseConnection, verbose: bool = True) -> None:

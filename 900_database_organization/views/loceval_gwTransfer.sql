@@ -1,5 +1,7 @@
-DROP VIEW IF EXISTS  "outbound"."gwTransfer" ;
-CREATE VIEW "outbound"."gwTransfer" AS
+BEGIN;
+
+DROP VIEW IF EXISTS  "transfer"."gwTransfer" CASCADE;
+CREATE VIEW "transfer"."gwTransfer" AS
 SELECT
   VISIT.log_user,
   VISIT.log_update,
@@ -11,6 +13,8 @@ SELECT
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
   VISIT.date_start,
+  VISIT.activity_group_id,
+  ACT.activity_group,
   VISIT.type_assessed,
   UNIT.type_is_absent,
   'loceval' AS eval_source,
@@ -19,11 +23,13 @@ SELECT
   VISIT.visit_id AS eval_id,
   VISIT.notes || '|' || LOREP.replacement_notes AS notes,
   VISIT.photo
-FROM "inbound"."TerrestrialTypesVisits" AS VISIT
+FROM "inbound"."Visits" AS VISIT
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
   ON VISIT.sampleunit_id = UNIT.sampleunit_id
 LEFT JOIN "metadata"."TeamMembers" AS TEAM
   ON TEAM.teammember_id = VISIT.teammember_id
+LEFT JOIN "metadata"."ActivityGroups" AS ACT
+  ON ACT.activity_group_id = VISIT.activity_group_id
 LEFT JOIN (
   SELECT
     sampleunit_id,
@@ -35,10 +41,15 @@ LEFT JOIN (
   ON UNIT.sampleunit_id = LOREP.sampleunit_id
 WHERE TRUE
   AND VISIT.visit_done
+  AND (
+    (UNIT.schemes LIKE 'GW%' OR UNIT.schemes LIKE '%GW%')
+    OR (ACT.activity_group = 'LOCEVALTERR')
+  )
+  AND (ACT.activity_group NOT LIKE '%SAMPLPOINT')
 UNION
 SELECT
-  LOCASS.log_user,
-  LOCASS.log_update,
+  OFO.log_user,
+  OFO.log_update,
   UNIT.schemes,
   UNIT.type,
   UNIT.grts_address AS grts_address_original,
@@ -47,20 +58,20 @@ SELECT
     ELSE LOREP.grts_address_replacement
     END AS grts_address,
   NULL AS date_start,
-  LOCASS.type_suggested AS type_assessed,
-  LOCASS.cell_disapproved OR UNIT.type_is_absent AS type_is_absent,
+  NULL AS activity_group_id,
+  'ORTHOPHOTOEVAL' AS activity_group,
+  OFO.type_suggested AS type_assessed,
+  OFO.cell_disapproved OR UNIT.type_is_absent AS type_is_absent,
   'orthophotos' AS eval_source,
-  LOWER(LOCASS.log_user) AS eval_name,
-  CAST(LOCASS.log_update AS DATE) AS eval_date,
-  LOCASS.locationassessment_id AS eval_id,
-  CASE WHEN LOCASS.disapproval_explanation IS NOT NULL THEN (LOCASS.disapproval_explanation || '; ') ELSE '' END ||
-    CASE WHEN LOCASS.notes IS NULL THEN '' ELSE LOCASS.notes END AS notes,
+  LOWER(OFO.log_user) AS eval_name,
+  CAST(OFO.log_update AS DATE) AS eval_date,
+  OFO.orthophotoevaluation_id AS eval_id,
+  CASE WHEN OFO.disapproval_explanation IS NOT NULL THEN (OFO.disapproval_explanation || '; ') ELSE '' END ||
+    CASE WHEN OFO.notes IS NULL THEN '' ELSE OFO.notes END AS notes,
   NULL AS photo
-FROM "outbound"."LocationAssessments" AS LOCASS
+FROM "outbound"."OrthophotoEvaluations" AS OFO
 LEFT JOIN "outbound"."SampleUnits" AS UNIT
-  ON (LOCASS.grts_address = UNIT.grts_address
-     AND LOCASS.type = UNIT.type
-     AND LOCASS.sampleunit_id = UNIT.sampleunit_id)
+  ON (OFO.sampleunit_id = UNIT.sampleunit_id)
 LEFT JOIN (
   SELECT
     sampleunit_id,
@@ -76,9 +87,29 @@ LEFT JOIN (
     AND UNIT.type = LOREP.type
     )
 WHERE TRUE
-  AND LOCASS.assessment_done
+  AND OFO.assessment_done
   AND (UNIT.location_id IS NOT NULL)
 ;
 
 
+GRANT SELECT ON  "transfer"."gwTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
+
+-- synonym for backwards compatibility
+DROP VIEW IF EXISTS  "outbound"."gwTransfer" ;
+CREATE VIEW "outbound"."gwTransfer" AS
+SELECT * FROM "transfer"."gwTransfer";
+
 GRANT SELECT ON  "outbound"."gwTransfer"  TO  reporter_mnmdb, viewer_mnmdb;
+
+COMMIT;
+
+-- SELECT count(*) FROM "transfer"."gwTransfer";
+
+
+
+-- SELECT DISTINCT grts_address, type, date_start, count(*) AS n
+-- FROM "transfer"."gwTransfer"
+-- WHERE eval_source = 'loceval'
+-- GROUP BY grts_address, type, date_start
+-- HAVING count(*) > 1
+-- ;

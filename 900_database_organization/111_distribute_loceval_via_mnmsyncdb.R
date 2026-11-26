@@ -947,8 +947,7 @@ distribute_targetpoints_to_userdatabases <- function(udb) {
 
   message(glue::glue("\t>>> `TargetPoints`"))
 
-  targetpoints <- loceval_connection$query_table("TargetPoints") %>%
-    dplyr::select(-type) # temporary: type still exists in loceval, but not used
+  targetpoints <- loceval_connection$query_table("TargetPoints")
   existing <- mnmdb$query_table("TargetPoints")
   # existing %>% dplyr::glimpse()
 
@@ -960,6 +959,7 @@ distribute_targetpoints_to_userdatabases <- function(udb) {
         log_creation,
         log_user,
         log_update,
+        unit_code,
         date_selection,
         notes,
         photo,

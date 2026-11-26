@@ -41,8 +41,13 @@ choose a GRTS
 
 ```{r choose-grts}
 # filter(grts_address %in% c(1999406, 6417454))
-#
-grts <- c(37049) # issue with PositioningVisits date_start non-matching
+
+grts <- c(1902553) # c(187382) # c(51431410) # c(1902553) # c(127710, 1176286) # more stray activities
+  # c(48950) # stray READDIVER activity 3/2026 -> asked @YDC -> then removed visit
+  # c(31682546) # location where extra activities appeared by modifying prior installations
+  # c(48897) # 9130_end apparently duplicate loceval # 29073
+  # c(187061, 16964277) # no random points -> cell map was erroneously set to `2190_mp` (instead of `2190_overig`)
+  # c(37049) # issue with PositioningVisits date_start non-matching
   # c(54238, 8442846) # QGIS test "permission notes" [staging]
   # c(144561) # cell registered for both aquatic and terrestrial sample unit; shift of cell center is problematic
   # c(36169) # 20261008 Visit info was filled on two Visits via ReplacementOngoing ambiguous association
@@ -61,9 +66,9 @@ grts <- c(37049) # issue with PositioningVisits date_start non-matching
   # c(83694, 364822, 1519830) #, 70530, 25236354) # in monitoring zones of other institute
   # c(31414) # loceval not possible due to erroneous ofo disapproval
   # c(1126121, 1995222, 29258198) # yet another loceval double registration (the latter two are local replacement)
-# grts <- c(1999406, 6417454) # replacement happened; but location went to archive 7
+  # grts <- c(1999406, 6417454) # replacement happened; but location went to archive 7
+  # grts <- c(1946498, 4354946, 1353694, 1118141, 29258198, 7853673) # new uploads rep update snips 0.15.0
     # c(6110, 1118141,   18986217,  9366, 12592278) # accidental retrospective fill-in of a frozen location 
-# grts <- c(1946498, 4354946, 1353694, 1118141, 29258198, 7853673) # new uploads rep update snips 0.15.0
     # c(12401, 11825, 13686)
     # c(50354734, 20994606) # replacement happened; but location went to archive 7
     # c(22021842) # potential frozen duplicate
@@ -403,7 +408,8 @@ eva_print_visits <- function() {
       agid = activity_group_id,
       fcid = fieldcalendar_id,
       archv = archive_version_id,
-      vid = visit_id
+      vid = visit_id,
+      done = visit_done
     ) %>%
     dplyr::select(
       grts,
@@ -415,7 +421,8 @@ eva_print_visits <- function() {
       agid,
       date_start,
       archv,
-      date_visit
+      date_visit,
+      done
     ) %>%
     arrange(type, date_start, agid) %>% 
     knitr::kable()
@@ -738,7 +745,8 @@ gw_print_visits <- function() {
       fcid = fieldcalendar_id,
       archv = archive_version_id,
       vid = visit_id,
-      tid = teammember_id
+      tid = teammember_id,
+      done = visit_done
     ) %>%
     dplyr::select(
       grts,
@@ -752,7 +760,8 @@ gw_print_visits <- function() {
       archv,
       tid,
       issues,
-      date_visit
+      date_visit,
+      done
     ) %>%
     arrange(stratum, date_start, agid) %>% 
     knitr::kable()
@@ -1113,7 +1122,8 @@ surf_print_visits <- function() {
       fcid = fieldcalendar_ids,
       archv = archive_version_id,
       vid = visit_id,
-      tid = teammember_id
+      tid = teammember_id,
+      done = visit_done
     ) %>%
     dplyr::select(
       grts,
@@ -1127,7 +1137,8 @@ surf_print_visits <- function() {
       archv,
       tid,
       issues,
-      date_visit
+      date_visit,
+      done
     ) %>%
     arrange(stratums, date_start, agid) %>% 
     knitr::kable()

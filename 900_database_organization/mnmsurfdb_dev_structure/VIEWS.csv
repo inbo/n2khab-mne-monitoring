@@ -833,6 +833,7 @@ outbound,LocevalInfo,"SELECT
   LOC.*,
   LOCEVAL.locationevaluation_id,
   LOCEVAL.schemes,
+  LOCEVAL.activity_group,
   LOCEVAL.type,
   LOCEVAL.type_assessed,
   LOCEVAL.type_is_absent,
@@ -840,7 +841,14 @@ outbound,LocevalInfo,"SELECT
   LOCEVAL.eval_name,
   LOCEVAL.eval_date,
   LOCEVAL.notes,
-  LOCEVAL.photo
+  LOCEVAL.photo,
+  CASE WHEN (LOCEVAL.type_is_absent
+    OR
+    ( LOCEVAL.type_assessed IS NOT NULL
+      AND NOT (LOCEVAL.type_assessed = LOCEVAL.type)
+    )) THEN FALSE
+    ELSE TRUE
+    END AS loceval_is_positive
 FROM ""transfer"".""LocationEvaluations"" AS LOCEVAL
 LEFT JOIN ""outbound"".""SampleUnits"" AS UNIT
   ON (LOCEVAL.sampleunit_id = UNIT.sampleunit_id)
@@ -1063,8 +1071,7 @@ outbound,FieldCalendarsAggregated,"SELECT
   BOOL_AND(is_frozen)           AS is_frozen,
   BOOL_AND(excluded) AS excluded,
   STRING_AGG(DISTINCT excluded_reason, ', ') AS excluded_reason,
-  BOOL_AND(done_planning) AS done_planning,
-  CASE WHEN BOOL_AND(date_visit_planned IS NULL) THEN FALSE ELSE BOOL_OR(done_planning) END AS is_scheduled
+  BOOL_AND(done_planning) AS done_planning
 FROM ""outbound"".""FieldCalendars""
 WHERE archive_version_id IS NULL
 GROUP BY grts_address, date_start, activity_group_id, matching_occasion, visit_id
