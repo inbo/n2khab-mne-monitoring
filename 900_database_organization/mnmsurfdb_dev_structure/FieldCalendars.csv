@@ -24,6 +24,5 @@ is_sideloaded,boolean,False,,False,False,,,,(technical) this calendar event was 
 is_frozen,boolean,True,0,False,False,,,,tag calendar entries which are retained from before the current REP temporal scope
 excluded,boolean,True,0,False,False,,,,activity obsolete due to sample updates or prior activities
 excluded_reason,text,False,NULL,False,False,,,,reason for exclusion (e.g. loceval type not found)
-notes,text,False,NULL,False,False,,,,Free text notes from the previous visits
 done_planning,boolean,True,0,False,False,,,,flag to indicate preparation status
 archive_version_id,smallint,False,NULL,False,False,metadata.Versions.version_id,,,(technical) flag archived calendar entries
