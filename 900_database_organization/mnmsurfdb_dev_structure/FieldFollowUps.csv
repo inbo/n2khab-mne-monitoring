@@ -9,8 +9,6 @@ issue_date,date,True,current_date,False,False,,,,date of observation
 location,varchar,False,NULL,False,False,,,,"free reference to the location (database id, watina location, grts address, ...)"
 todo,varchar,False,NULL,False,False,,,,what is to do?
 activity,varchar,False,NULL,False,False,,,,is this related to an activity? (free text)
-replacement,boolean,False,0,False,False,,,,mark necessary replacements
-repair,boolean,False,0,False,False,,,,mark necessary repairs
 chlorophyll_extra,boolean,False,NULL,False,False,,,,extra location (or not) for Chlorophyll test measurements
 desktop_only,boolean,False,0,False,False,,,,mark desktop work
 photo,varchar,False,NULL,False,False,,,,an optional photo of the desaster
