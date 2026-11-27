@@ -72,6 +72,13 @@ I hand-edited the field forms in QGIS.
 
 ### Drop Tables
 
+```sql
+DROP TABLE IF EXISTS "inbound"."GeoObservations";
+DROP TABLE IF EXISTS "inbound"."TerraBioObservations";
+DROP TABLE IF EXISTS "inbound"."AquaBioObservations";
+DROP TABLE IF EXISTS "inbound"."LanduseObservations";
+```
+
 
 ## Data Uniformity
 There was a mix of using percentages and classes, which might be user-dependent.

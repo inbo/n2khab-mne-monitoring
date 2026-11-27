@@ -1,4 +1,4 @@
-
+BEGIN;
 
 CREATE TABLE "archive"."ObsoleteObservations2026Q4"
 AS SELECT *
@@ -15,3 +15,5 @@ DROP TABLE IF EXISTS "inbound"."GeoObservations";
 DROP TABLE IF EXISTS "inbound"."TerraBioObservations";
 DROP TABLE IF EXISTS "inbound"."AquaBioObservations";
 DROP TABLE IF EXISTS "inbound"."LanduseObservations";
+
+COMMIT;
