@@ -25,10 +25,6 @@ inbound,Observations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmd
 inbound,SampleContextObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations on and around the water body of interest
 inbound,PerturbationObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations of relevant perturbations of the natural environment (PNE)
 inbound,MeteorolObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations about the weather
-inbound,GeoObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,observations about geological factors which should be relatively constant; e.g. morphometry
-inbound,TerraBioObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,"surrounding, terrestrial vegetation as an influential factor"
-inbound,AquaBioObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,aquatic biotics: rough sketch of aquabotany and aquazoology
-inbound,LanduseObservations,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",,,"""inbound"".""Observations""",,1,,potentially influential aspects of the anthropogenic environment of permanent type
 inbound,FreeFieldNotes,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"free notes to be placed on a point on the map, can be related to field visits or prepared in the lab"
 inbound,Trails,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",LINESTRING,,,,1,,store and share paths which facilitate relocation in the field
 inbound,FieldFollowUps,yoda,"viewer_mnmdb, tester_mnmdb","user_surfdb, tester_mnmdb",POINT,,,,1,,"forgotten, but never really forgotten tasks"
